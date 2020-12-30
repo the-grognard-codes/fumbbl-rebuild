@@ -9,7 +9,8 @@ import com.balancedbytes.games.ffb.SkillCategory;
 import com.balancedbytes.games.ffb.model.Skill;
 
 /**
- * The player may add 1 to the D6 roll when he passes.
+ * When this player performs a Quick Pass action or a Short Pass action,
+ * you may apply an additional +1 modifier to the Passing Ability test.
  */
 @RulesCollection(Rules.BB2020)
 public class Accurate extends Skill {
