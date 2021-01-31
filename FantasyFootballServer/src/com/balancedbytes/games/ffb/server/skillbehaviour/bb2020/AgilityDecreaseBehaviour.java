@@ -10,6 +10,8 @@ public class AgilityDecreaseBehaviour extends SkillBehaviour<AgilityDecrease> {
 	public AgilityDecreaseBehaviour() {
 		super();
 
-		registerModifier(player -> player.setAgility(player.getAgility() + 1));
+		registerModifier(player -> player.setAgility(
+			Math.min(6, player.getAgility() + 1))
+		);
 	}
 }
