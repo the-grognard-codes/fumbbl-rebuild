@@ -9,7 +9,7 @@ import com.balancedbytes.games.ffb.model.property.NamedProperties;
 import com.balancedbytes.games.ffb.util.UtilCards;
 import com.balancedbytes.games.ffb.util.UtilPlayer;
 
-@RulesCollection(RulesCollection.Rules.COMMON)
+@RulesCollection(RulesCollection.Rules.BB2016)
 public class JumpMechanic extends com.balancedbytes.games.ffb.mechanics.JumpMechanic {
 	@Override
 	public boolean isAvailableAsNextMove(Game game, ActingPlayer actingPlayer, boolean jumping) {
