@@ -18,7 +18,7 @@ public class StaticInjuryModifier extends RegistrationAwareModifier implements I
 		fNigglingInjuryModifier = pNigglingInjuryModifier;
 	}
 
-	public int getModifier() {
+	public int getModifier(InjuryModifierContext context) {
 		return fModifier;
 	}
 

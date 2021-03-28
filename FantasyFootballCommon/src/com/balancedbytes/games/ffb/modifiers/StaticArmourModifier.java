@@ -1,5 +1,7 @@
 package com.balancedbytes.games.ffb.modifiers;
 
+import com.balancedbytes.games.ffb.model.Player;
+
 public class StaticArmourModifier extends RegistrationAwareModifier implements ArmorModifier {
 
 	private final String fName;
@@ -12,7 +14,7 @@ public class StaticArmourModifier extends RegistrationAwareModifier implements A
 		fFoulAssistModifier = pFoulAssistModifier;
 	}
 
-	public int getModifier() {
+	public int getModifier(Player<?> player) {
 		return fModifier;
 	}
 
