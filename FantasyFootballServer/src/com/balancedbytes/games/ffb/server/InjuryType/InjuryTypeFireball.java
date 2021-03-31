@@ -5,20 +5,19 @@ import com.balancedbytes.games.ffb.FactoryType;
 import com.balancedbytes.games.ffb.FieldCoordinate;
 import com.balancedbytes.games.ffb.InjuryContext;
 import com.balancedbytes.games.ffb.PlayerState;
+import com.balancedbytes.games.ffb.SpecialEffect;
 import com.balancedbytes.games.ffb.factory.InjuryModifierFactory;
-import com.balancedbytes.games.ffb.factory.SkillFactory;
 import com.balancedbytes.games.ffb.injury.Fireball;
 import com.balancedbytes.games.ffb.model.Game;
 import com.balancedbytes.games.ffb.model.Player;
-import com.balancedbytes.games.ffb.model.skill.Skill;
-import com.balancedbytes.games.ffb.model.property.NamedProperties;
+import com.balancedbytes.games.ffb.modifiers.ArmorModifierFactory;
+import com.balancedbytes.games.ffb.modifiers.SpecialEffectArmourModifier;
 import com.balancedbytes.games.ffb.server.DiceInterpreter;
 import com.balancedbytes.games.ffb.server.DiceRoller;
 import com.balancedbytes.games.ffb.server.GameState;
 import com.balancedbytes.games.ffb.server.step.IStep;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 public class InjuryTypeFireball extends InjuryTypeServer<Fireball> {
 	public InjuryTypeFireball() {
@@ -31,13 +30,12 @@ public class InjuryTypeFireball extends InjuryTypeServer<Fireball> {
 			ApothecaryMode pApothecaryMode) {
 
 		DiceInterpreter diceInterpreter = DiceInterpreter.getInstance();
-		SkillFactory factory = game.getFactory(FactoryType.Factory.SKILL);
-		Optional<Skill> foundSkill = factory.getSkills().stream().filter(skill -> skill.hasSkillProperty(NamedProperties.affectsEitherArmourOrInjuryOnBlock)).findFirst();
 		if (!injuryContext.isArmorBroken()) {
 			injuryContext.setArmorRoll(diceRoller.rollArmour());
 			injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
 			if (!injuryContext.isArmorBroken()) {
-				foundSkill.ifPresent(skill -> skill.getArmorModifiers().forEach(injuryContext::addArmorModifier));
+				((ArmorModifierFactory) game.getFactory(FactoryType.Factory.ARMOUR_MODIFIER)).specialEffectArmourModifiers(SpecialEffect.FIREBALL)
+					.forEach(injuryContext::addArmorModifier);
 				injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
 			}
 		}
@@ -47,11 +45,12 @@ public class InjuryTypeFireball extends InjuryTypeServer<Fireball> {
 			injuryContext.addInjuryModifier(((InjuryModifierFactory)game.getFactory(FactoryType.Factory.INJURY_MODIFIER)).getNigglingInjuryModifier(pDefender));
 
 			if (Arrays.stream(injuryContext.getArmorModifiers())
-				.noneMatch(modifier -> modifier.isRegisteredToSkillWithProperty(NamedProperties.affectsEitherArmourOrInjuryOnBlock))) {
-				foundSkill.ifPresent(skill -> skill.getInjuryModifiers().forEach(injuryContext::addInjuryModifier));
+				.noneMatch(modifier -> modifier instanceof SpecialEffectArmourModifier)) {
+				((InjuryModifierFactory) game.getFactory(FactoryType.Factory.INJURY_MODIFIER)).specialEffectInjuryModifiers(SpecialEffect.FIREBALL)
+					.forEach(injuryContext::addInjuryModifier);
 			}
-
 			setInjury(pDefender, gameState, diceRoller);
+
 		} else {
 			injuryContext.setInjury(new PlayerState(PlayerState.PRONE));
 		}
