@@ -8,16 +8,11 @@ import com.balancedbytes.games.ffb.server.step.IStepLabel;
 import com.balancedbytes.games.ffb.server.step.StepId;
 import com.balancedbytes.games.ffb.server.step.StepParameterKey;
 import com.balancedbytes.games.ffb.server.step.generator.Sequence;
-import com.balancedbytes.games.ffb.server.step.generator.SequenceGenerator;
 
 import static com.balancedbytes.games.ffb.server.step.StepParameter.from;
 
 @RulesCollection(RulesCollection.Rules.BB2016)
 public class BlitzBlock extends com.balancedbytes.games.ffb.server.step.generator.BlitzBlock {
-
-	public BlitzBlock() {
-		super(SequenceGenerator.Type.BlitzBlock);
-	}
 
 	@Override
 	public void pushSequence(SequenceParams params) {
