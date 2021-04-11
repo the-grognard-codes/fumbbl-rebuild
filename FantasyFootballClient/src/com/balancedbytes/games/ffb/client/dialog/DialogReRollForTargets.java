@@ -99,7 +99,7 @@ public class DialogReRollForTargets extends Dialog {
 			targetPanel.setAlignmentX(CENTER_ALIGNMENT);
 
 			String target = parameter.getTargetIds().get(index);
-			if (parameter.getTeamReRollAvailableAgainst().contains(target)) {
+			if (parameter.getReRollAvailableAgainst().contains(target)) {
 				Player<?> player = game.getPlayerById(parameter.getTargetIds().get(index));
 				if (parameter.getMinimumRolls().size() > index) {
 					JPanel textPanel = new JPanel();
