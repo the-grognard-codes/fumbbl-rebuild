@@ -59,8 +59,7 @@ public class DialogUseApothecariesHandler extends DialogHandler {
 		List<String> playerIds = new ArrayList<>();
 		if (testDialogHasId(pDialog, DialogId.USE_APOTHECARY)) {
 			DialogUseApothecary dialog = (DialogUseApothecary) pDialog;
-			Game game = getClient().getGame();
-			DialogUseApothecaryParameter dialogParameter = (DialogUseApothecaryParameter) game.getDialogParameter();
+			DialogUseApothecaryParameter dialogParameter = dialog.getDialogParameter();
 			if (dialog.isChoiceYes()) {
 				playerIds.add(dialogParameter.getPlayerId());
 			}
