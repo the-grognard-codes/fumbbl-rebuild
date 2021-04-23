@@ -13,6 +13,6 @@ public class PileDriver extends Skill {
 
 	@Override
 	public void postConstruct() {
-		registerProperty(NamedProperties.allowFoulAfterBlock);
+		registerProperty(NamedProperties.canFoulAfterBlock);
 	}
 }
