@@ -20,17 +20,17 @@ import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
-import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.ScatterPlayer;
+import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 
 /**
  * Step to end ttm scatter sequence.
- *
+ * <p>
  * Expects stepParameter THROWN_PLAYER_ID to be set by a preceding step. Expects
  * stepParameter THROWN_PLAYER_STATE to be set by a preceding step. Expects
  * stepParameter THROWN_PLAYER_HAS_BALL to be set by a preceding step. Expects
  * stepParameter THROWN_PLAYER_COORDINATE to be set by a preceding step.
- *
+ * <p>
  * Consumes all known parameters. May push new scatterPlayerSequence on the
  * stack.
  *
@@ -43,7 +43,7 @@ public final class StepEndScatterPlayer extends AbstractStep {
 	private boolean fThrownPlayerHasBall;
 	private PlayerState fThrownPlayerState;
 	private FieldCoordinate fThrownPlayerCoordinate;
-	private boolean fIsKickedPlayer;
+	private boolean fIsKickedPlayer, crashLanding;
 
 	public StepEndScatterPlayer(GameState pGameState) {
 		super(pGameState);
@@ -57,30 +57,33 @@ public final class StepEndScatterPlayer extends AbstractStep {
 	public boolean setParameter(StepParameter pParameter) {
 		if ((pParameter != null) && !super.setParameter(pParameter)) {
 			switch (pParameter.getKey()) {
-			case KICKED_PLAYER_ID:
-			case THROWN_PLAYER_ID:
-				fThrownPlayerId = (String) pParameter.getValue();
-				consume(pParameter);
-				return true;
-			case KICKED_PLAYER_HAS_BALL:
-			case THROWN_PLAYER_HAS_BALL:
-				fThrownPlayerHasBall = (pParameter.getValue() != null) ? (Boolean) pParameter.getValue() : false;
-				consume(pParameter);
-				return true;
-			case KICKED_PLAYER_STATE:
-			case THROWN_PLAYER_STATE:
-				fThrownPlayerState = (PlayerState) pParameter.getValue();
-				consume(pParameter);
-				return true;
-			case KICKED_PLAYER_COORDINATE:
-			case THROWN_PLAYER_COORDINATE:
-				fThrownPlayerCoordinate = (FieldCoordinate) pParameter.getValue();
-				return true;
-			case IS_KICKED_PLAYER:
-				fIsKickedPlayer = (pParameter.getValue() != null) ? (Boolean) pParameter.getValue() : false;
-				return true;
-			default:
-				break;
+				case KICKED_PLAYER_ID:
+				case THROWN_PLAYER_ID:
+					fThrownPlayerId = (String) pParameter.getValue();
+					consume(pParameter);
+					return true;
+				case KICKED_PLAYER_HAS_BALL:
+				case THROWN_PLAYER_HAS_BALL:
+					fThrownPlayerHasBall = (pParameter.getValue() != null) ? (Boolean) pParameter.getValue() : false;
+					consume(pParameter);
+					return true;
+				case KICKED_PLAYER_STATE:
+				case THROWN_PLAYER_STATE:
+					fThrownPlayerState = (PlayerState) pParameter.getValue();
+					consume(pParameter);
+					return true;
+				case KICKED_PLAYER_COORDINATE:
+				case THROWN_PLAYER_COORDINATE:
+					fThrownPlayerCoordinate = (FieldCoordinate) pParameter.getValue();
+					return true;
+				case IS_KICKED_PLAYER:
+					fIsKickedPlayer = (pParameter.getValue() != null) ? (Boolean) pParameter.getValue() : false;
+					return true;
+				case CRASH_LANDING:
+					crashLanding = (pParameter.getValue() != null) ? (Boolean) pParameter.getValue() : false;
+					return true;
+				default:
+					break;
 			}
 		}
 		return false;
@@ -106,9 +109,9 @@ public final class StepEndScatterPlayer extends AbstractStep {
 		Player<?> thrownPlayer = game.getPlayerById(fThrownPlayerId);
 		if ((thrownPlayer != null) && (fThrownPlayerState != null) && (fThrownPlayerCoordinate != null)) {
 			SequenceGeneratorFactory factory = game.getFactory(FactoryType.Factory.SEQUENCE_GENERATOR);
-			((ScatterPlayer)factory.forName(SequenceGenerator.Type.ScatterPlayer.name()))
+			((ScatterPlayer) factory.forName(SequenceGenerator.Type.ScatterPlayer.name()))
 				.pushSequence(new ScatterPlayer.SequenceParams(getGameState(), fThrownPlayerId, fThrownPlayerState,
-					fThrownPlayerHasBall, fThrownPlayerCoordinate, false, false));
+					fThrownPlayerHasBall, fThrownPlayerCoordinate, false, false, false, crashLanding));
 			if (fIsKickedPlayer) {
 				publishParameter(new StepParameter(StepParameterKey.IS_KICKED_PLAYER, true));
 			}
@@ -126,6 +129,7 @@ public final class StepEndScatterPlayer extends AbstractStep {
 		IServerJsonOption.THROWN_PLAYER_HAS_BALL.addTo(jsonObject, fThrownPlayerHasBall);
 		IServerJsonOption.THROWN_PLAYER_COORDINATE.addTo(jsonObject, fThrownPlayerCoordinate);
 		IServerJsonOption.IS_KICKED_PLAYER.addTo(jsonObject, fIsKickedPlayer);
+		IServerJsonOption.CRASH_LANDING.addTo(jsonObject, crashLanding);
 		return jsonObject;
 	}
 
@@ -138,6 +142,7 @@ public final class StepEndScatterPlayer extends AbstractStep {
 		fThrownPlayerHasBall = IServerJsonOption.THROWN_PLAYER_HAS_BALL.getFrom(game, jsonObject);
 		fThrownPlayerCoordinate = IServerJsonOption.THROWN_PLAYER_COORDINATE.getFrom(game, jsonObject);
 		fIsKickedPlayer = IServerJsonOption.IS_KICKED_PLAYER.getFrom(game, jsonObject);
+		crashLanding = IServerJsonOption.CRASH_LANDING.getFrom(game, jsonObject);
 		return this;
 	}
 
