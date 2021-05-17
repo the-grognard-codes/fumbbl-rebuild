@@ -29,7 +29,7 @@ import com.fumbbl.ffb.util.UtilRangeRuler;
 public class ClientStateThrowTeamMate extends ClientStateMove {
 
 	private boolean fShowRangeRuler;
-	private RangeGridHandler fRangeGridHandler;
+	private final RangeGridHandler fRangeGridHandler;
 
 	protected ClientStateThrowTeamMate(FantasyFootballClient pClient) {
 		super(pClient);
@@ -43,7 +43,6 @@ public class ClientStateThrowTeamMate extends ClientStateMove {
 	public void enterState() {
 		super.enterState();
 		setSelectable(true);
-//    fShowRangeRuler = true;
 		markThrowablePlayers();
 		fRangeGridHandler.refreshSettings();
 	}
