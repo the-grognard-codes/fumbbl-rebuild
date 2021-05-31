@@ -1,7 +1,6 @@
 package com.fumbbl.ffb.client.dialog;
 
 import com.fumbbl.ffb.ClientMode;
-import com.fumbbl.ffb.ReRollSources;
 import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.SoundId;
 import com.fumbbl.ffb.StatusType;
@@ -81,11 +80,7 @@ public class DialogBlockRollHandler extends DialogHandler {
 				blockRoll.setSelectedIndex(blockRollDialog.getDiceIndex());
 				clientData.setBlockDiceResult(Collections.singletonList(blockRoll));
 				if (blockRoll.needsSelection()) {
-					if (blockRollDialog.getReRollSource() == ReRollSources.BRAWLER) {
-						communication.sendUseBrawler(blockRollDialog.getBrawlerCount(), null);
-					} else {
-						communication.sendUseReRoll(ReRolledActions.BLOCK, blockRollDialog.getReRollSource());
-					}
+					communication.sendUseReRoll(ReRolledActions.BLOCK, blockRollDialog.getReRollSource());
 				} else {
 					communication.sendBlockChoice(blockRollDialog.getDiceIndex());
 				}
