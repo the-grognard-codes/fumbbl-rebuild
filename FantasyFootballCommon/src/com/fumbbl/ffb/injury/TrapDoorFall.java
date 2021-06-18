@@ -7,7 +7,7 @@ import com.fumbbl.ffb.model.Player;
 public class TrapDoorFall extends InjuryType {
 
 	public TrapDoorFall() {
-		super("trapdoorfall", false, SendToBoxReason.TRAP_DOOR_FALL);
+		super("trapdoorFall", false, SendToBoxReason.TRAP_DOOR_FALL);
 	}
 
 	@Override
