@@ -5,10 +5,6 @@ import com.fumbbl.ffb.IIconProperty;
 import com.fumbbl.ffb.client.FantasyFootballClient;
 import com.fumbbl.ffb.model.Game;
 
-/**
- * 
- * @author Kalimar
- */
 public class DialogSelectBlitzTargetHandler extends DialogHandler {
 
 	public DialogSelectBlitzTargetHandler(FantasyFootballClient pClient) {
