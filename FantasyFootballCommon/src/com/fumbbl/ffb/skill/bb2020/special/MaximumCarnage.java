@@ -15,6 +15,6 @@ public class MaximumCarnage extends Skill {
 
 	@Override
 	public void postConstruct() {
-		registerProperty(NamedProperties.canPerformaSecondChainsawAttack);
+		registerProperty(NamedProperties.canPerformSecondChainsawAttack);
 	}
 }
