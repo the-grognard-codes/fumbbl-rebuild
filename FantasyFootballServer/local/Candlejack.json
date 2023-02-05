@@ -26,7 +26,7 @@
       ],
       "injuryAttributes": [],
       "applyTo": "BOTH",
-      "gainedOnly": true,
+      "gainedOnly": false,
       "marking": "D",
       "applyRepeatedly": false
     },
@@ -36,7 +36,7 @@
       ],
       "injuryAttributes": [],
       "applyTo": "BOTH",
-      "gainedOnly": true,
+      "gainedOnly": false,
       "marking": "T",
       "applyRepeatedly": false
     },
@@ -46,7 +46,7 @@
       ],
       "injuryAttributes": [],
       "applyTo": "BOTH",
-      "gainedOnly": true,
+      "gainedOnly": false,
       "marking": "M",
       "applyRepeatedly": false
     },
@@ -56,7 +56,7 @@
       ],
       "injuryAttributes": [],
       "applyTo": "BOTH",
-      "gainedOnly": true,
+      "gainedOnly": false,
       "marking": "B",
       "applyRepeatedly": false
     },
