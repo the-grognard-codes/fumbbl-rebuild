@@ -26,7 +26,7 @@ public class InjuryTypeChainsaw extends ModificationAwareInjuryTypeServer<Chains
 		injuryContext.setInjuryRoll(diceRoller.rollInjury());
 		InjuryModifierFactory factory = game.getFactory(FactoryType.Factory.INJURY_MODIFIER);
 		factory.findInjuryModifiers(game, injuryContext, pAttacker,
-			pDefender, isStab(), isFoul(), isVomit()).forEach(injuryContext::addInjuryModifier);
+			pDefender, isStab(), isFoul(), isVomitLike()).forEach(injuryContext::addInjuryModifier);
 
 		setInjury(pDefender, gameState, diceRoller, injuryContext);
 	}
