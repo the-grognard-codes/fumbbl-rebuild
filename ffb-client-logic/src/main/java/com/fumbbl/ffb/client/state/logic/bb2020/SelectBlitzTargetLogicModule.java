@@ -98,7 +98,6 @@ public class SelectBlitzTargetLogicModule extends MoveLogicModule {
 						communication.sendUseSkill(skill, true, player.getId());
 					}
 					break;
-
 				case THEN_I_STARTED_BLASTIN:
 					if (isThenIStartedBlastinAvailable(player)) {
 						Skill skill = player.getSkillWithProperty(NamedProperties.canBlastRemotePlayer);
