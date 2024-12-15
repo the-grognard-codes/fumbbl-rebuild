@@ -44,8 +44,9 @@ public class KickTeamMateLikeThrowLogicModule extends MoveLogicModule {
 				return new InteractionResult(InteractionResult.Kind.PERFORM);
 			}
 			if (game.getDefender() != null) {
+				game.getFieldModel().setRangeRuler(null);
 				client.getCommunication().sendThrowTeamMate(actingPlayer.getPlayerId(),
-						game.getFieldModel().getPlayerCoordinate(pPlayer), true);
+					game.getFieldModel().getPlayerCoordinate(pPlayer), true);
 				return new InteractionResult(InteractionResult.Kind.HANDLED);
 			}
 		}
@@ -59,6 +60,7 @@ public class KickTeamMateLikeThrowLogicModule extends MoveLogicModule {
 		if (actingPlayer.getPlayerAction() == PlayerAction.KICK_TEAM_MATE_MOVE) {
 			return new InteractionResult(InteractionResult.Kind.SUPER);
 		} else {
+			game.getFieldModel().setRangeRuler(null);
 			client.getCommunication().sendThrowTeamMate(actingPlayer.getPlayerId(), pCoordinate, true);
 			return new InteractionResult(InteractionResult.Kind.HANDLED);
 		}
@@ -84,7 +86,6 @@ public class KickTeamMateLikeThrowLogicModule extends MoveLogicModule {
 				return new InteractionResult(InteractionResult.Kind.RESET);
 			}
 		}
-//    if ((PlayerAction.THROW_TEAM_MATE == actingPlayer.getPlayerAction()) && (game.getPassCoordinate() == null)) {
 		if ((game.getDefender() != null) && (game.getPassCoordinate() == null)) {
 			return new InteractionResult(InteractionResult.Kind.DRAW);
 		}
@@ -105,16 +106,19 @@ public class KickTeamMateLikeThrowLogicModule extends MoveLogicModule {
 	}
 
 	public Player<?>[] findKickablePlayers(Game game, Player<?> pThrower) {
+		if (game.getDefender() != null) {
+			return null;
+		}
 		TtmMechanic mechanic = (TtmMechanic) game.getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.TTM.name());
 
-			FieldModel fieldModel = game.getFieldModel();
-			FieldCoordinate throwerCoordinate = fieldModel.getPlayerCoordinate(pThrower);
+		FieldModel fieldModel = game.getFieldModel();
+		FieldCoordinate throwerCoordinate = fieldModel.getPlayerCoordinate(pThrower);
 
-			return Arrays.stream(fieldModel.findAdjacentCoordinates(throwerCoordinate, FieldCoordinateBounds.FIELD,
+		return Arrays.stream(fieldModel.findAdjacentCoordinates(throwerCoordinate, FieldCoordinateBounds.FIELD,
 				1, false))
-				.map(fieldModel::getPlayer)
-				.filter(Objects::nonNull)
-				.filter(player -> mechanic.canBeKicked(game, player)).toArray(Player[]::new);
+			.map(fieldModel::getPlayer)
+			.filter(Objects::nonNull)
+			.filter(player -> mechanic.canBeKicked(game, player)).toArray(Player[]::new);
 	}
 
 
