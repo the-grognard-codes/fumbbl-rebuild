@@ -38,8 +38,9 @@ public class KickoffReturnLogicModule extends MoveLogicModule {
 		Game game = client.getGame();
 		MoveSquare moveSquare = game.getFieldModel().getMoveSquare(pCoordinate);
 		if (moveSquare != null) {
-			movePlayer(pCoordinate);
-			return new InteractionResult(InteractionResult.Kind.HANDLED);
+			if (movePlayer(pCoordinate)) {
+				return new InteractionResult(InteractionResult.Kind.HANDLED);
+			}
 		}
 		return new InteractionResult(InteractionResult.Kind.IGNORE);
 	}
