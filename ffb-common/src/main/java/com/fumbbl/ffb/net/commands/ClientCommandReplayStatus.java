@@ -31,6 +31,22 @@ public class ClientCommandReplayStatus extends ClientCommand {
 		return NetCommandId.CLIENT_REPLAY_STATUS;
 	}
 
+	public int getCommandNr() {
+		return commandNr;
+	}
+
+	public int getSpeed() {
+		return speed;
+	}
+
+	public boolean isRunning() {
+		return running;
+	}
+
+	public boolean isForward() {
+		return forward;
+	}
+
 	// JSON serialization
 
 	public JsonObject toJsonValue() {
