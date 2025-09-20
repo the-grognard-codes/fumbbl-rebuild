@@ -15,6 +15,6 @@ public class RightClickStrategy implements ClickStrategy {
 
 	@Override
 	public int getOrder() {
-		return 4; // Right click is last
+		return 5; // Right click is last
 	}
 }
