@@ -79,6 +79,66 @@
       "gainedOnly": true,
       "marking": "Dt",
       "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "NI"
+      ],
+      "marking": "n",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "AG"
+      ],
+      "marking": "-Ag",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "AV"
+      ],
+      "marking": "-Av",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "MA"
+      ],
+      "marking": "-M",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "PA"
+      ],
+      "marking": "-P",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
+    },
+    {
+      "skillArray": [],
+      "injuryAttributes": [
+        "ST"
+      ],
+      "marking": "-S",
+      "gainedOnly": true,
+      "applyTo": "BOTH",
+      "applyRepeatedly": false
     }
   ]
 }
