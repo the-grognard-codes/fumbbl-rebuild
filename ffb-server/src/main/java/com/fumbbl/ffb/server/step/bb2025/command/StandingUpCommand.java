@@ -7,16 +7,12 @@ import com.fumbbl.ffb.server.step.DeferredCommand;
 import com.fumbbl.ffb.server.step.IStep;
 
 public class StandingUpCommand implements DeferredCommand {
-	private final Game game;
-
-	public StandingUpCommand(Game game) {
-		this.game = game;
-	}
 
 	@Override
-		public void execute(IStep step) {
-				game.getActingPlayer().setStandingUp(false);
-		}
+	public void execute(IStep step) {
+		Game game = step.getGameState().getGame();
+		game.getActingPlayer().setStandingUp(false);
+	}
 
 	@Override
 	public Object initFrom(IFactorySource source, JsonValue jsonValue) {
