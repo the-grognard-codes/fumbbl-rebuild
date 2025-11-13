@@ -125,5 +125,4 @@ public class Block extends com.fumbbl.ffb.server.step.generator.Block {
 		gameState.getStepStack().push(sequence.getSequence());
 
 	}
-
 }
