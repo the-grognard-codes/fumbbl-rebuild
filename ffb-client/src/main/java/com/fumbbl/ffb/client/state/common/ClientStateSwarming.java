@@ -4,7 +4,7 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.client.FantasyFootballClientAwt;
 import com.fumbbl.ffb.client.state.AbstractClientStateSetup;
-import com.fumbbl.ffb.client.state.logic.SwarmingLogicModule;
+import com.fumbbl.ffb.client.state.logic.mixed.SwarmingLogicModule;
 
 @RulesCollection(RulesCollection.Rules.COMMON)
 public class ClientStateSwarming extends AbstractClientStateSetup<SwarmingLogicModule> {
