@@ -11,6 +11,11 @@ import com.fumbbl.ffb.model.Team;
 public class SppMechanic extends com.fumbbl.ffb.mechanics.SppMechanic {
 
 	@Override
+	public int mvpSpp() {
+		return 4;
+	}
+
+	@Override
 	public int touchdownSpp(Team team) {
 		return hasBrawlinBrutes(team) ? 2 : 3;
 	}
