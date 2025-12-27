@@ -25,7 +25,7 @@ public class MascotUsedMessage extends ReportMessageBase<ReportMascotUsed> {
 		println(getIndent(), builder.toString());
 
 		if (!report.isSuccessful()) {
-			println(getIndent() + 1, TextStyle.NONE, "(Roll >= " + report.getMinimumRoll() + " to succceed)");
+			println(getIndent() + 1, TextStyle.NONE, "(Roll >= " + report.getMinimumRoll() + " to succeed)");
 		}
 	}
 }
