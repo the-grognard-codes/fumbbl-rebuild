@@ -10,9 +10,6 @@ import com.fumbbl.ffb.injury.context.InjuryContext;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.property.NamedProperties;
-import com.fumbbl.ffb.model.skill.Skill;
-import com.fumbbl.ffb.modifiers.ArmorModifierContext;
-import com.fumbbl.ffb.modifiers.InjuryModifierContext;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.DiceRoller;
 import com.fumbbl.ffb.server.GameState;
@@ -32,14 +29,6 @@ public class InjuryTypeTTMHitPlayer extends InjuryTypeServer<TTMHitPlayer> {
 	                         ApothecaryMode pApothecaryMode) {
 		DiceInterpreter diceInterpreter = DiceInterpreter.getInstance();
 
-		Optional<Skill> lethalFlight = Optional.empty();
-		if (pAttacker != null) {
-			lethalFlight = UtilCards.getSkillWithProperty(pAttacker, NamedProperties.affectsEitherArmourOrInjuryOnTtm);
-		} else {
-			// no attacker: ensure no SPP/skill credit later
-			injuryContext.setAttackerId(null);
-		}
-
 		if (!injuryContext.isArmorBroken()) {
 			injuryContext.setArmorRoll(diceRoller.rollArmour());
 			if (UtilCards.hasUnusedSkillWithProperty(pDefender, NamedProperties.ignoresArmourModifiersFromSkills)) {
@@ -49,15 +38,6 @@ public class InjuryTypeTTMHitPlayer extends InjuryTypeServer<TTMHitPlayer> {
 					.ifPresent(skill -> skill.getArmorModifiers().forEach(injuryContext::addArmorModifier));
 			}
 			injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
-
-			if (!injuryContext.isArmorBroken() && lethalFlight.isPresent() 
-					&& !UtilCards.hasUnusedSkillWithProperty(pDefender, NamedProperties.ignoresArmourModifiersFromSkills)) {
-				lethalFlight.get().getArmorModifiers().stream()
-					.filter(mod -> mod.appliesToContext(new ArmorModifierContext(game, pAttacker, pDefender, false, false)))
-					.forEach(injuryContext::addArmorModifier);
-				injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
-				lethalFlight = Optional.empty(); // consumed on armour
-			}
 		}
 
 		if (injuryContext.isArmorBroken()) {
@@ -65,10 +45,6 @@ public class InjuryTypeTTMHitPlayer extends InjuryTypeServer<TTMHitPlayer> {
 			InjuryModifierFactory factory = game.getFactory(FactoryType.Factory.INJURY_MODIFIER);
 			factory.findInjuryModifiers(game, injuryContext, pAttacker,
 				pDefender, isStab(), isFoul(), isVomitLike()).forEach(injuryModifier -> injuryContext.addInjuryModifier(injuryModifier));
-
-			lethalFlight.ifPresent(skill -> skill.getInjuryModifiers().stream()
-				.filter(mod -> mod.appliesToContext(new InjuryModifierContext(game, injuryContext, pAttacker, pDefender, false, false, false)))
-				.forEach(injuryContext::addInjuryModifier));
 
 			setInjury(pDefender, gameState, diceRoller);
 
