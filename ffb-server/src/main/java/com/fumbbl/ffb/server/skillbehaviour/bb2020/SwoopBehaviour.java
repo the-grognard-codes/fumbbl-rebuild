@@ -16,8 +16,8 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
-import com.fumbbl.ffb.server.step.action.ttm.StepSwoop;
-import com.fumbbl.ffb.server.step.action.ttm.StepSwoop.StepState;
+import com.fumbbl.ffb.server.step.mixed.ttm.StepSwoop;
+import com.fumbbl.ffb.server.step.mixed.ttm.StepSwoop.StepState;
 import com.fumbbl.ffb.skill.bb2020.Swoop;
 
 @RulesCollection(Rules.BB2020)
