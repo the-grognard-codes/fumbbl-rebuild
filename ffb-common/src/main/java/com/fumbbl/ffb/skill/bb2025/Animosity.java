@@ -5,16 +5,12 @@ import com.fumbbl.ffb.RulesCollection.Rules;
 import com.fumbbl.ffb.SkillCategory;
 import com.fumbbl.ffb.model.Keyword;
 import com.fumbbl.ffb.model.Player;
-import com.fumbbl.ffb.model.Position;
-import com.fumbbl.ffb.model.Roster;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.AnimosityValueEvaluator;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.model.skill.SkillDisplayInfo;
-import com.fumbbl.ffb.util.StringTool;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,8 +31,11 @@ import java.util.stream.Stream;
 @RulesCollection(Rules.BB2025)
 public class Animosity extends Skill {
 
+	private final Evaluator evaluator;
+
 	public Animosity() {
 		super("Animosity", SkillCategory.TRAIT);
+		evaluator = new Evaluator();
 	}
 
 	@Override
@@ -46,28 +45,22 @@ public class Animosity extends Skill {
 
 	@Override
 	public AnimosityValueEvaluator evaluator() {
-		return new Evaluator();
+		return evaluator;
 	}
 
 	private static class Evaluator implements AnimosityValueEvaluator {
 
 		@Override
 		public Set<SkillDisplayInfo> info(Skill skill, Player<?> player) {
-			Roster roster = player.getPosition().getRoster();
-			String displayValue = player.getDisplayValueExcludingTemporaryOnes(skill);
-			if (StringTool.isProvided(displayValue)) {
-				return Collections.singleton(
-					new SkillDisplayInfo(format(displayValue, roster), SkillDisplayInfo.Category.ROSTER, skill));
-			}
 			Set<String> skillValues =
-				split(Optional.ofNullable(player.getSkillValueExcludingTemporaryOnes(skill)).orElse(allValue()));
-			Set<String> tempSkillValues = split(player.temporarySkillValues(skill).toArray(new String[0]));
+				map(Optional.ofNullable(player.getSkillValueExcludingTemporaryOnes(skill)).orElse(allValue()));
+			Set<String> tempSkillValues = map(player.temporarySkillValues(skill).toArray(new String[0]));
 			tempSkillValues.removeAll(skillValues);
 			return Stream.concat(
 				skillValues.stream()
-					.map(value -> new SkillDisplayInfo(format(value, roster), SkillDisplayInfo.Category.ROSTER, skill)),
+					.map(value -> new SkillDisplayInfo(sanitize(skill, value), SkillDisplayInfo.Category.ROSTER, skill)),
 				tempSkillValues.stream()
-					.map(value -> new SkillDisplayInfo(format(value, roster), SkillDisplayInfo.Category.TEMPORARY, skill))
+					.map(value -> new SkillDisplayInfo(sanitize(skill, value), SkillDisplayInfo.Category.TEMPORARY, skill))
 			).collect(Collectors.toSet());
 		}
 
@@ -80,26 +73,17 @@ public class Animosity extends Skill {
 		public Set<String> values(Skill skill, Player<?> player) {
 			Set<String> values = player.temporarySkillValues(skill);
 			values.add(Optional.ofNullable(player.getSkillValueExcludingTemporaryOnes(skill)).orElse(allValue()));
-			return split(values.toArray(new String[0]));
+			return map(values.toArray(new String[0]));
 		}
 
-		private String format(String value, Roster roster) {
-			return "Animosity" + map(value, roster);
-		}
-
-		private String map(String key, Roster roster) {
-			if (key.equalsIgnoreCase(allValue())) {
-				return "";
+		private String sanitize(Skill skill, String value) {
+			if (value.equalsIgnoreCase(allValue())) {
+				return skill.getName();
 			}
-
-			Optional<? extends Position> position = Arrays.stream(roster.getPositions())
-				.filter(pos -> pos.getId().equalsIgnoreCase(key)).findFirst();
-			return position.map(value -> " (" + (StringTool.isProvided(value.getDisplayName()) ? value.getDisplayName() :
-				value.getName()) + ")").orElseGet(() -> " (" + key + ")");
-
+			return skill.getName() + " (" + value + ")";
 		}
 
-		private Set<String> split(String... values) {
+		private Set<String> map(String... values) {
 			return Arrays.stream(values).flatMap(value -> Arrays.stream(value.split(";")))
 				.map(value -> Keyword.forName(value).getName()).collect(Collectors.toSet());
 		}
