@@ -81,7 +81,7 @@ public class StepEndFeeding extends AbstractStep {
 		if (fEndTurn) {
 			if (game.getTurnMode() == TurnMode.PASS_BLOCK) {
 				((EndTurn) factory.forName(SequenceGenerator.Type.EndTurn.name()))
-					.pushSequence(new SequenceGenerator.SequenceParams(getGameState()));
+					.pushSequence(new EndTurn.SequenceParams(getGameState(), false));
 			} else {
 				UtilServerSteps.changePlayerAction(this, null, null, false);
 				((Inducement) factory.forName(SequenceGenerator.Type.Inducement.name()))
