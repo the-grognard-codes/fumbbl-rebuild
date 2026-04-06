@@ -314,6 +314,7 @@ public abstract class ClientStateAwt<T extends LogicModule> extends ClientState<
 			logicModule.perform(player, action);
 		}
 		postPerform(pMenuKey);
+		menuOpen = false;
 	}
 
 	private void switchPopup(Player<?> player) {
