@@ -31,7 +31,6 @@ import com.fumbbl.ffb.server.step.UtilServerSteps;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.bb2025.ThrowARock;
 import com.fumbbl.ffb.server.step.generator.common.Wizard;
-import com.fumbbl.ffb.server.step.mixed.inducements.StepWeatherMage;
 import com.fumbbl.ffb.util.ArrayTool;
 
 import java.util.HashSet;

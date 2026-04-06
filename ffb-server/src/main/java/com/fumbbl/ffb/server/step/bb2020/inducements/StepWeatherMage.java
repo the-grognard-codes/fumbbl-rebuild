@@ -1,4 +1,4 @@
-package com.fumbbl.ffb.server.step.mixed.inducements;
+package com.fumbbl.ffb.server.step.bb2020.inducements;
 
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.Weather;
@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 
 @RulesCollection(RulesCollection.Rules.BB2020)
-@RulesCollection(RulesCollection.Rules.BB2025)
 public class StepWeatherMage extends AbstractStep {
 
 	public static final String DIALOG_TITLE = "Weather Mage";

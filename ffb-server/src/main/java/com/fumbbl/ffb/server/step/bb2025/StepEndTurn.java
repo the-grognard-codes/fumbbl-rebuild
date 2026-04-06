@@ -471,8 +471,6 @@ public class StepEndTurn extends AbstractStep {
 				removeUsedSecretWeapons();
 			}
 
-			getGameState().restoreWeather(fNewHalf || fTouchdown);
-
 			List<KnockoutRecovery> knockoutRecoveries = new ArrayList<>();
 			List<HeatExhaustion> heatExhaustions = new ArrayList<>();
 			List<Player<?>> unzappedPlayers = new ArrayList<>();
