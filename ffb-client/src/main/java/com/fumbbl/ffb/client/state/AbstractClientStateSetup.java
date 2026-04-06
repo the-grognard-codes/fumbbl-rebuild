@@ -61,6 +61,9 @@ public abstract class AbstractClientStateSetup<T extends SetupLogicModule> exten
 
 	public void mouseReleased(MouseEvent pMouseEvent) {
 		synchronized (getClient()) {
+			if (getClient().getCurrentMouseButton() != pMouseEvent.getButton()) {
+				return;
+			}
 
 			// SwingUtilities#isRightMouseButton would return true even if both buttons are pressed
 			if (pMouseEvent.getButton() == MouseEvent.BUTTON3 || pMouseEvent.isShiftDown()) {
