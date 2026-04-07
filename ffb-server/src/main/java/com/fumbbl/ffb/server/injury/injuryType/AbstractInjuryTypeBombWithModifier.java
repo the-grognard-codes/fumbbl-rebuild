@@ -11,6 +11,7 @@ import com.fumbbl.ffb.injury.InjuryType;
 import com.fumbbl.ffb.injury.context.InjuryContext;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.SpecialEffectArmourModifier;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.DiceRoller;
@@ -32,9 +33,16 @@ public abstract class AbstractInjuryTypeBombWithModifier<T extends InjuryType> e
 
 		// in BB2020/2025 bombs place players prone, chainsaw only takes effect on falling down or being knocked down
 		// hence chainsaw is ignored here
+
+		boolean skipArmourRoll = pDefender.hasSkillProperty(NamedProperties.placedProneCausesInjuryRoll);
+
 		DiceInterpreter diceInterpreter = DiceInterpreter.getInstance();
-		injuryContext.setArmorRoll(diceRoller.rollArmour());
-		injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
+		if (skipArmourRoll) {
+			injuryContext.setArmorBroken(true);
+		} else {
+			injuryContext.setArmorRoll(diceRoller.rollArmour());
+			injuryContext.setArmorBroken(diceInterpreter.isArmourBroken(gameState, injuryContext));
+		}
 
 		if (!injuryContext.isArmorBroken()) {
 			((ArmorModifierFactory) game.getFactory(FactoryType.Factory.ARMOUR_MODIFIER)).specialEffectArmourModifiers(SpecialEffect.BOMB, pDefender)
