@@ -431,7 +431,12 @@ public class StepApothecaryMultiple extends AbstractStep {
 		boolean doubleAttackerDown = injuryResults.size() == 2 && game.getTeamById(teamId) == game.getActingTeam();
 		// this only happens in case of a double attacker down
 		if (doubleAttackerDown) {
-			if (!regenerationFailedResults.isEmpty()) {
+			if (regenerationFailedResults.isEmpty()) {
+				if (injuryResults.stream().allMatch(result -> result.injuryContext().isReserve())) {
+					injuryResults.get(0).applyTo(this, true);
+					UtilServerGame.syncGameModel(this);
+				}
+			} else {
 				// reset the player states again to make sure we have defined base state to reapply the injuries
 				Player<?> player = game.getPlayerById(regenerationFailedResults.get(0).injuryContext().getDefenderId());
 				PlayerState playerState = game.getFieldModel().getPlayerState(player);
@@ -443,18 +448,15 @@ public class StepApothecaryMultiple extends AbstractStep {
 
 				injuryResults.stream().filter(regenerationFailedResults::contains)
 					.forEach(injuryResult -> {
-						injuryResult.applyTo(this, false);
+						injuryResult.applyTo(this, true);
 						UtilServerGame.syncGameModel(this);
 					});
-			} else if (injuryResults.stream().allMatch(result -> result.injuryContext().isReserve())) {
-				injuryResults.get(0).applyTo(this, false);
-				UtilServerGame.syncGameModel(this);
 			}
 		} else {
 
 			injuryResults
 				.forEach(injuryResult -> {
-					injuryResult.applyTo(this, false);
+					injuryResult.applyTo(this, true);
 					UtilServerGame.syncGameModel(this);
 				});
 		}
