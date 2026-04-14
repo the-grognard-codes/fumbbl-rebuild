@@ -1,7 +1,14 @@
 package com.fumbbl.ffb.client;
 
 import com.eclipsesource.json.JsonObject;
-import com.fumbbl.ffb.*;
+import com.fumbbl.ffb.BloodSpot;
+import com.fumbbl.ffb.CommonProperty;
+import com.fumbbl.ffb.DiceDecoration;
+import com.fumbbl.ffb.Direction;
+import com.fumbbl.ffb.IClientPropertyValue;
+import com.fumbbl.ffb.IIconProperty;
+import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.WeatherFactory;
 import com.fumbbl.ffb.json.JsonStringMapOption;
 import com.fumbbl.ffb.model.BlockKind;
@@ -31,15 +38,25 @@ import javax.imageio.stream.ImageInputStream;
 import javax.net.ssl.SSLContext;
 import javax.swing.ImageIcon;
 import javax.xml.bind.DatatypeConverter;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -201,7 +218,18 @@ public class IconCache {
 					BufferedImage icon = ImageIO.read(iconInputStream);
 					iconInputStream.close();
 					if (icon != null) {
-						fIconByKey.put(pUrl, icon);
+						// Create a new image with an explicit color model
+						// Workaround to improve cursor rendering on linux systems (not 100% successful)
+						BufferedImage convertedIcon = new BufferedImage(
+							icon.getWidth(),
+							icon.getHeight(),
+							BufferedImage.TYPE_INT_ARGB
+						);
+
+						Graphics2D g = convertedIcon.createGraphics();
+						g.drawImage(icon, 0, 0, null);
+						g.dispose();
+						fIconByKey.put(pUrl, convertedIcon);
 						return true;
 					}
 				}
