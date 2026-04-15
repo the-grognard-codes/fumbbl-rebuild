@@ -79,7 +79,8 @@
                             <Built-By>${user.name}</Built-By>
                             <Permissions>all-permissions</Permissions>
                             <Application-Name>Fantasy Football Client</Application-Name>
-                            <Codebase>www.fumbbl.com fumbbl.com</Codebase>
+                            <Codebase>https://fumbbl.com</Codebase>
+                            <Application-Library-Allowable-Codebase>https://fumbbl.com</Application-Library-Allowable-Codebase>
                         </manifestEntries>
                     </archive>
                 </configuration>
