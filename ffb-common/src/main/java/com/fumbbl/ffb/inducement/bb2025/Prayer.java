@@ -91,7 +91,7 @@ public enum Prayer implements com.fumbbl.ffb.inducement.Prayer {
 			return " loses 1 MA";
 		}
 	}, BLESSING_OF_NUFFLE("Blessing of Nuffle",
-		"One chosen player available to play this game gains Pro",
+		"One random player available to play this game gains Pro",
 		InducementDuration.UNTIL_END_OF_GAME, false, true) {
 		@Override
 		public TemporaryEnhancements enhancements(StatsMechanic mechanic) {
