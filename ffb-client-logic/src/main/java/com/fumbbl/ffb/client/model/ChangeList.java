@@ -18,6 +18,7 @@ public class ChangeList {
 			.addBugfix("Ball & Chain hit by bomb did roll for armour")
 			.addBugfix("Dodgy Snack did not trigger auto marking update")
 			.addBugfix("Multiblock did not generate spp")
+			.addBugfix("Punt: If direction or distance put the ball out of bounds re-rolling the result did not reset the ball being in bounds")
 		);
 
 		versions.add(new VersionChangeList("3.2.2")

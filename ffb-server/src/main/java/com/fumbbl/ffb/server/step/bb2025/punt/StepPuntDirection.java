@@ -145,6 +145,7 @@ public class StepPuntDirection extends AbstractStepWithReRoll {
 		FieldCoordinate ballIndicatorCoordinate = coordinateFrom.move(direction, 1);
 		if (FieldCoordinateBounds.FIELD.isInBounds(ballIndicatorCoordinate)) {
 			fieldModel.setBallCoordinate(ballIndicatorCoordinate);
+			fieldModel.setOutOfBounds(false);
 		} else {
 			fieldModel.setOutOfBounds(true);
 		}
