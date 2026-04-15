@@ -412,8 +412,8 @@ public class PlayerDetailComponent extends JPanel {
 			ActingPlayer actingPlayer = game.getActingPlayer();
 			PlayerState playerState = game.getFieldModel().getPlayerState(getPlayer());
 			Set<String> modifications = new LinkedHashSet<>();
-			List<String> acquiredSkills = new ArrayList<>();
-			List<String> rosterSkills = new ArrayList<>();
+			Set<String> acquiredSkills = new LinkedHashSet<>();
+			Set<String> rosterSkills = new LinkedHashSet<>();
 			Set<String> usedSkills = new HashSet<>();
 			for (SkillDisplayInfo skillInfo : getPlayer().skillInfos()) {
 				if ((SkillCategory.STAT_INCREASE != skillInfo.getSkill().getCategory())
@@ -452,7 +452,7 @@ public class PlayerDetailComponent extends JPanel {
 			int height = 0;
 			if (!modifications.isEmpty()) {
 				g2d.setColor(new Color(220, 0, 0));
-				height += drawPlayerSkills(g2d, x, y + height, new ArrayList<>(modifications), usedSkills) + 2;
+				height += drawPlayerSkills(g2d, x, y + height, modifications, usedSkills) + 2;
 			}
 
 			if (!acquiredSkills.isEmpty()) {
@@ -465,7 +465,7 @@ public class PlayerDetailComponent extends JPanel {
 		}
 	}
 
-	private int drawPlayerSkills(Graphics2D pG2d, int pX, int pY, List<String> pSkills, Set<String> pUsedSkills) {
+	private int drawPlayerSkills(Graphics2D pG2d, int pX, int pY, Set<String> pSkills, Set<String> pUsedSkills) {
 		int height = 0;
 		if ((pSkills != null) && (!pSkills.isEmpty())) {
 			int yPos = pY;
