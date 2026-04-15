@@ -20,6 +20,7 @@ public class ChangeList {
 			.addBugfix("Multiblock did not generate spp")
 			.addBugfix("Punt: If direction or distance put the ball out of bounds re-rolling the result did not reset the ball being in bounds")
 			.addBugfix("Blessing of Nuffle: Description text was incorrect")
+			.addBugfix("With JVMs newer than 8, range rulers did not show the required roll anymore")
 		);
 
 		versions.add(new VersionChangeList("3.2.2")

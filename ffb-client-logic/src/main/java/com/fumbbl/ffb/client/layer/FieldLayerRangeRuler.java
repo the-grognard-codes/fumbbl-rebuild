@@ -26,6 +26,8 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
@@ -106,7 +108,7 @@ public class FieldLayerRangeRuler extends FieldLayer {
 
 					g2d.transform(new AffineTransform(cosPhi, -sinPhi, sinPhi, cosPhi, startCenter.x, startCenter.y));
 					g2d.setFont(fontCache.font(Font.BOLD, 32, pitchDimensionProvider));
-					g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR, 0.0f));
+				//	g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.DST_OUT, 1.0f));
 
 					drawRulerModifier(g2d, (int) length, pRangeRuler.getMinimumRoll());
 
@@ -246,6 +248,13 @@ public class FieldLayerRangeRuler extends FieldLayer {
 		if (numberBounds.getWidth() < pTotalLength) {
 			int baselineX = (pTotalLength - (int) numberBounds.getWidth()) / 2;
 			int baselineY = ((int) (numberBounds.getHeight() / 4)) + 2;
+
+			GlyphVector gv = pG2d.getFont().createGlyphVector(pG2d.getFontRenderContext(), pMinimumRoll);
+			Shape textShape = gv.getOutline(baselineX, baselineY);
+
+			pG2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR, 1.0f));
+			pG2d.fill(textShape);
+
 			pG2d.drawString(pMinimumRoll, baselineX, baselineY);
 		}
 	}
