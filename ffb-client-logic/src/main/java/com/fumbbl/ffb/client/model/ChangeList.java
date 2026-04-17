@@ -22,6 +22,7 @@ public class ChangeList {
 			.addBugfix("Blessing of Nuffle: Description text was incorrect")
 			.addBugfix("With JVMs newer than 8, range rulers did not show the required roll anymore")
 			.addBugfix("Gaining additional Hatred results in duplication of existing Hatred skill listings")
+			.addBugfix("Bloodlust: When opting to move instead of fouling directly due to failed Bloodlust the game crashed")
 		);
 
 		versions.add(new VersionChangeList("3.2.2")
