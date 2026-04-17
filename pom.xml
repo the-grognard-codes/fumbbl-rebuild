@@ -13,6 +13,10 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Default Mockito settings for Java 8 -->
+        <mockito.artifact>mockito-inline</mockito.artifact>
+        <mockito.version>4.11.0</mockito.version>
+        <mockito.junit.version>4.11.0</mockito.junit.version>
     </properties>
     <modules>
         <module>ffb-common</module>
@@ -44,15 +48,28 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>3.12.4</version>
+                <version>${mockito.junit.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.12.4</version>
+                <artifactId>${mockito.artifact}</artifactId>
+                <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <!-- Profile for Java 21 builds (overrides properties for Mockito and compiler) -->
+        <profile>
+            <id>mockito5</id>
+            <properties>
+                <!-- Override Mockito for Java 21+ -->
+                <mockito.artifact>mockito-core</mockito.artifact>
+                <mockito.version>5.23.0</mockito.version>
+                <mockito.junit.version>5.23.0</mockito.junit.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>

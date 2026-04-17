@@ -2,7 +2,13 @@
 
 FFB is the Fantasy Football software used by [FUMBBL](https://fumbbl.com)
 
-Client and server are both implemented using Jav8 with Swing/AWT.
+Client and server are both implemented using Java 8 with Swing/AWT.
+
+## Using newer Java versions
+
+In case you want to use newer Java versions, e.g. 21 or higher, you use the `mockito5` profile which ensures tests are 
+using mockito 5 which is supports these versions. Note that the compiler settings will still be using Java 8 until we decide 
+to officially drop the support for it.
 
 # Module structure
 
