@@ -36,6 +36,7 @@ public enum Keyword {
 	SNOTLING("Snotling"),
 	SPAWN("Spawn"),
 	SPECIAL("Special", false),
+	SPITE("Spite"),
 	SQUIRREL("Squirrel"),
 	THRALL("Thrall"),
 	THROWER("Thrower", false),
@@ -46,6 +47,7 @@ public enum Keyword {
 	WEREWOLF("Werewolf"),
 	WRAITH("Wraith"),
 	YHETEE("Yhetee"),
+	ZOAT("Zoat"),
 	ZOMBIE("Zombie"),
 
 	// fallback
