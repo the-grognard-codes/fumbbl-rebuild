@@ -37,7 +37,6 @@ import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
  * @author Kalimar
  */
 @RulesCollection(RulesCollection.Rules.BB2020)
-@RulesCollection(RulesCollection.Rules.BB2025)
 public final class StepEndBomb extends AbstractStep {
 
 	private String fCatcherId;
