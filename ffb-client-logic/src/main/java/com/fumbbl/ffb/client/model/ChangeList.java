@@ -22,10 +22,15 @@ public class ChangeList {
 			.addBugfix("Krump and Smash: Was offered when Varag was blocked and the opposing player knocked themselves down")
 			.addBugfix("Foul Appearance: Was rolled on the next move after being successfully shadowed by a player with Foul Appearance")
 			.addBugfix("Stunty: Still applied a -1 modifier to interceptions for passes from stunty players")
+			.addBugfix("Swarming: A double clicked end turn button during setup could skip the swarming setup")
 			.addImprovement("Skipping a player choice dialog now asks for confirmation and reopens the dialog if the skip is not confirmed")
 			.addBugfix("Diving Catch: Now follows NAF recommendation, active team gets first pick to choose catcher with DC (or without if a player is in the target square), then passive team, then default catch rules.")
 			.addBugfix("On The Ball: Players on LoS could not use OtB during kick-off even if they were open")
 			.addImprovement("Move paths sent by the client are sanitized to ensure a client does not send invalid move sequences")
+			.addBugfix("Fan Interaction: Injury rolls of players pushed into the crowd or falling through a trap door applied injury modifiers like Mighty Blow of the player causing the push")
+			.addBugfix("Swarming: A double clicked end turn button during setup could skip the swarming setup")
+			.addBugfix("Chainsaw: Attacker down (skull or both down) when blocking a player with chainsaw did add chainsaw modifier to armour roll on attacker")
+			.addBugfix("If the only available action was forgo activation, a foul action was started instead")
 		);
 
 		versions.add(new VersionChangeList("3.3.2")
