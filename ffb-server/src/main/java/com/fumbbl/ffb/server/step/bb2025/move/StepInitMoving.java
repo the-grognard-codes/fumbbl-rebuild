@@ -404,6 +404,10 @@ public class StepInitMoving extends AbstractStep {
 					game.setConcessionPossible(false);
 					getResult().setNextAction(StepAction.NEXT_STEP);
 				}
+			} else if (fMoveStack != null) {
+				// move stack was explicitly emptied (e.g. the requested square failed validation), so there is
+				// nothing left to move here; go to the end of the move sequence so the player can continue acting
+				getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnEnd);
 			}
 		}
 	}
