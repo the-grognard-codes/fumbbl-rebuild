@@ -25,7 +25,7 @@ public class ChangeList {
 			.addImprovement("Skipping a player choice dialog now asks for confirmation and reopens the dialog if the skip is not confirmed")
 			.addBugfix("Diving Catch: Now follows NAF recommendation, active team gets first pick to choose catcher with DC (or without if a player is in the target square), then passive team, then default catch rules.")
 			.addBugfix("On The Ball: Players on LoS could not use OtB during kick-off even if they were open")
-			.addBugfix("A manipulated client could submit a move path skipping the dodge, rush or jump roll required by one of its squares")
+			.addImprovement("Move paths sent by the client are sanitized to ensure a client does not send invalid move sequences")
 		);
 
 		versions.add(new VersionChangeList("3.3.2")
