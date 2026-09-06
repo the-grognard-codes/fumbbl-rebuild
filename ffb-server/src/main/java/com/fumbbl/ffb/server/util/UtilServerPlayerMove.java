@@ -222,10 +222,16 @@ public class UtilServerPlayerMove {
 	 * re-validated here against the field state as it would be after the
 	 * preceding steps of the path were taken.
 	 * <p>
-	 * The first element of the path is never trimmed, since it is validated
-	 * against the actual, up-to-date MoveSquare cache elsewhere and may
-	 * legitimately require a roll, which is then handled by the normal move
-	 * sequence. Every following element that would require a roll is dropped,
+	 * The first element of the path is not trimmed for requiring a dodge or
+	 * rush/going-for-it roll, since it is validated against the actual,
+	 * up-to-date MoveSquare cache elsewhere and may legitimately require such a
+	 * roll, which is then handled by the normal move sequence. However, if the
+	 * first element is not adjacent to the starting square, it can only be
+	 * reached by a jump, so it is rejected outright (resulting in an empty move
+	 * path) unless jumping was flagged and the target is actually a valid jump
+	 * destination (correct distance/direction and jump allowed); StepMove would
+	 * otherwise move the player there unconditionally without ever validating
+	 * the jump. Every following element that would require a roll is dropped,
 	 * together with all elements after it, so that the sequence stops there and
 	 * waits for a new command from the client.
 	 */
@@ -239,26 +245,31 @@ public class UtilServerPlayerMove {
 		if (actingPlayer.getPlayer() == null) {
 			return pMoveStack;
 		}
-		FieldCoordinate previousCoordinate = pCoordinateFrom;
-		int simulatedCurrentMove = actingPlayer.getCurrentMove();
-		for (int i = 0; i < pMoveStack.length; i++) {
+		FieldCoordinate firstCoordinate = pMoveStack[0];
+		if (pJumping) {
+			JumpMechanic jumpMechanic = (JumpMechanic) game.getFactory(Factory.MECHANIC).forName(Mechanic.Type.JUMP.name());
+			if (!jumpMechanic.isValidJump(game, actingPlayer.getPlayer(), pCoordinateFrom, firstCoordinate)) {
+				return new FieldCoordinate[0];
+			}
+		} else if (pCoordinateFrom.distanceInSteps(firstCoordinate) != 1) {
+			// not adjacent and not a flagged jump: can't be reached in a single, roll-free step
+			return new FieldCoordinate[0];
+		}
+		FieldCoordinate previousCoordinate = firstCoordinate;
+		int simulatedCurrentMove = actingPlayer.getCurrentMove() + (pJumping ? 2 : 1);
+		for (int i = 1; i < pMoveStack.length; i++) {
 			FieldCoordinate coordinate = pMoveStack[i];
-			boolean stepIsJump = pJumping && (i == 0);
-			if ((i > 0) && stepRequiresRoll(game, actingPlayer, previousCoordinate, coordinate, simulatedCurrentMove, stepIsJump)) {
+			if (stepRequiresRoll(game, actingPlayer, previousCoordinate, coordinate, simulatedCurrentMove)) {
 				return Arrays.copyOf(pMoveStack, i);
 			}
-			simulatedCurrentMove += stepIsJump ? 2 : 1;
+			simulatedCurrentMove++;
 			previousCoordinate = coordinate;
 		}
 		return pMoveStack;
 	}
 
 	private static boolean stepRequiresRoll(Game game, ActingPlayer actingPlayer, FieldCoordinate from, FieldCoordinate to,
-	                                         int simulatedCurrentMove, boolean jumping) {
-		if (jumping) {
-			// jumping always requires a jump roll
-			return true;
-		}
+	                                         int simulatedCurrentMove) {
 		if (from.distanceInSteps(to) != 1) {
 			// anything that is not a simple adjacent step (e.g. an unflagged jump)
 			// must be confirmed by the client one square at a time
