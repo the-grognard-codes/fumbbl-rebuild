@@ -1,0 +1,10 @@
+{
+  "name": "moles-firebase-assembly",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "assemble": "node scripts/assemble.mjs",
+    "verify-environment": "node scripts/verify-environment.mjs",
+    "verify-hosting-artifact": "node scripts/verify-hosting-artifact.mjs"
+  }
+}
