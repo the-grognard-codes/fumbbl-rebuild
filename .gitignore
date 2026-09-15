@@ -9,6 +9,17 @@ browser-client/node_modules/
 browser-client/dist/
 browser-client/coverage/
 
+# Public-site and Firebase Hosting build output
+site/node_modules/
+site/dist/
+deployment/firebase/node_modules/
+deployment/firebase/hosting/
+
+# Firebase CLI state and diagnostics
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
 # IDE and editor files
 .idea/
 .vscode/
@@ -35,6 +46,8 @@ coverage/
 .env
 .env.*
 !.env.example
+!deployment/firebase/.env.dev.example
+!deployment/firebase/.env.prod.example
 *.local
 *.local.properties
 
