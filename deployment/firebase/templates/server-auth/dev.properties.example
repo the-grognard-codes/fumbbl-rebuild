@@ -1,0 +1,5 @@
+# Future Java service: accept only tokens issued by the DEV Firebase project.
+firebase.auth.project-id=dev-moles-under-the-pitch-org
+firebase.auth.issuer=https://securetoken.google.com/dev-moles-under-the-pitch-org
+firebase.auth.audience=dev-moles-under-the-pitch-org
+firebase.auth.authorized-domain=dev.molesunderthepitch.org
