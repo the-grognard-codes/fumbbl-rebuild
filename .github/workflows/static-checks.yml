@@ -24,7 +24,6 @@ jobs:
       - run: npm run check --prefix site
       - run: npm run verify-environment --prefix deployment/firebase
       - run: npm run assemble --prefix deployment/firebase -- --environment dev --allow-placeholder-config
-      - run: test -f deployment/firebase/hosting/index.html
-      - run: test -f deployment/firebase/hosting/play/index.html
-      - run: test -f deployment/firebase/hosting/login/complete/index.html
-      - run: test -f deployment/firebase/hosting/firebase-web-config.js
+      - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment dev
+      - run: npm run assemble --prefix deployment/firebase -- --environment prod --allow-placeholder-config
+      - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment prod
