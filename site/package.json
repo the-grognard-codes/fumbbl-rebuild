@@ -1,0 +1,10 @@
+{
+  "name": "moles-under-the-pitch-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static public site for the Moles Under the Pitch educational project.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}

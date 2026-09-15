@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "dev": "dev-moles-under-the-pitch-org",
+    "prod": "moles-under-the-pitch-dot-org"
+  }
+}
