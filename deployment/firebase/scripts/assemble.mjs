@@ -10,9 +10,10 @@ const configuration = resolveEnvironment(process.argv.slice(2), process.env);
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
+    const useWindowsNpmCli = process.platform === 'win32' && command === 'npm';
     const npmCli = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
-    const executable = command === 'npm' ? process.execPath : command;
-    const parameters = command === 'npm' ? [npmCli, ...args] : args;
+    const executable = useWindowsNpmCli ? process.execPath : command;
+    const parameters = useWindowsNpmCli ? [npmCli, ...args] : args;
     const child = spawn(executable, parameters, { cwd: repository, stdio: 'inherit' });
     child.once('error', reject);
     child.once('exit', code => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`)));
