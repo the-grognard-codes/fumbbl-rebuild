@@ -6,8 +6,16 @@
 - `/play` is the independently built browser client.
 - `/login/complete` completes email-link authentication against the explicitly selected Firebase project.
 
-The repository-root `firebase.json` deploys that artifact. Its root `.firebaserc` maps `dev` to `dev-moles-under-the-pitch-org` and `prod` to `moles-under-the-pitch-dot-org`. The build rejects an omitted or unknown environment and never consults a developer's active Firebase CLI project. Public Firebase web configuration is generated at build time from the three `FIREBASE_WEB_*` variables; see the environment examples. Do not commit Firebase credentials, OAuth secrets, service-account keys, or production-only configuration.
+The repository-root `firebase.json` deploys that artifact. Its root `.firebaserc` maps `dev` to `dev-moles-under-the-pitch-org` and `prod` to `molesunderthepitch-dotorg`. The build rejects an omitted or unknown environment and never consults a developer's active Firebase CLI project. Public Firebase web configuration is generated at build time from the three `FIREBASE_WEB_*` variables; see the environment examples. Do not commit Firebase credentials, OAuth secrets, service-account keys, or production-only configuration.
 
-The workflows use the exact project IDs and environment-scoped `FIREBASE_SERVICE_ACCOUNT` secrets. Each environment supplies its own public `FIREBASE_WEB_*` variables. The development deployment targets the `dev` Hosting channel; a published GitHub release is the only production deployment trigger.
+The CI workflows authenticate with GitHub OIDC and Google Workload Identity
+Federation (WIF), then let the Firebase CLI use Application Default
+Credentials. There are no `FIREBASE_SERVICE_ACCOUNT` or `FIREBASE_TOKEN`
+secrets. Each GitHub environment supplies its own public `FIREBASE_WEB_*`
+variables plus the matching WIF provider and deploy-service-account identifiers.
+`main` deploys to DEV only after `Checks` succeeds. An approved `moles-v*` tag
+is the production deployment reference. See
+[development-and-release.md](../../docs/development-and-release.md) for setup,
+release, and rollback instructions.
 
 Authentication registration and token-boundary instructions are in [AUTHENTICATION_SETUP.md](AUTHENTICATION_SETUP.md). The project has no connection to existing FUMBBL accounts.

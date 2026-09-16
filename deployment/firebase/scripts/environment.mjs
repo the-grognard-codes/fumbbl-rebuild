@@ -7,7 +7,7 @@ const environments = Object.freeze({
   }),
   prod: Object.freeze({
     name: 'prod',
-    projectId: 'moles-under-the-pitch-dot-org',
+    projectId: 'molesunderthepitch-dotorg',
     domain: 'molesunderthepitch.org',
     emailLinkUrl: 'https://molesunderthepitch.org/login/complete'
   }),

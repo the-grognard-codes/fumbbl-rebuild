@@ -1,30 +1,52 @@
 name: Deploy Firebase Hosting (DEV)
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Checks
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-hosting-dev
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     environment: development
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Deploy precisely the commit validated by the successful Checks run.
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
+      - name: Authenticate to Google Cloud through OIDC
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: dev-moles-under-the-pitch-org
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
       - run: npm run assemble --prefix deployment/firebase -- --environment dev
         env:
           FIREBASE_WEB_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY }}
           FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
           FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: dev-moles-under-the-pitch-org
-          channelId: dev
+      - name: Deploy the validated DEV Hosting artifact
+        run: >-
+          npx --yes firebase-tools@latest deploy --only hosting
+          --project dev-moles-under-the-pitch-org --non-interactive
+          --message "DEV ${{ github.event.workflow_run.head_sha }}"

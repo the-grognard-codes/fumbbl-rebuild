@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" role="img" aria-labelledby="title desc"><title id="title">Moles Under the Pitch small symbol</title><desc id="desc">Optical 16 pixel variant with round gold glasses, pixel soil, gold and cyan end zones, a center line and two dotted wide-zone lines.</desc><g shape-rendering="crispEdges">
+<path fill="#070d16" d="M6 1h4v1h2v1h1v3h1v3h1v6H1V9h1V6h1V3h1V2h2Z"/>
+<path fill="#101c2b" d="M6 2h4v1h2v5H4V3h2Z"/>
+<path fill="#4db2ff" d="M6 2h4v1H6Z"/>
+<path fill="#874a2d" d="M2 9h2V8h2v1h4V8h2v1h2v2H2Z M7 7h2v1H7Z"/>
+<path fill="#ffe17b" fill-rule="evenodd" d="M3 4h4v1h2V4h4v4H9V6H7v2H3Z M4 5v2h2V5Z M10 5v2h2V5Z"/>
+<path fill="#4db2ff" d="M4 5h2v2H4Z M10 5h2v2h-2Z"/>
+<path fill="#edf5ff" d="M4 5h1v1H4Z M10 5h1v1h-1Z"/>
+<path fill="#4db2ff" d="M1 10h14v5H1Z"/>
+<path fill="#2f7d32" d="M4 11h9v3H4Z"/>
+<path fill="#1c5a32" d="M4 12h9v1H4Z"/>
+<path fill="#ffe17b" d="M2 11h2v3H2Z"/>
+<path fill="#4db2ff" d="M4 11h1v3H4Z"/>
+<path fill="#edf5ff" d="M8 11h1v3H8Z M5 11h1v1H5Z M11 11h1v1h-1Z M5 13h1v1H5Z M11 13h1v1h-1Z"/>
+</g></svg>

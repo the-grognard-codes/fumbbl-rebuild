@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="title desc" shape-rendering="crispEdges">
+  <title id="title">Moles Under the Pitch</title>
+  <desc id="desc">A friendly mole beneath a tabletop football pitch beside the Moles Under the Pitch wordmark.</desc>
+  <style>@font-face{font-family:'Chakra Petch';src:url('fonts/chakra-petch-700.ttf') format('truetype');font-weight:700}text{font-family:'Chakra Petch',Arial Black,sans-serif}</style>
+  <!-- Clear space: retain at least 32 viewBox units around all sides of the lockup. -->
+  <g transform="translate(28 30) scale(.92)" stroke="#070d16" stroke-linejoin="bevel">
+    <path d="M47 20H209L239 116H17Z" fill="#070d16" stroke="none"/>
+    <path d="M52 27H204L229 110H27Z" fill="#2f7d32" stroke="none"/>
+    <path d="M52 27H79L58 110H27Z M177 27H204L229 110H198Z M91 27H112L105 110H84Z M144 27H165L172 110H151Z" fill="#1c5a32" stroke="none"/>
+    <path d="M52 27H79L58 110H27Z M177 27H204L229 110H198Z" fill="none" stroke="#4db2ff" stroke-width="5"/>
+    <path d="M128 27V110 M101 32L95 108 M155 32L161 108" fill="none" stroke="#edf5ff" stroke-width="5" stroke-dasharray="7 7"/>
+    <path d="M128 27V110" fill="none" stroke="#edf5ff" stroke-width="5" stroke-dasharray="none"/>
+    <path d="M65 105L69 92 M87 106L90 94 M169 106L166 94 M191 105L187 92" fill="none" stroke="#edf5ff" stroke-width="4"/>
+    <path d="M17 116H239L228 140L219 149H37L28 140Z" fill="#070d16" stroke="none"/>
+    <path d="M27 119H229L219 139H37Z" fill="#874a2d" stroke="none"/>
+    <path d="M38 138H218L207 166L189 170L177 159H157L146 171H110L99 159H79L67 170L49 166Z" fill="#874a2d" stroke="none"/>
+    <path d="M47 143H88L77 155H53Z M168 143H209L203 155H179Z" fill="#070d16" stroke="none"/>
+    <path d="M57 225C57 203 63 182 77 167C89 154 102 146 114 143C120 136 136 136 142 143C154 146 167 154 179 167C193 182 199 203 199 225H57Z" fill="#070d16" stroke="none"/>
+    <path d="M68 219C69 197 75 181 88 169C99 159 110 153 120 151C126 147 132 147 138 151C149 153 160 159 171 169C184 181 190 197 191 219H68Z" fill="#101c2b" stroke="none"/>
+    <path d="M91 166C101 155 113 150 121 149 M165 166C155 155 143 150 135 149" fill="none" stroke="#4db2ff" stroke-width="4"/>
+    <circle cx="104" cy="188" r="29" fill="#070d16" stroke="none"/><circle cx="152" cy="188" r="29" fill="#070d16" stroke="none"/>
+    <circle cx="104" cy="188" r="25" fill="#edf5ff" stroke="none"/><circle cx="152" cy="188" r="25" fill="#edf5ff" stroke="none"/>
+    <circle cx="104" cy="188" r="19" fill="#4db2ff" stroke="none"/><circle cx="152" cy="188" r="19" fill="#4db2ff" stroke="none"/>
+    <path d="M91 192L108 175 M139 192L156 175" fill="none" stroke="#edf5ff" stroke-width="5"/>
+    <path d="M128 185H128" fill="none" stroke="#edf5ff" stroke-width="8"/>
+    <circle cx="128" cy="215" r="15" fill="#874a2d" stroke-width="5"/>
+    <path d="M65 228C72 212 83 207 95 213L104 229L96 239H71Z M191 228C184 212 173 207 161 213L152 229L160 239H185Z" fill="#101c2b" stroke="none"/>
+    <path d="M27 241L44 216H68L84 229L92 240H27Z M229 241L212 216H188L172 229L164 240H229Z" fill="#874a2d" stroke="none"/>
+    <path d="M76 236L84 217L92 236L84 248Z M99 238L108 217L117 238L108 250Z M139 238L148 217L157 238L148 250Z M164 236L172 217L180 236L172 248Z" fill="#ffe17b" stroke-width="3"/>
+    <path d="M43 172H56V185H43Z M200 172H213V185H200Z M25 196H39V210H25Z M217 196H231V210H217Z" fill="#874a2d" stroke-width="4"/>
+  </g>
+  <g font-weight="700" text-anchor="start" stroke-linejoin="bevel" paint-order="stroke fill">
+    <text x="310" y="189" fill="#874a2d" stroke="#070d16" stroke-width="17" font-size="154" letter-spacing="-10">Moles</text>
+    <text x="302" y="177" fill="#ffe17b" stroke="#070d16" stroke-width="17" font-size="154" letter-spacing="-10">Moles</text>
+    <text x="310" y="254" fill="#4db2ff" stroke="#070d16" stroke-width="10" font-size="55" letter-spacing="-.8">Under the Pitch</text>
+  </g>
+</svg>
