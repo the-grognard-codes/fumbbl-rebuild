@@ -19,6 +19,8 @@ deployment/firebase/hosting/
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
+# Ephemeral Application Default Credentials written by Google GitHub Actions OIDC.
+gha-creds-*.json
 
 # IDE and editor files
 .idea/

@@ -5,7 +5,7 @@ This repository deliberately contains no Firebase credentials, Microsoft client 
 | Environment | Firebase project | Auth domain | Email-link return URL |
 | --- | --- | --- | --- |
 | DEV | `dev-moles-under-the-pitch-org` | `dev.molesunderthepitch.org` | `https://dev.molesunderthepitch.org/login/complete` |
-| PROD | `moles-under-the-pitch-dot-org` | `molesunderthepitch.org` | `https://molesunderthepitch.org/login/complete` |
+| PROD | `molesunderthepitch-dotorg` | `molesunderthepitch.org` | `https://molesunderthepitch.org/login/complete` |
 
 For **each** project:
 

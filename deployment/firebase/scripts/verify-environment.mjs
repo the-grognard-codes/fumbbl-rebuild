@@ -12,7 +12,7 @@ const local = resolveEnvironment(['--environment', 'local'], values);
 if (dev.projectId === prod.projectId || dev.authDomain === prod.authDomain || dev.emailLinkUrl === prod.emailLinkUrl) {
   throw new Error('DEV and PROD Firebase configuration must remain distinct.');
 }
-if (dev.projectId !== 'dev-moles-under-the-pitch-org' || prod.projectId !== 'moles-under-the-pitch-dot-org') {
+if (dev.projectId !== 'dev-moles-under-the-pitch-org' || prod.projectId !== 'molesunderthepitch-dotorg') {
   throw new Error('Firebase project mapping does not match the approved environment layout.');
 }
 if (local.projectId !== dev.projectId || !local.authEmulatorUrl) {
