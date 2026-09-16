@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-labelledby="title desc" shape-rendering="crispEdges">
+  <title id="title">Mole checking an email link</title>
+  <desc id="desc">A friendly mole in glasses holds an envelope beside a simple tabletop football pitch.</desc>
+  <g stroke="#070d16" stroke-linejoin="bevel">
+    <path d="M48 38H356V170H48Z" fill="#2f7d32" stroke-width="9"/>
+    <path d="M55 45H100V163H55Z M304 45H349V163H304Z" fill="#1c5a32" stroke="none"/>
+    <path d="M55 45H100V163H55Z M304 45H349V163H304Z" fill="none" stroke="#4db2ff" stroke-width="5"/>
+    <path d="M202 45V163" fill="none" stroke="#edf5ff" stroke-width="5"/>
+    <path d="M148 48V160 M256 48V160" fill="none" stroke="#edf5ff" stroke-width="5" stroke-dasharray="8 8"/>
+    <path d="M48 170H356L338 202H66Z" fill="#874a2d" stroke-width="9"/>
+    <path d="M80 196H325L309 274H96Z" fill="#874a2d" stroke-width="9"/>
+    <path d="M374 164L387 139L406 128H427L440 119H485L498 128H519L538 139L551 164V265H374Z" fill="#070d16" stroke-width="5"/>
+    <path d="M384 162L395 145L411 137H433L446 128H480L493 137H515L530 145L541 162V246L529 261H396L384 246Z" fill="#101c2b" stroke="none"/>
+    <path d="M407 169H423V187H407Z M489 169H505V187H489Z" fill="#4db2ff" stroke="none"/>
+    <circle cx="415" cy="178" r="22" fill="none" stroke="#edf5ff" stroke-width="7"/>
+    <circle cx="497" cy="178" r="22" fill="none" stroke="#edf5ff" stroke-width="7"/>
+    <path d="M437 178H475" fill="none" stroke="#edf5ff" stroke-width="6"/>
+    <circle cx="456.5" cy="211" r="13" fill="#874a2d" stroke-width="5"/>
+    <path d="M364 219H490V310H364Z" fill="#edf5ff" stroke-width="8"/>
+    <path d="M372 228L427 272L482 228 M372 302L415 264 M482 302L439 264" fill="none" stroke="#4db2ff" stroke-width="7"/>
+    <path d="M405 302L413 288L420 302L413 320Z M456 302L464 288L471 302L464 320Z" fill="#ffe17b" stroke-width="4"/>
+    <path d="M108 252H119V263H108Z M139 235H150V246H139Z M170 260H181V271H170Z M201 239H212V250H201Z M232 258H243V269H232Z M263 235H274V246H263Z" fill="#070d16" stroke="none"/>
+  </g>
+</svg>

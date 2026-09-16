@@ -1,12 +1,23 @@
 name: Deploy Firebase Hosting (PROD)
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - moles-v*
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing moles-v* tag to deploy
+        required: true
+        type: string
 
 permissions:
   contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-hosting-prod
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -14,19 +25,58 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.release_tag || github.ref_name }}
+          fetch-depth: 0
+      - name: Verify immutable release reference originates from main
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^moles-v[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "release_tag must be a moles-v* tag" >&2
+            exit 1
+          fi
+          git rev-parse --verify "refs/tags/$RELEASE_TAG" > /dev/null
+          release_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$release_commit" origin/main
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
+      - name: Authenticate to Google Cloud through OIDC
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: molesunderthepitch-dotorg
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
       - run: npm run assemble --prefix deployment/firebase -- --environment prod
         env:
           FIREBASE_WEB_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY }}
           FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
           FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: moles-under-the-pitch-dot-org
-          channelId: live
+      - name: Deploy the tagged PROD Hosting artifact
+        run: >-
+          npx --yes firebase-tools@latest deploy --only hosting
+          --project molesunderthepitch-dotorg --non-interactive
+          --message "${{ steps.release.outputs.tag }} ${{ steps.release.outputs.commit }}"
+      - name: Record release identity
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
+        shell: bash
+        run: |
+          {
+            echo "## Production Hosting deployment"
+            echo
+            echo "- Release tag: \`$RELEASE_TAG\`"
+            echo "- Commit: \`$RELEASE_COMMIT\`"
+            echo "- Firebase project: \`molesunderthepitch-dotorg\`"
+          } >> "$GITHUB_STEP_SUMMARY"
