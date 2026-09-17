@@ -9,12 +9,20 @@ const required = [
   'src/support/index.html',
   'src/login/index.html',
   'src/login/complete/index.html',
+  'src/play/index.html',
   'src/assets/site.css',
-  'src/assets/auth-client.js'
+  'src/assets/auth-client.js',
+  'src/assets/play.js'
 ];
 
 for (const file of required) {
   await access(new URL(`../${file}`, import.meta.url));
+}
+
+const login = await readFile(new URL('../src/login/index.html', import.meta.url), 'utf8');
+const play = await readFile(new URL('../src/assets/play.js', import.meta.url), 'utf8');
+if (login.includes('Microsoft') || !play.includes('gameWebSocketUrl')) {
+  throw new Error('The sign-in or play client inputs are incomplete.');
 }
 
 const index = await readFile(new URL('../src/index.html', import.meta.url), 'utf8');

@@ -22,6 +22,11 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     environment: development
+    env:
+      # Prefer environment variables. The secrets fallback avoids silently dropping
+      # existing repository configuration while these public identifiers are moved.
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,20 +38,31 @@ jobs:
           cache: npm
           cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
+      - name: Validate Google Cloud deployment configuration
+        shell: bash
+        run: |
+          if [[ -z "$GCP_WORKLOAD_IDENTITY_PROVIDER" ]]; then
+            echo "::error title=Missing Workload Identity provider::Set GCP_WORKLOAD_IDENTITY_PROVIDER as a development environment variable."
+            exit 1
+          fi
+          if [[ ! "$GCP_WORKLOAD_IDENTITY_PROVIDER" =~ ^projects/[0-9]+/locations/global/workloadIdentityPools/[^/]+/providers/[^/]+$ ]]; then
+            echo "::error title=Invalid Workload Identity provider::GCP_WORKLOAD_IDENTITY_PROVIDER must be the full projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider> resource name."
+            exit 1
+          fi
+          if [[ -z "$GCP_DEPLOY_SERVICE_ACCOUNT" ]]; then
+            echo "::error title=Missing deploy service account::Set GCP_DEPLOY_SERVICE_ACCOUNT as a development environment variable."
+            exit 1
+          fi
       - name: Authenticate to Google Cloud through OIDC
         uses: google-github-actions/auth@v3
         with:
           project_id: dev-moles-under-the-pitch-org
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
           create_credentials_file: true
       - run: npm run assemble --prefix deployment/firebase -- --environment dev
-        env:
-          FIREBASE_WEB_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY }}
-          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
-          FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
       - name: Deploy the validated DEV Hosting artifact
         run: >-
-          npx --yes firebase-tools@latest deploy --only hosting
+          npx --yes firebase-tools@latest deploy --only hosting --config firebase.generated.json
           --project dev-moles-under-the-pitch-org --non-interactive
           --message "DEV ${{ github.event.workflow_run.head_sha }}"

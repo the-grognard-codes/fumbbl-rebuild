@@ -64,16 +64,10 @@ the public site and browser client at `molesunderthepitch.org`.
 - [ ] Request identity only; do not request Google API scopes such as Drive or
       Contacts.
 
-### Microsoft sign-in
+### Microsoft sign-in — deferred
 
-- [ ] Register a Microsoft Entra application that accepts personal Microsoft
-      accounts and work/school accounts.
-- [ ] Register Firebase's generated `firebaseapp.com` OAuth callback with Microsoft
-      Entra.
-- [ ] Add the Microsoft client ID and client secret to Firebase's Microsoft provider
-      configuration only.
-- [ ] Record the client secret expiry date, rotation procedure, and accountable owner.
-- [ ] Request basic identity only; do not request Microsoft Graph permissions.
+Microsoft is outside this proof. The login UI and handlers support Google and
+email links only. Do not provision a Microsoft provider for this feature.
 
 ### Passwordless email links
 
@@ -86,7 +80,7 @@ the public site and browser client at `molesunderthepitch.org`.
 
 ## Client and Java-server integration
 
-- [ ] Add Google, Microsoft, and “email me a sign-in link” options to the browser
+- [ ] Validate Google and “email me a sign-in link” options on the browser
       login screen.
 - [ ] Handle login cancellation, expired links, cross-device email completion, and
       provider-denied access clearly.
@@ -105,15 +99,33 @@ the public site and browser client at `molesunderthepitch.org`.
 - [ ] Restrict browser API keys and permitted origins appropriately.
 - [ ] Validate intended return paths and reject open redirects.
 - [ ] Cover provider-neutral authentication policies with local test doubles.
-- [ ] Test Google, Microsoft, and magic-link flows with dedicated test accounts on
+- [ ] Test Google and magic-link flows with dedicated test accounts on
       desktop and mobile browsers.
-- [ ] Confirm invalid, expired, replayed, and mismatched-account tokens are rejected.
+- [ ] Confirm invalid, expired, malformed, wrong-audience, wrong-issuer and
+      wrong-project tokens are rejected before account/session creation.
+- [ ] Confirm a second active connection for the same verified account is rejected.
+      Firebase ID tokens are bearer tokens, not one-time tickets; universal JWT
+      replay detection is not claimed.
 - [ ] Confirm direct navigation to `/login/complete` behaves correctly.
-- [ ] Document owner access, Firebase recovery, Microsoft-secret rotation, and static
+- [ ] Document owner access, Firebase recovery, and static
       site rollback procedures.
 
 ## Deferred scope
 
 - [ ] Define an owner-approved migration plan for existing FUMBBL accounts.
-- [ ] Choose hosting for the Java/WebSocket server and its database separately from
-      Firebase Hosting.
+
+## Two-player proof deployment and acceptance
+
+The separate Java host is Google Compute Engine, one instance and persistent
+account disk per Firebase project. Follow
+[the provisioning and acceptance runbook](deployment/game-service/README.md).
+Provisioning and live acceptance remain owner-run steps; local automated tests
+do not establish that real Google or cross-device email sign-in works.
+
+- [ ] Provision DEV and PROD game hosts, DNS and certificates with the scripts.
+- [ ] Deploy each generated Hosting artifact with its matching CSP and WSS URL.
+- [ ] Use two independent DEV browser profiles and Firebase users to create/join.
+- [ ] Observe waiting → both players joined; send chat both ways; compare event order.
+- [ ] Close/reopen a client and verify left/reconnected events and slot reservation.
+- [ ] Complete Google and same-device/cross-device email sign-in at `/play`.
+- [ ] Verify DEV ↔ PROD rejection and absence of credentials/identifiers in logs.

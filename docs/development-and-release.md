@@ -1,7 +1,7 @@
 # Development and release guide
 
 This project is educational work alongside FUMBBL. The static web delivery,
-Firebase Authentication projects, and future Java service are separate from
+Firebase Authentication projects, and isolated Java session service are separate from
 existing FUMBBL accounts, credentials, and production systems.
 
 ## Components and ownership
@@ -9,7 +9,8 @@ existing FUMBBL accounts, credentials, and production systems.
 | Component | Directory | Purpose and normal owner |
 | --- | --- | --- |
 | Shared engine | `ffb-common/` | Reusable game rules and engine code; rules/engine contributors. |
-| Java game service | `ffb-server/` | Future game service; server contributors. It is built and tested, not deployed by these workflows. |
+| Java game session proof | `game-service/` | Independent Firebase-authenticated WSS service; provisioned separately using `deployment/game-service/`. |
+| Existing Java game server | `ffb-server/` | Game engine server and explicit local diagnostic stack. |
 | Browser client | `browser-client/` | Independently buildable HTML5 game client; client contributors. |
 | Public site | `site/` | Static project pages, updates, privacy, support, and non-affiliation copy; site contributors. |
 | Firebase delivery | `deployment/firebase/`, `firebase.json`, `.firebaserc` | Artifact assembly, public build configuration, emulator guidance, and Hosting routing; release maintainers. |
@@ -39,8 +40,8 @@ npm run build --prefix browser-client
 npm run check --prefix site
 npm run build --prefix site
 
-# Complete DEV-shaped Hosting artifact (uses placeholder public config only)
-npm run assemble --prefix deployment/firebase -- --environment dev --allow-placeholder-config
+# Complete DEV-shaped Hosting artifact
+npm run assemble --prefix deployment/firebase -- --environment dev
 npm run verify-hosting-artifact --prefix deployment/firebase -- --environment dev
 ```
 
@@ -49,7 +50,7 @@ To test the assembled site and email-link completion route locally, assemble
 `deployment/firebase/hosting/` directory; it does not rebuild it.
 
 ```powershell
-npm run assemble --prefix deployment/firebase -- --environment local --allow-placeholder-config
+npm run assemble --prefix deployment/firebase -- --environment local
 firebase emulators:start --project dev-moles-under-the-pitch-org
 ```
 
@@ -71,9 +72,9 @@ by `--environment dev` or `--environment prod`; builds do not use the active
 local Firebase CLI project.
 
 Create separate Firebase Authentication user stores, authorized domains,
-email-link return URLs, and Google/Microsoft provider registrations in the two
+email-link return URLs, and Google provider registrations in the two
 projects. A Hosting release does **not** create or change any Auth provider,
-user, session, or existing FUMBBL account.
+user, session, or existing FUMBBL account. Microsoft is deferred.
 
 ## Branches, checks, and DEV
 
@@ -118,19 +119,36 @@ Set these GitHub *environment variables* separately in `development` and
 | --- | --- |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name for that environment. |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | That environment's deploy service-account email. |
-| `FIREBASE_WEB_API_KEY` | Public Firebase web API key for that environment's web app. |
-| `FIREBASE_WEB_MESSAGING_SENDER_ID` | Public sender ID for that web app. |
-| `FIREBASE_WEB_APP_ID` | Public Firebase app ID for that web app. |
 
-The identifiers and web configuration are not private keys, but environment
-scoping prevents accidental cross-environment use. No service-account JSON,
+The identifiers are not private keys. The public Firebase web configuration is
+versioned in `deployment/firebase/scripts/environment.mjs`, so each build has
+an auditable environment mapping. No service-account JSON,
 OAuth client secret, Firebase CLI token, `.env` file, or user/session export
 belongs in this repository. `gha-creds-*.json` is an ephemeral CI credential
 file and is ignored.
 
+The deployment workflows prefer these environment variables and also accept
+same-named GitHub secrets for `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+`GCP_DEPLOY_SERVICE_ACCOUNT` while existing configuration is being moved. A
+missing or malformed WIF provider now fails before Google authentication with
+an actionable workflow error. Keep the identifiers as environment variables
+when possible; neither value is a credential.
+
 In **Settings > Environments**, set `production` to require approval before
 deployment. In **Settings > Rules**, protect `main` and make `moles-v*` tags
 immutable as described in [the branch-control checklist](../.github/BRANCH_PROTECTION.md).
+
+To provision the production WIF provider and its dedicated Firebase Hosting
+deployer without creating a service-account key, run the reviewed script from
+Google Cloud Shell as a production-project administrator:
+
+```bash
+bash deployment/firebase/scripts/provision-prod-wif.sh
+```
+
+The script prints the two `GCP_*` values to add to GitHub's `production`
+environment. It creates only missing resources; if a provider already exists,
+it leaves its trust condition unchanged and asks for review.
 
 ## Production release and rollback
 
@@ -162,12 +180,14 @@ reuse a release tag.
 ## Deployment boundaries
 
 - A static-site deployment publishes `site/` output at `/`.
-- A browser-client deployment publishes `browser-client/` output at `/play`.
+- DEV and PROD publish the Firebase-authenticated `site/src/play/` page at `/play`.
+  Only the explicit `local` assembly uses `browser-client/` diagnostic output.
+- Assembly generates `firebase.generated.json` with a policy allowing Firebase
+  Auth and only the matching game WSS origin. Hosting deployments must pass
+  `--config firebase.generated.json`.
 - Firebase Authentication configuration is a separately administered,
   environment-specific Firebase console task. Its secrets and user stores are
   not deployed by GitHub Actions.
-- The Java server is built and tested in `Checks` only. It has no Hosting or
-  production target here. Once a server hosting target is chosen, add separate
-  DEV and PROD server jobs with the same project/token isolation and
-  `production` approval boundary; do not add server deployment to the Hosting
-  workflows.
+- The session service has separate DEV and PROD Compute Engine hosts. Follow
+  [the provisioning runbook](../deployment/game-service/README.md); its scripts
+  are owner-run and do not add Java deployment to the Hosting workflows.

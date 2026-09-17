@@ -13,12 +13,16 @@ try {
       try {
         await signInWithEmailLink(auth, email, window.location.href);
         localStorage.removeItem('moles-email-link-address');
-        history.replaceState({}, document.title, '/login/complete');
-        message.textContent = 'Sign-in completed for this environment.';
-        form.hidden = true;
-      } catch (error) { message.textContent = `Could not complete sign-in: ${error.message}`; }
+        const returnTo = '/play';
+        sessionStorage.removeItem('moles-login-return-to');
+        window.location.assign(returnTo);
+      } catch {
+        message.textContent = 'Could not complete sign-in. Enter the email address used to request this link.';
+        form.hidden = false;
+      }
     };
+    form.addEventListener('submit', event => { event.preventDefault(); complete(input.value); });
     const email = localStorage.getItem('moles-email-link-address');
-    if (email) complete(email); else { message.textContent = 'Enter the email address used to request this link.'; form.hidden = false; form.addEventListener('submit', event => { event.preventDefault(); complete(input.value); }); }
+    if (email) complete(email); else { message.textContent = 'Enter the email address used to request this link.'; form.hidden = false; }
   }
 } catch (error) { message.textContent = error.message; }
