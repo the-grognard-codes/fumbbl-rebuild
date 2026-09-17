@@ -1,4 +1,5 @@
-# Future Java service: accept only tokens issued by the PROD Firebase project.
+# Reference identity mapping. The service reads environment variables documented
+# in deployment/game-service/README.md, not this properties file.
 firebase.auth.project-id=molesunderthepitch-dotorg
 firebase.auth.issuer=https://securetoken.google.com/molesunderthepitch-dotorg
 firebase.auth.audience=molesunderthepitch-dotorg

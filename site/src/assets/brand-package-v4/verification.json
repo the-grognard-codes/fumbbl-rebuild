@@ -1,0 +1,142 @@
+{
+  "checks": [
+    {
+      "file": "moles-under-the-pitch-logo.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "moles-under-the-pitch-logo.png",
+      "width": 1400,
+      "height": 400,
+      "transparentPixels": 282763,
+      "opaquePixels": 273794,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-logo-700.png",
+      "width": 700,
+      "height": 200,
+      "transparentPixels": 70304,
+      "opaquePixels": 67985,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-logo-compact.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "moles-under-the-pitch-logo-compact.png",
+      "width": 640,
+      "height": 640,
+      "transparentPixels": 221222,
+      "opaquePixels": 185848,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-logo-compact-160.png",
+      "width": 160,
+      "height": 160,
+      "transparentPixels": 13643,
+      "opaquePixels": 11336,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-mark.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "moles-under-the-pitch-mark.png",
+      "width": 512,
+      "height": 512,
+      "transparentPixels": 126886,
+      "opaquePixels": 133988,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-mark-32.png",
+      "width": 32,
+      "height": 32,
+      "transparentPixels": 474,
+      "opaquePixels": 470,
+      "transparentCorners": true
+    },
+    {
+      "file": "moles-under-the-pitch-mark-16.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "moles-under-the-pitch-mark-16.png",
+      "width": 16,
+      "height": 16,
+      "transparentPixels": 94,
+      "opaquePixels": 162,
+      "transparentCorners": true
+    },
+    {
+      "file": "oauth-google-app-logo-120.png",
+      "width": 120,
+      "height": 120,
+      "transparentPixels": 6876,
+      "opaquePixels": 7162,
+      "transparentCorners": true
+    },
+    {
+      "file": "oauth-microsoft-app-logo-512.png",
+      "width": 512,
+      "height": 512,
+      "transparentPixels": 126886,
+      "opaquePixels": 133988,
+      "transparentCorners": true
+    },
+    {
+      "file": "magic-link-email-mark.png",
+      "width": 256,
+      "height": 256,
+      "transparentPixels": 31678,
+      "opaquePixels": 33222,
+      "transparentCorners": true
+    },
+    {
+      "file": "auth-card-logo.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "magic-link-email-banner.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "magic-link-email-banner.png",
+      "width": 1200,
+      "height": 300,
+      "transparentPixels": 200073,
+      "opaquePixels": 157313,
+      "transparentCorners": true
+    },
+    {
+      "file": "magic-link-complete-illustration.svg",
+      "validRender": true,
+      "paletteOnly": true,
+      "selfContainedPaths": true
+    },
+    {
+      "file": "magic-link-complete-illustration.png",
+      "width": 640,
+      "height": 640,
+      "transparentPixels": 211052,
+      "opaquePixels": 196755,
+      "transparentCorners": true
+    }
+  ]
+}

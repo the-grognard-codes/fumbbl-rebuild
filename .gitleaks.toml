@@ -1,0 +1,48 @@
+title = "Moles Under the Pitch Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# Firebase web API keys identify a public browser application. They are required
+# in the generated browser configuration and must be restricted in Google Cloud;
+# they are not OAuth client secrets or server credentials.
+[[rules]]
+id = "gcp-api-key"
+
+[rules.allowlist]
+description = "Public Firebase browser API-key fields"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^deployment/firebase/scripts/environment\.mjs$'''
+]
+regexes = [
+  '''^\+?\s*apiKey:\s*['"]AIza[0-9A-Za-z_-]+['"],?\s*$'''
+]
+
+# This R3 acceptance-language phrase resembles a generic API-key assignment
+# to the default detector, but contains no key material.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public Firebase browser API-key fields"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^deployment/firebase/scripts/environment\.mjs$'''
+]
+regexes = [
+  '''^\+?\s*apiKey:\s*['"]AIza[0-9A-Za-z_-]+['"],?\s*$'''
+]
+
+[[rules.allowlists]]
+description = "R3 revoked-credential documentation phrase"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^\.notes/overhaul-analysis/m4-workstreams-reference\.md$'''
+]
+regexes = [
+  '''stale/disabled/revoked credentials'''
+]

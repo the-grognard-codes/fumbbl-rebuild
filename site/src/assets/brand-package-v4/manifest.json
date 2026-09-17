@@ -1,0 +1,134 @@
+{
+  "palette": [
+    "#070d16",
+    "#101c2b",
+    "#2f7d32",
+    "#1c5a32",
+    "#4db2ff",
+    "#ffe17b",
+    "#874a2d",
+    "#edf5ff"
+  ],
+  "typographyReference": "primary-logo-approved-direction-v2.png",
+  "assets": [
+    {
+      "name": "moles-under-the-pitch-logo.svg",
+      "width": 1400,
+      "height": 400
+    },
+    {
+      "name": "moles-under-the-pitch-logo.png",
+      "width": 1400,
+      "height": 400,
+      "bytes": 50437,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-logo-700.png",
+      "width": 700,
+      "height": 200,
+      "bytes": 25510,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-logo-compact.svg",
+      "width": 640,
+      "height": 640
+    },
+    {
+      "name": "moles-under-the-pitch-logo-compact.png",
+      "width": 640,
+      "height": 640,
+      "bytes": 36982,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-logo-compact-160.png",
+      "width": 160,
+      "height": 160,
+      "bytes": 9980,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-mark.svg",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "name": "moles-under-the-pitch-mark.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 17027,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-mark-32.png",
+      "width": 32,
+      "height": 32,
+      "bytes": 1214,
+      "alpha": true
+    },
+    {
+      "name": "moles-under-the-pitch-mark-16.svg",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "name": "moles-under-the-pitch-mark-16.png",
+      "width": 16,
+      "height": 16,
+      "bytes": 223,
+      "alpha": true
+    },
+    {
+      "name": "oauth-google-app-logo-120.png",
+      "width": 120,
+      "height": 120,
+      "bytes": 5271,
+      "alpha": true
+    },
+    {
+      "name": "oauth-microsoft-app-logo-512.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 17027,
+      "alpha": true
+    },
+    {
+      "name": "magic-link-email-mark.png",
+      "width": 256,
+      "height": 256,
+      "bytes": 9560,
+      "alpha": true
+    },
+    {
+      "name": "auth-card-logo.svg",
+      "width": 1400,
+      "height": 400
+    },
+    {
+      "name": "magic-link-email-banner.svg",
+      "width": 1200,
+      "height": 300
+    },
+    {
+      "name": "magic-link-email-banner.png",
+      "width": 1200,
+      "height": 300,
+      "bytes": 39698,
+      "alpha": true
+    },
+    {
+      "name": "magic-link-complete-illustration.svg",
+      "width": 640,
+      "height": 640
+    },
+    {
+      "name": "magic-link-complete-illustration.png",
+      "width": 640,
+      "height": 640,
+      "bytes": 23996,
+      "alpha": true
+    }
+  ]
+}

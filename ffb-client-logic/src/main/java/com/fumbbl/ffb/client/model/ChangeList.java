@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Firebase Google and email-link sign-in opens private two-player browser sessions with presence and shared chat")
 			.addFeature("New local browser matches can restore private engine checkpoints and reconcile committed requests after a server process restart")
 			.addImprovement("Local browser server supports Java 21 and Jetty 12 with bounded transport recovery")
 			.addBugfix("Local browser matches retain uncertain actions across reconnect and page reload, keep new actions locked until reconciliation, and link directly to final results")
