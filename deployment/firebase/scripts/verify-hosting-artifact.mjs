@@ -6,6 +6,15 @@ function argument(args, name) {
   return index === -1 ? undefined : args[index + 1];
 }
 
+function directiveSources(policy, directive) {
+  if (typeof policy !== 'string') return [];
+  for (const entry of policy.split(';')) {
+    const parts = entry.trim().split(/\s+/);
+    if (parts[0] === directive) return parts.slice(1);
+  }
+  return [];
+}
+
 const environment = argument(process.argv.slice(2), '--environment');
 if (environment !== 'dev' && environment !== 'prod') {
   throw new Error('Specify --environment dev or prod.');
@@ -42,6 +51,17 @@ const playScript = await readFile(new URL('assets/play.js', root), 'utf8');
 if (playScript.includes('ws://') || playScript.includes('/browser/v1')) throw new Error('Local diagnostic transport leaked into hosted play.');
 const hosting = JSON.parse(await readFile(new URL('../../../firebase.generated.json', import.meta.url), 'utf8'));
 const csp = hosting.hosting.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy')?.value;
-const opposite = resolveEnvironment(['--environment', environment === 'dev' ? 'prod' : 'dev']);
-if (!csp?.includes('https://www.gstatic.com') || !csp.includes(new URL(config.gameWebSocketUrl).origin) || csp.includes(new URL(opposite.gameWebSocketUrl).origin)) throw new Error('Hosting policy must allow Firebase assets and only the matching game origin.');
+const expectedConnectSources = new Set([
+  "'self'",
+  'https://www.gstatic.com',
+  'https://identitytoolkit.googleapis.com',
+  'https://securetoken.googleapis.com',
+  'https://www.googleapis.com',
+  `https://${config.projectId}.firebaseapp.com`,
+  new URL(config.gameWebSocketUrl).origin
+]);
+const connectSources = directiveSources(csp, 'connect-src');
+if (connectSources.length !== expectedConnectSources.size || connectSources.some(source => !expectedConnectSources.has(source))) {
+  throw new Error('Hosting policy must allow only the expected Firebase and matching game-service connection sources.');
+}
 console.log(`Verified ${environment} Hosting artifact routes and isolated Firebase configuration.`);

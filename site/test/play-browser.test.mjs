@@ -80,7 +80,7 @@ test('mocked Firebase play flow renders a session in two browser contexts', { ti
     assert.equal(await joiner.locator('#you-slot').textContent(), 'You: connected');
     assert.ok((await creator.screenshot({ path: process.env.PLAY_SCREENSHOT_PATH })).byteLength > 1000);
     await creator.getByRole('button', { name: 'Leave' }).click();
-    await assert.doesNotReject(creator.getByText('Session:').waitFor());
+    await creator.getByText('Connected. Create or join a session.').waitFor();
     assert.equal(await creator.locator('#session-code').textContent(), '');
     await first.close();
     await second.close();
