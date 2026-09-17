@@ -60,21 +60,83 @@ Begin R1 and R2 in parallel. R3 needs an owner-approved account-provider and cre
 
 ## R3 — Real identities and production route policy
 
-**Prerequisite:** owner authorization selecting an account provider and credential lifecycle. Until then, finish only provider-neutral interfaces, local test doubles, and policy tests; do not create provider accounts or credentials.
+**Current status (2026-09-17): partially complete.** The isolated DEV game-session proof has replaced the local diagnostic credential prompt on hosted `/play` with Firebase Authentication. Google and email-link users receive a fresh Firebase ID token only after WSS opens. The service verifies signature, expiry, issuer, audience, project, disabled-user and revocation state; maps the verified issuer/UID to a provider-neutral internal account; and never places the token in a URL, outbound message, or application log. It enforces one live connection per account, private two-player invitation-code sessions, reconnect, membership checks, bounded ordered chat history, exact DEV/PROD Origin configuration, and TLS-only game transport. The local diagnostic client remains an explicit local-only configuration.
 
-**Objective:** replace operator-provisioned local bearer subjects with scoped, revocable identities and a route/recipient policy suitable for public exposure.
+The proof also has signed-JWT verifier tests, TLS WebSocket protocol tests, DEV-to-PROD and PROD-to-DEV rejection tests, invalid/malformed/expired-token tests, missing/foreign-Origin and query-token rejection tests, plus a successful two-browser-profile DEV acceptance run. Chat and event UI rendering uses `textContent` and exposes only `You` and `Opponent`.
 
-**Scope:** player/invitation/reconnect semantics; optional spectator policy; admin/result/replay/legacy route projections; expiry/revocation; TLS and validated production-origin policy; safe log/name rendering.
+It does **not** yet provide application scopes, durable invitation records or revocation, spectator/admin/result/replay/legacy projections, a complete route matrix, or the independent role/projection evidence required to close R3.
 
-**Must deliver:**
+**Objective:** extend the verified session proof into scoped, revocable identities and a route/recipient policy suitable for public exposure. R3 is an M4 workstream; it does not reopen M3 engine, result, or replay implementation.
 
-- Explicit principals, scopes, expiry/revocation, invitation acceptance, and reconnect behavior, with no token or private account/team data in logs.
-- A route-projection matrix covering player, spectator if introduced, admin, result/replay, and legacy endpoints. Each route must state authentication, authorization, recipient projection, mutation permissions, and failure response.
-- TLS-required public profile and exact origin validation; local development remains explicitly separate and loopback-safe.
+### Owner decisions required before dependent implementation
 
-**Acceptance evidence:** independent positive and negative tests for each role/route projection, including cross-match and stale/revoked credentials, reconnect, duplicate intents, and attempts to read or mutate out-of-projection state.
+The Firebase proof establishes a provider choice in practice, but the following decisions must be recorded by the owner before the dependent R3 slices are accepted. These are product and access-policy choices, not implementation details that an agent should infer.
 
-**Out of scope:** selecting or purchasing a provider without authorization, public deployment, and expanding the spectator feature beyond an authorized read-only projection.
+| Decision | Choices to record | Blocks |
+| --- | --- | --- |
+| Account and credential lifecycle | Confirm Firebase Authentication with Google and email links as the supported providers; define who can disable/revoke a user, account-deletion/retention behavior, dedicated test-identity ownership, and the review/rotation process for the service's cloud credentials. | R3-A lifecycle policy and live acceptance evidence |
+| Principal scopes | Define the initial application scopes: player, any future read-only spectator, and separately administered support/admin access. State whether a user may hold more than one scope and how scopes are granted and revoked. | R3-A authorization model and R3-C projections |
+| Invitation policy | Choose recipient-bound invitations or explicitly transferable bearer codes; set invitation lifetime, revocation/reissue behavior, acceptance limit, and behavior when a reserved player leaves or the session is abandoned. | R3-B durable invitation semantics |
+| Public route policy | Decide which, if any, spectator, admin, result/replay, and legacy projections will be exposed in the first public release. The safe default is that each is unavailable. | R3-C final matrix and R3-D enforcement |
+| Display-name policy | Decide whether public player names will ever replace `You`/`Opponent`; if so, define their source, validation, moderation, retention, and safe rendering rules. | R3-E name/projection tests |
+
+No new provider, OAuth credential, paid service, or public deployment may be created merely to make these decisions. The existing DEV Firebase setup may continue to be used only within the authorization already granted for this proof.
+
+### R3 implementation workstreams
+
+#### R3-A — Principal, scope, and credential-lifecycle model
+
+**Can proceed now:** define provider-neutral interfaces and local doubles for internal principals, scope checks, expiration, disabled/revoked identity handling, and safe audit/log fields. Preserve the current `issuer + subject -> internal account` identity link; do not trust client-provided email, name, role, or UID.
+
+**Requires the owner decisions above:** persist the approved scope grants and lifecycle policy, integrate their granting/revocation mechanism, and write the operational runbook. Firebase token verification alone establishes identity; it does not grant application roles or scopes.
+
+**Evidence:** positive and negative tests for every scope, revoked/disabled/stale credentials, no account creation after rejected authentication, and absence of token, raw UID, email, private account data, and private team data in logs.
+
+#### R3-B — Invitation, player-slot, and reconnect policy
+
+**Can proceed now:** characterize the current session-code proof and write contracts for one account/one player slot, duplicate connection behavior, reconnect ordering, cross-session rejection, and the current process-local inactivity/purge behavior.
+
+**Requires the owner decisions above:** implement durable invitation records with the selected recipient/bearer rule, expiry, revocation/reissue, acceptance behavior, and abandoned-session policy. Do not silently turn the current shareable 128-bit code into a recipient-bound invitation without that decision.
+
+**Evidence:** independent two-player tests for valid acceptance, cross-match and non-invitee attempts, expired/revoked invitation, duplicate intent, disconnect/reconnect, simultaneous reconnect, and every defined failure response.
+
+#### R3-C — Route-projection matrix and public exposure policy
+
+Create and keep the following matrix with the public API specification. A route that is not authorized for the first release must be explicitly unavailable rather than implicitly protected by a missing client link.
+
+| Projection / route family | Initial safe default until authorized | Required matrix fields before exposure |
+| --- | --- | --- |
+| Player session (`/session/v1`) | Firebase-authenticated player; only the account's own slot plus the other slot's minimal presence/event projection; create, accepted join, chat, leave, and reconnect only | Authentication, player-scope authorization, invitation/membership rule, recipient DTO, permitted mutations, close/error response |
+| Spectator | No route or protocol message; reject as unavailable | Authentication and spectator scope, match visibility rule, read-only DTO, no mutation rule, failure response |
+| Admin/support | No public route; keep cloud/operator access outside the game protocol | Separate principal/scope, audited operations, recipient projection, permitted mutations, denial response |
+| Result and replay | No public route until R2/M3 durable artifacts and the release policy exist | Authentication/scope, participant/public visibility rule, redacted DTO, read-only rule, failure response |
+| Legacy endpoints | Not served by the game-service host; reject rather than proxy to FUMBBL or the legacy desktop server | Explicit host/path boundary, authentication/authorization if ever introduced, recipient projection, mutation rule, failure response |
+
+**Can proceed now:** inventory all deployed host paths, add contract tests that unavailable route families return the selected denial (`404` for absent routes or `403` for recognized but forbidden routes), and document the exact game-service/legacy boundary.
+
+**Requires the owner decisions above:** expose any non-player route or finalize its participant/public visibility and administrator policy.
+
+#### R3-D — Transport, Origin, and local/public separation
+
+**Completed foundation:** the game service accepts only TLS WebSockets and fixes the allowed Origin, Firebase project, issuer, and audience from the selected DEV or PROD profile. Hosted clients use WSS only; the service rejects query strings before authentication. The local diagnostic client remains separately configured.
+
+**Remaining implementation:** apply the same exact host/path and Origin policy to every route in R3-C, make local development loopback-only for any diagnostic transport, and add configuration tests proving that a local, DEV, or PROD configuration cannot select another environment's Origin, project, route, or insecure transport.
+
+**Evidence:** TLS-required profile tests, exact/missing/foreign-Origin tests, DEV-to-PROD and PROD-to-DEV credential rejection, insecure/query credential rejection, and a documented local loopback check. A production deployment is not R3 work and remains separately authorized.
+
+#### R3-E — Projection-safe rendering, logs, and acceptance record
+
+**Completed foundation:** session chat is plain text in the browser and session messages/logs contain no Firebase token, UID, email, or display name. The deployed service does not log authentication or chat contents.
+
+**Remaining implementation:** give every future recipient DTO an explicit projection test, apply the approved display-name policy, and retain a concise release evidence record. Do not inspect or export browser WebSocket frames or HAR files because the browser's private authentication message necessarily contains its own bearer token.
+
+**Evidence:** role-by-role positive and negative browser/service tests that attempt to read or mutate out-of-projection state, plus a bounded browser Console and service-journal inspection without verbose token or HTTP tracing.
+
+### R3 completion criteria
+
+R3 closes only when the owner decisions are recorded, the approved R3-A through R3-E work is implemented, and independent positive and negative tests cover every row of the final route-projection matrix. Required scenarios include cross-match access, stale/disabled/revoked credentials, invitation failure/expiry/revocation, reconnect, duplicate intents/connections, and attempts to read or mutate state outside the recipient projection. The current two-player DEV proof is evidence for part of the player-session row; it is not evidence for absent or future route families.
+
+**Out of scope:** selecting or purchasing a provider without authorization, public deployment, expanding the spectator feature beyond an authorized read-only projection, and implementation of M3 engine/result/replay behavior merely to populate a route matrix.
 
 ## R4 — Capacity, retention, and completed-session release
 

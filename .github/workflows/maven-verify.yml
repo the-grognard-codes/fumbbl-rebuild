@@ -137,8 +137,28 @@ jobs:
       - run: npm ci --prefix browser-client
       - run: npm test --prefix browser-client
       - run: npm run check --prefix site
+      - run: npm test --prefix site
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - run: npm run test:browser --prefix site
       - run: npm run verify-environment --prefix deployment/firebase
-      - run: npm run assemble --prefix deployment/firebase -- --environment dev --allow-placeholder-config
+      - run: npm run assemble --prefix deployment/firebase -- --environment dev
       - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment dev
-      - run: npm run assemble --prefix deployment/firebase -- --environment prod --allow-placeholder-config
+      - run: npm run assemble --prefix deployment/firebase -- --environment prod
       - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment prod
+
+  game-session:
+    name: Firebase game session service
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -f game-service/pom.xml clean verify
+      - run: bash -n deployment/game-service/provision.sh
+      - run: bash -n deployment/game-service/activate.sh
+      - run: bash -n deployment/game-service/install-host.sh

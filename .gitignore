@@ -14,6 +14,7 @@ site/node_modules/
 site/dist/
 deployment/firebase/node_modules/
 deployment/firebase/hosting/
+firebase.generated.json
 
 # Firebase CLI state and diagnostics
 .firebase/
