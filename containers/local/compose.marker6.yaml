@@ -1,0 +1,35 @@
+# Local-only marker-6 runtime. It never starts, mounts, or modifies a retained source database.
+name: ffb-local-m6
+services:
+  server:
+    image: ffb-server:3.4.0-m6.1
+    build:
+      context: ../..
+      dockerfile: containers/local/Dockerfile
+    ports:
+      - "127.0.0.1:22231:22227"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ./server.marker6.ini:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the local ADC file}:/run/adc/application_default_credentials.json:ro
+      - marker6_backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+secrets:
+  db_password:
+    file: ./.secrets/db_password
+  admin_password:
+    file: ./.secrets/admin_password
+  coach_password:
+    file: ./.secrets/coach_password
+volumes:
+  marker6_backup:

@@ -13,8 +13,10 @@ import java.sql.SQLException;
 /** Local authenticated adapter. Errors never echo private input or JDBC exception details. */
 public final class BrowserSavedTeamJson {
 	private final SavedTeamService service;
+	private final boolean accounts;
 	private final SavedTeamJson json = new SavedTeamJson(new RosterCatalog());
-	public BrowserSavedTeamJson(SavedTeamService service) { this.service = service; }
+	public BrowserSavedTeamJson(SavedTeamService service) { this(service, false); }
+	public BrowserSavedTeamJson(SavedTeamService service, boolean accounts) { this.service = service; this.accounts = accounts; }
 	public JsonObject handle(String owner, String text) {
 		JsonObject response = new JsonObject().add("version", 1).add("type", "savedTeam").add("requestId", JsonValue.NULL)
 			.add("code", "OK").add("document", JsonValue.NULL).add("versionStatus", JsonValue.NULL)
@@ -26,7 +28,8 @@ public final class BrowserSavedTeamJson {
 			if (!requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
 			response.set("requestId", requestId);
 			if (request.get("version").asInt() != 1 || !"savedTeam".equals(request.get("type").asString())) throw new IllegalArgumentException();
-			if (!"home".equals(owner) && !"away".equals(owner)) throw new SavedTeamService.Failure("AUTHENTICATION_REQUIRED");
+			if (accounts ? owner == null || !owner.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")
+				: !"home".equals(owner) && !"away".equals(owner)) throw new SavedTeamService.Failure("AUTHENTICATION_REQUIRED");
 			String operation = request.get("operation").asString();
 			SavedTeamService.Loaded loaded;
 			switch (operation) {
@@ -41,14 +44,18 @@ public final class BrowserSavedTeamJson {
 					loaded = service.load(owner, json.teamId(request.get("teamId"))); break;
 				case "create":
 					json.fields(request, "version", "type", "requestId", "operation", "draft");
-					loaded = service.create(owner, json.draft(request.get("draft").asObject())); break;
+					loaded = accounts ? service.create(owner, requestId, json.draft(request.get("draft").asObject()))
+						: service.create(owner, json.draft(request.get("draft").asObject())); break;
 				case "update":
 					json.fields(request, "version", "type", "requestId", "operation", "teamId", "expectedDocumentVersion", "draft");
 					loaded = service.update(owner, json.teamId(request.get("teamId")), json.documentVersion(request.get("expectedDocumentVersion")),
 						json.draft(request.get("draft").asObject())); break;
 				case "import":
 					json.fields(request, "version", "type", "requestId", "operation", "document");
-					loaded = service.importDocument(owner, request.get("document").asObject().toString()); break;
+					if (!accounts && request.get("document").asObject().getInt("formatVersion", -1) != 1)
+						throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
+					loaded = accounts ? service.create(owner, requestId, json.decode(request.get("document").asObject().toString()).draft)
+						: service.importDocument(owner, request.get("document").asObject().toString()); break;
 				default: throw new IllegalArgumentException();
 			}
 			return response.set("document", json.encode(loaded.document)).set("versionStatus", loaded.versionStatus)

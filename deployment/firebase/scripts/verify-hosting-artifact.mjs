@@ -25,6 +25,8 @@ const root = new URL('../hosting/', import.meta.url);
 const required = [
   'index.html',
   'play/index.html',
+  'assets/game/game.js',
+  'assets/game/game.css',
   'login/index.html',
   'login/complete/index.html',
   'privacy/index.html',
@@ -58,7 +60,7 @@ const expectedConnectSources = new Set([
   'https://securetoken.googleapis.com',
   'https://www.googleapis.com',
   `https://${config.projectId}.firebaseapp.com`,
-  new URL(config.gameWebSocketUrl).origin
+  ...(config.gameWebSocketUrl ? [new URL(config.gameWebSocketUrl).origin] : [])
 ]);
 const connectSources = directiveSources(csp, 'connect-src');
 if (connectSources.length !== expectedConnectSources.size || connectSources.some(source => !expectedConnectSources.has(source))) {

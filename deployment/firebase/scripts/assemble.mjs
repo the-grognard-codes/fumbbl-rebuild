@@ -22,13 +22,9 @@ function run(command, args) {
 }
 
 await run('npm', ['run', 'build', '--prefix', 'site']);
-if (configuration.environment === 'local') await run('npm', ['run', 'build', '--prefix', 'browser-client']);
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(new URL('../../../site/dist/', import.meta.url), output, { recursive: true });
-if (configuration.environment === 'local') {
-  await cp(new URL('../../../browser-client/dist/', import.meta.url), new URL('../hosting/play/', import.meta.url), { recursive: true });
-}
 await writeFile(new URL('../hosting/firebase-web-config.js', import.meta.url), configurationScript(configuration), 'utf8');
 const base = JSON.parse(await readFile(new URL('../../../firebase.json', import.meta.url), 'utf8'));
 await writeFile(new URL('../../../firebase.generated.json', import.meta.url), JSON.stringify(hostingConfiguration(base, configuration), null, 2) + '\n');

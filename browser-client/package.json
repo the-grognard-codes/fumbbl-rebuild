@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "tsc --noEmit && vite build",
+    "build:play": "tsc --noEmit && vite build --config vite.play.config.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "demo": "node test/browser-demo.mjs",
     "demo:choice": "node test/choice-demo.mjs",

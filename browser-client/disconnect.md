@@ -101,3 +101,26 @@ match without a compatible checkpoint remains unavailable instead of restarting
 at setup. See the [compatibility policy](../containers/local/recovery.md) and
 [seven real process-kill checks and rejection evidence](../.notes/overhaul-analysis/verification/r2/README.md).
 This is local process recovery, not a capacity, public authentication or deployment gate.
+
+## Consolidated authenticated runtime (2026-09-18)
+
+The current marker-6 `/browser/v2` runtime uses the same R2 checkpoint logic with
+persistent account-to-match membership. Firebase establishes identity; current
+application scopes and membership are checked before loads, decisions and exact
+retries. All default authenticated accounts may watch active marker-6 matches.
+Watching uses the shared public game state and cannot submit game decisions.
+
+The newest authenticated connection replaces the older connection. Reconnect
+authenticates afresh and reloads the selected game (or watch subscription).
+Unacknowledged mutations stay in account-bound session storage under
+`ffb.intent.v2`; retry is explicit with the original request ID and content, never
+automatic. An uncertain save/commit keeps controls locked until reconciliation.
+Sign-out, disconnect and recipient access loss clear the displayed game.
+No Firebase bearer token is persisted by this client. The transferable game
+invitation may remain in session storage while crossing the sign-in page.
+
+Copied marker-5 games remain stored but are not exposed by v2. Only matches with
+marker-6 membership established at creation can be played or watched here.
+The former H2 process-local session behavior does not describe this runtime.
+See [the current protocol matrix](public-api-v2.md) and
+[local consolidation evidence](../.notes/overhaul-analysis/verification/r3-c-simplification/README.md).

@@ -1,0 +1,27 @@
+{
+  "catalogVersion": "bb2025-human-2026-09-08.1",
+  "ruleset": "BB2025",
+  "rosterId": "human",
+  "presetId": "human-exhibition-1150",
+  "captainId": "starter-01",
+  "players": [
+    { "id": "starter-01", "slot": 1, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-02", "slot": 2, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-03", "slot": 3, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-04", "slot": 4, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-05", "slot": 5, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-06", "slot": 6, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-07", "slot": 7, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-08", "slot": 8, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-09", "slot": 9, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-10", "slot": 10, "positionId": "lineman", "skillIds": [] },
+    { "id": "starter-11", "slot": 11, "positionId": "lineman", "skillIds": [] }
+  ],
+  "resources": {
+    "rerolls": 2,
+    "assistantCoaches": 0,
+    "cheerleaders": 0,
+    "apothecary": 1,
+    "dedicatedFans": 0
+  }
+}
