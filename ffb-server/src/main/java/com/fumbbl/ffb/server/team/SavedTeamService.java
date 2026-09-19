@@ -32,6 +32,21 @@ public final class SavedTeamService {
 		repository.insert(record(document));
 		return new Loaded(document, "CURRENT", result);
 	}
+	/** V2 creates bind their identifier to account and intent, so lost replies cannot duplicate a team. */
+	public Loaded create(String owner, String requestId, TeamDraft draft) throws SQLException {
+		if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new Failure("INVALID_REQUEST");
+		String id = UUID.nameUUIDFromBytes(("saved-team-v2\n" + owner + "\n" + requestId).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+		TeamValidation.Evaluation result = accepted(draft);
+		SavedTeamDocument document = new SavedTeamDocument(id, owner, 1, draft, json.evaluation(result).toString());
+		SavedTeamRepository.Record previous = repository.find(owner, id);
+		if (previous != null) {
+			Loaded loaded = inspect(previous);
+			if (!json.encode(loaded.document).equals(json.encode(document))) throw new Failure("CONFLICT");
+			return loaded;
+		}
+		repository.insert(record(document));
+		return new Loaded(document, "CURRENT", result);
+	}
 	public Loaded update(String owner, String id, int expectedVersion, TeamDraft draft) throws SQLException {
 		checkVersion(expectedVersion);
 		Loaded previous = load(owner, id);

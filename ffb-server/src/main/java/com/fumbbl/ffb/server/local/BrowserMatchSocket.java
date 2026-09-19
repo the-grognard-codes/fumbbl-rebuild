@@ -14,14 +14,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @WebSocket(maxTextMessageSize = 16 * 1024)
 public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
-	private final BrowserMatchAdapter adapter;
+	private final BrowserProtocol adapter;
 	private final FantasyFootballServer server;
 	private final BrowserMatchTransport transport;
 	private final AtomicBoolean active = new AtomicBoolean();
 	private volatile BrowserMatchDelivery delivery;
 	private volatile Session session;
 
-	public BrowserMatchSocket(FantasyFootballServer server, BrowserMatchAdapter adapter, BrowserMatchTransport transport) {
+	public BrowserMatchSocket(FantasyFootballServer server, BrowserProtocol adapter, BrowserMatchTransport transport) {
 		this.server = server;
 		this.adapter = adapter;
 		this.transport = transport;
@@ -57,7 +57,7 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 			try {
 				adapter.receive(this, message);
 			} catch (RuntimeException exception) {
-				server.getDebugLog().log(-1, exception);
+				// Protocol failures never log request bodies or provider exception details.
 				retireFromEngineWorker(1011, "Local fixture unavailable; operator restart required");
 			}
 		}, () -> retire(1013, "Local browser transport overloaded"));
@@ -89,6 +89,11 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 		if (!active.get()) return;
 		BrowserMatchDelivery activeDelivery = delivery;
 		if (activeDelivery != null) activeDelivery.send(message);
+	}
+
+	@Override
+	public void close(int statusCode, String reason) {
+		retireFromEngineWorker(statusCode, reason);
 	}
 
 	void closeFromEngineWorker() {

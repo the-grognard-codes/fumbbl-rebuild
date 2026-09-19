@@ -18,6 +18,12 @@ import java.util.Set;
 /** Versioned migrations for the dedicated local database; never deletes existing data. */
 public class LocalSchema {
 	public void initialize(DbConnectionManager manager, String coachPasswordHash) throws SQLException {
+		initialize(manager, coachPasswordHash, false);
+	}
+
+	/** Marker-6 databases are separately provisioned and verified; they are never migrated on startup. */
+	public void initialize(DbConnectionManager manager, String coachPasswordHash, boolean marker6) throws SQLException {
+		if (marker6) { initializeMarker6(manager); return; }
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
 			boolean empty;
 			try (ResultSet tables = statement.executeQuery("SHOW TABLES")) {
@@ -61,6 +67,27 @@ public class LocalSchema {
 			migrateRecovery(connection);
 		}
 	}
+
+	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
+		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
+			if (schemaVersion(statement) != 6) throw new SQLException("Marker-6 startup requires a separately provisioned schema version 6 database");
+			verifySavedTeams(connection);
+			verifyCompletedMatches(connection);
+			verifyRecovery(connection);
+			verifyMarker6(connection);
+		}
+	}
+
+	private int schemaVersion(Statement statement) throws SQLException {
+		try (ResultSet version = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
+			if (!version.next()) throw new SQLException("Missing local schema version");
+			int current = version.getInt(1);
+			if (version.next()) throw new SQLException("Unsupported local schema; use the documented explicit disposable reset");
+			return current;
+		}
+	}
+
+	void verifyMarker6(Connection connection) throws SQLException { new Marker6Schema().verify(connection); }
 
 	private void migrateSavedTeams(Connection connection) throws SQLException {
 		// MariaDB DDL commits implicitly. Resume only after verifying the complete expected table;

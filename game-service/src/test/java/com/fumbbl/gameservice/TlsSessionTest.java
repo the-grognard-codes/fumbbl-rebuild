@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
 import java.net.http.WebSocketHandshakeException;
 import java.nio.file.Files;
@@ -36,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +49,8 @@ class TlsSessionTest {
 	private Server server;
 	private HttpClient client;
 	private String endpoint;
+	private String httpsEndpoint;
+	private AccountStore accounts;
 	private final AtomicInteger verifications = new AtomicInteger();
 	private Path keyStore;
 
@@ -71,12 +76,14 @@ class TlsSessionTest {
 			keyStore.toString(), "test-password", 0);
 		TokenVerifier verifier = token -> {
 			verifications.incrementAndGet();
-			if (!token.equals("test-player-a") && !token.equals("test-player-b") && !token.equals("test-expiring")) throw new TokenVerifier.TokenRejectedException(false);
+			if (!token.equals("test-player-a") && !token.equals("test-player-b") && !token.equals("test-player-c") && !token.equals("test-expiring")) throw new TokenVerifier.TokenRejectedException(false);
 			return new TokenVerifier.Identity("https://securetoken.google.com/dev-moles-under-the-pitch-org", token, System.currentTimeMillis() + (token.equals("test-expiring") ? 500 : 60000));
 		};
-		server = GameServiceMain.createServer(config, verifier, new AccountStore(database), new SessionManager());
+		accounts = new AccountStore(database);
+		server = GameServiceMain.createServer(config, verifier, accounts, new SessionManager(), new InvitationStore(database));
 		server.start();
-		endpoint = "wss://localhost:" + ((ServerConnector) server.getConnectors()[0]).getLocalPort() + "/session/v1";
+		httpsEndpoint = "https://localhost:" + ((ServerConnector) server.getConnectors()[0]).getLocalPort();
+		endpoint = httpsEndpoint.replace("https://", "wss://") + "/session/v1";
 	}
 
 	@AfterEach void stopTlsService() throws Exception {
@@ -199,6 +206,51 @@ class TlsSessionTest {
 		assertEquals(4003, peer.closed.get(5, TimeUnit.SECONDS));
 	}
 
+	@Test void servesOnlyThePlayerWebSocketAndExplicitlyRejectsEveryOtherRouteFamily() throws Exception {
+		assertEquals(405, get("/session/v1").statusCode());
+		for (String path : new String[] { "/", "/session/v1/spectator", "/spectator", "/spectate/v1", "/admin", "/support", "/results/v1", "/replay/v1", "/legacy", "/fumbbl" }) {
+			assertEquals(404, get(path).statusCode(), path);
+		}
+		assertEquals(0, verifications.get());
+	}
+
+	@Test void revokingPlayerScopeBeforeAMutationClosesTheConnectionWithoutCreatingASession() throws Exception {
+		Peer peer = connect(ORIGIN, "");
+		peer.send("{\"type\":\"authenticate\",\"token\":\"test-player-a\"}");
+		assertEquals("authenticated", peer.next().path("type").asText());
+		TokenVerifier.Identity identity = new TokenVerifier.Identity("https://securetoken.google.com/dev-moles-under-the-pitch-org", "test-player-a", System.currentTimeMillis() + 60000);
+		String account = accounts.authenticate(identity).accountId();
+		accounts.revokeScope(account, ApplicationScope.PLAYER);
+		peer.send("{\"type\":\"create\"}");
+		assertEquals(4001, peer.closed.get(5, TimeUnit.SECONDS));
+	}
+
+	@Test void creatorCanReleaseADisconnectedOpponentAndInvalidateTheOldInvite() throws Exception {
+		Peer creator = connect(ORIGIN, "");
+		Peer opponent = connect(ORIGIN, "");
+		creator.send("{\"type\":\"authenticate\",\"token\":\"test-player-a\"}"); creator.next();
+		opponent.send("{\"type\":\"authenticate\",\"token\":\"test-player-b\"}"); opponent.next();
+		creator.send("{\"type\":\"create\"}");
+		String oldCode = creator.next().path("code").asText();
+		opponent.send(JSON.writeValueAsString(Map.of("type", "join", "code", oldCode)));
+		creator.next(); opponent.next();
+		opponent.socket.sendClose(1000, "left").join();
+		creator.next();
+		creator.send("{\"type\":\"releaseOpponent\"}");
+		JsonNode released = creator.next();
+		String newCode = released.path("code").asText();
+		assertNotEquals(oldCode, newCode);
+		assertFalse(released.path("slots").get(1).path("occupied").asBoolean());
+		Peer replacement = connect(ORIGIN, "");
+		replacement.send("{\"type\":\"authenticate\",\"token\":\"test-player-c\"}"); replacement.next();
+		replacement.send(JSON.writeValueAsString(Map.of("type", "join", "code", oldCode)));
+		assertEquals("invitation_revoked", replacement.next().path("code").asText());
+		replacement.send(JSON.writeValueAsString(Map.of("type", "join", "code", newCode)));
+		assertEquals(1, replacement.next().path("selfSlot").asInt());
+		assertTrue(creator.next().path("slots").get(1).path("connected").asBoolean());
+		creator.socket.abort(); replacement.socket.abort();
+	}
+
 	@Test void configurationRejectsMixedProjectsOriginsAndEmulators() {
 		Map<String, String> config = new HashMap<>(Map.of("GAME_ENV", "dev", "FIREBASE_PROJECT_ID", "dev-moles-under-the-pitch-org",
 			"GAME_ORIGIN", ORIGIN, "GAME_DB_PATH", directory.resolve("config-db").toString(),
@@ -220,6 +272,9 @@ class TlsSessionTest {
 		if (origin != null) builder.header("Origin", origin);
 		peer.socket = builder.buildAsync(URI.create(endpoint + query), peer).get(5, TimeUnit.SECONDS);
 		return peer;
+	}
+	private HttpResponse<String> get(String path) throws Exception {
+		return client.send(HttpRequest.newBuilder(URI.create(httpsEndpoint + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
 	}
 
 	private static final class Peer implements WebSocket.Listener {

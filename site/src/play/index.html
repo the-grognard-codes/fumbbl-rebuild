@@ -7,10 +7,13 @@
   <title>Play · Moles Under the Pitch</title>
   <link rel="stylesheet" href="/assets/site.css?v=20260916-1">
   <link rel="stylesheet" href="/assets/play.css">
+  <link rel="stylesheet" href="/assets/game/game.css">
 </head>
 <body>
-  <header class="site-header"><a class="brand" href="/">Moles Under the Pitch</a></header>
-  <main class="reading"><p class="kicker">Game session</p><h1>Play with one opponent.</h1><section class="panel"><p id="play-status" role="status">Checking sign-in…</p><p>Session: <span id="session-code"></span> <a id="invite-link" hidden>Share invite link</a></p><p id="you-slot">You: waiting</p><p id="opponent-slot">Opponent: waiting</p><button id="create-session" class="button" type="button">Create session</button><hr><label>Invite code <input id="join-code" autocomplete="off"></label> <button id="join-session" class="button" type="button">Join session</button><hr><label>Chat <input id="chat-text" maxlength="500" autocomplete="off"></label> <button id="send-chat" class="button" type="button">Send</button> <button id="leave-session" class="button" type="button">Leave</button><ul id="session-events" aria-live="polite"></ul></section></main>
-  <script src="/firebase-web-config.js"></script><script type="module" src="/assets/play.js"></script>
+  <header class="site-header"><a class="brand" href="/"><img src="/assets/brand-package-v4/moles-under-the-pitch-logo.svg" alt="Moles Under the Pitch"></a></header>
+  <p id="play-status" role="status">Checking sign-in…</p>
+  <div id="game-root"></div>
+  <script src="/firebase-web-config.js"></script>
+  <script type="module" src="/assets/play.js"></script>
 </body>
 </html>

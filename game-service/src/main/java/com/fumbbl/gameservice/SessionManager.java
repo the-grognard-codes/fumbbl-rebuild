@@ -24,11 +24,15 @@ public final class SessionManager {
 	SessionManager(Clock clock, int capacity) { this.clock = clock; this.capacity = capacity; }
 
 	public synchronized Snapshot create(String account) throws GameException {
+		return create(account, code());
+	}
+
+	/** The durable invitation store allocates the bearer code before this process-local session uses it. */
+	synchronized Snapshot create(String account, String code) throws GameException {
 		requireAvailable(account);
 		purge();
 		if (games.size() >= capacity) throw new GameException("capacity_reached");
-		String code;
-		do { code = code(); } while (games.containsKey(code));
+		if (code == null || !code.matches("[0-9a-f]{32}") || games.containsKey(code)) throw new GameException("invalid_message");
 		Game game = new Game(code);
 		game.accounts[0] = account;
 		game.connected[0] = true;
@@ -82,6 +86,33 @@ public final class SessionManager {
 
 	public synchronized Snapshot snapshot(String account) throws GameException { return gameFor(account).snapshot(account); }
 
+	/** Replaces an unclaimed invitation only when called by its connected creator. */
+	synchronized Snapshot reissue(String creatorAccount, String replacementCode) throws GameException {
+		Game game = gameFor(creatorAccount);
+		if (game.slot(creatorAccount) != 0 || game.accounts[1] != null) throw new GameException("invitation_not_pending");
+		return replaceCode(game, replacementCode);
+	}
+
+	/** Releases only a disconnected claimed opponent and replaces the bearer code. */
+	synchronized Snapshot releaseOpponent(String creatorAccount, String replacementCode) throws GameException {
+		Game game = gameFor(creatorAccount);
+		if (game.slot(creatorAccount) != 0) throw new GameException("not_session_creator");
+		if (game.accounts[1] == null || game.connected[1]) throw new GameException("opponent_not_releasable");
+		accountCodes.remove(game.accounts[1]);
+		game.accounts[1] = null;
+		game.event("released", 1, null);
+		return replaceCode(game, replacementCode);
+	}
+
+	private Snapshot replaceCode(Game game, String replacementCode) throws GameException {
+		if (replacementCode == null || !replacementCode.matches("[0-9a-f]{32}") || games.containsKey(replacementCode)) throw new GameException("invalid_message");
+		games.remove(game.code);
+		game.code = replacementCode;
+		games.put(replacementCode, game);
+		for (String account : game.accounts) if (account != null) accountCodes.put(account, replacementCode);
+		return game.snapshot(game.accounts[0]);
+	}
+
 	private void requireAvailable(String account) throws GameException {
 		if (account == null || account.isEmpty()) throw new GameException("rejected");
 		if (accountCodes.containsKey(account)) throw new GameException("already_in_session");
@@ -129,7 +160,7 @@ public final class SessionManager {
 	}
 
 	private final class Game {
-		private final String code;
+		private String code;
 		private final String[] accounts = new String[2];
 		private final boolean[] connected = new boolean[2];
 		private final List<Map<String, Object>> events = new ArrayList<>();

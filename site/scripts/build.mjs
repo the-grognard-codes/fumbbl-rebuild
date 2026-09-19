@@ -8,4 +8,5 @@ const output = new URL('../dist/', import.meta.url);
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(source, output, { recursive: true });
+await cp(new URL('../../browser-client/dist-play/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
 console.log(`Built static site from ${root}src to ${root}dist`);
