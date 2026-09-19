@@ -7,6 +7,6 @@
     "build": "npm --prefix ../browser-client run build:play && node scripts/build.mjs",
     "check": "node scripts/check.mjs",
     "test": "node --test test/play-client.test.mjs",
-    "test:browser": "node --test test/play-browser.test.mjs"
+    "test:browser": "npm run build && node --test test/play-browser.test.mjs"
   }
 }

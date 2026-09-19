@@ -2,6 +2,25 @@ import { resolveEnvironment } from './environment.mjs';
 import { hostingConfiguration } from './hosting-policy.mjs';
 import assert from 'node:assert/strict';
 
+function directiveSources(policy, directive) {
+  for (const entry of policy.split(';')) {
+    const parts = entry.trim().split(/\s+/);
+    if (parts[0] === directive) return parts.slice(1);
+  }
+  throw new Error(`Missing ${directive} directive.`);
+}
+
+function expectedPublicConnectSources(config) {
+  return new Set([
+    "'self'",
+    'https://www.gstatic.com',
+    'https://identitytoolkit.googleapis.com',
+    'https://securetoken.googleapis.com',
+    'https://www.googleapis.com',
+    `https://${config.projectId}.firebaseapp.com`
+  ]);
+}
+
 const dev = resolveEnvironment(['--environment', 'dev']);
 const prod = resolveEnvironment(['--environment', 'prod']);
 const local = resolveEnvironment(['--environment', 'local']);
@@ -20,9 +39,7 @@ for (const [config, other] of [[dev, prod], [prod, dev]]) {
   assert.equal(config.gameWebSocketUrl, undefined, 'Public game runtime remains unavailable until its separate release gate');
   const policy = hostingConfiguration({ hosting: { headers: [] } }, config);
   const csp = policy.hosting.headers[0].headers[0].value;
-  assert.ok(!csp.includes('game-dev.molesunderthepitch.org'));
-  assert.ok(!csp.includes('game.molesunderthepitch.org'));
-  assert.ok(!csp.includes('ws: ') && !csp.includes('wss: '));
+  assert.deepEqual(new Set(directiveSources(csp, 'connect-src')), expectedPublicConnectSources(config));
   assert.ok(!config.authEmulatorUrl);
 }
 assert.equal(local.gameWebSocketUrl, 'ws://127.0.0.1:22227/browser/v2');
