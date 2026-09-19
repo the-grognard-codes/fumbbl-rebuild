@@ -44,25 +44,12 @@ export function SetupPanel() {
   const [last, setLast] = useState<RetainedSetup | null>(() => { try { return decodeRetainedSetup(sessionStorage.getItem(setupRetryKey)); } catch { return null; } });
   const [pending, setPending] = useState<string | null>(() => last ? String(last.request.requestId) : null);
   const [subject, setSubject] = useState('');
-  const [playerId, setPlayerId] = useState('');
-  const [actionId, setActionId] = useState('');
-  const [actionFilter, setActionFilter] = useState('');
-  const [x, setX] = useState(0); const [y, setY] = useState(0);
   const socket = useRef<WebSocket | null>(null);
   const currentView = useRef<SetupState | null>(null);
   const pendingId = useRef<string | null>(pending);
   const loadId = useRef(''); const selectedMatch = useRef(matchId);
   useEffect(() => () => socket.current?.close(), []);
   const connected = status === 'Connected';
-  const own = view?.players.filter(player => player.role === view.callerRole) ?? [];
-  const maySetup = connected && !pending && view?.phase === 'SETUP' && view.actor === view.callerRole;
-  const availableActions = view?.actions.filter(action => action.actor === view.callerRole) ?? [];
-  const mayAct = connected && !pending && availableActions.some(action => action.id === actionId);
-  const matchingActions = availableActions.filter(action => `${action.label} ${action.kind}`.toLowerCase().includes(actionFilter.trim().toLowerCase()));
-  const actionsByKind = matchingActions.reduce<Record<string, typeof availableActions>>((groups, action) => {
-    (groups[action.kind] ??= []).push(action);
-    return groups;
-  }, {});
   function load(ws = socket.current) {
     if (!ws || ws.readyState !== WebSocket.OPEN || !selectedMatch.current) return;
     loadId.current = crypto.randomUUID();
@@ -92,7 +79,6 @@ export function SetupPanel() {
         if (message.state && message.state.matchId !== selectedMatch.current) throw Error('Response belongs to another match');
         if (message.state && message.state.matchId === selectedMatch.current) {
           if (!currentView.current || message.state.revision >= currentView.current.revision) {
-            if (currentView.current?.revision !== message.state.revision) { setActionId(''); setActionFilter(''); }
             currentView.current = message.state; setView(message.state);
           }
         }
@@ -144,9 +130,33 @@ export function SetupPanel() {
     {pending && <p role="status">Action outcome awaiting confirmation. Reconnect with the original credential for match {last?.matchId}, then repeat the retained request. New actions remain locked.</p>}
     {pending && connected && last?.subject !== subject && <p role="alert">The retained action belongs to the other local credential. Disconnect and reconnect with the original credential to reconcile it.</p>}
     <button type="button" className="secondary" onClick={() => load()} disabled={!connected}>Reload setup snapshot</button>
-    {view && <section aria-label="Authoritative setup">
+    {view && <GameView view={view} connected={connected} pending={pending} mutate={mutate} />}
+    {last && view && <button type="button" onClick={retry} disabled={!connected || last.subject !== subject || last.matchId !== view.matchId}>Repeat last setup request</button>}
+  </main>;
+}
+
+/** The same board and decisions for players and read-only spectators. */
+export function GameView({ view, connected, pending, mutate, results = true }: {
+  view: SetupState; connected: boolean; pending: string | null; results?: boolean;
+  mutate: (operation: string, fields?: Request) => void;
+}) {
+  const [playerId, setPlayerId] = useState('');
+  const [actionId, setActionId] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [x, setX] = useState(0); const [y, setY] = useState(0);
+  useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
+  const own = view.players.filter(player => player.role === view.callerRole) ?? [];
+  const maySetup = connected && !pending && view.phase === 'SETUP' && view.actor === view.callerRole;
+  const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
+  const mayAct = connected && !pending && availableActions.some(action => action.id === actionId);
+  const matchingActions = availableActions.filter(action => `${action.label} ${action.kind}`.toLowerCase().includes(actionFilter.trim().toLowerCase()));
+  const actionsByKind = matchingActions.reduce<Record<string, typeof availableActions>>((groups, action) => {
+    (groups[action.kind] ??= []).push(action);
+    return groups;
+  }, {});
+  return (<section aria-label="Authoritative setup">
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
-      {view.phase === 'FULL_TIME' && <p>Match finished. <a href={`/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a></p>}
+      {view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={`/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
       {connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
       <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
       <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>
@@ -195,8 +205,6 @@ export function SetupPanel() {
         <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
         <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
       </section>}
-      {last && <button type="button" className="secondary" onClick={retry} disabled={!connected || last.subject !== subject || last.matchId !== view.matchId}>Repeat last setup request</button>}
       <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name}</td><td>{player.role}</td><td>{player.state}</td><td>{player.x === null ? 'reserve' : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>
-    </section>}
-  </main>;
+    </section>);
 }

@@ -1,0 +1,20 @@
+{
+  "source": "ffb-local-r2b-database-1",
+  "target": "ffb-m6-simplification-db-20260918",
+  "marker": 6,
+  "sourceContainerId": "173f4f60333af6dbcdfb9458c05c822fcbc3f3962f6dfd126dcc1487c3c49c78",
+  "targetContainerId": "e35702c23d4f42e51c6702994730cefa2e6bf9b3d03a51863f3600f0921747f0",
+  "sourceDataMount": {
+    "type": "volume",
+    "name": "ffb-local-r2b_database",
+    "source": "/var/lib/docker/volumes/ffb-local-r2b_database/_data",
+    "destination": "/var/lib/mysql"
+  },
+  "targetDataMount": {
+    "type": "volume",
+    "name": "ffb-m6-simplification-data-20260918",
+    "source": "/var/lib/docker/volumes/ffb-m6-simplification-data-20260918/_data",
+    "destination": "/var/lib/mysql"
+  },
+  "targetWasEmpty": true
+}

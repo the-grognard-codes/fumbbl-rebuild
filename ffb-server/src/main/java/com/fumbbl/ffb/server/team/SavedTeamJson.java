@@ -31,13 +31,15 @@ public final class SavedTeamJson {
 		checkEnvelope(text);
 		JsonObject object = JsonObject.readFrom(text);
 		fields(object, "formatVersion", "teamId", "documentVersion", "ruleset", "catalogVersion", "owner", "draft", "validation");
-		if (object.get("formatVersion").asInt() != 1) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
+		int format = object.get("formatVersion").asInt();
+		if (format != 1 && format != 2) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
 		String id = teamId(object.get("teamId"));
 		int version = documentVersion(object.get("documentVersion"));
 		JsonObject owner = object.get("owner").asObject();
 		fields(owner, "namespace", "subject");
 		String subject = owner.get("subject").asString();
-		if (!"local".equals(owner.get("namespace").asString()) || !("home".equals(subject) || "away".equals(subject))) {
+		if (format == 1 ? !"local".equals(owner.get("namespace").asString()) || !("home".equals(subject) || "away".equals(subject))
+			: !"account".equals(owner.get("namespace").asString()) || !teamId(owner.get("subject")).equals(subject)) {
 			throw new IllegalArgumentException("Unsupported owner metadata");
 		}
 		TeamDraft draft = draft(object.get("draft").asObject());
@@ -55,10 +57,11 @@ public final class SavedTeamJson {
 		return new SavedTeamDocument(id, subject, version, draft, validation.toString());
 	}
 	public JsonObject encode(SavedTeamDocument document) {
-		return new JsonObject().add("formatVersion", 1).add("teamId", document.teamId)
+		boolean local = "home".equals(document.owner) || "away".equals(document.owner);
+		return new JsonObject().add("formatVersion", local ? 1 : 2).add("teamId", document.teamId)
 			.add("documentVersion", document.documentVersion).add("ruleset", document.draft.ruleset)
 			.add("catalogVersion", document.draft.catalogVersion)
-			.add("owner", new JsonObject().add("namespace", "local").add("subject", document.owner))
+			.add("owner", new JsonObject().add("namespace", local ? "local" : "account").add("subject", document.owner))
 			.add("draft", encodeDraft(document.draft)).add("validation", JsonObject.readFrom(document.validationJson));
 	}
 	public JsonObject encodeDraft(TeamDraft draft) {

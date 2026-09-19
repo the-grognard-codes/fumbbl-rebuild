@@ -1,0 +1,15 @@
+.play-runtime { max-width: 80rem; margin: 0 auto; padding: 1.5rem; color: #edf5ff; font-family: Inter, sans-serif; }
+.play-runtime h1, .play-runtime h2, .play-runtime h3 { font-family: 'Chakra Petch', sans-serif; }
+.play-runtime section { margin: 1.5rem 0; padding: 1rem; background: #101c2b; border: 2px solid #4db2ff; }
+.play-runtime label { display: block; margin: .8rem 0; font-size: 1rem; }
+.play-runtime input, .play-runtime select, .play-runtime textarea { display: block; width: min(100%, 40rem); padding: .6rem; background: #070d16; color: #edf5ff; border: 1px solid #4db2ff; font: inherit; box-sizing: border-box; }
+.play-runtime button { margin: .3rem; padding: .7rem; background: #1c5a32; color: #edf5ff; border: 2px solid #4db2ff; font: inherit; cursor: pointer; }
+.play-runtime button:disabled { opacity: .5; cursor: default; }
+.play-runtime :focus-visible { outline: 3px solid #ffe17b; outline-offset: 2px; }
+.play-runtime a { color: #4db2ff; }
+.play-runtime .setup-grid { overflow-x: auto; }
+.play-runtime .setup-grid button { margin: 0; padding: 0; min-width: 1.6rem; font-size: .75rem; }
+.play-runtime .setup-grid button.home { background: #ffe17b; color: #070d16; }
+.play-runtime .setup-grid button.away { background: #4db2ff; color: #070d16; }
+.play-runtime table { display: block; overflow-x: auto; }
+.play-runtime [aria-label="Match preparation"] > details:not(:first-of-type) { display: none; }

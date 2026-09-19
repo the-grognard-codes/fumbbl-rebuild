@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "source": "ffb-local-r2b-database-1",
+  "target": "ffb-m6-simplification-db-20260918",
+  "originalRowsUnchanged": 26,
+  "targetRows": 36,
+  "additiveSyntheticFixturesRetained": true
+}

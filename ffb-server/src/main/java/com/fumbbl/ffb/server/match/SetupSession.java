@@ -344,6 +344,12 @@ public final class SetupSession {
 			.add("state", failed ? JsonValue.NULL : view(role));
 	}
 
+	/** The same public game state as a player, with no player seat assigned. */
+	public JsonObject spectatorView() {
+		if (failed) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		return view("spectator");
+	}
+
 	private JsonObject view(String role) {
 		Game game = state.getGame();
 		JsonArray players = new JsonArray();

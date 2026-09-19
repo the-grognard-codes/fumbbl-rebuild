@@ -4,6 +4,27 @@ Status: planning reference produced from the accepted roadmap, PRD, ADRs, kickof
 
 ## M4 outcome and dependency map
 
+**Current owner decision — 2026-09-18 R3-C simplification:** authenticated
+viewing is enabled by default. Every newly accepted account receives PLAYER and
+SPECTATOR application grants; membership in a particular match alone authorizes
+its game decisions. Players and spectators share the same public board, resource,
+action and decision presentation, with spectators read-only. This supersedes the
+earlier mutual-consent and separate neutral-projection requirements below.
+A spectator toggle is a possible later feature, not part of this slice. The one
+active development path is the Firebase/MariaDB `/browser/v2` runtime and shared
+React client. The H2 `/session/v1` proof and marker-5 `/browser/v1` runtime remain
+historical references, not parallel account systems for active play. See
+[implementation evidence and remaining checks](verification/r3-c-simplification/README.md).
+
+**R3-C completion record (2026-09-19):** complete for the approved local M4
+scope. The current protocol matrix documents the sole player and spectator
+surface, the server rejects unavailable route families, and the contract suite
+checks the route, origin, membership and read-only boundaries. The owner
+completed a three-account DEV loopback acceptance: create, accepted join, game
+activation and authenticated spectator connection. This is local evidence only;
+it does not claim public TLS, deployment, R3-D/R3-E, or full-R3 completion.
+
+
 M4 is the public-service-readiness milestone. Its acceptance is not a single build or test run. It requires process-failure recovery at a pending decision, role/projection verification, a measured load envelope, a successful separate-environment backup restore, and recorded content provenance. Runtime, authentication, operations, and release acceptance must be independently recorded.
 
 ```text
@@ -72,15 +93,22 @@ It does **not** yet provide application scopes, durable invitation records or re
 
 The Firebase proof establishes a provider choice in practice, but the following decisions must be recorded by the owner before the dependent R3 slices are accepted. These are product and access-policy choices, not implementation details that an agent should infer.
 
-| Decision | Choices to record | Blocks |
-| --- | --- | --- |
-| Account and credential lifecycle | Confirm Firebase Authentication with Google and email links as the supported providers; define who can disable/revoke a user, account-deletion/retention behavior, dedicated test-identity ownership, and the review/rotation process for the service's cloud credentials. | R3-A lifecycle policy and live acceptance evidence |
-| Principal scopes | Define the initial application scopes: player, any future read-only spectator, and separately administered support/admin access. State whether a user may hold more than one scope and how scopes are granted and revoked. | R3-A authorization model and R3-C projections |
-| Invitation policy | Choose recipient-bound invitations or explicitly transferable bearer codes; set invitation lifetime, revocation/reissue behavior, acceptance limit, and behavior when a reserved player leaves or the session is abandoned. | R3-B durable invitation semantics |
-| Public route policy | Decide which, if any, spectator, admin, result/replay, and legacy projections will be exposed in the first public release. The safe default is that each is unavailable. | R3-C final matrix and R3-D enforcement |
-| Display-name policy | Decide whether public player names will ever replace `You`/`Opponent`; if so, define their source, validation, moderation, retention, and safe rendering rules. | R3-E name/projection tests |
+| Decision | Choices to record | Blocks | Owner Input |
+| --- | --- | --- | --- |
+| Account and credential lifecycle | Confirm Firebase Authentication with Google and email links as the supported providers; define who can disable/revoke a user, account-deletion/retention behavior, dedicated test-identity ownership, and the review/rotation process for the service's cloud credentials. | R3-A lifecycle policy and live acceptance evidence | Google and email links will be the supported providers in the initial release.  Microsoft will be added as a follow up feature, but guidance for this method of authentication should mostly mirror the former two methods.  The Owner (jacob@thegrognardcodes.com) will be the only site admin on initial deployment.  We will need a method for adding site admins.  Site administrators for molesunderthepitch.org should have administrative powers/tools common for a site of its type.  Disabling, revoking, banning users.  Unlocking accounts if and when that becomes a feature, etc.  Now that we have proven Google and email link access, having test identities that can be used would speed up development.  I can see 5-6 unique accounts being needed to implement thorough testing for both play, administration, and team building.  Only the Owner will need test identity access at this time.  You will need to document all credentials, tokens, certiticates which are not perpetual and which need manual review or renewal.  This is an ongoing request and should be documented as new objects are added.  The owners cloud credentials will be periodically rotated manually. |
+| Principal scopes | Define the initial application scopes: player, any future read-only spectator, and separately administered support/admin access. State whether a user may hold more than one scope and how scopes are granted and revoked. | R3-A authorization model and R3-C projections | Initial scopes will be player, spectator, owner, and administrator.  Users may hold any number of scopes.  The site owner for example, will be both Player and Owner and Administrator.  Scopes for player and spectator will be granted to any user that successfully logs in using Google Auth or email links.  Please advise on what methods are appropriate for adding administrative users which would have the ability to remove/revoke a user's account.  Site administrators for server / GCP functions is outside the scope of access at this point, or rather, we can consider the Owner role to be solely in that role. |
+| Invitation policy | Choose recipient-bound invitations or explicitly transferable bearer codes; set invitation lifetime, revocation/reissue behavior, acceptance limit, and behavior when a reserved player leaves or the session is abandoned. | R3-B durable invitation semantics | Invitation lifetime should be 15 minutes, or until a game is active, in which case the invite link should last until the conclusion of the game.  Game timeouts and abandonments should be determined by the chess style game clock which should prevent a single player from stalling the game indefinitely assuming one player still remains actively connected.  In cases where both player's have abandoned the game it should persist for 24 hours then be deleted.  The invitation policy must work in a way where Player A can join a game, generate a sharable link, and then post that through whatever channels they prefer and anyone that clicks on the link will be taken to the proposed game.  Player B can then join using the link.  Spectators complicate this method but I don't know of a more streamlined method for open game announcements where Player A doesn't know who their opponent will be when creating the link.  Two additional features will be required for this.  A toggle will need to be available for both Player A and Player B to enable or disable spectators.  If either player has it set to disabled, spectators will not be allowed to join/view the game.  If spectators are allowed, the first person to select JOIN will be Player A's opponent.  If this doesn't seem logical please advise.  The second feature needed will be a save game state request.  Life events sometimes mean a game must be finished hours or days after it has started.  We need a method in which both players mutually select something like "save game state for later" which then stores the game state on the game server where it can be retrieved and resumed later. |
+| Public route policy | Decide which, if any, spectator, admin, result/replay, and legacy projections will be exposed in the first public release. The safe default is that each is unavailable. | R3-C final matrix and R3-D enforcement | Spectator will be required for the initial release.  Admin, result/replay, and legacy projections should all be backlogged as features which will be implemented but are out of scope for the initial release.  Spectator should post a link to join any in-progress games where spectator has been enabled (see above). |
+| Display-name policy | Decide whether public player names will ever replace `You`/`Opponent`; if so, define their source, validation, moderation, retention, and safe rendering rules. | R3-E name/projection tests | This is not required on initial release, we can keep each player defined as "You/Opponent" for now.  Having user's display their names will be something that requries mapping to an account or some kind of server side storage so that email/google account doesn't have to be directly shown.  A quick interim feature should be backlogged to allow players define their name in the match creation dialog. |
 
 No new provider, OAuth credential, paid service, or public deployment may be created merely to make these decisions. The existing DEV Firebase setup may continue to be used only within the authorization already granted for this proof.
+
+**Recorded invitation clarification (2026-09-17; supersedes the earlier
+15-minute/24-hour values in the table):** the creator may explicitly
+release a claimed but disconnected opponent before activation; doing so revokes
+the old bearer code and issues a replacement. Creator reissue also invalidates
+the previous pending code immediately. Pending invitations and fully
+disconnected abandoned sessions use a one-hour lifetime.
 
 ### R3 implementation workstreams
 
@@ -116,6 +144,46 @@ Create and keep the following matrix with the public API specification. A route 
 
 **Requires the owner decisions above:** expose any non-player route or finalize its participant/public visibility and administrator policy.
 
+**Superseded policy record:** the following R3-C.1 design and integration
+prerequisite are retained for traceability only. The 2026-09-18 owner decision
+replaces them with authenticated viewing by default and one shared game view.
+A future spectator toggle is backlogged without a selected implementation.
+See [current protocol and route matrix](../../browser-client/public-api-v2.md).
+
+**Historical R3-C.1 spectator consent and visibility:** add a read-only spectator
+projection only for an in-progress match whose two player slots both currently
+allow spectators. Each player has an independent allow/deny control; the
+effective policy is allow only when both allow. Consent is selected before
+activation and becomes immutable for the active match; a player who does not
+want spectators after activation may abandon under the match's separately
+defined lifecycle rather than changing spectator access mid-game. Browsing and
+watching require an authenticated principal with `SPECTATOR` scope. Discovery
+and the spectator projection use only neutral `Home`/`Away` labels: no player or
+team names, account data, player chat, private prompts, legal actions, dice
+state or recovery data. A stale, guessed or non-visible match must fail as
+`NOT_FOUND`; spectator messages have no mutations. This is separate from the
+player invitation: the first valid player to use the shareable invitation
+remains the opponent, not a spectator.
+
+**R3-C.1 integration prerequisite:** the currently accepted R2 runtime still
+uses isolated local home/away fixture subjects, while R3-A's scoped principals
+are implemented in the separate `game-service` proof. Before exposing
+spectators, introduce a separately versioned, R2-compatible runtime boundary
+that maps authenticated principals to persisted match membership and checks
+`SPECTATOR` scope before every browse, watch, reconnect and recipient snapshot.
+Persist the two pre-activation consent values in compatible recovered match
+metadata. Do not upgrade active R2 matches in place; retain their compatible
+runtime until completion.
+
+**Recorded runtime transition decision (2026-09-18):** R2 marker-5 storage and
+`/browser/v1` are retained offline only as the accepted recovery reference and
+synthetic-evidence reproducer. New development matches must use the
+R2-compatible marker-6 runtime and `/browser/v2`; `/browser/v1` is not an alias,
+redirect or fallback for it. The v2 runtime becomes the sole enabled local
+development route only after it has passed authentication, membership,
+spectator-projection and recovery-parity checks. No marker-5 volume or retained
+evidence is modified or removed during this transition.
+
 #### R3-D — Transport, Origin, and local/public separation
 
 **Completed foundation:** the game service accepts only TLS WebSockets and fixes the allowed Origin, Firebase project, issuer, and audience from the selected DEV or PROD profile. Hosted clients use WSS only; the service rejects query strings before authentication. The local diagnostic client remains separately configured.
@@ -150,6 +218,17 @@ R3 closes only when the owner decisions are recorded, the approved R3-A through 
 - Explicit retention/eviction limits for request history and replay/recovery data, with correct behavior at limits and no silent loss of an action awaiting recovery.
 - A declared workload, machine/JDK/browser/database configuration, and measured heap/RSS, CPU where practical, queue delay, p95 accepted-action and reconnect latency, snapshot/replay size, failures, and cleanup behavior.
 
+**Backlog — R4.1 mutual save-and-resume:** implement a two-player request,
+accept, reject and cancellation protocol that suspends a match only after both
+current player slots agree. Persist a compatible authoritative recovery
+checkpoint, pending-decision/revision/request history and clock state before
+acknowledging suspension; resume is restricted to the original members and
+must not re-run an accepted action or roll new dice. Define the clock treatment
+while suspended, save expiry/abandonment and deletion rules, restart/backup
+behavior, and rejection outcomes before implementation. This work depends on
+R2 recovery compatibility and joins R4's retention and capacity evidence; it
+does not authorize an in-place engine/runtime upgrade.
+
 **Acceptance evidence:** repeatable run results—not M3e functional-fault counts—with enough lifecycle pressure to exercise release, eviction, slow clients, reconnect, retry, and abandoned sessions. State the supported envelope and the chosen rejection/backpressure behavior; do not invent production capacity claims.
 
 **Out of scope:** a per-match actor/microservice rewrite, host-sizing purchase, and changing recovery semantics without R2 review.
@@ -181,6 +260,12 @@ R3 closes only when the owner decisions are recorded, the approved R3-A through 
 - A browser/accessibility matrix with tested versions/platforms, layout and zoom evidence, keyboard paths for every current match control, and screen-reader evidence for state/prompt/error changes.
 - Defects fixed or documented as explicit release blockers; preserve labeled fallback controls and an actionable renderer failure path instead of a blank game view.
 - An asset inventory with source, license/permission/provenance status, and public-use disposition. Neutral tokens/local catalog evidence do not constitute an artwork license audit.
+
+**Backlog — dedicated setup and play surfaces:** separate team building and
+match creation into a setup-only page/window. Launch a distinct live-match
+page/window only after both player slots are accepted and the game activates.
+Keep this as a presentation/workflow change: it must not create a second match
+authority, bypass membership checks, or alter recovery/retry semantics.
 
 **Acceptance evidence:** recorded execution of the matrix plus provenance review. Evidence must distinguish the current DOM match surface from M1 Pixi tests and must not claim that Pixi automatically provides a canvas or accessibility fallback.
 

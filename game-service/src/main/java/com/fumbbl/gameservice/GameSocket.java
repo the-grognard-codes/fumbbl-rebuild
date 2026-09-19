@@ -28,7 +28,9 @@ public final class GameSocket extends WebSocketAdapter {
 	private final TokenVerifier verifier;
 	private final AccountStore accounts;
 	private final SessionManager sessions;
+	private final InvitationStore invitations;
 	private volatile String account;
+	private volatile TokenVerifier.Identity identity;
 	private volatile boolean closed;
 	private OutboundDelivery delivery;
 	private ScheduledFuture<?> authenticationTimeout;
@@ -37,7 +39,7 @@ public final class GameSocket extends WebSocketAdapter {
 	private int messageCount;
 	private long windowStarted;
 
-	public GameSocket(TokenVerifier verifier, AccountStore accounts, SessionManager sessions) { this.verifier = verifier; this.accounts = accounts; this.sessions = sessions; }
+	public GameSocket(TokenVerifier verifier, AccountStore accounts, SessionManager sessions, InvitationStore invitations) { this.verifier = verifier; this.accounts = accounts; this.sessions = sessions; this.invitations = invitations; }
 	@Override public void onWebSocketConnect(Session session) {
 		super.onWebSocketConnect(session);
 		synchronized (MUTATION_LOCK) {
@@ -70,13 +72,17 @@ public final class GameSocket extends WebSocketAdapter {
 			if (account == null) { authenticate(type, node); return; }
 			synchronized (MUTATION_LOCK) {
 			if (closed || expired()) { close(4003, "expired"); return; }
-			if ("create".equals(type) && node.size() == 1) broadcast(sessions.create(account));
-			else if ("join".equals(type) && node.size() == 2 && text(node, "code", 32, 32)) broadcast(sessions.join(account, node.get("code").asText()));
-			else if ("chat".equals(type) && node.size() == 2 && text(node, "text", 1, MAX_CHAT)) broadcast(sessions.chat(account, node.get("text").asText()));
-			else if ("leave".equals(type) && node.size() == 1) { broadcast(sessions.leave(account)); send("{\"type\":\"left\"}"); }
+			if ("create".equals(type) && node.size() == 1) { requirePlayerAccess(); create(); }
+			else if ("join".equals(type) && node.size() == 2 && text(node, "code", 32, 32)) { requirePlayerAccess(); join(node.get("code").asText()); }
+			else if ("reissue".equals(type) && node.size() == 1) { requirePlayerAccess(); reissue(); }
+			else if ("releaseOpponent".equals(type) && node.size() == 1) { requirePlayerAccess(); releaseOpponent(); }
+			else if ("chat".equals(type) && node.size() == 2 && text(node, "text", 1, MAX_CHAT)) { requirePlayerAccess(); broadcast(sessions.chat(account, node.get("text").asText())); }
+			else if ("leave".equals(type) && node.size() == 1) { requirePlayerAccess(); broadcast(sessions.leave(account)); send("{\"type\":\"left\"}"); }
 			else error("invalid_message");
 			}
 		} catch (SessionManager.GameException e) { error(e.code); }
+		catch (InvitationStore.InvitationException e) { error(e.code); }
+		catch (AccessRejectedException e) { closeRejected(e); }
 		catch (Exception e) { error("invalid_message"); }
 	}
 	private void authenticate(String type, JsonNode node) throws IOException {
@@ -87,9 +93,12 @@ public final class GameSocket extends WebSocketAdapter {
 			synchronized (MUTATION_LOCK) {
 				if (closed || !isConnected()) return;
 				if (identity.expiresAtMillis <= System.currentTimeMillis()) throw new TokenVerifier.TokenRejectedException(true);
-				String identified = accounts.accountFor(identity);
+				Principal principal = accounts.authenticate(identity);
+				if (!principal.hasScope(ApplicationScope.PLAYER)) throw new AccessRejectedException(AccessRejectedException.Reason.FORBIDDEN);
+				String identified = principal.accountId();
 				if (ACCOUNTS.putIfAbsent(identified, this) != null) { close(4009, "duplicate"); return; }
 				account = identified;
+				this.identity = identity;
 				expiresAtMillis = identity.expiresAtMillis;
 				if (authenticationTimeout != null) authenticationTimeout.cancel(false);
 				expiryTimeout = TIMEOUTS.schedule(() -> close(4003, "expired"), Math.max(1, expiresAtMillis - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
@@ -97,15 +106,42 @@ public final class GameSocket extends WebSocketAdapter {
 			}
 		}
 		catch (TokenVerifier.TokenRejectedException e) { close(e.expired ? 4003 : 4001, e.expired ? "expired" : "rejected"); }
+		catch (AccessRejectedException e) { closeRejected(e); }
 	}
 	@Override public void onWebSocketClose(int statusCode, String reason) { synchronized (MUTATION_LOCK) { closed = true; if (authenticationTimeout != null) authenticationTimeout.cancel(false); if (expiryTimeout != null) expiryTimeout.cancel(false); if (delivery != null) delivery.close(); SOCKETS.remove(this); if (account != null) { ACCOUNTS.remove(account, this); try { broadcast(sessions.disconnected(account)); } catch (SessionManager.GameException ignored) { } catch (IOException ignored) { } } } super.onWebSocketClose(statusCode, reason); }
 	@Override public void onWebSocketError(Throwable cause) { /* never log client data or token-bearing exceptions */ }
 	private boolean withinRate() { long now = System.currentTimeMillis(); if (now - windowStarted > 60000) { windowStarted = now; messageCount = 0; } return ++messageCount <= 30; }
 	private boolean expired() { return expiresAtMillis <= System.currentTimeMillis(); }
+	private void create() throws IOException, SessionManager.GameException, InvitationStore.InvitationException {
+		InvitationStore.Invitation invitation = invitations.create(account);
+		try { broadcast(sessions.create(account, invitation.code)); }
+		catch (SessionManager.GameException e) { invitations.discard(invitation.code); throw e; }
+	}
+	private void join(String code) throws IOException, SessionManager.GameException, InvitationStore.InvitationException {
+		invitations.requireJoinable(code, account);
+		SessionManager.Snapshot snapshot = sessions.join(account, code);
+		invitations.claim(code, account);
+		broadcast(snapshot);
+	}
+	private void reissue() throws IOException, SessionManager.GameException, InvitationStore.InvitationException {
+		String oldCode = sessions.snapshot(account).code;
+		InvitationStore.Invitation invitation = invitations.reissue(oldCode, account);
+		broadcast(sessions.reissue(account, invitation.code));
+	}
+	private void releaseOpponent() throws IOException, SessionManager.GameException, InvitationStore.InvitationException {
+		String oldCode = sessions.snapshot(account).code;
+		InvitationStore.Invitation invitation = invitations.releaseAndReissue(oldCode, account);
+		broadcast(sessions.releaseOpponent(account, invitation.code));
+	}
+	private void requirePlayerAccess() throws AccessRejectedException {
+		Principal principal = accounts.reauthorize(identity, account);
+		if (!principal.hasScope(ApplicationScope.PLAYER)) throw new AccessRejectedException(AccessRejectedException.Reason.FORBIDDEN);
+	}
 	private boolean text(JsonNode node, String name, int minimum, int maximum) { return node.has(name) && node.get(name).isTextual() && node.get(name).asText().length() >= minimum && node.get(name).asText().length() <= maximum; }
-	private void broadcast(SessionManager.Snapshot snapshot) throws IOException { for (GameSocket socket : SOCKETS.keySet()) if (socket.account != null && !socket.closed) { try { SessionManager.Snapshot recipient = socket.sessions.snapshot(socket.account); if (snapshot.code.equals(recipient.code)) socket.send(JSON.writeValueAsString(snapshotPayload(recipient))); } catch (SessionManager.GameException ignored) { } } }
+	private void broadcast(SessionManager.Snapshot snapshot) throws IOException { for (GameSocket socket : SOCKETS.keySet()) if (socket.account != null && !socket.closed) { try { socket.requirePlayerAccess(); SessionManager.Snapshot recipient = socket.sessions.snapshot(socket.account); if (snapshot.code.equals(recipient.code)) socket.send(JSON.writeValueAsString(snapshotPayload(recipient))); } catch (SessionManager.GameException ignored) { } catch (AccessRejectedException e) { socket.closeRejected(e); } } }
 	private Map<String, Object> snapshotPayload(SessionManager.Snapshot snapshot) { Map<String, Object> result = new java.util.LinkedHashMap<String, Object>(); result.put("type", "session"); result.put("code", snapshot.code); result.put("selfSlot", snapshot.selfSlot); result.put("slots", snapshot.slots); result.put("events", snapshot.events); return result; }
 	private void error(String code) { try { send("{\"type\":\"error\",\"code\":\"" + code + "\"}"); } catch (IOException ignored) { } }
 	private void send(String payload) throws IOException { if (delivery != null) delivery.send(payload); }
+	private void closeRejected(AccessRejectedException rejected) { close(rejected.reason() == AccessRejectedException.Reason.EXPIRED ? 4003 : 4001, rejected.reason() == AccessRejectedException.Reason.EXPIRED ? "expired" : "rejected"); }
 	private void close(int code, String reason) { closed = true; if (isConnected()) getSession().close(code, reason); }
 }

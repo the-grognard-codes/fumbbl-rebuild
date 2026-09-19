@@ -45,13 +45,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Local diagnostic match only. It deliberately exposes no fixture controls. */
-public class BrowserMatchAdapter {
+public class BrowserMatchAdapter implements BrowserProtocol {
 
 	/** Selected by local JVM configuration, never by a browser message. */
 	public enum Fixture { MOVEMENT, BOTH_DOWN, BOTH_DOWN_BLOCK, BOTH_DOWN_AWAY, BOTH_DOWN_AWAY_BLOCK }
 
 	public interface Connection {
 		void send(String message);
+		default void close(int statusCode, String reason) {
+		}
 	}
 
 	private static final int PROTOCOL_VERSION = 1;
@@ -81,6 +83,12 @@ public class BrowserMatchAdapter {
 	public synchronized void setPreparedMatches(MatchService preparedMatches, com.fumbbl.ffb.server.match.RecoveryRepository recovery) {
 		this.preparedMatches = preparedMatches;
 		this.setup = new SetupApplication(server, preparedMatches, recovery);
+	}
+
+	/** Internal v2 projection source; caller has already completed scoped membership and visibility checks. */
+	public synchronized JsonObject spectatorView(String matchId) throws java.sql.SQLException {
+		if (setup == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		return setup.spectatorView(matchId);
 	}
 
 	public BrowserMatchAdapter(FantasyFootballServer server, String homeToken, String awayToken) {
