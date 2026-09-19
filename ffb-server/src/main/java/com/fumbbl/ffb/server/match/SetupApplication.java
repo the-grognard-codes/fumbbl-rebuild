@@ -185,6 +185,16 @@ public final class SetupApplication {
 			.add("code", code).add("duplicate", false).add("state", JsonValue.NULL);
 	}
 
+	/** Internal v2 read-only source; authorization and visibility are enforced before this is invoked. */
+	public JsonObject spectatorView(String matchId) throws SQLException {
+		MatchDocument document = matches.load("home", matchId).document;
+		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		return session.spectatorView();
+	}
+
 	private void validate(JsonObject request) {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };

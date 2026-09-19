@@ -22,11 +22,12 @@ public final class GameServiceMain {
 		final TokenVerifier verifier = new FirebaseTokenVerifier(config.projectId);
 		final AccountStore accounts = new AccountStore(config.databasePath);
 		final SessionManager sessions = new SessionManager();
-		Server server = createServer(config, verifier, accounts, sessions);
+		final InvitationStore invitations = new InvitationStore(config.databasePath);
+		Server server = createServer(config, verifier, accounts, sessions, invitations);
 		server.setStopAtShutdown(true);
 		server.start(); server.join();
 	}
-	static Server createServer(ServiceConfig config, TokenVerifier verifier, AccountStore accounts, SessionManager sessions) {
+	static Server createServer(ServiceConfig config, TokenVerifier verifier, AccountStore accounts, SessionManager sessions, InvitationStore invitations) {
 		Server server = new Server();
 		SslContextFactory.Server ssl = new SslContextFactory.Server(); ssl.setKeyStorePath(config.keyStore); ssl.setKeyStorePassword(config.keyStorePassword);
 		ssl.setIncludeProtocols("TLSv1.2", "TLSv1.3");
@@ -34,13 +35,14 @@ public final class GameServiceMain {
 		ServerConnector connector = new ServerConnector(server, new SslConnectionFactory(ssl, "http/1.1"), new HttpConnectionFactory(https)); connector.setPort(config.port); server.addConnector(connector);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS); context.setContextPath("/"); server.setHandler(context);
 		JettyWebSocketServletContainerInitializer.configure(context, null);
-		context.addServlet(new ServletHolder(new SessionServlet(config.origin, verifier, accounts, sessions)), "/session/v1");
+		context.addServlet(new ServletHolder(new SessionServlet(config.origin, verifier, accounts, sessions, invitations)), "/session/v1");
+		context.addServlet(new ServletHolder(new UnavailableRouteServlet()), "/*");
 		return server;
 	}
 	private static final class SessionServlet extends JettyWebSocketServlet implements JettyWebSocketCreator {
-		private final String origin; private final TokenVerifier verifier; private final AccountStore accounts; private final SessionManager sessions;
-		SessionServlet(String origin, TokenVerifier verifier, AccountStore accounts, SessionManager sessions) { this.origin = origin; this.verifier = verifier; this.accounts = accounts; this.sessions = sessions; }
+		private final String origin; private final TokenVerifier verifier; private final AccountStore accounts; private final SessionManager sessions; private final InvitationStore invitations;
+		SessionServlet(String origin, TokenVerifier verifier, AccountStore accounts, SessionManager sessions, InvitationStore invitations) { this.origin = origin; this.verifier = verifier; this.accounts = accounts; this.sessions = sessions; this.invitations = invitations; }
 		@Override public void configure(JettyWebSocketServletFactory factory) { factory.setCreator(this); factory.setMaxTextMessageSize(4096); }
-		@Override public Object createWebSocket(JettyServerUpgradeRequest request, JettyServerUpgradeResponse response) { if (request.getHeaders("Origin").size() != 1 || !origin.equals(request.getHeader("Origin")) || request.getRequestURI().getQuery() != null) { response.setStatusCode(403); return null; } response.setExtensions(java.util.Collections.emptyList()); return new GameSocket(verifier, accounts, sessions); }
+		@Override public Object createWebSocket(JettyServerUpgradeRequest request, JettyServerUpgradeResponse response) { if (request.getHeaders("Origin").size() != 1 || !origin.equals(request.getHeader("Origin")) || request.getRequestURI().getQuery() != null) { response.setStatusCode(403); return null; } response.setExtensions(java.util.Collections.emptyList()); return new GameSocket(verifier, accounts, sessions, invitations); }
 	}
 }

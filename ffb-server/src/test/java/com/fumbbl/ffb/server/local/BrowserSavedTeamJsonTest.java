@@ -9,6 +9,11 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,6 +43,15 @@ class BrowserSavedTeamJsonTest {
 			.add("rosterId", "human").add("presetId", RosterCatalog.PRESET).add("captainId", "p1").add("players", players)
 			.add("resources", new JsonObject().add("rerolls", 2).add("assistantCoaches", 0).add("cheerleaders", 0).add("apothecary", 1).add("dedicatedFans", 0));
 	}
+	@Test
+	void checkedInHumanStarterDraftIsAcceptedByTheFrozenCatalog() throws IOException {
+		Path fixture = Paths.get("browser-client", "examples", "human-starter-draft.json");
+		if (!Files.isRegularFile(fixture)) fixture = Paths.get("..", "browser-client", "examples", "human-starter-draft.json");
+		String json = new String(Files.readAllBytes(fixture), StandardCharsets.UTF_8);
+		JsonObject response = send(request("create").add("draft", JsonObject.readFrom(json)));
+		assertEquals("OK", response.getString("code", ""));
+		assertEquals(700000, response.get("document").asObject().get("validation").asObject().getInt("total", 0));
+	}
 	private JsonObject request(String operation) { return new JsonObject().add("version", 1).add("type", "savedTeam").add("requestId", "test").add("operation", operation); }
 	private JsonObject send(JsonObject request) { return adapter.handle("home", request.toString()); }
 	private JsonObject create() {
@@ -58,6 +72,26 @@ class BrowserSavedTeamJsonTest {
 		assertEquals(code, send(request).getString("code", ""));
 		assertEquals(before, bytes()); assertEquals(input, request.toString());
 	}
+	@Test
+	void accountCreateAndImportRetriesKeepOneOwnedDocumentAndRejectForeignLoads() {
+		String account = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		adapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		JsonObject input = request("create").add("draft", draft());
+		JsonObject created = adapter.handle(account, input.toString());
+		assertEquals("OK", created.getString("code", ""));
+		JsonObject document = created.get("document").asObject();
+		assertEquals(2, document.getInt("formatVersion", 0));
+		assertEquals("account", document.get("owner").asObject().getString("namespace", ""));
+		assertEquals(document, adapter.handle(account, input.toString()).get("document"));
+		assertEquals(1, repository.rows.size());
+		assertEquals("CONFLICT", adapter.handle(account, request("create").add("draft", draft().set("captainId", com.eclipsesource.json.JsonValue.NULL)).toString()).getString("code", ""));
+		assertEquals("NOT_FOUND", adapter.handle("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", request("load").add("teamId", document.get("teamId")).toString()).getString("code", ""));
+		JsonObject imported = request("import").set("requestId", "import").add("document", document);
+		JsonObject saved = adapter.handle(account, imported.toString());
+		assertEquals(saved.get("document"), adapter.handle(account, imported.toString()).get("document"));
+		assertEquals(2, repository.rows.size());
+	}
+
 	@Test
 	void canonicalSaveLoadListAndServiceRestartRecomputeWithoutMutation() {
 		JsonObject document = create(); String id = document.getString("teamId", "");

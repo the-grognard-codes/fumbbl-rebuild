@@ -10,7 +10,6 @@ const environments = Object.freeze({
       appId: '1:589432788264:web:0881be9230e4f57cfa2c1d',
       measurementId: 'G-B2SE4J2QPF'
     }),
-    gameWebSocketUrl: 'wss://game-dev.molesunderthepitch.org/session/v1',
     emailLinkUrl: 'https://dev.molesunderthepitch.org/login/complete'
   }),
   prod: Object.freeze({
@@ -24,7 +23,6 @@ const environments = Object.freeze({
       appId: '1:826907627534:web:5bf33cc7b2d7e761192c5f',
       measurementId: 'G-LJ4X3TZX0Y'
     }),
-    gameWebSocketUrl: 'wss://game.molesunderthepitch.org/session/v1',
     emailLinkUrl: 'https://molesunderthepitch.org/login/complete'
   }),
   local: Object.freeze({
@@ -39,7 +37,22 @@ const environments = Object.freeze({
       measurementId: 'G-B2SE4J2QPF'
     }),
     emailLinkUrl: 'http://localhost:5000/login/complete',
+    gameWebSocketUrl: 'ws://127.0.0.1:22227/browser/v2',
     authEmulatorUrl: 'http://127.0.0.1:9099'
+  }),
+  'local-dev': Object.freeze({
+    name: 'local-dev',
+    firebaseWebConfig: Object.freeze({
+      apiKey: 'AIzaSyDMxIgHAiDIGVfc0yD5YwVdmpIQPdT7AQ8',
+      authDomain: 'dev-moles-under-the-pitch-org.firebaseapp.com',
+      projectId: 'dev-moles-under-the-pitch-org',
+      storageBucket: 'dev-moles-under-the-pitch-org.firebasestorage.app',
+      messagingSenderId: '589432788264',
+      appId: '1:589432788264:web:0881be9230e4f57cfa2c1d',
+      measurementId: 'G-B2SE4J2QPF'
+    }),
+    gameWebSocketUrl: 'ws://127.0.0.1:22231/browser/v2',
+    emailLinkUrl: 'http://localhost:5000/login/complete'
   })
 });
 
@@ -51,7 +64,7 @@ function argument(args, name) {
 export function resolveEnvironment(args) {
   const name = argument(args, '--environment');
   if (!name || !Object.hasOwn(environments, name)) {
-    throw new Error('Specify --environment dev, prod, or local. Builds never infer a Firebase project from local CLI state.');
+    throw new Error('Specify --environment dev, prod, local, or local-dev. Builds never infer a Firebase project from local CLI state.');
   }
   const profile = environments[name];
   return Object.freeze({

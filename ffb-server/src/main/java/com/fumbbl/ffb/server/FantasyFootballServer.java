@@ -219,13 +219,23 @@ public class FantasyFootballServer implements IFactorySource {
 			String httpPortProperty = getProperty(IServerProperty.SERVER_PORT);
 			String httpDirProperty = getProperty(IServerProperty.SERVER_BASE_DIR);
 			if (StringTool.isProvided(httpPortProperty) && StringTool.isProvided(httpDirProperty)) {
-				Server server = new Server(Integer.parseInt(httpPortProperty));
+				Server server = new Server();
+				org.eclipse.jetty.server.ServerConnector connector = new org.eclipse.jetty.server.ServerConnector(server);
+				connector.setPort(Integer.parseInt(httpPortProperty));
+				boolean browserV2 = Boolean.parseBoolean(getProperty("local.browser.v2.enabled"));
+				if (browserV2 && !Boolean.parseBoolean(getProperty("server.local"))) throw new IllegalArgumentException("V2 requires local mode");
+				// Docker publishes this connector only to host loopback; binding it to the
+				// container loopback would reject Docker's forwarded connection.
+				server.addConnector(connector);
 				httpServer = server;
 				ServletContextHandler context = new ServletContextHandler();
 				context.setContextPath("/");
-				server.setHandler(context);
 				org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
 				File httpDir = new File(httpDirProperty);
+				if (browserV2) {
+					com.fumbbl.ffb.server.local.BrowserV2Runtime.mount(this, context,
+						() -> java.sql.DriverManager.getConnection(dbConnectionManager.getDbUrl(), dbConnectionManager.getDbUser(), dbConnectionManager.getDbPassword()));
+				} else {
 				context.addServlet(new ServletHolder(new AdminServlet(this)), "/admin/*");
 				context.addServlet(new ServletHolder(new GameStateServlet(this)), "/gamestate/*");
 				context.addServlet(new ServletHolder(new BackupServlet(this)), "/backup/*");
@@ -250,6 +260,8 @@ public class FantasyFootballServer implements IFactorySource {
 				fileServletHolder.setInitParameter("resourceBase", httpDir.getAbsolutePath());
 				fileServletHolder.setInitParameter("pathInfoOnly", "true");
 				context.addServlet(fileServletHolder, "/*");
+				}
+				server.setHandler(context);
 				server.start();
 			}
 

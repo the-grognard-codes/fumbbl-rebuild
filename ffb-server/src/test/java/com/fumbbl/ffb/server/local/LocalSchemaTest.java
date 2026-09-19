@@ -122,6 +122,39 @@ class LocalSchemaTest {
 		verify(statement, never()).executeUpdate(anyString());
 	}
 
+	@Test
+	void markerSixStartupVerifiesRetainedAndNewTablesWithoutMigrationWrites() throws Exception {
+		DbConnectionManager manager = mock(DbConnectionManager.class);
+		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class);
+		ResultSet version = mock(ResultSet.class);
+		when(manager.openDbConnection()).thenReturn(connection); when(connection.createStatement()).thenReturn(statement);
+		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(6);
+		LocalSchema schema = spy(new LocalSchema());
+		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection);
+		doNothing().when(schema).verifyRecovery(connection); doNothing().when(schema).verifyMarker6(connection);
+
+		schema.initialize(manager, "unused", true);
+
+		verify(schema).verifySavedTeams(connection); verify(schema).verifyCompletedMatches(connection);
+		verify(schema).verifyRecovery(connection); verify(schema).verifyMarker6(connection);
+		verify(statement, never()).executeUpdate(anyString()); verify(connection, never()).commit();
+	}
+
+	@Test
+	void markerSixStartupRefusesMarkerFiveWithoutMigrationWrites() throws Exception {
+		DbConnectionManager manager = mock(DbConnectionManager.class);
+		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class);
+		ResultSet version = mock(ResultSet.class);
+		when(manager.openDbConnection()).thenReturn(connection); when(connection.createStatement()).thenReturn(statement);
+		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(5);
+
+		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager, "unused", true));
+
+		verify(statement, never()).executeUpdate(anyString()); verify(connection, never()).commit();
+	}
+
     @Test void completedMigrationResumesAfterAlterWithoutRepeatingDdl() throws Exception {
         DbConnectionManager manager = mock(DbConnectionManager.class);
         Connection connection = mock(Connection.class); Statement statement = mock(Statement.class);
