@@ -1,15 +1,54 @@
-# Authenticated game protocol v2 — local development
+# Authenticated game protocol v2
+
+**DEV transport update, 2026-09-21:** the installed backend accepts exactly
+`wss://game-dev.molesunderthepitch.org/browser/v2`, Origin
+`https://dev.molesunderthepitch.org`, with nginx forwarding only to Java loopback.
+The paired DEV browser configuration was published with explicit owner approval;
+served-artifact parity and real-browser WSS/reconnect checks passed. Signed-in
+gameplay acceptance remains pending. PROD remains unavailable. Local policies remain
+unchanged. See [DEV installation evidence](../.notes/overhaul-analysis/verification/r3-d/dev-install-20260921.md).
 
 The game host serves exactly `/browser/v2`. All other routes, including
 `/browser/v1`, `/session/v1`, `/spectator`, `/admin`, `/command`, `/gamestate`,
 `/backup`, result/replay and legacy desktop endpoints, return 404. No proxy to
 FUMBBL exists. A normal HTTP request to the socket route is unavailable; invalid
-origins/query parameters fail the upgrade with 403. Only HTTP loopback origins
+origins, foreign Host headers, raw path variants and query strings (including an
+empty `?`) fail the upgrade with 403 (malformed HTTP may receive Jetty's 400;
+unmapped paths receive 404). Only HTTP loopback origins
 `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:5000` and
 `http://127.0.0.1:5000` are accepted currently. Docker publishes the v2
-container only as `127.0.0.1:22231`; the connector itself accepts Docker's
-forwarded in-container connection. Public TLS/origin exposure remains a separate gate.
-Public TLS/origin exposure remains a separate gate.
+container only as `127.0.0.1:22231`. Native local connectors default to
+`127.0.0.1`; the explicit `local.transport.container.forwarding=true` option
+requires Docker's container marker and permits in-container forwarding only.
+The Compose loopback publication is mandatory when that option is used.
+The request Host must be `127.0.0.1:<server.base port>` or
+`localhost:<server.base port>`; forwarded headers cannot override it.
+Local v2 fixes Firebase to the approved DEV project and forbids emulator
+credentials. Browser and hosting configuration reject mixed environment fields
+before initializing authentication or opening a game socket. DEV permits only its
+exact endpoint above; PROD and arbitrary WSS URLs remain unavailable. The older
+service's TLS profile tests are not evidence for this v2 runtime; its actual DEV
+listener checks are recorded separately in the installation report.
+
+The `local-dev` browser now connects through loopback nginx at exactly
+`ws://127.0.0.1:22232/browser/v2`, not directly to port 22231. The proxy requires
+Host `127.0.0.1:22232`, the same exact local Origins, GET and WebSocket Upgrade;
+rejects query strings and Authorization/Cookie headers; and supplies the fixed
+backend Host `127.0.0.1:22231`. It strips forwarded headers and has no fallback
+route or upstream retry. Absent routes remain 404; forbidden upgrades are 403
+(malformed HTTP may be 400). This is a local diagnostic WS exception, not TLS
+acceptance. See [startup and validation](../deployment/game-service/proxy/LOCAL.md).
+
+An opt-in `local.browser.v2.proxy.profile=dev` handoff is now available for
+isolated reverse-proxy validation. It replaces local Origins with exactly
+`https://dev.molesunderthepitch.org`, requires Host
+`game-dev.molesunderthepitch.org`, and forbids wildcard/container forwarding.
+It does not itself publish a hosted browser build.
+See the [nginx candidate and cutover limits](../deployment/game-service/proxy/README.md).
+The native DEV launcher uses a separate exact marker-6 profile, fixed loopback
+JDBC/listener addresses and a process-held storage lock. Startup verifies existing
+marker-6 storage only; it cannot initialize or migrate a database. Neither this
+launcher nor its systemd candidate is installed or activated by the repository.
 
 Each JSON request has `version:2`, `type`, and a unique `requestId`. Authenticate
 first with `{type:"authenticate",bearer:<Firebase ID token>}`. Neither client
@@ -24,6 +63,7 @@ provider/JDBC exception details and request bodies are not logged.
 | --- | --- | --- | --- |
 | `catalog`, `validateTeam`, `savedTeam` | PLAYER, active identity | Frozen catalog or caller's own saved team | Existing validation/save/load/list; account document format 2; `AUTHENTICATION_REQUIRED`, `AUTHORIZATION`, existing validation/storage codes |
 | `preparedMatch` | PLAYER; bearer proof for join; persisted membership for load/activate/creator operations | Frozen prepared game, caller role; fresh invitation code only for creator | create/join/load/activate/reissue/revoke/release; no client-selected account/role |
+| `preparationChanged` (server event) | Rechecked PLAYER scope and persisted membership of a preparation subscriber | Match ID only; no invitation or team document | Read invalidation only; recipient denial `VIEW_UNAVAILABLE` |
 | `setup` | PLAYER plus account-to-match membership before every load/action/retry | Existing R2 public setup state | Existing server-issued decisions and exact retries; non-member `NOT_FOUND` |
 | `browse` | SPECTATOR | Up to 100 active marker-6 match IDs, Home vs Away | Read only; copied R2-only rows never listed |
 | `watch` | SPECTATOR plus active match with both marker-6 membership rows | Same public state as players; `callerRole:"spectator"` | Live read-only subscription; unavailable/finished/reference match `NOT_FOUND` |
@@ -46,8 +86,31 @@ rotates the code and retains audit/retry metadata. Active games are not purged o
 reinitialized when browsers leave. R4 retains the durable abandonment/retention
 and mutual save-for-later policy work.
 
+Successful preparation responses subscribe that connection to changes for the
+selected match. Join, activation and other successful preparation mutations
+(including exact retries) notify other authorized subscribers with
+`{version:2,type:"preparationChanged",requestId:null,code:"ACCEPTED",matchId:...}`.
+The browser reloads the selected preparation through the ordinary authorized
+`load` request and opens play when its lifecycle is `ACTIVATED`; the creator
+does not have to press Resume play. Notifications for another selection are
+ignored. An in-flight reload coalesces notifications. Neither notification nor
+load acknowledges an uncertain mutation. Same-tab reconnect reloads preparation;
+opening a player/watch view replaces that subscription. Deploy this updated
+client with the updated server: older v2 clients reject this new event family.
+
 Internally, membership supplies trusted home/away to the unchanged R2 engine.
-Prepared/recovery/replay formats and the frozen Human catalog remain unchanged.
+Prepared/replay formats and the frozen Human catalog remain unchanged. Newly
+activated v2 engines use private recovery runtime `ffb-3.4.0-bb2025-r2.3` for the
+server-owned default setup policy; recovery shape remains format 2. Existing
+`r2.2` checkpoints keep their manual setup policy and version when restored.
+On entering each side's ordinary SETUP phase, the first eleven eligible players
+in roster-slot order are placed: first three on the line, remaining eight one
+square behind. Unavailable players are skipped and extras remain in reserve.
+The formation is editable and never auto-confirmed; native setup legality still
+applies (including a required captain outside the first eleven, which the player
+must swap in). Reads/retries/restoration do not reapply the template. Deployment
+is part of the triggering mutation's checkpoint before acknowledgement, not a
+client sequence of placements. No native BB2025 rule, dice or replay schema changed.
 Account saved-team format 2 versions the ownership namespace separately; legacy
 format-1 rows stay untouched. New account imports copy validated choices into a
 new owned document and never adopt client-supplied ownership.

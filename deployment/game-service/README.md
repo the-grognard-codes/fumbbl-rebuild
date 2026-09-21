@@ -1,5 +1,14 @@
 # Isolated game-service deployment
 
+For the new authoritative marker-6 `/browser/v2` runtime, see the
+[DEV nginx handoff](proxy/README.md). The installer below is retained
+for the older `/session/v1` service; it must not be used to deploy v2 or replace
+its database. DEV now runs nginx and the native v2 service; its paired Hosting
+artifact was published with explicit owner approval on 2026-09-21. Served-artifact
+parity and real-browser WSS/reconnect checks passed. See [installation evidence](../../.notes/overhaul-analysis/verification/r3-d/dev-install-20260921.md).
+The remainder of this page describes the retained older service, not the new DEV
+runtime. PROD was not changed by this DEV installation.
+
 The selected host is **Google Compute Engine**, one `e2-small` VM in each
 existing Firebase project. Firebase Hosting serves static files only. Java
 terminates TLS on port 443; `/session/v1` is the sole WebSocket endpoint.

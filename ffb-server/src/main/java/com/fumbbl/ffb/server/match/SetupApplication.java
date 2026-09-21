@@ -15,6 +15,7 @@ public final class SetupApplication {
 	private final FantasyFootballServer server;
 	private final MatchService matches;
 	private final RecoveryRepository recovery;
+	private final boolean defaultSetup;
 	private final Map<String, Long> generations = new LinkedHashMap<>();
 	private final Map<String, SetupSession> sessions = new LinkedHashMap<>();
 	private final Map<String, String> pendingActivations = new LinkedHashMap<>();
@@ -28,6 +29,12 @@ public final class SetupApplication {
 	}
 
 	public SetupApplication(FantasyFootballServer server, MatchService matches, RecoveryRepository recovery) {
+		this(server, matches, recovery, false);
+	}
+
+	public SetupApplication(FantasyFootballServer server, MatchService matches, RecoveryRepository recovery, boolean defaultSetup) {
+		if (defaultSetup && recovery == null) throw new IllegalArgumentException("Default setup requires recovery");
+		this.defaultSetup = defaultSetup;
 		this.server = server; this.matches = matches; this.recovery = recovery;
 	}
 
@@ -88,7 +95,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recovery.find(id);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true);
+					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup);
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
 				} else new SetupSession(server, document, staged.json); // Reject incompatible staged state before activation.

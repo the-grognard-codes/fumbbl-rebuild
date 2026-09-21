@@ -1,17 +1,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { resolveEnvironment } from '../../deployment/firebase/scripts/environment.mjs';
+import { validateTransportConfiguration } from '../src/assets/transport-policy.js';
+import { hostingConfiguration } from '../../deployment/firebase/scripts/hosting-policy.mjs';
 
 const source = await readFile(new URL('../src/assets/play.js', import.meta.url), 'utf8');
 const start = source.indexOf('export function gameEndpoint');
 const end = source.indexOf('export function startPlay');
-const { gameEndpoint } = await import(`data:text/javascript,${encodeURIComponent(source.slice(start, end))}`);
+const policyImport = `import { validateTransportConfiguration } from '${new URL('../src/assets/transport-policy.js', import.meta.url).href}';\n`;
+const { gameEndpoint } = await import(`data:text/javascript,${encodeURIComponent(policyImport + source.slice(start, end))}`);
 
-test('single endpoint accepts v2 WSS and loopback-only local WS', () => {
-  assert.equal(gameEndpoint('wss://game.test/browser/v2', { hostname: 'site.test', protocol: 'https:' }), 'wss://game.test/browser/v2');
-  assert.equal(gameEndpoint('ws://127.0.0.1:22231/browser/v2', { hostname: 'localhost', protocol: 'http:' }), 'ws://127.0.0.1:22231/browser/v2');
-  for (const url of ['ws://game.test/browser/v2', 'wss://game.test/session/v1', 'wss://game.test/browser/v2?token=x', 'wss://user:pass@game.test/browser/v2'])
-    assert.throws(() => gameEndpoint(url, { hostname: 'site.test', protocol: 'https:' }));
+test('local DEV and PROD endpoints are exact and mutually isolated', () => {
+  const config = resolveEnvironment(['--environment', 'local-dev']);
+  const page = new URL('http://localhost:5000/play');
+  assert.equal(gameEndpoint(config.gameWebSocketUrl, page, config), config.gameWebSocketUrl);
+  assert.equal(config.gameWebSocketUrl, 'ws://127.0.0.1:22232/browser/v2');
+  assert.throws(() => validateTransportConfiguration({ ...config, gameWebSocketUrl: 'ws://127.0.0.1:22231/browser/v2' }));
+  for (const url of ['wss://game.test/browser/v2', 'ws://127.0.0.1:22227/browser/v2', config.gameWebSocketUrl + '?', config.gameWebSocketUrl + '?token=x', config.gameWebSocketUrl + '/', 'ws://user:pass@127.0.0.1:22231/browser/v2'])
+    assert.throws(() => gameEndpoint(url, page, { ...config, gameWebSocketUrl: url }));
+  for (const environment of ['dev', 'prod']) {
+    const hosted = resolveEnvironment(['--environment', environment]);
+    assert.throws(() => gameEndpoint(undefined, new URL(hosted.emailLinkUrl), hosted));
+    assert.equal(gameEndpoint(hosted.gameWebSocketUrl, new URL(hosted.emailLinkUrl), hosted), hosted.gameWebSocketUrl);
+  }
+  const dev = resolveEnvironment(['--environment', 'dev']);
+  const devPage = new URL(dev.emailLinkUrl);
+  assert.equal(gameEndpoint(dev.gameWebSocketUrl, devPage, dev), 'wss://game-dev.molesunderthepitch.org/browser/v2');
+  for (const url of [dev.gameWebSocketUrl.replace('wss:', 'ws:'), dev.gameWebSocketUrl + '?',
+    dev.gameWebSocketUrl + '?token=x', dev.gameWebSocketUrl + '/', 'wss://game.molesunderthepitch.org/browser/v2',
+    'wss://game-dev.molesunderthepitch.org.evil/browser/v2', 'wss://game-dev.molesunderthepitch.org/session/v1']) {
+    assert.throws(() => gameEndpoint(url, devPage, { ...dev, gameWebSocketUrl: url }));
+  }
+});
+
+test('all environment pairs reject mixed projects domains endpoints and emulators before use', () => {
+  const configs = ['local', 'local-dev', 'dev', 'prod'].map(environment => resolveEnvironment(['--environment', environment]));
+  for (const config of configs) {
+    assert.equal(validateTransportConfiguration(config), config);
+    for (const other of configs) for (const field of ['projectId', 'authDomain', 'gameWebSocketUrl', 'authEmulatorUrl']) {
+      if (config[field] === other[field]) continue;
+      const mixed = { ...config, [field]: other[field] };
+      assert.throws(() => validateTransportConfiguration(mixed));
+      assert.throws(() => hostingConfiguration({ hosting: { headers: [] } }, mixed));
+    }
+    for (const href of ['https://foreign.invalid', 'http://localhost.evil:5000']) {
+      assert.throws(() => validateTransportConfiguration(config, new URL(href)));
+    }
+  }
+  for (const environment of ['dev', 'prod']) {
+    const config = resolveEnvironment(['--environment', environment]);
+    const other = resolveEnvironment(['--environment', environment === 'dev' ? 'prod' : 'dev']);
+    assert.throws(() => validateTransportConfiguration(config, new URL(other.emailLinkUrl)));
+    assert.throws(() => validateTransportConfiguration(config, new URL(config.emailLinkUrl.replace('https:', 'http:'))));
+    for (const gameWebSocketUrl of ['ws://127.0.0.1:22231/browser/v2', 'wss://game.test/browser/v2'])
+      assert.throws(() => hostingConfiguration({ hosting: { headers: [] } }, { ...config, gameWebSocketUrl }));
+  }
 });
 
 test('bearer invitation survives the sign-in redirect without accepting a client return URL', async () => {
@@ -25,4 +69,13 @@ test('bearer invitation survives the sign-in redirect without accepting a client
     assert.equal(data.get('moles.play.invitation'), code);
     assert.equal(redirected, '/login?returnTo=%2Fplay');
   } finally { delete globalThis.location; delete globalThis.sessionStorage; }
+});
+
+test('marker-6 container publication remains loopback-only', async () => {
+  const compose = await readFile(new URL('../../containers/local/compose.marker6.yaml', import.meta.url), 'utf8');
+  const config = await readFile(new URL('../../containers/local/server.marker6.ini', import.meta.url), 'utf8');
+  assert.match(compose, /ports:\s*\r?\n\s*- "127\.0\.0\.1:22231:22227"/);
+  assert.doesNotMatch(compose, /network_mode\s*:/);
+  assert.equal((compose.match(/ports:/g) ?? []).length, 1);
+  assert.match(config, /^local\.transport\.container\.forwarding=true\r?$/m);
 });
