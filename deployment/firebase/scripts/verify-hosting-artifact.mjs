@@ -1,4 +1,6 @@
 import { access, readFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { resolveEnvironment } from './environment.mjs';
 
 function argument(args, name) {
@@ -21,7 +23,9 @@ if (environment !== 'dev' && environment !== 'prod') {
 }
 
 const expected = resolveEnvironment(['--environment', environment]);
-const root = new URL('../hosting/', import.meta.url);
+const artifactRoot = argument(process.argv.slice(2), '--artifact-root');
+const hostingConfig = argument(process.argv.slice(2), '--hosting-config');
+const root = artifactRoot ? pathToFileURL(resolve(artifactRoot) + sep) : new URL('../hosting/', import.meta.url);
 const required = [
   'index.html',
   'play/index.html',
@@ -51,7 +55,7 @@ if (!publicPage.includes('assets/site.css?v=') || !playPage.includes('/assets/pl
 }
 const playScript = await readFile(new URL('assets/play.js', root), 'utf8');
 if (playScript.includes('ws://') || playScript.includes('/browser/v1')) throw new Error('Local diagnostic transport leaked into hosted play.');
-const hosting = JSON.parse(await readFile(new URL('../../../firebase.generated.json', import.meta.url), 'utf8'));
+const hosting = JSON.parse(await readFile(hostingConfig ? resolve(hostingConfig) : new URL('../../../firebase.generated.json', import.meta.url), 'utf8'));
 const csp = hosting.hosting.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy')?.value;
 const expectedConnectSources = new Set([
   "'self'",

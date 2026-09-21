@@ -4,6 +4,21 @@ Status: planning reference produced from the accepted roadmap, PRD, ADRs, kickof
 
 ## M4 outcome and dependency map
 
+**DEV installation, 2026-09-21:** nginx, native marker-6 runtime and MariaDB are
+installed; existing DEV account links are preserved. The exact WSS/CSP client
+artifact was published with explicit owner approval; served-artifact parity and
+real-browser WSS/reconnect checks passed. The owner subsequently confirmed DEV
+create/join, synchronized start and spectating. See
+[installation evidence and limits](verification/r3-d/dev-install-20260921.md).
+
+**PROD installation and owner acceptance, 2026-09-21:** separately authorized
+nginx, private marker-6 runtime, MariaDB and Hosting rollout completed. Automated
+transport checks passed. The owner signed in with three accounts, created/joined
+a game, started it as Player A with Player B immediately updated, and spectated
+successfully. See [PROD evidence and remaining limits](verification/r3-d/prod-install-20260921.md).
+This does not establish operational recovery, backup/restore, capacity or general
+public-service readiness.
+
 **Current owner decision — 2026-09-18 R3-C simplification:** authenticated
 viewing is enabled by default. Every newly accepted account receives PLAYER and
 SPECTATOR application grants; membership in a particular match alone authorizes
@@ -185,6 +200,53 @@ spectator-projection and recovery-parity checks. No marker-5 volume or retained
 evidence is modified or removed during this transition.
 
 #### R3-D — Transport, Origin, and local/public separation
+
+**Closed for the defined R3-D scope, 2026-09-21.** Exact route/Host/Origin
+enforcement, hosted TLS, local loopback isolation, environment/credential
+separation and denial contracts are evidenced by the linked local and hosted
+checks. The owner accepted DEV and PROD create/join/start/spectator testing.
+Historical pending statements below describe earlier slices, not the final status.
+R3-E, operational recovery, backup/restore, capacity and general public-service
+readiness remain separate gates; R3-D closure does not close all of R3 or M4.
+
+**2026-09-21 hosted follow-up:** authorized DEV and PROD marker-6/nginx/Hosting
+installations and owner-reported create/join/start/spectator acceptance are now
+complete. Exact public TLS/Host/path/Origin denial, private backend ports and
+renewal reload checks passed. See [PROD evidence](verification/r3-d/prod-install-20260921.md).
+This supersedes the historical unavailable-endpoint and pending-cutover statements
+below; it does not claim recovery or general public-service readiness.
+
+**2026-09-19 bounded local hardening:** exact v2 Host/raw-path/Origin and
+query rejection, native diagnostic loopback defaults with explicit Docker
+forwarding, fixed local DEV identity configuration, and browser/build profile
+isolation are implemented. See [commands, results and limits](verification/r3-d/README.md).
+The TLS foundation described below belongs to the earlier game service; it is
+not evidence of TLS on the authoritative marker-6 v2 runtime. R3-D remains open
+for that runtime's approved hosted authority/TLS profile and real TLS tests.
+DEV/PROD browser game endpoints remain explicitly unavailable; no deployment
+or database transition was performed.
+
+**Owner-approved nginx direction, 2026-09-19 follow-up:** a DEV-only loopback
+nginx candidate and opt-in Java handoff are implemented with local TLS tests.
+See [proxy evidence](verification/r3-d/proxy.md). The VM/IP/DNS and live
+certificate hooks are unchanged. Native marker-6 VM/storage configuration,
+Linux/integrated acceptance and authorized cutover remain open; PROD is not enabled.
+
+**Native/Linux follow-up:** the strict native DEV launcher/profile and inactive
+systemd candidate are now implemented. Real Linux nginx-to-Jetty/v2-worker
+authentication, reconnect and graceful-reload checks passed. See
+[native/Linux evidence](verification/r3-d/native-linux.md). Native database
+provision/copy, real Firebase/MariaDB play/recovery acceptance, capacity and VM
+activation remain open. No retained storage, service credentials or live listeners
+were changed.
+
+**Local proxy follow-up, 2026-09-20:** `local-dev` now selects loopback nginx on
+port 22232, forwarding to the unchanged Java publication on 22231. Exact route,
+Origin, Host, query/header rejection and safe logging checks passed; a native
+browser reached the real Java authentication gate through nginx on initial
+connection and reconnect. Real signed-in play through this path remains a manual
+check. This retains the local diagnostic WS exception, not TLS parity or a
+DEV/PROD rollout. See [evidence and limits](verification/r3-d/local-nginx.md).
 
 **Completed foundation:** the game service accepts only TLS WebSockets and fixes the allowed Origin, Firebase project, issuer, and audience from the selected DEV or PROD profile. Hosted clients use WSS only; the service rejects query strings before authentication. The local diagnostic client remains separately configured.
 

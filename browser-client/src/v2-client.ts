@@ -18,6 +18,7 @@ export class V2Client {
   private socket: WebSocket | null = null;
   private requests = new Map<string, V2Message>();
   private selection: { matchId: string; watch: boolean } | null = null;
+  private preparationMatchId: string | null = null;
   private authenticationId = '';
   accountId = '';
   state: SetupState | null = null;
@@ -98,6 +99,7 @@ export class V2Client {
   open(matchId: string, watch: boolean) {
     if (!uuid.test(matchId)) throw Error('Enter a valid match ID.');
     this.selection = { matchId, watch }; this.state = null;
+    this.preparationMatchId = null;
     return this.request(watch ? 'watch' : 'setup', watch ? { matchId } : { matchId, operation: 'load' });
   }
 
@@ -119,12 +121,22 @@ export class V2Client {
       this.accountId = message.accountId; this.options.onChange(message);
       this.request('browse'); this.request('savedTeam', { operation: 'list' }); this.request('catalog');
       if (this.selection) this.open(this.selection.matchId, this.selection.watch);
+      else if (this.preparationMatchId) this.request('preparedMatch', { operation: 'load', matchId: this.preparationMatchId });
       return;
     }
     if (message.type === 'error' && message.requestId === this.authenticationId) {
       this.disconnect(); this.options.onChange(message); return;
     }
     const request = message.requestId === null ? null : this.requests.get(message.requestId);
+    if (message.type === 'preparationChanged') {
+      if (!this.accountId || message.requestId !== null || message.code !== 'ACCEPTED'
+        || !uuid.test(message.matchId) || Object.keys(message).length !== 5) throw Error('Invalid preparation notification');
+      if (message.matchId === this.preparationMatchId) {
+        if (![...this.requests.values()].some(pending => pending.type === 'preparedMatch' && pending.operation === 'load' && pending.matchId === message.matchId))
+          this.request('preparedMatch', { operation: 'load', matchId: message.matchId });
+      }
+      return;
+    }
     if (message.requestId !== null && !request) return;
     if (message.type === 'error' && ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED'].includes(message.code)) {
       this.disconnect(); this.options.onChange(message); return;
@@ -139,6 +151,8 @@ export class V2Client {
       decodePreparedMatch(JSON.stringify({ ...response, version: 1 }));
       if (invitationCode !== undefined && invitationCode !== null && !/^[A-Za-z0-9_-]{22}$/.test(invitationCode)) throw Error('Invalid invitation');
       if (request?.matchId && request.matchId !== message.document.matchId) throw Error('Foreign match');
+      this.preparationMatchId = message.document.matchId;
+      this.selection = null; this.state = null;
     }
     if (message.type === 'savedTeam' && message.code === 'OK') {
       const document = message.document;
@@ -156,7 +170,7 @@ export class V2Client {
       if (!this.selection || state.matchId !== this.selection.matchId || (request?.matchId && request.matchId !== state.matchId)) throw Error('Foreign match');
       if (!this.state || state.revision >= this.state.revision) this.state = state;
     }
-    if (message.code === 'NOT_FOUND' || message.code === 'VIEW_UNAVAILABLE') this.state = null;
+    if (message.code === 'NOT_FOUND' || message.code === 'VIEW_UNAVAILABLE') { this.state = null; this.preparationMatchId = null; }
     if (request && this.pending?.request.requestId === message.requestId && !uncertain.has(message.code)) {
       this.pending = null; this.options.storage?.removeItem(v2PendingKey);
     }

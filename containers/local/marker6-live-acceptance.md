@@ -18,6 +18,7 @@ profile at its database/backup volumes.
 ```powershell
 $env:M6_ADC_FILE = "$env:APPDATA\gcloud\application_default_credentials.json"
 docker compose -f containers/local/compose.marker6.yaml up -d --wait server
+node deployment/game-service/proxy/start-local.mjs
 node deployment/firebase/scripts/assemble.mjs --environment local-dev
 firebase emulators:start --only hosting --project dev-moles-under-the-pitch-org
 ```

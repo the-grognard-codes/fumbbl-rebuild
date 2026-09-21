@@ -44,6 +44,9 @@ import java.util.Set;
 
 /** One authoritative engine lifetime, initialized once or restored from a versioned private checkpoint. */
 public final class SetupSession {
+	public static final String LEGACY_RUNTIME = "ffb-3.4.0-bb2025-r2.2";
+	public static final String DEFAULT_SETUP_RUNTIME = "ffb-3.4.0-bb2025-r2.3";
+	private boolean defaultSetup;
 	private final GameState state;
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
@@ -61,6 +64,13 @@ public final class SetupSession {
 	}
 
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable) {
+		this(server, document, engineId, recoverable, false);
+	}
+
+	/** New v2 lifetimes opt in; the checkpoint runtime version retains the choice on restore. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup) {
+		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
+		this.defaultSetup = defaultSetup;
 		this.document = document;
 		matchId = document.matchId;
 		state = new GameState(server) {
@@ -111,10 +121,12 @@ public final class SetupSession {
 			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
 			if (payload.getInt("recoveryVersion", -1) != 2
-				|| !"ffb-3.4.0-bb2025-r2.2".equals(payload.getString("runtimeVersion", null))
+				|| !(LEGACY_RUNTIME.equals(payload.getString("runtimeVersion", null))
+					|| DEFAULT_SETUP_RUNTIME.equals(payload.getString("runtimeVersion", null)))
 				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
 				|| payload.getInt("replayVersion", -1) != 1)
 				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
+			defaultSetup = DEFAULT_SETUP_RUNTIME.equals(payload.getString("runtimeVersion", null));
 			exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
@@ -173,7 +185,7 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", 2).add("runtimeVersion", "ffb-3.4.0-bb2025-r2.2")
+		JsonObject payload = new JsonObject().add("recoveryVersion", 2).add("runtimeVersion", defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
 			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
@@ -318,6 +330,8 @@ public final class SetupSession {
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		int oldHalf = game.getHalf();
 		int oldScore = homeScore() + awayScore();
+		StepId oldStep = step();
+		String oldActor = actor();
 		try {
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
 			state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
@@ -328,6 +342,8 @@ public final class SetupSession {
 			boolean newHalf = oldHalf > 0 && game.getHalf() != oldHalf;
 			boolean touchdown = homeScore() + awayScore() != oldScore;
 			if (!isComplete() && (newHalf || touchdown)) drive++;
+			if (defaultSetup && step() == StepId.SETUP && (oldStep != StepId.SETUP || !oldActor.equals(actor())))
+				deployDefaultSetup();
 			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION");
 			return reply(id, "ACCEPTED", false, role);
 		} catch (RuntimeException failure) {
@@ -335,6 +351,33 @@ public final class SetupSession {
             MatchService.Failure unavailable = new MatchService.Failure("SESSION_UNAVAILABLE");
             unavailable.initCause(failure);
             throw unavailable;
+		}
+	}
+
+	/** Apply ordinary native setup commands as part of the triggering mutation, before checkpoint/ack. */
+	private void deployDefaultSetup() {
+		Game game = state.getGame();
+		boolean home = "home".equals(actor());
+		Team team = home ? game.getTeamHome() : game.getTeamAway();
+		java.util.ArrayList<Player<?>> eligible = new java.util.ArrayList<>();
+		for (Player<?> player : team.getPlayers())
+			if (game.getFieldModel().getPlayerState(player).canBeMovedDuringSetup()) eligible.add(player);
+		eligible.sort(java.util.Comparator.comparingInt(Player::getNr));
+		// Clear this side only, so prior-drive coordinates cannot occupy template squares.
+		for (Player<?> player : eligible) {
+			FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(player);
+			if (current == null || !FieldCoordinateBounds.FIELD.isInBounds(current)) continue;
+			int box = home ? FieldCoordinate.RSV_HOME_X : FieldCoordinate.RSV_AWAY_X;
+			int row = 0;
+			while (game.getFieldModel().getPlayer(new FieldCoordinate(box, row)) != null) row++;
+			FieldCoordinate reserve = new FieldCoordinate(box, row);
+			state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(player.getId(), home ? reserve : reserve.transform()), home));
+		}
+		int[] rows = { 6, 7, 8, 3, 4, 5, 6, 8, 9, 10, 11 };
+		for (int index = 0; index < Math.min(11, eligible.size()); index++) {
+			int x = index < 3 ? 12 : 11;
+			FieldCoordinate square = new FieldCoordinate(home ? x : 25 - x, rows[index]);
+			state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(eligible.get(index).getId(), home ? square : square.transform()), home));
 		}
 	}
 

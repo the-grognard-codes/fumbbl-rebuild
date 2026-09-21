@@ -34,6 +34,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     const connection = new V2Client({ ...options, storage: sessionStorage, onChange: message => {
       if (message.type === 'status') { setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); }
       if (message.type === 'authentication') setStatus('Connected');
+      if (message.code === 'VIEW_UNAVAILABLE' || message.code === 'NOT_FOUND') { setPrepared(null); setInvite(''); }
       if (message.type === 'catalog' || message.type === 'teamValidation') {
         const decoded = decodeTeam(JSON.stringify({ ...message, version: 1 }));
         if (decoded.type === 'catalog') { setCatalog(decoded); setTeamDraft(previous => previous ?? emptyDraft(decoded)); }

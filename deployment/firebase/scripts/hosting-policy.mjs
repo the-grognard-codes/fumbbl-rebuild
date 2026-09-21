@@ -1,4 +1,7 @@
+import { validateTransportConfiguration } from '../../../site/src/assets/transport-policy.js';
+
 export function hostingConfiguration(base, config) {
+  validateTransportConfiguration(config);
   const result = structuredClone(base);
   if (config.environment === 'local' || config.environment === 'local-dev') return result;
   const game = config.gameWebSocketUrl ? new URL(config.gameWebSocketUrl) : null;

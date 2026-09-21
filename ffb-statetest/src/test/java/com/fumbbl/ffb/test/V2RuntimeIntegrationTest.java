@@ -58,7 +58,9 @@ class V2RuntimeIntegrationTest {
 		JsonObject join = request("preparedMatch").add("operation", "join").add("invitationCode", created.get("invitationCode"))
 			.add("teamId", awayTeam).add("expectedDocumentVersion", 1);
 		accepted(send(adapter, away, join)); assertTrue(send(adapter, away, join).getBoolean("duplicate", false));
-		accepted(send(adapter, home, request("preparedMatch").add("operation", "activate").add("matchId", match).add("expectedRevision", 2)));
+		assertEquals("preparationChanged", home.last.getString("type", null));
+		accepted(send(adapter, away, request("preparedMatch").add("operation", "activate").add("matchId", match).add("expectedRevision", 2)));
+		assertEquals("preparationChanged", home.last.getString("type", null));
 		JsonObject initial = send(adapter, home, load(match)).get("state").asObject();
 		accepted(send(adapter, away, load(match)));
 		JsonObject watched = send(adapter, viewer, request("watch").add("matchId", match)); accepted(watched);
@@ -83,7 +85,23 @@ class V2RuntimeIntegrationTest {
 		authenticate(recreated, restoredActor, actor == home ? "home" : "away");
 		JsonObject repeated = send(recreated, restoredActor, choice); accepted(repeated); assertTrue(repeated.getBoolean("duplicate", false));
 		assertEquals(after, recovery.find(match).json);
-		System.out.println("V2 native integration PASS: match=" + match + ", revision=" + state.getInt("revision", -1) + ", same-state/recovery/exact-retry=true");
+		// Reach actual setup, persist the default formation, then reconstruct a fresh runtime.
+		Peer restoredOther = new Peer(); authenticate(recreated, restoredOther, actor == home ? "away" : "home");
+		JsonObject receive = request("setup").add("operation", "choice").add("matchId", match)
+			.add("expectedRevision", state.get("revision")).add("promptId", state.get("prompt").asObject().get("id")).add("optionId", "receive");
+		Peer receiver = state.getString("actor", null).equals(initial.getString("actor", null)) ? restoredActor : restoredOther;
+		JsonObject deployed = send(recreated, receiver, receive); accepted(deployed);
+		JsonObject deployedState = deployed.get("state").asObject();
+		assertEquals("SETUP", deployedState.getString("phase", null));
+		int placed = 0;
+		for (com.eclipsesource.json.JsonValue player : deployedState.get("players").asArray()) if (!player.asObject().get("x").isNull()) placed++;
+		assertEquals(11, placed);
+		String deployedArtifact = recovery.find(match).json;
+		BrowserV2Adapter finalRuntime = runtime(connections, run); Peer finalViewer = new Peer(); authenticate(finalRuntime, finalViewer, "viewer");
+		JsonObject finalState = send(finalRuntime, finalViewer, request("watch").add("matchId", match)); accepted(finalState);
+		assertEquals(JsonObject.readFrom(deployedState.toString()).set("callerRole", "spectator"), finalState.get("state"));
+		assertEquals(deployedArtifact, recovery.find(match).json);
+		System.out.println("V2 native integration PASS: match=" + match + ", revision=" + deployedState.getInt("revision", -1) + ", preparation-notification/default-setup/recovery/exact-retry=true");
 	}
 
 	private BrowserV2Adapter runtime(JdbcMatchMembershipRepository.Connections connections, String run) throws Exception {
@@ -96,7 +114,7 @@ class V2RuntimeIntegrationTest {
 			catch (SQLException failure) { throw new V2PrincipalAuthenticator.Rejected(); }
 		};
 		return new BrowserV2Adapter(verifier, new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), directory, clock),
-			new SetupApplication(new TestServer().getServer(), matches, new JdbcRecoveryRepository(connections::open)), matches,
+			new SetupApplication(new TestServer().getServer(), matches, new JdbcRecoveryRepository(connections::open), true), matches,
 			new V2PreparationService(connections::open, teams, catalog, clock), new BrowserSavedTeamJson(teams, true));
 	}
 
