@@ -256,6 +256,16 @@ DEV/PROD rollout. See [evidence and limits](verification/r3-d/local-nginx.md).
 
 #### R3-E — Projection-safe rendering, logs, and acceptance record
 
+**2026-09-21 bounded implementation:** all nine current v2 response envelopes
+have explicit field contracts and negative private-field tests. Player/watch
+role mismatches, foreign uncertain-save documents and creator-only invitation
+exposure fail closed in the browser. Coach labels apply the approved
+You/Opponent and spectator Home/Away policy. Native projection and service
+authorization tests, three-context safe-rendering/console checks, and bounded
+read-only DEV journal inspection passed. See [evidence](verification/r3-e/README.md).
+The browser candidate is not deployed; real hosted acceptance of this candidate
+and broader R3 closure remain separate. No custom-name or new-chat feature is added.
+
 **Completed foundation:** session chat is plain text in the browser and session messages/logs contain no Firebase token, UID, email, or display name. The deployed service does not log authentication or chat contents.
 
 **Remaining implementation:** give every future recipient DTO an explicit projection test, apply the approved display-name policy, and retain a concise release evidence record. Do not inspect or export browser WebSocket frames or HAR files because the browser's private authentication message necessarily contains its own bearer token.
