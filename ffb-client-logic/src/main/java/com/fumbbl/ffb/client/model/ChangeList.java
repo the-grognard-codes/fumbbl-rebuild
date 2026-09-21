@@ -10,6 +10,14 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("PROD browser games use an environment-bound encrypted nginx connection with a private marker-6 runtime")
+			.addImprovement("DEV game service supports encrypted nginx connections with a private marker-6 runtime and preserved account identities")
+		.addBugfix("Browser match creators automatically enter play when their opponent starts the game")
+		.addImprovement("New authenticated browser matches deploy the first eleven available roster players at setup, with three on the line and eight behind")
+		.addImprovement("Local DEV browser game connections use an explicitly loopback-only nginx proxy")
+		.addImprovement("Browser connections reject mixed environment settings and enforce local game host, path and origin boundaries")
+		.addImprovement("Prepare a loopback-only DEV reverse-proxy handoff for encrypted browser game connections")
+		.addImprovement("Add a guarded native DEV marker-6 launcher with separate storage and single-process ownership")
 			.addImprovement("Authenticated browser players and spectators share one game view; match membership alone controls game decisions")
 			.addFeature("Firebase Google and email-link sign-in opens private two-player browser sessions with presence and shared chat")
 			.addFeature("New local browser matches can restore private engine checkpoints and reconcile committed requests after a server process restart")

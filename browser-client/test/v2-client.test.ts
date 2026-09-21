@@ -10,6 +10,39 @@ const state = { matchId: match, revision: 2, callerRole: 'spectator', phase: 'SE
   players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: null, y: null, state: 'reserve' }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null,
   activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
+const member = { role: 'home', sourceTeamId: match, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'catalog', rosterId: 'human', presetId: 'starter', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: { rerolls: 0 }, players: [] } };
+const prepared = { type: 'preparedMatch', code: 'ACCEPTED', duplicate: false, callerRole: 'home', recoveryMatchId: null,
+  document: { formatVersion: 1, matchId: match, documentVersion: 1, lifecycle: 'WAITING_FOR_OPPONENT', invitation: { intendedOpponent: 'away' }, home: member, away: null } };
+
+test('preparation notification reloads only the selected match and preserves an uncertain mutation', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const created = client.request('preparedMatch', { operation: 'create' }, true);
+  socket.reply({ ...prepared, requestId: created });
+  const pendingId = client.request('preparedMatch', { operation: 'activate', matchId: match, expectedRevision: 2 }, true);
+  const count = socket.sent.length;
+  socket.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: account });
+  assert.equal(socket.sent.length, count);
+  socket.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: match });
+  const load = socket.sent.at(-1);
+  assert.equal(load.type, 'preparedMatch'); assert.equal(load.operation, 'load'); assert.equal(load.matchId, match);
+  socket.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: match });
+  assert.equal(socket.sent.length, count + 1, 'Coalesce notices while a fresh read is outstanding');
+  socket.reply({ ...prepared, requestId: load.requestId, document: { ...prepared.document, lifecycle: 'ACTIVATED', documentVersion: 3, away: { ...member, role: 'away' } } });
+  assert.equal(events.at(-1).document.lifecycle, 'ACTIVATED');
+  assert.equal(client.pending?.request.requestId, pendingId, 'A notification/read must not acknowledge an uncertain activation');
+});
+
+test('preparation selection reloads on reconnect but is removed when opening another game view', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  socket.reply({ ...prepared, requestId: client.request('preparedMatch', { operation: 'create' }, true) });
+  const reconnected = await connect();
+  assert.equal(reconnected.sent.at(-1).operation, 'load'); assert.equal(reconnected.sent.at(-1).type, 'preparedMatch');
+  client.open(match, true); const count = reconnected.sent.length;
+  reconnected.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: match });
+  assert.equal(reconnected.sent.length, count);
+  socket.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: match });
+  assert.equal(reconnected.sent.length, count);
+});
 
 class Socket {
   readyState = 1; sent: any[] = []; closed = false;

@@ -1,0 +1,8 @@
+[mariadb]
+bind-address=127.0.0.1
+skip-name-resolve
+general-log=0
+slow-query-log=0
+skip-log-bin
+innodb-buffer-pool-size=128M
+max-connections=30

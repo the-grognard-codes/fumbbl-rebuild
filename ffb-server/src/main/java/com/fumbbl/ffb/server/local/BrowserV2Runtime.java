@@ -30,12 +30,14 @@ public final class BrowserV2Runtime {
 		JdbcMatchMembershipRepository.Connections connections) throws SQLException {
 		try (Connection connection = connections.open()) { new Marker6Schema().verify(connection); }
 		String project = server.getProperty("local.browser.v2.firebase.project");
-		if (project == null || project.trim().isEmpty()) throw new IllegalArgumentException("Firebase project required");
+		BrowserV2TransportPolicy policy = new BrowserV2TransportPolicy(server.getProperty("server.base"), server.getProperty("local.browser.v2.proxy.profile"));
+		if (!policy.firebaseProject().equals(project) || System.getenv("FIREBASE_AUTH_EMULATOR_HOST") != null)
+			throw new IllegalArgumentException("Firebase project must match the fixed transport profile");
 		Clock clock = Clock.systemUTC();
 		RosterCatalog catalog = new RosterCatalog();
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open));
+		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open), true);
 		JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, clock);
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(project, directory);
 		V2MatchAccess access = new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), verifier.liveDirectory(), clock);

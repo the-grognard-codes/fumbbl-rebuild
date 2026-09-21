@@ -14,10 +14,13 @@ public class BrowserMatchServlet extends JettyWebSocketServlet implements JettyW
 	private final FantasyFootballServer server;
 	private final BrowserMatchTransport transport;
 	private BrowserFixtureControl fixtureControl;
+	private final BrowserV2TransportPolicy policy;
 
 	public BrowserMatchServlet(FantasyFootballServer server, BrowserProtocol adapter) {
 		this.server = server;
 		this.adapter = adapter;
+		this.policy = adapter instanceof BrowserV2Adapter ? new BrowserV2TransportPolicy(server.getProperty("server.base"),
+			server.getProperty("local.browser.v2.proxy.profile")) : null;
 		this.transport = new BrowserMatchTransport(server);
 	}
 
@@ -34,12 +37,12 @@ public class BrowserMatchServlet extends JettyWebSocketServlet implements JettyW
 	@Override
 	public Object createWebSocket(JettyServerUpgradeRequest request, JettyServerUpgradeResponse response) {
 		String origin = request.getHeader("Origin");
-		if (adapter instanceof BrowserV2Adapter && (request.getRequestURI().getRawQuery() != null
-			|| !"/browser/v2".equals(request.getRequestURI().getPath()))) {
+		if (policy != null && (request.getHeaders("Host").size() != 1
+			|| !policy.permits(request.getRequestURI(), request.getHeader("Host"), origin))) {
 			response.setStatusCode(403); return null;
 		}
 		if (request.getHeaders("Origin").size() != 1
-			|| !allowedOrigin(origin, adapter instanceof BrowserV2Adapter)) {
+			|| (policy == null && !allowedOrigin(origin, false))) {
 			response.setStatusCode(403);
 			return null;
 		}

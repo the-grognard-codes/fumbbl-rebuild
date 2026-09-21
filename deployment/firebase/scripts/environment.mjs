@@ -10,7 +10,8 @@ const environments = Object.freeze({
       appId: '1:589432788264:web:0881be9230e4f57cfa2c1d',
       measurementId: 'G-B2SE4J2QPF'
     }),
-    emailLinkUrl: 'https://dev.molesunderthepitch.org/login/complete'
+    emailLinkUrl: 'https://dev.molesunderthepitch.org/login/complete',
+    gameWebSocketUrl: 'wss://game-dev.molesunderthepitch.org/browser/v2'
   }),
   prod: Object.freeze({
     name: 'prod',
@@ -23,7 +24,8 @@ const environments = Object.freeze({
       appId: '1:826907627534:web:5bf33cc7b2d7e761192c5f',
       measurementId: 'G-LJ4X3TZX0Y'
     }),
-    emailLinkUrl: 'https://molesunderthepitch.org/login/complete'
+    emailLinkUrl: 'https://molesunderthepitch.org/login/complete',
+    gameWebSocketUrl: 'wss://game.molesunderthepitch.org/browser/v2'
   }),
   local: Object.freeze({
     name: 'local',
@@ -51,7 +53,7 @@ const environments = Object.freeze({
       appId: '1:589432788264:web:0881be9230e4f57cfa2c1d',
       measurementId: 'G-B2SE4J2QPF'
     }),
-    gameWebSocketUrl: 'ws://127.0.0.1:22231/browser/v2',
+    gameWebSocketUrl: 'ws://127.0.0.1:22232/browser/v2',
     emailLinkUrl: 'http://localhost:5000/login/complete'
   })
 });

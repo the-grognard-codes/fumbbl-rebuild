@@ -224,6 +224,8 @@ public class FantasyFootballServer implements IFactorySource {
 				connector.setPort(Integer.parseInt(httpPortProperty));
 				boolean browserV2 = Boolean.parseBoolean(getProperty("local.browser.v2.enabled"));
 				if (browserV2 && !Boolean.parseBoolean(getProperty("server.local"))) throw new IllegalArgumentException("V2 requires local mode");
+				if (Boolean.parseBoolean(getProperty("server.local"))) connector.setHost(new com.fumbbl.ffb.server.local.BrowserV2TransportPolicy(getProperty("server.base"), getProperty("local.browser.v2.proxy.profile"))
+					.bindHost(getProperty("local.transport.container.forwarding")));
 				// Docker publishes this connector only to host loopback; binding it to the
 				// container loopback would reject Docker's forwarded connection.
 				server.addConnector(connector);

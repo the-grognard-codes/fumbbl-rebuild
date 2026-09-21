@@ -17,7 +17,8 @@ function expectedPublicConnectSources(config) {
     'https://identitytoolkit.googleapis.com',
     'https://securetoken.googleapis.com',
     'https://www.googleapis.com',
-    `https://${config.projectId}.firebaseapp.com`
+    `https://${config.projectId}.firebaseapp.com`,
+    ...(config.gameWebSocketUrl ? [new URL(config.gameWebSocketUrl).origin] : [])
   ]);
 }
 
@@ -36,7 +37,8 @@ if (local.projectId !== dev.projectId || !local.authEmulatorUrl) {
   throw new Error('Local authentication must use the DEV project identity through the Auth emulator only.');
 }
 for (const [config, other] of [[dev, prod], [prod, dev]]) {
-  assert.equal(config.gameWebSocketUrl, undefined, 'Public game runtime remains unavailable until its separate release gate');
+  assert.equal(config.gameWebSocketUrl, config.environment === 'dev' ? 'wss://game-dev.molesunderthepitch.org/browser/v2' : 'wss://game.molesunderthepitch.org/browser/v2',
+    'Only the authorized exact endpoint for the selected environment may be enabled');
   const policy = hostingConfiguration({ hosting: { headers: [] } }, config);
   const csp = policy.hosting.headers[0].headers[0].value;
   assert.deepEqual(new Set(directiveSources(csp, 'connect-src')), expectedPublicConnectSources(config));
@@ -44,7 +46,7 @@ for (const [config, other] of [[dev, prod], [prod, dev]]) {
 }
 assert.equal(local.gameWebSocketUrl, 'ws://127.0.0.1:22227/browser/v2');
 assert.equal(localDev.projectId, dev.projectId);
-assert.equal(localDev.gameWebSocketUrl, 'ws://127.0.0.1:22231/browser/v2');
+assert.equal(localDev.gameWebSocketUrl, 'ws://127.0.0.1:22232/browser/v2');
 assert.equal(localDev.authEmulatorUrl, undefined);
 assert.equal(dev.authDomain, 'dev-moles-under-the-pitch-org.firebaseapp.com');
 assert.equal(prod.authDomain, 'molesunderthepitch-dotorg.firebaseapp.com');

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -125,7 +126,58 @@ class BrowserV2AdapterTest {
 	}
 
 	private BrowserV2Adapter adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup) {
-		return new BrowserV2Adapter(authenticator, access, setup, mock(MatchService.class), mock(V2PreparationService.class), mock(BrowserSavedTeamJson.class));
+		return adapter(authenticator, access, setup, mock(V2PreparationService.class));
+	}
+
+	@Test void creatorIsNotifiedOfOpponentJoinAndActivationIncludingExactRetry() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
+		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
+		when(access.playerRole(home, MATCH)).thenReturn("home"); when(access.playerRole(away, MATCH)).thenReturn("away");
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.handle(any(String.class), any(JsonObject.class))).thenAnswer(call -> preparedResponse());
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.activate(eq("away"), any(String.class))).thenAnswer(call -> preparedResponse().add("duplicate", true));
+		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : away, access, setup, preparation);
+		Connection creator = new Connection(), opponent = new Connection();
+		adapter.receive(creator, authenticate("a", "home").toString()); adapter.receive(opponent, authenticate("b", "away").toString());
+		adapter.receive(creator, request("preparedMatch", "create").add("operation", "create").toString());
+		adapter.receive(opponent, request("preparedMatch", "join").add("operation", "join").toString());
+		adapter.receive(opponent, request("preparedMatch", "activate").add("operation", "activate").add("matchId", MATCH).toString());
+		assertEquals(4, creator.messages.size());
+		for (int index = 2; index < 4; index++) {
+			JsonObject notice = JsonObject.readFrom(creator.messages.get(index));
+			assertEquals("preparationChanged", notice.getString("type", null));
+			assertEquals(MATCH, notice.getString("matchId", null));
+			assertTrue(notice.get("requestId").isNull()); assertEquals(5, notice.size());
+		}
+		verify(access, times(2)).playerRole(home, MATCH);
+		adapter.disconnect(creator);
+		adapter.receive(opponent, request("preparedMatch", "again").add("operation", "activate").add("matchId", MATCH).toString());
+		assertEquals(4, creator.messages.size());
+	}
+
+	@Test void revokedPreparationRecipientGetsNoMatchNotificationOrState() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
+		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
+		when(access.playerRole(home, MATCH)).thenThrow(new MatchService.Failure("AUTHENTICATION_REQUIRED"));
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.handle(any(String.class), any(JsonObject.class))).thenAnswer(call -> preparedResponse());
+		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : away, access, mock(SetupApplication.class), preparation);
+		Connection creator = new Connection(), opponent = new Connection();
+		adapter.receive(creator, authenticate("a", "home").toString()); adapter.receive(opponent, authenticate("b", "away").toString());
+		adapter.receive(creator, request("preparedMatch", "create").add("operation", "create").toString());
+		adapter.receive(opponent, request("preparedMatch", "join").add("operation", "join").toString());
+		assertEquals("VIEW_UNAVAILABLE", code(creator, 2));
+		assertFalse(creator.messages.get(2).contains(MATCH));
+		adapter.receive(opponent, request("preparedMatch", "retry").add("operation", "join").toString());
+		assertEquals(3, creator.messages.size());
+	}
+
+	private JsonObject preparedResponse() { return new JsonObject().add("type", "preparedMatch").add("code", "ACCEPTED").add("document", new JsonObject().add("matchId", MATCH)); }
+	private BrowserV2Adapter adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup, V2PreparationService preparation) {
+		return new BrowserV2Adapter(authenticator, access, setup, mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class));
 	}
 
 	private AuthenticatedPrincipal principal(String account, ApplicationScope scope) {

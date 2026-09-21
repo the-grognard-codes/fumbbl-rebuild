@@ -21,6 +21,23 @@ import static org.mockito.Mockito.when;
 class FirebaseV2PrincipalAuthenticatorTest {
 	private static final String PROJECT = "browser-project";
 
+	@Test void devAndProdCredentialsAreRejectedAcrossProjectsBeforeAccountCreation() throws Exception {
+		String[] projects = {"dev-moles-under-the-pitch-org", "molesunderthepitch-dotorg"};
+		for (int index = 0; index < projects.length; index++) {
+			String expected = projects[index]; String foreign = projects[1 - index];
+			for (boolean foreignIssuer : new boolean[] {false, true}) {
+				FirebaseAuth auth = mock(FirebaseAuth.class); FirebaseToken token = token("synthetic-subject", 1900000000L);
+				Map<String, Object> claims = new HashMap<>(token.getClaims());
+				claims.put("aud", foreignIssuer ? expected : foreign);
+				claims.put("iss", "https://securetoken.google.com/" + (foreignIssuer ? foreign : expected));
+				when(token.getClaims()).thenReturn(claims); when(auth.verifyIdToken("synthetic", true)).thenReturn(token);
+				Directory directory = new Directory();
+				assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, expected, directory).authenticate("synthetic"));
+				assertEquals(0, directory.authenticateCalls);
+			}
+		}
+	}
+
 	@Test void verifiesRevocationAndPassesOnlyValidatedIdentityToDirectory() throws Exception {
 		FirebaseAuth auth = mock(FirebaseAuth.class);
 		FirebaseToken token = token("firebase-subject", 1900000000L);

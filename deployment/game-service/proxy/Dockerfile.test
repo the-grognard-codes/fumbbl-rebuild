@@ -1,0 +1,17 @@
+# Local validation image only; no published ports, retained volumes, ADC, or service installation.
+FROM ffb-server:3.4.0-m6.1 AS runtime
+FROM nginx:1.30.5@sha256:0aa2d81d65bc0cac0407e738b8f07d312c8685a84225fcb4db7bcbdd8c9bdf11
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs openssl
+COPY --from=runtime /opt/java/openjdk /opt/java/openjdk
+COPY --from=runtime /app/FantasyFootballServer.jar /app/FantasyFootballServer.jar
+COPY --from=runtime /app/lib /app/lib
+COPY --from=serverclasses . /classes
+COPY --from=testclasses . /testclasses
+COPY --from=commonclasses . /commonclasses
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="/opt/java/openjdk/bin:${PATH}"
+ENV NGINX_TEST_BINARY=/usr/sbin/nginx
+ENV OPENSSL_TEST_BINARY=/usr/bin/openssl
+ENV PROXY_FIXTURE_CLASSPATH=/testclasses:/classes:/commonclasses:/app/FantasyFootballServer.jar:/app/lib/*
+WORKDIR /work
+ENTRYPOINT ["node", "--test", "/checks/test.mjs", "/checks/integrated-test.mjs"]

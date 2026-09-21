@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../browser-client/node_modules/playwright/index.mjs';
+import { resolveEnvironment, configurationScript } from '../../deployment/firebase/scripts/environment.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const matchId = '12345678-1234-1234-1234-123456789abc';
@@ -14,10 +15,61 @@ const base = { matchId, revision: 2, phase: 'SETUP', actor: 'home', prompt: null
   weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn' }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 
+test('creator sees opponent join and automatically opens play when opponent starts', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
+  const recipients = new Map(); const reads = []; let revision = 1;
+  const member = role => ({ role, sourceTeamId: matchId, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'fixture', rosterId: 'human', presetId: 'fixture', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: {}, players: [] } });
+  try {
+    const pages = [];
+    for (let index = 0; index < 2; index++) {
+      const page = await (await browser.newContext()).newPage(); pages.push(page);
+      await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+      await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
+      await page.routeWebSocket('**/browser/v2', socket => {
+        const send = message => socket.send(JSON.stringify({ version: 2, ...message })); recipients.set(index, send);
+        socket.onMessage(raw => {
+          const request = JSON.parse(raw);
+          if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
+          if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
+          if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
+          if (request.type === 'preparedMatch') {
+            if (index === 1 && revision === 1) revision = 2;
+            if (request.operation === 'activate') revision = 3;
+            send({ type: 'preparedMatch', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, callerRole: index === 0 ? 'home' : 'away', recoveryMatchId: null,
+              document: { formatVersion: 1, matchId, documentVersion: revision, lifecycle: ['WAITING_FOR_OPPONENT', 'AWAITING_SETUP', 'ACTIVATED'][revision - 1], invitation: { intendedOpponent: 'away' }, home: member('home'), away: revision > 1 ? member('away') : null } });
+            if (index === 1) recipients.get(0)({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId });
+          }
+          if (request.type === 'setup') {
+            assert.equal(request.operation, 'load'); reads.push(index);
+            send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: { ...base, callerRole: index === 0 ? 'home' : 'away' } });
+          }
+        });
+      });
+      await page.goto(`http://127.0.0.1:${server.address().port}/play`);
+      await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+      await page.getByLabel('Match ID', { exact: true }).fill(matchId);
+      await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
+    }
+    await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
+    await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
+    for (const page of pages) await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+    assert.deepEqual(reads.sort(), [0, 1], 'Both pages opened play without either clicking Resume play');
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
 test('two players and spectator use one board; updates, read-only controls and reconnect', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
-    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end("window.MOLES_FIREBASE_CONFIG={gameWebSocketUrl:'ws://127.0.0.1:22231/browser/v2'};"); return; }
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
     const file = resolve(root, `.${path === '/play' ? '/play/index.html' : path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
     try { const content = await readFile(file); response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(content); }
