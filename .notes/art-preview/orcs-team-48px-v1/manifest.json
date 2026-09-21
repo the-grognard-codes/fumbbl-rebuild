@@ -1,0 +1,242 @@
+[
+  {
+    "id": "01-troll-man",
+    "file": "sprites/01-troll-man.png",
+    "width": 60,
+    "height": 60,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 51,
+      "width": 41,
+      "x": 11,
+      "y": 5
+    }
+  },
+  {
+    "id": "02-blitzer-man",
+    "file": "sprites/02-blitzer-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 40,
+      "width": 39,
+      "x": 5,
+      "y": 6
+    }
+  },
+  {
+    "id": "03-blitzer-woman",
+    "file": "sprites/03-blitzer-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 41,
+      "width": 35,
+      "x": 9,
+      "y": 4
+    }
+  },
+  {
+    "id": "04-big-un-man",
+    "file": "sprites/04-big-un-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 38,
+      "width": 41,
+      "x": 4,
+      "y": 7
+    }
+  },
+  {
+    "id": "05-big-un-woman",
+    "file": "sprites/05-big-un-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 42,
+      "width": 36,
+      "x": 7,
+      "y": 3
+    }
+  },
+  {
+    "id": "06-thrower-man",
+    "file": "sprites/06-thrower-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 41,
+      "width": 34,
+      "x": 8,
+      "y": 4
+    }
+  },
+  {
+    "id": "07-thrower-woman",
+    "file": "sprites/07-thrower-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 42,
+      "width": 31,
+      "x": 9,
+      "y": 4
+    }
+  },
+  {
+    "id": "08-line-orc-man",
+    "file": "sprites/08-line-orc-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 40,
+      "width": 36,
+      "x": 8,
+      "y": 6
+    }
+  },
+  {
+    "id": "09-line-orc-woman",
+    "file": "sprites/09-line-orc-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 37,
+      "width": 31,
+      "x": 9,
+      "y": 6
+    }
+  },
+  {
+    "id": "10-line-orc-man",
+    "file": "sprites/10-line-orc-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 39,
+      "width": 38,
+      "x": 5,
+      "y": 6
+    }
+  },
+  {
+    "id": "11-line-orc-woman",
+    "file": "sprites/11-line-orc-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 41,
+      "width": 41,
+      "x": 4,
+      "y": 4
+    }
+  },
+  {
+    "id": "12-line-orc-man",
+    "file": "sprites/12-line-orc-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 40,
+      "width": 37,
+      "x": 7,
+      "y": 6
+    }
+  },
+  {
+    "id": "13-line-orc-woman",
+    "file": "sprites/13-line-orc-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 44,
+      "width": 38,
+      "x": 5,
+      "y": 2
+    }
+  },
+  {
+    "id": "14-goblin-man",
+    "file": "sprites/14-goblin-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 24,
+      "width": 21,
+      "x": 14,
+      "y": 20
+    }
+  },
+  {
+    "id": "15-goblin-woman",
+    "file": "sprites/15-goblin-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 25,
+      "width": 20,
+      "x": 15,
+      "y": 19
+    }
+  },
+  {
+    "id": "16-goblin-woman",
+    "file": "sprites/16-goblin-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "height": 27,
+      "width": 21,
+      "x": 14,
+      "y": 17
+    }
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "01-ogre-man",
+    "file": "sprites/01-ogre-man.png",
+    "width": 60,
+    "height": 60,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 8,
+      "height": 49,
+      "x": 7,
+      "width": 48
+    }
+  },
+  {
+    "id": "02-blitzer-man",
+    "file": "sprites/02-blitzer-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 7,
+      "height": 37,
+      "x": 9,
+      "width": 35
+    }
+  },
+  {
+    "id": "03-blitzer-woman",
+    "file": "sprites/03-blitzer-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 5,
+      "height": 41,
+      "x": 8,
+      "width": 35
+    }
+  },
+  {
+    "id": "04-catcher-woman",
+    "file": "sprites/04-catcher-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 6,
+      "height": 38,
+      "x": 9,
+      "width": 36
+    }
+  },
+  {
+    "id": "05-catcher-man",
+    "file": "sprites/05-catcher-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 6,
+      "height": 37,
+      "x": 7,
+      "width": 34
+    }
+  },
+  {
+    "id": "06-thrower-man",
+    "file": "sprites/06-thrower-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 3,
+      "height": 43,
+      "x": 8,
+      "width": 34
+    }
+  },
+  {
+    "id": "07-thrower-woman",
+    "file": "sprites/07-thrower-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 6,
+      "height": 40,
+      "x": 12,
+      "width": 28
+    }
+  },
+  {
+    "id": "08-lineman-man",
+    "file": "sprites/08-lineman-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 5,
+      "height": 40,
+      "x": 8,
+      "width": 35
+    }
+  },
+  {
+    "id": "09-lineman-woman",
+    "file": "sprites/09-lineman-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 6,
+      "height": 39,
+      "x": 9,
+      "width": 31
+    }
+  },
+  {
+    "id": "10-lineman-man",
+    "file": "sprites/10-lineman-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 5,
+      "height": 39,
+      "x": 8,
+      "width": 32
+    }
+  },
+  {
+    "id": "11-lineman-woman",
+    "file": "sprites/11-lineman-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 6,
+      "height": 38,
+      "x": 7,
+      "width": 35
+    }
+  },
+  {
+    "id": "12-lineman-man",
+    "file": "sprites/12-lineman-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 5,
+      "height": 39,
+      "x": 7,
+      "width": 37
+    }
+  },
+  {
+    "id": "13-lineman-woman",
+    "file": "sprites/13-lineman-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 4,
+      "height": 40,
+      "x": 8,
+      "width": 33
+    }
+  },
+  {
+    "id": "14-halfling-man",
+    "file": "sprites/14-halfling-man.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 20,
+      "height": 24,
+      "x": 14,
+      "width": 21
+    }
+  },
+  {
+    "id": "15-halfling-woman",
+    "file": "sprites/15-halfling-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 19,
+      "height": 25,
+      "x": 14,
+      "width": 22
+    }
+  },
+  {
+    "id": "16-halfling-woman",
+    "file": "sprites/16-halfling-woman.png",
+    "width": 48,
+    "height": 48,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "anchor": "bottom-center",
+    "bounds": {
+      "y": 18,
+      "height": 25,
+      "x": 13,
+      "width": 23
+    }
+  }
+]
