@@ -41,3 +41,24 @@ Use `docker compose -f containers/local/compose.r2.yaml` without a project-name 
 The isolated MariaDB configuration sets `max_allowed_packet=64M` to accommodate
 the 32 MiB artifact limit. The driver remains MariaDB JDBC 3.5.8 and the server
 remains MariaDB 11.8.9. This setting is confined to the new R2 database.
+
+## Default-setup runtime boundary (2026-09-20)
+
+The updated authenticated v2 runtime creates new engine lifetimes with private
+`runtimeVersion=ffb-3.4.0-bb2025-r2.3`. This versions the server-owned default
+formation policy, not the native BB2025 rules. Recovery format 2, replay format 1,
+engine version `ffb-3.4.0-bb2025-m3d.1`, and MariaDB marker 6 remain unchanged.
+No DDL or artifact rewriting is required.
+
+This implementation retains an `r2.2` compatibility path: its checkpoints restore
+without deploying players and continue to emit `r2.2`, preserving manual setup.
+An `r2.3` restore preserves its recorded formation and manual edits without
+executing commands. Fresh ordinary setup-phase transitions alone apply the new
+default. Existing legacy constructor/diagnostic paths remain manual by default.
+
+The old runtime rejects `r2.3` as unsupported. Never edit its version/checksum to
+simulate rollback. Retain a compatible runtime until new lifetimes finish.
+Do not replace active running games in place: drain them or retain their runtime;
+pair the new client (preparation events) and server at an authorized cutover.
+This change has not rebuilt/restarted the owner's running local container or
+deployed DEV/PROD. See [tests and limits](../../.notes/overhaul-analysis/verification/setup-defaults-20260920/README.md).

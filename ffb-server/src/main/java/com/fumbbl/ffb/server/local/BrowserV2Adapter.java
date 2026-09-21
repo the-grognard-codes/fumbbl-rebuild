@@ -33,6 +33,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserMatchAdapter.Connection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
 	private final Map<BrowserMatchAdapter.Connection, Subscription> subscriptions = new LinkedHashMap<>();
+	private final Map<BrowserMatchAdapter.Connection, String> preparationSubscriptions = new LinkedHashMap<>();
 	private final Set<BrowserMatchAdapter.Connection> retired = Collections.newSetFromMap(new WeakHashMap<BrowserMatchAdapter.Connection, Boolean>());
 
 	public BrowserV2Adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup,
@@ -80,6 +81,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				access.spectatorSnapshot(principal, id);
 				JsonObject state = setup.spectatorView(id);
 				subscriptions.put(connection, new Subscription(id, true));
+				preparationSubscriptions.remove(connection);
 				send(connection, state(requestId, state)); return;
 			}
 			principal = access.require(principal, ApplicationScope.PLAYER);
@@ -89,7 +91,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				String id = request.get("matchId").asString();
 				String role = access.playerRole(principal, id);
 				response = setup.handle(role, request);
-				if ("ACCEPTED".equals(response.getString("code", ""))) subscriptions.put(connection, new Subscription(id, false));
+				if ("ACCEPTED".equals(response.getString("code", ""))) {
+					subscriptions.put(connection, new Subscription(id, false));
+					preparationSubscriptions.remove(connection);
+				}
 				send(connection, response);
 				if ("ACCEPTED".equals(response.getString("code", "")) && !"load".equals(request.getString("operation", ""))
 					&& !response.getBoolean("duplicate", false)) broadcast(id, connection, response.get("state").asObject());
@@ -112,10 +117,30 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			else if ("validateTeam".equals(type)) { fields(request, "version", "type", "requestId", "draft"); response = catalog.evaluate(requestId, request.get("draft").asObject()); }
 			else { fail(connection, requestId, "UNSUPPORTED_MESSAGE"); return; }
 			send(connection, response);
+			if ("preparedMatch".equals(type) && "ACCEPTED".equals(response.getString("code", ""))) {
+				String id = response.get("document").asObject().getString("matchId", null);
+				preparationSubscriptions.put(connection, id);
+				subscriptions.remove(connection);
+				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
+			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
 		catch (MatchService.Failure rejected) { fail(connection, requestId, rejected.code); }
 		catch (SQLException unavailable) { fail(connection, requestId, "PERSISTENCE_FAILED"); }
 		catch (RuntimeException malformed) { fail(connection, requestId, "MALFORMED_MESSAGE"); }
+	}
+
+	private void preparationChanged(String matchId, BrowserMatchAdapter.Connection source) {
+		for (BrowserMatchAdapter.Connection connection : new java.util.ArrayList<>(preparationSubscriptions.keySet())) {
+			if (connection == source || !matchId.equals(preparationSubscriptions.get(connection))) continue;
+			try {
+				// Even invalidations disclose membership: reauthorize before sending, including on exact retry.
+				access.playerRole(principals.get(connection), matchId);
+				send(connection, new JsonObject().add("type", "preparationChanged").add("requestId", JsonValue.NULL)
+					.add("code", "ACCEPTED").add("matchId", matchId));
+			} catch (SQLException | MatchService.Failure denied) {
+				preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE");
+			}
+		}
 	}
 
 	private void broadcast(String matchId, BrowserMatchAdapter.Connection source, JsonObject publicState) {
@@ -143,11 +168,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	@Override public synchronized void disconnect(BrowserMatchAdapter.Connection connection) {
-		principals.remove(connection); subscriptions.remove(connection);
+		principals.remove(connection); subscriptions.remove(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserMatchAdapter.Connection connection) {
 		principals.remove(connection);
 		subscriptions.remove(connection);
+		preparationSubscriptions.remove(connection);
 		retired.add(connection);
 		fail(connection, null, "CONNECTION_REPLACED");
 		connection.close(1008, "Connection replaced by a newer authenticated session");

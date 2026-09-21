@@ -46,3 +46,15 @@ paths = [
 regexes = [
   '''stale/disabled/revoked credentials'''
 ]
+
+# Public protocol nonce: base64("0123456789abcdef"), not a bearer or service secret.
+[[rules.allowlists]]
+description = "Exact synthetic WebSocket handshake nonce in the read-only DEV probe"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^deployment/game-service/proxy/live-dev-test\.mjs$'''
+]
+regexes = [
+  '''^\+?\s*'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': 'MDEyMzQ1Njc4OWFiY2RlZg==' \};\s*$'''
+]

@@ -37,14 +37,21 @@ class BrowserV2RouteTest {
 	private int port;
 
 	@BeforeEach void startJetty() throws Exception {
+		startJetty(null);
+	}
+
+	private void startJetty(String proxyProfile) throws Exception {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
 		adapter = mock(BrowserV2Adapter.class);
 		when(server.getCommunication()).thenReturn(communication);
 		when(server.getProperty(anyString())).thenReturn(null);
+		when(server.getProperty("local.browser.v2.proxy.profile")).thenReturn(proxyProfile);
 		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { ((Runnable) call.getArgument(0)).run(); return true; });
 		jetty = new Server();
 		ServerConnector connector = new ServerConnector(jetty); connector.setHost("127.0.0.1"); connector.setPort(0); jetty.addConnector(connector);
+		connector.open(); port = connector.getLocalPort();
+		when(server.getProperty("server.base")).thenReturn("http://127.0.0.1:" + port);
 		ServletContextHandler context = new ServletContextHandler(); context.setContextPath("/");
 		JettyWebSocketServletContainerInitializer.configure(context, null);
 		BrowserV2Runtime.mountRoutes(context, server, adapter);
@@ -52,6 +59,19 @@ class BrowserV2RouteTest {
 	}
 
 	@AfterEach void stopJetty() throws Exception { if (jetty != null) jetty.stop(); }
+
+	@Test void devProxyHandoffRequiresExactPublicHostAndOrigin() throws Exception {
+		stopJetty(); startJetty("dev");
+		try (RawWebSocket socket = open("/browser/v2", new String[] {"https://dev.molesunderthepitch.org"}, "game-dev.molesunderthepitch.org")) {
+			assertTrue(socket.header.startsWith("HTTP/1.1 101"), socket.header);
+		}
+		for (String origin : new String[] {"http://localhost:5000", "https://molesunderthepitch.org"}) {
+			try (RawWebSocket socket = open("/browser/v2", new String[] {origin}, "game-dev.molesunderthepitch.org")) {
+				assertTrue(socket.header.startsWith("HTTP/1.1 403"), socket.header);
+			}
+		}
+		assertEquals(403, upgradeStatus("/browser/v2", new String[] {"https://dev.molesunderthepitch.org"}));
+	}
 
 	@Test void legacyAndAdministrativeRoutesAreNotMounted() throws Exception {
 		for (String path : new String[] {"/browser/v1", "/session/v1", "/admin", "/command", "/gamestate", "/backup", "/replay", "/spectator"}) {
@@ -78,6 +98,18 @@ class BrowserV2RouteTest {
 		}
 	}
 
+	@Test void foreignHostAndOriginVariantsNeverReachTheProtocol() throws Exception {
+		for (String host : new String[] {"foreign.invalid:" + port, "127.0.0.1.evil:" + port, "localhost:1", "user@localhost:" + port}) {
+			try (RawWebSocket socket = open("/browser/v2", new String[] {"http://localhost:5000"}, host)) {
+				assertTrue(socket.header.startsWith("HTTP/1.1 403") || socket.header.startsWith("HTTP/1.1 400"), socket.header);
+			}
+		}
+		for (String origin : new String[] {"null", "http://localhost:5000/", "https://dev.molesunderthepitch.org", "https://molesunderthepitch.org", "http://localhost:5000.evil"})
+			assertEquals(403, upgradeStatus("/browser/v2", new String[] {origin}));
+		assertEquals(403, upgradeStatus("/browser/v2?", new String[] {"http://localhost:5000"}));
+		org.mockito.Mockito.verifyNoInteractions(adapter);
+	}
+
 	@Test void websocketAcceptsVersionTwoPathDeliversAuthenticationAndRejectsBinary() throws Exception {
 		CountDownLatch received = new CountDownLatch(1);
 		doAnswer(call -> { received.countDown(); return null; }).when(adapter).receive(any(BrowserMatchAdapter.Connection.class), anyString());
@@ -98,8 +130,11 @@ class BrowserV2RouteTest {
 	}
 
 	private RawWebSocket open(String path, String[] origins) throws IOException {
+		return open(path, origins, "127.0.0.1:" + port);
+	}
+	private RawWebSocket open(String path, String[] origins, String host) throws IOException {
 		Socket socket = socket();
-		StringBuilder request = new StringBuilder("GET ").append(path).append(" HTTP/1.1\r\nHost: 127.0.0.1:").append(port)
+		StringBuilder request = new StringBuilder("GET ").append(path).append(" HTTP/1.1\r\nHost: ").append(host)
 			.append("\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: ")
 			.append(Base64.getEncoder().encodeToString(new byte[16])).append("\r\n");
 		for (String origin : origins) request.append("Origin: ").append(origin).append("\r\n");

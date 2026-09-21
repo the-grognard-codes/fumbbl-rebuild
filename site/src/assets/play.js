@@ -1,7 +1,10 @@
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { authentication } from './auth-client.js';
+import { validateTransportConfiguration } from './transport-policy.js';
 
-export function gameEndpoint(value, page = location) {
+export function gameEndpoint(value, page = location, config) {
+  validateTransportConfiguration(config, page);
+  if (value !== config.gameWebSocketUrl || !value) throw Error('Game connection is unavailable.');
   const url = new URL(value);
   const local = ['127.0.0.1', 'localhost'].includes(page.hostname) && ['127.0.0.1', 'localhost'].includes(url.hostname);
   if ((url.protocol !== 'wss:' && !(local && page.protocol === 'http:' && url.protocol === 'ws:'))
@@ -22,7 +25,7 @@ export function startPlay({ auth, config }, status, host) {
     dispose?.(); dispose = null; host.replaceChildren();
     if (!user) { location.assign('/login?returnTo=%2Fplay'); return; }
     try {
-      const url = gameEndpoint(config.gameWebSocketUrl);
+      const url = gameEndpoint(config.gameWebSocketUrl, location, config);
       const { mountPlay } = await import('/assets/game/game.js');
       if (generation !== current) return;
       status.textContent = '';

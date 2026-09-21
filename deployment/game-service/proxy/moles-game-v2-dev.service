@@ -1,0 +1,26 @@
+# Candidate only. No installer enables this unit; drain/acceptance gates still apply.
+[Unit]
+Description=DEV marker-6 authoritative game runtime (loopback)
+After=network-online.target mariadb.service
+Wants=network-online.target
+RequiresMountsFor=/var/lib/moles-game-v2-dev
+
+[Service]
+Type=simple
+User=moles-game-v2-dev
+Group=moles-game-v2-dev
+WorkingDirectory=/opt/moles-game-v2-dev
+ExecStart=/opt/moles-game-v2-dev/java/openjdk/bin/java -Xms128m -Xmx768m -cp /opt/moles-game-v2-dev/FantasyFootballServer.jar:/opt/moles-game-v2-dev/lib/* com.fumbbl.ffb.server.local.NativeMarker6ServerMain /etc/moles-game-v2-dev/server.properties
+Restart=no
+TimeoutStopSec=60
+KillSignal=SIGTERM
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/moles-game-v2-dev /var/log/moles-game-v2-dev
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

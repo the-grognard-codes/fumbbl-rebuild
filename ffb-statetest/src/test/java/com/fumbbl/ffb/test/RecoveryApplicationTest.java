@@ -100,6 +100,31 @@ class RecoveryApplicationTest {
 	}
 
 	private SetupApplication app(Fixture fixture) throws Exception { return new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery); }
+
+	@Test void defaultDeploymentCheckpointFailureAndLostAcknowledgementReconcileAtomically() throws Exception {
+		for (Failure failure : new Failure[] { Failure.COMMITTED_UNKNOWN, Failure.BEFORE_WRITE }) {
+			Fixture fixture = fixture();
+			SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
+			accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+			JsonObject first = accepted(application.handle("home", load(fixture.id, "first"))).get("state").asObject();
+			JsonObject receive = accepted(application.handle(actor(first), choice(fixture.id, "coin", first, "heads"))).get("state").asObject();
+			JsonObject transition = choice(fixture.id, "receive", receive, "receive");
+			fixture.recovery.failure = failure;
+			assertEquals(failure == Failure.COMMITTED_UNKNOWN ? "MATCH_OUTCOME_UNKNOWN" : "PERSISTENCE_FAILED",
+				application.handle(actor(receive), transition).getString("code", null));
+			SetupApplication restarted = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
+			JsonObject response = accepted(restarted.handle(actor(receive), transition));
+			assertEquals(failure == Failure.COMMITTED_UNKNOWN, response.getBoolean("duplicate", false));
+			JsonObject state = response.get("state").asObject();
+			assertEquals("SETUP", state.getString("phase", null));
+			int deployed = 0;
+			for (com.eclipsesource.json.JsonValue player : state.get("players").asArray()) if (!player.asObject().get("x").isNull()) deployed++;
+			assertEquals(11, deployed);
+			String artifact = fixture.recovery.rows.get(fixture.id).json;
+			assertTrue(restarted.handle(actor(receive), transition).getBoolean("duplicate", false));
+			assertEquals(artifact, fixture.recovery.rows.get(fixture.id).json);
+		}
+	}
 	private JsonObject accepted(JsonObject response) { assertEquals("ACCEPTED", response.getString("code", null)); return response; }
 	private JsonObject activate(String id, String requestId) {
 		return new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "activate")
