@@ -35,7 +35,11 @@ for (const name of names) {
 }
 let nginx = await readFile('.tools/dev-release-20260921/nginx.conf', 'utf8');
 nginx = nginx.replace(pattern, value => substitutions.get(value));
-assert.ok(nginx.includes('error_log /dev/null;') && !nginx.includes('game-dev.molesunderthepitch.org'));
+assert.match(nginx, /^error_log \/dev\/null;$/m);
+const serverNames = [...nginx.matchAll(/^\s*server_name\s+([a-z0-9.-]+);$/gm)].map(match => match[1]);
+// Compare the parsed directive exactly; a substring denial can accept a foreign
+// hostname that merely contains the DEV authority.
+assert.deepEqual(serverNames, ['game.molesunderthepitch.org']);
 if (verify) assert.equal(await readFile(resolve(output, 'nginx.conf'), 'utf8'), nginx);
 else await writeFile(resolve(output, 'nginx.conf'), nginx, { flag: 'wx' });
 hashes['nginx.conf'] = createHash('sha256').update(nginx).digest('hex');
