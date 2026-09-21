@@ -78,14 +78,24 @@ test('two players and spectator use one board; updates, read-only controls and r
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const live = new Map(); let revision = 2; const mutations = [];
-  const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index] });
+  const hostileName = '<img src=x onerror="window.__projectionExecuted=true">';
+  const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
+  const consoleSummary = { messages: 0, errors: 0, leaked: false };
+  const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index],
+    players: base.players.map(player => ({ ...player, name: hostileName })) });
   try {
     const pages = [];
     for (let index = 0; index < 3; index++) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } }); const page = await context.newPage(); pages.push(page);
-      page.on('pageerror', failure => console.error('Browser error:', failure.message));
+      // Inspect bounded synthetic console events in memory; never print their text,
+      // capture WebSocket frames, enable tracing, or export a HAR.
+      page.on('console', message => {
+        consoleSummary.messages++;
+        if (consoleSummary.messages <= 100) consoleSummary.leaked ||= privateSentinels.some(value => message.text().includes(value));
+      });
+      page.on('pageerror', () => { consoleSummary.errors++; });
       await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
-      await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
+      await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({uid:'provider-uid-sentinel',email:'private-email@example.invalid',displayName:'private-display-sentinel',getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
       await page.routeWebSocket('**/browser/v2', socket => {
         const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
         socket.onMessage(raw => {
@@ -107,6 +117,13 @@ test('two players and spectator use one board; updates, read-only controls and r
       else { await page.getByLabel('Match ID', { exact: true }).fill(matchId); await page.getByRole('button', { name: 'Resume play', exact: true }).click(); }
       await page.getByLabel('Pitch grid', { exact: true }).waitFor();
       assert.equal(await page.getByLabel('Pitch grid', { exact: true }).getByRole('button').count(), 390);
+      assert.equal(await page.getByLabel('Coach labels', { exact: true }).textContent(),
+        ['Home: You / Away: Opponent', 'Home: Opponent / Away: You', 'Home / Away'][index]);
+      assert.ok((await page.getByLabel('Pitch grid', { exact: true }).getByRole('button').allTextContents()).length);
+      assert.equal(await page.getByLabel('Pitch grid', { exact: true }).locator('img').count(), 0);
+      assert.equal(await page.evaluate(() => window.__projectionExecuted === true), false);
+      const text = await page.locator('body').innerText();
+      assert.ok(privateSentinels.every(value => !text.includes(value)));
     }
     assert.equal(await pages[2].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
     assert.equal(await pages[1].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
@@ -119,6 +136,11 @@ test('two players and spectator use one board; updates, read-only controls and r
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();
     await pages[2].getByLabel('Pitch grid', { exact: true }).waitFor();
     assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 3/);
+    live.get(2)({ type: 'error', requestId: null, code: 'VIEW_UNAVAILABLE' });
+    await pages[2].getByLabel('Pitch grid', { exact: true }).waitFor({ state: 'detached' });
+    assert.equal(consoleSummary.leaked, false); assert.equal(consoleSummary.errors, 0);
+    assert.ok(consoleSummary.messages <= 100, 'Bounded console inspection must not overflow');
+    console.info('R3-E synthetic console summary:', JSON.stringify(consoleSummary));
     if (process.env.PLAY_SCREENSHOT_PATH) await pages[2].screenshot({ path: process.env.PLAY_SCREENSHOT_PATH, fullPage: true });
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 });
