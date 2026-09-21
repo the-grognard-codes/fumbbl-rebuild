@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser game views reject unexpected private response fields and use You/Opponent coach labels with Home/Away for spectators")
 			.addImprovement("PROD browser games use an environment-bound encrypted nginx connection with a private marker-6 runtime")
 			.addImprovement("DEV game service supports encrypted nginx connections with a private marker-6 runtime and preserved account identities")
 		.addBugfix("Browser match creators automatically enter play when their opponent starts the game")
