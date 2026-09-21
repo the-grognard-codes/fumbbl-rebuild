@@ -1,0 +1,494 @@
+[
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\export.ps1",
+    "Hash": "CA30366CF91F791117AA3F27C193F4A6A2A717E9BA69D70F1C0D9CDC3F81F1E4"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\humans-team-v1-sprites.zip",
+    "Hash": "2668C3900C3090FD654B6F3B135278247D7A151C7DA20A62B58E8CFCFA932570"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\manifest.json",
+    "Hash": "E55D83D68A6D2DF65A5A72C0B62DD02518052ADF7E126F1877A14FA8DB5D1F5D"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\prompts.json",
+    "Hash": "643446CB5E38E4E63B701315C95F9D08D0E944805C027B1613412A9A7B604310"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\README.md",
+    "Hash": "ED21ACB44DBD09B83495DCB4A8601821F985E6907B5208CC56FFB3C077462007"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sources.json",
+    "Hash": "D74637318B1DD278E79523D25859738F7E5FC0CCC43262FE779ACED9B0265E97"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\team-preview.png",
+    "Hash": "0A4EEABE113A95A1AF71A945305505AF39E1EC2CF000A23CA36FF26ED7925765"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\01-ogre-man.png",
+    "Hash": "760A8484C6AA6336CCAA6A20F6172F610ABEFEA392485D657CFE47FCC8623D20"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\02-blitzer-man.png",
+    "Hash": "877FF6313A5BF8C816D0F184C9D3C73744BEA45460B45DA4759DE5E2F2F8E21E"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\03-blitzer-woman.png",
+    "Hash": "17BB7C473F6C60E407DC952FB4B43EEFA6C073985573CE6317009F053B0317B1"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\04-catcher-woman.png",
+    "Hash": "A69E2C4066A4B735621EF05879DF12926547A7AD09350F64F95DA8076E5BF323"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\05-catcher-man.png",
+    "Hash": "8EFE807A11C7049C13A78E4806EBEDCABDC9B1654A7E0FEDC328D1FD2D73ED22"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\06-thrower-man.png",
+    "Hash": "26B78B87A4155B57A17A41CDE4A70225283C6429146694A96321B15113A72346"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\07-thrower-woman.png",
+    "Hash": "02A9C439042601B467B036DC5C21BB05722FD8EA19B895D082EDBB9770BEE631"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\08-lineman-man.png",
+    "Hash": "30121D399894B466AED767C542A3A513675CA2E81DFA0F0A6E32A1B4ED43AAA7"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\09-lineman-woman.png",
+    "Hash": "D01C6C514B85216C7182B8E9D9565EAC668843BBBDA869A631F5E5BEFB20A20B"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\10-lineman-man.png",
+    "Hash": "647E093F86A8F5E6ADD59054D3DE1542478CC69E4922DD97CB76A549FA4BFE6C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\11-lineman-woman.png",
+    "Hash": "7A7EAE4CE3244248E041EA7B7AA254BCC71BCB7B7EA3ECDA68171B287A70766C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\12-lineman-man.png",
+    "Hash": "184C1FAB1AA164B3D7240D289B482A68BD37541DF3CC57801902A7D8EFD28206"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\13-lineman-woman.png",
+    "Hash": "8C1897BE15211C2A0EEE3DBE0E95020DBA1A999F3110D7C2C78AB88E012E16FC"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\14-halfling-man.png",
+    "Hash": "3BC7C5E3AC120DCFFF99DC49684648A9440B6C3226437B0338986A15A6CCBAF0"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\15-halfling-woman.png",
+    "Hash": "DF95C5F1E6CC26AE7D510FF1447556DFDB933A20195F39C79CFAD4258112918F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\originals\\16-halfling-woman.png",
+    "Hash": "B8E7393EC7D83905884F55668FEC629B1943CEA5A1A220C6AC0861BDEF86D142"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\01-ogre-man.png",
+    "Hash": "E508A0AAF7C21350C8E5ADC9F3F3DB46F5A48E2D0B3C6BE3AD0AC89648E5E66A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\02-blitzer-man.png",
+    "Hash": "C5765623C940B51F699E7D6541193B5B9C020771CD5B03B0BF0960F69475B366"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\03-blitzer-woman.png",
+    "Hash": "1D9AC08C891E0F37A909B233875274507642BBD4950CC0828938F2E334880994"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\04-catcher-woman.png",
+    "Hash": "74D05609D4C86F6918F0BD7134FC2B768E1FE553E72237EF073B333BA070476E"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\05-catcher-man.png",
+    "Hash": "465CCCA36F106CF2DCB2413D0D56AE4731F3FBBB4C368F48851AF88C5CB2806A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\06-thrower-man.png",
+    "Hash": "F3BA1F4BA838F064B4941306B2A0EA6937DFA6823F4FF0D2F116B12BE2C5704D"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\07-thrower-woman.png",
+    "Hash": "E27D0AED5278BD2E6C2028D45CE1B002ECB28AC742B61D2FB474FC8300E4ED89"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\08-lineman-man.png",
+    "Hash": "F00A10E6E1FB93706EE63074A4D4A4B5350C7042163CDD419C051C477F6989EB"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\09-lineman-woman.png",
+    "Hash": "29F685382ADF4642A9A74EFDEEC4FBAF6BFD8BABD23B272CD70352684F3100C7"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\10-lineman-man.png",
+    "Hash": "4B94085621F95DA9B2B91EDF74C5F926194909B1F9B7EB7051353F571B184E78"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\11-lineman-woman.png",
+    "Hash": "A3902EF9743BB1F1686898BC2AF32F72CDEDB8542A429F86209F02910710F9A1"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\12-lineman-man.png",
+    "Hash": "1220894DDD5B50C72ED30861F26DE91CC38D4237667D7AD11DF7C51BFD4CE458"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\13-lineman-woman.png",
+    "Hash": "776C274FF0D33351B72B2E74EB76AB65B1A9184636E9FF07863F8D17C93DDDEB"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\14-halfling-man.png",
+    "Hash": "FEB34BB2292CACBCD9E1C268E5F184EC087BFECA9B1D8A7DFD2F7CAF12E40DD5"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\15-halfling-woman.png",
+    "Hash": "9A717B57BE8CC0E6D81C1FCA8EB3A30E749801AE169545ABDE37F3FC404C1346"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-v1\\sprites\\16-halfling-woman.png",
+    "Hash": "CB3C933D1670AA221A16ED349041B124E3E222874BF60903C4F64E9C9AAF2294"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\export.ps1",
+    "Hash": "22B755F107B5DF131E1ECC3A98B55D607D13FA237AEE3EB954B876CA80C4C14A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\manifest.json",
+    "Hash": "80BA988B7898B520769E38CC1E9A2937CE29B341B7E33C2D45DF827DC2F58852"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\orcs-team-v1-sprites.zip",
+    "Hash": "1A5F11A1318E9B157F9B7476AEF9C07DA6C7B4F159BCF3DC3EE03AC6ECE6A1BA"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\prompts.json",
+    "Hash": "27AEE480D832A2C3A9FEC0B94B7EC4D4CAB3A66B8513535CDF83110F196FC57B"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\README.md",
+    "Hash": "5CC30E37227F62C12B364CF0E5456B697090BE4F8960E62D8D65168428D1714E"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sources.json",
+    "Hash": "A43D5B9DA403D15C78F51CE4A9A359D830028D0DA07C8B349C2608ADE051EB10"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\team-preview.png",
+    "Hash": "5F61E08F4C3CEA2F2DA1F7582BA94C2EEEB03586E0409FE7B2EAAB16D7F0A244"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\01-troll-man.png",
+    "Hash": "416B61D023EF99E55C4E26318206AB703B4DC916893DF42E1C5DB55218F1FBDE"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\02-blitzer-man.png",
+    "Hash": "AD0BCE167AADC495742EA33E6432506A9946A6BAE3ABBE010E4A9AA68420DC20"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\03-blitzer-woman.png",
+    "Hash": "8190E511D1414A96C787C2419DEEAFB3626AFBAAD1F1E09A11AC5E225CE56001"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\04-big-un-man.png",
+    "Hash": "82FDF51D718D5A0A386B2D8ADEBF75743ED18E45834BCB8E3C14F3EB99B5C5E8"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\05-big-un-woman.png",
+    "Hash": "7F675CA2BF8E971F4179AB54968D90CFFF3CDA19DFE824976E0E4556EF802624"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\06-thrower-man.png",
+    "Hash": "4408C09C442B19E9854E7AAE0A680BA9C9DD61C00AADEFA3DFEC9EA64EF1D781"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\07-thrower-woman.png",
+    "Hash": "26DE4EE224977708828AD93FFF40D1953915870B400FC35D50B36F6531787B6A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\08-line-orc-man.png",
+    "Hash": "7100B55FB97366543FB397EA69EB76DA528D0F222BE9DE7C6037FF7641D87EE6"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\09-line-orc-woman.png",
+    "Hash": "77FD5A5ECB967D89362870B8900226ED0762F0F3B28150A704164460EF2FCF9F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\10-line-orc-man.png",
+    "Hash": "51D04B4F915F50AE3450E7DC30FEF0FD2628EF19B4D0DDD53FF598C71D3FDBD3"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\11-line-orc-woman.png",
+    "Hash": "FA69B7CB22CCD53C7E60EC7682DDDFDAAD8A7CFAB28E3868CA9A2F7FAA10F492"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\12-line-orc-man.png",
+    "Hash": "3FBE2246DF94AE0641B511D94A05A2E5E1BA961C681B63A64273D765FA9F0B6B"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\13-line-orc-woman.png",
+    "Hash": "8156A5E46A53B76ED5AF730CE395B0BEA26FEAA81810D3168E9753E0E2AC8A21"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\14-goblin-man.png",
+    "Hash": "F6BBDD5BD831E76DE43BEB0F0CCB5312FF8814607EC33329BBE70FFF0B74129D"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\15-goblin-woman.png",
+    "Hash": "AF979C1F3CA5405D66040FCE722A325560D381F8A1E5A61591152DD71444A2F1"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\originals\\16-goblin-woman.png",
+    "Hash": "71CD3DE3F5B1E7C26D22F227788141737CEF9BC1A11269B39F49E1F268C39FEE"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\01-troll-man.png",
+    "Hash": "1A5EE52F5891C3ED759A1823C579A1E2CEE56D22A3CC7E99BDF825C664705F80"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\02-blitzer-man.png",
+    "Hash": "72C6916D386FDC8CF9B48C1F30A179F2BB13848CF5CB8419C4DD60A978C50C3F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\03-blitzer-woman.png",
+    "Hash": "60D10C3177697B948FE4274D9980D4E53E48C775DCB7A7412FCF660C27C3316A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\04-big-un-man.png",
+    "Hash": "10EAF31F2C4532082C1AD7104CC9BA1BF02DEA153E12E200C73D1DA3D1700067"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\05-big-un-woman.png",
+    "Hash": "295B51CF60FA5C1757296CAF02C69A82B5E98D092192DF0B9757D6D55E5347DA"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\06-thrower-man.png",
+    "Hash": "B29778686FBF1AC716E69112A306B0147AE4CF3B10D0420A7F5AC4661C50EF26"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\07-thrower-woman.png",
+    "Hash": "18DBDD5CFFB05DE474456D081295818D144EB2CFDEED7AAA363D69E692BC17BC"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\08-line-orc-man.png",
+    "Hash": "8441D9502F53181BB332706DD5BFABF833002FC072C49C606C9F6108886D8CA8"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\09-line-orc-woman.png",
+    "Hash": "57284655D13D9454D7BD7F33A6109BBF43D362DE3D57447072491204B4844287"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\10-line-orc-man.png",
+    "Hash": "F7319E9AA24C188CC4671BB627DD4065CD7BBC051D89C124D2ED38786BB7CFE8"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\11-line-orc-woman.png",
+    "Hash": "5D542BB3FCC935423925666F4382BFE20B5C7824C62E50259EAA244E4138B70A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\12-line-orc-man.png",
+    "Hash": "EB63625E967AE5A829A28E2EA47B5C00491E43EC89E36E98F00FB4BDB2E30027"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\13-line-orc-woman.png",
+    "Hash": "F6FD1368E41D7704A71DFFF32503A972A34D299EFBBF7041BB431CB89449746C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\14-goblin-man.png",
+    "Hash": "E75432D22A2938F163B0CC62758A1E4ED9BF4224FBECA45CB496445FB5E0723F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\15-goblin-woman.png",
+    "Hash": "E7DE456B94D3E0BAC47EE7E7408AC99363E8EEF166586315EC4DDC534AE2FECD"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-v1\\sprites\\16-goblin-woman.png",
+    "Hash": "EE0AB470F2F0CD90D49BFEC6FA9AD943ABA7E0C011D4C2FE700184BB58169A00"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\export.ps1",
+    "Hash": "133C8CF6F12B2B306DFBF02BBD9D7726ED8030F3BF88D4DEA18CA83033E55BEC"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\humans-team-48px-v1-sprites.zip",
+    "Hash": "5E66EBEC750ED3C9207C33F2B9FC3345A0AD18BE8A53664BFAEB94D79D2039B3"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\manifest.json",
+    "Hash": "BE8442552BD8C54BA2A58F17DF52DC2358B56AA69FAB7082BD38710C8485C8C3"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\previous-teams-sha256.json",
+    "Hash": "58AF771F204567CA628E3D91010D3CED430C95AC79688877D8F19E9E9035445F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\README.md",
+    "Hash": "968E4F6672E4199596299348B8DE0F64C41CFEC15A6D2872FA11440C0D1624C4"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sources.json",
+    "Hash": "D74637318B1DD278E79523D25859738F7E5FC0CCC43262FE779ACED9B0265E97"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\team-preview.png",
+    "Hash": "0EC1F34DA9303A0193CBA8B5CFE07B2D4C46F12745F4713D9459DEF3C9D8BB34"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\01-ogre-man.png",
+    "Hash": "C3BEBB61D16464A33728887B3D37377D2CC39688DD56E47FD764E28AC218575C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\02-blitzer-man.png",
+    "Hash": "F29220C89245C1DB3D44E9A7112B08AF764743F0DD5BFABE08F5971D592254E0"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\03-blitzer-woman.png",
+    "Hash": "44C8E49601D6CCC6AE6219F43208B26390F319F6E2058E8032942E995F924ABF"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\04-catcher-woman.png",
+    "Hash": "587BE6F89925396F18FDAAC4D6AC575F7C80C33A499A6C87149D1C13B2C71845"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\05-catcher-man.png",
+    "Hash": "38A01BC00366F1EFFEB7302223CBCE78E7D614689C84CD55A1FCBF626B8A3823"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\06-thrower-man.png",
+    "Hash": "1E651ACEFEB47E04B9C39330B9B24BC773068C1591EC21428CC8C36B07863F0D"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\07-thrower-woman.png",
+    "Hash": "AB0C79FB34FC83B5018E29E960F451B3C8891A3BAD7F3959A25748A42D891981"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\08-lineman-man.png",
+    "Hash": "5909B6E9E42C3D4C8E16113C4E090CE2C0A0B5E56F2F952C9E50CFD90F6D3D7A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\09-lineman-woman.png",
+    "Hash": "1C2E0919F495A73EA300EFFE23F5DC8D42F28AA5C93A59F9580B3513F62FEA6A"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\10-lineman-man.png",
+    "Hash": "895EADB94BE179658BD4DB6FCCCF3807896DED3F73C015181816023B4CF142FE"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\11-lineman-woman.png",
+    "Hash": "413342944449CE064720A003416AAE54DBDE171C5EB591B08CCA7EBDEC6ECC8E"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\12-lineman-man.png",
+    "Hash": "1D4AB5DA5B534DEF8F62C8F6E168F7789363EC98CA3CFE059F13315121E523AE"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\13-lineman-woman.png",
+    "Hash": "B48FEBC8BDA5F61277E5110682D306EA8A458012108D0D28979A556C1315C5ED"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\14-halfling-man.png",
+    "Hash": "FEC417704B78399C4E4C7159DD2A725E7AEE3A85A449877D5F76C5AE792CCA46"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\15-halfling-woman.png",
+    "Hash": "AD832B388D2CBC35C5A0BA1D93CE24EF5D15D5B77C4BFB69F05F6099B6728C87"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\humans-team-48px-v1\\sprites\\16-halfling-woman.png",
+    "Hash": "A496EA7903DAB3B5087B92F7FE5B80D5C5920DDC7885EC35A06A816B568DC1C2"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\export.ps1",
+    "Hash": "130B35C629FCFEB1DBA8BC009B173C59C5ED84CA82ED579EC7BE2B4231C0DAE6"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\manifest.json",
+    "Hash": "63EE35FBFF1B4C1C265D6AC8BFED18FE8F2956476A436D3CE8CCF46ED6791CD7"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\orcs-team-48px-v1-sprites.zip",
+    "Hash": "8B55370D235ADEA913112C166B54722ED3C0496D81DF1798A2DCF50165920122"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\README.md",
+    "Hash": "822C0504AB4E5D2B058655FEB8E26EDF62405FCB8BF099ADF53ADBF545D08712"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sources.json",
+    "Hash": "A43D5B9DA403D15C78F51CE4A9A359D830028D0DA07C8B349C2608ADE051EB10"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\team-preview.png",
+    "Hash": "797100D68FD6352C3756ACFD2A3396C8F765EC2AA1BE3E9D9810464E27ADC3DE"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\01-troll-man.png",
+    "Hash": "5A882DD62A12E73CE618D86CE131C9FCF0A753FC0386DE2A1E6928D91239AE0D"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\02-blitzer-man.png",
+    "Hash": "B0A2067B4D4DA494B5A71E91EF170EFF893A9C1A63A9E2342F4C9FD2D457D05C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\03-blitzer-woman.png",
+    "Hash": "745B1703F9070C06A49551B972967BF55673200A5FAD92C3A15FE3768036631B"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\04-big-un-man.png",
+    "Hash": "1D11F1D1452C4E49F3136B7C74F5057DA48312A03750E39559CD642152760099"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\05-big-un-woman.png",
+    "Hash": "21341FB1874AB7FD9938521B612109DC82F3E8C3A4D6613F981680DF0A214AEF"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\06-thrower-man.png",
+    "Hash": "A858498008D4A5E32242CD917D422D9A6D4CA1DCA7ADA757B207BF1AA1A589D3"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\07-thrower-woman.png",
+    "Hash": "D8A7D75CFD78A802ED31B2C5C94BE82E96F9500713EE64F2DDEFDC07DE2BE6BB"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\08-line-orc-man.png",
+    "Hash": "E5B7DCC0F43FC4C8DD76502D6646637656261779E22EE6A77C317EECE4B48F37"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\09-line-orc-woman.png",
+    "Hash": "6483736317F20A2137BA0E82DB71FA00E7098824D4D7376895A72933B46E9052"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\10-line-orc-man.png",
+    "Hash": "980128C4F16DC9A75A798C61328E1F118489342190B73860801E4D40ECBD765C"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\11-line-orc-woman.png",
+    "Hash": "D15006B995D6F3FF2B1003596F99F5919DEC5BDD0B4F7A664C067E031E7270DA"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\12-line-orc-man.png",
+    "Hash": "26ED3C751DA0B235EDEEBDC28737AEFC4B459AD6954CAAA30900C406D51C99AB"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\13-line-orc-woman.png",
+    "Hash": "A75E9FD5546ABA1DB2673035A0A2D8C4F6534D51D561A8D1B28A150E883CA49F"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\14-goblin-man.png",
+    "Hash": "6E347DA13231AECD60EDD828B0A79EEFCDB2FFAB2C2BE8014BFF89DF0A4A9175"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\15-goblin-woman.png",
+    "Hash": "07307E75FF7FAF200332951565A9C3CC86109B342BDDAC4A7842803635C9770B"
+  },
+  {
+    "Path": "C:\\Users\\jaken\\Git-Hub\\fumbbl-rebuild-chatgpt\\.notes\\art-preview\\orcs-team-48px-v1\\sprites\\16-goblin-woman.png",
+    "Hash": "AAD7EAE958A037CAAD9257C04A317EF757A26C8AA7C812EF28B65D732C4DB59B"
+  }
+]
