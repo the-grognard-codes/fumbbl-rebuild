@@ -25,10 +25,22 @@ test('served DEV artifact and CSP connect a real browser through nginx twice', {
     const response = await page.goto(origin + '/play');
     assert.equal(response.status(), 200);
     const csp = response.headers()['content-security-policy'];
-    const connectSources = csp.split(';').find(part => part.trim().startsWith('connect-src ')).trim().split(/\s+/).slice(1);
-    assert.ok(connectSources.includes('wss://game-dev.molesunderthepitch.org'));
-    assert.ok(!connectSources.includes('wss://game.molesunderthepitch.org'));
-    assert.ok(connectSources.every(value => !value.startsWith('ws://') && !value.includes('127.0.0.1') && !value.includes('localhost')));
+    const connectDirective = csp.split(';').find(part => part.trim().startsWith('connect-src '));
+    assert.ok(connectDirective, 'CSP must declare connect-src');
+    const connectSources = connectDirective.trim().split(/\s+/).slice(1);
+    // Parse and compare every URL component. A substring check would accept an
+    // attacker-controlled authority such as "game-dev…evil".
+    const parsedSources = connectSources.filter(source => source !== "'self'").map(source => new URL(source));
+    assert.ok(parsedSources.every(source => source.protocol !== 'ws:'
+      && source.hostname !== '127.0.0.1' && source.hostname !== 'localhost'));
+    const webSocketSources = parsedSources.filter(source => source.protocol === 'wss:');
+    assert.equal(webSocketSources.length, 1);
+    const [webSocketSource] = webSocketSources;
+    assert.deepEqual({ protocol: webSocketSource.protocol, hostname: webSocketSource.hostname,
+      port: webSocketSource.port, pathname: webSocketSource.pathname,
+      search: webSocketSource.search, hash: webSocketSource.hash }, {
+      protocol: 'wss:', hostname: 'game-dev.molesunderthepitch.org', port: '', pathname: '/', search: '', hash: ''
+    });
     for (let attempt = 0; attempt < 2; attempt++) {
       const reply = await page.evaluate(() => new Promise((resolve, reject) => {
         const socket = new WebSocket('wss://game-dev.molesunderthepitch.org/browser/v2');
