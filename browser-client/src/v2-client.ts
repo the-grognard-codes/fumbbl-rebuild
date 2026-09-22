@@ -2,6 +2,7 @@ import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
+import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
 export type PendingIntent = { accountId: string; request: V2Message };
@@ -114,6 +115,7 @@ export class V2Client {
   private receive(raw: string) {
     if (raw.length > 262144) throw Error('Oversized response');
     const message = parseUniqueJson(raw) as V2Message;
+    assertV2Projection(message);
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
     if (message.type === 'authentication') {
@@ -150,14 +152,16 @@ export class V2Client {
       const { invitationCode, ...response } = message;
       decodePreparedMatch(JSON.stringify({ ...response, version: 1 }));
       if (invitationCode !== undefined && invitationCode !== null && !/^[A-Za-z0-9_-]{22}$/.test(invitationCode)) throw Error('Invalid invitation');
+      if (invitationCode != null && message.callerRole !== 'home') throw Error('Foreign invitation');
       if (request?.matchId && request.matchId !== message.document.matchId) throw Error('Foreign match');
       this.preparationMatchId = message.document.matchId;
       this.selection = null; this.state = null;
     }
-    if (message.type === 'savedTeam' && message.code === 'OK') {
+    if (message.type === 'savedTeam') {
       const document = message.document;
       if (document && (document.formatVersion !== 2 || document.owner?.namespace !== 'account'
-        || document.owner.subject !== this.accountId || (request?.teamId && request.teamId !== document.teamId))) throw Error('Foreign team');
+        || Object.keys(document.owner).length !== 2 || document.owner.subject !== this.accountId
+        || (request?.teamId && request.teamId !== document.teamId))) throw Error('Foreign team');
       decodeSavedTeam(JSON.stringify({ ...message, version: 1, document: document
         ? { ...document, formatVersion: 1, owner: { namespace: 'local', subject: 'home' } } : null }));
     }
@@ -168,6 +172,7 @@ export class V2Client {
     if (message.type === 'setupState' && message.state) {
       const state = decodeSetupStateValue(message.state, true);
       if (!this.selection || state.matchId !== this.selection.matchId || (request?.matchId && request.matchId !== state.matchId)) throw Error('Foreign match');
+      if (this.selection.watch !== (state.callerRole === 'spectator')) throw Error('Wrong recipient role');
       if (!this.state || state.revision >= this.state.revision) this.state = state;
     }
     if (message.code === 'NOT_FOUND' || message.code === 'VIEW_UNAVAILABLE') { this.state = null; this.preparationMatchId = null; }

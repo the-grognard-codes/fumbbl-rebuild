@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,19 @@ class BrowserSavedTeamJsonTest {
 	private MemoryRepository repository;
 	private BrowserSavedTeamJson adapter;
 	private RosterCatalog catalog;
+	@Test void accountTeamProjectionContainsOnlyOwnedDocumentAndForeignReadIsRedacted() {
+		BrowserSavedTeamJson accountAdapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		JsonObject created = accountAdapter.handle(owner, request("create").add("draft", draft()).toString());
+		assertEquals("OK", created.getString("code", null));
+		assertEquals(new HashSet<>(Arrays.asList("version", "type", "requestId", "code", "document", "versionStatus", "validation", "teams")), new HashSet<>(created.names()));
+		JsonObject document = created.get("document").asObject();
+		assertEquals(new HashSet<>(Arrays.asList("namespace", "subject")), new HashSet<>(document.get("owner").asObject().names()));
+		assertEquals(owner, document.get("owner").asObject().getString("subject", null));
+		JsonObject denied = accountAdapter.handle("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", request("load").add("teamId", document.get("teamId")).toString());
+		assertFalse("OK".equals(denied.getString("code", null)));
+		assertTrue(denied.get("document").isNull()); assertFalse(denied.toString().contains(owner));
+	}
 	@BeforeEach
 	void initialize() {
 		catalog = new RosterCatalog(); repository = new MemoryRepository();

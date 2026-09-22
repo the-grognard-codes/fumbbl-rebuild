@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from '../../../browser-client/node_modules/playwright/index.mjs';
+import { readFile } from 'node:fs/promises';
 
 // Read-only probe of the already-running local stack. No login, account creation,
 // match mutation, bearer capture, database write, or server restart.
 test('assembled local client selects nginx; native browser reaches real v2 auth gate through it twice', { timeout: 30000 }, async () => {
-  const config = await fetch('http://127.0.0.1:5000/firebase-web-config.js');
-  assert.equal(config.status, 200);
-  const script = await config.text();
+  // The local Hosting document is deliberately HTTP loopback-only. Read the
+  // assembled public configuration from disk so no configuration is downloaded
+  // over that diagnostic transport.
+  const script = await readFile('deployment/firebase/hosting/firebase-web-config.js', 'utf8');
   assert.match(script, /"environment": "local-dev"/);
   assert.match(script, /"gameWebSocketUrl": "ws:\/\/127\.0\.0\.1:22232\/browser\/v2"/);
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
