@@ -32,6 +32,9 @@ public final class SetupApplication {
 	private long restoredSessions;
 	private long retentionRejections;
 	private final java.util.Set<String> completionBroadcasts = new HashSet<>();
+	// Legacy runtimes retain their completed engine under the historic 32-session limit.
+	// Keep their peer-notification acknowledgement with that bounded resident lifetime.
+	private final java.util.Set<String> legacyCompletionBroadcasted = new HashSet<>();
 	public boolean takeCompletionBroadcast(String matchId) { return completionBroadcasts.remove(matchId); }
 
 	/** Worker-thread operational counters; contains no match IDs or private state. */
@@ -249,11 +252,13 @@ public final class SetupApplication {
 			checkpoint(owner, id, session, before);
 			session.decorateSaveResume(response);
             // Persist before acknowledging terminal success. A retry/load reconciles without executing the engine again.
-            if (session.isComplete()) {
-                matches.complete(owner, id, session.completedMatch());
-                if (document.lifecycle != MatchDocument.Lifecycle.COMPLETED) completionBroadcasts.add(id);
-                if (recovery != null) { release(id); completedReleases++; }
-            }
+			if (session.isComplete()) {
+				matches.complete(owner, id, session.completedMatch());
+				if (recovery == null) {
+					if (legacyCompletionBroadcasted.add(id)) completionBroadcasts.add(id);
+				} else if (document.lifecycle != MatchDocument.Lifecycle.COMPLETED) completionBroadcasts.add(id);
+				if (recovery != null) { release(id); completedReleases++; }
+			}
             return response;
 		} catch (RecoveryRepository.OutcomeUnknown failure) { return failure(requestId, "MATCH_OUTCOME_UNKNOWN"); }
 		catch (MatchService.OutcomeUnknown failure) { return failure(requestId, "MATCH_OUTCOME_UNKNOWN"); }
