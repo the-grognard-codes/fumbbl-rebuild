@@ -5,6 +5,12 @@ import { canPlaceReserve, decodeSetupState } from '../src/setup-protocol.ts';
 const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, callerRole: 'home', phase: 'SETUP', actor: 'home', prompt: null, players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: 3, y: 4, state: 'standing' }, { id: 'p2', name: 'Reserve', slot: 2, role: 'home', x: null, y: null, state: 'reserve' }], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
 test('decodes a complete authoritative setup snapshot', () => assert.equal(decodeSetupState(JSON.stringify(response)).state?.players[1].x, null));
+test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
+  const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
+  assert.equal(decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume } })).state?.saveResume?.status, 'SAVE_PENDING');
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume: { ...saveResume, proposer: 'spectator' } } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume: { status: 'SUSPENDED', proposalId: saveResume.proposalId, proposer: 'away', expiresAt: null } } })));
+});
 test('decodes server-issued play actions and board state', () => {
   const play = { ...state, phase: 'PLAY', turn: 3, turnMode: 'home', ball: { x: 12, y: 7 }, activePlayerId: 'p1', actions: [{ id: 'kick:12,7', label: 'Kick to 12, 7', actor: 'home', kind: 'kickoff' }, { id: 'end', label: 'End turn', actor: 'home', kind: 'endTurn' }] };
   const decoded = decodeSetupState(JSON.stringify({ ...response, state: play })).state!;

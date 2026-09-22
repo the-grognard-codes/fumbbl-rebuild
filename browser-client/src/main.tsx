@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BoardView } from './board';
 import type { RendererTestFault } from './board';
@@ -9,6 +9,8 @@ import { TeamPanel } from './TeamPanel';
 import { MatchPanel } from './MatchPanel';
 import { SetupPanel } from './SetupPanel';
 import { ResultPanel } from './ResultPanel';
+const PitchPreview = lazy(() => import('./PitchPreview').then(module => ({ default: module.PitchPreview })));
+const DraftV2 = lazy(() => import('./draft-v2/PitchPreview').then(module => ({ default: module.PitchPreview })));
 
 function App() {
   const [token, setToken] = useState('');
@@ -140,4 +142,4 @@ function App() {
     <h2>Request results</h2><div role="log" className="results">{log.map((entry, index) => <article key={`${entry.requestId}-${index}`} className={entry.status}><strong>{entry.status} · {entry.code}</strong><div>Revision {entry.revision}{entry.duplicate ? ' · duplicate' : ''}</div><small>{entry.requestId ?? 'uncorrelated'}</small></article>)}</div></aside></div>
   </main>;
 }
-createRoot(document.getElementById('root')!).render(window.location.pathname === '/setup' ? <SetupPanel/> : window.location.pathname === '/results' ? <ResultPanel/> : window.location.pathname === '/teams' ? <TeamPanel/> : window.location.pathname === '/matches' ? <MatchPanel/> : <><nav><a href="/teams">Team builder</a> · <a href="/matches">Match preparation</a></nav><App/></>);
+createRoot(document.getElementById('root')!).render(window.location.pathname === '/ui-ux-draft-v2' ? <Suspense fallback={<p>Opening UI/UX Draft v2…</p>}><DraftV2/></Suspense> : window.location.pathname === '/pitch-preview' ? <Suspense fallback={<p>Opening MVP preview…</p>}><PitchPreview/></Suspense> : window.location.pathname === '/setup' ? <SetupPanel/> : window.location.pathname === '/results' ? <ResultPanel/> : window.location.pathname === '/teams' ? <TeamPanel/> : window.location.pathname === '/matches' ? <MatchPanel/> : <><nav><a href="/teams">Team builder</a> · <a href="/matches">Match preparation</a> · <a href="/pitch-preview">UI/UX MVP preview</a> · <a href="/ui-ux-draft-v2">UI/UX Draft v2</a></nav><App/></>);

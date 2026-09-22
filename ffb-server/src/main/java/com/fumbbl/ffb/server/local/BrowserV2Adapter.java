@@ -96,8 +96,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					preparationSubscriptions.remove(connection);
 				}
 				send(connection, response);
-				if ("ACCEPTED".equals(response.getString("code", "")) && !"load".equals(request.getString("operation", ""))
-					&& !response.getBoolean("duplicate", false)) broadcast(id, connection, response.get("state").asObject());
+				if ("ACCEPTED".equals(response.getString("code", ""))) {
+					boolean completedNow = setup.takeCompletionBroadcast(id);
+					if (completedNow || !"load".equals(request.getString("operation", ""))
+						&& !response.getBoolean("duplicate", false)) broadcast(id, connection, response.get("state").asObject());
+				}
 				return;
 			} else if ("preparedMatch".equals(type)) {
 				String operation = request.getString("operation", "");

@@ -1,0 +1,69 @@
+{
+  "mode": "built-in image_gen",
+  "reference": "../humans-concept-v1.png",
+  "sharedPrompt": "Use case: stylized-concept. Asset type: single fantasy football game sprite for a 36x36 pixel tile. Input image is reference for palette, costume design, and lower-left idle braced three-quarter side view only, not instructions. Draw ONE full body character facing screen right at that same camera angle. Genuine low-resolution pixel art, very chunky readable pixel clusters designed to survive 36x36, dark outline, restrained shading, no tiny illustration texture. Blue helmet with ivory central stripe and face guard, blue/ivory medieval football uniform, brown leather, gray steel. Exact palette family from reference: navy shadows, royal blue, muted blue highlights, warm ivory, tan, brown, dark brown, steel gray, pale gray, near black. Transparent background with real alpha, no floor, grass, shadow, labels, text, border, grid, extra players or extra views. Entire character inside square with margin. Output native 36x36 if supported. Subject: ",
+  "players": [
+    [
+      "02-blitzer-man",
+      "male human blitzer, muscular, dark brown skin, cropped black hair, heavy spiked left shoulder plate, clenched gauntlets, forward braced stance"
+    ],
+    [
+      "03-blitzer-woman",
+      "female human blitzer, powerfully muscular, tan skin, long dark brown braid from helmet, heavy spiked right shoulder plate, one clenched fist raised, braced stance"
+    ],
+    [
+      "04-catcher-woman",
+      "female human catcher, lean athletic, light tan skin, blonde high ponytail, small shoulder pads, open catching gloves, nimble low ready stance"
+    ],
+    [
+      "05-catcher-man",
+      "male human catcher, lean wiry, brown skin, dark short curls, small asymmetric shoulder pads, two open catching gloves in front, ready stance"
+    ],
+    [
+      "06-thrower-man",
+      "male human thrower, athletic, tan skin, brown moustache, holds brown leather football beside right shoulder, moderate single shoulder armor, poised braced stance"
+    ],
+    [
+      "07-thrower-woman",
+      "female human thrower, athletic, dark brown skin, dark braid, brown leather football tucked close at chest ready to pass, moderate single shoulder armor"
+    ],
+    [
+      "08-lineman-man",
+      "male human lineman, broad stocky build, light tan skin, brown beard, large rounded ivory shoulder pads, lowered brown gloved fists"
+    ],
+    [
+      "09-lineman-woman",
+      "female human line player, broad muscular build, medium tan skin, short brown hair beneath helmet, square blue shoulder pads ivory rims, fists braced"
+    ],
+    [
+      "10-lineman-man",
+      "male human lineman, tall muscular build, dark brown skin, clean shaven, asymmetric ivory and blue shoulder armor, left forearm across torso"
+    ],
+    [
+      "11-lineman-woman",
+      "female human line player, stocky strong build, light tan skin, blonde braid, broad ivory shoulder plates, wide braced stance and brown gloves"
+    ],
+    [
+      "12-lineman-man",
+      "male human lineman, compact muscular build, medium tan skin, dark moustache, blue shoulder plates with steel rivets, one wrapped wrist and one leather gauntlet"
+    ],
+    [
+      "13-lineman-woman",
+      "female human line player, tall powerful build, dark brown skin, short black curls, one large ivory shoulder and one blue shoulder, closed leather gloved fists"
+    ],
+    [
+      "14-halfling-man",
+      "male halfling player, very short round stout build, tan skin, curly brown hair, oversized blue helmet ivory stripe, small ivory shoulder pads, blue jersey, large bare hairy feet, ready stance"
+    ],
+    [
+      "15-halfling-woman",
+      "female halfling player, very short sturdy round build, brown skin, dark twin braids, blue helmet ivory stripe, small blue shoulder pads, ivory tunic panels, large bare feet, fists ready"
+    ],
+    [
+      "16-halfling-woman",
+      "female halfling player, very short plump build, light tan skin, blonde curls under slightly tilted blue helmet, one ivory shoulder pad, blue and ivory jersey, brown fingerless gloves, large bare feet, crouched ready stance"
+    ]
+  ],
+  "ogre": "Male ogre, same lower-left braced three-quarter pose and blue/ivory palette; massive asymmetric armor, underbite, 45x45px maximum; transparent background.",
+  "halflingSuffix": "Adult halfling proportions, distinctly short legs, round belly, only about 25 pixels tall within 36px tile."
+}
