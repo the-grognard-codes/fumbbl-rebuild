@@ -129,6 +129,27 @@ class BrowserV2AdapterTest {
 		return adapter(authenticator, access, setup, mock(V2PreparationService.class));
 	}
 
+	@Test void reconciledCompletionNotifiesAuthorizedOpponentOnceEvenOnDuplicateLoad() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
+		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
+		when(access.playerRole(home, MATCH)).thenReturn("home"); when(access.playerRole(away, MATCH)).thenReturn("away");
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handle(any(String.class), any(JsonObject.class))).thenAnswer(call -> new JsonObject().add("code", "ACCEPTED")
+			.add("duplicate", true).add("state", new JsonObject().add("matchId", MATCH).add("phase", "FULL_TIME")));
+		when(setup.takeCompletionBroadcast(MATCH)).thenReturn(false, true, false);
+		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : away, access, setup);
+		Connection first = new Connection(), second = new Connection();
+		adapter.receive(first, authenticate("a", "home").toString()); adapter.receive(second, authenticate("b", "away").toString());
+		adapter.receive(second, setup("subscribe").toString());
+		adapter.receive(first, setup("reconcile").toString());
+		assertEquals(3, second.messages.size());
+		assertEquals("FULL_TIME", JsonObject.readFrom(second.messages.get(2)).get("state").asObject().getString("phase", null));
+		adapter.receive(first, setup("again").toString());
+		assertEquals(3, second.messages.size());
+		verify(access, times(2)).playerRole(away, MATCH);
+	}
+
 	@Test void creatorIsNotifiedOfOpponentJoinAndActivationIncludingExactRetry() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);

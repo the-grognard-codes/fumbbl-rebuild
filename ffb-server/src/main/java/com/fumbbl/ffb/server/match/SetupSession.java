@@ -46,7 +46,10 @@ import java.util.Set;
 public final class SetupSession {
 	public static final String LEGACY_RUNTIME = "ffb-3.4.0-bb2025-r2.2";
 	public static final String DEFAULT_SETUP_RUNTIME = "ffb-3.4.0-bb2025-r2.3";
+	/** A separate checkpoint contract; r2.2/r2.3 lifetimes are deliberately not upgraded in place. */
+	public static final String SAVE_RESUME_RUNTIME = "ffb-3.4.0-bb2025-r4.1";
 	private boolean defaultSetup;
+	private boolean saveResume;
 	private final GameState state;
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
@@ -58,6 +61,7 @@ public final class SetupSession {
 	private final MatchDocument document;
 	private boolean failed;
 	private RecoveryDice recoveryDice;
+	private SaveResumeState saveResumeState;
 
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId) {
 		this(server, document, engineId, false);
@@ -69,8 +73,16 @@ public final class SetupSession {
 
 	/** New v2 lifetimes opt in; the checkpoint runtime version retains the choice on restore. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup) {
+		this(server, document, engineId, recoverable, defaultSetup, false);
+	}
+
+	/** A new r4.1 lifetime persists save/resume metadata in a distinct checkpoint version. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume) {
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
+		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
 		this.defaultSetup = defaultSetup;
+		this.saveResume = saveResume;
+		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
 		matchId = document.matchId;
 		state = new GameState(server) {
@@ -120,16 +132,22 @@ public final class SetupSession {
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
-			if (payload.getInt("recoveryVersion", -1) != 2
-				|| !(LEGACY_RUNTIME.equals(payload.getString("runtimeVersion", null))
-					|| DEFAULT_SETUP_RUNTIME.equals(payload.getString("runtimeVersion", null)))
+			int recoveryVersion = payload.getInt("recoveryVersion", -1);
+			String runtime = payload.getString("runtimeVersion", null);
+			boolean r2 = recoveryVersion == 2 && (LEGACY_RUNTIME.equals(runtime) || DEFAULT_SETUP_RUNTIME.equals(runtime));
+			boolean r41 = recoveryVersion == 3 && SAVE_RESUME_RUNTIME.equals(runtime);
+			if ((!r2 && !r41)
 				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
 				|| payload.getInt("replayVersion", -1) != 1)
 				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
-			defaultSetup = DEFAULT_SETUP_RUNTIME.equals(payload.getString("runtimeVersion", null));
-			exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+			defaultSetup = !LEGACY_RUNTIME.equals(runtime);
+			saveResume = r41;
+			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
+			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
+				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResume");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
 				throw new IllegalArgumentException("Recovery frozen inputs differ");
 			revision = payload.get("revision").asInt();
@@ -168,6 +186,7 @@ public final class SetupSession {
 			}
 			if (replayBytes > 16 * 1024 * 1024 || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
+			if (r41) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
 			assertSupported();
 			if (!ordered(recoveryNative()).equals(payload.get("native"))) throw new IllegalArgumentException("Native state did not round-trip");
 			if (!ordered(view("home")).equals(payload.get("homeView")) || !ordered(view("away")).equals(payload.get("awayView")))
@@ -185,12 +204,14 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", 2).add("runtimeVersion", defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
+		JsonObject payload = new JsonObject().add("recoveryVersion", saveResume ? 3 : 2)
+			.add("runtimeVersion", saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
 			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
 			.add("eventsJson", events.toString()).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
+		if (saveResume) payload.add("saveResume", saveResumeState.json());
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -248,6 +269,116 @@ public final class SetupSession {
 		}
 	}
 
+	public boolean isFailed() { return failed; }
+
+	/** Called while staging a new r4.1 checkpoint, before activation is acknowledged. */
+	public void startSaveResumeRetention(long now) {
+		if (!saveResume) throw new IllegalStateException("Save/resume is unavailable for this checkpoint runtime");
+		saveResumeState = new SaveResumeState(now);
+	}
+
+	public boolean usesSaveResume() { return saveResume; }
+
+	/** Expiry is durable and fail-closed; it is never a background deletion or an inferred consent. */
+	public boolean abandonIfInactive(long now) {
+		if (!saveResume || saveResumeState.abandoned || isComplete() || failed) return false;
+		if (now - saveResumeState.lastPlayerActivityAt < SaveResumeState.RETENTION_MILLIS) return false;
+		saveResumeState.abandoned = true;
+		saveResumeState.proposal = null;
+		return true;
+	}
+
+	/** A successful native action invalidates a pending proposal and refreshes the one-month activity period. */
+	public void recordPlayerActivity(long now) {
+		if (!saveResume || saveResumeState.abandoned) return;
+		saveResumeState.proposal = null;
+		if (!saveResumeState.suspended()) saveResumeState.lastPlayerActivityAt = now;
+	}
+
+	/** The save protocol performs no engine command and consumes no dice. */
+	public JsonObject saveResume(String role, JsonObject request, long now) {
+		if (!saveResume) throw new MatchService.Failure("SAVE_RESUME_UNAVAILABLE");
+		String id = request.getString("requestId", null);
+		String key = role + "\n" + id;
+		String fingerprint = canonical(request);
+		Record prior = saveResumeState.history.get(key);
+		if (prior != null) {
+			if (!prior.fingerprint.equals(fingerprint)) throw new MatchService.Failure("REQUEST_ID_REUSED");
+			return reply(id, prior.code, true, role);
+		}
+		if (failed) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (isComplete()) throw new MatchService.Failure("MATCH_COMPLETED");
+		if (saveResumeState.abandoned) throw new MatchService.Failure("MATCH_ABANDONED");
+		String operation = request.getString("operation", null);
+		if (saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt) saveResumeState.proposal = null;
+		if (saveResumeState.history.size() >= SaveResumeState.HISTORY_LIMIT) throw new MatchService.Failure("SAVE_HISTORY_LIMIT");
+		if (request.get("expectedRevision").asInt() != revision) throw new MatchService.Failure("STALE_REVISION");
+		if ("saveRequest".equals(operation)) {
+			if (saveResumeState.suspended()) throw new MatchService.Failure("MATCH_SUSPENDED");
+			requestProposal(role, id, "SAVE", now);
+		} else if ("resumeRequest".equals(operation)) {
+			if (!saveResumeState.suspended()) throw new MatchService.Failure("MATCH_NOT_SUSPENDED");
+			requestProposal(role, id, "RESUME", now);
+		} else if ("saveAccept".equals(operation) || "resumeAccept".equals(operation)) {
+			Proposal proposal = requiredProposal(request, role, operation.startsWith("save") ? "SAVE" : "RESUME");
+			if ("SAVE".equals(proposal.intent)) saveResumeState.suspendedAt = now;
+			else rebaseClock(now);
+			saveResumeState.proposal = null;
+			saveResumeState.lastPlayerActivityAt = now;
+		} else if ("saveReject".equals(operation) || "resumeReject".equals(operation)) {
+			requiredProposal(request, role, operation.startsWith("save") ? "SAVE" : "RESUME", false);
+			saveResumeState.proposal = null;
+			saveResumeState.lastPlayerActivityAt = now;
+		} else if ("saveCancel".equals(operation) || "resumeCancel".equals(operation)) {
+			Proposal proposal = requiredProposal(request, role, operation.startsWith("save") ? "SAVE" : "RESUME", true);
+			if (!role.equals(proposal.proposer)) throw new MatchService.Failure("SAVE_PROPOSAL_OWNER");
+			saveResumeState.proposal = null;
+			saveResumeState.lastPlayerActivityAt = now;
+		} else throw new MatchService.Failure("INVALID_REQUEST");
+		saveResumeState.history.put(key, new Record(fingerprint, "ACCEPTED"));
+		return reply(id, "ACCEPTED", false, role);
+	}
+
+	private void requestProposal(String role, String requestId, String intent, long now) {
+		if (saveResumeState.proposal != null) throw new MatchService.Failure("SAVE_PROPOSAL_PENDING");
+		String proposalId = java.util.UUID.nameUUIDFromBytes((matchId + "\n" + role + "\n" + requestId + "\n" + intent)
+			.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+		saveResumeState.proposal = new Proposal(proposalId, intent, role, revision, now, now + SaveResumeState.PROPOSAL_MILLIS);
+		saveResumeState.lastPlayerActivityAt = now;
+	}
+
+	private Proposal requiredProposal(JsonObject request, String role, String intent) { return requiredProposal(request, role, intent, false); }
+
+	private Proposal requiredProposal(JsonObject request, String role, String intent, boolean proposerRequired) {
+		Proposal proposal = saveResumeState.proposal;
+		if (proposal == null) throw new MatchService.Failure("SAVE_PROPOSAL_MISSING");
+		if (!intent.equals(proposal.intent) || !proposal.id.equals(request.getString("proposalId", null)))
+			throw new MatchService.Failure("SAVE_PROPOSAL_MISMATCH");
+		if (proposal.revision != revision) throw new MatchService.Failure("STALE_REVISION");
+		if (proposerRequired != role.equals(proposal.proposer)) throw new MatchService.Failure("SAVE_PROPOSAL_OWNER");
+		return proposal;
+	}
+
+	private void rebaseClock(long now) {
+		long paused = Math.max(0L, now - saveResumeState.suspendedAt);
+		long started = state.getTurnTimeStarted();
+		if (started > 0) state.setTurnTimeStarted(started > Long.MAX_VALUE - paused ? Long.MAX_VALUE : started + paused);
+		saveResumeState.suspendedAt = -1L;
+	}
+
+	/** Add save state to a wire projection only; replay snapshots retain their frozen schema. */
+	public JsonObject decorateSaveResume(JsonObject response) {
+		if (saveResume && response.get("state") != null && !response.get("state").isNull())
+			response.get("state").asObject().add("saveResume", saveResumeState.publicJson());
+		return response;
+	}
+
+	/** Spectators receive only the same small suspension status, never checkpoint details. */
+	public JsonObject decorateSaveResumeState(JsonObject state) {
+		if (saveResume) state.add("saveResume", saveResumeState.publicJson());
+		return state;
+	}
+
 	public JsonObject apply(String role, JsonObject request) {
 		String id = request.getString("requestId", null);
 		String key = role + "\n" + id;
@@ -259,6 +390,8 @@ public final class SetupSession {
 		}
 		if (failed) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 		if (isComplete()) throw new MatchService.Failure("MATCH_COMPLETED");
+		if (saveResume && saveResumeState.abandoned) throw new MatchService.Failure("MATCH_ABANDONED");
+		if (saveResume && saveResumeState.suspended()) throw new MatchService.Failure("MATCH_SUSPENDED");
 		// Reserve 128 KiB: one bounded 64 KiB projection plus the envelope and up to 8,193 array separators.
 		if (replayBytes > 16 * 1024 * 1024 - 128 * 1024) throw new MatchService.Failure("REPLAY_LIMIT");
 		if (history.size() >= 8192) throw new MatchService.Failure("REQUEST_HISTORY_LIMIT");
@@ -488,5 +621,80 @@ public final class SetupSession {
 	private static final class Record {
 		final String fingerprint, code;
 		Record(String fingerprint, String code) { this.fingerprint = fingerprint; this.code = code; }
+	}
+
+	/** Private checkpoint state for a consent protocol; public projection is deliberately smaller. */
+	private static final class SaveResumeState {
+		static final long PROPOSAL_MILLIS = 5 * 60 * 1000L;
+		static final long RETENTION_MILLIS = 30L * 24 * 60 * 60 * 1000L;
+		static final int HISTORY_LIMIT = 256;
+		long lastPlayerActivityAt;
+		long suspendedAt = -1L;
+		boolean abandoned;
+		Proposal proposal;
+		final Map<String, Record> history = new LinkedHashMap<>();
+
+		SaveResumeState(long now) { lastPlayerActivityAt = now; }
+
+		SaveResumeState(JsonObject json) {
+			exact(json, "lastPlayerActivityAt", "suspendedAt", "abandoned", "proposal", "history");
+			lastPlayerActivityAt = json.get("lastPlayerActivityAt").asLong();
+			suspendedAt = json.get("suspendedAt").asLong();
+			abandoned = json.get("abandoned").asBoolean();
+			if (lastPlayerActivityAt < 0 || suspendedAt < -1 || (abandoned && suspendedAt >= 0)) throw new IllegalArgumentException("Invalid save retention state");
+			if (!json.get("proposal").isNull()) proposal = new Proposal(json.get("proposal").asObject());
+			if (proposal != null && suspendedAt >= 0) throw new IllegalArgumentException("Suspended match cannot have a proposal");
+			for (JsonValue item : json.get("history").asArray()) {
+				JsonObject entry = item.asObject();
+				exact(entry, "key", "fingerprint", "code");
+				String key = entry.get("key").asString();
+				if (!key.matches("(home|away)\\n[A-Za-z0-9_-]{1,100}") || !"ACCEPTED".equals(entry.getString("code", null))
+					|| history.put(key, new Record(entry.get("fingerprint").asString(), "ACCEPTED")) != null) throw new IllegalArgumentException("Invalid save request history");
+			}
+			if (history.size() > HISTORY_LIMIT) throw new IllegalArgumentException("Save request history limit");
+		}
+
+		boolean suspended() { return suspendedAt >= 0; }
+
+		JsonObject json() {
+			JsonArray entries = new JsonArray();
+			history.forEach((key, entry) -> entries.add(new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code)));
+			return new JsonObject().add("lastPlayerActivityAt", lastPlayerActivityAt).add("suspendedAt", suspendedAt).add("abandoned", abandoned)
+				.add("proposal", proposal == null ? JsonValue.NULL : proposal.json()).add("history", entries);
+		}
+
+		JsonObject publicJson() {
+			String status = abandoned ? "ABANDONED" : suspended() ? "SUSPENDED" : proposal == null ? "ACTIVE" : proposal.intent + "_PENDING";
+			JsonValue proposalId = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.id);
+			JsonValue proposer = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.proposer);
+			JsonValue expiresAt = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.expiresAt);
+			return new JsonObject().add("status", status).add("proposalId", proposalId).add("proposer", proposer).add("expiresAt", expiresAt);
+		}
+
+		private static void exact(JsonObject object, String... names) {
+			if (object.size() != names.length || !new java.util.HashSet<>(object.names()).equals(new java.util.HashSet<>(java.util.Arrays.asList(names))))
+				throw new IllegalArgumentException("Unsupported save/resume shape");
+		}
+	}
+
+	private static final class Proposal {
+		final String id, intent, proposer;
+		final int revision;
+		final long createdAt, expiresAt;
+		Proposal(String id, String intent, String proposer, int revision, long createdAt, long expiresAt) {
+			this.id = id; this.intent = intent; this.proposer = proposer; this.revision = revision; this.createdAt = createdAt; this.expiresAt = expiresAt;
+			if (!id.matches("[0-9a-f-]{36}") || !("SAVE".equals(intent) || "RESUME".equals(intent)) || !("home".equals(proposer) || "away".equals(proposer)))
+				throw new IllegalArgumentException("Invalid save proposal");
+			if (revision < 0 || createdAt < 0 || expiresAt != createdAt + SaveResumeState.PROPOSAL_MILLIS) throw new IllegalArgumentException("Invalid save proposal times");
+		}
+		Proposal(JsonObject json) {
+			SaveResumeState.exact(json, "id", "intent", "proposer", "revision", "createdAt", "expiresAt");
+			id = json.get("id").asString(); intent = json.get("intent").asString(); proposer = json.get("proposer").asString();
+			revision = json.get("revision").asInt(); createdAt = json.get("createdAt").asLong(); expiresAt = json.get("expiresAt").asLong();
+			if (!id.matches("[0-9a-f-]{36}") || !("SAVE".equals(intent) || "RESUME".equals(intent)) || !("home".equals(proposer) || "away".equals(proposer)))
+				throw new IllegalArgumentException("Invalid save proposal");
+			if (revision < 0 || createdAt < 0 || expiresAt != createdAt + SaveResumeState.PROPOSAL_MILLIS) throw new IllegalArgumentException("Invalid save proposal times");
+		}
+		JsonObject json() { return new JsonObject().add("id", id).add("intent", intent).add("proposer", proposer).add("revision", revision).add("createdAt", createdAt).add("expiresAt", expiresAt); }
 	}
 }

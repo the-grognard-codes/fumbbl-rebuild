@@ -37,7 +37,8 @@ public final class BrowserV2Runtime {
 		RosterCatalog catalog = new RosterCatalog();
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
-		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open), true);
+		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
+		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open), true, true);
 		JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, clock);
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(project, directory);
 		V2MatchAccess access = new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), verifier.liveDirectory(), clock);

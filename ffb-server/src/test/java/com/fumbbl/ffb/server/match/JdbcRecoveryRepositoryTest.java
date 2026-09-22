@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,13 +22,34 @@ class JdbcRecoveryRepositoryTest {
 	private Connection connection;
 	private PreparedStatement statement;
 	private JdbcRecoveryRepository repository;
+	private ResultSet retained;
 	private RecoveryRepository.Record record(long generation) { return new RecoveryRepository.Record("match", generation, "staged recovery artifact"); }
 
 	@BeforeEach
 	void setup() throws Exception {
 		connection = mock(Connection.class); statement = mock(PreparedStatement.class);
 		when(connection.prepareStatement(anyString())).thenReturn(statement);
+		PreparedStatement lock = mock(PreparedStatement.class), count = mock(PreparedStatement.class);
+		ResultSet schema = mock(ResultSet.class); retained = mock(ResultSet.class);
+		when(connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE")).thenReturn(lock);
+		when(lock.executeQuery()).thenReturn(schema); when(schema.next()).thenReturn(true); when(schema.getInt(1)).thenReturn(6);
+		when(connection.prepareStatement("SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")).thenReturn(count);
+		when(count.executeQuery()).thenReturn(retained); when(retained.next()).thenReturn(true);
 		repository = new JdbcRecoveryRepository(() -> connection);
+	}
+
+	@Test void fullRetentionRejectsNewRecordsWithoutWritingOrCommitting() throws Exception {
+		when(retained.getLong(1)).thenReturn(1024L);
+		assertThrows(RecoveryRepository.RetentionLimit.class, () -> repository.save(record(1), 0));
+		verify(statement, never()).executeUpdate(); verify(connection, never()).commit(); verify(connection).rollback();
+	}
+
+	@Test void fullRetentionStillAllowsExistingCheckpointUpdatesAndDuplicateCas() throws Exception {
+		when(retained.getLong(1)).thenReturn(1024L); when(retained.getLong(2)).thenReturn(1L);
+		when(statement.executeUpdate()).thenThrow(new SQLException("duplicate", "23000", 1062)).thenReturn(1);
+		assertFalse(repository.save(record(1), 0));
+		assertTrue(repository.save(record(2), 1));
+		verify(connection).commit();
 	}
 
 	@Test

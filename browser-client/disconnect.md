@@ -102,6 +102,50 @@ at setup. See the [compatibility policy](../containers/local/recovery.md) and
 [seven real process-kill checks and rejection evidence](../.notes/overhaul-analysis/verification/r2/README.md).
 This is local process recovery, not a capacity, public authentication or deployment gate.
 
+## R4 resident release slice
+
+Checkpoint-enabled runtimes can release completed/failed engines and evict active
+engines after 30 minutes of application inactivity on the next authorized operation.
+Durable recovery and retry records remain intact; reconnect restores the same
+decision and dice state. This does not suspend clocks or concede abandoned games.
+The pool still rejects admission at 32 non-idle residents with `ACTIVATION_LIMIT`.
+JDBC rejects new activation with `RETENTION_LIMIT` when its 1,024 retained
+checkpoint slots are occupied; existing games and exact retries remain usable.
+Completed reads and exact retries no longer occupy a resident slot. See the
+[lifecycle, retention limits and remaining gates](../containers/local/session-retention.md).
+The earlier 32-lifetime description remains the historical M3e/legacy behavior.
+
+## R4.1 deliberate save and resume
+
+A disconnect remains an ordinary interruption: it does not propose, accept or
+create a saved match. Either original player can use **Request mutual save**; play
+continues while the other player accepts, rejects, or the requester cancels. An
+accepted normal game action cancels a pending proposal. The acceptance response is
+sent only after the private r4.1 checkpoint contains the native engine, dice,
+pending decision, replay/request histories, clock point and both-player save state.
+Repeat the exact retained request after `MATCH_OUTCOME_UNKNOWN`; do not make a new
+proposal to guess whether the save committed.
+
+Once both players accept, game actions return `MATCH_SUSPENDED`. Either original
+player can request resume, and the other must accept before play restarts; the
+turn-clock pauses while suspended and is rebased once on the durable resume. An
+R4.1 checkpoint can recover this state after a compatible JVM restart or backup
+restore. Format-2 matches are retained under their existing runtime and cannot be
+converted while active.
+
+An ordinary disconnect is recoverable for 24 hours from that player's recorded
+disconnect time. It does not propose or create a save, pause the clock, or refresh
+the mutually saved-match window. If either original player remains disconnected at
+the boundary, the next authorized match operation durably marks the match
+`ABANDONED`; it retains the checkpoint but rejects play and resume. A reconnect by
+that player before the boundary clears that player's timer. No automatic deletion,
+concession or result is made.
+
+Only an accepted mutual save starts the one-month saved-match window. A completed
+resume consumes that saved state, and a later accepted save begins a fresh month.
+The current r4.1 candidate has a single 30-day activity deadline and must be
+revised before it can satisfy this policy.
+
 ## Consolidated authenticated runtime (2026-09-18)
 
 The current marker-6 `/browser/v2` runtime uses the same R2 checkpoint logic with
