@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser players can mutually save an unfinished match and later mutually resume its compatible checkpoint")
+			.addImprovement("Recoverable browser matches release completed engines after durable result commit while preserving exact request retries")
+			.addImprovement("Recoverable browser games free idle resident capacity and reject new activation when retained checkpoint capacity is full")
 			.addImprovement("Match MVP uses a consistent 64:56 player-to-square ratio, with native sprites on larger screens and proportional scaling at 1080p")
 			.addImprovement("Match preview removes the temporary sizing slider and restores responsive sprite scaling while retaining stable fullscreen Fit")
 			.addImprovement("Match preview keeps player artwork at native size while changing grid square size for visual comparison")

@@ -114,7 +114,7 @@ class V2RuntimeIntegrationTest {
 			catch (SQLException failure) { throw new V2PrincipalAuthenticator.Rejected(); }
 		};
 		return new BrowserV2Adapter(verifier, new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), directory, clock),
-			new SetupApplication(new TestServer().getServer(), matches, new JdbcRecoveryRepository(connections::open), true), matches,
+			new SetupApplication(new TestServer().getServer(), matches, new JdbcRecoveryRepository(connections::open), true, true), matches,
 			new V2PreparationService(connections::open, teams, catalog, clock), new BrowserSavedTeamJson(teams, true));
 	}
 

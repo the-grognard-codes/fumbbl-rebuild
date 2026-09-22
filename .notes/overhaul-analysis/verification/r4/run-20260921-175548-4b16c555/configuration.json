@@ -1,0 +1,13 @@
+﻿{
+    "jdbcUrl":  "jdbc:mariadb://127.0.0.1:23320/ffb_local",
+    "command":  "-NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 test -Module ffb-statetest -Test RecoveryApplicationTest#isolatedJdbcLifecyclePressure -Offline",
+    "exitCode":  null,
+    "processor":  {
+                      "Name":  "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+                      "NumberOfCores":  8,
+                      "NumberOfLogicalProcessors":  16
+                  },
+    "memoryBytes":  16438054912,
+    "sampleIntervalMs":  500,
+    "scope":  "Direct application/JDBC lifecycle; no browser or communication queue"
+}

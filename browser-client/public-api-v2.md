@@ -100,9 +100,10 @@ client with the updated server: older v2 clients reject this new event family.
 
 Internally, membership supplies trusted home/away to the unchanged R2 engine.
 Prepared/replay formats and the frozen Human catalog remain unchanged. Newly
-activated v2 engines use private recovery runtime `ffb-3.4.0-bb2025-r2.3` for the
-server-owned default setup policy; recovery shape remains format 2. Existing
-`r2.2` checkpoints keep their manual setup policy and version when restored.
+activated v2 engines use private recovery runtime `ffb-3.4.0-bb2025-r4.1`,
+recovery shape 3, for the server-owned default setup and mutual save/resume policy.
+Existing `r2.2` and `r2.3` checkpoints keep their recorded policy and version when
+restored; no active engine is upgraded in place.
 On entering each side's ordinary SETUP phase, the first eleven eligible players
 in roster-slot order are placed: first three on the line, remaining eight one
 square behind. Unavailable players are skipped and extras remain in reserve.
@@ -119,3 +120,23 @@ All operations use the existing single communication worker and bounded ingress,
 connection and asynchronous delivery budgets. No concurrency expansion is made.
 The Firebase lifecycle lookup currently runs on that worker: latency/capacity
 has not been measured and no public-service readiness is claimed.
+
+R4 checkpoint-enabled activation can return `ACTIVATION_LIMIT` (32 non-idle
+resident engines) or `RETENTION_LIMIT` (1,024 retained checkpoint IDs by default).
+Neither rejection activates the prepared game or discards an existing checkpoint.
+An already-staged activation and existing gameplay/retries remain usable at the
+retention limit. Completed reads/retries consume no resident slot. See the
+[local lifecycle contract and measured limits](../containers/local/session-retention.md).
+
+For an r4.1 match, `setup` additionally accepts `saveRequest`, `saveAccept`,
+`saveReject`, `saveCancel`, `resumeRequest`, `resumeAccept`, `resumeReject` and
+`resumeCancel`. Every operation includes the current `expectedRevision`; accept,
+reject and cancel include the server-issued UUID `proposalId`. Membership is checked
+before every operation and retry. Either original player may request; only the
+other accepts/rejects and the requester cancels. `saveResume` in a live setup state
+contains only `status`, `proposalId`, `proposer` and `expiresAt`. It never exposes
+the checkpoint, dice, request history or clock base. Save and resume each require
+two fresh agreements. A suspended game returns `MATCH_SUSPENDED` for gameplay;
+after 30 days without a successful player action/save-control operation/resume it
+becomes retained `MATCH_ABANDONED`. See the lifecycle contract for checkpoint,
+restart, backup, expiry and deletion limits.

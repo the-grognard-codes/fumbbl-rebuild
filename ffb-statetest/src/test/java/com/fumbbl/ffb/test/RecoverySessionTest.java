@@ -14,6 +14,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoverySessionTest {
+	@Test void fullRequestHistoryPreservesExactRetryAndRejectsNewWorkBeforeDice() throws Exception {
+		SetupSession seed = new SetupSessionTest().session(11);
+		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
+		SetupSession session = new SetupSession(new TestServer().getServer(), (MatchDocument) documentField.get(seed), -8, true);
+		JsonObject before = view(session, "home"); String role = before.getString("actor", null);
+		JsonObject request = new JsonObject().add("operation", "choice").add("requestId", "accepted")
+			.add("expectedRevision", before.get("revision")).add("promptId", before.get("prompt").asObject().get("id")).add("optionId", "heads");
+		assertEquals("ACCEPTED", session.apply(role, request).getString("code", null));
+		Field historyField = SetupSession.class.getDeclaredField("history"); historyField.setAccessible(true);
+		@SuppressWarnings("unchecked") java.util.Map<String, Object> history = (java.util.Map<String, Object>) historyField.get(session);
+		Object entry = history.values().iterator().next();
+		for (int index = 1; index < 8192; index++) history.put(role + "\nfixture-" + index, entry);
+		String artifact = session.recoveryArtifact();
+		assertTrue(session.apply(role, request).getBoolean("duplicate", false));
+		assertEquals("REQUEST_HISTORY_LIMIT", assertThrows(MatchService.Failure.class,
+			() -> session.apply(role, JsonObject.readFrom(request.toString()).set("requestId", "new"))).code);
+		assertEquals(artifact, session.recoveryArtifact());
+	}
 	@Test void prematchAndPlacementRestoreBothViewsAndCommittedRetryWithoutConsumingDice() throws Exception {
 		SetupSession fixture = new SetupSessionTest().session(11);
 		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
@@ -74,10 +92,50 @@ class RecoverySessionTest {
 			() -> new SetupSession(server.getServer(), document, damaged.toString())).code);
 	}
 
+	@Test void r41CheckpointRestoresMutualConsentAndRebasesOnlyThePausedTurnClock() throws Exception {
+		SetupSession seed = new SetupSessionTest().session(11);
+		Field field = SetupSession.class.getDeclaredField("document"); field.setAccessible(true);
+		MatchDocument document = (MatchDocument) field.get(seed);
+		TestServer server = new TestServer();
+		SetupSession session = new SetupSession(server.getServer(), document, -9, true, true, true);
+		session.startSaveResumeRetention(1000L);
+		Field state = SetupSession.class.getDeclaredField("state"); state.setAccessible(true);
+		((com.fumbbl.ffb.server.GameState) state.get(session)).setTurnTimeStarted(100L);
+		JsonObject view = view(session, "home");
+		JsonObject request = save(view, "save-request", "saveRequest", null);
+		assertEquals("ACCEPTED", session.saveResume("home", request, 2000L).getString("code", null));
+		JsonObject payload = JsonObject.readFrom(session.recoveryArtifact()).get("payload").asObject();
+		assertEquals(3, payload.getInt("recoveryVersion", -1));
+		assertEquals(SetupSession.SAVE_RESUME_RUNTIME, payload.getString("runtimeVersion", null));
+		String proposal = payload.get("saveResume").asObject().get("proposal").asObject().getString("id", null);
+		JsonObject accept = save(view, "save-accept", "saveAccept", proposal);
+		assertEquals("ACCEPTED", session.saveResume("away", accept, 2100L).getString("code", null));
+		String suspended = session.recoveryArtifact();
+		SetupSession restored = new SetupSession(server.getServer(), document, suspended);
+		assertEquals(suspended, restored.recoveryArtifact());
+		assertEquals("MATCH_SUSPENDED", assertThrows(MatchService.Failure.class,
+			() -> restored.apply(view.getString("actor", null), JsonObject.readFrom(request.toString()).set("requestId", "blocked"))).code);
+		JsonObject resume = save(view, "resume-request", "resumeRequest", null);
+		assertEquals("ACCEPTED", restored.saveResume("away", resume, 3000L).getString("code", null));
+		String resumeProposal = JsonObject.readFrom(restored.recoveryArtifact()).get("payload").asObject().get("saveResume").asObject().get("proposal").asObject().getString("id", null);
+		JsonObject resumeAccept = save(view, "resume-accept", "resumeAccept", resumeProposal);
+		assertEquals("ACCEPTED", restored.saveResume("home", resumeAccept, 5100L).getString("code", null));
+		assertEquals(3100L, ((com.fumbbl.ffb.server.GameState) state.get(restored)).getTurnTimeStarted());
+		String after = restored.recoveryArtifact();
+		assertTrue(restored.saveResume("home", resumeAccept, 5200L).getBoolean("duplicate", false));
+		assertEquals(after, restored.recoveryArtifact());
+	}
+
 	private String signed(JsonObject payload) throws Exception {
 		byte[] bytes = java.security.MessageDigest.getInstance("SHA-256").digest(payload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		StringBuilder checksum = new StringBuilder(); for (byte value : bytes) checksum.append(String.format("%02x", value & 255));
 		return new JsonObject().add("payload", payload).add("sha256", checksum.toString()).toString();
+	}
+	private JsonObject save(JsonObject view, String requestId, String operation, String proposalId) {
+		JsonObject request = new JsonObject().add("version", 1).add("type", "setup").add("requestId", requestId)
+			.add("operation", operation).add("matchId", view.get("matchId")).add("expectedRevision", view.get("revision"));
+		if (proposalId != null) request.add("proposalId", proposalId);
+		return request;
 	}
 
 	private SetupSession restore(TestServer server, MatchDocument document, SetupSession original) {

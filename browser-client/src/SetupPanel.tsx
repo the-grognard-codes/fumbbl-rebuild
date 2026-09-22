@@ -23,6 +23,15 @@ const explanation = (code: SetupCode) => ({
   COMPLETION_CONFLICT: 'Storage contains a different completed result. Stop play and retain the match ID for operator investigation.',
   REQUEST_ID_REUSED: 'This request identifier has different recorded input. Reload the authoritative match.',
   REQUEST_HISTORY_LIMIT: 'This match reached its action-history limit. Further play is unavailable; retained requests can still be reconciled.',
+  SAVE_HISTORY_LIMIT: 'This match reached its retained save/resume request limit. Repeat an existing request or contact the local operator.',
+  SAVE_RESUME_UNAVAILABLE: 'This match uses an earlier recovery runtime and cannot be changed into a saved match while active.',
+  SAVE_PROPOSAL_PENDING: 'A save or resume request is already awaiting the other participant.',
+  SAVE_PROPOSAL_MISSING: 'That save or resume proposal has expired or was resolved. Reload the match.',
+  SAVE_PROPOSAL_MISMATCH: 'That response belongs to a different save or resume proposal. Reload the match.',
+  SAVE_PROPOSAL_OWNER: 'Only the other participant can accept or reject; only the requester can cancel.',
+  MATCH_SUSPENDED: 'Both participants saved this match. Request and accept resume before playing.',
+  MATCH_NOT_SUSPENDED: 'This match is already active. Reload before requesting resume.',
+  MATCH_ABANDONED: 'This saved match passed its 30-day inactivity period and is retained as abandoned; it cannot resume.',
   PROMPT_MISMATCH: 'This choice is no longer current. Reload the match to see the current decision.',
   WRONG_PHASE: 'This action is unavailable in the current phase. Reload the match.',
   AUTHENTICATION_REQUIRED: 'Re-enter a local credential and reconnect.',
@@ -118,7 +127,7 @@ export function SetupPanel() {
   return <main className="team-builder setup-panel">
     <nav><a href="/matches">Match preparation</a> · <a href={`/results?matchId=${encodeURIComponent(matchId)}`}>Match results</a> · <a href="/teams">Team builder</a> · <a href="/">Board scenarios</a></nav>
     <h1>Match setup and play</h1>
-    <p>Play with the frozen teams. Server restart ends this setup session; in-progress recovery is not available.</p>
+    <p>Play with the frozen teams. The server restores compatible checkpoints after restart. A deliberate save needs agreement from both participants; disconnecting alone does not save a match.</p>
     <form onSubmit={event => { event.preventDefault(); connect(); }}>
       <label>Local credential <input aria-label="Local credential" type="password" value={token} onChange={event => setToken(event.target.value)} autoComplete="off" required /></label>
       <label>Match ID <input aria-label="Match ID" value={matchId} disabled={!!socket.current} onChange={event => setMatchId(event.target.value)} required /></label>
@@ -146,9 +155,11 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
-  const maySetup = connected && !pending && view.phase === 'SETUP' && view.actor === view.callerRole;
+  const saved = view.saveResume;
+  const suspended = saved?.status === 'SUSPENDED';
+  const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
-  const mayAct = connected && !pending && availableActions.some(action => action.id === actionId);
+  const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const matchingActions = availableActions.filter(action => `${action.label} ${action.kind}`.toLowerCase().includes(actionFilter.trim().toLowerCase()));
   const actionsByKind = matchingActions.reduce<Record<string, typeof availableActions>>((groups, action) => {
     (groups[action.kind] ??= []).push(action);
@@ -160,8 +171,19 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
       {connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
       <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
       <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>
+      {saved && <section aria-label="Save and resume"><h3>Save and resume</h3>
+        {saved.status === 'ACTIVE' && <><p>This match is active. A save proposal does not pause play until the other participant accepts.</p><button type="button" onClick={() => mutate('saveRequest') } disabled={!connected || !!pending}>Request mutual save</button></>}
+        {saved.status === 'SAVE_PENDING' && <><p>Save requested by {saved.proposer}; it expires at {new Date(saved.expiresAt!).toLocaleString()}.</p>{saved.proposer === view.callerRole
+          ? <button type="button" className="secondary" onClick={() => mutate('saveCancel', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Cancel save request</button>
+          : <><button type="button" onClick={() => mutate('saveAccept', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Accept and save match</button><button type="button" className="secondary" onClick={() => mutate('saveReject', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Reject save request</button></>}</>}
+        {saved.status === 'SUSPENDED' && <><p>This match is saved. Its turn clock is paused. Both original participants must agree to resume.</p><button type="button" onClick={() => mutate('resumeRequest')} disabled={!connected || !!pending}>Request resume</button></>}
+        {saved.status === 'RESUME_PENDING' && <><p>Resume requested by {saved.proposer}; it expires at {new Date(saved.expiresAt!).toLocaleString()}.</p>{saved.proposer === view.callerRole
+          ? <button type="button" className="secondary" onClick={() => mutate('resumeCancel', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Cancel resume request</button>
+          : <><button type="button" onClick={() => mutate('resumeAccept', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Accept and resume match</button><button type="button" className="secondary" onClick={() => mutate('resumeReject', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Reject resume request</button></>}</>}
+        {saved.status === 'ABANDONED' && <p role="alert">This match is retained as abandoned after 30 days without a completed save/resume or play action.</p>}
+      </section>}
       {view.prompt && <section aria-label="Pre-match choice"><h3>{view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick'}</h3>
-        {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || view.prompt!.actor !== view.callerRole}>{option}</button>)}
+        {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || suspended || view.prompt!.actor !== view.callerRole}>{option}</button>)}
       </section>}
       {view.phase === 'READY_FOR_KICKOFF' && <p>Both teams have confirmed legal setups. The kicking participant can choose a server-issued kick target.</p>}
       {view.phase === 'PLAY' && view.actions.length === 0 && <p role="alert">This engine decision does not yet have browser controls. The match remains in memory; reconnecting will preserve this decision.</p>}

@@ -1,0 +1,30 @@
+﻿[
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/SetupApplication.java",
+        "sha256":  "DC92C4D4F166B0E6CE35119AFCB838B4FA7E58231ACF4B1EB6EB122DD66A9461"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/SetupSession.java",
+        "sha256":  "C4AD1F87E82655BBE4AFB6A2D8940D5F4F13599919DB105AEE0B34F388DFEEC8"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/local/BrowserV2Adapter.java",
+        "sha256":  "5F5A17E2B680E4FEC22BD5F6437B5AA676569695AC73925D78DD853C00E8CCB7"
+    },
+    {
+        "path":  "ffb-server/src/test/java/com/fumbbl/ffb/server/local/BrowserV2AdapterTest.java",
+        "sha256":  "59ED502374DF30F6C7A51C93F1A7CBCBF811754F83CDF60771C8BC48E023C7BE"
+    },
+    {
+        "path":  "ffb-statetest/src/test/java/com/fumbbl/ffb/test/RecoveryApplicationTest.java",
+        "sha256":  "F7F4D2109BD924F714869A049324A862EE351BF417C73EA52500A21134E2133F"
+    },
+    {
+        "path":  "ffb-statetest/src/test/java/com/fumbbl/ffb/test/RecoverySessionTest.java",
+        "sha256":  "6CD87FE5664C461155AAE6FCFB04B8D49DD171B8705D971F284982615ED63D55"
+    },
+    {
+        "path":  "tools/r4-lifecycle-measure.ps1",
+        "sha256":  "E9A7CA6E1A14BB2EF0BC8F79558D5A143B389DFFD1FEFA1E2BC282FB1352BBFD"
+    }
+]

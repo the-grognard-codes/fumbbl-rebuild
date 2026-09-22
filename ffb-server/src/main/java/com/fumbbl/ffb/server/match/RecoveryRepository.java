@@ -6,6 +6,10 @@ public interface RecoveryRepository {
 	Record find(String matchId) throws SQLException;
 	boolean save(Record record, long expectedGeneration) throws SQLException;
 
+	final class RetentionLimit extends SQLException {
+		public RetentionLimit() { super("Recovery retention capacity reached", "54000"); }
+	}
+
 	final class Record {
 		public final String matchId, json;
 		public final long generation;
