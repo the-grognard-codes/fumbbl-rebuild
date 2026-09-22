@@ -167,6 +167,7 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   }, {});
   return (<section aria-label="Authoritative setup">
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
+      <p aria-label="Coach labels">{view.callerRole === 'spectator' ? 'Home / Away' : view.callerRole === 'home' ? 'Home: You / Away: Opponent' : 'Home: Opponent / Away: You'}</p>
       {view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={`/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
       {connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
       <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>

@@ -75,6 +75,38 @@ saved-team document, private dice/checkpoint/request history or replay is sent.
 Recipient reauthorization failure stops delivery with `VIEW_UNAVAILABLE`.
 The browser clears views on disconnect, sign-out and access loss.
 
+## R3-E recipient contracts and display names
+
+Coach labels remain `You`/`Opponent` for players and `Home`/`Away` for spectators.
+Provider email, UID and display name are never a coach-label source. Catalog and
+on-pitch player names remain public game text shared with spectators and are
+rendered as React text/attributes, never HTML. Custom coach names remain backlogged.
+The active v2 protocol has no chat message; the earlier session-chat foundation
+does not authorize adding chat to v2.
+
+Every response has exactly `version`, `type`, `requestId` and the fields below.
+Unknown families and extra fields fail closed before rendering; nested team,
+preparation and game structures retain their existing decoder contracts.
+
+| Recipient response | Additional fields | Projection boundary |
+| --- | --- | --- |
+| `authentication` | `code`, `accountId` | Caller's internal account only, for retained intent; never a displayed name |
+| `error` | `code` | No provider/JDBC exception, account or team payload |
+| `browse` | `code`, `matches` | Each entry has exactly `matchId`, `label`; label is Home vs Away |
+| `preparationChanged` | `code`, `matchId` | Authorized subscriber invalidation; no team or invitation |
+| `preparedMatch` | `code`, `duplicate`, `callerRole`, `document`, `recoveryMatchId`; optional `invitationCode` | Member's frozen public preparation; non-null invitation only for creator/home |
+| `savedTeam` | `code`, `document`, `versionStatus`, `validation`, `teams` | Own-account document, including uncertain-save responses; foreign/extra ownership fields rejected |
+| `setupState` | `code`, `duplicate`, `state` | Public engine state; watch requires spectator role, player load requires a player role |
+| `catalog` | Existing catalog metadata, positions, skills, resources and unsupported text | Frozen public catalog; no identity or storage internals |
+| `teamValidation` | `catalogVersion`, `ruleset`, `valid`, `budget`, `skillPoints`, `messages`, `total` | Server validation of caller-supplied draft, no other account's data |
+
+`v2-projection.ts` and `v2-projection.test.ts` declare/test all nine envelopes.
+The existing nested decoders and service/native projection tests cover the
+recipient boundaries. New DTOs or fields require explicit positive/negative
+projection tests and a reviewed protocol compatibility decision before exposure.
+This tightening changes neither server DTOs nor engine/replay/persistence formats.
+See [R3-E evidence and limits](../.notes/overhaul-analysis/verification/r3-e/README.md).
+
 Preparation create selects an owned `teamId` and `expectedDocumentVersion`.
 Join supplies the transferable 128-bit `invitationCode` plus an owned team.
 Invitations expire after one hour, can be revoked/reissued, and are hashed at

@@ -44,6 +44,47 @@ test('preparation selection reloads on reconnect but is removed when opening ano
   assert.equal(reconnected.sent.length, count);
 });
 
+test('private response fields fail closed without rendering, logging or erasing uncertain intent', async () => {
+  const { client, connect, events, storageData } = fixture(); const socket = await connect();
+  const requestId = client.request('preparedMatch', { operation: 'create' }, true);
+  socket.reply({ ...prepared, requestId, email: 'private-sentinel@example.invalid' });
+  assert.equal(socket.closed, true); assert.equal(client.state, null); assert.equal(client.accountId, '');
+  assert.ok(client.pending); assert.ok(storageData.has(v2PendingKey));
+  assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+  assert.equal(JSON.stringify(events).includes('private-sentinel'), false);
+});
+
+test('watch and player loads reject a recipient role inconsistent with their subscription', async () => {
+  for (const watch of [true, false]) {
+    const { client, connect, events } = fixture(); const socket = await connect();
+    const requestId = client.open(match, watch);
+    socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId, duplicate: false,
+      state: { ...state, callerRole: watch ? 'home' : 'spectator' } });
+    assert.equal(socket.closed, true); assert.equal(client.state, null);
+    assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+  }
+});
+
+test('foreign saved-team content is rejected even on uncertain save responses', async () => {
+  for (const code of ['OK', 'SAVE_OUTCOME_UNKNOWN']) {
+    const { client, connect, events } = fixture(); const socket = await connect();
+    const requestId = client.request('savedTeam', { operation: 'create' }, true);
+    socket.reply({ type: 'savedTeam', requestId, code, document: { formatVersion: 2, owner: { namespace: 'account', subject: match } },
+      versionStatus: 'CURRENT', validation: null, teams: [] });
+    assert.equal(socket.closed, true); assert.ok(client.pending);
+    assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+    assert.ok(events.every(message => message.type !== 'savedTeam'));
+  }
+});
+
+test('an opponent preparation response cannot carry a creator invitation', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });
+  socket.reply({ ...prepared, requestId, callerRole: 'away', invitationCode: 'abcdefghijklmnopqrstuv',
+    document: { ...prepared.document, documentVersion: 2, lifecycle: 'AWAITING_SETUP', away: { ...member, role: 'away' } } });
+  assert.equal(socket.closed, true); assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+});
+
 class Socket {
   readyState = 1; sent: any[] = []; closed = false;
   onopen: (() => Promise<void>) | null = null; onmessage: ((event: any) => void) | null = null;
@@ -111,7 +152,7 @@ test('retired sockets and foreign match responses cannot clear retained intent',
 
 test('authentication failure and replaced connection clear visible state', async () => {
   const { client, connect } = fixture(); const socket = await connect();
-  const id = client.open(match, true); socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: id, state });
+  const id = client.open(match, true); socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: id, duplicate: false, state });
   socket.reply({ type: 'error', code: 'CONNECTION_REPLACED', requestId: null });
   assert.equal(client.state, null); assert.equal(client.accountId, ''); assert.ok(socket.closed);
 });
