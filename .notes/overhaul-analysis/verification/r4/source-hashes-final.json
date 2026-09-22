@@ -1,0 +1,42 @@
+﻿[
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/SetupApplication.java",
+        "sha256":  "A13051CC45E0064D277F4FA5294A9793059E8D7893BFE602E4040EA891FF4920"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/SetupSession.java",
+        "sha256":  "C4AD1F87E82655BBE4AFB6A2D8940D5F4F13599919DB105AEE0B34F388DFEEC8"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/JdbcRecoveryRepository.java",
+        "sha256":  "D58F66FF2A8D2D7EA2F7F4785C35BEA947AB9591F39EDFB5341C7F1C91EFAD9D"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/match/RecoveryRepository.java",
+        "sha256":  "5F2EFA31EA61BC0D331C4E780ED5C165D53B139B1E667F8352D5EE74D28ECF92"
+    },
+    {
+        "path":  "ffb-server/src/main/java/com/fumbbl/ffb/server/local/BrowserV2Adapter.java",
+        "sha256":  "5F5A17E2B680E4FEC22BD5F6437B5AA676569695AC73925D78DD853C00E8CCB7"
+    },
+    {
+        "path":  "ffb-server/src/test/java/com/fumbbl/ffb/server/local/BrowserV2AdapterTest.java",
+        "sha256":  "59ED502374DF30F6C7A51C93F1A7CBCBF811754F83CDF60771C8BC48E023C7BE"
+    },
+    {
+        "path":  "ffb-server/src/test/java/com/fumbbl/ffb/server/match/JdbcRecoveryRepositoryTest.java",
+        "sha256":  "1721EFA62923224D49B1BF06A0FCFA740F90FB5FDFE96D515DF20FAEB03C07DD"
+    },
+    {
+        "path":  "ffb-statetest/src/test/java/com/fumbbl/ffb/test/RecoveryApplicationTest.java",
+        "sha256":  "BE24BEB0261FC36172CF0E71FC7D9740D4CE73C611289D47A702A63EB8CB314E"
+    },
+    {
+        "path":  "ffb-statetest/src/test/java/com/fumbbl/ffb/test/RecoverySessionTest.java",
+        "sha256":  "6CD87FE5664C461155AAE6FCFB04B8D49DD171B8705D971F284982615ED63D55"
+    },
+    {
+        "path":  "tools/r4-lifecycle-measure.ps1",
+        "sha256":  "E9A7CA6E1A14BB2EF0BC8F79558D5A143B389DFFD1FEFA1E2BC282FB1352BBFD"
+    }
+]
