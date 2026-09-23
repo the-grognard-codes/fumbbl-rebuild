@@ -1,0 +1,37 @@
+# Access runtime for the retained R5 restore-2 database; owns a distinct backup volume.
+name: ${R5_RESTORE_ACCESS_PROJECT:-ffb-r5-restore-access}
+services:
+  server:
+    image: ffb-server:3.4.0-m6.1
+    ports:
+      - "127.0.0.1:${R5_RESTORE_ACCESS_PORT:-22235}:22227"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    extra_hosts:
+      - "host.docker.internal:${R5_DOCKER_HOST_GATEWAY:-host-gateway}"
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ${R5_RESTORE_ACCESS_CONFIG:-./server.r5-restore-access.ini}:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
+      - backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, java, -cp, "FantasyFootballServer.jar:lib/*", com.fumbbl.ffb.server.local.LocalAcceptanceDemo, ready]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  backup:
+secrets:
+  db_password:
+    file: ./.secrets/db_password
+  admin_password:
+    file: ./.secrets/admin_password
+  coach_password:
+    file: ./.secrets/coach_password
