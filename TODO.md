@@ -54,6 +54,53 @@
   according to the approved retention policy. This must be a versioned,
   projection-safe change; it does not authorize a public admin route or alter
   existing accounts now.
+- [ ] **R5 non-blocking follow-up: full Slice 2 browser completion test.** R5 is
+  accepted as complete and this item does not block R6 or other future work. After
+  an approved versioned `/browser/v2` completed-result/replay surface exists,
+  repeat the separate current-version restore acceptance with two independent
+  sessions for the original fixture users. Verify both users' paused-decision
+  projections and completed result/replay, direct data parity, authorization
+  denials, retained exact-request reconciliation without re-execution, and one
+  authoritative post-restore continuation. Keep restore-time equality separate
+  from intentional later changes, retain the backup and restored environment,
+  and do not substitute mocked browser responses for the live completed-replay
+  check.
+
+- [ ] **R5.1 operational failure and rollback boundaries.** This is deferred,
+  non-blocking follow-up work. Schedule it after the planned review and any
+  significant, explicitly versioned game-engine changes, then select and document
+  the new current compatibility tuple before creating or choosing its retained
+  backup. Do not reuse the r4.1 fixture merely for convenience, convert historical
+  checkpoints without a supported requirement, or upgrade active matches in
+  place. Using new isolated copies, identify the actual supported migration path;
+  same-version restore has no migration, and an unsupported predecessor path must
+  be recorded as such. If marker-5-to-6 or another predecessor migration remains
+  supported, interrupt it between meaningful durable steps and prove that MariaDB
+  DDL commit behavior leaves a state that safely completes or fails closed without
+  serving matches. Exercise genuine bounded backup-output and database-storage
+  exhaustion without filling the host or retained volumes. Verify controlled
+  persistence uncertainty and retry/recovery, then demonstrate rollback by
+  restoring a named pre-change backup into another fresh destination. Record the
+  exact backup boundary, later writes that rollback loses, the traffic-stop point,
+  and when forward recovery is required. Preserve every accepted restore, failed
+  exercise environment, backup, volume, and synthetic fixture.
+
+- [ ] **R5.2 final runbook and closure rehearsal.** After the engine/runtime
+  compatibility re-baseline and R5.1 exercises, consolidate all R5 slices into an
+  operator runbook and acceptance matrix. Perform another create-only restore of
+  the selected current-version backup into an empty, non-aliasing local destination
+  with the compatible immutable runtime. Record restore duration, exact commands,
+  tool/runtime/database versions, configuration references, fixture hashes,
+  integrity and direct-data comparisons, all six operational exercises (database
+  outage, partial migration or an explicit unsupported determination, full disk,
+  ambiguous commit, process restart, and rollback), and the precise rollback
+  boundary. Reconcile the retained exact request without re-execution and complete
+  the deferred two-user paused/completed browser verification only after the
+  approved UI surface exists. Scan reviewable evidence for credentials, bearer
+  tokens, private recovery material, and private dice. State that support covers
+  only the tested tuple; do not claim historical conversion, another M4 gate, or
+  public-service readiness from this rehearsal.
+
 
 - [ ] **Containerized deployment parity across local, DEV, and PROD.** Replace
   the native nginx/systemd JVM deployment candidate with a reviewed containerized
