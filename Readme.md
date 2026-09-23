@@ -26,6 +26,8 @@ Bootstrap supplies Maven 3.9.9 and the Java 8 reference. The target launcher req
 Temurin 21.0.11+10 and accepts `-JavaHome` (required on Linux).
 See [the runtime policy](containers/local/runtime-compatibility.md) and
 [Java 8 reproduction](.notes/overhaul-analysis/verification/r1/java8-baseline/README.md).
+For a new Windows machine, use the [Windows development setup guide](docs/windows-development-setup.md).
+For Ubuntu 26.04 in WSL, use the [Ubuntu development setup guide](docs/ubuntu-development-setup.md).
 
 ## Using newer Java versions
 
