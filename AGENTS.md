@@ -1,5 +1,8 @@
 # Agent Guidelines
 
+## Team Sprite Artwork
+- For creating, extending, revising, resizing, or reviewing team player sprites, read and use `.agents/skills/team-pixel-sprites/SKILL.md` and its referenced `.notes/art-preview/team-sprite-standard.md`. This applies even when the request does not explicitly name the skill. Keep unrelated art, typography, and gameplay tasks outside this workflow.
+
 ## Build Commands
 - Build project: `mvn clean install`
 - Run tests: `mvn test`

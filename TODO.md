@@ -43,6 +43,17 @@
   authorization, and do not treat browser-local sample chat as authoritative.
   See `browser-client/replay-transcript-chat.md`.
 
+- [ ] **R3-A account lifecycle and profile capability.** Before exposing
+  persistent user-owned teams, profile avatars, custom display names, or other
+  account data, define and implement the owner-operated lifecycle: audited
+  administrator grant/revoke and disable/revoke actions; account deletion,
+  anonymization and retention rules for identity links, teams and profile
+  assets; credential review/rotation cadence; and a tested operational runbook.
+  Keep Firebase identity verification separate from application authorization,
+  never self-grant privileged scopes, and preserve membership/recovery records
+  according to the approved retention policy. This must be a versioned,
+  projection-safe change; it does not authorize a public admin route or alter
+  existing accounts now.
 - [ ] **R5 non-blocking follow-up: full Slice 2 browser completion test.** R5 is
   accepted as complete and this item does not block R6 or other future work. After
   an approved versioned `/browser/v2` completed-result/replay surface exists,

@@ -10,9 +10,12 @@ const required = [
   'src/login/index.html',
   'src/login/complete/index.html',
   'src/play/index.html',
+  'src/teambuilder/index.html',
   'src/assets/site.css',
   'src/assets/auth-client.js',
-  'src/assets/play.js'
+  'src/assets/play.js',
+  'src/assets/teambuilder.js',
+  'src/assets/teambuilder.css'
 ];
 
 for (const file of required) {
