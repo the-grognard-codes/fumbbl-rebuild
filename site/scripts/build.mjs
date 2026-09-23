@@ -9,4 +9,6 @@ await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(source, output, { recursive: true });
 await cp(new URL('../../browser-client/dist-play/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
+await cp(new URL('../../browser-client/public/preview/humans-64px-chibi-v1/', import.meta.url), new URL('../dist/assets/team-sprites/humans/', import.meta.url), { recursive: true });
+await cp(new URL('../../browser-client/public/preview/orcs-64px-chibi-v1/', import.meta.url), new URL('../dist/assets/team-sprites/orcs/', import.meta.url), { recursive: true });
 console.log(`Built static site from ${root}src to ${root}dist`);

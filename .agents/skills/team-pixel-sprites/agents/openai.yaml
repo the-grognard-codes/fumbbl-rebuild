@@ -1,0 +1,6 @@
+interface:
+  display_name: "Team Pixel Sprites"
+  short_description: "Consistent FUMBBL team sprites and pitch-size checks"
+  default_prompt: "Use $team-pixel-sprites to create player assets following this project's sprite standard."
+policy:
+  allow_implicit_invocation: true
