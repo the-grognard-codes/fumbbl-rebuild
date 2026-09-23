@@ -1,0 +1,66 @@
+# R5 restore target: new, separate local database and backup volumes only.
+name: ${R5_RESTORE_PROJECT:-ffb-r5-restore}
+services:
+  database:
+    image: mariadb:11.8.9@sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3
+    environment:
+      MARIADB_DATABASE: ffb_local
+      MARIADB_USER: ffb_local
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    ports:
+      - "127.0.0.1:${R5_RESTORE_DB_PORT:-23321}:3306"
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    # Docker Desktop activates a loopback-published port only when the database
+    # also has a non-internal bridge. The database remains published exclusively
+    # to 127.0.0.1; the isolated network remains available for private clients.
+    networks: [isolated, loopback]
+  server:
+    image: ffb-server:3.4.0-m6.1
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${R5_RESTORE_APP_PORT:-22233}:22227"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ${R5_RESTORE_SERVER_CONFIG:-./server.r5-restore.ini}:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
+      - backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    # The server reaches its separately published database through host.docker.internal.
+    # Keep this non-internal network so Docker's loopback forwarding remains routable.
+    networks: [loopback]
+networks:
+  isolated:
+    internal: true
+  loopback:
+volumes:
+  database:
+  backup:
+secrets:
+  db_password:
+    file: ./.secrets/db_password
+  db_root_password:
+    file: ./.secrets/db_root_password
+  admin_password:
+    file: ./.secrets/admin_password
+  coach_password:
+    file: ./.secrets/coach_password
