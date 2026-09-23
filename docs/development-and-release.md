@@ -112,6 +112,42 @@ on `main`; PROD must accept only the `production` environment for `moles-v*`
 tags. Use a full provider resource name containing the Google **project number**,
 not just a project ID.
 
+After the repository rename, both providers must trust
+`the-grognard-codes/fumbbl-rebuild`. In the DEV Google Cloud project, update the
+existing provider's `assertion.repository` condition and the deploy service
+account's `attribute.repository` principal to that value; remove the old
+repository principal after the new one is verified. The production provisioning
+script below handles the equivalent PROD change when its existing provider has
+the previously configured condition. Review any custom provider condition
+before changing it.
+
+The existing GitHub `development` environment uses provider
+`projects/589432788264/locations/global/workloadIdentityPools/github-dev/providers/github-actions`
+and service account
+`firebase-hosting-deployer@dev-moles-under-the-pitch-org.iam.gserviceaccount.com`.
+The repository rename requires migrating the existing DEV provider. From Google
+Cloud Shell with access to the DEV project, run:
+
+```bash
+bash deployment/firebase/scripts/migrate-dev-wif-repository.sh --check
+bash deployment/firebase/scripts/migrate-dev-wif-repository.sh
+```
+
+The migration matches the reviewed DEV provider condition exactly, changes
+only its repository name, and adds the new repository principal to the DEV
+deploy account. It stops for review if the condition has changed.
+After a successful DEV deployment, remove the old repository principal if it
+is still present on the DEV deploy account:
+
+```bash
+gcloud iam service-accounts remove-iam-policy-binding \
+  firebase-hosting-deployer@dev-moles-under-the-pitch-org.iam.gserviceaccount.com \
+  --project=dev-moles-under-the-pitch-org \
+  --role=roles/iam.workloadIdentityUser \
+  --member='principalSet://iam.googleapis.com/projects/589432788264/locations/global/workloadIdentityPools/github-dev/attribute.repository/the-grognard-codes/fumbbl-rebuild-chatgpt' \
+  --condition=None
+```
+
 Set these GitHub *environment variables* separately in `development` and
 `production`:
 
@@ -147,8 +183,11 @@ bash deployment/firebase/scripts/provision-prod-wif.sh
 ```
 
 The script prints the two `GCP_*` values to add to GitHub's `production`
-environment. It creates only missing resources; if a provider already exists,
-it leaves its trust condition unchanged and asks for review.
+environment. It creates missing resources and updates the prior repository
+condition on an existing provider. It stops for review if that provider has a
+different condition. After a successful PROD deployment with the new repository
+identity, remove the old repository principal from the production deploy
+service account.
 
 ## Production release and rollback
 
