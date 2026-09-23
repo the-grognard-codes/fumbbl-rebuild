@@ -43,6 +43,17 @@
   authorization, and do not treat browser-local sample chat as authoritative.
   See `browser-client/replay-transcript-chat.md`.
 
+- [ ] **R3-A account lifecycle and profile capability.** Before exposing
+  persistent user-owned teams, profile avatars, custom display names, or other
+  account data, define and implement the owner-operated lifecycle: audited
+  administrator grant/revoke and disable/revoke actions; account deletion,
+  anonymization and retention rules for identity links, teams and profile
+  assets; credential review/rotation cadence; and a tested operational runbook.
+  Keep Firebase identity verification separate from application authorization,
+  never self-grant privileged scopes, and preserve membership/recovery records
+  according to the approved retention policy. This must be a versioned,
+  projection-safe change; it does not authorize a public admin route or alter
+  existing accounts now.
 
 - [ ] **Containerized deployment parity across local, DEV, and PROD.** Replace
   the native nginx/systemd JVM deployment candidate with a reviewed containerized
