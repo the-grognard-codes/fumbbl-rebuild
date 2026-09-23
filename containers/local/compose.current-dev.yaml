@@ -1,0 +1,74 @@
+# Current-source local test runtime. Its volumes are distinct from every retained R5 environment.
+name: ffb-current-dev
+services:
+  database:
+    image: mariadb:11.8.9@sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3
+    command: ["--max-allowed-packet=64M"]
+    environment:
+      MARIADB_DATABASE: ffb_local
+      MARIADB_USER: ffb_m6_runtime
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    ports:
+      - "127.0.0.1:23316:3306"
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [loopback]
+  server:
+    image: ffb-server:3.4.0-current-dev-20260922.1
+    build:
+      context: ../..
+      dockerfile: containers/local/Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:22231:22227"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ./server.marker6.ini:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
+      - backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    healthcheck:
+      # The marker-6 runtime intentionally has no legacy /admin/cache route. A
+      # non-upgrade request to the exact v2 route must be rejected by policy.
+      test: [CMD-SHELL, "test \"$$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: 127.0.0.1:22231' -H 'Origin: http://localhost:5000' http://127.0.0.1:22227/browser/v2)\" = 405"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [loopback]
+networks:
+  loopback:
+volumes:
+  database:
+    external: true
+    name: ffb-current-dev_database
+  backup:
+    external: true
+    name: ffb-current-dev_backup
+secrets:
+  db_password:
+    file: ./.secrets/db_password
+  db_root_password:
+    file: ./.secrets/db_root_password
+  admin_password:
+    file: ./.secrets/admin_password
+  coach_password:
+    file: ./.secrets/coach_password

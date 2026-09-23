@@ -1,0 +1,64 @@
+{
+  "format": "ffb-current-runtime-restore-evidence/v1",
+  "status": "DIRECT_ENGINE_AND_PAUSED_BROWSER_ACCEPTANCE_COMPLETE",
+  "startedAtUtc": "2026-09-23T03:11:40.021Z",
+  "endedAtUtc": "2026-09-23T03:11:40.638Z",
+  "elapsedMilliseconds": 615.4542,
+  "sourceBackupManifestSha256": "be821b99549690fda5349bddf9f98c110939e8c719b900e61a6ca528765b0a16",
+  "restoredPayloadSha256": "cbc55bd4cfeae39d5837b4954164ed476a27f5a04e57d27eda4f4f63868eff70",
+  "runtime": {
+    "adapter": "ffb-3.4.0-bb2025-r4.1",
+    "engine": "ffb-3.4.0-bb2025-m3d.1",
+    "catalog": "bb2025-human-2026-09-08.1",
+    "schemaMarker": 6,
+    "recoveryFormat": 3,
+    "replayFormat": 1,
+    "browserProtocol": "/browser/v2"
+  },
+  "directParity": {
+    "fullDumpSha256": "cbc55bd4cfeae39d5837b4954164ed476a27f5a04e57d27eda4f4f63868eff70",
+    "tableSetSha256": "3dfde327e788a05e5b4ab1267cbc88d58e1aa9ab047842ee7abde8321d40fe01",
+    "identitiesMembershipAndInvitationsSha256": "c1aa2157b71f163ca0401fff7baac77666dd6a92090b06876b2438d8833c8c00",
+    "savedAndFrozenTeamsSha256": "9216cf7b1652b32dd703c11e9da5880a5e6163d9c7fc5255b70c8e00fa26a45c",
+    "completedResultReplayAndRequestsSha256": "60a7893820965997c3342ff3d86057f0bfd668b89c7322f62f7c769b6fa114de",
+    "pendingDecisionAndRecoverySha256": "d0ab693eb4f8af1016b32c3ea397ee84b2f72b82ec2c81b87452e63c0507999f",
+    "facetsSha256": "d2a32ae0352a8e14612e5f3ae7979685527f0ddb64751c5727c47474dbafb7c7"
+  },
+  "restoreTimeState": {
+    "pausedRevision": 13,
+    "pausedRecoveryGeneration": 14,
+    "completedRevision": 41,
+    "completedRecoveryGeneration": 42,
+    "completedReplayEvents": 42,
+    "frozenRuleset": "BB2025",
+    "frozenCatalog": "bb2025-human-2026-09-08.1"
+  },
+  "intentionalPostRestoreChange": {
+    "retainedExactRetryUnchanged": true,
+    "unauthorizedProbesUnchanged": true,
+    "revisionBefore": 13,
+    "revisionAfter": 14,
+    "recoveryGenerationBefore": 14,
+    "recoveryGenerationAfter": 15,
+    "homeAwayProjectionParity": true,
+    "continuationExecutedByAuthoritativeEngine": true
+  },
+  "liveBrowser": {
+    "unauthenticatedReadDenied": true,
+    "unauthenticatedMutationDenied": true,
+    "unauthenticatedExactRetryDenied": true,
+    "observationSource": "two independent user-operated authenticated Chrome sessions",
+    "pausedRevision": 14,
+    "pausedDecision": "follow-or-do-not-follow",
+    "pausedDecisionOwner": "home",
+    "homePausedProjectionVerified": true,
+    "awayPausedProjectionVerified": true,
+    "homeCanAct": true,
+    "awayCanAct": false,
+    "originalHomeUserVerified": false,
+    "originalAwayUserVerified": false,
+    "completedResultReplayVerified": false,
+    "limit": "The accepted /browser/v2 runtime omits completed matches from browse and does not expose result/replay. The authenticated /play UI therefore provides no path to the retained completed fixture."
+  },
+  "privateLocationReference": ".tools/r5-restores/current-r41-20260923T025500Z"
+}
