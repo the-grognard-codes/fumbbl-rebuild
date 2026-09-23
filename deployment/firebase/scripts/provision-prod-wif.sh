@@ -7,12 +7,14 @@
 set -euo pipefail
 
 readonly PROJECT_ID="molesunderthepitch-dotorg"
-readonly REPOSITORY="the-grognard-codes/fumbbl-rebuild-chatgpt"
+readonly REPOSITORY="the-grognard-codes/fumbbl-rebuild"
+readonly LEGACY_REPOSITORY="the-grognard-codes/fumbbl-rebuild-chatgpt"
 readonly POOL_ID="github-prod"
 readonly PROVIDER_ID="github-actions"
 readonly SERVICE_ACCOUNT_ID="firebase-hosting-deployer"
 readonly SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
 readonly PROVIDER_CONDITION="assertion.repository=='${REPOSITORY}' && assertion.environment=='production' && assertion.workflow=='Deploy Firebase Hosting (PROD)' && (assertion.ref=='refs/heads/main' || assertion.ref.matches('^refs/tags/moles-v[0-9A-Za-z][0-9A-Za-z._-]*$'))"
+readonly LEGACY_PROVIDER_CONDITION="assertion.repository=='${LEGACY_REPOSITORY}' && assertion.environment=='production' && assertion.workflow=='Deploy Firebase Hosting (PROD)' && (assertion.ref=='refs/heads/main' || assertion.ref.matches('^refs/tags/moles-v[0-9A-Za-z][0-9A-Za-z._-]*$'))"
 readonly ATTRIBUTE_MAPPING="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.environment=assertion.environment,attribute.workflow=assertion.workflow,attribute.ref=assertion.ref"
 
 require_command() {
@@ -74,7 +76,21 @@ if ! gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
     --attribute-mapping="$ATTRIBUTE_MAPPING" \
     --attribute-condition="$PROVIDER_CONDITION"
 else
-  echo "Reusing existing Workload Identity provider; review its attribute condition and mappings before use." >&2
+  CURRENT_PROVIDER_CONDITION="$(gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
+    --project="$PROJECT_ID" \
+    --location=global \
+    --workload-identity-pool="$POOL_ID" \
+    --format='value(attributeCondition)')"
+  if [[ "$CURRENT_PROVIDER_CONDITION" == "$LEGACY_PROVIDER_CONDITION" ]]; then
+    gcloud iam workload-identity-pools providers update-oidc "$PROVIDER_ID" \
+      --project="$PROJECT_ID" \
+      --location=global \
+      --workload-identity-pool="$POOL_ID" \
+      --attribute-condition="$PROVIDER_CONDITION"
+  elif [[ "$CURRENT_PROVIDER_CONDITION" != "$PROVIDER_CONDITION" ]]; then
+    echo "Existing Workload Identity provider has an unexpected attribute condition; review it before changing repository trust." >&2
+    exit 1
+  fi
 fi
 
 gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT_EMAIL" \
