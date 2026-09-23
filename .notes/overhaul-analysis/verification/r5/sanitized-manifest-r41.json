@@ -1,0 +1,52 @@
+{
+  "format": "ffb-current-runtime-backup-manifest/v1",
+  "status": "COMPLETE",
+  "createdAtUtc": "2026-09-23T03:10:04.375Z",
+  "runtime": {
+    "adapter": "ffb-3.4.0-bb2025-r4.1",
+    "engine": "ffb-3.4.0-bb2025-m3d.1",
+    "catalog": "bb2025-human-2026-09-08.1",
+    "image": "ffb-server:3.4.0-current-dev-20260922.1",
+    "imageId": "sha256:216882fc478ca2c55d71869a9628c56fefef6b2af47ce4d34f1f9c69f5a1062d",
+    "jarSha256": "09adcea16b6756bccb50cc93c7b867ba6771c0edb49d767450089a9ee0a57f30"
+  },
+  "database": {
+    "schemaMarker": 6,
+    "mariadb": "11.8.9-MariaDB-ubu2404"
+  },
+  "formats": {
+    "recovery": 3,
+    "replay": 1,
+    "browserProtocol": "/browser/v2"
+  },
+  "boundary": {
+    "writeQuiesced": true,
+    "tableCount": 17,
+    "includes": [
+      "identities-and-scopes",
+      "memberships-and-invitations",
+      "frozen-teams",
+      "prepared-and-completed-matches",
+      "replay",
+      "pending-decisions",
+      "recovery-and-retry"
+    ]
+  },
+  "fixtures": [
+    {
+      "kind": "paused-server-decision",
+      "matchIdSha256": "ccce0994a7db51e28c89aa1428df1e8659b8b70f89d738d1d34d88c1d5c1063b",
+      "recoveryGeneration": 14
+    },
+    {
+      "kind": "completed-match",
+      "matchIdSha256": "ab4b3ca968b6c92359db125ed25ef5f350c3aa6c703b0e702292373984354054"
+    }
+  ],
+  "payload": {
+    "bytes": 1111998,
+    "sha256": "cbc55bd4cfeae39d5837b4954164ed476a27f5a04e57d27eda4f4f63868eff70"
+  },
+  "manifestSha256": "be821b99549690fda5349bddf9f98c110939e8c719b900e61a6ca528765b0a16",
+  "privateLocationReference": ".tools/r5-backups/current-r41-20260923T025300Z"
+}

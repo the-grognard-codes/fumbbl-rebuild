@@ -1,0 +1,40 @@
+# Application access runtime on the restored database's existing isolated Docker network.
+name: ffb-r5-restore-network-access
+services:
+  server:
+    image: ffb-server:3.4.0-m6.1
+    ports:
+      - "127.0.0.1:22237:22227"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ./server.r5-restore-network-access.ini:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
+      - backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, java, -cp, "FantasyFootballServer.jar:lib/*", com.fumbbl.ffb.server.local.LocalAcceptanceDemo, ready]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [restore_database]
+networks:
+  restore_database:
+    external: true
+    name: ffb-r5-restore2_isolated
+volumes:
+  backup:
+secrets:
+  db_password:
+    file: ./.secrets/db_password
+  admin_password:
+    file: ./.secrets/admin_password
+  coach_password:
+    file: ./.secrets/coach_password
