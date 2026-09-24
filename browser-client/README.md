@@ -1,4 +1,16 @@
-# Local browser prototype — movement, choices and robustness
+# Browser client and public team builder
+
+The public `/teambuilder` page mounts `BuilderPanel` from the same authenticated
+bundle as `/play`. It reads the BB2025 Human catalog from the server, validates
+each edited draft with the server, and saves named teams under the signed-in
+account. Play lists that account's eligible teams by name. See the
+[accepted contract](../docs/team-builder-contract.md) and
+[implementation slices](../docs/specs/team-builder/README.md).
+
+The local diagnostic routes and historical exercises below remain available for
+development.
+
+## Local diagnostic prototype — movement, choices and robustness
 
 **Current product flow:** saved teams ? invited preparation ? setup/play ?
 completed result and private replay. See [M3e connection and keyboard guide](disconnect.md)

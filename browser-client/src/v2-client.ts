@@ -12,7 +12,7 @@ type ClientOptions = {
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
-const uncertain = new Set(['PERSISTENCE_FAILED', 'MATCH_OUTCOME_UNKNOWN', 'COMPLETION_PENDING', 'SAVE_OUTCOME_UNKNOWN']);
+const uncertain = new Set(['PERSISTENCE_FAILED', 'MATCH_OUTCOME_UNKNOWN', 'COMPLETION_PENDING', 'SAVE_OUTCOME_UNKNOWN', 'DELETE_OUTCOME_UNKNOWN']);
 
 /** Single connection and exact-intent recovery for both playing and watching. */
 export class V2Client {
@@ -159,11 +159,10 @@ export class V2Client {
     }
     if (message.type === 'savedTeam') {
       const document = message.document;
-      if (document && (document.formatVersion !== 2 || document.owner?.namespace !== 'account'
+      if (document && (![2, 3].includes(document.formatVersion) || document.owner?.namespace !== 'account'
         || Object.keys(document.owner).length !== 2 || document.owner.subject !== this.accountId
         || (request?.teamId && request.teamId !== document.teamId))) throw Error('Foreign team');
-      decodeSavedTeam(JSON.stringify({ ...message, version: 1, document: document
-        ? { ...document, formatVersion: 1, owner: { namespace: 'local', subject: 'home' } } : null }));
+      decodeSavedTeam(JSON.stringify({ ...message, version: 1 }));
     }
     if (message.type === 'browse' && message.code === 'ACCEPTED'
       && (!Array.isArray(message.matches) || message.matches.length > 100

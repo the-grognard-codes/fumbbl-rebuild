@@ -70,7 +70,7 @@ public class LocalSchema {
 
 	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			if (schemaVersion(statement) != 6) throw new SQLException("Marker-6 startup requires a separately provisioned schema version 6 database");
+			if (schemaVersion(statement) != 7) throw new SQLException("Named-team startup requires a separately migrated schema version 7 database");
 			verifySavedTeams(connection);
 			verifyCompletedMatches(connection);
 			verifyRecovery(connection);

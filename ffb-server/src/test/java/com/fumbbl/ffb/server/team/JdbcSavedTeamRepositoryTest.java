@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,5 +73,24 @@ class JdbcSavedTeamRepositoryTest {
 		setup(); rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
 		when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(6);
 		assertThrows(SQLException.class, () -> repository.insert(record)); verify(statement, never()).executeUpdate();
+	}
+	@Test
+	void namedAccountWritesRequireMigratedSchema() throws Exception {
+		repository = new JdbcSavedTeamRepository(() -> connection, true);
+		ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(6);
+		assertThrows(SQLException.class, () -> repository.insert(record));
+		verify(statement, never()).executeUpdate();
+	}
+	@Test
+	void deleteBindsOwnerAndExpectedVersionBeforeCommit() throws Exception {
+		ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true); when(rows.getString(1)).thenReturn(record.teamId);
+		when(rows.getString(2)).thenReturn(record.owner); when(rows.getInt(3)).thenReturn(record.documentVersion);
+		when(rows.getString(4)).thenReturn(record.catalogVersion); when(rows.getString(5)).thenReturn(record.json);
+		when(statement.executeUpdate()).thenReturn(1);
+		assertTrue(repository.delete(record.owner, record.teamId, 1));
+		verify(statement, atLeastOnce()).setString(1, record.owner); verify(statement, atLeastOnce()).setString(2, record.teamId);
+		verify(statement).setInt(3, 1); verify(connection).commit();
 	}
 }

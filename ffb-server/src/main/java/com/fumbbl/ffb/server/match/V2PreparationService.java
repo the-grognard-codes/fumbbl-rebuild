@@ -219,7 +219,7 @@ public final class V2PreparationService {
 		result.add("callerRole", role == null ? JsonValue.NULL : JsonValue.valueOf(role));
 		return result.add("invitationCode", invitationCode == null ? JsonValue.NULL : JsonValue.valueOf(invitationCode));
 	}
-	private boolean compatible(FrozenTeam home, FrozenTeam away) { return home.ruleset.equals(away.ruleset) && home.catalogVersion.equals(away.catalogVersion) && home.presetId.equals(away.presetId) && home.presetVersion.equals(away.presetVersion); }
+	private boolean compatible(FrozenTeam home, FrozenTeam away) { return home.ruleset.equals(away.ruleset) && home.catalogVersion.equals(away.catalogVersion) && home.presetId.equals(away.presetId) && home.presetVersion.equals(away.presetVersion) && home.teamName.isEmpty() == away.teamName.isEmpty(); }
 	private void header(JsonObject request) { if (request == null || request.getInt("version", -1) != 1 || !"preparedMatch".equals(request.getString("type", null))) throw new Failure("INVALID_REQUEST"); }
 	private void exact(JsonObject request, String... names) { if (request.size() != names.length || !new HashSet<String>(request.names()).equals(new HashSet<String>(Arrays.asList(names)))) throw new Failure("INVALID_REQUEST"); }
 	private void account(String value) { uuid(value); }

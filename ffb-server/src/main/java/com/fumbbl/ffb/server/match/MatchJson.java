@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Format 1: separate client choices, public projection and private frozen persistence. */
+/** Versioned match requests, public projection and private frozen persistence. */
 public final class MatchJson {
 	public JsonObject handle(MatchService service, String owner, String text) {
 		String requestId = null;
@@ -69,7 +70,7 @@ public final class MatchJson {
 		for (Map.Entry<String, MatchDocument.Request> entry : document.requests.entrySet())
 			requests.add(new JsonObject().add("key", entry.getKey()).add("fingerprint", entry.getValue().fingerprint));
 		out.add("requests", requests);
-		if (document.completion != null) return out.set("formatVersion", 2).add("completion", JsonObject.readFrom(document.completion.json()));
+		if (document.completion != null) return out.set("formatVersion", document.home.team.teamName.isEmpty() ? 2 : 4).add("completion", JsonObject.readFrom(document.completion.json()));
 		return out;
 	}
 
@@ -86,15 +87,16 @@ public final class MatchJson {
 	public MatchDocument decode(String text, int persistedVersion) {
 		try {
 			JsonObject object = parse(text, 16 * 1024 * 1024 + 65536, 16);
-			if (object.getInt("formatVersion", -1) == 2) return decodeCompleted(object, persistedVersion);
+			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4) return decodeCompleted(object, persistedVersion);
 			exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests");
-			if (object.get("formatVersion").asInt() != 1 || positive(object.get("documentVersion")) != persistedVersion) throw new IllegalArgumentException();
+			int format = object.get("formatVersion").asInt();
+			if ((format != 1 && format != 3) || positive(object.get("documentVersion")) != persistedVersion) throw new IllegalArgumentException();
 			String id = uuid(object.get("matchId")), creator = subject(object.get("homeOwner"));
 			JsonObject invitation = object.get("invitation").asObject(); exact(invitation, "intendedOpponent");
 			String invited = subject(invitation.get("intendedOpponent"));
 			if (creator.equals(invited)) throw new IllegalArgumentException();
-			MatchDocument.Member home = readMember(object.get("home").asObject(), creator, false);
-			MatchDocument.Member away = object.get("away").isNull() ? null : readMember(object.get("away").asObject(), invited, true);
+			MatchDocument.Member home = readMember(object.get("home").asObject(), creator, false, format == 3);
+			MatchDocument.Member away = object.get("away").isNull() ? null : readMember(object.get("away").asObject(), invited, true, format == 3);
 			MatchDocument.Lifecycle lifecycle = MatchDocument.Lifecycle.valueOf(object.get("lifecycle").asString());
 			if (!"home".equals(home.role) || (away != null && !"away".equals(away.role))
 				|| persistedVersion != (away == null ? 1 : lifecycle == MatchDocument.Lifecycle.AWAITING_SETUP ? 2 : lifecycle == MatchDocument.Lifecycle.ACTIVATED ? 3 : -1)
@@ -129,7 +131,7 @@ public final class MatchJson {
 		exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests", "completion");
 		if (object.getInt("documentVersion", -1) != 4 || !"COMPLETED".equals(object.getString("lifecycle", null))) throw new IllegalArgumentException();
 		CompletedMatch completed = new CompletedMatch(object.get("completion").toString());
-		JsonObject prior = JsonObject.readFrom(object.toString()); prior.remove("completion"); prior.set("formatVersion", 1); prior.set("documentVersion", 3); prior.set("lifecycle", "ACTIVATED");
+		JsonObject prior = JsonObject.readFrom(object.toString()); prior.remove("completion"); prior.set("formatVersion", object.getInt("formatVersion", -1) == 4 ? 3 : 1); prior.set("documentVersion", 3); prior.set("lifecycle", "ACTIVATED");
 		MatchDocument activated = decode(prior.toString(), 3);
 		validateCompletion(completed, activated);
 		return activated.completed(completed);
@@ -184,18 +186,22 @@ public final class MatchJson {
             if (!player.get("x").isNull()) { bounded(player.get("x"), 0, 25); bounded(player.get("y"), 0, 14); }
         }
     }
-    private void shortText(JsonValue value) {
+	private void shortText(JsonValue value) {
         String text = value.asString(); if (text.isEmpty() || text.length() > 100) throw new IllegalArgumentException();
     }
     private void bounded(JsonValue value, int min, int max) {
         int number = value.asInt(); if (number < min || number > max) throw new IllegalArgumentException();
     }
 
-	private MatchDocument.Member readMember(JsonObject object, String owner, boolean away) {
+	private MatchDocument.Member readMember(JsonObject object, String owner, boolean away, boolean named) {
 		if (away) {
-			exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "validation", "roster", "resolvedCatalog", "owner");
+			if (named) exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "teamName", "validation", "roster", "resolvedCatalog", "owner");
+			else exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "validation", "roster", "resolvedCatalog", "owner");
 			if (!owner.equals(subject(object.get("owner")))) throw new IllegalArgumentException();
-		} else exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "validation", "roster", "resolvedCatalog");
+		} else if (named) exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "teamName", "validation", "roster", "resolvedCatalog");
+		else exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "validation", "roster", "resolvedCatalog");
+		String teamName = named ? object.get("teamName").asString() : "";
+		if (named && !plainName(teamName, 50)) throw new IllegalArgumentException();
 		String ruleset = object.get("ruleset").asString(), catalogVersion = object.get("catalogVersion").asString();
 		String rosterId = object.get("rosterId").asString(), presetId = object.get("presetId").asString(), presetVersion = object.get("presetVersion").asString();
 		if (!"BB2025".equals(ruleset) || !RosterCatalog.VERSION.equals(catalogVersion) || !"human".equals(rosterId)
@@ -217,10 +223,15 @@ public final class MatchJson {
 		}
 		JsonArray selections = roster.get("players").asArray();
 		if (selections.size() < resolved.get("minPlayers").asInt() || selections.size() > resolved.get("maxPlayers").asInt()) throw new IllegalArgumentException();
-		List<FrozenTeam.Player> players = new ArrayList<>(); Set<String> ids = new HashSet<>(); Set<Integer> slots = new HashSet<>();
+		List<FrozenTeam.Player> players = new ArrayList<>(); Set<String> ids = new HashSet<>(); Set<Integer> slots = new HashSet<>(), jerseys = new HashSet<>();
 		for (JsonValue value : selections) {
-			JsonObject player = value.asObject(); exact(player, "id", "slot", "positionId", "skillIds", "position");
+			JsonObject player = value.asObject();
+			if (named) exact(player, "id", "slot", "jerseyNumber", "playerName", "positionId", "skillIds", "position");
+			else exact(player, "id", "slot", "positionId", "skillIds", "position");
 			String playerId = identifier(player.get("id")), positionId = identifier(player.get("positionId"));
+			int jersey = named ? player.get("jerseyNumber").asInt() : 0;
+			String playerName = named ? player.get("playerName").asString() : "";
+			if (named && (jersey < 1 || jersey > 99 || !jerseys.add(jersey) || !plainName(playerName, 30))) throw new IllegalArgumentException();
 			int slot = positive(player.get("slot"));
 			if (slot > 16 || !ids.add(playerId) || !slots.add(slot)) throw new IllegalArgumentException();
 			List<String> skills = strings(player.get("skillIds").asArray());
@@ -238,15 +249,25 @@ public final class MatchJson {
 			JsonObject suppliedParameters = position.get("parameters").asObject();
 			if (!suppliedParameters.names().equals(new ArrayList<>(parameters.keySet()))) throw new IllegalArgumentException();
 			for (String key : parameters.keySet()) if (parameters.get(key) != suppliedParameters.get(key).asInt()) throw new IllegalArgumentException();
-			players.add(new FrozenTeam.Player(playerId, slot, positionId, skills, base, position.get("name").asString(), position.get("role").asString(),
+			players.add(new FrozenTeam.Player(playerId, slot, jersey, playerName, positionId, skills, base, position.get("name").asString(), position.get("role").asString(),
 				position.get("race").asString(), position.get("primary").asString(), position.get("secondary").asString(), amount(position.get("maximum")),
 				amount(position.get("cost")), amount(position.get("ma")), amount(position.get("st")), amount(position.get("ag")), amount(position.get("pa")), amount(position.get("av")), parameters));
 		}
 		if (captain != null && !ids.contains(captain)) throw new IllegalArgumentException();
 		FrozenTeam team = new FrozenTeam(uuid(object.get("sourceTeamId")), positive(object.get("sourceDocumentVersion")), owner, ruleset,
-			catalogVersion, rosterId, presetId, presetVersion, captain, total, budget, points, players, quantities, resolved.toString());
+			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString());
 		verifyFrozenEvaluation(team, resolved);
 		return new MatchDocument.Member(object.get("role").asString(), owner, team);
+	}
+	private boolean plainName(String name, int maximum) {
+		if (name == null || !name.equals(Normalizer.normalize(name.trim(), Normalizer.Form.NFC))
+			|| name.codePointCount(0, name.length()) < 1 || name.codePointCount(0, name.length()) > maximum) return false;
+		for (int i = 0; i < name.length();) {
+			int point = name.codePointAt(i);
+			if (Character.isISOControl(point)) return false;
+			i += Character.charCount(point);
+		}
+		return true;
 	}
 
 	/** Verify stored acceptance against stored facts, without reading or adopting a current catalog. */
@@ -325,7 +346,9 @@ public final class MatchJson {
 	}
 
 	public JsonObject publicDocument(MatchDocument document) {
-		return new JsonObject().add("formatVersion", document.lifecycle == MatchDocument.Lifecycle.COMPLETED ? 2 : 1).add("matchId", document.matchId).add("documentVersion", document.documentVersion)
+		return new JsonObject().add("formatVersion", document.home.team.teamName.isEmpty()
+			? document.lifecycle == MatchDocument.Lifecycle.COMPLETED ? 2 : 1
+			: document.lifecycle == MatchDocument.Lifecycle.COMPLETED ? 4 : 3).add("matchId", document.matchId).add("documentVersion", document.documentVersion)
 			.add("lifecycle", document.lifecycle.name()).add("invitation", new JsonObject().add("intendedOpponent", document.intendedOpponent))
 			.add("home", member(document.home)).add("away", document.away == null ? JsonValue.NULL : member(document.away));
 	}
@@ -336,13 +359,17 @@ public final class MatchJson {
 			JsonObject position = new JsonObject().add("name", player.name).add("role", player.role).add("race", player.race).add("maximum", player.maximum)
 				.add("cost", player.cost).add("ma", player.ma).add("st", player.st).add("ag", player.ag).add("pa", player.pa).add("av", player.av)
 				.add("primary", player.primary).add("secondary", player.secondary).add("baseSkillIds", array(player.baseSkillIds)).add("parameters", parameters);
-			players.add(new JsonObject().add("id", player.id).add("slot", player.slot).add("positionId", player.positionId).add("skillIds", array(player.skillIds)).add("position", position));
+			JsonObject choice = new JsonObject().add("id", player.id).add("slot", player.slot).add("positionId", player.positionId).add("skillIds", array(player.skillIds)).add("position", position);
+			if (!team.teamName.isEmpty()) choice.add("jerseyNumber", player.jerseyNumber).add("playerName", player.playerName);
+			players.add(choice);
 		}
 		JsonObject resources = new JsonObject(); for (Map.Entry<String, Integer> resource : team.resources.entrySet()) resources.add(resource.getKey(), resource.getValue());
-		return new JsonObject().add("role", member.role).add("sourceTeamId", team.sourceTeamId).add("sourceDocumentVersion", team.sourceDocumentVersion)
+		JsonObject result = new JsonObject().add("role", member.role).add("sourceTeamId", team.sourceTeamId).add("sourceDocumentVersion", team.sourceDocumentVersion)
 			.add("ruleset", team.ruleset).add("catalogVersion", team.catalogVersion).add("rosterId", team.rosterId).add("presetId", team.presetId).add("presetVersion", team.presetVersion)
 			.add("validation", new JsonObject().add("valid", true).add("total", team.total).add("budget", team.budget).add("skillPoints", team.skillPoints).add("messages", new JsonArray()))
 			.add("roster", new JsonObject().add("captainId", team.captainId).add("resources", resources).add("players", players));
+		if (!team.teamName.isEmpty()) result.add("teamName", team.teamName);
+		return result;
 	}
 	private JsonObject response(String id, String code, boolean duplicate, String role, JsonObject document, String recovery) {
 		return new JsonObject().add("version", 1).add("type", "preparedMatch").add("requestId", id).add("code", code).add("duplicate", duplicate)

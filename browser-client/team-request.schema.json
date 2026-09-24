@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ffb:browser:team:v1",
-  "title": "BB2025 M2a team requests",
+  "$id": "urn:ffb:browser:team-draft:v2",
+  "title": "BB2025 named team draft requests",
   "description": "Structural/reference version contract. The server additionally checks catalog references, unique player IDs/slots, eligibility, position limits, points and recomputes costs. A draft with structural errors can produce MALFORMED_TEAM_REQUEST; legality errors produce teamValidation.",
   "oneOf": [
     {
@@ -56,6 +56,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "draftVersion",
+        "teamName",
         "catalogVersion",
         "ruleset",
         "rosterId",
@@ -100,6 +102,8 @@
             "required": [
               "id",
               "slot",
+              "jerseyNumber",
+              "playerName",
               "positionId",
               "skillIds"
             ],
@@ -131,6 +135,16 @@
                   "maxLength": 80,
                   "pattern": "^[A-Za-z0-9_.-]+$"
                 }
+              },
+              "jerseyNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99
+              },
+              "playerName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 30
               }
             }
           }
@@ -172,6 +186,14 @@
               "maximum": 3
             }
           }
+        },
+        "draftVersion": {
+          "const": 2
+        },
+        "teamName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
         }
       }
     }

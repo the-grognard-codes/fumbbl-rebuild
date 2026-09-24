@@ -12,7 +12,7 @@ const messages = [
   { type: 'preparedMatch', code: 'NOT_FOUND', duplicate: false, callerRole: null, document: null, recoveryMatchId: null },
   { type: 'savedTeam', code: 'NOT_FOUND', document: null, versionStatus: null, validation: null, teams: [] },
   JSON.parse(readFileSync(new URL('./fixtures/catalog-v1.json', import.meta.url), 'utf8')),
-  { type: 'teamValidation', catalogVersion: 'fixture', ruleset: 'BB2025', valid: false, budget: 0, skillPoints: 0, messages: [], total: null },
+  { type: 'teamValidation', catalogVersion: 'fixture', ruleset: 'BB2025', draftVersion: 2, valid: false, budget: 0, skillPoints: 0, messages: [], total: null },
 ];
 
 for (const body of messages) test(`${body.type}: explicit envelope accepts its fields and rejects private additions`, () => {

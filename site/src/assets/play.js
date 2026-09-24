@@ -35,7 +35,7 @@ export function startPlay({ auth, config }, status, host) {
   return () => { generation++; unsubscribe(); dispose?.(); host.replaceChildren(); };
 }
 
-if (typeof document !== 'undefined') {
+if (typeof document !== 'undefined' && document.querySelector('#game-root')) {
   const status = document.querySelector('#play-status');
   try { startPlay(authentication(), status, document.querySelector('#game-root')); }
   catch { status.textContent = 'Sign-in is unavailable. Please try again later.'; }
