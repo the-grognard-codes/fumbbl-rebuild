@@ -13,7 +13,7 @@ import java.util.Map;
 
 /** Immutable accepted facts. Catalog content is resolved once, never refreshed when reading a match. */
 public final class FrozenTeam {
-	public final String sourceTeamId, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion, captainId;
+	public final String sourceTeamId, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion, captainId, teamName;
 	public final String resolvedCatalogJson;
 	public final int sourceDocumentVersion, total, budget, skillPoints;
 	public final List<Player> players;
@@ -22,17 +22,29 @@ public final class FrozenTeam {
 	public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, TeamDraft draft,
 		int total, int skillPoints, RosterCatalog catalog) {
 		this(sourceTeamId, sourceDocumentVersion, owner, draft.ruleset, draft.catalogVersion, draft.rosterId,
-			draft.presetId, draft.catalogVersion, draft.captainId, total, RosterCatalog.BUDGET, skillPoints,
-			freezePlayers(draft, catalog), draft.resources, new BrowserTeamJson(catalog).catalog(null)
-				.add("validationPolicy", new JsonObject().add("formatVersion", 1).add("primarySkillPoints", 1)
+			draft.presetId, draft.catalogVersion, draft.captainId, draft.teamName, total, RosterCatalog.BUDGET, skillPoints,
+			freezePlayers(draft, catalog), draft.resources, frozenCatalog(catalog));
+	}
+
+	private static String frozenCatalog(RosterCatalog catalog) {
+		JsonObject resolved = new BrowserTeamJson(catalog).catalog(null);
+		resolved.remove("draftVersion");
+		return resolved.add("validationPolicy", new JsonObject().add("formatVersion", 1).add("primarySkillPoints", 1)
 					.add("secondarySkillPoints", 2).add("maximumPurchasesPerPlayer", 1).add("purchasedSkillGold", 0)
-					.add("captainSkillId", "pro").add("captainGold", 0).add("captainSkillPoints", 0).add("unspentBudgetLost", true)).toString());
+					.add("captainSkillId", "pro").add("captainGold", 0).add("captainSkillPoints", 0).add("unspentBudgetLost", true)).toString();
 	}
 
 	public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
 		String rosterId, String presetId, String presetVersion, String captainId, int total, int budget, int skillPoints,
 		List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson) {
+		this(sourceTeamId, sourceDocumentVersion, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion, captainId,
+			"", total, budget, skillPoints, players, resources, resolvedCatalogJson);
+	}
+	public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
+		String rosterId, String presetId, String presetVersion, String captainId, String teamName, int total, int budget, int skillPoints,
+		List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson) {
 		this.sourceTeamId = sourceTeamId; this.sourceDocumentVersion = sourceDocumentVersion; this.owner = owner;
+		this.teamName = teamName;
 		this.ruleset = ruleset; this.catalogVersion = catalogVersion; this.rosterId = rosterId;
 		this.presetId = presetId; this.presetVersion = presetVersion; this.captainId = captainId;
 		this.total = total; this.budget = budget; this.skillPoints = skillPoints;
@@ -48,7 +60,7 @@ public final class FrozenTeam {
 			if (position == null) throw new IllegalArgumentException("Unresolved position");
 			Map<String, Integer> parameters = new LinkedHashMap<>();
 			for (String skill : position.baseSkills) parameters.put(skill, position.skillValue(skill));
-			players.add(new Player(choice.id, choice.slot, choice.positionId, choice.skillIds, position.baseSkills,
+			players.add(new Player(choice.id, choice.slot, choice.jerseyNumber, choice.playerName, choice.positionId, choice.skillIds, position.baseSkills,
 				position.name, position.role, position.race, position.primary, position.secondary, position.maximum,
 				position.cost, position.ma, position.st, position.ag, position.pa, position.av, parameters));
 		}
@@ -56,15 +68,22 @@ public final class FrozenTeam {
 	}
 
 	public static final class Player {
-		public final String id, positionId, name, role, race, primary, secondary;
-		public final int slot, maximum, cost, ma, st, ag, pa, av;
+		public final String id, positionId, name, role, race, primary, secondary, playerName;
+		public final int slot, jerseyNumber, maximum, cost, ma, st, ag, pa, av;
 		public final List<String> skillIds, baseSkillIds;
 		public final Map<String, Integer> parameters;
 
 		public Player(String id, int slot, String positionId, List<String> skillIds, List<String> baseSkillIds,
 			String name, String role, String race, String primary, String secondary, int maximum, int cost,
 			int ma, int st, int ag, int pa, int av, Map<String, Integer> parameters) {
+			this(id, slot, 0, "", positionId, skillIds, baseSkillIds, name, role, race, primary, secondary,
+				maximum, cost, ma, st, ag, pa, av, parameters);
+		}
+		public Player(String id, int slot, int jerseyNumber, String playerName, String positionId, List<String> skillIds, List<String> baseSkillIds,
+			String name, String role, String race, String primary, String secondary, int maximum, int cost,
+			int ma, int st, int ag, int pa, int av, Map<String, Integer> parameters) {
 			this.id = id; this.slot = slot; this.positionId = positionId;
+			this.jerseyNumber = jerseyNumber; this.playerName = playerName;
 			this.skillIds = Collections.unmodifiableList(new ArrayList<>(skillIds));
 			this.baseSkillIds = Collections.unmodifiableList(new ArrayList<>(baseSkillIds));
 			this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));

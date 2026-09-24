@@ -35,7 +35,7 @@ class BrowserSavedTeamJsonTest {
 	@Test void accountTeamProjectionContainsOnlyOwnedDocumentAndForeignReadIsRedacted() {
 		BrowserSavedTeamJson accountAdapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
 		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-		JsonObject created = accountAdapter.handle(owner, request("create").add("draft", draft()).toString());
+		JsonObject created = accountAdapter.handle(owner, request("create").add("draft", namedDraft()).toString());
 		assertEquals("OK", created.getString("code", null));
 		assertEquals(new HashSet<>(Arrays.asList("version", "type", "requestId", "code", "document", "versionStatus", "validation", "teams")), new HashSet<>(created.names()));
 		JsonObject document = created.get("document").asObject();
@@ -57,6 +57,46 @@ class BrowserSavedTeamJsonTest {
 		return new JsonObject().add("catalogVersion", RosterCatalog.VERSION).add("ruleset", "BB2025")
 			.add("rosterId", "human").add("presetId", RosterCatalog.PRESET).add("captainId", "p1").add("players", players)
 			.add("resources", new JsonObject().add("rerolls", 2).add("assistantCoaches", 0).add("cheerleaders", 0).add("apothecary", 1).add("dedicatedFans", 0));
+	}
+	@Test void accountListNamesOwnedTeamsAndDeleteRequiresOwnershipAndCurrentVersion() {
+		BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", other = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+		JsonObject created = accounts.handle(owner, request("create").add("draft", namedDraft()).toString());
+		assertEquals("OK", created.getString("code", null));
+		JsonObject document = created.get("document").asObject(); String id = document.getString("teamId", null);
+		JsonObject list = accounts.handle(owner, request("list").toString()).get("teams").asArray().get(0).asObject();
+		assertEquals("The Moles", list.getString("teamName", null));
+		assertEquals("CURRENT", list.getString("eligibility", null));
+		assertEquals(0, accounts.handle(other, request("list").toString()).get("teams").asArray().size());
+		JsonObject deletion = request("delete").add("teamId", id).add("expectedDocumentVersion", 1);
+		assertEquals("NOT_FOUND", accounts.handle(other, deletion.toString()).getString("code", null));
+		assertEquals("CONFLICT", accounts.handle(owner, request("delete").add("teamId", id).add("expectedDocumentVersion", 2).toString()).getString("code", null));
+		assertEquals("OK", accounts.handle(owner, deletion.toString()).getString("code", null));
+		assertEquals(0, accounts.handle(owner, request("list").toString()).get("teams").asArray().size());
+	}
+	@Test void historicalAndMalformedAccountRowsRemainVisibleButUnavailable() {
+		BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		JsonObject created = accounts.handle(owner, request("create").add("draft", namedDraft()).toString());
+		JsonObject old = JsonObject.readFrom(created.get("document").toString()).set("formatVersion", 2);
+		JsonObject oldDraft = old.get("draft").asObject(); oldDraft.remove("draftVersion"); oldDraft.remove("teamName");
+		for (com.eclipsesource.json.JsonValue value : oldDraft.get("players").asArray()) {
+			value.asObject().remove("jerseyNumber"); value.asObject().remove("playerName");
+		}
+		String id = old.getString("teamId", null);
+		repository.rows.put(id, new SavedTeamRepository.Record(id, owner, 1, RosterCatalog.VERSION, old.toString()));
+		String bad = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+		repository.rows.put(bad, new SavedTeamRepository.Record(bad, owner, 1, RosterCatalog.VERSION, "not-json"));
+		JsonArray list = accounts.handle(owner, request("list").toString()).get("teams").asArray();
+		assertEquals(2, list.size());
+		assertEquals("MIGRATION_REQUIRED", list.get(0).asObject().getString("eligibility", null));
+		assertEquals("UNAVAILABLE", list.get(1).asObject().getString("eligibility", null));
+	}
+	private JsonObject namedDraft() {
+		JsonObject result = draft().add("draftVersion", 2).add("teamName", "The Moles");
+		for (int index = 0; index < result.get("players").asArray().size(); index++)
+			result.get("players").asArray().get(index).asObject().add("jerseyNumber", index + 1).add("playerName", "Mole " + (index + 1));
+		return result;
 	}
 	@Test
 	void checkedInHumanStarterDraftIsAcceptedByTheFrozenCatalog() throws IOException {
@@ -91,20 +131,19 @@ class BrowserSavedTeamJsonTest {
 	void accountCreateAndImportRetriesKeepOneOwnedDocumentAndRejectForeignLoads() {
 		String account = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 		adapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
-		JsonObject input = request("create").add("draft", draft());
+		JsonObject input = request("create").add("draft", namedDraft());
 		JsonObject created = adapter.handle(account, input.toString());
 		assertEquals("OK", created.getString("code", ""));
 		JsonObject document = created.get("document").asObject();
-		assertEquals(2, document.getInt("formatVersion", 0));
+		assertEquals(3, document.getInt("formatVersion", 0));
 		assertEquals("account", document.get("owner").asObject().getString("namespace", ""));
 		assertEquals(document, adapter.handle(account, input.toString()).get("document"));
 		assertEquals(1, repository.rows.size());
-		assertEquals("CONFLICT", adapter.handle(account, request("create").add("draft", draft().set("captainId", com.eclipsesource.json.JsonValue.NULL)).toString()).getString("code", ""));
+		assertEquals("CONFLICT", adapter.handle(account, request("create").add("draft", namedDraft().set("captainId", com.eclipsesource.json.JsonValue.NULL)).toString()).getString("code", ""));
 		assertEquals("NOT_FOUND", adapter.handle("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", request("load").add("teamId", document.get("teamId")).toString()).getString("code", ""));
 		JsonObject imported = request("import").set("requestId", "import").add("document", document);
-		JsonObject saved = adapter.handle(account, imported.toString());
-		assertEquals(saved.get("document"), adapter.handle(account, imported.toString()).get("document"));
-		assertEquals(2, repository.rows.size());
+		assertEquals("MALFORMED_TEAM_REQUEST", adapter.handle(account, imported.toString()).getString("code", ""));
+		assertEquals(1, repository.rows.size());
 	}
 
 	@Test
@@ -246,6 +285,11 @@ class BrowserSavedTeamJsonTest {
 			if (fail) throw new SQLException("private DB details");
 			if (conflict || rows.get(record.teamId).documentVersion != expected) return false;
 			rows.put(record.teamId, record); return true;
+		}
+		public boolean delete(String owner, String teamId, int expected) {
+			Record record = find(owner, teamId);
+			if (record == null || record.documentVersion != expected) return false;
+			rows.remove(teamId); return true;
 		}
 	}
 }

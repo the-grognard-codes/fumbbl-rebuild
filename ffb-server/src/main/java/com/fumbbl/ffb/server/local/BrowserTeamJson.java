@@ -53,26 +53,37 @@ public final class BrowserTeamJson {
 	}
 
 	public TeamDraft decodeDraft(JsonObject draft) {
-		fields(draft, "catalogVersion", "ruleset", "rosterId", "presetId", "captainId", "players", "resources");
+		boolean legacy = draft.get("draftVersion") == null;
+		if (legacy) fields(draft, "catalogVersion", "ruleset", "rosterId", "presetId", "captainId", "players", "resources");
+		else {
+			fields(draft, "draftVersion", "teamName", "catalogVersion", "ruleset", "rosterId", "presetId", "captainId", "players", "resources");
+			if (draft.get("draftVersion").asInt() != TeamDraft.FORMAT_VERSION) throw new IllegalArgumentException("Unsupported draft version.");
+		}
 		JsonArray players = draft.get("players").asArray();
 		if (players.size() > 16) throw new IllegalArgumentException("Too many players.");
 		List<TeamDraft.Player> choices = new ArrayList<>();
 		for (JsonValue value : players) {
 			JsonObject player = value.asObject();
-			fields(player, "id", "slot", "positionId", "skillIds");
+			if (legacy) fields(player, "id", "slot", "positionId", "skillIds");
+			else fields(player, "id", "slot", "jerseyNumber", "playerName", "positionId", "skillIds");
 			JsonArray skillIds = player.get("skillIds").asArray();
 			if (skillIds.size() > 2) throw new IllegalArgumentException("Too many skills.");
 			List<String> skills = new ArrayList<>();
 			for (JsonValue skill : skillIds) skills.add(identifier(skill));
-			choices.add(new TeamDraft.Player(identifier(player.get("id")), player.get("slot").asInt(), identifier(player.get("positionId")), skills));
+			choices.add(legacy
+				? new TeamDraft.Player(identifier(player.get("id")), player.get("slot").asInt(), identifier(player.get("positionId")), skills)
+				: new TeamDraft.Player(identifier(player.get("id")), player.get("slot").asInt(), player.get("jerseyNumber").asInt(),
+					player.get("playerName").asString(), identifier(player.get("positionId")), skills));
 		}
 		JsonObject resources = draft.get("resources").asObject();
 		fields(resources, "rerolls", "assistantCoaches", "cheerleaders", "apothecary", "dedicatedFans");
 		Map<String, Integer> quantities = new LinkedHashMap<>();
 		for (String id : resources.names()) quantities.put(id, resources.get(id).asInt());
-		return new TeamDraft(identifier(draft.get("catalogVersion")), identifier(draft.get("ruleset")),
-			identifier(draft.get("rosterId")), identifier(draft.get("presetId")),
-			draft.get("captainId").isNull() ? null : identifier(draft.get("captainId")), choices, quantities);
+		String catalogVersion = identifier(draft.get("catalogVersion")), ruleset = identifier(draft.get("ruleset"));
+		String roster = identifier(draft.get("rosterId")), preset = identifier(draft.get("presetId"));
+		String captain = draft.get("captainId").isNull() ? null : identifier(draft.get("captainId"));
+		return legacy ? new TeamDraft(catalogVersion, ruleset, roster, preset, captain, choices, quantities)
+			: new TeamDraft(TeamDraft.FORMAT_VERSION, draft.get("teamName").asString(), catalogVersion, ruleset, roster, preset, captain, choices, quantities);
 	}
 
 	public JsonObject evaluate(String requestId, JsonObject draft) {
@@ -116,6 +127,6 @@ public final class BrowserTeamJson {
 
 	private JsonObject header(String type, String requestId) {
 		return new JsonObject().add("version", 1).add("type", type).add("requestId", requestId)
-			.add("catalogVersion", RosterCatalog.VERSION).add("ruleset", RosterCatalog.RULESET);
+			.add("catalogVersion", RosterCatalog.VERSION).add("ruleset", RosterCatalog.RULESET).add("draftVersion", TeamDraft.FORMAT_VERSION);
 	}
 }

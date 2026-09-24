@@ -9,6 +9,18 @@ test('saved documents preserve unknown catalog identifiers structurally', () => 
   assert.deepEqual(decodeSavedDocument(document), document);
   assert.equal(decodeSavedTeam(JSON.stringify(response)).versionStatus, 'MIGRATION_REQUIRED');
 });
+test('account documents and owner-scoped list labels retain named draft fields', () => {
+  const named = { ...draft, draftVersion: 2, teamName: 'The Moles', players: [
+    { id: 'one', slot: 1, jerseyNumber: 99, playerName: 'Mole One', positionId: 'lineman', skillIds: [] },
+    { id: 'two', slot: 2, jerseyNumber: 7, playerName: 'Mole Two', positionId: 'lineman', skillIds: [] },
+  ] };
+  const account = { ...document, formatVersion: 3, owner: { namespace: 'account', subject: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }, draft: named };
+  assert.deepEqual(decodeSavedDocument(account), account);
+  const list = { ...response, document: account, versionStatus: 'CURRENT', teams: [{ teamId: account.teamId, documentVersion: 1, catalogVersion: account.catalogVersion, teamName: named.teamName, rosterId: 'human', eligibility: 'CURRENT' }] };
+  assert.deepEqual(decodeSavedTeam(JSON.stringify(list)).teams, list.teams);
+  assert.throws(() => decodeSavedDocument({ ...account, draft: { ...named, players: [{ ...named.players[0], jerseyNumber: 7 }, named.players[1]] } }));
+  assert.throws(() => decodeSavedDocument({ ...account, draft: { ...named, teamName: ' Bad ' } }));
+});
 test('saved-team decoder fails closed for unknown fields, types and invalid metadata', () => {
   for (const invalid of [
     { ...response, unexpected: true }, { ...response, code: 'OTHER' }, { ...response, teams: [{}] },

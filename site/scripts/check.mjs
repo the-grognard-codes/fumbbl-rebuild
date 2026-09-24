@@ -14,8 +14,7 @@ const required = [
   'src/assets/site.css',
   'src/assets/auth-client.js',
   'src/assets/play.js',
-  'src/assets/teambuilder.js',
-  'src/assets/teambuilder.css'
+  'src/assets/teambuilder.js'
 ];
 
 for (const file of required) {
@@ -24,7 +23,9 @@ for (const file of required) {
 
 const login = await readFile(new URL('../src/login/index.html', import.meta.url), 'utf8');
 const play = await readFile(new URL('../src/assets/play.js', import.meta.url), 'utf8');
-if (login.includes('Microsoft') || !play.includes('gameWebSocketUrl')) {
+const builder = await readFile(new URL('../src/assets/teambuilder.js', import.meta.url), 'utf8');
+if (login.includes('Microsoft') || !play.includes('gameWebSocketUrl') || !builder.includes('mountBuilder')
+  || !builder.includes('gameEndpoint') || builder.includes('localStorage')) {
   throw new Error('The sign-in or play client inputs are incomplete.');
 }
 

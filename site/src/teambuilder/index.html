@@ -5,30 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Team Builder · Moles Under the Pitch</title>
-  <link rel="stylesheet" href="/assets/site.css?v=20260922-1">
-  <link rel="stylesheet" href="/assets/teambuilder.css">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/game/game.css">
 </head>
 <body>
   <header class="site-header"><a class="brand" href="/"><img src="/assets/brand-package-v4/moles-under-the-pitch-logo.svg" alt="Moles Under the Pitch"></a><nav aria-label="Primary navigation"><a href="/teambuilder" aria-current="page">Team Builder</a><a href="/play">Play</a><a href="/updates">Updates</a><a href="/support">Support</a></nav></header>
-  <main class="builder-shell">
-    <div class="builder-heading"><div><p class="kicker">BB2025 · Roster Workshop</p><h1>Build Your Team</h1><p>Create a Human or Orc roster, then validate and export its versioned definition.</p></div></div>
-    <section class="builder-controls panel" aria-label="Team Options">
-      <label>Team Name <input id="team-name" maxlength="50" placeholder="The Moles" autocomplete="off"></label>
-      <label>Team <select id="roster-select"><option value="human">Human</option><option value="orc">Orc</option></select></label>
-      <label>Creation mode <select id="mode-select"><option value="rookie">Rookie League · 1,000,000 GP</option><option value="freeform">Free Form · no budget cap</option></select></label>
-      <button id="toggle-details" class="button secondary" type="button" aria-expanded="true">Hide Team Details</button>
-    </section>
-    <section id="team-details" class="panel team-details" aria-label="Team details"></section>
-    <div class="builder-grid">
-      <section class="panel recruitment"><h2>Recruit Players</h2><div id="position-list"></div></section>
-      <aside class="panel value-panel"><h2>Roster Value</h2><dl id="value-breakdown"></dl><p id="treasury" class="treasury"></p><div id="validation-summary" role="status"></div></aside>
-    </div>
-    <section class="panel roster-panel"><div class="section-heading"><div><h2>Editable Roster</h2><p>Numbers must be unique from 1–99. Drag-free ordering controls keep the page keyboard friendly.</p></div><div class="roster-actions"><div id="saved-team" class="saved-team" aria-live="polite"></div><button id="validate" class="button" type="button">Validate Roster</button></div></div><div id="roster" class="roster" aria-live="polite"></div></section>
-    <section class="panel resources"><h2>Sideline And Resources</h2><div id="resource-list"></div></section>
-    <section class="builder-actions panel"><div><button id="save" class="button" type="button" disabled>Export &amp; download JSON</button><button id="copy-id" class="button secondary" type="button" disabled>Copy export UUID</button></div><div><label class="import-label">Import team JSON <input id="import-file" type="file" accept="application/json,.json"></label><button id="reset" class="button secondary" type="button">Reset roster</button><button id="discard" class="button secondary" type="button">Discard in-progress roster</button></div></section>
-    <section id="validation-errors" class="panel validation-errors" hidden aria-live="assertive"><h2>Fix Before Saving</h2><ul></ul></section>
-  </main>
-  <footer><span>© 2026 Moles Under the Pitch</span><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/support">Support</a></footer>
+  <p id="builder-status" role="status">Checking sign-in…</p>
+  <div id="builder-root"></div>
+  <script src="/firebase-web-config.js"></script>
   <script type="module" src="/assets/teambuilder.js"></script>
 </body>
 </html>

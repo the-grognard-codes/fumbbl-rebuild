@@ -32,7 +32,7 @@ public final class SavedTeamJson {
 		JsonObject object = JsonObject.readFrom(text);
 		fields(object, "formatVersion", "teamId", "documentVersion", "ruleset", "catalogVersion", "owner", "draft", "validation");
 		int format = object.get("formatVersion").asInt();
-		if (format != 1 && format != 2) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
+		if (format != 1 && format != 2 && format != 3) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
 		String id = teamId(object.get("teamId"));
 		int version = documentVersion(object.get("documentVersion"));
 		JsonObject owner = object.get("owner").asObject();
@@ -43,6 +43,7 @@ public final class SavedTeamJson {
 			throw new IllegalArgumentException("Unsupported owner metadata");
 		}
 		TeamDraft draft = draft(object.get("draft").asObject());
+		if ((format == 3) != (draft.draftVersion == TeamDraft.FORMAT_VERSION)) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
 		if (!draft.catalogVersion.equals(object.get("catalogVersion").asString()) || !draft.ruleset.equals(object.get("ruleset").asString())) {
 			throw new IllegalArgumentException("Inconsistent catalog metadata");
 		}
@@ -58,7 +59,7 @@ public final class SavedTeamJson {
 	}
 	public JsonObject encode(SavedTeamDocument document) {
 		boolean local = "home".equals(document.owner) || "away".equals(document.owner);
-		return new JsonObject().add("formatVersion", local ? 1 : 2).add("teamId", document.teamId)
+		return new JsonObject().add("formatVersion", document.draft.draftVersion == TeamDraft.FORMAT_VERSION ? 3 : local ? 1 : 2).add("teamId", document.teamId)
 			.add("documentVersion", document.documentVersion).add("ruleset", document.draft.ruleset)
 			.add("catalogVersion", document.draft.catalogVersion)
 			.add("owner", new JsonObject().add("namespace", local ? "local" : "account").add("subject", document.owner))
@@ -69,12 +70,16 @@ public final class SavedTeamJson {
 		for (TeamDraft.Player player : draft.players) {
 			JsonArray skills = new JsonArray();
 			for (String skill : player.skillIds) skills.add(skill);
-			players.add(new JsonObject().add("id", player.id).add("slot", player.slot).add("positionId", player.positionId).add("skillIds", skills));
+			JsonObject choice = new JsonObject().add("id", player.id).add("slot", player.slot).add("positionId", player.positionId).add("skillIds", skills);
+			if (draft.draftVersion == TeamDraft.FORMAT_VERSION) choice.add("jerseyNumber", player.jerseyNumber).add("playerName", player.playerName);
+			players.add(choice);
 		}
 		JsonObject resources = new JsonObject();
 		for (String id : new String[] {"rerolls", "assistantCoaches", "cheerleaders", "apothecary", "dedicatedFans"}) resources.add(id, draft.resources.get(id));
-		return new JsonObject().add("catalogVersion", draft.catalogVersion).add("ruleset", draft.ruleset).add("rosterId", draft.rosterId)
+		JsonObject result = new JsonObject().add("catalogVersion", draft.catalogVersion).add("ruleset", draft.ruleset).add("rosterId", draft.rosterId)
 			.add("presetId", draft.presetId).add("captainId", draft.captainId).add("players", players).add("resources", resources);
+		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) result.add("draftVersion", draft.draftVersion).add("teamName", draft.teamName);
+		return result;
 	}
 	public JsonObject evaluation(TeamValidation.Evaluation evaluation) {
 		JsonArray messages = new JsonArray();

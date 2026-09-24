@@ -63,6 +63,9 @@ class V2PreparationServiceTest {
 		JsonObject response = service.handle(account, create("create_1", teamId));
 		assertEquals("ACCEPTED", response.getString("code", null));
 		assertEquals("home", response.getString("callerRole", null));
+		assertEquals(3, response.get("document").asObject().getInt("formatVersion", -1));
+		assertEquals("The Moles", response.get("document").asObject().get("home").asObject().getString("teamName", null));
+		assertEquals(1, response.get("document").asObject().get("home").asObject().get("roster").asObject().get("players").asArray().get(0).asObject().getInt("jerseyNumber", -1));
 		assertTrue(response.getString("invitationCode", "").matches("[A-Za-z0-9_-]{22}"));
 		assertEquals("away", response.get("document").asObject().get("invitation").asObject().getString("intendedOpponent", null));
 		verify(connection).commit(); verify(connection, never()).rollback();
@@ -116,7 +119,7 @@ class V2PreparationServiceTest {
 
 	private SavedTeamService teamService(RosterCatalog catalog, String account) throws SQLException {
 		MemoryTeams repository = new MemoryTeams(); SavedTeamService service = new SavedTeamService(repository, catalog);
-		service.create(account, draft(catalog)); return service;
+		service.create(account, "seed", namedDraft(catalog)); return service;
 	}
 
 	private JsonObject create(String requestId, String teamId) { return new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "create").add("requestId", requestId).add("teamId", teamId).add("expectedDocumentVersion", 1); }
@@ -124,6 +127,30 @@ class V2PreparationServiceTest {
 		List<TeamDraft.Player> players = new ArrayList<>(); for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("player" + slot, slot, "lineman", Collections.emptyList()));
 		Map<String, Integer> resources = new LinkedHashMap<>(); for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
 		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "player1", players, resources);
+	}
+	@Test
+	void namedFrozenMatchRoundTripsWithoutReadingSourceTeam() {
+		RosterCatalog catalog = new RosterCatalog(); TeamDraft draft = namedDraft(catalog);
+		FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000, 0, catalog);
+		FrozenTeam away = new FrozenTeam("00000000-0000-0000-0000-000000000012", 1, "away", draft, 550000, 0, catalog);
+		String matchId = "00000000-0000-0000-0000-000000000021";
+		Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
+		history.put("home\ncreate_1", new MatchDocument.Request("create|00000000-0000-0000-0000-000000000011|1|away"));
+		MatchDocument waiting = new MatchDocument(matchId, 1, "away", MatchDocument.Lifecycle.WAITING_FOR_OPPONENT,
+			new MatchDocument.Member("home", "home", home), null, history);
+		MatchDocument joined = waiting.joined(new MatchDocument.Member("away", "away", away), "away\njoin_1",
+			"join|" + matchId + "|1|00000000-0000-0000-0000-000000000012|1");
+		MatchJson json = new MatchJson(); MatchDocument reloaded = json.decode(json.encode(joined).toString(), 2);
+		assertEquals("The Moles", reloaded.home.team.teamName);
+		assertEquals("Player 1", reloaded.away.team.players.get(0).playerName);
+		assertEquals(1, reloaded.away.team.players.get(0).jerseyNumber);
+		assertEquals(3, json.publicDocument(reloaded).getInt("formatVersion", -1));
+	}
+	private TeamDraft namedDraft(RosterCatalog catalog) {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("player" + slot, slot, slot, "Player " + slot, "lineman", Collections.emptyList()));
+		return new TeamDraft(TeamDraft.FORMAT_VERSION, "The Moles", RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET,
+			"player1", players, draft(catalog).resources);
 	}
 
 	private static final class MemoryTeams implements SavedTeamRepository {
