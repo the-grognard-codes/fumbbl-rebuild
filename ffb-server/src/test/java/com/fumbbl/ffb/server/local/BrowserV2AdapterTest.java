@@ -82,7 +82,7 @@ class BrowserV2AdapterTest {
 
 		assertEquals("NOT_FOUND", code(connection, 1));
 		assertEquals("NOT_FOUND", code(connection, 2));
-		verify(setup, never()).handle(any(String.class), any(JsonObject.class));
+		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
 	}
 
 	@Test void replacedConnectionCannotReauthenticateOrProcessQueuedMessages() throws Exception {
@@ -102,6 +102,31 @@ class BrowserV2AdapterTest {
 		assertEquals("ACCEPTED", code(newer, 0));
 	}
 
+	@Test void replacingAConnectionRemovesItsLiveMatchSubscription() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		when(access.require(eq(actor), eq(ApplicationScope.PLAYER))).thenReturn(actor);
+		when(access.playerRole(actor, MATCH)).thenReturn("home");
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH).add("phase", "PLAY"));
+		SetupApplication.HandleOutcome change = outcome(new JsonObject().add("code", "ACCEPTED")
+			.add("state", new JsonObject().add("matchId", MATCH).add("phase", "PLAY")), true);
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenReturn(change);
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : spectator, access, setup);
+		Connection player = new Connection(), older = new Connection(), newer = new Connection();
+		adapter.receive(player, authenticate("a", "actor").toString());
+		adapter.receive(older, authenticate("old", "viewer").toString());
+		adapter.receive(older, request("watch", "watch").add("matchId", MATCH).toString());
+		adapter.receive(newer, authenticate("new", "viewer").toString());
+		assertEquals("CONNECTION_REPLACED", code(older, 2));
+		adapter.receive(player, setup("change").set("operation", "saveRequest").toString());
+		assertEquals(3, older.messages.size());
+		assertEquals(1, newer.messages.size());
+		assertEquals(2, player.messages.size());
+		verify(access, never()).require(spectator, ApplicationScope.SPECTATOR);
+	}
+
 	@Test void broadcastRechecksRecipientAccessAndWithholdsStateWhenItIsNoLongerAuthorized() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		AuthenticatedPrincipal source = principal(FIRST, ApplicationScope.PLAYER);
@@ -110,8 +135,10 @@ class BrowserV2AdapterTest {
 		when(access.playerRole(eq(source), eq(MATCH))).thenReturn("home");
 		when(access.playerRole(eq(recipient), eq(MATCH))).thenReturn("away").thenThrow(new MatchService.Failure("AUTHENTICATION_REQUIRED"));
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.handle(any(String.class), any(JsonObject.class))).thenAnswer(call -> new JsonObject().add("code", "ACCEPTED")
-			.add("state", new JsonObject().add("matchId", MATCH).add("phase", "PLAY")));
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call ->
+			outcome(new JsonObject().add("code", "ACCEPTED")
+				.add("state", new JsonObject().add("matchId", MATCH).add("phase", "PLAY")),
+				!"load".equals(((JsonObject) call.getArgument(1)).getString("operation", ""))));
 		BrowserV2Adapter adapter = adapter(bearer -> "first".equals(bearer) ? source : recipient, access, setup);
 		Connection first = new Connection(), second = new Connection();
 
@@ -135,9 +162,14 @@ class BrowserV2AdapterTest {
 		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
 		when(access.playerRole(home, MATCH)).thenReturn("home"); when(access.playerRole(away, MATCH)).thenReturn("away");
 		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("code", "ACCEPTED").add("duplicate", true)
+				.add("state", new JsonObject().add("matchId", MATCH).add("phase", "FULL_TIME")),
+				"reconcile".equals(request.getString("requestId", "")));
+		});
 		when(setup.handle(any(String.class), any(JsonObject.class))).thenAnswer(call -> new JsonObject().add("code", "ACCEPTED")
-			.add("duplicate", true).add("state", new JsonObject().add("matchId", MATCH).add("phase", "FULL_TIME")));
-		when(setup.takeCompletionBroadcast(MATCH)).thenReturn(false, true, false);
+			.add("duplicate", false).add("state", new JsonObject().add("matchId", MATCH).add("phase", "FULL_TIME")));
 		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : away, access, setup);
 		Connection first = new Connection(), second = new Connection();
 		adapter.receive(first, authenticate("a", "home").toString()); adapter.receive(second, authenticate("b", "away").toString());
@@ -194,6 +226,79 @@ class BrowserV2AdapterTest {
 		assertFalse(creator.messages.get(2).contains(MATCH));
 		adapter.receive(opponent, request("preparedMatch", "retry").add("operation", "join").toString());
 		assertEquals(3, creator.messages.size());
+	}
+
+	private SetupApplication.HandleOutcome outcome(JsonObject response, boolean publish) {
+		SetupApplication.HandleOutcome outcome = mock(SetupApplication.HandleOutcome.class);
+		when(outcome.response()).thenReturn(response);
+		when(outcome.publish()).thenReturn(publish);
+		return outcome;
+	}
+
+	@Test void authorizedSpectatorReceivesFinalPublicFrameThenLeavesLiveViewerSet() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		when(access.require(eq(actor), eq(ApplicationScope.PLAYER))).thenReturn(actor);
+		when(access.require(eq(spectator), eq(ApplicationScope.SPECTATOR))).thenReturn(spectator);
+		when(access.playerRole(actor, MATCH)).thenReturn("home");
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH).add("phase", "PLAY"));
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call ->
+			outcome(new JsonObject().add("code", "ACCEPTED").add("duplicate", false)
+				.add("state", new JsonObject().add("matchId", MATCH).add("phase", "FULL_TIME").add("callerRole", "home")), true));
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : spectator, access, setup);
+		Connection player = new Connection(), viewer = new Connection();
+		adapter.receive(player, authenticate("actor-auth", "actor").toString());
+		adapter.receive(viewer, authenticate("viewer-auth", "viewer").toString());
+		adapter.receive(viewer, request("watch", "watch").add("matchId", MATCH).toString());
+		adapter.receive(player, setup("finish").set("operation", "confirm").toString());
+
+		assertEquals(3, viewer.messages.size());
+		JsonObject finalFrame = JsonObject.readFrom(viewer.messages.get(2));
+		assertEquals("spectator", finalFrame.get("state").asObject().getString("callerRole", null));
+		assertTrue(finalFrame.get("requestId").isNull());
+		adapter.receive(player, setup("retry").set("operation", "confirm").toString());
+		assertEquals(3, viewer.messages.size());
+		verify(access, times(1)).spectatorSnapshot(spectator, MATCH);
+		verify(access, times(1)).require(spectator, ApplicationScope.SPECTATOR);
+	}
+
+	@Test void revokedSpectatorIsRemovedWithoutPreventingAuthorizedPeerUpdate() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal peer = principal(SECOND, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal("cccccccc-cccc-cccc-cccc-cccccccccccc", ApplicationScope.SPECTATOR);
+		when(access.require(eq(actor), eq(ApplicationScope.PLAYER))).thenReturn(actor);
+		when(access.require(eq(peer), eq(ApplicationScope.PLAYER))).thenReturn(peer);
+		when(access.require(eq(spectator), eq(ApplicationScope.SPECTATOR))).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		when(access.playerRole(actor, MATCH)).thenReturn("home");
+		when(access.playerRole(peer, MATCH)).thenReturn("away");
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH).add("phase", "PLAY"));
+		when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("code", "ACCEPTED").add("duplicate", false)
+				.add("state", new JsonObject().add("matchId", MATCH).add("phase", "PLAY")),
+				!"load".equals(request.getString("operation", "")));
+		});
+		when(setup.handle(any(String.class), any(JsonObject.class))).thenReturn(new JsonObject().add("code", "ACCEPTED")
+			.add("state", new JsonObject().add("matchId", MATCH).add("phase", "PLAY")));
+		BrowserV2Adapter adapter = adapter(bearer -> "actor".equals(bearer) ? actor : "peer".equals(bearer) ? peer : spectator, access, setup);
+		Connection player = new Connection(), other = new Connection(), viewer = new Connection();
+		adapter.receive(player, authenticate("a", "actor").toString());
+		adapter.receive(other, authenticate("b", "peer").toString());
+		adapter.receive(viewer, authenticate("c", "viewer").toString());
+		adapter.receive(other, setup("subscribe").toString());
+		adapter.receive(viewer, request("watch", "watch").add("matchId", MATCH).toString());
+		adapter.receive(player, setup("change").set("operation", "saveRequest").toString());
+
+		assertEquals("VIEW_UNAVAILABLE", code(viewer, 2));
+		assertFalse(viewer.messages.get(2).contains(MATCH));
+		assertEquals("ACCEPTED", code(other, 2));
+		adapter.receive(player, setup("again").set("operation", "saveCancel").toString());
+		assertEquals(3, viewer.messages.size());
+		assertEquals(4, other.messages.size());
 	}
 
 	private JsonObject preparedResponse() { return new JsonObject().add("type", "preparedMatch").add("code", "ACCEPTED").add("document", new JsonObject().add("matchId", MATCH)); }
