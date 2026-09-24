@@ -71,11 +71,11 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
-      await page.getByRole('button', { name: 'Add player' }).waitFor();
+      await page.getByRole('button', { name: 'Add Human Lineman' }).waitFor();
     }
     await pages[0].getByLabel('Team name').fill('The Moles');
-    for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add player' }).click();
-    await pages[0].getByRole('button', { name: 'Validate draft on server' }).click();
+    for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Human Lineman' }).click();
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
     await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Moles/).waitFor();
