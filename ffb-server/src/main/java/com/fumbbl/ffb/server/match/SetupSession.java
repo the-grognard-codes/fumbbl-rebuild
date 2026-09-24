@@ -295,6 +295,12 @@ public final class SetupSession {
 		if (!saveResumeState.suspended()) saveResumeState.lastPlayerActivityAt = now;
 	}
 
+	/** An expired proposal must not be shown again when a saved match is loaded. */
+	public void expireSaveResumeProposal(long now) {
+		if (saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt)
+			saveResumeState.proposal = null;
+	}
+
 	/** The save protocol performs no engine command and consumes no dice. */
 	public JsonObject saveResume(String role, JsonObject request, long now) {
 		if (!saveResume) throw new MatchService.Failure("SAVE_RESUME_UNAVAILABLE");
@@ -310,7 +316,7 @@ public final class SetupSession {
 		if (isComplete()) throw new MatchService.Failure("MATCH_COMPLETED");
 		if (saveResumeState.abandoned) throw new MatchService.Failure("MATCH_ABANDONED");
 		String operation = request.getString("operation", null);
-		if (saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt) saveResumeState.proposal = null;
+		expireSaveResumeProposal(now);
 		if (saveResumeState.history.size() >= SaveResumeState.HISTORY_LIMIT) throw new MatchService.Failure("SAVE_HISTORY_LIMIT");
 		if (request.get("expectedRevision").asInt() != revision) throw new MatchService.Failure("STALE_REVISION");
 		if ("saveRequest".equals(operation)) {
@@ -652,9 +658,11 @@ public final class SetupSession {
 			lastPlayerActivityAt = json.get("lastPlayerActivityAt").asLong();
 			suspendedAt = json.get("suspendedAt").asLong();
 			abandoned = json.get("abandoned").asBoolean();
-			if (lastPlayerActivityAt < 0 || suspendedAt < -1 || (abandoned && suspendedAt >= 0)) throw new IllegalArgumentException("Invalid save retention state");
+			if (lastPlayerActivityAt < 0 || suspendedAt < -1) throw new IllegalArgumentException("Invalid save retention state");
 			if (!json.get("proposal").isNull()) proposal = new Proposal(json.get("proposal").asObject());
-			if (proposal != null && suspendedAt >= 0) throw new IllegalArgumentException("Suspended match cannot have a proposal");
+			if (abandoned && proposal != null) throw new IllegalArgumentException("Abandoned match cannot have a proposal");
+			if (proposal != null && ((suspendedAt >= 0) != "RESUME".equals(proposal.intent)))
+				throw new IllegalArgumentException("Save/resume proposal does not match suspension state");
 			for (JsonValue item : json.get("history").asArray()) {
 				JsonObject entry = item.asObject();
 				exact(entry, "key", "fingerprint", "code");
@@ -675,7 +683,7 @@ public final class SetupSession {
 		}
 
 		JsonObject publicJson() {
-			String status = abandoned ? "ABANDONED" : suspended() ? "SUSPENDED" : proposal == null ? "ACTIVE" : proposal.intent + "_PENDING";
+			String status = abandoned ? "ABANDONED" : proposal != null ? proposal.intent + "_PENDING" : suspended() ? "SUSPENDED" : "ACTIVE";
 			JsonValue proposalId = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.id);
 			JsonValue proposer = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.proposer);
 			JsonValue expiresAt = proposal == null ? JsonValue.NULL : JsonValue.valueOf(proposal.expiresAt);
