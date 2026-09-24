@@ -238,6 +238,7 @@ public final class SetupApplication {
 				release(id);
 				return failure(requestId, "MATCH_ABANDONED");
 			}
+			session.expireSaveResumeProposal(clock.millis());
 			JsonObject response;
 			try {
 				String operation = request.getString("operation", null);
