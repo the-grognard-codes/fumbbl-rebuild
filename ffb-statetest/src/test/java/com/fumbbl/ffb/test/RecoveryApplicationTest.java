@@ -86,7 +86,6 @@ class RecoveryApplicationTest {
 			accepted(onWorker(() -> application.activate("home", activate(id, "activate").toString())));
 			JsonObject last = finish(application, id); String role = last.getString("testRole", null); last.remove("testRole");
 			assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
-			assertTrue(application.takeCompletionBroadcast(id));
 			RecoveryRepository.Record durable = recovery.find(id);
 			checkpointBytes = Math.max(checkpointBytes, durable.json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
 			replayBytes = Math.max(replayBytes, matches.result("home", id).json().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
@@ -95,7 +94,6 @@ class RecoveryApplicationTest {
 			assertTrue(accepted(onWorker(() -> application.handle(role, last))).getBoolean("duplicate", false));
 			assertEquals(durable.json, recovery.find(id).json); assertEquals(durable.generation, recovery.find(id).generation);
 			assertEquals("MATCH_COMPLETED", onWorker(() -> application.handle(role, JsonObject.readFrom(last.toString()).set("requestId", "fresh"))).getString("code", null));
-			assertFalse(application.takeCompletionBroadcast(id));
 			// A deliberately blocked async recipient must disconnect without retaining messages or touching durable work.
 			SlowSink sink = new SlowSink();
 			com.fumbbl.ffb.server.local.BrowserMatchDelivery delivery = new com.fumbbl.ffb.server.local.BrowserMatchDelivery(sink, measuredTransport.getMetrics(), 64, 256 * 1024);
@@ -183,7 +181,6 @@ class RecoveryApplicationTest {
 			JsonObject last = finish(application, next.id);
 			String role = last.getString("testRole", null); last.remove("testRole");
 			assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
-			assertTrue(application.takeCompletionBroadcast(next.id));
 			String checkpoint = fixture.recovery.rows.get(next.id).json;
 			checkpointBytes = Math.max(checkpointBytes, checkpoint.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
 			replayBytes = Math.max(replayBytes, fixture.matches.result("home", next.id).json().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
@@ -192,7 +189,6 @@ class RecoveryApplicationTest {
 			long reconnectStarted = System.nanoTime();
 			accepted(application.handle("away", load(next.id, "reconnect")));
 			reconnectNanos.add(System.nanoTime() - reconnectStarted);
-			assertFalse(application.takeCompletionBroadcast(next.id));
 			assertEquals("MATCH_COMPLETED", application.handle(role, JsonObject.readFrom(last.toString()).set("requestId", "new-action")).getString("code", null));
 			assertEquals("REQUEST_ID_REUSED", application.handle(role, JsonObject.readFrom(last.toString()).set("actionId", "different")).getString("code", null));
 			assertTrue(application.activate("home", activate(next.id, "activate").toString()).getBoolean("duplicate", false));
@@ -220,13 +216,17 @@ class RecoveryApplicationTest {
 		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
 		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
 		fixture.repository.failCompletion = true;
-		finish(application, fixture.id);
+		JsonObject terminalRequest = finish(application, fixture.id);
+		String terminalRole = terminalRequest.getString("testRole", null); terminalRequest.remove("testRole");
 		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
-		assertFalse(application.takeCompletionBroadcast(fixture.id));
+		SetupApplication.HandleOutcome failed = application.handleWithOutcome(terminalRole, terminalRequest);
+		assertEquals("PERSISTENCE_FAILED", failed.response().getString("code", null));
+		assertFalse(failed.publish());
 		fixture.repository.failCompletion = false;
-		accepted(application.handle("home", load(fixture.id, "reconcile")));
+		SetupApplication.HandleOutcome reconciled = application.handleWithOutcome("home", load(fixture.id, "reconcile"));
+		accepted(reconciled.response());
+		assertTrue(reconciled.publish());
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
-		assertTrue(application.takeCompletionBroadcast(fixture.id));
 	}
 
 	@Test void ambiguousCompletionCommitReconcilesRetryAndBroadcastWithoutAnotherWrite() throws Exception {
@@ -238,17 +238,19 @@ class RecoveryApplicationTest {
 		JsonObject last = finish(application, fixture.id);
 		String role = last.getString("testRole", null); last.remove("testRole");
 		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
-		assertFalse(application.takeCompletionBroadcast(fixture.id));
 		int writes = fixture.recovery.writes;
 		clock.now = 31 * 60 * 1000L;
-		assertEquals("MATCH_COMPLETED", application.handle(role, JsonObject.readFrom(last.toString()).set("requestId", "fresh")).getString("code", null));
-		assertFalse(application.takeCompletionBroadcast(fixture.id));
+		SetupApplication.HandleOutcome fresh = application.handleWithOutcome(role, JsonObject.readFrom(last.toString()).set("requestId", "fresh"));
+		assertEquals("MATCH_COMPLETED", fresh.response().getString("code", null));
+		assertFalse(fresh.publish());
 		assertEquals(1, application.lifecycleMetrics().getInt("residentSessions", -1));
-		assertTrue(accepted(application.handle(role, last)).getBoolean("duplicate", false));
-		assertTrue(application.takeCompletionBroadcast(fixture.id));
+		SetupApplication.HandleOutcome reconciled = application.handleWithOutcome(role, last);
+		assertTrue(accepted(reconciled.response()).getBoolean("duplicate", false));
+		assertTrue(reconciled.publish());
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
-		assertTrue(accepted(application.handle(role, last)).getBoolean("duplicate", false));
-		assertFalse(application.takeCompletionBroadcast(fixture.id));
+		SetupApplication.HandleOutcome repeated = application.handleWithOutcome(role, last);
+		assertTrue(accepted(repeated.response()).getBoolean("duplicate", false));
+		assertFalse(repeated.publish());
 		assertEquals(writes, fixture.recovery.writes);
 		assertTrue(accepted(app(fixture).handle(role, last)).getBoolean("duplicate", false));
 	}
@@ -265,7 +267,6 @@ class RecoveryApplicationTest {
 		accepted(application.activate("home", activate(completed.id, "activate").toString()));
 		JsonObject terminalRequest = finish(application, completed.id);
 		String terminalRole = terminalRequest.getString("testRole", null); terminalRequest.remove("testRole");
-		assertTrue(application.takeCompletionBroadcast(completed.id));
 		for (int index = 1; index < 32; index++) {
 			Fixture next = fixture(); fixture.repository.rows.putAll(next.repository.rows);
 			accepted(application.activate("home", activate(next.id, "activate").toString()));
@@ -498,6 +499,30 @@ class RecoveryApplicationTest {
 		assertEquals("MATCH_ABANDONED", restarted.handle("home", load(fixture.id, "expired")).getString("code", null));
 		JsonObject payload = JsonObject.readFrom(fixture.recovery.rows.get(fixture.id).json).get("payload").asObject();
 		assertTrue(payload.get("saveResume").asObject().getBoolean("abandoned", false));
+	}
+
+	@Test void publicationDecisionFollowsAcceptedChangesAndSuppressesReadsAndDuplicates() throws Exception {
+		Fixture fixture = fixture(); MutableClock clock = new MutableClock(1_700_000_000_000L);
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		SetupApplication.HandleOutcome loaded = application.handleWithOutcome("home", load(fixture.id, "load"));
+		JsonObject view = accepted(loaded.response()).get("state").asObject();
+		assertFalse(loaded.publish());
+		JsonObject proposalRequest = save(fixture.id, "save-request", view, "saveRequest", null);
+		SetupApplication.HandleOutcome proposed = application.handleWithOutcome("home", proposalRequest);
+		JsonObject proposedState = accepted(proposed.response()).get("state").asObject();
+		assertTrue(proposed.publish());
+		SetupApplication.HandleOutcome duplicate = application.handleWithOutcome("home", proposalRequest);
+		assertTrue(accepted(duplicate.response()).getBoolean("duplicate", false));
+		assertFalse(duplicate.publish());
+		String proposal = proposedState.get("saveResume").asObject().getString("proposalId", null);
+		SetupApplication.HandleOutcome cancelled = application.handleWithOutcome("home",
+			save(fixture.id, "save-cancel", view, "saveCancel", proposal));
+		accepted(cancelled.response());
+		assertTrue(cancelled.publish());
+		SetupApplication.HandleOutcome changed = application.handleWithOutcome(actor(view), choice(fixture.id, "coin", view, "heads"));
+		accepted(changed.response());
+		assertTrue(changed.publish());
 	}
 
 	@Test void lostSaveAcceptanceAcknowledgementReconcilesWithoutASecondSuspension() throws Exception {

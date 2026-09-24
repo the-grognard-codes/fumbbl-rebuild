@@ -27,12 +27,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final V2PrincipalAuthenticator authenticator;
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
+	private final ActiveMatchPublisher publisher;
 	private final MatchService matches;
 	private final V2PreparationService preparation;
 	private final BrowserSavedTeamJson teams;
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserMatchAdapter.Connection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
-	private final Map<BrowserMatchAdapter.Connection, Subscription> subscriptions = new LinkedHashMap<>();
 	private final Map<BrowserMatchAdapter.Connection, String> preparationSubscriptions = new LinkedHashMap<>();
 	private final Set<BrowserMatchAdapter.Connection> retired = Collections.newSetFromMap(new WeakHashMap<BrowserMatchAdapter.Connection, Boolean>());
 
@@ -40,6 +40,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		MatchService matches, V2PreparationService preparation, BrowserSavedTeamJson teams) {
 		this.authenticator = authenticator; this.access = access; this.setup = setup;
 		this.matches = matches; this.preparation = preparation; this.teams = teams;
+		this.publisher = new ActiveMatchPublisher(access, setup);
 	}
 
 	@Override public synchronized void receive(BrowserMatchAdapter.Connection connection, String text) {
@@ -78,11 +79,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if ("watch".equals(type)) {
 				fields(request, "version", "type", "requestId", "matchId");
 				String id = request.get("matchId").asString();
-				access.spectatorSnapshot(principal, id);
-				JsonObject state = setup.spectatorView(id);
-				subscriptions.put(connection, new Subscription(id, true));
+				JsonObject state = publisher.watch(connection, principal, id, requestId);
 				preparationSubscriptions.remove(connection);
-				send(connection, state(requestId, state)); return;
+				send(connection, state); return;
 			}
 			principal = access.require(principal, ApplicationScope.PLAYER);
 			request.set("version", 1); // Internal R2 contract remains version 1.
@@ -90,17 +89,14 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if ("setup".equals(type)) {
 				String id = request.get("matchId").asString();
 				String role = access.playerRole(principal, id);
-				response = setup.handle(role, request);
+				SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(role, request);
+				response = outcome.response();
 				if ("ACCEPTED".equals(response.getString("code", ""))) {
-					subscriptions.put(connection, new Subscription(id, false));
+					publisher.enrollPlayer(connection, principal, id);
 					preparationSubscriptions.remove(connection);
 				}
 				send(connection, response);
-				if ("ACCEPTED".equals(response.getString("code", ""))) {
-					boolean completedNow = setup.takeCompletionBroadcast(id);
-					if (completedNow || !"load".equals(request.getString("operation", ""))
-						&& !response.getBoolean("duplicate", false)) broadcast(id, connection, response.get("state").asObject());
-				}
+				if (outcome.publish()) publisher.publish(id, connection, response.get("state").asObject());
 				return;
 			} else if ("preparedMatch".equals(type)) {
 				String operation = request.getString("operation", "");
@@ -125,7 +121,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if ("preparedMatch".equals(type) && "ACCEPTED".equals(response.getString("code", ""))) {
 				String id = response.get("document").asObject().getString("matchId", null);
 				preparationSubscriptions.put(connection, id);
-				subscriptions.remove(connection);
+				publisher.remove(connection);
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
@@ -148,44 +144,16 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		}
 	}
 
-	private void broadcast(String matchId, BrowserMatchAdapter.Connection source, JsonObject publicState) {
-		for (BrowserMatchAdapter.Connection connection : new java.util.ArrayList<>(subscriptions.keySet())) {
-			Subscription subscription = subscriptions.get(connection);
-			if (connection == source || !matchId.equals(subscription.matchId)) continue;
-			try {
-				AuthenticatedPrincipal principal = principals.get(connection);
-				if (subscription.spectator) {
-					// This subscription was admitted while active. Deliver the final public frame too;
-					// completed matches remain absent from browse/watch and no replay route is added.
-					access.require(principal, ApplicationScope.SPECTATOR);
-					send(connection, state(null, JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator")));
-					if ("FULL_TIME".equals(publicState.getString("phase", ""))) subscriptions.remove(connection);
-				} else {
-					String role = access.playerRole(principal, matchId);
-					JsonObject response = setup.handle(role, new JsonObject().add("version", 1).add("type", "setup")
-						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId));
-					response.set("requestId", JsonValue.NULL); send(connection, response);
-				}
-			} catch (SQLException | MatchService.Failure denied) {
-				subscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE");
-			}
-		}
-	}
-
 	@Override public synchronized void disconnect(BrowserMatchAdapter.Connection connection) {
-		principals.remove(connection); subscriptions.remove(connection); preparationSubscriptions.remove(connection);
+		principals.remove(connection); publisher.remove(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserMatchAdapter.Connection connection) {
 		principals.remove(connection);
-		subscriptions.remove(connection);
+		publisher.remove(connection);
 		preparationSubscriptions.remove(connection);
 		retired.add(connection);
 		fail(connection, null, "CONNECTION_REPLACED");
 		connection.close(1008, "Connection replaced by a newer authenticated session");
-	}
-	private JsonObject state(String requestId, JsonObject state) {
-		return new JsonObject().add("type", "setupState").add("requestId", requestId == null ? JsonValue.NULL : JsonValue.valueOf(requestId))
-			.add("code", "ACCEPTED").add("duplicate", false).add("state", state);
 	}
 	private void send(BrowserMatchAdapter.Connection connection, JsonObject response) { connection.send(response.set("version", 2).toString()); }
 	private void fail(BrowserMatchAdapter.Connection connection, String id, String code) {
@@ -193,9 +161,5 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 	private void fields(JsonObject request, String... allowed) {
 		if (request.size() != allowed.length || !new HashSet<>(request.names()).equals(new HashSet<>(Arrays.asList(allowed)))) throw new IllegalArgumentException();
-	}
-	private static final class Subscription {
-		final String matchId; final boolean spectator;
-		Subscription(String matchId, boolean spectator) { this.matchId = matchId; this.spectator = spectator; }
 	}
 }
