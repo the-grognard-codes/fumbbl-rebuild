@@ -156,7 +156,7 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const saved = view.saveResume;
-  const suspended = saved?.status === 'SUSPENDED';
+  const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
@@ -173,6 +173,7 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
       <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
       <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>
       {saved && <section aria-label="Save and resume"><h3>Save and resume</h3>
+        {view.callerRole === 'spectator' ? <p>Match status: {saved.status.replaceAll('_', ' ').toLowerCase()}. Save and resume decisions belong to the two players.</p> : <>
         {saved.status === 'ACTIVE' && <><p>This match is active. A save proposal does not pause play until the other participant accepts.</p><button type="button" onClick={() => mutate('saveRequest') } disabled={!connected || !!pending}>Request mutual save</button></>}
         {saved.status === 'SAVE_PENDING' && <><p>Save requested by {saved.proposer}; it expires at {new Date(saved.expiresAt!).toLocaleString()}.</p>{saved.proposer === view.callerRole
           ? <button type="button" className="secondary" onClick={() => mutate('saveCancel', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Cancel save request</button>
@@ -182,6 +183,7 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
           ? <button type="button" className="secondary" onClick={() => mutate('resumeCancel', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Cancel resume request</button>
           : <><button type="button" onClick={() => mutate('resumeAccept', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Accept and resume match</button><button type="button" className="secondary" onClick={() => mutate('resumeReject', { proposalId: saved.proposalId })} disabled={!connected || !!pending}>Reject resume request</button></>}</>}
         {saved.status === 'ABANDONED' && <p role="alert">This match is retained as abandoned after 30 days without a completed save/resume or play action.</p>}
+        </>}
       </section>}
       {view.prompt && <section aria-label="Pre-match choice"><h3>{view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick'}</h3>
         {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || suspended || view.prompt!.actor !== view.callerRole}>{option}</button>)}
