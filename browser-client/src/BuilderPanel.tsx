@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { TeamDraftEditor } from './TeamDraftEditor';
+import { BuilderDraftEditor } from './BuilderDraftEditor';
 import { TeamValidationView } from './team-validation-view';
 import { decodeTeam, emptyDraft } from './team-protocol';
 import type { Catalog, TeamDraft, Validation } from './team-protocol';
@@ -100,28 +100,28 @@ export function BuilderPanel({ options }: { options: Options }) {
     run(() => requestSaved('delete', { teamId: saved.teamId, expectedDocumentVersion: saved.documentVersion }, true));
   }
 
-  return <main className="play-runtime team-builder">
-    <h1>Build a match-ready team</h1>
-    <p>Sign in, build a Human team from the server catalog, validate it, and save it to your account.</p>
-    <p role="status">{status}</p>{error && <p role="alert">{error}</p>}
-    {!connected && <button onClick={() => client.current?.connect()}>Reconnect</button>}
-    {client.current?.pending && <p>A change needs confirmation. Reconnect with the same account and <button onClick={() => run(() => client.current?.retry())}>repeat the retained request</button>.</p>}
-    <section aria-label="Your saved teams"><h2>Your teams</h2>
-      <button disabled={!connected} onClick={() => run(() => requestSaved('list'))}>Refresh teams</button>
-      <button disabled={!catalog || busy} onClick={() => { setSaved(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
+  return <main className="builder-shell">
+    <div className="builder-heading"><div><p className="kicker">BB2025 · Roster Workshop</p><h1>Build Your Team</h1><p>Recruit from the server catalog, validate your roster, and save it to your account for Play.</p></div></div>
+    <p className="builder-connection" role="status">{status}</p>{error && <p className="builder-error" role="alert">{error}</p>}
+    {!connected && <button type="button" onClick={() => client.current?.connect()}>Reconnect</button>}
+    {client.current?.pending && <p className="builder-error">A change needs confirmation. Reconnect with the same account and <button type="button" onClick={() => run(() => client.current?.retry())}>repeat the retained request</button>.</p>}
+    {catalog && draft && <BuilderDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} validation={validation} />}
+    {validation && <div className="panel validation-errors"><TeamValidationView result={validation} /></div>}
+    <section className="builder-actions panel" aria-label="Save team"><div>
+      <button type="button" disabled={!saveable} onClick={save}>{saved ? 'Save changes' : 'Save team'}</button>
+      {saved && <button type="button" className="button secondary" disabled={busy} onClick={remove}>Delete team</button>}
+    </div><p>{saved ? `Saved team ${saved.draft.teamName || saved.teamId} · version ${saved.documentVersion} · ${eligibility}` : 'Server validation is required before saving.'}</p></section>
+    {eligibility !== 'CURRENT' && <p className="builder-error" role="alert">This saved team cannot enter a new match until its catalog is explicitly migrated and validated.</p>}
+    <section className="panel saved-teams-panel" aria-label="Your saved teams"><div className="section-heading"><div><h2>Your Teams</h2><p>Only teams owned by this account are shown here.</p></div><div className="roster-actions">
+      <button type="button" className="button secondary" disabled={!connected} onClick={() => run(() => requestSaved('list'))}>Refresh teams</button>
+      <button type="button" disabled={!catalog || busy} onClick={() => { setSaved(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
+    </div></div>
       {teams.length ? <ul>{teams.map(team => <li key={team.teamId}>
-        {team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}
+        <strong>{team.teamName || 'Unnamed older team'}</strong> · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}
         {team.eligibility !== 'CURRENT' && <span> · Unavailable: {team.eligibility}</span>}
-        <button disabled={busy} onClick={() => run(() => requestSaved('load', { teamId: team.teamId }))}>Load</button>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => run(() => requestSaved('load', { teamId: team.teamId }))}>Load</button>
       </li>)}</ul> : <p>No saved teams yet.</p>}
+      <p><a href="/play">Choose a saved team in Play</a></p>
     </section>
-    {catalog && <p>{catalog.name} · {catalog.budget.toLocaleString('en-US')} gold · {catalog.minPlayers}–{catalog.maxPlayers} players. Server catalog {catalog.catalogVersion}.</p>}
-    {saved && <p>Saved team {saved.draft.teamName || saved.teamId} · version {saved.documentVersion} · {eligibility}.</p>}
-    {eligibility !== 'CURRENT' && <p role="alert">This saved team cannot enter a new match until its catalog is explicitly migrated and validated.</p>}
-    {catalog && draft && <TeamDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} />}
-    <TeamValidationView result={validation} />
-    <button disabled={!saveable} onClick={save}>{saved ? 'Save changes' : 'Save team'}</button>
-    {saved && <button disabled={busy} onClick={remove}>Delete team</button>}
-    <p><a href="/play">Choose a saved team in Play</a></p>
   </main>;
 }
