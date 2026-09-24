@@ -70,13 +70,15 @@ class BrowserV2ProjectionTest {
 		authenticate();
 		for (String role : Arrays.asList("home", "away")) {
 			when(memberships.find(MATCH, ACCOUNT)).thenReturn(new MatchMembership(MATCH, ACCOUNT, role));
-			when(setup.handle(any(String.class), any(JsonObject.class))).thenReturn(new JsonObject().add("code", "NOT_ACTIVATED"));
+			SetupApplication.HandleOutcome outcome = mock(SetupApplication.HandleOutcome.class);
+			when(outcome.response()).thenReturn(new JsonObject().add("code", "NOT_ACTIVATED"));
+			when(setup.handleWithOutcome(any(String.class), any(JsonObject.class))).thenReturn(outcome);
 			send(request("setup").add("operation", "load").add("matchId", MATCH));
-			verify(setup).handle(org.mockito.ArgumentMatchers.eq(role), any(JsonObject.class));
+			verify(setup).handleWithOutcome(org.mockito.ArgumentMatchers.eq(role), any(JsonObject.class));
 		}
 		JsonObject foreign = request("setup").add("operation", "action").add("matchId", FOREIGN);
 		for (int retry = 0; retry < 2; retry++) { send(foreign); denial("NOT_FOUND"); }
-		verify(setup, never()).handle(any(String.class), org.mockito.ArgumentMatchers.argThat(value -> FOREIGN.equals(value.getString("matchId", null))));
+		verify(setup, never()).handleWithOutcome(any(String.class), org.mockito.ArgumentMatchers.argThat(value -> FOREIGN.equals(value.getString("matchId", null))));
 	}
 
 	@Test void spectatorWithBothDefaultScopesCannotReadPreparationOrExecuteOrRetryPlayerOperations() throws Exception {
@@ -92,7 +94,7 @@ class BrowserV2ProjectionTest {
 		for (String operation : Arrays.asList("load", "activate", "release")) {
 			send(request("preparedMatch").add("operation", operation).add("matchId", MATCH)); denial("NOT_FOUND");
 		}
-		verify(setup, never()).handle(any(String.class), any(JsonObject.class)); verifyNoInteractions(preparation);
+		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class)); verifyNoInteractions(preparation);
 	}
 
 	@Test void revokedIdentityDeniesEveryProtocolFamilyBeforePrivateApplicationReads() throws Exception {

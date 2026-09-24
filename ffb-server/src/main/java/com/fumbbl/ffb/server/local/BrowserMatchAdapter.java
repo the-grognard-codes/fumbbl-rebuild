@@ -155,13 +155,13 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 				connection.send(result(requestId, "rejected", "AUTHENTICATION_REQUIRED", revision, false).toString());
 				return;
 			}
-			JsonObject response = setup.handle(actors.get(connection), message);
+			SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(actors.get(connection), message);
+			JsonObject response = outcome.response();
 			connection.send(response.toString());
 			if ("ACCEPTED".equals(response.getString("code", null))) {
 				String id = message.getString("matchId", null);
 				setupSubscriptions.put(connection, id);
-				boolean completedNow = setup.takeCompletionBroadcast(id);
-				if (completedNow || !"load".equals(message.getString("operation", null)) && !response.getBoolean("duplicate", false)) {
+				if (outcome.publish()) {
 					for (Map.Entry<Connection, String> entry : setupSubscriptions.entrySet()) {
 						if (id.equals(entry.getValue()) && entry.getKey() != connection && actors.containsKey(entry.getKey())) {
 							JsonObject load = new JsonObject().add("version", 1).add("type", "setup").add("operation", "load")

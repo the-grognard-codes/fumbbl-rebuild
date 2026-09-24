@@ -31,11 +31,19 @@ public final class SetupApplication {
 	private long capacityRejections;
 	private long restoredSessions;
 	private long retentionRejections;
-	private final java.util.Set<String> completionBroadcasts = new HashSet<>();
 	// Legacy runtimes retain their completed engine under the historic 32-session limit.
-	// Keep their peer-notification acknowledgement with that bounded resident lifetime.
+	// Keep their peer-notification decision with that bounded resident lifetime.
 	private final java.util.Set<String> legacyCompletionBroadcasted = new HashSet<>();
-	public boolean takeCompletionBroadcast(String matchId) { return completionBroadcasts.remove(matchId); }
+	/** The request reply and its publication decision are produced by one match-handling call. */
+	public static final class HandleOutcome {
+		private final JsonObject response;
+		private final boolean publish;
+		private HandleOutcome(JsonObject response, boolean publish) { this.response = response; this.publish = publish; }
+		public JsonObject response() { return response; }
+		public boolean publish() { return publish; }
+	}
+
+	private HandleOutcome outcome(JsonObject response, boolean publish) { return new HandleOutcome(response, publish); }
 
 	/** Worker-thread operational counters; contains no match IDs or private state. */
 	public JsonObject lifecycleMetrics() {
@@ -204,7 +212,9 @@ public final class SetupApplication {
 			.add("document", JsonValue.NULL).add("recoveryMatchId", JsonValue.NULL);
 	}
 
-	public JsonObject handle(String owner, JsonObject request) {
+	public JsonObject handle(String owner, JsonObject request) { return handleWithOutcome(owner, request).response(); }
+
+	public HandleOutcome handleWithOutcome(String owner, JsonObject request) {
 		String requestId = request.getString("requestId", null);
 		try {
 			validate(request);
@@ -215,7 +225,7 @@ public final class SetupApplication {
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
 			releaseIdle();
 			if (recovery != null && document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
-				return completedReply(owner, document, role, request);
+				return completedReplyWithOutcome(owner, document, role, request);
 			SetupSession recovered = null;
 			if (recovery != null && !sessions.containsKey(id)
 				&& document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) recovered = restore(id, document);
@@ -224,8 +234,8 @@ public final class SetupApplication {
                 JsonObject artifact = JsonObject.readFrom(matches.result(owner, id).json());
                 com.eclipsesource.json.JsonArray events = artifact.get("events").asArray();
                 JsonObject terminal = events.get(events.size() - 1).asObject().get("state").asObject().set("callerRole", role);
-                return new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
-                    .add("code", "ACCEPTED").add("duplicate", false).add("state", terminal);
+                return outcome(new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
+                    .add("code", "ACCEPTED").add("duplicate", false).add("state", terminal), false);
             }
             if (document.lifecycle != MatchDocument.Lifecycle.COMPLETED && document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_ACTIVATED");
 			SetupSession session = recovered == null ? sessions.get(id) : recovered;
@@ -236,7 +246,7 @@ public final class SetupApplication {
 			if (session.abandonIfInactive(clock.millis())) {
 				checkpoint(owner, id, session, before);
 				release(id);
-				return failure(requestId, "MATCH_ABANDONED");
+				return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 			}
 			session.expireSaveResumeProposal(clock.millis());
 			JsonObject response;
@@ -253,30 +263,31 @@ public final class SetupApplication {
 			checkpoint(owner, id, session, before);
 			session.decorateSaveResume(response);
             // Persist before acknowledging terminal success. A retry/load reconciles without executing the engine again.
+			boolean publish = "ACCEPTED".equals(response.getString("code", null))
+				&& !response.getBoolean("duplicate", false) && !"load".equals(request.getString("operation", null));
 			if (session.isComplete()) {
 				matches.complete(owner, id, session.completedMatch());
-				if (recovery == null) {
-					if (legacyCompletionBroadcasted.add(id)) completionBroadcasts.add(id);
-				} else if (document.lifecycle != MatchDocument.Lifecycle.COMPLETED) completionBroadcasts.add(id);
+				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
+					: document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
 				if (recovery != null) { release(id); completedReleases++; }
 			}
-            return response;
-		} catch (RecoveryRepository.OutcomeUnknown failure) { return failure(requestId, "MATCH_OUTCOME_UNKNOWN"); }
-		catch (MatchService.OutcomeUnknown failure) { return failure(requestId, "MATCH_OUTCOME_UNKNOWN"); }
-        catch (MatchService.Failure failure) { return failure(requestId, failure.code); }
-		catch (SQLException failure) { return failure(requestId, "PERSISTENCE_FAILED"); }
-		catch (RuntimeException failure) { return failure(requestId, "INVALID_REQUEST"); }
+            return outcome(response, publish);
+		} catch (RecoveryRepository.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
+		catch (MatchService.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
+        catch (MatchService.Failure failure) { return outcome(failure(requestId, failure.code), false); }
+		catch (SQLException failure) { return outcome(failure(requestId, "PERSISTENCE_FAILED"), false); }
+		catch (RuntimeException failure) { return outcome(failure(requestId, "INVALID_REQUEST"), false); }
 	}
 
-	private JsonObject completedReply(String owner, MatchDocument document, String role, JsonObject request) throws SQLException {
+	private HandleOutcome completedReplyWithOutcome(String owner, MatchDocument document, String role, JsonObject request) throws SQLException {
 		RecoveryRepository.Record record = recovery.find(document.matchId);
 		if (record == null) {
 			if (!"load".equals(request.getString("operation", null))) throw new MatchService.Failure("MATCH_COMPLETED");
 			JsonObject artifact = JsonObject.readFrom(matches.result(owner, document.matchId).json());
 			com.eclipsesource.json.JsonArray events = artifact.get("events").asArray();
-			return new JsonObject().add("version", 1).add("type", "setupState").add("requestId", request.get("requestId"))
+			return outcome(new JsonObject().add("version", 1).add("type", "setupState").add("requestId", request.get("requestId"))
 				.add("code", "ACCEPTED").add("duplicate", false)
-				.add("state", events.get(events.size() - 1).asObject().get("state").asObject().set("callerRole", role));
+				.add("state", events.get(events.size() - 1).asObject().get("state").asObject().set("callerRole", role)), false);
 		}
 		// Use the existing R2 validator, including native round-trip assertions. This transient
 		// reconstruction never enters the resident pool and never receives an engine command.
@@ -286,13 +297,13 @@ public final class SetupApplication {
 			throw new MatchService.Failure("RECOVERY_CORRUPT");
 		JsonObject response = "load".equals(request.getString("operation", null))
 			? terminal.reply(request.getString("requestId", null), "ACCEPTED", false, role) : terminal.apply(role, request);
-		if (sessions.containsKey(document.matchId) && "ACCEPTED".equals(response.getString("code", null))) {
+		boolean publish = sessions.containsKey(document.matchId) && "ACCEPTED".equals(response.getString("code", null));
+		if (publish) {
 			// A resident terminal engine means the earlier result commit was not acknowledged.
-			completionBroadcasts.add(document.matchId);
 			completedReleases++;
 			release(document.matchId);
 		}
-		return response;
+		return outcome(response, publish);
 	}
 
 	public JsonObject failure(String id, String code) {
