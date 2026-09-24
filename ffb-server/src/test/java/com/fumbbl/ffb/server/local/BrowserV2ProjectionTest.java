@@ -55,12 +55,15 @@ class BrowserV2ProjectionTest {
 
 	@Test void catalogAndValidationExposeOnlyPublicCatalogFields() throws Exception {
 		authenticate(); send(request("catalog"));
-		keys(peer.last, "version", "type", "requestId", "catalogVersion", "ruleset", "rosterId", "name", "presetId", "budget",
+		keys(peer.last, "version", "type", "requestId", "catalogVersion", "ruleset", "draftVersion", "rosterId", "name", "presetId", "budget",
 			"minPlayers", "maxPlayers", "skillPoints", "maxSecondary", "maxElite", "league", "specialRule", "positions", "skills", "resources", "unsupported");
 		java.nio.file.Path fixture = java.nio.file.Paths.get("..", "browser-client", "examples", "human-starter-draft.json");
 		JsonObject draft = JsonObject.readFrom(new String(java.nio.file.Files.readAllBytes(fixture), java.nio.charset.StandardCharsets.UTF_8));
+		draft.add("draftVersion", 2).add("teamName", "The Moles");
+		for (int index = 0; index < draft.get("players").asArray().size(); index++)
+			draft.get("players").asArray().get(index).asObject().add("jerseyNumber", index + 1).add("playerName", "Mole " + (index + 1));
 		send(request("validateTeam").add("draft", draft));
-		keys(peer.last, "version", "type", "requestId", "catalogVersion", "ruleset", "valid", "budget", "skillPoints", "messages", "total");
+		keys(peer.last, "version", "type", "requestId", "catalogVersion", "ruleset", "draftVersion", "valid", "budget", "skillPoints", "messages", "total");
 	}
 
 	@Test void homeAndAwayAreResolvedFromMembershipAndCrossMatchRetriesNeverReachEngine() throws Exception {

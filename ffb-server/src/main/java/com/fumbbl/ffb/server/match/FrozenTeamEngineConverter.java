@@ -38,8 +38,8 @@ public final class FrozenTeamEngineConverter {
 		for (FrozenTeam.Player source : frozen.players) {
 			RosterPlayer player = new RosterPlayer();
 			player.setId(frozen.sourceTeamId + ":" + source.id);
-			player.setName(source.id);
-			player.setNr(source.slot);
+			player.setName(source.playerName.isEmpty() ? source.id : source.playerName);
+			player.setNr(source.jerseyNumber == 0 ? source.slot : source.jerseyNumber);
 			player.setPositionId(source.positionId);
 			player.setMovement(source.ma); player.setStrength(source.st); player.setAgility(source.ag);
 			player.setPassing(source.pa); player.setArmour(source.av);

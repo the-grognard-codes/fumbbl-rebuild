@@ -4,6 +4,7 @@
   "requestId": "catalog-fixture",
   "catalogVersion": "bb2025-human-2026-09-08.1",
   "ruleset": "BB2025",
+  "draftVersion": 2,
   "rosterId": "human",
   "name": "Human",
   "presetId": "human-exhibition-1150",

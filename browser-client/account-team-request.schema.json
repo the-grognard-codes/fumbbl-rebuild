@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ffb:browser:v2-account-team",
+  "title": "Authenticated account-owned saved team requests",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "requestId",
+        "operation"
+      ],
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "type": {
+          "const": "savedTeam"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "operation": {
+          "const": "list"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "requestId",
+        "operation",
+        "teamId"
+      ],
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "type": {
+          "const": "savedTeam"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "operation": {
+          "const": "load"
+        },
+        "teamId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "requestId",
+        "operation",
+        "draft"
+      ],
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "type": {
+          "const": "savedTeam"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "operation": {
+          "const": "create"
+        },
+        "draft": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "draftVersion",
+            "teamName",
+            "catalogVersion",
+            "ruleset",
+            "rosterId",
+            "presetId",
+            "captainId",
+            "players",
+            "resources"
+          ],
+          "properties": {
+            "catalogVersion": {
+              "const": "bb2025-human-2026-09-08.1"
+            },
+            "ruleset": {
+              "const": "BB2025"
+            },
+            "rosterId": {
+              "const": "human"
+            },
+            "presetId": {
+              "const": "human-exhibition-1150"
+            },
+            "captainId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "players": {
+              "type": "array",
+              "minItems": 11,
+              "maxItems": 16,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "slot",
+                  "jerseyNumber",
+                  "playerName",
+                  "positionId",
+                  "skillIds"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[A-Za-z0-9_.-]+$"
+                  },
+                  "slot": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "positionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[A-Za-z0-9_.-]+$"
+                  },
+                  "skillIds": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80,
+                      "pattern": "^[A-Za-z0-9_.-]+$"
+                    }
+                  },
+                  "jerseyNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "playerName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                  }
+                }
+              }
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rerolls",
+                "assistantCoaches",
+                "cheerleaders",
+                "apothecary",
+                "dedicatedFans"
+              ],
+              "properties": {
+                "rerolls": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8
+                },
+                "assistantCoaches": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "cheerleaders": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "apothecary": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "dedicatedFans": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            },
+            "draftVersion": {
+              "const": 2
+            },
+            "teamName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "requestId",
+        "operation",
+        "teamId",
+        "expectedDocumentVersion",
+        "draft"
+      ],
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "type": {
+          "const": "savedTeam"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "operation": {
+          "const": "update"
+        },
+        "teamId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "expectedDocumentVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "draft": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "draftVersion",
+            "teamName",
+            "catalogVersion",
+            "ruleset",
+            "rosterId",
+            "presetId",
+            "captainId",
+            "players",
+            "resources"
+          ],
+          "properties": {
+            "catalogVersion": {
+              "const": "bb2025-human-2026-09-08.1"
+            },
+            "ruleset": {
+              "const": "BB2025"
+            },
+            "rosterId": {
+              "const": "human"
+            },
+            "presetId": {
+              "const": "human-exhibition-1150"
+            },
+            "captainId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "players": {
+              "type": "array",
+              "minItems": 11,
+              "maxItems": 16,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "slot",
+                  "jerseyNumber",
+                  "playerName",
+                  "positionId",
+                  "skillIds"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[A-Za-z0-9_.-]+$"
+                  },
+                  "slot": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "positionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[A-Za-z0-9_.-]+$"
+                  },
+                  "skillIds": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80,
+                      "pattern": "^[A-Za-z0-9_.-]+$"
+                    }
+                  },
+                  "jerseyNumber": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  },
+                  "playerName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                  }
+                }
+              }
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rerolls",
+                "assistantCoaches",
+                "cheerleaders",
+                "apothecary",
+                "dedicatedFans"
+              ],
+              "properties": {
+                "rerolls": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8
+                },
+                "assistantCoaches": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "cheerleaders": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "apothecary": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "dedicatedFans": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            },
+            "draftVersion": {
+              "const": 2
+            },
+            "teamName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "requestId",
+        "operation",
+        "teamId",
+        "expectedDocumentVersion"
+      ],
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "type": {
+          "const": "savedTeam"
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "operation": {
+          "const": "delete"
+        },
+        "teamId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "expectedDocumentVersion": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,21 @@ public final class SavedTeamService {
 		for (SavedTeamRepository.Record record : records) inspect(record);
 		return records;
 	}
+	public List<Summary> summaries(String owner) throws SQLException {
+		List<Summary> result = new ArrayList<>();
+		for (SavedTeamRepository.Record record : repository.list(owner)) {
+			try {
+				Loaded loaded = inspect(record);
+				TeamDraft draft = loaded.document.draft;
+				String status = !"CURRENT".equals(loaded.versionStatus) ? loaded.versionStatus
+					: loaded.validation.isValid() ? "CURRENT" : "VALIDATION_FAILED";
+				result.add(new Summary(record, draft.teamName, draft.rosterId, status));
+			} catch (RuntimeException failure) {
+				result.add(new Summary(record, "", "", "UNAVAILABLE"));
+			}
+		}
+		return result;
+	}
 	public Loaded load(String owner, String id) throws SQLException { return inspect(required(owner, id)); }
 	public Loaded create(String owner, TeamDraft draft) throws SQLException {
 		TeamValidation.Evaluation result = accepted(draft);
@@ -35,6 +51,7 @@ public final class SavedTeamService {
 	/** V2 creates bind their identifier to account and intent, so lost replies cannot duplicate a team. */
 	public Loaded create(String owner, String requestId, TeamDraft draft) throws SQLException {
 		if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new Failure("INVALID_REQUEST");
+		if (draft.draftVersion != TeamDraft.FORMAT_VERSION) throw new Failure("INVALID_DOCUMENT_VERSION");
 		String id = UUID.nameUUIDFromBytes(("saved-team-v2\n" + owner + "\n" + requestId).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
 		TeamValidation.Evaluation result = accepted(draft);
 		SavedTeamDocument document = new SavedTeamDocument(id, owner, 1, draft, json.evaluation(result).toString());
@@ -52,6 +69,7 @@ public final class SavedTeamService {
 		Loaded previous = load(owner, id);
 		if (previous.document.documentVersion != expectedVersion) throw new Failure("CONFLICT");
 		if (!"CURRENT".equals(previous.versionStatus)) throw new Failure(previous.versionStatus);
+		if (draft.draftVersion != previous.document.draft.draftVersion) throw new Failure("MIGRATION_REQUIRED");
 		if (!previous.document.draft.catalogVersion.equals(draft.catalogVersion)) throw new Failure("MIGRATION_REQUIRED");
 		TeamValidation.Evaluation result = accepted(draft);
 		if (expectedVersion >= 2147483646) throw new Failure("INVALID_DOCUMENT_VERSION");
@@ -71,6 +89,11 @@ public final class SavedTeamService {
 		if (document.documentVersion != 1) throw new Failure("CONFLICT");
 		return create(owner, document.draft);
 	}
+	public void delete(String owner, String id, int expectedVersion) throws SQLException {
+		checkVersion(expectedVersion);
+		Loaded previous = load(owner, id);
+		if (previous.document.documentVersion != expectedVersion || !repository.delete(owner, id, expectedVersion)) throw new Failure("CONFLICT");
+	}
 	private TeamValidation.Evaluation accepted(TeamDraft draft) {
 		TeamValidation.Evaluation result = validation.evaluate(draft);
 		String status = versionStatus(draft);
@@ -88,7 +111,9 @@ public final class SavedTeamService {
 			|| document.documentVersion != record.documentVersion || !document.draft.catalogVersion.equals(record.catalogVersion)) {
 			throw new Failure("PERSISTENCE_FAILED");
 		}
-		return new Loaded(document, versionStatus(document.draft), validation.evaluate(document.draft));
+		String status = document.draft.draftVersion != TeamDraft.FORMAT_VERSION
+			&& !"home".equals(document.owner) && !"away".equals(document.owner) ? "MIGRATION_REQUIRED" : versionStatus(document.draft);
+		return new Loaded(document, status, validation.evaluate(document.draft));
 	}
 	private SavedTeamRepository.Record required(String owner, String id) throws SQLException {
 		SavedTeamRepository.Record record = repository.find(owner, id);
@@ -106,6 +131,13 @@ public final class SavedTeamService {
 		public final TeamValidation.Evaluation validation;
 		private Loaded(SavedTeamDocument document, String versionStatus, TeamValidation.Evaluation validation) {
 			this.document = document; this.versionStatus = versionStatus; this.validation = validation;
+		}
+	}
+	public static final class Summary {
+		public final SavedTeamRepository.Record record;
+		public final String teamName, rosterId, eligibility;
+		private Summary(SavedTeamRepository.Record record, String teamName, String rosterId, String eligibility) {
+			this.record = record; this.teamName = teamName; this.rosterId = rosterId; this.eligibility = eligibility;
 		}
 	}
 	public static final class Failure extends IllegalArgumentException {

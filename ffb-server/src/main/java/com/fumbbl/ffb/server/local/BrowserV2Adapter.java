@@ -117,7 +117,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				} else response = preparation.handle(principal.accountId(), request);
 			} else if ("savedTeam".equals(type)) response = teams.handle(principal.accountId(), request.toString());
 			else if ("catalog".equals(type)) { fields(request, "version", "type", "requestId"); response = catalog.catalog(requestId); }
-			else if ("validateTeam".equals(type)) { fields(request, "version", "type", "requestId", "draft"); response = catalog.evaluate(requestId, request.get("draft").asObject()); }
+			else if ("validateTeam".equals(type)) { fields(request, "version", "type", "requestId", "draft");
+				if (request.get("draft").asObject().getInt("draftVersion", -1) != 2) throw new IllegalArgumentException("Unsupported draft version");
+				response = catalog.evaluate(requestId, request.get("draft").asObject()); }
 			else { fail(connection, requestId, "UNSUPPORTED_MESSAGE"); return; }
 			send(connection, response);
 			if ("preparedMatch".equals(type) && "ACCEPTED".equals(response.getString("code", ""))) {

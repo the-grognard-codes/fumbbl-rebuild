@@ -37,6 +37,25 @@ public class BrowserTeamJsonTest {
 				.add("cheerleaders", 0).add("apothecary", 1).add("dedicatedFans", 0));
 	}
 	private JsonObject player(JsonObject draft, int index) { return draft.get("players").asArray().get(index).asObject(); }
+	private JsonObject namedDraft() {
+		JsonObject result = draft().add("draftVersion", 2).add("teamName", "The Moles");
+		for (int index = 0; index < 11; index++) player(result, index).add("jerseyNumber", index + 1).add("playerName", "Mole " + (index + 1));
+		return result;
+	}
+	@Test
+	public void namedDraftSeparatesJerseyNumbersFromRosterSlotsAndCanonicalizesNames() {
+		JsonObject draft = namedDraft();
+		player(draft, 0).set("jerseyNumber", 99);
+		draft.set("teamName", "  The Moles  ");
+		assertTrue(json.evaluate("named", draft).getBoolean("valid", false));
+		assertEquals("The Moles", json.decodeDraft(draft).teamName);
+		assertEquals(99, json.decodeDraft(draft).players.get(0).jerseyNumber);
+		player(draft, 1).set("jerseyNumber", 99); rejects(draft, "DUPLICATE_JERSEY");
+		player(draft, 1).set("jerseyNumber", 100); rejects(draft, "JERSEY_NUMBER");
+		player(draft, 1).set("jerseyNumber", 2);
+		draft.set("teamName", "Bad\nName"); rejects(draft, "TEAM_NAME");
+		draft.set("teamName", "The Moles"); player(draft, 1).set("playerName", ""); rejects(draft, "PLAYER_NAME");
+	}
 	private void rejects(JsonObject draft, String code) {
 		String before = draft.toString();
 		JsonObject result = json.evaluate("test", draft);

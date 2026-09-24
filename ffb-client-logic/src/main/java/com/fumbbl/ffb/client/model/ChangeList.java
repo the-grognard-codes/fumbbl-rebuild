@@ -10,7 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
-			.addFeature("Moles Under the Pitch adds a dedicated BB2025 Human and Orc team builder with roster validation and JSON export")
+			.addFeature("Moles Under the Pitch team builder now saves validated Human teams to the signed-in account for match selection")
 			.addImprovement("Browser game views reject unexpected private response fields and use You/Opponent coach labels with Home/Away for spectators")
 			.addFeature("Browser players can mutually save an unfinished match and later mutually resume its compatible checkpoint")
 			.addImprovement("Recoverable browser matches release completed engines after durable result commit while preserving exact request retries")

@@ -13,3 +13,9 @@
 .play-runtime .setup-grid button.away { background: #4db2ff; color: #070d16; }
 .play-runtime table { display: block; overflow-x: auto; }
 .play-runtime [aria-label="Match preparation"] > details:not(:first-of-type) { display: none; }
+.play-runtime.team-builder fieldset { border: 2px solid #4db2ff; background: #101c2b; padding: 1rem; }
+.play-runtime.team-builder fieldset ol { padding-left: 1.5rem; }
+.play-runtime.team-builder fieldset li { padding: .8rem; margin: .6rem 0; background: #17283b; }
+.play-runtime.team-builder fieldset li label { display: inline-block; margin-right: 1rem; vertical-align: top; }
+.play-runtime.team-builder fieldset li input,
+.play-runtime.team-builder fieldset li select { width: min(14rem, 100%); }

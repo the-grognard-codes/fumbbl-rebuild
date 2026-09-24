@@ -1,9 +1,9 @@
 export type ResourceId = 'rerolls' | 'assistantCoaches' | 'cheerleaders' | 'apothecary' | 'dedicatedFans';
-export type DraftPlayer = { id: string; slot: number; positionId: string; skillIds: string[] };
-export type TeamDraft = { catalogVersion: string; ruleset: 'BB2025'; rosterId: string; presetId: string; captainId: string | null; players: DraftPlayer[]; resources: Record<ResourceId, number> };
+export type DraftPlayer = { id: string; slot: number; jerseyNumber: number; playerName: string; positionId: string; skillIds: string[] };
+export type TeamDraft = { draftVersion: 2; teamName: string; catalogVersion: string; ruleset: 'BB2025'; rosterId: string; presetId: string; captainId: string | null; players: DraftPlayer[]; resources: Record<ResourceId, number> };
 export type Position = { id: string; name: string; maximum: number; cost: number; ma: number; st: number; ag: number; pa: number; av: number; role: string; race: string; primary: string; secondary: string; baseSkills: { id: string; value: number }[]; canCaptain: boolean };
 export type Skill = { id: string; name: string; category: string; selectable: boolean; elite: boolean };
-type Header = { version: 1; requestId: string; catalogVersion: string; ruleset: 'BB2025' };
+type Header = { version: 1; requestId: string; catalogVersion: string; ruleset: 'BB2025'; draftVersion: 2 };
 export type Catalog = Header & { type: 'catalog'; rosterId: string; name: string; presetId: string; budget: number; minPlayers: number; maxPlayers: number; skillPoints: number; maxSecondary: number; maxElite: number; league: string; specialRule: string; positions: Position[]; skills: Skill[]; resources: { id: ResourceId; name: string; cost: number; maximum: number }[]; unsupported: string };
 export type Validation = Header & { type: 'teamValidation'; valid: boolean; total: number | null; budget: number; skillPoints: number; messages: { code: string; path: string; text: string }[] };
 export const catalogVersion = 'bb2025-human-2026-09-08.1';
@@ -25,11 +25,11 @@ export function decodeTeam(textJson: string): Catalog | Validation {
   const value: unknown = JSON.parse(textJson);
   if (!value || typeof value !== 'object') throw Error('Invalid message');
   const kind = (value as Record<string, unknown>).type;
-  const header = ['version', 'type', 'requestId', 'catalogVersion', 'ruleset'];
+  const header = ['version', 'type', 'requestId', 'catalogVersion', 'ruleset', 'draftVersion'];
   const message = object(value, [...header, ...(kind === 'catalog'
     ? ['rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers', 'skillPoints', 'maxSecondary', 'maxElite', 'league', 'specialRule', 'positions', 'skills', 'resources', 'unsupported']
     : ['valid', 'budget', 'skillPoints', 'messages', 'total'])]);
-  if (message.version !== 1 || message.ruleset !== 'BB2025' || message.catalogVersion !== catalogVersion) throw Error('Unsupported catalog or ruleset');
+  if (message.version !== 1 || message.draftVersion !== 2 || message.ruleset !== 'BB2025' || message.catalogVersion !== catalogVersion) throw Error('Unsupported draft, catalog or ruleset');
   text(message.requestId, 100); integer(message.budget); integer(message.skillPoints, 32);
   if (kind === 'catalog') {
     for (const key of ['rosterId', 'name', 'presetId', 'league', 'specialRule', 'unsupported']) text(message[key]);
@@ -72,5 +72,5 @@ export function decodeTeam(textJson: string): Catalog | Validation {
 }
 
 export function emptyDraft(catalog: Catalog): TeamDraft {
-  return { catalogVersion: catalog.catalogVersion, ruleset: catalog.ruleset, rosterId: catalog.rosterId, presetId: catalog.presetId, captainId: null, players: [], resources: { rerolls: 0, assistantCoaches: 0, cheerleaders: 0, apothecary: 0, dedicatedFans: 0 } };
+  return { draftVersion: catalog.draftVersion, teamName: '', catalogVersion: catalog.catalogVersion, ruleset: catalog.ruleset, rosterId: catalog.rosterId, presetId: catalog.presetId, captainId: null, players: [], resources: { rerolls: 0, assistantCoaches: 0, cheerleaders: 0, apothecary: 0, dedicatedFans: 0 } };
 }

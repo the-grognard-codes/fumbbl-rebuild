@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.team.bb2025;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +16,8 @@ public final class TeamValidation {
 
 	public Evaluation evaluate(TeamDraft draft) {
 		List<Message> messages = new ArrayList<>();
+		if (draft.draftVersion != 1 && draft.draftVersion != TeamDraft.FORMAT_VERSION) add(messages, "DRAFT_VERSION", "draftVersion", "Unsupported draft version.");
+		if (draft.draftVersion == TeamDraft.FORMAT_VERSION && !validName(draft.teamName, 50)) add(messages, "TEAM_NAME", "teamName", "Team name must be 1 to 50 plain-text characters.");
 		if (!RosterCatalog.VERSION.equals(draft.catalogVersion)) add(messages, "CATALOG_VERSION", "catalogVersion", "Unsupported catalog version.");
 		if (!RosterCatalog.RULESET.equals(draft.ruleset)) add(messages, "RULESET", "ruleset", "Only BB2025 is supported.");
 		if (!RosterCatalog.ROSTER.equals(draft.rosterId)) add(messages, "ROSTER", "rosterId", "Unsupported roster.");
@@ -27,6 +30,7 @@ public final class TeamValidation {
 		if (draft.players.size() < 11) add(messages, "PLAYER_COUNT", "players", "A draft must contain 11 to 16 players.");
 		Set<String> ids = new HashSet<>();
 		Set<Integer> slots = new HashSet<>();
+		Set<Integer> jerseys = new HashSet<>();
 		Map<String, Integer> counts = new HashMap<>();
 		Map<String, Integer> elites = new HashMap<>();
 		int total = 0, points = 0, secondary = 0;
@@ -38,6 +42,11 @@ public final class TeamValidation {
 			if (!ids.add(player.id)) add(messages, "DUPLICATE_PLAYER", path, "Player IDs must be unique.");
 			if (!slots.add(player.slot)) add(messages, "DUPLICATE_SLOT", path, "Player slots must be unique.");
 			if (player.slot < 1 || player.slot > 16) add(messages, "SLOT", path, "Slots must be integers from 1 to 16.");
+			if (draft.draftVersion == TeamDraft.FORMAT_VERSION) {
+				if (!validName(player.playerName, 30)) add(messages, "PLAYER_NAME", path + ".playerName", "Player name must be 1 to 30 plain-text characters.");
+				if (player.jerseyNumber < 1 || player.jerseyNumber > 99) add(messages, "JERSEY_NUMBER", path + ".jerseyNumber", "Jersey number must be from 1 to 99.");
+				else if (!jerseys.add(player.jerseyNumber)) add(messages, "DUPLICATE_JERSEY", path + ".jerseyNumber", "Jersey numbers must be unique.");
+			}
 			RosterCatalog.Position position = catalog.getPositions().get(player.positionId);
 			if (position == null) {
 				add(messages, "POSITION", path, "Unknown or unsupported position."); priced = false; continue;
@@ -88,6 +97,17 @@ public final class TeamValidation {
 	}
 
 	private void add(List<Message> messages, String code, String path, String text) { messages.add(new Message(code, path, text)); }
+	private boolean validName(String name, int maximum) {
+		if (name == null || !name.equals(Normalizer.normalize(name.trim(), Normalizer.Form.NFC))) return false;
+		int length = name.codePointCount(0, name.length());
+		if (length < 1 || length > maximum) return false;
+		for (int i = 0; i < name.length();) {
+			int point = name.codePointAt(i);
+			if (Character.isISOControl(point)) return false;
+			i += Character.charCount(point);
+		}
+		return true;
+	}
 
 	public static final class Message {
 		public final String code, path, text;

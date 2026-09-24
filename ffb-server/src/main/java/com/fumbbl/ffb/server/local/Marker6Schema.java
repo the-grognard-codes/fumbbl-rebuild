@@ -40,7 +40,7 @@ final class Marker6Schema {
 
 	private void verifyMarker(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			if (!rows.next() || rows.getInt(1) != 6 || rows.next()) throw new SQLException("Marker-6 schema version is required");
+			if (!rows.next() || rows.getInt(1) != 7 || rows.next()) throw new SQLException("Named-team schema version 7 is required");
 		}
 	}
 

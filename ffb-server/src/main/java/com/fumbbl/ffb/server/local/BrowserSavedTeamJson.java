@@ -18,6 +18,7 @@ public final class BrowserSavedTeamJson {
 	public BrowserSavedTeamJson(SavedTeamService service) { this(service, false); }
 	public BrowserSavedTeamJson(SavedTeamService service, boolean accounts) { this.service = service; this.accounts = accounts; }
 	public JsonObject handle(String owner, String text) {
+		String attemptedOperation = "";
 		JsonObject response = new JsonObject().add("version", 1).add("type", "savedTeam").add("requestId", JsonValue.NULL)
 			.add("code", "OK").add("document", JsonValue.NULL).add("versionStatus", JsonValue.NULL)
 			.add("validation", JsonValue.NULL).add("teams", new JsonArray());
@@ -31,12 +32,17 @@ public final class BrowserSavedTeamJson {
 			if (accounts ? owner == null || !owner.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 				: !"home".equals(owner) && !"away".equals(owner)) throw new SavedTeamService.Failure("AUTHENTICATION_REQUIRED");
 			String operation = request.get("operation").asString();
+			attemptedOperation = operation;
 			SavedTeamService.Loaded loaded;
 			switch (operation) {
 				case "list":
 					json.fields(request, "version", "type", "requestId", "operation");
 					JsonArray teams = new JsonArray();
-					for (SavedTeamRepository.Record record : service.list(owner)) teams.add(new JsonObject().add("teamId", record.teamId)
+					if (accounts) {
+						for (SavedTeamService.Summary summary : service.summaries(owner)) teams.add(new JsonObject().add("teamId", summary.record.teamId)
+							.add("documentVersion", summary.record.documentVersion).add("catalogVersion", summary.record.catalogVersion)
+							.add("teamName", summary.teamName).add("rosterId", summary.rosterId).add("eligibility", summary.eligibility));
+					} else for (SavedTeamRepository.Record record : service.list(owner)) teams.add(new JsonObject().add("teamId", record.teamId)
 						.add("documentVersion", record.documentVersion).add("catalogVersion", record.catalogVersion));
 					return response.set("teams", teams);
 				case "load":
@@ -50,12 +56,17 @@ public final class BrowserSavedTeamJson {
 					json.fields(request, "version", "type", "requestId", "operation", "teamId", "expectedDocumentVersion", "draft");
 					loaded = service.update(owner, json.teamId(request.get("teamId")), json.documentVersion(request.get("expectedDocumentVersion")),
 						json.draft(request.get("draft").asObject())); break;
+				case "delete":
+					if (!accounts) throw new IllegalArgumentException();
+					json.fields(request, "version", "type", "requestId", "operation", "teamId", "expectedDocumentVersion");
+					service.delete(owner, json.teamId(request.get("teamId")), json.documentVersion(request.get("expectedDocumentVersion")));
+					return response;
 				case "import":
+					if (accounts) throw new IllegalArgumentException();
 					json.fields(request, "version", "type", "requestId", "operation", "document");
 					if (!accounts && request.get("document").asObject().getInt("formatVersion", -1) != 1)
 						throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
-					loaded = accounts ? service.create(owner, requestId, json.decode(request.get("document").asObject().toString()).draft)
-						: service.importDocument(owner, request.get("document").asObject().toString()); break;
+					loaded = service.importDocument(owner, request.get("document").asObject().toString()); break;
 				default: throw new IllegalArgumentException();
 			}
 			return response.set("document", json.encode(loaded.document)).set("versionStatus", loaded.versionStatus)
@@ -65,6 +76,7 @@ public final class BrowserSavedTeamJson {
 			if (failure.validation != null) response.set("validation", json.evaluation(failure.validation));
 			if ("MIGRATION_REQUIRED".equals(failure.code) || "VERSION_UNAVAILABLE".equals(failure.code)) response.set("versionStatus", failure.code);
 		} catch (SavedTeamRepository.OutcomeUnknown failure) {
+			if ("delete".equals(attemptedOperation)) return response.set("code", "DELETE_OUTCOME_UNKNOWN");
 			// This is the attempted snapshot, explicitly NOT a successful saved document response.
 			response.set("code", "SAVE_OUTCOME_UNKNOWN").set("document", JsonObject.readFrom(failure.attempted.json))
 				.set("versionStatus", "CURRENT").set("validation", JsonObject.readFrom(failure.attempted.json).get("validation"));

@@ -9,6 +9,9 @@ public interface SavedTeamRepository {
 	List<Record> list(String owner) throws SQLException;
 	void insert(Record record) throws SQLException;
 	boolean replace(Record record, int expectedVersion) throws SQLException;
+	default boolean delete(String owner, String teamId, int expectedVersion) throws SQLException {
+		throw new UnsupportedOperationException("Delete is unavailable");
+	}
 
 	/** COMMIT was attempted: a lost acknowledgement cannot establish whether it succeeded. */
 	final class OutcomeUnknown extends SQLException {
