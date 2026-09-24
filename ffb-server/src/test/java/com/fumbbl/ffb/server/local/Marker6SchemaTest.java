@@ -32,10 +32,10 @@ import static org.mockito.Mockito.when;
 
 class Marker6SchemaTest {
 	@Test
-	void missingMarkerSixTableFailsClosedWithoutWriting() throws Exception {
+	void missingNamedTeamTableFailsClosedWithoutWriting() throws Exception {
 		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet version = mock(ResultSet.class), table = mock(ResultSet.class);
 		when(connection.createStatement()).thenReturn(statement); when(statement.executeQuery(anyString())).thenReturn(version, table);
-		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(6); when(table.next()).thenReturn(false);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(7); when(table.next()).thenReturn(false);
 
 		assertThrows(SQLException.class, () -> new Marker6Schema().verify(connection));
 
@@ -43,7 +43,7 @@ class Marker6SchemaTest {
 	}
 
 	@Test
-	void requiresExactlyMarkerSixBeforeInspectingTables() throws Exception {
+	void requiresNamedTeamMarkerBeforeInspectingTables() throws Exception {
 		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet version = mock(ResultSet.class);
 		when(connection.createStatement()).thenReturn(statement); when(statement.executeQuery(anyString())).thenReturn(version);
 		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(5);

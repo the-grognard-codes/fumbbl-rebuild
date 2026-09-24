@@ -4,9 +4,9 @@ const fields: Record<string, string[]> = {
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   preparedMatch: ['code', 'duplicate', 'callerRole', 'document', 'recoveryMatchId'],
   savedTeam: ['code', 'document', 'versionStatus', 'validation', 'teams'],
-  catalog: ['catalogVersion', 'ruleset', 'rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers',
+  catalog: ['catalogVersion', 'ruleset', 'draftVersion', 'rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers',
     'skillPoints', 'maxSecondary', 'maxElite', 'league', 'specialRule', 'positions', 'skills', 'resources', 'unsupported'],
-  teamValidation: ['catalogVersion', 'ruleset', 'valid', 'budget', 'skillPoints', 'messages', 'total'],
+  teamValidation: ['catalogVersion', 'ruleset', 'draftVersion', 'valid', 'budget', 'skillPoints', 'messages', 'total'],
 };
 
 export function assertV2Projection(message: Record<string, unknown>) {

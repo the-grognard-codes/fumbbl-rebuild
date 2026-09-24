@@ -50,7 +50,7 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 					ResultSet rows = lock.executeQuery()) {
 					if (!rows.next()) throw new SQLException("Saved-team schema unavailable");
 					int schemaVersion = rows.getInt(1);
-					if (accounts ? schemaVersion != 6 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
+					if (accounts ? schemaVersion != 7 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
 				}
 				try (PreparedStatement count = connection.prepareStatement("SELECT COUNT(*) FROM " + table + " WHERE owner_subject=?")) {
 					count.setString(1, record.owner);
@@ -83,6 +83,22 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 				return changed;
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
 		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
+	}
+
+	@Override
+	public boolean delete(String owner, String teamId, int expectedVersion) throws SQLException {
+		boolean commitAttempted = false;
+		Record prior = find(owner, teamId);
+		try (Connection connection = connections.open()) {
+			connection.setAutoCommit(false);
+			try (PreparedStatement statement = connection.prepareStatement(
+				"DELETE FROM " + table + " WHERE owner_subject=? AND team_id=? AND document_version=?")) {
+				statement.setString(1, owner); statement.setString(2, teamId); statement.setInt(3, expectedVersion);
+				boolean changed = statement.executeUpdate() == 1;
+				if (changed) { commitAttempted = true; connection.commit(); } else connection.rollback();
+				return changed;
+			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
+		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(prior, failure); throw failure; }
 	}
 
 	private void rollback(Connection connection, SQLException cause) {

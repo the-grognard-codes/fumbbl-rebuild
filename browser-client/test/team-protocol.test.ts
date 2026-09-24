@@ -8,7 +8,7 @@ import type { Catalog, Validation } from '../src/team-protocol.ts';
 import { TeamValidationView } from '../src/team-validation-view.ts';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/catalog-v1.json', import.meta.url), 'utf8'));
-const result: Validation = { version: 1, type: 'teamValidation', requestId: 'test', catalogVersion: fixture.catalogVersion, ruleset: 'BB2025', valid: true, total: 700000, budget: 1150000, skillPoints: 0, messages: [] };
+const result: Validation = { version: 1, type: 'teamValidation', requestId: 'test', catalogVersion: fixture.catalogVersion, ruleset: 'BB2025', draftVersion: 2, valid: true, total: 700000, budget: 1150000, skillPoints: 0, messages: [] };
 test('catalog fixture is runtime checked and new drafts retain version and ruleset', () => {
   const catalog = decodeTeam(JSON.stringify(fixture)) as Catalog;
   const draft = emptyDraft(catalog);

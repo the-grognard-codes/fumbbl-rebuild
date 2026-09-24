@@ -73,6 +73,18 @@ class FrozenTeamEngineConverterTest {
 		}
 		assertNotEquals(converter.convert(frozen(null), game.getRules()).getPlayers()[0].getId(), converter.convert(frozen(null), game.getRules()).getPlayers()[0].getId());
 	}
+	@Test
+	void namedPlayersUseTheirFrozenNamesAndJerseyNumbersInTheEngine() {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, slot == 1 ? 99 : slot,
+			"Mole " + slot, "lineman", Collections.emptyList()));
+		Map<String, Integer> resources = new LinkedHashMap<>();
+		for (String key : catalog.getResources().keySet()) resources.put(key, 0);
+		TeamDraft draft = new TeamDraft(2, "The Moles", RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "p1", players, resources);
+		FrozenTeam frozen = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", draft, 550000, 0, catalog);
+		Player<?> first = converter.convert(frozen, game.getRules()).getPlayerById(frozen.sourceTeamId + ":p1");
+		assertEquals("Mole 1", first.getName()); assertEquals(99, first.getNr());
+	}
 
 	@Test
 	void unsupportedSkillAndParameterFailWithoutReturningPartialTeam() {

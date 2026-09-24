@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GameView } from './SetupPanel.tsx';
+import { BuilderPanel } from './BuilderPanel.tsx';
 import { V2Client } from './v2-client.ts';
 import type { V2Message } from './v2-client.ts';
+import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import './play-brand.css';
 
 export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
@@ -11,12 +13,18 @@ export function mountPlay(element: HTMLElement, options: { url: string; getToken
   return () => root.unmount();
 }
 
+export function mountBuilder(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
+  const root = createRoot(element);
+  root.render(<BuilderPanel options={options} />);
+  return () => root.unmount();
+}
+
 function Play({ options }: { options: { url: string; getToken: () => Promise<string> } }) {
   const [, redraw] = useState(0);
   const [status, setStatus] = useState('Connecting');
   const [error, setError] = useState('');
   const [games, setGames] = useState<{ matchId: string; label: string }[]>([]);
-  const [teams, setTeams] = useState<{ teamId: string; documentVersion: number }[]>([]);
+  const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const [teamId, setTeamId] = useState('');
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
   const [matchId, setMatchId] = useState(() => new URLSearchParams(location.search).get('matchId') ?? '');
@@ -30,8 +38,10 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'browse' && Array.isArray(message.matches)) setGames(message.matches);
       if (message.type === 'savedTeam' && message.code === 'OK') {
         if (message.document) connection.request('savedTeam', { operation: 'list' });
-        else if (Array.isArray(message.teams)) { setTeams(message.teams); setTeamId(previous => previous || message.teams[0]?.teamId || ''); }
+        else if (Array.isArray(message.teams)) { setTeams(message.teams); setTeamId(previous => message.teams.some((team: SavedTeamSummary) => team.teamId === previous && team.eligibility === 'CURRENT') ? previous : message.teams.find((team: SavedTeamSummary) => team.eligibility === 'CURRENT')?.teamId || ''); }
       }
+      if (message.type === 'preparedMatch' && ['STALE_TEAM_REVISION', 'NOT_FOUND', 'MIGRATION_REQUIRED', 'VERSION_UNAVAILABLE', 'VALIDATION_FAILED'].includes(message.code))
+        connection.request('savedTeam', { operation: 'list' });
       if (message.type === 'preparedMatch' && message.code === 'ACCEPTED') {
         sessionStorage.removeItem('moles.play.invitation');
         setPrepared(message); setMatchId(message.document.matchId);
@@ -41,13 +51,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
+    const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
+    window.addEventListener('focus', refresh);
     client.current = connection; connection.connect();
-    return () => { client.current = null; connection.disconnect(); };
+    return () => { window.removeEventListener('focus', refresh); client.current = null; connection.disconnect(); };
   }, [options]);
   const connection = client.current;
   const connected = status === 'Connected';
   const busy = !connected || !!connection?.pending;
-  const selected = teams.find(team => team.teamId === teamId);
+  const selected = teams.find(team => team.teamId === teamId && team.eligibility === 'CURRENT');
   function run(action: () => void) { try { setError(''); action(); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Request could not be sent.'); } }
   function prepare(operation: string) {
     const fields = operation === 'create' ? { teamId, expectedDocumentVersion: selected?.documentVersion }
@@ -62,7 +74,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     <section aria-label="Match preparation"><h2>Your game</h2>
       <p>Need a new roster? <a href="/teambuilder">Open Team Builder</a>, validate it, and save the resulting team definition before creating a game.</p>
-      <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId}>{team.teamId} · version {team.documentVersion}</option>)}</select></label>
+      <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}{team.eligibility !== 'CURRENT' ? ` · unavailable: ${team.eligibility}` : ''}</option>)}</select></label>
+      <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
       <button disabled={busy || !selected} onClick={() => prepare('create')}>Create game</button>
       <label>Invitation code <input value={invite} onChange={event => setInvite(event.target.value)} autoComplete="off" /></label>
       <button disabled={busy || !selected || !invite} onClick={() => prepare('join')}>Join game</button>

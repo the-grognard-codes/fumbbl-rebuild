@@ -105,8 +105,8 @@ public final class SetupSession {
 		FrozenTeamEngineConverter converter = new FrozenTeamEngineConverter();
 		game.setTeamHome(converter.convert(document.home.team, game.getRules()));
 		game.setTeamAway(converter.convert(document.away.team, game.getRules()));
-		initializeTeam(game.getTeamHome(), document.home.owner, "Home");
-		initializeTeam(game.getTeamAway(), document.away.owner, "Away");
+		initializeTeam(game.getTeamHome(), document.home.owner, document.home.team.teamName.isEmpty() ? "Home" : document.home.team.teamName);
+		initializeTeam(game.getTeamAway(), document.away.owner, document.away.team.teamName.isEmpty() ? "Away" : document.away.team.teamName);
 		UtilBox.refreshBoxes(game);
 		game.setHomePlaying(false);
 		game.setTurnMode(TurnMode.START_GAME);
@@ -495,7 +495,8 @@ public final class SetupSession {
 		java.util.ArrayList<Player<?>> eligible = new java.util.ArrayList<>();
 		for (Player<?> player : team.getPlayers())
 			if (game.getFieldModel().getPlayerState(player).canBeMovedDuringSetup()) eligible.add(player);
-		eligible.sort(java.util.Comparator.comparingInt(Player::getNr));
+		FrozenTeam frozen = home ? document.home.team : document.away.team;
+		eligible.sort(java.util.Comparator.comparingInt(player -> rosterSlot(frozen, player)));
 		// Clear this side only, so prior-drive coordinates cannot occupy template squares.
 		for (Player<?> player : eligible) {
 			FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(player);
@@ -533,7 +534,8 @@ public final class SetupSession {
 			for (Player<?> player : team.getPlayers()) {
 				FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
 				boolean onPitch = FieldCoordinateBounds.FIELD.isInBounds(at);
-				players.add(new JsonObject().add("id", player.getId()).add("name", player.getName()).add("slot", player.getNr())
+				players.add(new JsonObject().add("id", player.getId()).add("name", player.getName())
+					.add("slot", rosterSlot(team == game.getTeamHome() ? document.home.team : document.away.team, player))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
                     .add("state", game.getFieldModel().getPlayerState(player).getDescription())
 					.add("x", onPitch ? JsonValue.valueOf(at.getX()) : JsonValue.NULL)
@@ -561,6 +563,15 @@ public final class SetupSession {
 			.add("actor", actor()).add("prompt", prompt).add("players", players)
 			.add("weather", game.getFieldModel().getWeather().name())
 			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls());
+	}
+
+	private int rosterSlot(FrozenTeam frozen, Player<?> enginePlayer) {
+		// Historical matches exposed the engine number as the public slot.
+		if (frozen.teamName.isEmpty()) return enginePlayer.getNr();
+		String playerId = enginePlayer.getId();
+		for (FrozenTeam.Player player : frozen.players)
+			if ((frozen.sourceTeamId + ":" + player.id).equals(playerId)) return player.slot;
+		throw new IllegalStateException("Unrecognized frozen player");
 	}
 
 	private String actor() {
