@@ -72,8 +72,6 @@ provider/JDBC exception details and request bodies are not logged.
 Watchers get the final public frame of their active subscription; a completed
 match cannot be newly watched or browsed. No spectator chat, account profile,
 saved-team document, private dice/checkpoint/request history or replay is sent.
-Spectator `setupState.state` has an empty `actions` array and null `prompt` at
-every phase; both players continue to receive the current server decision list.
 Recipient reauthorization failure stops delivery with `VIEW_UNAVAILABLE`.
 The browser clears views on disconnect, sign-out and access loss.
 

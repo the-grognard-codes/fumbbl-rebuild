@@ -126,8 +126,8 @@ class CoreTurnActionsTest {
         assertEquals(actor.get("players"), spectator.get("players"));
         assertEquals(actor.get("ball"), spectator.get("ball"));
         assertEquals(actor.get("phase"), spectator.get("phase"));
-        assertEquals(0, spectator.get("actions").asArray().size());
-        assertTrue(spectator.get("prompt").isNull());
+        assertEquals(actor.get("actions"), spectator.get("actions"));
+        assertEquals(actor.get("prompt"), spectator.get("prompt"));
         actor.set("matchId", "00000000-0000-0000-0000-000000000001");
         spectator.set("matchId", "00000000-0000-0000-0000-000000000001");
         frames.add(new JsonObject().add("checkpoint", checkpoint).add("actor", actor).add("spectator", spectator));
