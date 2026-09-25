@@ -71,7 +71,7 @@ public final class BallAndFoulActions {
                     FieldCoordinate to = new FieldCoordinate(x, y);
                     if (to.equals(from) || !range.isInRange(game, player, to, action)) continue;
                     actions.add(new Action("pass-" + x + "-" + y, "pass", targetLabel(game, "Pass to", to), role,
-                        new ClientCommandPass(player.getId(), oriented(to, role))));
+                        new ClientCommandPass(player.getId(), oriented(to, role)), to));
                 }
             }
             if (action == PlayerAction.HAND_OVER_MOVE || action == PlayerAction.HAND_OVER) {
@@ -79,7 +79,7 @@ public final class BallAndFoulActions {
                     FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(catcher);
                     if (onPitch(game, catcher) && from.isAdjacent(at) && game.getFieldModel().getPlayerState(catcher).hasTacklezones())
                         actions.add(new Action("hand-off-" + catcher.getId(), "handOff", "Hand off to " + catcher.getName(), role,
-                            new ClientCommandHandOver(player.getId(), catcher.getId())));
+                            new ClientCommandHandOver(player.getId(), catcher.getId()), catcher.getId()));
                 }
             }
         }
@@ -90,7 +90,7 @@ public final class BallAndFoulActions {
                     && game.getFieldModel().getPlayerState(opponent).canBeFouled()
                     && !opponent.hasSkillProperty(NamedProperties.preventBeingFouled))
                     actions.add(new Action("foul-" + opponent.getId(), "foul", "Foul " + opponent.getName(), role,
-                        new ClientCommandFoul(player.getId(), opponent.getId(), false)));
+                        new ClientCommandFoul(player.getId(), opponent.getId(), false), opponent.getId()));
             }
         }
         if (action == PlayerAction.THROW_TEAM_MATE_MOVE || action == PlayerAction.THROW_TEAM_MATE) {
@@ -98,14 +98,14 @@ public final class BallAndFoulActions {
             if (game.getDefender() == null) {
                 for (Player<?> mate : ttm.findThrowableTeamMates(game, player))
                     actions.add(new Action("lift-" + mate.getId(), "liftTeamMate", "Pick up " + mate.getName() + " to throw", role,
-                        new ClientCommandThrowTeamMate(player.getId(), mate.getId())));
+                        new ClientCommandThrowTeamMate(player.getId(), mate.getId()), mate.getId()));
             } else if (game.getPassCoordinate() == null) {
                 PassMechanic pass = game.getMechanic(Mechanic.Type.PASS);
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                     FieldCoordinate to = new FieldCoordinate(x, y);
                     if (to.equals(from) || pass.findPassingDistance(game, from, to, true) == null) continue;
                     actions.add(new Action("throw-mate-" + x + "-" + y, "throwTeamMate", targetLabel(game, "Throw team-mate towards", to), role,
-                        new ClientCommandThrowTeamMate(player.getId(), oriented(to, role))));
+                        new ClientCommandThrowTeamMate(player.getId(), oriented(to, role)), to));
                 }
             }
         }
@@ -121,6 +121,6 @@ public final class BallAndFoulActions {
     private FieldCoordinate oriented(FieldCoordinate at, String role) { return "home".equals(role) ? at : at.transform(); }
     private void declare(List<Action> actions, Player<?> player, String role, String kind, String label, PlayerAction action) {
         actions.add(new Action(kind + "-" + player.getId(), kind, label + " " + player.getName(), role,
-            new ClientCommandActingPlayer(player.getId(), action, false)));
+            new ClientCommandActingPlayer(player.getId(), action, false), player.getId()));
     }
 }

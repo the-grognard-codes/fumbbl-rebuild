@@ -114,6 +114,8 @@ class CoreTurnActionsTest {
         capture(session, frames, "block-dice");
         submit(session, "blockDie", null);
         capture(session, frames, "push-choice");
+        submit(session, "push", null);
+        capture(session, frames, "pushed");
         Files.createDirectories(Paths.get("target"));
         Files.write(Paths.get("target", "m5a-blitz-projections.json"), frames.toString().getBytes(StandardCharsets.UTF_8));
         assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5a-blitz-projections.json")), StandardCharsets.UTF_8), frames.toString());
@@ -123,7 +125,7 @@ class CoreTurnActionsTest {
         JsonObject actor = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
         JsonObject spectator = session.spectatorView();
         assertEquals(actor.get("revision"), spectator.get("revision"));
-        assertEquals(2, actor.getInt("projectionVersion", 0));
+        assertEquals(3, actor.getInt("projectionVersion", 0));
         assertEquals(actor.get("players"), spectator.get("players"));
         for (JsonValue value : actor.get("players").asArray()) assertTrue(value.asObject().get("art").isNull());
         assertEquals(actor.get("ball"), spectator.get("ball"));

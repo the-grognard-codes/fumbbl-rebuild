@@ -59,7 +59,7 @@ async function waitRevision(expected) {
 }
 async function choose(page, action, expected) {
   await page.getByLabel('Server action', { exact: true }).selectOption(action.id);
-  await page.getByRole('button', { name: 'Execute action', exact: true }).click();
+  await page.getByRole('button', { name: 'Commit action', exact: true }).click();
   return waitRevision(expected);
 }
 
