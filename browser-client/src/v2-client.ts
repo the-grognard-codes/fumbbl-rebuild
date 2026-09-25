@@ -2,6 +2,7 @@ import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
+import { decodeMatchResult } from './result-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
@@ -161,6 +162,11 @@ export class V2Client {
       if (request?.matchId && request.matchId !== message.document.matchId) throw Error('Foreign match');
       this.preparationMatchId = message.document.matchId;
       this.selection = null; this.state = null;
+    }
+    if (message.type === 'matchResult') {
+      const decoded = decodeMatchResult(JSON.stringify({ ...message, version: 1 }));
+      if (!request || request.type !== 'matchResult' || (decoded.result && decoded.result.matchId !== request.matchId)) throw Error('Foreign result');
+      message.result = decoded.result; message.event = decoded.event;
     }
     if (message.type === 'savedTeam') {
       const document = message.document;
