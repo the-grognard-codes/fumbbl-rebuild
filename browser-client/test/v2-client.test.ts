@@ -93,17 +93,28 @@ class Socket {
   close() { this.closed = true; }
   reply(message: any) { this.onmessage?.({ data: JSON.stringify({ version: 2, ...message }) }); }
 }
-function fixture(storageData = new Map<string, string>()) {
+function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }) {
   const sockets: Socket[] = []; const events: any[] = [];
   const storage = { getItem: (key: string) => storageData.get(key) ?? null, setItem: (key: string, value: string) => { storageData.set(key, value); }, removeItem: (key: string) => storageData.delete(key) } as Storage;
   const client = new V2Client({ url: 'ws://127.0.0.1/browser/v2', getToken: async () => 'secret-bearer',
-    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage });
+    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch });
   async function connect() {
     client.connect(); const socket = sockets.at(-1)!; await socket.onopen!();
     socket.reply({ type: 'authentication', code: 'ACCEPTED', requestId: socket.sent[0].requestId, accountId: account }); return socket;
   }
   return { client, connect, sockets, events, storageData };
 }
+
+test('a direct spectator match link loads and reconnects through one v2 selection', async () => {
+  const { client, connect } = fixture(new Map(), { matchId: match, watch: true });
+  let socket = await connect();
+  assert.equal(socket.sent.filter(request => request.type === 'watch').length, 1);
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: socket.sent.at(-1).requestId, duplicate: false, state });
+  assert.equal(client.state?.callerRole, 'spectator');
+  socket = await connect();
+  assert.equal(socket.sent.filter(request => request.type === 'watch').length, 1);
+  assert.throws(() => client.request('setup', { matchId: match, operation: 'action' }, true), /read-only/);
+});
 
 test('unavailable Firebase token reports a safe authentication error before disconnecting', async () => {
   const socket = new Socket(); const events: any[] = [];
@@ -170,7 +181,7 @@ test('page reload recovers the pending player selection before an explicit exact
   const first = fixture(); const originalSocket = await first.connect();
   first.client.request('setup', { matchId: match, operation: 'confirm', expectedRevision: 2 }, true);
   const original = originalSocket.sent.at(-1);
-  const reloaded = fixture(first.storageData); const socket = await reloaded.connect();
+  const reloaded = fixture(first.storageData, { matchId: match, watch: false }); const socket = await reloaded.connect();
   assert.equal(socket.sent.at(-1).operation, 'load');
   assert.equal(socket.sent.filter(request => request.operation === 'confirm').length, 0);
   reloaded.client.retry(); assert.deepEqual(socket.sent.at(-1), original);

@@ -19,7 +19,7 @@ test('creator sees opponent join and automatically opens play when opponent star
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
-    const file = resolve(root, `.${path === '/play' ? '/play/index.html' : path}`);
+    const file = resolve(root, `.${path === '/play' || path === '/play/match' ? '/play/index.html' : path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
     try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
     catch { response.writeHead(404).end(); }
@@ -63,6 +63,11 @@ test('creator sees opponent join and automatically opens play when opponent star
     await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
     for (const page of pages) await page.getByLabel('Pitch grid', { exact: true }).waitFor();
     assert.deepEqual(reads.sort(), [0, 1], 'Both pages opened play without either clicking Resume play');
+    for (const page of pages) {
+      assert.equal(new URL(page.url()).pathname, '/play/match');
+      await page.reload();
+      await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+    }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
 
@@ -70,7 +75,7 @@ test('two players and spectator use one board; updates, read-only controls and r
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
-    const file = resolve(root, `.${path === '/play' ? '/play/index.html' : path}`);
+    const file = resolve(root, `.${path === '/play' || path === '/play/match' ? '/play/index.html' : path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
     try { const content = await readFile(file); response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(content); }
     catch { response.writeHead(404).end(); }
@@ -116,6 +121,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       if (index === 2) await page.getByRole('button', { name: /Watch Home vs Away/ }).click();
       else { await page.getByLabel('Match ID', { exact: true }).fill(matchId); await page.getByRole('button', { name: 'Resume play', exact: true }).click(); }
       await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+      assert.equal(new URL(page.url()).pathname, '/play/match');
       assert.equal(await page.getByLabel('Pitch grid', { exact: true }).getByRole('button').count(), 390);
       assert.equal(await page.getByLabel('Coach labels', { exact: true }).textContent(),
         ['Home: You / Away: Opponent', 'Home: Opponent / Away: You', 'Home / Away'][index]);

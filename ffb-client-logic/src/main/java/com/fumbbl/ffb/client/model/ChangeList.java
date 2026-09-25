@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match preparation and live match now have separate routes, with direct-link and reconnect recovery")
 			.addBugfix("Saved browser matches show resume requests correctly, recover their checkpoints, and keep spectators read-only")
 			.addBugfix("Moles Under the Pitch team builder restores the roster workshop layout while saving server-validated account teams")
 			.addFeature("Moles Under the Pitch team builder now saves validated Human teams to the signed-in account for match selection")
