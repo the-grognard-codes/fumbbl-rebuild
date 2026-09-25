@@ -20,9 +20,16 @@ class RecipientProjectionTest {
 		JsonObject away = session.reply("contract", "ACCEPTED", false, "away").get("state").asObject();
 		JsonObject spectator = session.spectatorView();
 		for (JsonObject view : Arrays.asList(home, away, spectator)) {
-			keys(view, "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls",
+			keys(view, "projectionVersion", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls",
 				"actions", "turn", "turnMode", "ball", "activePlayerId", "half", "homeTurn", "awayTurn", "homeScore", "awayScore", "drive");
-			for (JsonValue value : view.get("players").asArray()) keys(value.asObject(), "id", "name", "slot", "role", "state", "x", "y");
+			assertEquals(2, view.getInt("projectionVersion", 0));
+			for (JsonValue value : view.get("players").asArray()) {
+				JsonObject player = value.asObject();
+				keys(player, "id", "name", "slot", "role", "state", "x", "y", "art");
+				keys(player.get("art").asObject(), "rosterId", "positionId");
+				assertEquals("human", player.get("art").asObject().getString("rosterId", null));
+				assertEquals("lineman", player.get("art").asObject().getString("positionId", null));
+			}
 			keys(view.get("prompt").asObject(), "id", "actor", "kind", "options");
 		}
 		assertEquals(home, away.set("callerRole", "home"));

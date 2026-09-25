@@ -538,10 +538,11 @@ public final class SetupSession {
 		JsonArray players = new JsonArray();
 		for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
 			for (Player<?> player : team.getPlayers()) {
+				FrozenTeam frozen = team == game.getTeamHome() ? document.home.team : document.away.team;
 				FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
 				boolean onPitch = FieldCoordinateBounds.FIELD.isInBounds(at);
 				players.add(new JsonObject().add("id", player.getId()).add("name", player.getName())
-					.add("slot", rosterSlot(team == game.getTeamHome() ? document.home.team : document.away.team, player))
+					.add("slot", rosterSlot(frozen, player)).add("art", artIdentity(frozen, player))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
                     .add("state", game.getFieldModel().getPlayerState(player).getDescription())
 					.add("x", onPitch ? JsonValue.valueOf(at.getX()) : JsonValue.NULL)
@@ -558,7 +559,7 @@ public final class SetupSession {
         for (Action action : actions()) legal.add(new JsonObject().add("id", actionId(action)).add("kind", action.kind)
             .add("label", action.label).add("actor", action.role));
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
-        return new JsonObject().add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
+        return new JsonObject().add("projectionVersion", 2).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeScore", homeScore()).add("awayScore", awayScore())
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr())
             .add("actions", legal).add("turn", game.getTurnData().getTurnNr()).add("turnMode", game.getTurnMode().name())
@@ -569,6 +570,13 @@ public final class SetupSession {
 			.add("actor", actor()).add("prompt", prompt).add("players", players)
 			.add("weather", game.getFieldModel().getWeather().name())
 			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls());
+	}
+	private JsonValue artIdentity(FrozenTeam frozen, Player<?> enginePlayer) {
+		if (frozen.rosterId == null || frozen.rosterId.isEmpty()) return JsonValue.NULL;
+		for (FrozenTeam.Player player : frozen.players)
+			if ((frozen.sourceTeamId + ":" + player.id).equals(enginePlayer.getId()) && player.positionId != null && !player.positionId.isEmpty())
+				return new JsonObject().add("rosterId", frozen.rosterId).add("positionId", player.positionId);
+		return JsonValue.NULL;
 	}
 
 	private int rosterSlot(FrozenTeam frozen, Player<?> enginePlayer) {
