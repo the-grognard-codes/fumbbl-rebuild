@@ -1,6 +1,7 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { decode } from './protocol.ts';
 import { LivePitch } from './LivePitch.tsx';
+import { PitchCompanion } from './PitchCompanion.tsx';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
 import { decodeRetainedSetup, setupOutcomeUncertain, setupRetryKey } from './setup-recovery.ts';
@@ -154,6 +155,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const [actionId, setActionId] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
+  const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
@@ -180,9 +182,14 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const commit = () => { if (mayAct && pinnedAction) mutate('action', { actionId: pinnedAction.id }); };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat || !mayAct || !(event.target instanceof Element)
-        || !event.target.closest('.live-pitch-viewport')) return;
-      event.preventDefault(); commit();
+      if (!(event.target instanceof Element)) return;
+      if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport, .hosted-match .pitch-companion')) {
+        setPlayerId(''); setActionId(''); setTargetFocus(null); setFocusedPlayerId(null);
+        return;
+      }
+      if (event.code === 'Space' && !event.repeat && mayAct && event.target.classList.contains('live-pitch-viewport')) {
+        event.preventDefault(); commit();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -192,6 +199,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
     (groups[action.kind] ??= []).push(action);
     return groups;
   }, {});
+  const rosterTable = <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name}</td><td>{player.role}</td><td>{player.state}</td><td>{player.x === null ? (hosted ? 'off pitch' : 'reserve') : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>;
   return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match' : undefined}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? 'Home / Away' : view.callerRole === 'home' ? 'Home: You / Away: Opponent' : 'Home: Opponent / Away: You'}</p>
@@ -214,7 +222,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <div className="match-layout"><div className="match-board">
       <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
-        onSelectPlayer={selectPlayer} onSquare={selectSquare}/>
+        onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare}/>
       <p>Ball: {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · Decision: {view.actor} · {view.turnMode}</p>
       </div><aside className="match-side" aria-label="Match decisions and players">
         <section aria-label="Selected player"><h3>Player</h3>{selectedPlayer ? <p><strong>{selectedPlayer.name} #{selectedPlayer.slot}</strong><br/>{selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? 'Off pitch' : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}</p> : <p>Select a player on the pitch or from the roster.</p>}</section>
@@ -254,6 +262,10 @@ export function GameView({ view, connected, pending, mutate, results = true, res
         </select></label>}
         {!hosted && <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>}
       </section>}
+      {hosted && <PitchCompanion view={view} x={x} y={y} selectedPlayerId={playerId} focusedPlayerId={focusedPlayerId}
+        onFocusSquare={(column, row) => { setX(column); setY(row); setFocusedPlayerId(null); }}
+        onActivateSquare={(column, row) => { const player = view.players.find(item => item.x === column && item.y === row); if (player) selectPlayer(player.id); else selectSquare(column, row); }}/>}
+      {!hosted && <>
       <p>Home H: x 0–12 · Away A: x 13–25. Line of scrimmage: x 12/13, y 4–10. Wide zones: y 0–3 and 11–14.</p>
       <p>Pitch keyboard controls: arrow keys move between squares; Enter selects a square or your player. Tab leaves the pitch. Selected square: {x}, {y}.</p>
       <div className="setup-grid" role="group" aria-label="Pitch grid">
@@ -276,6 +288,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
           </button>;
         }))}
       </div>
+      </>}
       {view.phase === 'SETUP' && <section aria-label="Placement controls"><h3>Set up {view.actor}</h3>
         <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}><option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}>{player.name} #{player.slot}{player.x === null ? ' reserve' : ''}</option>)}</select></label>
         <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup} /></label>
@@ -284,6 +297,6 @@ export function GameView({ view, connected, pending, mutate, results = true, res
         <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
         <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
       </section>}
-      <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name}</td><td>{player.role}</td><td>{player.state}</td><td>{player.x === null ? 'reserve' : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>
+      {hosted ? <details className="roster-companion"><summary>Full roster and states</summary>{rosterTable}</details> : rosterTable}
     </section>);
 }
