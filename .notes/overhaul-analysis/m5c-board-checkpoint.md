@@ -9,6 +9,7 @@ The nested state projection is version 2. Each player has a public nullable `art
 - [Actor, normal](verification/m5c/actor-normal.png) and [spectator, normal](verification/m5c/spectator-normal.png) show the same two-player board.
 - [Actor, crowded](verification/m5c/actor-crowded.png) and [spectator, crowded](verification/m5c/spectator-crowded.png) show the same 22-player setup. `SetupSessionTest.crowdedPitchFixtureUsesEnginePlacementAndFrozenArt` generates [the deterministic fixture](../../browser-client/test/fixtures/m5c-crowded-players.json) from a real engine session and checks its bytes. The hosted browser test sends that fixture to both views and asserts all 22 markers appear.
 - Focused server projection and action tests passed (27 tests); browser unit suite passed (71 tests); site build and hosted browser suite passed (3 tests). `git diff --check` passed.
+- The first Java 21 CI run found that the completed-match replay validator still accepted only the old projection shape. It now validates both historic unversioned and version-two states. The focused completion, recovery, and setup test classes pass on local Java 21; the PR gate is being rerun.
 
 ## Open for later slices
 
