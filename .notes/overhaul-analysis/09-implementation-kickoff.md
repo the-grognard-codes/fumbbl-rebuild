@@ -2,6 +2,8 @@
 
 Recorded 2026-09-06 following the owner's audit acceptance. Repository HEAD before this documentation/artwork follow-up: `d4787f8dd`; working tree was clean. Historical audit measurements remain tied to the revision in the audit evidence index. This follow-up records decisions and produces art concepts; engineering implementation has not begun.
 
+**Current M5 continuation (2026-09-25):** the later [ADR-002 addendum](04-technology-and-decisions.md#adr-002-typescript-react-dom-interface-pixijs-board-vite) selects DOM/SVG for the match board. The [M5 spec and implementation slices](m5-dom-svg-match-gui-slices.md) supersede this document's historical M1/Pixi session examples for current GUI work. The accepted directions listed below describe the 2026-09-06 kickoff state.
+
 ## Accepted direction
 
 - ADR-001 through ADR-004 accepted: Java/Maven engine, staged Java 21/runtime modernization, TypeScript/React/PixiJS/Vite browser client, versioned JSON/WebSockets, narrow application boundaries.

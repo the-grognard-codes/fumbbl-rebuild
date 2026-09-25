@@ -1,6 +1,6 @@
 # M5 renderer parity plan
 
-Status: **awaiting final design-review confirmation**. The production board renderer remains open under ADR-002. This document records owner decisions for the first M5 slice; the parity results and renderer choice will be recorded after the experiment.
+Status: **parity slice reviewed; DOM/SVG selected for M5 on 2026-09-25** on `codex/m5-renderer-parity`. The comparison scope below records the completed experiment's original criteria. The [ADR-002 addendum](04-technology-and-decisions.md#adr-002-typescript-react-dom-interface-pixijs-board-vite) records the provisional board decision and its integrated acceptance conditions. See [the implementation review](m5-renderer-parity-review-2026-09-24.md).
 
 ## Agreed experiment scope
 
@@ -45,4 +45,4 @@ The current Vite 8 build has no custom browser target and its documented default
 
 The same Safari 16.4 build floor applies to macOS Safari, but macOS has its own version numbers; there is no “iOS minimum” for a MacBook. For a useful current desktop test machine, prefer a used Apple-silicon MacBook that can run the latest macOS and Safari. Apple's macOS 27 compatibility list includes the 2020 M1 MacBook Air and 2020 M1 MacBook Pro as the oldest Air/Pro entries. Verify the exact model before buying. A Mac running only an older OS may still provide diagnostic evidence, but it cannot stand in for the current Safari/VoiceOver acceptance check. [Apple macOS 27 compatibility](https://support.apple.com/en-ca/127255); [Safari update guidance](https://support.apple.com/en-us/102665).
 
-See [the prior-session handoff](fumbbl-renderer-parity-handoff-2026-09-24.md), [the roadmap](06-roadmap-and-prototype.md), and [ADR-002](04-technology-and-decisions.md#adr-002-typescript-react-dom-interface-pixijs-board-vite) for context. No renderer choice or ADR addendum has been made.
+See [the prior-session handoff](fumbbl-renderer-parity-handoff-2026-09-24.md), [the roadmap](06-roadmap-and-prototype.md), and [ADR-002](04-technology-and-decisions.md#adr-002-typescript-react-dom-interface-pixijs-board-vite) for context. The remaining `/browser/v2` mapping, integrated accessibility, browser matrix, and foreground DOM performance checks are M5 acceptance work; further Pixi parity measurements are not a prerequisite for the selected board.

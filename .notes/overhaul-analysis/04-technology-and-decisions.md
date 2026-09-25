@@ -1,6 +1,6 @@
 # Technology assessment and architecture decisions
 
-Status: **ADR-001 through ADR-004 accepted by the owner on 2026-09-06; ADR-005 deferred, with GCP the likely hosting provider.** Acceptance selects the destination; it does not establish implementation or benchmark results. The assessment below is grounded in the audited revision and official documentation consulted 2026-09-06. Architectural judgments and effort estimates are audit inferences, not vendor claims. See [implementation kickoff](09-implementation-kickoff.md) for subsequent owner decisions and session boundaries.
+Status: **ADR-001 through ADR-004 accepted by the owner on 2026-09-06; ADR-002's board-renderer choice amended on 2026-09-25; ADR-005 deferred, with GCP the likely hosting provider.** Acceptance selects the destination; it does not establish implementation or benchmark results. The assessment below is grounded in the audited revision and official documentation consulted 2026-09-06. Architectural judgments and effort estimates are audit inferences, not vendor claims. See [implementation kickoff](09-implementation-kickoff.md) for subsequent owner decisions and session boundaries.
 
 ## Recommendation
 
@@ -39,20 +39,24 @@ Keep embedded Jetty as the first server-framework candidate, upgrading to a supp
 
 ## ADR-002: TypeScript, React DOM interface, PixiJS board, Vite
 
-Decision status: **accepted**, including React. The subsequent Svelte comparison did not change this selection.
+Decision status: **accepted for TypeScript, React, and Vite; board renderer amended to DOM/SVG on 2026-09-25**. The subsequent Svelte comparison did not change the React selection. The following proposal and comparison retain the original decision context; the M5 addendum below governs the board.
 
-**Proposed:** TypeScript for browser code, React for forms/panels/roster editing, CSS for layout, and PixiJS 8 with WebGL for the 2D board. Keep rendering behind a small board-view interface so it does not own rules or connection state. React and Pixi must not both independently mutate gameplay state.
+**Original proposal:** TypeScript for browser code, React for forms/panels/roster editing, CSS for layout, and PixiJS 8 with WebGL for the 2D board. Keep rendering behind a small board-view interface so it does not own rules or connection state. React and Pixi must not both independently mutate gameplay state.
 
 | Renderer | Strength for this game | Cost/limitation | Decision |
 |---|---|---|---|
-| PixiJS | Sprite/overlay scene graph, GPU rendering, input handling; focused on presentation | Scene transitions/audio and accessible interactions need deliberate integration | **Preferred** for a rules-driven board with substantial DOM UI |
+| PixiJS | Sprite/overlay scene graph, GPU rendering, input handling; focused on presentation | Scene transitions/audio and accessible interactions need deliberate integration | Original preference; superseded for M5 |
 | Phaser | Integrated 2D game framework, input, scenes, animation and audio; JS/TS support | More framework lifecycle concepts to coordinate with forms and server state | Strong fallback if prototype benefits materially from its integrated tooling |
 | Canvas 2D directly | Small dependency surface; easy basic board drawing | Own hit testing, zoom, asset management, redraw policy and accessibility bridge | Suitable for a disposable diagnostic viewer; less attractive as the growing product client |
-| DOM/SVG board | Semantic controls and inspectable layout; strong for simple vector shapes | More manual layering and sprite/animation integration | Keep for controls and accessible companion view; reconsider for board if prototype proves simpler |
+| DOM/SVG board | Semantic controls and inspectable layout; strong for simple vector shapes | More manual layering and sprite/animation integration | Selected for the M5 board by the addendum below |
 
 Pixi's current docs recommend WebGL for production, describe WebGPU as experimental, and list a Canvas renderer as coming soon. Therefore, **do not promise automatic Canvas fallback** with this choice: show a clear unsupported-renderer message if WebGL initialization fails, and test that path. Pixi accessibility is opt-in through DOM overlays; it does not make the game accessible automatically. [Pixi renderers](https://pixijs.com/8.x/guides/components/renderers); [Pixi accessibility](https://pixijs.com/8.x/guides/components/accessibility).
 
-**2026-09-24 implementation note:** Pixi announced an experimental Canvas renderer in v8.16, although its renderer guide still labels Canvas “coming soon.” This does not revise the accepted Pixi-board preference or prove feature parity. The pinned M1 `BoardView` requests WebGL and has a verified DOM control/recovery path on initialization failure. M5 must test the exact pinned renderer, fallback chain, visual parity and accessibility before crediting Canvas support or choosing the polished board renderer. [Pixi v8.16 announcement](https://pixijs.com/blog/8.16.0); [renderer guide](https://pixijs.com/8.x/guides/components/renderers).
+**2026-09-24 implementation note (historical):** Pixi announced an experimental Canvas renderer in v8.16, although its renderer guide still labeled Canvas “coming soon.” This did not change the then-preferred Pixi board or prove feature parity. The pinned M1 `BoardView` requests WebGL and has a verified DOM control/recovery path on initialization failure. The M5 parity experiment subsequently selected DOM/SVG, as recorded below. [Pixi v8.16 announcement](https://pixijs.com/blog/8.16.0); [renderer guide](https://pixijs.com/8.x/guides/components/renderers).
+
+**2026-09-25 M5 addendum — DOM/SVG board selected:** The owner reports a unanimous preference for the DOM/SVG parity view. Its field lines and player presentation were notably crisper and looked better than Pixi in the paired captures. The headless timing comparison favored Pixi in some cases, but those diagnostics did not represent foreground play and were not the sole decision criterion. Future sprite-sheet action/status animation and animated SVG movement paths are feasible with this board and do not justify Pixi by themselves. Use DOM/SVG for the polished M5 match board; keep the shared presentation model and renderer-neutral command boundary so rendering cannot create rules or outcomes. The local Pixi parity route remains comparison evidence, not the product renderer. See [the M5 review](m5-renderer-parity-review-2026-09-24.md).
+
+This selection is **provisional until integrated M5/R6 acceptance**: verify crowded movement and path animation in a foreground browser, actual browser zoom, keyboard and screen-reader paths, and the declared browser matrix. Optimize the DOM implementation if a measured issue appears; revisit the renderer only if a material blocker survives reasonable fixes. The earlier Pixi fallback and Canvas discussion remains historical evidence for the unselected candidate, not a requirement to ship a Pixi fallback.
 
 Phaser is a browser-oriented 2D framework with JavaScript/TypeScript support and WebGL/Canvas rendering. Pin a specific supported major before prototyping; do not copy the notes' Phaser 3 assumption as an audit conclusion. [Phaser introduction](https://docs.phaser.io/phaser/getting-started/what-is-phaser). React's component/event/state model fits the roster builder and panels; choosing it here is a maintainability judgment, not a performance finding. [React guide](https://react.dev/learn).
 
@@ -77,7 +81,7 @@ Decision status: **accepted**.
 ```mermaid
 flowchart LR
   UI[React panels and roster builder] --> STORE[Browser view and interaction state]
-  BOARD[Pixi 2D board] --> STORE
+  BOARD[DOM/SVG 2D board] --> STORE
   STORE <-->|versioned JSON / WSS| APP[Java match application and browser adapter]
   APP --> ENGINE[Existing BB2025 rules and step executor]
   APP --> CATALOG[Local roster catalog and validation]
