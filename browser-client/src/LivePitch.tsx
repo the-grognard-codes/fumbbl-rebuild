@@ -19,8 +19,8 @@ function spriteUrl(player: SetupPlayer) {
   return import.meta.env.DEV ? `/preview/humans-64px-chibi-v1/${file}` : `/assets/team-sprites/humans/${file}`;
 }
 
-function PlayerMarker({ player, scale, active, selected, target, onSelect, readOnly }: {
-  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void; readOnly: boolean;
+function PlayerMarker({ player, scale, active, selected, target, onSelect, onFocus, onBlur, readOnly }: {
+  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void; onFocus: () => void; onBlur: () => void; readOnly: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const sprite = spriteUrl(player);
@@ -31,7 +31,7 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, readO
     title={`${player.name} #${player.slot} · ${player.state}`}
     style={{ left: (OFFSET + player.x! * CELL) * scale, top: (OFFSET + player.y! * CELL) * scale,
       width: CELL * scale, height: CELL * scale, zIndex: 10 + player.y! * 26 + player.x! }}
-    onClick={event => { event.stopPropagation(); onSelect(); }}>
+    onFocus={onFocus} onBlur={onBlur} onClick={event => { event.stopPropagation(); onSelect(); }}>
     {sprite && !failed ? <img src={sprite} alt="" onError={() => setFailed(true)} className={player.art?.positionId === 'ogre' ? 'large' : ''}/> :
       <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{player.slot}</span>}
     <span className="live-number">{player.slot}</span>
@@ -39,9 +39,9 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, readO
 }
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPlayer, onSquare, readOnly = false }: {
+export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
-  onSelectPlayer: (id: string) => void; onSquare: (x: number, y: number) => void; readOnly?: boolean;
+  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -83,6 +83,11 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
     </div>
     <div ref={viewport} className="live-pitch-viewport" tabIndex={readOnly ? -1 : 0} aria-label={readOnly ? 'Replay pitch' : 'Pitch action preview'}
       style={{ overflow: zoom === 1 ? 'hidden' : 'auto', touchAction: zoom === 1 ? 'pan-y' : 'none' }}
+      onKeyDown={event => { if (zoom === 1 || event.target !== event.currentTarget) return;
+        const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+        if (!direction) return;
+        event.preventDefault(); event.currentTarget.scrollBy({ left: direction[0] * CELL * scale, top: direction[1] * CELL * scale });
+      }}
       onPointerDown={event => { if (zoom === 1 || event.button !== 0) return; const element = viewport.current!; drag.current = { x: event.clientX, y: event.clientY, left: element.scrollLeft, top: element.scrollTop, moved: false }; }}
       onPointerMove={event => { const start = drag.current; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y; if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); } if (start.moved) { viewport.current!.scrollLeft = start.left - dx; viewport.current!.scrollTop = start.top - dy; } }}
       onPointerUp={() => { if (drag.current?.moved) suppressClick.current = true; drag.current = null; }}
@@ -101,7 +106,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
           </svg>
           {view.players.filter(player => player.x !== null && player.y !== null).map(player =>
             <PlayerMarker key={player.id} player={player} scale={scale} active={player.id === view.activePlayerId}
-              selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)}/>)}
+              selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)} onFocus={() => onFocusPlayer?.(player.id)} onBlur={() => onBlurPlayer?.()}/>)}
           {backgroundFailed && <span className="live-pitch-error">Pitch image unavailable; plain field shown.</span>}
         </div>
       </div>

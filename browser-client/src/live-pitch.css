@@ -26,6 +26,7 @@
 .play-runtime .live-marker:disabled { opacity: 1; cursor: default; }
 .play-runtime .live-marker.away { border-bottom-color: #ed9e5d; border-bottom-style: dashed; }
 .play-runtime .live-marker.active { outline: 2px solid #f3e9b7; outline-offset: -2px; }
+.play-runtime .live-marker:focus-visible { outline: 3px solid #fff1b5; outline-offset: 1px; z-index: 1000 !important; }
 .play-runtime .live-marker.selected { box-shadow: inset 0 0 0 2px #f3e9b7; border-radius: 0; }
 .play-runtime .live-marker.target { outline: 2px dashed #b4e7e9; outline-offset: -2px; }
 .live-marker img { position: absolute; bottom: 0; left: 50%; width: 114.285714%; max-width: none; transform: translateX(-50%); image-rendering: pixelated; pointer-events: none; }
@@ -59,6 +60,15 @@
 .match-side h3 { margin: 0 0 .4rem; }
 .match-side p { margin: .3rem 0; }
 .match-side ul { margin: .3rem 0; padding-left: 1.25rem; }
+.hosted-match .pitch-companion { margin: .6rem 0; }
+.pitch-companion h3 { margin: 0 0 .4rem; }
+.pitch-companion p { margin: .4rem 0; }
+.pitch-companion details { margin-top: .6rem; }
+.pitch-companion summary, .roster-companion summary { cursor: pointer; color: #d7edff; padding: .3rem; }
+.pitch-companion .setup-grid { display: grid; grid-template-columns: repeat(26, minmax(1.6rem, 1fr)); max-height: min(24rem, 60vh); overflow: auto; margin-top: .6rem; }
+.pitch-companion .setup-grid button { min-height: 1.6rem; border: 1px solid #546879; }
+.pitch-companion .setup-grid button.legal { border: 2px dashed #b4e7e9; }
+.hosted-match .roster-companion { margin: .6rem 0; }
 .play-runtime .match-side button { text-align: left; padding: .2rem .35rem; margin: .1rem; font-size: .8rem; }
 .play-runtime .hosted-match .server-actions { margin-top: .5rem; }
 .hosted-match .replay-controls, .hosted-result .replay-controls { display: flex; flex-wrap: wrap; gap: .25rem; }
