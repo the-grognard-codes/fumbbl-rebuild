@@ -49,12 +49,12 @@ try {
       await pages[side].getByRole('button', { name: 'Join setup', exact: true }).click();
       await pages[side].getByTestId('setup-status').filter({ hasText: `Revision ${frame.before.state.revision} ` }).waitFor();
     }
-    assert.equal(await pages[1].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
+    assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
     assert.equal(await pages[0].getByLabel('Server action', { exact: true }).locator('option').count(), frame.before.state.actions.filter(a => a.actor === owner).length + 1);
     // Reconnect before resolution must restore every offered option and allow the authorized owner to act.
     const reconnect = async page => {
       await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
-      assert.equal(await page.getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
+      assert.equal(await page.getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
       await page.getByLabel('Local credential', { exact: true }).fill('synthetic-test-only');
       await page.getByRole('button', { name: 'Join setup', exact: true }).click();
       await page.getByRole('status').filter({ hasText: /^Connected$/ }).waitFor();
@@ -68,7 +68,7 @@ try {
         offered.filter(action => `${action.label} ${action.kind}`.toLowerCase().includes(selected.label.toLowerCase())).length + 1);
     }
     await pages[0].getByLabel('Server action', { exact: true }).selectOption(frame.request.actionId);
-    await pages[0].getByRole('button', { name: 'Execute action', exact: true }).click();
+    await pages[0].getByRole('button', { name: 'Commit action', exact: true }).click();
     await pages[0].waitForFunction(() => window.m3c.submitted.length === 1);
     const sent = await pages[0].evaluate(() => window.m3c.submitted[0]);
     assert.deepEqual({ ...sent, requestId: frame.request.requestId }, frame.request);

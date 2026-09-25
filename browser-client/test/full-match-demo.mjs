@@ -106,7 +106,7 @@ async function choose(page, action, expected) {
     assert.equal(rejected.code, 'WRONG_ACTOR');
   }
   await page.getByLabel('Server action', { exact: true }).selectOption(action.id);
-  return submit(page, page.getByRole('button', { name: 'Execute action', exact: true }), expected);
+  return submit(page, page.getByRole('button', { name: 'Commit action', exact: true }), expected);
 }
 
 async function arrange(view) {

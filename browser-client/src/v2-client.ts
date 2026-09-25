@@ -185,5 +185,10 @@ export class V2Client {
     }
     if (request) this.requests.delete(message.requestId);
     this.options.onChange(message);
+    if (request?.type === 'setup' && request.operation === 'action'
+      && ['STALE_REVISION', 'WRONG_PHASE', 'WRONG_ACTOR', 'PROMPT_MISMATCH'].includes(message.code)
+      && this.selection && !this.selection.watch) {
+      this.request('setup', { operation: 'load', matchId: this.selection.matchId });
+    }
   }
 }

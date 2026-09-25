@@ -1,0 +1,232 @@
+{
+  "kind": "mounted-native-wire-fixtures",
+  "browser": "153.0.8010.53",
+  "frames": [
+    {
+      "index": 0,
+      "capability": "declareFoul",
+      "action": "0:declareFoul-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 1,
+      "capability": "foul",
+      "action": "1:foul-opponent",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 2,
+      "capability": "declarePass",
+      "action": "0:declarePass-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 3,
+      "capability": "pass",
+      "action": "1:pass-9-7",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 4,
+      "capability": "reroll",
+      "action": "2:reroll:none",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 5,
+      "capability": "select",
+      "action": "0:select-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 6,
+      "capability": "jumpMode",
+      "action": "1:toggle-jump",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 7,
+      "capability": "jump",
+      "action": "2:move-9-6",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 8,
+      "capability": "forgo",
+      "action": "0:forgo-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 9,
+      "capability": "skill",
+      "action": "2:skill:true",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 10,
+      "capability": "selectBlock",
+      "action": "0:select-block-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 11,
+      "capability": "block",
+      "action": "1:block-opponent",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 12,
+      "capability": "move",
+      "action": "1:move-8-7",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 13,
+      "capability": "blockDie",
+      "action": "2:block-die:0",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 14,
+      "capability": "push",
+      "action": "3:push:opponent:9:6",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 15,
+      "capability": "followUp",
+      "action": "4:follow-up:no",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 16,
+      "capability": "apothecary",
+      "action": "5:apothecary:TEAM",
+      "owner": "away",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 17,
+      "capability": "interception",
+      "action": "2:intercept:opponent",
+      "owner": "away",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 18,
+      "capability": "declareThrowTeamMate",
+      "action": "0:declareThrowTeamMate-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 19,
+      "capability": "liftTeamMate",
+      "action": "1:lift-mate",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 20,
+      "capability": "throwTeamMate",
+      "action": "2:throw-mate-11-7",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 21,
+      "capability": "declareHandOff",
+      "action": "0:declareHandOff-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 22,
+      "capability": "handOff",
+      "action": "1:hand-off-mate",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 23,
+      "capability": "argueTheCall",
+      "action": "2:argue:no",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    },
+    {
+      "index": 24,
+      "capability": "secureBall",
+      "action": "0:secureBall-actor",
+      "owner": "home",
+      "reconnectBefore": true,
+      "lostAcknowledgementRetry": true,
+      "observerSynchronized": true
+    }
+  ],
+  "errors": []
+}

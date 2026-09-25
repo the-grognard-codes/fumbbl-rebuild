@@ -52,7 +52,7 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement.closest('.setup-grid') === null), true, 'Tab leaves the pitch');
   assert.equal(await page.getByRole('link', { name: 'Match results', exact: true }).getAttribute('href'), `/results?matchId=${frame.before.state.matchId}`);
   await page.getByLabel('Server action', { exact: true }).selectOption(frame.request.actionId);
-  await page.getByRole('button', { name: 'Execute action', exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Commit action', exact: true }).press('Enter');
   const original = await last();
   await locked();
   assert.equal(await page.evaluate(() => sessionStorage.getItem('ffb.setup.pending.v1')?.includes('original')), false, 'credential is absent from retry storage');

@@ -22,7 +22,7 @@ class RecipientProjectionTest {
 		for (JsonObject view : Arrays.asList(home, away, spectator)) {
 			keys(view, "projectionVersion", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls",
 				"actions", "turn", "turnMode", "ball", "activePlayerId", "half", "homeTurn", "awayTurn", "homeScore", "awayScore", "drive");
-			assertEquals(2, view.getInt("projectionVersion", 0));
+			assertEquals(3, view.getInt("projectionVersion", 0));
 			for (JsonValue value : view.get("players").asArray()) {
 				JsonObject player = value.asObject();
 				keys(player, "id", "name", "slot", "role", "state", "x", "y", "art");

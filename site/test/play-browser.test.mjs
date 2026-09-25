@@ -10,9 +10,9 @@ import { resolveEnvironment, configurationScript } from '../../deployment/fireba
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const matchId = '12345678-1234-1234-1234-123456789abc';
 const accounts = ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc'];
-const base = { projectionVersion: 2, matchId, revision: 2, phase: 'SETUP', actor: 'home', prompt: null,
+const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor: 'home', prompt: null,
   players: [{ id: 'p1', name: 'Lineman', slot: 1, role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } }, { id: 'p2', name: 'Lineman', slot: 1, role: 'away', x: 22, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'blitzer' } }],
-  weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn' }],
+  weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 
 test('creator sees opponent join and automatically opens play when opponent starts', async () => {
@@ -153,10 +153,10 @@ test('two players and spectator use one board; updates, read-only controls and r
       await pages[0].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'actor-crowded.png') });
       await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'spectator-crowded.png') });
     }
-    assert.equal(await pages[2].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
-    assert.equal(await pages[1].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
+    assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
+    assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
     await pages[0].getByLabel('Server action', { exact: true }).selectOption('next');
-    await pages[0].getByRole('button', { name: 'Execute action', exact: true }).click();
+    await pages[0].getByRole('button', { name: 'Commit action', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
     await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).click();
