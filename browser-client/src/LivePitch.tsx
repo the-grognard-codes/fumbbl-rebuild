@@ -19,14 +19,14 @@ function spriteUrl(player: SetupPlayer) {
   return import.meta.env.DEV ? `/preview/humans-64px-chibi-v1/${file}` : `/assets/team-sprites/humans/${file}`;
 }
 
-function PlayerMarker({ player, scale, active, selected, target, onSelect }: {
-  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void;
+function PlayerMarker({ player, scale, active, selected, target, onSelect, readOnly }: {
+  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void; readOnly: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const sprite = spriteUrl(player);
   const prone = player.state.toLowerCase().includes('prone');
   const stunned = player.state.toLowerCase().includes('stunned');
-  return <button type="button" className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}${prone ? ' prone' : ''}${stunned ? ' stunned' : ''}`}
+  return <button type="button" disabled={readOnly} className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}${prone ? ' prone' : ''}${stunned ? ' stunned' : ''}`}
     aria-label={`${player.role} ${player.name}, number ${player.slot}, ${player.state}, square ${player.x}, ${player.y}`}
     title={`${player.name} #${player.slot} · ${player.state}`}
     style={{ left: (OFFSET + player.x! * CELL) * scale, top: (OFFSET + player.y! * CELL) * scale,
@@ -39,9 +39,9 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect }: {
 }
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPlayer, onSquare }: {
+export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPlayer, onSquare, readOnly = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
-  onSelectPlayer: (id: string) => void; onSquare: (x: number, y: number) => void;
+  onSelectPlayer: (id: string) => void; onSquare: (x: number, y: number) => void; readOnly?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -75,13 +75,13 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
     const y = Math.floor(((clientY - rect.top) * HEIGHT / rect.height - OFFSET) / CELL);
     return x >= 0 && x < 26 && y >= 0 && y < 15 ? { x, y } : null;
   };
-  return <section className="live-pitch" aria-label="Live match pitch">
+  return <section className="live-pitch" aria-label={readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     <div className="live-pitch-toolbar"><strong>Authoritative pitch</strong><span>{Math.round(CELL * scale)} px / square</span>
       <div><button type="button" aria-pressed={zoom === 1} onClick={() => setZoom(1)}>Fit</button>
         <button type="button" aria-pressed={zoom === 1.5} onClick={() => setZoom(1.5)}>1.5×</button>
         <button type="button" aria-pressed={zoom === 2} onClick={() => setZoom(2)}>2×</button></div>
     </div>
-    <div ref={viewport} className="live-pitch-viewport" tabIndex={0} aria-label="Pitch action preview"
+    <div ref={viewport} className="live-pitch-viewport" tabIndex={readOnly ? -1 : 0} aria-label={readOnly ? 'Replay pitch' : 'Pitch action preview'}
       style={{ overflow: zoom === 1 ? 'hidden' : 'auto', touchAction: zoom === 1 ? 'pan-y' : 'none' }}
       onPointerDown={event => { if (zoom === 1 || event.button !== 0) return; const element = viewport.current!; drag.current = { x: event.clientX, y: event.clientY, left: element.scrollLeft, top: element.scrollTop, moved: false }; }}
       onPointerMove={event => { const start = drag.current; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y; if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); } if (start.moved) { viewport.current!.scrollLeft = start.left - dx; viewport.current!.scrollTop = start.top - dy; } }}
@@ -89,7 +89,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
       onPointerCancel={() => { drag.current = null; }}>
       <div className="live-pitch-center" style={{ minWidth: WIDTH * scale, minHeight: HEIGHT * scale }}>
         <div ref={scene} className="live-pitch-scene" style={{ width: WIDTH * scale, height: HEIGHT * scale }}
-          onClick={event => { if (suppressClick.current) { suppressClick.current = false; return; } const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); }}>
+          onClick={event => { if (readOnly) return; if (suppressClick.current) { suppressClick.current = false; return; } const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); }}>
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} aria-hidden="true">
             {backgroundFailed ? <><rect width={WIDTH} height={HEIGHT} fill="#263422"/><rect x={OFFSET} y={OFFSET} width="936" height="540" fill="#56632b"/></> :
               <image href={pitchUrl} width={WIDTH} height={HEIGHT} onError={() => setBackgroundFailed(true)}/>}
@@ -101,7 +101,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
           </svg>
           {view.players.filter(player => player.x !== null && player.y !== null).map(player =>
             <PlayerMarker key={player.id} player={player} scale={scale} active={player.id === view.activePlayerId}
-              selected={player.id === selectedId} target={targetPlayers.has(player.id)} onSelect={() => onSelectPlayer(player.id)}/>)}
+              selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)}/>)}
           {backgroundFailed && <span className="live-pitch-error">Pitch image unavailable; plain field shown.</span>}
         </div>
       </div>

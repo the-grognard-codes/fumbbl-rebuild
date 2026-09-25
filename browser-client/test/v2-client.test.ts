@@ -77,6 +77,19 @@ test('foreign saved-team content is rejected even on uncertain save responses', 
   }
 });
 
+test('participant result reads retain match correlation and reject foreign replay content', async () => {
+  const metadata = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
+    presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId: match, homeScore: 1, awayScore: 0, finalRevision: 2, eventCount: 3 };
+  const accepted = fixture(); const socket = await accepted.connect();
+  const requestId = accepted.client.request('matchResult', { operation: 'load', matchId: match });
+  socket.reply({ type: 'matchResult', requestId, code: 'ACCEPTED', result: metadata, event: null });
+  assert.equal(accepted.events.at(-1).result.matchId, match);
+  const foreign = fixture(); const other = await foreign.connect();
+  const foreignId = foreign.client.request('matchResult', { operation: 'load', matchId: match });
+  other.reply({ type: 'matchResult', requestId: foreignId, code: 'ACCEPTED', result: { ...metadata, matchId: account }, event: null });
+  assert.equal(other.closed, true); assert.equal(foreign.events.at(-1).code, 'INVALID_RESPONSE');
+});
+
 test('an opponent preparation response cannot carry a creator invitation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });

@@ -1,3 +1,6 @@
 .site-header .brand img { width: min(100%, 22rem); height: auto; }
+body.game-focused .site-header { width: min(100% - 2rem, 118rem); margin-top: .35rem; padding: .2rem .6rem; }
+body.game-focused .site-header .brand img { width: 9rem; }
+@media (max-height: 700px) and (min-width: 981px) { body.game-focused .site-header { display: none; } }
 #play-status { max-width: 76rem; margin: 1rem auto; padding: 0 1rem; }
 [hidden] { display: none !important; }

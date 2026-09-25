@@ -90,6 +90,24 @@ test('a direct match link survives sign-in through a validated same-site return'
   } finally { delete globalThis.location; delete globalThis.sessionStorage; delete globalThis.__testUser; }
 });
 
+test('a direct result link survives sign-in without admitting a foreign return', async () => {
+  const data = new Map(); const navigations = []; const id = '12345678-1234-1234-1234-123456789abc';
+  globalThis.sessionStorage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
+  const body = source.slice(end, source.indexOf("if (typeof document"));
+  const module = await import(`data:text/javascript,${encodeURIComponent('const onAuthStateChanged=(auth,callback)=>{callback(globalThis.__testUser);return()=>{};};' + body)}`);
+  try {
+    globalThis.location = { pathname: '/play/result', search: `?matchId=${id}&returnTo=https://foreign.invalid`, assign: value => navigations.push(value) };
+    globalThis.__testUser = null;
+    module.startPlay({ auth: {}, config: {} }, {}, { replaceChildren() {} });
+    assert.equal(data.get('moles.play.return-match'), `/play/result?matchId=${id}`);
+    assert.equal(navigations.at(-1), '/login?returnTo=%2Fplay');
+    globalThis.location = { pathname: '/play', search: '', assign: value => navigations.push(value) };
+    globalThis.__testUser = { getIdToken: async () => 'unused' };
+    module.startPlay({ auth: {}, config: {} }, {}, { replaceChildren() {} });
+    assert.equal(navigations.at(-1), `/play/result?matchId=${id}`);
+  } finally { delete globalThis.location; delete globalThis.sessionStorage; delete globalThis.__testUser; }
+});
+
 test('marker-6 container publication remains loopback-only', async () => {
   const compose = await readFile(new URL('../../containers/local/compose.marker6.yaml', import.meta.url), 'utf8');
   const config = await readFile(new URL('../../containers/local/server.marker6.ini', import.meta.url), 'utf8');
