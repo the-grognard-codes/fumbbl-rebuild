@@ -1,15 +1,25 @@
 package com.fumbbl.ffb.test;
 
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CorePromptActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.match.SetupSession;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -80,6 +90,64 @@ class CoreTurnActionsTest {
         perform(state, "blitzTarget");
         assertEquals("away1", state.getGame().getFieldModel().getTargetSelectionState().getSelectedPlayerId());
         assertTrue(actions(state).stream().anyMatch(action -> "move".equals(action.kind)));
+    }
+    @Test void continuousBlitzPublishesConsistentActorAndSpectatorCheckpoints() throws Exception {
+        GameState state = fixture(true);
+        state.getGame().getFieldModel().setWeather(Weather.NICE);
+        state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("away1"), new FieldCoordinate(11, 7));
+        SetupSession session = new SetupSessionTest().session(11);
+        Field field = SetupSession.class.getDeclaredField("state");
+        field.setAccessible(true);
+        field.set(session, state);
+        JsonArray frames = new JsonArray();
+        capture(session, frames, "ready");
+        submit(session, "blitz", null);
+        capture(session, frames, "declared");
+        submit(session, "blitzTarget", null);
+        capture(session, frames, "target-selected");
+        for (int x = 8; x <= 10; x++) {
+            submit(session, "move", x);
+            capture(session, frames, "moved-" + x);
+        }
+        TestRolls.on(state).block("pushback");
+        submit(session, "block", null);
+        capture(session, frames, "block-dice");
+        submit(session, "blockDie", null);
+        capture(session, frames, "push-choice");
+        Files.createDirectories(Paths.get("target"));
+        Files.write(Paths.get("target", "m5a-blitz-projections.json"), frames.toString().getBytes(StandardCharsets.UTF_8));
+        assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5a-blitz-projections.json")), StandardCharsets.UTF_8), frames.toString());
+    }
+
+    private void capture(SetupSession session, JsonArray frames, String checkpoint) {
+        JsonObject actor = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+        JsonObject spectator = session.spectatorView();
+        assertEquals(actor.get("revision"), spectator.get("revision"));
+        assertEquals(actor.get("players"), spectator.get("players"));
+        assertEquals(actor.get("ball"), spectator.get("ball"));
+        assertEquals(actor.get("phase"), spectator.get("phase"));
+        assertEquals(actor.get("actions"), spectator.get("actions"));
+        assertEquals(actor.get("prompt"), spectator.get("prompt"));
+        actor.set("matchId", "00000000-0000-0000-0000-000000000001");
+        spectator.set("matchId", "00000000-0000-0000-0000-000000000001");
+        frames.add(new JsonObject().add("checkpoint", checkpoint).add("actor", actor).add("spectator", spectator));
+    }
+
+    private void submit(SetupSession session, String kind, Integer targetX) {
+        JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+        JsonObject selected = null;
+        for (JsonValue value : view.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if (!kind.equals(action.getString("kind", null))) continue;
+            if (targetX != null && !action.getString("id", "").endsWith("move-" + targetX + "-7")) continue;
+            selected = action;
+            break;
+        }
+        assertTrue(selected != null, "Missing " + kind + " at " + view);
+        JsonObject request = new JsonObject().add("version", 1).add("type", "setup").add("operation", "action")
+            .add("requestId", UUID.randomUUID().toString()).add("matchId", view.get("matchId"))
+            .add("expectedRevision", view.get("revision")).add("actionId", selected.get("id"));
+        assertEquals("ACCEPTED", session.apply("home", request).getString("code", null));
     }
     @Test void rushFailureOffersNativeDecision() throws Exception {
         GameState state = fixture(true);
