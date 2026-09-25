@@ -85,8 +85,10 @@ test('keyboard companion explores, pins and commits once while spectator stays r
     await roster.press('Enter');
     await grid.locator('button').nth(27).press('Enter');
     assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '1:move');
+    assert.match(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Pinned action: Move Lineman to 1, 1/);
     await grid.locator('button').nth(27).press('Escape');
     assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '');
+    assert.doesNotMatch(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Pinned action:/);
     await grid.locator('button').nth(27).press('Space');
     assert.equal(calls.length, 0, 'Space on a grid button selects only');
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().focus();

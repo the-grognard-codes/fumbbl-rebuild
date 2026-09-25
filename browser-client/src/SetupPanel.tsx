@@ -262,7 +262,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
         </select></label>}
         {!hosted && <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>}
       </section>}
-      {hosted && <PitchCompanion view={view} x={x} y={y} selectedPlayerId={playerId} focusedPlayerId={focusedPlayerId}
+      {hosted && <PitchCompanion view={view} x={x} y={y} selectedPlayerId={playerId} focusedPlayerId={focusedPlayerId} pinnedActionLabel={pinnedAction?.label}
         onFocusSquare={(column, row) => { setX(column); setY(row); setFocusedPlayerId(null); }}
         onActivateSquare={(column, row) => { const player = view.players.find(item => item.x === column && item.y === row); if (player) selectPlayer(player.id); else selectSquare(column, row); }}/>}
       {!hosted && <>

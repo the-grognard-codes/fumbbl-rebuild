@@ -1,8 +1,8 @@
 import type { SetupState } from './setup-protocol.ts';
 
 /** Text and native-button route through the same current server targets as the visual board. */
-export function PitchCompanion({ view, x, y, selectedPlayerId, focusedPlayerId, onFocusSquare, onActivateSquare }: {
-  view: SetupState; x: number; y: number; selectedPlayerId: string; focusedPlayerId: string | null;
+export function PitchCompanion({ view, x, y, selectedPlayerId, focusedPlayerId, pinnedActionLabel, onFocusSquare, onActivateSquare }: {
+  view: SetupState; x: number; y: number; selectedPlayerId: string; focusedPlayerId: string | null; pinnedActionLabel?: string;
   onFocusSquare: (x: number, y: number) => void; onActivateSquare: (x: number, y: number) => void;
 }) {
   const focused = focusedPlayerId ? view.players.find(player => player.id === focusedPlayerId) : null;
@@ -14,7 +14,7 @@ export function PitchCompanion({ view, x, y, selectedPlayerId, focusedPlayerId, 
   const squareSummary = `Square ${x}, ${y}: ${occupant ? `${occupant.role} ${occupant.name} number ${occupant.slot}, ${occupant.state}` : 'empty'}${ball ? ', ball here' : ''}${targets.length ? `, ${targets.length} server-issued target${targets.length === 1 ? '' : 's'}` : ''}.`;
   return <section className="pitch-companion" aria-label="Pitch text companion">
     <h3>Pitch text companion</h3>
-    <p role="status" aria-live="polite" aria-atomic="true">{focused ? `Focused player: ${focused.role} ${focused.name} number ${focused.slot}, ${focused.state}. ` : ''}{squareSummary}{selected ? ` Selected: ${selected.role} ${selected.name} number ${selected.slot}, ${selected.state}.` : ''}</p>
+    <p role="status" aria-live="polite" aria-atomic="true">{focused ? `Focused player: ${focused.role} ${focused.name} number ${focused.slot}, ${focused.state}. ` : ''}{squareSummary}{selected ? ` Selected: ${selected.role} ${selected.name} number ${selected.slot}, ${selected.state}.` : ''}{pinnedActionLabel ? ` Pinned action: ${pinnedActionLabel}.` : ''}</p>
     <p>Home squares 0–12; away squares 13–25. The current server action menu names each available decision. A dashed outline marks a server-issued target; no success percentage is available yet.</p>
     <details><summary>Explore pitch squares with keyboard</summary>
       <p>Tab to the current square, use arrow keys to move, and press Enter or Space to select a player or square. Escape clears the current selection. Tab leaves the grid.</p>
