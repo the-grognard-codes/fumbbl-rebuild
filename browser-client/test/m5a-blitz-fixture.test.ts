@@ -11,7 +11,9 @@ test('real-engine Blitz checkpoints decode for actor and spectator', () => {
     const actor = decodeSetupStateValue(frame.actor);
     const spectator = decodeSetupStateValue(frame.spectator, true);
     assert.equal(actor.revision, index);
+    assert.equal(actor.projectionVersion, 2);
     assert.equal(spectator.revision, index);
+    assert.ok(actor.players.every(player => player.art === null));
     assert.deepEqual(spectator.players, actor.players);
     assert.deepEqual(spectator.ball, actor.ball);
     assert.deepEqual(spectator.actions, actor.actions);
