@@ -153,6 +153,7 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   const [playerId, setPlayerId] = useState('');
   const [actionId, setActionId] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
@@ -161,6 +162,29 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
+  const pinnedAction = availableActions.find(action => action.id === actionId);
+  const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
+    ? action.target.playerId === playerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
+  const selectPlayer = (id: string) => {
+    setPlayerId(id); setTargetFocus('player');
+    const candidates = availableActions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === id);
+    setActionId(candidates.length === 1 ? candidates[0].id : '');
+  };
+  const selectSquare = (column: number, row: number) => {
+    setX(column); setY(row); setTargetFocus('square');
+    const candidates = availableActions.filter(action => action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+    setActionId(candidates.length === 1 ? candidates[0].id : '');
+  };
+  const commit = () => { if (mayAct && pinnedAction) mutate('action', { actionId: pinnedAction.id }); };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || !mayAct || !(event.target instanceof Element)
+        || !event.target.closest('.live-pitch-viewport')) return;
+      event.preventDefault(); commit();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
   const matchingActions = availableActions.filter(action => `${action.label} ${action.kind}`.toLowerCase().includes(actionFilter.trim().toLowerCase()));
   const actionsByKind = matchingActions.reduce<Record<string, typeof availableActions>>((groups, action) => {
     (groups[action.kind] ??= []).push(action);
@@ -173,7 +197,8 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
       {connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
       <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
       <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>
-      <LivePitch view={view} selectedId={playerId} onSelectPlayer={setPlayerId} onSquare={(column, row) => { setX(column); setY(row); }}/>
+      <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
+        onSelectPlayer={selectPlayer} onSquare={selectSquare}/>
       {saved && <section aria-label="Save and resume"><h3>Save and resume</h3>
         {view.callerRole === 'spectator' ? <p>Match status: {saved.status.replaceAll('_', ' ').toLowerCase()}. Save and resume decisions belong to the two players.</p> : <>
         {saved.status === 'ACTIVE' && <><p>This match is active. A save proposal does not pause play until the other participant accepts.</p><button type="button" onClick={() => mutate('saveRequest') } disabled={!connected || !!pending}>Request mutual save</button></>}
@@ -195,12 +220,16 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
       {view.actions.length > 0 && <section aria-label="Server actions" className="server-actions">
         <h3>Server actions</h3>
         <p>{availableActions.length ? 'Choose an action issued for your team. Its actor and kind are shown in the list.' : 'The server has not issued an action for your team.'}</p>
+        {targetChoices.length > 0 && <div aria-label="Actions at selected target"><strong>At selected target</strong>{targetChoices.map(action =>
+          <button key={action.id} type="button" className="secondary" aria-pressed={actionId === action.id}
+            onClick={() => setActionId(action.id)} disabled={!connected || !!pending || suspended}>{action.label}</button>)}</div>}
+        <p>{pinnedAction ? `Pinned: ${pinnedAction.label}. Commit will send this server action.` : 'Select a server action, then Commit. Hover never sends an action.'}</p>
         {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player name, pass, or 8, 7" disabled={!connected || !!pending} /></label>}
         {actionFilter && <p>{matchingActions.length} matching actions</p>}
         <label>Action <select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || availableActions.length === 0}>
           <option value="">Select</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label} · {action.actor} · {action.kind}</option>)}</optgroup>)}
         </select></label>
-        <button type="button" onClick={() => mutate('action', { actionId })} disabled={!mayAct}>Execute action</button>
+        <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>
       </section>}
       <p>Home H: x 0–12 · Away A: x 13–25. Line of scrimmage: x 12/13, y 4–10. Wide zones: y 0–3 and 11–14.</p>
       <p>Pitch keyboard controls: arrow keys move between squares; Enter selects a square or your player. Tab leaves the pitch. Selected square: {x}, {y}.</p>

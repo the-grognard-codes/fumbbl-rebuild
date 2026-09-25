@@ -128,6 +128,16 @@ presentation identity only: it conveys no private team document, legality or
 odds. Publish the updated game server and browser decoder together; older
 browser bundles reject version-two states. The v2 transport envelope and
 engine/replay/persistence formats remain unchanged.
+
+The live nested state advances to `projectionVersion:3` for M5d. Every
+server-issued action adds `target`: `null`, `{playerId}`, or `{x,y}` in canonical
+pitch coordinates. The target is a display and pinning hint for that exact
+action ID at that revision. It does not imply a multi-step route, success odds,
+or permission to submit a different action. The decoder still accepts retained
+unversioned and version-two replay states. New server/browser bundles must be
+published together; older browser bundles reject version three. Recovery
+compares historic projection versions against their corresponding current
+presentation subset while retaining exact checks for the gameplay fields.
 See [R3-E evidence and limits](../.notes/overhaul-analysis/verification/r3-e/README.md).
 
 Preparation create selects an owned `teamId` and `expectedDocumentVersion`.
