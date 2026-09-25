@@ -154,9 +154,10 @@ public final class MatchJson {
 				JsonObject event = value.asObject(); exact(event, "revision", "kind", "state"); int revision = event.getInt("revision", -1);
 				if (revision != prior + 1 || revision > finalRevision || !("START".equals(event.getString("kind", null)) || "ACTION".equals(event.getString("kind", null)) || "SELECTION".equals(event.getString("kind", null)) || "TOUCHDOWN".equals(event.getString("kind", null)) || "HALFTIME".equals(event.getString("kind", null)) || "FULL_TIME".equals(event.getString("kind", null)))) throw new IllegalArgumentException(); prior = revision;
 				JsonObject state = event.get("state").asObject();
-				boolean artV2 = state.get("projectionVersion") != null;
-				if (artV2) {
-					if (state.getInt("projectionVersion", -1) != 2) throw new IllegalArgumentException();
+				boolean versionedArt = state.get("projectionVersion") != null;
+				if (versionedArt) {
+					int version = state.getInt("projectionVersion", -1);
+					if (version != 2 && version != 3) throw new IllegalArgumentException();
 					exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
 				} else exact(state, "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
 				if (state.get("actions").asArray().size() != 0 || !state.get("prompt").isNull() || !"home".equals(state.getString("callerRole", null)) || !document.matchId.equals(state.getString("matchId", null)) || state.getInt("revision", -1) != revision) throw new IllegalArgumentException();

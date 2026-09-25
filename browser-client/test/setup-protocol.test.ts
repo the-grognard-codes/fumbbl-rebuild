@@ -9,10 +9,23 @@ test('versioned public art identity accepts known values and null fallback, but 
   const versioned = { ...state, projectionVersion: 2, players: state.players.map((player, index) => ({ ...player, art: index === 0 ? { rosterId: 'human', positionId: 'lineman' } : null })) };
   assert.deepEqual(decodeSetupStateValue(versioned).players[0].art, { rosterId: 'human', positionId: 'lineman' });
   assert.equal(decodeSetupStateValue({ ...versioned, callerRole: 'spectator' }, true).players[1].art, null);
-  assert.throws(() => decodeSetupStateValue({ ...versioned, projectionVersion: 3 }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, projectionVersion: 4 }));
   assert.throws(() => decodeSetupStateValue({ ...versioned, players: [{ ...versioned.players[0], art: { rosterId: 'human', positionId: 'lineman', owner: 'private' } }, versioned.players[1]] }));
   assert.throws(() => decodeSetupStateValue({ ...versioned, players: [{ ...versioned.players[0], art: { rosterId: 'human' } }, versioned.players[1]] }));
   assert.throws(() => decodeSetupStateValue({ ...state, players: [{ ...state.players[0], art: null }, state.players[1]] }));
+});
+test('version-three actions require bounded server target metadata', () => {
+  const players = state.players.map(player => ({ ...player, art: null }));
+  const versioned = { ...state, projectionVersion: 3, players, actions: [
+    { id: '2:select-p1', label: 'Move Captain', actor: 'home', kind: 'select', target: { playerId: 'p1' } },
+    { id: '2:move-4-4', label: 'Move to 4, 4', actor: 'home', kind: 'move', target: { x: 4, y: 4 } },
+    { id: '2:end-turn', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }
+  ] };
+  assert.deepEqual(decodeSetupStateValue(versioned).actions[1].target, { x: 4, y: 4 });
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[0], target: { playerId: 'secret' } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[1], target: { x: 26, y: 4 } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[2], target: { x: 4, y: 4, odds: 99 } }] }));
+  assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ id: '2:end-turn', label: 'End turn', actor: 'home', kind: 'endTurn' }] }));
 });
 test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
   const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
