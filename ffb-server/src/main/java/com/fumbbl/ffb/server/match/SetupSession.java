@@ -555,10 +555,8 @@ public final class SetupSession {
 				.add("options", new JsonArray().add(coin ? "heads" : "receive").add(coin ? "tails" : "kick"));
 		}
 		JsonArray legal = new JsonArray();
-        if (!"spectator".equals(role))
-            for (Action action : actions()) legal.add(new JsonObject().add("id", actionId(action)).add("kind", action.kind)
-                .add("label", action.label).add("actor", action.role));
-        else prompt = JsonValue.NULL;
+        for (Action action : actions()) legal.add(new JsonObject().add("id", actionId(action)).add("kind", action.kind)
+            .add("label", action.label).add("actor", action.role));
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
         return new JsonObject().add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeScore", homeScore()).add("awayScore", awayScore())

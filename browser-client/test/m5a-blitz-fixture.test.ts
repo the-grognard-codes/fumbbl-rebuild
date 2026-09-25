@@ -14,8 +14,8 @@ test('real-engine Blitz checkpoints decode for actor and spectator', () => {
     assert.equal(spectator.revision, index);
     assert.deepEqual(spectator.players, actor.players);
     assert.deepEqual(spectator.ball, actor.ball);
-    assert.equal(spectator.actions.length, 0);
-    assert.equal(spectator.prompt, null);
+    assert.deepEqual(spectator.actions, actor.actions);
+    assert.deepEqual(spectator.prompt, actor.prompt);
   }
   assert.ok(frames[5].actor.actions.some((action: { kind: string }) => action.kind === 'block'));
   assert.ok(frames[6].actor.actions.some((action: { kind: string }) => action.kind === 'blockDie'));

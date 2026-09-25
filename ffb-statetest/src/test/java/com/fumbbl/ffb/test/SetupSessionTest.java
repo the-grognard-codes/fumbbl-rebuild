@@ -24,14 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SetupSessionTest {
-	@Test void spectatorProjectionOmitsPromptAndLegalActions() throws Exception {
-		SetupSession session = session(11);
-		JsonObject spectator = session.spectatorView();
-		assertEquals("spectator", spectator.getString("callerRole", null));
-		assertTrue(spectator.get("prompt").isNull());
-		assertEquals(0, spectator.get("actions").asArray().size());
-		assertEquals(session.reply("load", "ACCEPTED", false, "home").get("state").asObject().get("revision"), spectator.get("revision"));
-	}
 	@Test void twelvePlayerRosterMustFieldItsCaptainAndCanCorrectPlacementThroughReserves() throws Exception {
 		SetupSession session = session(12); choices(session);
 		JsonObject view = view(session); String actor = view.getString("actor", null);

@@ -6,7 +6,7 @@ import { canPlaceReserve, decodeSetupStateValue } from '../src/setup-protocol.ts
 const account = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const match = '12345678-1234-1234-1234-123456789abc';
 const state = { matchId: match, revision: 2, callerRole: 'spectator', phase: 'SETUP', actor: 'home',
-  prompt: null,
+  prompt: { id: 'choice', actor: 'home', kind: 'coin', options: ['heads', 'tails'] },
   players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: null, y: null, state: 'reserve' }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null,
   activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
