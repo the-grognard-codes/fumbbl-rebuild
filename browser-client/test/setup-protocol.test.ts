@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { canPlaceReserve, decodeSetupState } from '../src/setup-protocol.ts';
+import { canPlaceReserve, decodeSetupState, decodeSetupStateValue } from '../src/setup-protocol.ts';
 
 const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, callerRole: 'home', phase: 'SETUP', actor: 'home', prompt: null, players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: 3, y: 4, state: 'standing' }, { id: 'p2', name: 'Reserve', slot: 2, role: 'home', x: null, y: null, state: 'reserve' }], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
 test('decodes a complete authoritative setup snapshot', () => assert.equal(decodeSetupState(JSON.stringify(response)).state?.players[1].x, null));
+test('accepts read-only spectator state and rejects leaked decisions', () => {
+  const spectator = { ...state, callerRole: 'spectator' };
+  assert.equal(decodeSetupStateValue(spectator, true).actions.length, 0);
+  assert.throws(() => decodeSetupStateValue({ ...spectator, actions: [{ id: '2:move-8-7', label: 'Move', actor: 'home', kind: 'move' }] }, true));
+  assert.throws(() => decodeSetupStateValue({ ...spectator, prompt: { id: 'coin', actor: 'home', kind: 'coin', options: ['heads', 'tails'] } }, true));
+});
 test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
   const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
   assert.equal(decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume } })).state?.saveResume?.status, 'SAVE_PENDING');
