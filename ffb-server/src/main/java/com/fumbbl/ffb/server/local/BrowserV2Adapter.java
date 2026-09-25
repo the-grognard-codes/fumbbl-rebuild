@@ -6,6 +6,7 @@ import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchJson;
+import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
@@ -98,7 +99,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				send(connection, response);
 				if (outcome.publish()) publisher.publish(id, connection, response.get("state").asObject());
 				return;
-			} else if ("preparedMatch".equals(type)) {
+			} else if ("matchResult".equals(type)) response = new MatchResultJson().handle(matches, principal.accountId(), request);
+			else if ("preparedMatch".equals(type)) {
 				String operation = request.getString("operation", "");
 				if ("release".equals(operation)) {
 					fields(request, "version", "type", "operation", "requestId", "matchId");

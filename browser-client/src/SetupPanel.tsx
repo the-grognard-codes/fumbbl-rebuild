@@ -146,8 +146,8 @@ export function SetupPanel() {
 }
 
 /** The same board and decisions for players and read-only spectators. */
-export function GameView({ view, connected, pending, mutate, results = true }: {
-  view: SetupState; connected: boolean; pending: string | null; results?: boolean;
+export function GameView({ view, connected, pending, mutate, results = true, resultUrl, hosted = false }: {
+  view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
@@ -157,6 +157,8 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
+  const selectedPlayer = view.players.find(player => player.id === playerId);
+  const offPitch = view.players.filter(player => player.x === null);
   const saved = view.saveResume;
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
@@ -190,15 +192,36 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
     (groups[action.kind] ??= []).push(action);
     return groups;
   }, {});
-  return (<section aria-label="Authoritative setup">
+  return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match' : undefined}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? 'Home / Away' : view.callerRole === 'home' ? 'Home: You / Away: Opponent' : 'Home: Opponent / Away: You'}</p>
-      {view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={`/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
+      {hosted && <div className="match-scoreboard" aria-label="Match scoreboard">
+        <div><span>Home</span><strong>{view.homeScore}</strong><small>Turn {view.homeTurn} · {view.homeRerolls} rerolls</small></div>
+        <p>Half {view.half} · Drive {view.drive}<br/><span>{view.weather} · {view.phase.replaceAll('_', ' ')}</span></p>
+        <div><span>Away</span><strong>{view.awayScore}</strong><small>Turn {view.awayTurn} · {view.awayRerolls} rerolls</small></div>
+      </div>}
+      {hosted && view.actions.length > 0 && <div className="match-command-bar" aria-label="Current decision">
+        <div className="decision-select"><span>Server action</span><select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || suspended || availableActions.length === 0}>
+          <option value="">Choose a decision</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label}</option>)}</optgroup>)}
+        </select></div>
+        {availableActions.find(action => action.kind === 'endTurn') && <button type="button" className="secondary" onClick={() => setActionId(availableActions.find(action => action.kind === 'endTurn')!.id)} disabled={!connected || !!pending || suspended}>Select End Turn</button>}
+        <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>
+        <span>{pinnedAction ? `Pinned: ${pinnedAction.label}` : 'Select an action. Commit sends the current server decision.'}</span>
+      </div>}
+      {view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
       {connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
-      <p data-testid="setup-status">Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
-      <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>
+      <p data-testid="setup-status" className={hosted ? 'match-technical-status' : undefined}>Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
+      {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
+      {hosted && <div className="match-layout"><div className="match-board">
       <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
         onSelectPlayer={selectPlayer} onSquare={selectSquare}/>
+      <p>Ball: {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · Decision: {view.actor} · {view.turnMode}</p>
+      </div><aside className="match-side" aria-label="Match decisions and players">
+        <section aria-label="Selected player"><h3>Player</h3>{selectedPlayer ? <p><strong>{selectedPlayer.name} #{selectedPlayer.slot}</strong><br/>{selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? 'Off pitch' : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}</p> : <p>Select a player on the pitch or from the roster.</p>}</section>
+        <section aria-label="Off pitch players"><h3>Off pitch</h3>{offPitch.length ? <ul>{offPitch.map(player => <li key={player.id}><button type="button" onClick={() => selectPlayer(player.id)}>{player.role} · {player.name} #{player.slot} · {player.state}</button></li>)}</ul> : <p>All players are on the pitch.</p>}</section>
+      </aside></div>}
+      {!hosted && <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
+        onSelectPlayer={selectPlayer} onSquare={selectSquare}/>}
       {saved && <section aria-label="Save and resume"><h3>Save and resume</h3>
         {view.callerRole === 'spectator' ? <p>Match status: {saved.status.replaceAll('_', ' ').toLowerCase()}. Save and resume decisions belong to the two players.</p> : <>
         {saved.status === 'ACTIVE' && <><p>This match is active. A save proposal does not pause play until the other participant accepts.</p><button type="button" onClick={() => mutate('saveRequest') } disabled={!connected || !!pending}>Request mutual save</button></>}
@@ -226,10 +249,10 @@ export function GameView({ view, connected, pending, mutate, results = true }: {
         <p>{pinnedAction ? `Pinned: ${pinnedAction.label}. Commit will send this server action.` : 'Select a server action, then Commit. Hover never sends an action.'}</p>
         {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player name, pass, or 8, 7" disabled={!connected || !!pending} /></label>}
         {actionFilter && <p>{matchingActions.length} matching actions</p>}
-        <label>Action <select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || availableActions.length === 0}>
+        {!hosted && <label>Action <select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || availableActions.length === 0}>
           <option value="">Select</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label} · {action.actor} · {action.kind}</option>)}</optgroup>)}
-        </select></label>
-        <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>
+        </select></label>}
+        {!hosted && <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>}
       </section>}
       <p>Home H: x 0–12 · Away A: x 13–25. Line of scrimmage: x 12/13, y 4–10. Wide zones: y 0–3 and 11–14.</p>
       <p>Pitch keyboard controls: arrow keys move between squares; Enter selects a square or your player. Tab leaves the pitch. Selected square: {x}, {y}.</p>

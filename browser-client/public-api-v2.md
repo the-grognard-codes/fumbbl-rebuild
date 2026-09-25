@@ -10,7 +10,7 @@ unchanged. See [DEV installation evidence](../.notes/overhaul-analysis/verificat
 
 The game host serves exactly `/browser/v2`. All other routes, including
 `/browser/v1`, `/session/v1`, `/spectator`, `/admin`, `/command`, `/gamestate`,
-`/backup`, result/replay and legacy desktop endpoints, return 404. No proxy to
+`/backup`, legacy result/replay HTTP endpoints and legacy desktop endpoints, return 404. No proxy to
 FUMBBL exists. A normal HTTP request to the socket route is unavailable; invalid
 origins, foreign Host headers, raw path variants and query strings (including an
 empty `?`) fail the upgrade with 403 (malformed HTTP may receive Jetty's 400;
@@ -67,11 +67,12 @@ provider/JDBC exception details and request bodies are not logged.
 | `setup` | PLAYER plus account-to-match membership before every load/action/retry | Existing R2 public setup state | Existing server-issued decisions and exact retries; non-member `NOT_FOUND` |
 | `browse` | SPECTATOR | Up to 100 active marker-6 match IDs, Home vs Away | Read only; copied R2-only rows never listed |
 | `watch` | SPECTATOR plus active match with both marker-6 membership rows | Same public state as players; `callerRole:"spectator"` | Live read-only subscription; unavailable/finished/reference match `NOT_FOUND` |
-| Admin, support, replay, results, legacy | Not exposed | None | HTTP 404; unknown protocol message `UNSUPPORTED_MESSAGE` |
+| `matchResult` | PLAYER plus completed-match participant membership | Final score/metadata on `load`; one bounded recorded event on `replay` | Read-only; spectator and non-member `NOT_FOUND`; existing R2 result codes |
+| Admin, support, legacy HTTP routes | Not exposed | None | HTTP 404; unknown protocol message `UNSUPPORTED_MESSAGE` |
 
 Watchers get the final public frame of their active subscription; a completed
 match cannot be newly watched or browsed. No spectator chat, account profile,
-saved-team document, private dice/checkpoint/request history or replay is sent.
+saved-team document, private dice/checkpoint/request history or replay is sent on the live subscription.
 Recipient reauthorization failure stops delivery with `VIEW_UNAVAILABLE`.
 The browser clears views on disconnect, sign-out and access loss.
 
@@ -81,7 +82,9 @@ The browser clears views on disconnect, sign-out and access loss.
 After an `ACTIVATED` prepared-match response, both players navigate to
 `/play/match?matchId=<uuid>`; a spectator uses the same route with `watch=1`.
 The match route mounts the existing setup/game view and seeds one `V2Client`
-subscription from its validated URL. Reload and reconnect request a fresh
+subscription from its validated URL. `/play/result?matchId=<uuid>` requests
+participant-authorized `matchResult.load` and individual replay events; it is
+not available to spectators after completion. Reload and reconnect request a fresh
 authorized projection. A retained uncertain setup request takes precedence over
 the URL and can only be retried with its original request ID and account. A
 signed-out direct match link survives the constrained `/play` sign-in return in
@@ -110,10 +113,11 @@ preparation and game structures retain their existing decoder contracts.
 | `preparedMatch` | `code`, `duplicate`, `callerRole`, `document`, `recoveryMatchId`; optional `invitationCode` | Member's frozen public preparation; non-null invitation only for creator/home |
 | `savedTeam` | `code`, `document`, `versionStatus`, `validation`, `teams` | Own-account document, including uncertain-save responses; foreign/extra ownership fields rejected |
 | `setupState` | `code`, `duplicate`, `state` | Public engine state; watch requires spectator role, player load requires a player role |
+| `matchResult` | `code`, `result`, `event` | Completed participant-only metadata and at most one replay event; the v1 nested result decoder remains authoritative |
 | `catalog` | Existing catalog metadata, positions, skills, resources and unsupported text | Frozen public catalog; no identity or storage internals |
 | `teamValidation` | `catalogVersion`, `ruleset`, `valid`, `budget`, `skillPoints`, `messages`, `total` | Server validation of caller-supplied draft, no other account's data |
 
-`v2-projection.ts` and `v2-projection.test.ts` declare/test all nine envelopes.
+`v2-projection.ts` and `v2-projection.test.ts` declare/test all ten envelopes.
 The existing nested decoders and service/native projection tests cover the
 recipient boundaries. New DTOs or fields require explicit positive/negative
 projection tests and a reviewed protocol compatibility decision before exposure.

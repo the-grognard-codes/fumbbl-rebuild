@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser matches show live score, player status and off-pitch rosters, with final results and replay for participants")
 			.addImprovement("Browser match pitch highlights server-issued targets and commits pinned actions through one guarded command path")
 			.addImprovement("Browser matches show the authoritative DOM pitch with frozen-roster player art and readable fallback tokens")
 			.addImprovement("Browser match preparation and live match now have separate routes, with direct-link and reconnect recovery")

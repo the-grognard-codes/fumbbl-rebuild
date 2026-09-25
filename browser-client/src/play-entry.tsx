@@ -5,6 +5,8 @@ import { BuilderPanel } from './BuilderPanel.tsx';
 import { V2Client } from './v2-client.ts';
 import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
+import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
+import { HostedResult } from './HostedResult.tsx';
 import './play-brand.css';
 
 export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
@@ -21,6 +23,7 @@ export function mountBuilder(element: HTMLElement, options: { url: string; getTo
 
 function Play({ options }: { options: { url: string; getToken: () => Promise<string> } }) {
   const matchRoute = location.pathname === '/play/match';
+  const resultRoute = location.pathname === '/play/result';
   const watchRoute = matchRoute && new URLSearchParams(location.search).get('watch') === '1';
   const [, redraw] = useState(0);
   const [status, setStatus] = useState('Connecting');
@@ -31,13 +34,27 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
   const [matchId, setMatchId] = useState(() => new URLSearchParams(location.search).get('matchId') ?? '');
   const [prepared, setPrepared] = useState<V2Message | null>(null);
+  const [result, setResult] = useState<MatchResultMetadata | null>(null);
+  const [replayEvent, setReplayEvent] = useState<ReplayEvent | null>(null);
+  const [replayIndex, setReplayIndex] = useState<number | null>(null);
+  const [resultPending, setResultPending] = useState(false);
   const client = useRef<V2Client | null>(null);
   useEffect(() => {
     const connection = new V2Client({ ...options, storage: sessionStorage,
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
-      if (message.type === 'status') { setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); }
-      if (message.type === 'authentication') setStatus('Connected');
+      if (message.type === 'status') { setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false); }
+      if (message.type === 'authentication') { setStatus('Connected'); if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
+      if (resultRoute && message.type === 'error') setResultPending(false);
+      if (message.type === 'matchResult') {
+        setResultPending(false);
+        if (message.code === 'ACCEPTED') {
+          setResult(message.result);
+          if (message.event) { setReplayEvent(message.event); setReplayIndex(message.event.revision); }
+          else { setReplayEvent(null); setReplayIndex(null); }
+          setError('');
+        }
+      }
       if (message.code === 'VIEW_UNAVAILABLE' || message.code === 'NOT_FOUND') { setPrepared(null); setInvite(''); }
       if (message.type === 'browse' && Array.isArray(message.matches)) setGames(message.matches);
       if (message.type === 'savedTeam' && message.code === 'OK') {
@@ -58,9 +75,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
     window.addEventListener('focus', refresh);
     client.current = connection;
-    if (!matchRoute && connection.pending?.request.type === 'setup')
+    if (!matchRoute && !resultRoute && connection.pending?.request.type === 'setup')
       location.replace(matchUrl(connection.pending.request.matchId, false));
-    else if (matchRoute && !matchIdPattern.test(matchId)) setError('Enter a valid match ID.');
+    else if ((matchRoute || resultRoute) && !matchIdPattern.test(matchId)) setError('Enter a valid match ID.');
     else if (matchRoute && connection.pending?.request.type === 'setup' && (connection.pending.request.matchId !== matchId || watchRoute))
       location.replace(matchUrl(connection.pending.request.matchId, false));
     else connection.connect();
@@ -77,13 +94,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       : operation === 'activate' ? { matchId, expectedRevision: prepared?.document.documentVersion } : { matchId };
     run(() => connection?.request('preparedMatch', { operation, ...fields }, operation !== 'load'));
   }
-  return <main className={`play-runtime setup-panel${matchRoute ? ' live-match-page' : ''}`}>
-    <h1>{matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
-    {!connected && <button onClick={() => connection?.connect()}>Reconnect</button>}
-    {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
+  return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
+    <div className={matchRoute || resultRoute ? 'match-page-top' : undefined}>
+      <h1>{resultRoute ? 'Match result' : matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
+      {!connected && <button onClick={() => connection?.connect()}>Reconnect</button>}
+      {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
+      {(matchRoute || resultRoute) && <a href="/play">Match preparation and games</a>}
+    </div>
     {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
-    {matchRoute && <p><a href="/play">Match preparation and games</a></p>}
-    {!matchRoute && <>
+    {!matchRoute && !resultRoute && <>
     <section aria-label="Match preparation"><h2>Your game</h2>
       <p>Need a new roster? <a href="/teambuilder">Open Team Builder</a>, validate it, and save the resulting team definition before creating a game.</p>
       <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}{team.eligibility !== 'CURRENT' ? ` · unavailable: ${team.eligibility}` : ''}</option>)}</select></label>
@@ -102,8 +121,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       {games.map(game => <button key={game.matchId} disabled={busy} onClick={() => run(() => location.assign(matchUrl(game.matchId, true)))}>Watch Home vs Away · {game.matchId.slice(0, 8)}</button>)}
     </section>
     </>}
-    {matchRoute && connection?.state && <GameView key={connection.state.matchId} results={false} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
+    {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       mutate={(operation, fields = {}) => run(() => { const state = connection.state!; connection.request('setup', { operation, matchId: state.matchId, expectedRevision: state.revision, ...fields }, true); })} />}
+    {resultRoute && <HostedResult matchId={matchId} result={result} event={replayEvent} index={replayIndex} pending={resultPending} connected={connected}
+      onLoad={() => run(() => { connection!.request('matchResult', { operation: 'load', matchId }); setResultPending(true); })}
+      onReplay={index => run(() => { connection!.request('matchResult', { operation: 'replay', matchId, index }); setResultPending(true); })}/>}
   </main>;
 }
 
