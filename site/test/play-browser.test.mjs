@@ -82,6 +82,7 @@ test('two players and spectator use one board; updates, read-only controls and r
   const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
   const consoleSummary = { messages: 0, errors: 0, leaked: false };
   const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index],
+    actions: index === 2 ? [] : base.actions,
     players: base.players.map(player => ({ ...player, name: hostileName })) });
   try {
     const pages = [];
@@ -125,7 +126,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       const text = await page.locator('body').innerText();
       assert.ok(privateSentinels.every(value => !text.includes(value)));
     }
-    assert.equal(await pages[2].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
+    assert.equal(await pages[2].getByRole('button', { name: 'Execute action', exact: true }).count(), 0);
     assert.equal(await pages[1].getByRole('button', { name: 'Execute action', exact: true }).isDisabled(), true);
     await pages[0].getByLabel('Server action', { exact: true }).selectOption('next');
     await pages[0].getByRole('button', { name: 'Execute action', exact: true }).click();
