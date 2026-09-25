@@ -2,6 +2,7 @@
 const fields: Record<string, string[]> = {
   authentication: ['code', 'accountId'], error: ['code'], browse: ['code', 'matches'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
+  matchResult: ['code', 'result', 'event'],
   preparedMatch: ['code', 'duplicate', 'callerRole', 'document', 'recoveryMatchId'],
   savedTeam: ['code', 'document', 'versionStatus', 'validation', 'teams'],
   catalog: ['catalogVersion', 'ruleset', 'draftVersion', 'rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers',

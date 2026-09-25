@@ -21,8 +21,8 @@ export function startPlay({ auth, config }, status, host) {
   let dispose;
   let generation = 0;
   const matchId = new URLSearchParams(location.search).get('matchId');
-  const matchReturn = location.pathname === '/play/match' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(matchId ?? '')
-    ? `/play/match?matchId=${matchId}${new URLSearchParams(location.search).get('watch') === '1' ? '&watch=1' : ''}` : null;
+  const matchReturn = ['/play/match', '/play/result'].includes(location.pathname) && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(matchId ?? '')
+    ? `${location.pathname}?matchId=${matchId}${location.pathname === '/play/match' && new URLSearchParams(location.search).get('watch') === '1' ? '&watch=1' : ''}` : null;
   const unsubscribe = onAuthStateChanged(auth, async user => {
     const current = ++generation;
     dispose?.(); dispose = null; host.replaceChildren();
@@ -33,7 +33,7 @@ export function startPlay({ auth, config }, status, host) {
     if (location.pathname === '/play') {
       const saved = sessionStorage.getItem('moles.play.return-match');
       sessionStorage.removeItem('moles.play.return-match');
-      if (saved && /^\/play\/match\?matchId=[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}(&watch=1)?$/.test(saved)) {
+      if (saved && /^\/play\/(match|result)\?matchId=[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}(&watch=1)?$/.test(saved)) {
         location.assign(saved); return;
       }
     }
@@ -49,6 +49,7 @@ export function startPlay({ auth, config }, status, host) {
 }
 
 if (typeof document !== 'undefined' && document.querySelector('#game-root')) {
+  document.body.classList.toggle('game-focused', ['/play/match', '/play/result'].includes(location.pathname));
   const status = document.querySelector('#play-status');
   try { startPlay(authentication(), status, document.querySelector('#game-root')); }
   catch { status.textContent = 'Sign-in is unavailable. Please try again later.'; }

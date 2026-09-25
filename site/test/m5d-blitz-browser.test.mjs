@@ -68,6 +68,14 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     const submit = async (actionId, pin, viaSpace = false) => {
       await pin();
       assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), actionId);
+      if (actionId === '2:move-8-7') {
+        const path = actor.getByLabel('Live match pitch').locator('.live-target-line');
+        await path.waitFor({ state: 'attached' });
+        assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'live-path-chase');
+        await actor.emulateMedia({ reducedMotion: 'reduce' });
+        assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'none');
+        await actor.emulateMedia({ reducedMotion: 'no-preference' });
+      }
       if (process.env.M5D_SCREENSHOT_DIR && ['2:move-8-7', '7:push:away1:12:6'].includes(actionId)) {
         await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
         await actor.getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, `${actionId.startsWith('2:') ? 'blitz-move' : 'push-choice'}-actor.png`) });

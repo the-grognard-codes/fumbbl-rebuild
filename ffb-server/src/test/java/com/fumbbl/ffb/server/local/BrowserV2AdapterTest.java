@@ -3,6 +3,7 @@ package com.fumbbl.ffb.server.local;
 import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
+import com.fumbbl.ffb.server.match.CompletedMatch;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
@@ -34,6 +35,32 @@ class BrowserV2AdapterTest {
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final String FIRST = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+
+	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+		when(access.require(spectator, ApplicationScope.PLAYER)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		MatchService matches = mock(MatchService.class);
+		when(matches.result(FIRST, MATCH)).thenReturn(new CompletedMatch(new JsonObject().add("matchId", MATCH)
+			.add("events", new com.eclipsesource.json.JsonArray().add(new JsonObject().add("revision", 0).add("kind", "FULL_TIME"))).toString()));
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> "player".equals(bearer) ? player : spectator,
+			access, mock(SetupApplication.class), matches, mock(V2PreparationService.class), mock(BrowserSavedTeamJson.class));
+		Connection participant = new Connection(), viewer = new Connection();
+		adapter.receive(participant, authenticate("auth-1", "player").toString());
+		adapter.receive(viewer, authenticate("auth-2", "spectator").toString());
+		adapter.receive(participant, request("matchResult", "load").add("operation", "load").add("matchId", MATCH).toString());
+		JsonObject loaded = JsonObject.readFrom(participant.messages.get(1));
+		assertEquals(2, loaded.getInt("version", -1));
+		assertEquals("ACCEPTED", loaded.getString("code", null));
+		assertEquals(1, loaded.get("result").asObject().getInt("eventCount", -1));
+		adapter.receive(participant, request("matchResult", "replay").add("operation", "replay").add("matchId", MATCH).add("index", 0).toString());
+		assertEquals("FULL_TIME", JsonObject.readFrom(participant.messages.get(2)).get("event").asObject().getString("kind", null));
+		adapter.receive(viewer, request("matchResult", "denied").add("operation", "load").add("matchId", MATCH).toString());
+		assertEquals("AUTHORIZATION", code(viewer, 1));
+		verify(matches, times(2)).result(FIRST, MATCH);
+	}
 
 	@Test void rejectedAuthenticationDoesNotEchoOrLogProviderOrPrivatePayloads() throws Exception {
 		String privatePayload = "sentinel-token sentinel-uid sentinel@example.invalid private-account private-team";
