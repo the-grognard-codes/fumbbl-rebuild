@@ -75,6 +75,19 @@ saved-team document, private dice/checkpoint/request history or replay is sent.
 Recipient reauthorization failure stops delivery with `VIEW_UNAVAILABLE`.
 The browser clears views on disconnect, sign-out and access loss.
 
+## Hosted match route
+
+`/play` holds saved-team selection, match preparation and spectator browsing.
+After an `ACTIVATED` prepared-match response, both players navigate to
+`/play/match?matchId=<uuid>`; a spectator uses the same route with `watch=1`.
+The match route mounts the existing setup/game view and seeds one `V2Client`
+subscription from its validated URL. Reload and reconnect request a fresh
+authorized projection. A retained uncertain setup request takes precedence over
+the URL and can only be retried with its original request ID and account. A
+signed-out direct match link survives the constrained `/play` sign-in return in
+session storage; no bearer or provider identity is placed in the URL. Firebase
+Hosting's existing `/play/**` rewrite serves both routes.
+
 ## R3-E recipient contracts and display names
 
 Coach labels remain `You`/`Opponent` for players and `Home`/`Away` for spectators.
