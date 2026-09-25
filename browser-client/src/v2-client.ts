@@ -9,6 +9,7 @@ export type PendingIntent = { accountId: string; request: V2Message };
 type ClientOptions = {
   url: string; getToken: () => Promise<string>; onChange: (message: V2Message) => void;
   makeSocket?: (url: string) => WebSocket; storage?: Storage;
+  initialMatch?: { matchId: string; watch: boolean };
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -28,6 +29,10 @@ export class V2Client {
   private options: ClientOptions;
   constructor(options: ClientOptions) {
     this.options = options;
+    if (options.initialMatch) {
+      if (!uuid.test(options.initialMatch.matchId)) throw Error('Enter a valid match ID.');
+      this.selection = options.initialMatch;
+    }
     try {
       const raw = options.storage?.getItem(v2PendingKey);
       if (raw && raw.length <= 20000) {
@@ -86,7 +91,7 @@ export class V2Client {
     const request = { ...fields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
       if (this.pending) throw Error('Resolve the retained request before submitting another change.');
-      if (type === 'setup' && this.state?.callerRole === 'spectator') throw Error('This game is read-only.');
+      if (type === 'setup' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
       if (!this.options.storage) throw Error('Retry storage is unavailable.');
       const pending = { accountId: this.accountId, request };
       this.options.storage.setItem(v2PendingKey, JSON.stringify(pending));

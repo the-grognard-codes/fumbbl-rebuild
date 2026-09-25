@@ -20,10 +20,23 @@ export function startPlay({ auth, config }, status, host) {
   }
   let dispose;
   let generation = 0;
+  const matchId = new URLSearchParams(location.search).get('matchId');
+  const matchReturn = location.pathname === '/play/match' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(matchId ?? '')
+    ? `/play/match?matchId=${matchId}${new URLSearchParams(location.search).get('watch') === '1' ? '&watch=1' : ''}` : null;
   const unsubscribe = onAuthStateChanged(auth, async user => {
     const current = ++generation;
     dispose?.(); dispose = null; host.replaceChildren();
-    if (!user) { location.assign('/login?returnTo=%2Fplay'); return; }
+    if (!user) {
+      if (matchReturn) sessionStorage.setItem('moles.play.return-match', matchReturn);
+      location.assign('/login?returnTo=%2Fplay'); return;
+    }
+    if (location.pathname === '/play') {
+      const saved = sessionStorage.getItem('moles.play.return-match');
+      sessionStorage.removeItem('moles.play.return-match');
+      if (saved && /^\/play\/match\?matchId=[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}(&watch=1)?$/.test(saved)) {
+        location.assign(saved); return;
+      }
+    }
     try {
       const url = gameEndpoint(config.gameWebSocketUrl, location, config);
       const { mountPlay } = await import('/assets/game/game.js');
