@@ -123,7 +123,9 @@ class CoreTurnActionsTest {
         JsonObject actor = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
         JsonObject spectator = session.spectatorView();
         assertEquals(actor.get("revision"), spectator.get("revision"));
+        assertEquals(2, actor.getInt("projectionVersion", 0));
         assertEquals(actor.get("players"), spectator.get("players"));
+        for (JsonValue value : actor.get("players").asArray()) assertTrue(value.asObject().get("art").isNull());
         assertEquals(actor.get("ball"), spectator.get("ball"));
         assertEquals(actor.get("phase"), spectator.get("phase"));
         assertEquals(actor.get("actions"), spectator.get("actions"));

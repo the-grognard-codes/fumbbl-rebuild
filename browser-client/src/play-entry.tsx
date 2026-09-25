@@ -77,7 +77,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       : operation === 'activate' ? { matchId, expectedRevision: prepared?.document.documentVersion } : { matchId };
     run(() => connection?.request('preparedMatch', { operation, ...fields }, operation !== 'load'));
   }
-  return <main className="play-runtime setup-panel">
+  return <main className={`play-runtime setup-panel${matchRoute ? ' live-match-page' : ''}`}>
     <h1>{matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
     {!connected && <button onClick={() => connection?.connect()}>Reconnect</button>}
     {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
