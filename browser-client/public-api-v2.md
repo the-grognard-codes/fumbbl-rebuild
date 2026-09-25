@@ -117,7 +117,17 @@ preparation and game structures retain their existing decoder contracts.
 The existing nested decoders and service/native projection tests cover the
 recipient boundaries. New DTOs or fields require explicit positive/negative
 projection tests and a reviewed protocol compatibility decision before exposure.
-This tightening changes neither server DTOs nor engine/replay/persistence formats.
+
+The nested `setupState.state` and replay event state now carry
+`projectionVersion:2`. Each player has public `art`, either
+`{rosterId,positionId}` derived from the frozen match or `null` when the frozen
+identity cannot be matched to an older engine player. The browser accepts the
+earlier unversioned state for retained replay compatibility and rejects a
+version-two player missing `art` or carrying extra/private art fields. This is
+presentation identity only: it conveys no private team document, legality or
+odds. Publish the updated game server and browser decoder together; older
+browser bundles reject version-two states. The v2 transport envelope and
+engine/replay/persistence formats remain unchanged.
 See [R3-E evidence and limits](../.notes/overhaul-analysis/verification/r3-e/README.md).
 
 Preparation create selects an owned `teamId` and `expectedDocumentVersion`.
