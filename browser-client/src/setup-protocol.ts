@@ -31,6 +31,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	if (result.activePlayerId !== null) text(result.activePlayerId);
 	let prompt: SetupPrompt | null = null;
 	if (result.prompt !== null) { const value = object(result.prompt, ['id','actor','kind','options']); text(value.id); role(value.actor); if ((value.kind !== 'coin' && value.kind !== 'receive') || !Array.isArray(value.options) || value.options.length !== 2) throw Error('Invalid prompt'); const expected = value.kind === 'coin' ? ['heads','tails'] : ['receive','kick']; if (!value.options.every(option => typeof option === 'string' && expected.includes(option)) || new Set(value.options).size !== 2) throw Error('Invalid options'); prompt = value as SetupPrompt; }
+	if (result.callerRole === 'spectator' && (actions.length !== 0 || prompt !== null)) throw Error('Spectator decisions are private');
 	let saveResume: SaveResumeStatus | undefined;
 	if (Object.hasOwn(result, 'saveResume')) {
 		const value = object(result.saveResume, ['status','proposalId','proposer','expiresAt']);
