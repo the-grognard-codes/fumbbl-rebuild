@@ -65,13 +65,17 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.getByRole('button', { name: 'Select End Turn' }).click();
     await page.getByRole('button', { name: 'Commit action' }).click();
     await page.getByRole('link', { name: 'Open final result and replay' }).waitFor();
+    const offPitch = page.getByLabel('Off pitch players').getByRole('button', { name: /Blitzer/ });
+    await offPitch.focus(); await offPitch.press('Enter');
+    assert.match(await page.getByLabel('Selected player').textContent(), /Blitzer.*stunned/s);
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'full-time-1280.png') });
     assert.match(await page.getByLabel('Match scoreboard').textContent(), /Home2.*Away1/s);
     assert.match(await page.getByLabel('Off pitch players').textContent(), /Blitzer.*stunned/s);
     await page.getByRole('link', { name: 'Open final result and replay' }).click();
     assert.equal(new URL(page.url()).pathname, '/play/result');
     await page.getByLabel('Final score').waitFor();
-    await page.getByRole('button', { name: 'Last', exact: true }).click();
+    const last = page.getByRole('button', { name: 'Last', exact: true });
+    await last.focus(); await last.press('Enter');
     await page.getByLabel('Read-only replay pitch').waitFor();
     assert.match(await page.getByLabel('Replay event').textContent(), /Event 3 of 3: FULL_TIME/);
     assert.equal(await page.getByLabel('Read-only replay pitch').locator('.live-marker:enabled').count(), 0);

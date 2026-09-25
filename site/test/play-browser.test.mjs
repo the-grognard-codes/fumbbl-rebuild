@@ -14,6 +14,7 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   players: [{ id: 'p1', name: 'Lineman', slot: 1, role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } }, { id: 'p2', name: 'Lineman', slot: 1, role: 'away', x: 22, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'blitzer' } }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
+async function openGrid(page) { await page.getByText('Explore pitch squares with keyboard').click(); await page.getByLabel('Pitch grid', { exact: true }).waitFor(); }
 
 test('creator sees opponent join and automatically opens play when opponent starts', async () => {
   const server = createServer(async (request, response) => {
@@ -61,12 +62,12 @@ test('creator sees opponent join and automatically opens play when opponent star
     }
     await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
     await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
-    for (const page of pages) await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+    for (const page of pages) await openGrid(page);
     assert.deepEqual(reads.sort(), [0, 1], 'Both pages opened play without either clicking Resume play');
     for (const page of pages) {
       assert.equal(new URL(page.url()).pathname, '/play/match');
       await page.reload();
-      await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+      await openGrid(page);
     }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
@@ -122,7 +123,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
       if (index === 2) await page.getByRole('button', { name: /Watch Home vs Away/ }).click();
       else { await page.getByLabel('Match ID', { exact: true }).fill(matchId); await page.getByRole('button', { name: 'Resume play', exact: true }).click(); }
-      await page.getByLabel('Pitch grid', { exact: true }).waitFor();
+      await openGrid(page);
       assert.equal(new URL(page.url()).pathname, '/play/match');
       assert.equal(await page.getByLabel('Live match pitch').locator('.live-marker').count(), 2);
       assert.equal(await page.getByLabel('Live match pitch').locator('.live-marker img').count(), 2);
@@ -162,7 +163,7 @@ test('two players and spectator use one board; updates, read-only controls and r
     await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).click();
     assert.equal(await pages[2].getByLabel('Pitch grid', { exact: true }).count(), 0);
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();
-    await pages[2].getByLabel('Pitch grid', { exact: true }).waitFor();
+    await openGrid(pages[2]);
     assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 4/);
     live.get(2)({ type: 'error', requestId: null, code: 'VIEW_UNAVAILABLE' });
     await pages[2].getByLabel('Pitch grid', { exact: true }).waitFor({ state: 'detached' });
