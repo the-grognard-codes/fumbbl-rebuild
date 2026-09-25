@@ -2,6 +2,8 @@
 
 Status: planning reference produced from the accepted roadmap, PRD, ADRs, kickoff record, and M3e handoff on 2026-09-11. It breaks M4 into independently reviewable tranches; it does not authorize deployment, account-provider procurement, credential changes, catalog expansion, or any deletion/reset of retained evidence.
 
+**R6 planning update, 2026-09-24:** The owner-approved match-screen MVP at `browser-client/src/PitchPreview.tsx` is a local DOM/SVG simulation, preserved alongside `/ui-ux-draft-v2`. Hosted `/play` uses the authenticated `/browser/v2` client and has not adopted the MVP's artwork, layout or mock action logic. The revised roadmap assigns renderer choice, MVP-to-live integration and separate setup/live presentation to M5; M4 R6 supplies current-client release checks and acceptance criteria to rerun on the M5 candidate. The dated DEV/PROD deployment records below supersede this reference's initial no-deployment assumption; this update authorizes no new publication.
+
 ## M4 outcome and dependency map
 
 **DEV installation, 2026-09-21:** nginx, native marker-6 runtime and MariaDB are
@@ -323,25 +325,43 @@ does not authorize an in-place engine/runtime upgrade.
 
 ## R6 — Desktop renderer, accessibility, and content-release checks
 
-**Objective:** establish that the present DOM-controlled desktop client is robust and accessible across declared browsers/layouts, and that public-facing assets have recorded provenance.
+**Objective:** prove the integrated desktop match client works across declared browsers, layouts, zoom levels and assistive technologies, and record a public-use decision for each shipped asset. The local MVP is design evidence, not release acceptance.
 
-**Scope:** actual browser checks at 100% and 200% zoom, 1280x720 and 1920x1080 layouts, current Chrome/Edge/Firefox/Safari, screen-reader flows, keyboard controls, DOM fallbacks, and asset provenance recording. M1 Pixi/WebGL behavior remains a distinct test surface where relevant.
+**Present surfaces and evidence (2026-09-24):** `/pitch-preview` is an isolated React DOM/SVG simulation; `/ui-ux-draft-v2` preserves the earlier study. The authenticated `/play` route uses `play-entry.tsx`, `V2Client`, the authoritative `/browser/v2` service and DOM `GameView` controls in `SetupPanel.tsx`. The MVP has a 26 x 15 pitch, 64:56 normal-player-to-square ratio (80:56 for large players), 56px fit when space permits and about 48px squares at 1920 x 1080, Human/Orc chibi sprites, resource icons, player cards, dugouts, movement overlays/paths, action strip and log/chat. It supports repeated-click deselection, Space to confirm a pinned valid sample action, Escape, zoom and pan. Its inferred actions, success outcomes, resource counts, log, chat and End Turn are mock state. Selected Chrome/Playwright viewport and fullscreen Fit checks passed; the required cross-browser, zoom and screen-reader matrix has not run. Keep its evidence separate from live match evidence and M1 Pixi/WebGL tests.
 
-**Must deliver:**
+### R6-0 — Renderer decision and live UI handoff (M5 implementation, R6 gate)
 
-- A browser/accessibility matrix with tested versions/platforms, layout and zoom evidence, keyboard paths for every current match control, and screen-reader evidence for state/prompt/error changes.
-- Defects fixed or documented as explicit release blockers; preserve labeled fallback controls and an actionable renderer failure path instead of a blank game view.
-- An asset inventory with source, license/permission/provenance status, and public-use disposition. Neutral tokens/local catalog evidence do not constitute an artwork license audit.
+Record an ADR-002 addendum before adopting the MVP board on the live route: keep Pixi for the board or select DOM/SVG after measured match performance, interaction and accessibility comparison. ADR-002 preferred Pixi but expressly allowed reconsidering DOM if a prototype proved simpler. Neither implementation inherits the other's test results. Pixi's Canvas renderer was announced as experimental after the ADR, but the current M1 board explicitly requests WebGL; do not count Canvas or accessibility fallback without testing the exact pinned renderer and a usable DOM control path. [Pixi v8.16 announcement](https://pixijs.com/blog/8.16.0); [current renderer guide](https://pixijs.com/8.x/guides/components/renderers).
 
-**Backlog — dedicated setup and play surfaces:** separate team building and
-match creation into a setup-only page/window. Launch a distinct live-match
-page/window only after both player slots are accepted and the game activates.
-Keep this as a presentation/workflow change: it must not create a second match
-authority, bypass membership checks, or alter recovery/retry semantics.
+Map the approved presentation components to the `/browser/v2` snapshot and server-issued legal actions. The server remains authoritative for role, actor, prompt, legality, targets, resources, dice, outcomes and revisions. Replace MVP sample players, inferred legality and assumed-success commits; version the browser DTO and Java adapter if presentation needs fields the public snapshot lacks. Space and visible Commit must invoke one validated command path. Preserve `V2Client` request IDs, pending-command lock, exact retry, reconnect, save/resume and spectator read-only behavior. The accepted [active-match publication ADR](../../docs/adr/0001-active-match-publication.md) owns viewer enrollment and recipient updates; the UI must not create another publication stream.
 
-**Acceptance evidence:** recorded execution of the matrix plus provenance review. Evidence must distinguish the current DOM match surface from M1 Pixi tests and must not claim that Pixi automatically provides a canvas or accessibility fallback.
+**Handoff gate:** two authenticated players and an authorized spectator agree on the current revision, prompt, resources and outcome after an accepted action, rejection/stale action, disconnect/reconnect and pending decision. No new action is sent while outcome is uncertain. Existing labeled DOM grid/action controls remain available until the replacement passes these checks. Assemble the matching DEV Firebase Hosting artifact and verify the live route, asset base paths and CSP against that artifact before any separate publication decision.
 
-**Out of scope:** a visual redesign, new roster artwork, mobile delivery, or a public art-license conclusion without the necessary owner/legal evidence.
+### R6-1 — Desktop browser, layout and zoom matrix
+
+Record actual OS/browser versions and execution on current stable Chrome, Edge and Firefox on declared desktop platforms, and Safari on macOS. Test 100% and 200% browser zoom at 1280 x 720 and 1920 x 1080 CSS layouts; include 1920 x 900, 1920 x 820 and a reduced viewport near 1280 x 660 from the accepted [pitch requirements](../art-preview/pitch-and-ui-requirements-v2.md) where practical. Capture CSS content viewport, display scale, screenshots and measurements. Check 26 x 15 square geometry, one-square end zones, 4/7/4 wide-zone markings, sprite clarity/overlap in crowded formations, visible prompt and selected-player details, unclipped decision/End Turn controls, keyboard access to pan/zoom and stable Fit on fullscreen/resizing. List unavailable combinations as untested release gaps, never as passes.
+
+### R6-2 — Keyboard and screen-reader paths
+
+Inventory every live match control and record Tab/Shift+Tab, focus, Enter/Space and Escape paths: player selection/deselection, grid target and path preview, action menu and Commit, block/blitz/foul/pass/handoff, player details, resources, bench/KO/casualties, log/chat, End Turn, setup choices, server prompts, save/resume, reconnect/exact retry and spectator navigation. Hover affordances need focus equivalents; color-coded risk and team identity need text/shape cues. Text entry, dialogs, held keys and invalid/unpinned targets must not trigger Space commit.
+
+Record observed speech and focus order with declared browser/AT pairs, including NVDA with Windows Chrome/Edge and VoiceOver with macOS Safari if supported. Verify selection, actor/prompt, accepted/rejected/pending actions, turn/resources, connection loss, resync, asset/renderer failure and full time. ARIA inspection or automation alone is not screen-reader evidence. Keep an accessible text summary of the focused square/player and native labeled controls.
+
+### R6-3 — Renderer and asset failures
+
+Inject missing/corrupt sprites and fonts, renderer startup failure if a GPU renderer is used, stale state and disconnect. Show labeled fallback tokens, retained legal-action controls and actionable recovery text rather than a blank game view. Check failures never bypass actor/role or pending-command restrictions. Run M1 Pixi/WebGL failure tests separately from the current DOM/live route and document which renderer each observation covers. Fix defects in the owning slice or list reproducible release blockers with impact and retest criteria.
+
+### R6-4 — Asset provenance and public-use disposition
+
+Inventory every asset actually shipped by the match bundle and DEV/PROD Hosting artifacts: Human/Orc 64px chibi packs and earlier exports, ImageGen icon atlas and concept reference, bundled Alegreya SC/Barlow Semi Condensed fonts and OFL notices, pitch textures, site branding/logos, fallback tokens and any legacy imports. For each record path and served route, creator/source, prompt or source manifest, transformation, license/owner-permission evidence, attribution and keep/replace/omit disposition. The sprite source manifests and prompts are under `.notes/art-preview/*-team-64px-chibi-v1/`; icon provenance is in `browser-client/public/preview/mvp-art/PROVENANCE.md`; the [MVP notes](../../browser-client/pitch-layout.md) and [brand guardrails](../../docs/moles-under-the-pitch-branding-assets.md) identify current usage and constraints. Generated-art provenance, neutral test tokens and local catalog evidence do not establish artwork rights. Unresolved public-use permission blocks that asset until the owner/content reviewer records a disposition or the asset is removed/replaced.
+
+### R6-5 — Dedicated setup and live match surfaces (M5 presentation backlog)
+
+The accepted [team-builder ADR](../../docs/adr/0001-account-owned-match-ready-teams.md) already gives `/teambuilder` a separate authenticated builder. `/play` still combines match creation/join, game browsing and live `GameView`. Move preparation to a setup-only route and navigate to a distinct match page only after the server confirms both player slots and activation. Allow authorized spectators into the same read-only match page. Support direct accessible resume after reload/reconnect or an uncertain request; no local animation/flag may assert activation. Keep the same authenticated `V2Client` contract, membership checks, request IDs, revision order, retry/recovery and publication policy. Verify both-player activation, setup-to-play navigation, spectator entry, pending-decision reload and full-time exit. This is a presentation/workflow slice, not a second match authority.
+
+**R6 acceptance record:** retain the executed matrix with versions, CSS viewport and browser zoom, fixtures, screenshots, observed screen-reader speech/focus, defects/retests, renderer decision, live contract checks, fallback results and reviewed asset inventory. Label local MVP, live DOM client and M1 Pixi evidence separately. R6 does not close R1-R5 or establish general public-service readiness by itself.
+
+**Out of scope:** visual redesign, new roster artwork, mobile delivery, rules changes and a public art-license conclusion without owner/content-review evidence.
 
 ## Runtime decision — Java 8, 21, and 25
 
