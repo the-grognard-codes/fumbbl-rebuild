@@ -1,0 +1,49 @@
+.pitch-preview.pitch-parity { display: block; max-width: none; height: auto; min-height: 100dvh; padding: 12px 16px; }
+.pitch-parity > header { display: flex; align-items: center; justify-content: space-between; }
+.pitch-parity .parity-toolbar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.pitch-parity .parity-toolbar > div { display: flex; flex-wrap: wrap; gap: 5px; }
+.pitch-parity .parity-toolbar button { padding: 5px 9px; font-size: 11px; }
+.parity-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 10px; }
+.parity-main { min-width: 0; }
+.parity-boards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.parity-layout.split .parity-boards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.parity-board-panel { min-width: 0; }
+.parity-board-panel h2 { display: flex; justify-content: space-between; margin: 0 0 5px; font-size: 15px; font-weight: 500; letter-spacing: 1px; }
+.parity-board-panel h2 small { color: var(--muted); font: 12px var(--text-font); text-transform: none; letter-spacing: 0; }
+.parity-viewport { width: 100%; height: clamp(340px, calc(100dvh - 305px), 790px); border: 1px solid #6c6650; background: radial-gradient(ellipse, #202b20, #0b1114); box-shadow: inset 0 0 40px #0007, 0 2px 5px #0006; overscroll-behavior: contain; scrollbar-color: #69715d #101619; }
+.parity-layout.split .parity-viewport { height: clamp(290px, calc(100dvh - 540px), 520px); }
+.parity-center { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.parity-scene { position: relative; flex: none; }
+.parity-dom-scene > svg { display: block; width: 100%; height: 100%; }
+.parity-dom-scene:focus-visible { outline: 3px solid #eccf89; outline-offset: -3px; }
+.parity-pixi-scene canvas { display: block; width: 100% !important; height: 100% !important; }
+.parity-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #e4d9ba; background: #18221f; }
+.pitch-parity .parity-marker { position: absolute; display: block; padding: 0; margin: 0; border: 0; border-bottom: 3px solid var(--blue); border-radius: 0 0 40% 40%; background: transparent; box-shadow: none; overflow: visible; color: #f4ecdb; }
+.pitch-parity .parity-marker.away { border-bottom-color: var(--orange); border-bottom-style: dashed; }
+.pitch-parity .parity-marker.selected { box-shadow: inset 0 0 0 2px #f4e9bb; border-radius: 0; }
+.parity-marker img { position: absolute; bottom: 0; left: 50%; height: auto; max-width: none; transform: translateX(-50%); image-rendering: pixelated; pointer-events: none; }
+.parity-marker.prone img { transform: translateX(-50%) rotate(75deg); opacity: .8; }
+.parity-marker.selected img, .parity-marker:hover img, .parity-marker:focus-visible img { filter: drop-shadow(1px 0 #fff0ba) drop-shadow(-1px 0 #fff0ba) drop-shadow(0 -1px #fff0ba); }
+.parity-number { position: absolute; bottom: -3px; right: -2px; background: #10191de0; color: #f4ecdb; font: 10px/12px var(--text-font); padding: 0 2px; pointer-events: none; }
+.parity-token { display: grid; place-items: center; width: 100%; height: 100%; background: #243a46; border: 1px solid #d1b56c; font: bold 12px sans-serif; }
+.parity-marker.away .parity-token { background: #5d3922; }
+.parity-background-error { position: absolute; top: 4px; left: 4px; color: #fff; background: #16252de8; padding: 4px; }
+.pitch-parity .compact-dugouts { margin: 6px 0; }
+.parity-command { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 96px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--edge); font-size: 12px; }
+.parity-command strong { color: #ddcda5; font-weight: 400; }
+.parity-command > span { flex: 1; min-width: 240px; }
+.parity-command > div { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.parity-command > small { flex-basis: 100%; color: var(--muted); }
+.pitch-parity .parity-command button { padding: 5px 8px; font-size: 11px; white-space: nowrap; }
+.pitch-parity .parity-command .commit-action { background: linear-gradient(#365977, #152e43); border-color: #789bb9; }
+.parity-dice { width: 100%; }
+.pitch-parity .match-sidebar { min-height: 0; height: max-content; margin: 0; }
+.parity-fault-button { margin-top: 4px !important; font-size: 10px !important; }
+.parity-asset-message { margin: 4px 0; color: #eacb8b; font-size: 12px; }
+.parity-failure { align-self: flex-start; width: 100%; height: 100%; padding: 8px; overflow: auto; background: #16252d; color: #f2ddc2; }
+.parity-failure p { margin: 0 0 8px; }
+.parity-failure-grid { display: grid; grid-template-columns: repeat(26, 28px); width: max-content; }
+.pitch-parity .parity-failure-grid button { width: 28px; height: 28px; padding: 0; margin: 0; font: 10px sans-serif; text-transform: none; letter-spacing: 0; border-radius: 0; }
+.pitch-parity > footer { margin-top: 6px; }
+@media (max-width: 1200px) { .parity-layout { grid-template-columns: 1fr; }.pitch-parity .match-sidebar { display: grid; grid-template-columns: 1fr 1fr; } }
+@media (max-width: 850px) { .parity-layout.split .parity-boards { grid-template-columns: 1fr; }.pitch-parity .match-sidebar { display: block; } }
