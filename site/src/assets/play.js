@@ -50,6 +50,7 @@ export function startPlay({ auth, config }, status, host) {
 
 if (typeof document !== 'undefined' && document.querySelector('#game-root')) {
   document.body.classList.toggle('game-focused', ['/play/match', '/play/result'].includes(location.pathname));
+  document.body.classList.toggle('game-match', location.pathname === '/play/match');
   const status = document.querySelector('#play-status');
   try { startPlay(authentication(), status, document.querySelector('#game-root')); }
   catch { status.textContent = 'Sign-in is unavailable. Please try again later.'; }
