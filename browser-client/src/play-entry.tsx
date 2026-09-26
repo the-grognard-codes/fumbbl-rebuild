@@ -55,7 +55,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
-      if (message.type === 'authentication') { setStatus('Connected'); if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
+      if (message.type === 'authentication') { setStatus('Connected'); setError(''); if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
       const failedLaunch = message.type === 'error' && activationWindow.current?.requestId === message.requestId ? activationWindow.current : null;
       if (failedLaunch) { failedLaunch.popup?.close(); activationWindow.current = null; }
       if (resultRoute && message.type === 'error') setResultPending(false);
