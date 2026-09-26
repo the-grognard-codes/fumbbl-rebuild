@@ -56,16 +56,39 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.getByLabel('Match scoreboard').waitFor();
     await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
       null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.
+    const checkViewport = async () => {
+      await page.waitForFunction(() => {
+        const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
+        const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
+        return pitch && bench && pitch.top >= 0 && pitch.bottom <= innerHeight && bench.bottom <= innerHeight
+          && document.documentElement.scrollWidth <= innerWidth;
+      }, null, { timeout: 5000 });
+      const bounds = await page.evaluate(() => {
+        const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
+        const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
+        return { pitchTop: pitch?.top, pitchBottom: pitch?.bottom, benchBottom: bench?.bottom,
+          height: innerHeight, scrollWidth: document.documentElement.scrollWidth, width: innerWidth };
+      });
+      assert.ok(bounds.pitchTop >= 0 && bounds.pitchBottom <= bounds.height && bounds.benchBottom <= bounds.height
+        && bounds.scrollWidth <= bounds.width, `Critical match UI exceeds viewport: ${JSON.stringify(bounds)}`);
+    };
+    await checkViewport();
     if (process.env.M5E_SCREENSHOT_DIR) {
       await mkdir(process.env.M5E_SCREENSHOT_DIR, { recursive: true });
       await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1280.png') });
-      await page.setViewportSize({ width: 1920, height: 820 });
-      await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920.png') });
-      await page.setViewportSize({ width: 1280, height: 660 });
     }
+    await page.setViewportSize({ width: 1920, height: 900 });
+    await checkViewport();
+    if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920-900.png') });
+    await page.setViewportSize({ width: 1920, height: 820 });
+    await checkViewport();
+    if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920.png') });
+    await page.setViewportSize({ width: 1280, height: 660 });
+    await checkViewport();
     await page.getByRole('button', { name: 'Select End Turn' }).click();
     await page.getByRole('button', { name: 'Commit action' }).click();
     await page.getByRole('link', { name: 'Open final result and replay' }).waitFor();
+    await page.getByText('Roster & bench').click();
     const offPitch = page.getByLabel('Off pitch players').getByRole('button', { name: /Blitzer/ });
     await offPitch.focus(); await offPitch.press('Enter');
     assert.match(await page.getByLabel('Selected player').textContent(), /Blitzer.*stunned/s);

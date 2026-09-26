@@ -70,9 +70,19 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       const starterMatch = popupBlocked ? pages[1] : await opened;
       await openGrid(starterMatch);
       assert.equal(new URL(starterMatch.url()).pathname, '/play/match');
+      await starterMatch.setViewportSize({ width: 1280, height: 660 });
+      await starterMatch.evaluate(() => window.scrollTo(0, 0));
+      const setupBounds = await starterMatch.evaluate(() => {
+        const side = document.querySelector('.match-side')?.getBoundingClientRect();
+        const confirm = [...document.querySelectorAll('[aria-label="Placement controls"] button')].find(button => button.textContent === 'Confirm legal setup')?.getBoundingClientRect();
+        return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight };
+      });
+      assert.ok(setupBounds.confirmBottom <= Math.min(setupBounds.sideBottom, setupBounds.height),
+        `Setup confirmation must be visible: ${JSON.stringify(setupBounds)}`);
       if (!popupBlocked) {
         assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
         assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
+        assert.equal(await starterMatch.evaluate(() => window.name), 'moles.play.launched-window');
         await pages[1].getByLabel('Match opened elsewhere').waitFor();
         await pages[1].reload();
         await pages[1].getByLabel('Match opened elsewhere').waitFor();
@@ -93,6 +103,14 @@ test('start opens a separate match window, with same-tab fallback when blocked',
         assert.equal(new URL(page.url()).pathname, '/play/match');
         await page.reload();
         await openGrid(page);
+      }
+      if (popupBlocked) {
+        await starterMatch.getByRole('button', { name: 'Exit match' }).click();
+        await starterMatch.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+      } else {
+        const closed = starterMatch.waitForEvent('close');
+        await starterMatch.getByRole('button', { name: 'Exit match' }).click();
+        await closed;
       }
       for (const context of contexts) await context.close();
     }
