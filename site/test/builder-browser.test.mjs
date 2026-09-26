@@ -9,6 +9,7 @@ import { resolveEnvironment, configurationScript } from '../../deployment/fireba
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const catalog = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/catalog-v1.json', import.meta.url), 'utf8'));
+const orcCatalog = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/catalog-orc-v1.json', import.meta.url), 'utf8'));
 const accounts = ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'];
 const teamId = '12345678-1234-1234-1234-123456789abc';
 
@@ -38,12 +39,12 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
       await page.routeWebSocket('**/browser/v2', socket => {
         const send = body => socket.send(JSON.stringify({ version: 2, ...body }));
         socket.onMessage(raw => {
-          const request = JSON.parse(raw); requests.push({ index, type: request.type, operation: request.operation });
+          const request = JSON.parse(raw); requests.push({ index, type: request.type, operation: request.operation, rosterId: request.rosterId });
           if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
           if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
-          if (request.type === 'catalog') send({ ...catalog, version: 2, requestId: request.requestId });
+          if (request.type === 'catalog') send({ ...(request.rosterId === 'orc' ? orcCatalog : catalog), version: 2, requestId: request.requestId });
           if (request.type === 'validateTeam') {
-            const valid = request.draft.teamName === 'The Moles' && request.draft.players.length === 11
+            const valid = ['The Moles', 'The Orcs'].includes(request.draft.teamName) && request.draft.players.length === 11
               && new Set(request.draft.players.map(player => player.jerseyNumber)).size === 11;
             const skillPoints = request.draft.players.filter(player => player.skillIds.length).length;
             send({ type: 'teamValidation', requestId: request.requestId, catalogVersion: catalog.catalogVersion, ruleset: 'BB2025', draftVersion: 2,
@@ -102,5 +103,21 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByText('No saved teams yet.').waitFor();
     assert.equal(documents.has(accounts[0]), false);
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'savedTeam' && entry.operation === 'delete'));
+    await pages[0].getByRole('button', { name: 'New team' }).click();
+    await pages[0].getByLabel('Team', { exact: true }).selectOption('orc');
+    await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).waitFor();
+    assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'catalog' && entry.rosterId === 'orc'));
+    assert.match(await pages[0].locator('.recruitment img.sprite').first().getAttribute('src'), /team-sprites\/orcs\//);
+    await pages[0].getByLabel('Team name').fill('The Orcs');
+    for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).click();
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
+    await pages[0].getByText(/Valid draft/).waitFor();
+    await pages[0].getByRole('button', { name: 'Save team' }).click();
+    await pages[0].getByText(/Saved team The Orcs/).waitFor();
+    assert.equal(documents.get(accounts[0]).draft.rosterId, 'orc');
+    await pages[0].goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
+    await pages[0].getByRole('button', { name: 'Load' }).click();
+    await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).waitFor();
+    assert.equal(await pages[0].getByLabel('Team', { exact: true }).inputValue(), 'orc');
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });

@@ -71,12 +71,12 @@ public final class FrozenTeamEngineConverter {
 		IJsonOption.MAX_RE_ROLLS.addTo(document, rerolls.get("maximum").asInt());
 		IJsonOption.APOTHECARY.addTo(document, resourceDefinition(catalog, "apothecary").get("maximum").asInt() > 0);
 		JsonArray positions = new JsonArray();
-		for (FrozenTeam.Player player : unique.values()) positions.add(position(player, skills));
+		for (FrozenTeam.Player player : unique.values()) positions.add(position(player, skills, frozen.rosterId));
 		IJsonOption.POSITION_ARRAY.addTo(document, positions);
 		return new Roster().initFrom(factories, document);
 	}
 
-	private JsonObject position(FrozenTeam.Player source, SkillFactory skills) {
+	private JsonObject position(FrozenTeam.Player source, SkillFactory skills, String rosterId) {
 		JsonObject value = new RosterPosition().toJsonValue();
 		IJsonOption.POSITION_ID.addTo(value, source.positionId);
 		IJsonOption.POSITION_NAME.addTo(value, source.name);
@@ -95,7 +95,7 @@ public final class FrozenTeamEngineConverter {
 		if (!source.parameters.keySet().equals(new HashSet<>(source.baseSkillIds))) throw new IllegalArgumentException("Unsupported frozen parameters");
 		for (String id : source.baseSkillIds) {
 			names.add(skill(skills, id).getName());
-			int parameter = source.parameters.get(id), expected = "loner".equals(id) ? 3 : "mighty-blow".equals(id) ? 1 : 0;
+			int parameter = source.parameters.get(id), expected = "loner".equals(id) ? "orc".equals(rosterId) ? 4 : 3 : "mighty-blow".equals(id) ? 1 : 0;
 			if (parameter != expected) throw new IllegalArgumentException("Unsupported frozen parameter");
 			values.add(parameter == 0 ? JsonValue.NULL : JsonValue.valueOf(Integer.toString(parameter)));
 		}

@@ -1,6 +1,6 @@
 # M6 Orc roster and skill combination readiness
 
-Status: **source facts checked, BB2025 engine skill mappings tested, and the Orc sprite pack accepted; Orcs are not enabled in the builder or match service.** Read on 2026-09-24 America/New_York and updated after the [full core skill registry](m6-core-skills-2026-09-25.md). Orc is the next roster candidate because the accepted starter visual direction includes Humans and Orcs. The currently deployed Human catalog remains `bb2025-human-2026-09-08.1`. The owner has authorized clearing all account saved teams, including older unusable drafts, when the replacement catalog is activated; saved-team migration is outside this slice.
+Status: **Orc source facts, catalog, validation, saved-team, match conversion, browser builder and sprite bindings are implemented on `codex/m6-orc-content`; release and live checks remain pending.** Source read on 2026-09-24 and rechecked on 2026-09-25 America/New_York. The replacement catalog is `bb2025-exhibition-2026-09-25.1`, shared by Human and Orc teams with preset `exhibition-1150`. The owner has authorized clearing all account saved teams, including older unusable drafts, when the replacement catalog is activated; saved-team migration is outside this slice.
 
 ## Accepted sprite pack and roster binding
 
@@ -15,7 +15,7 @@ The owner accepted `.notes/art-preview/orcs-team-64px-chibi-v1/` for this roster
 | `big-un-blocker` | `04-big-un-man.png`, `05-big-un-woman.png` |
 | `troll` | `01-troll-man.png` |
 
-The roster definition should hold position limits, prices, stats, role/race tags, starting skills with values, skill-category access, and these sprite references. The shared skill registry and match preset remain separate. Validate roster definitions against the BB2025 skill factory at startup; save player choices as references to the catalog and freeze resolved facts into matches. The current implementation still splits those facts between Java `RosterCatalog`, browser sprite mappings, and JSON saved-team documents.
+The Java `RosterCatalog` now holds position limits, prices, stats, role/race tags, starting skills with values, and skill-category access. It validates skill mappings against the BB2025 factory. Browser sprite mappings bind the accepted pack to positions; saved teams record choices, and match teams freeze resolved facts. A single roster manifest that also includes sprite references remains a future consolidation.
 
 ## Pinned source facts
 
@@ -42,7 +42,7 @@ Orc is Tier 2 under the FAQ, so the [Matched Play rules](https://bloodbowlbase.r
 4. Freeze Orc skill names and parameters into a match, restart at a pending decision, and verify native Orc actions and prompts. Check Human versus Orc as well as same-roster matches if the exhibition preset permits both; the current match compatibility check requires an identical catalog and preset version.
 5. At activation, back up and clear account saved teams under the owner's authorization, including older unusable drafts. Verify the builder starts from an empty saved-team list and new Human and Orc teams can be saved. Keep previously frozen Human matches and result/replay metadata readable across the catalog change; saved-team deletion must not alter their frozen rosters.
 
-The focused `OrcContentMappingTest` verifies that all 17 Orc base skill names resolve with expected categories in the BB2025 engine factory and that the Brawlin' Brutes identifier exists. It does **not** prove game behavior or make the roster match-ready.
+The focused `OrcContentMappingTest` verifies that all 17 Orc base skill names resolve with expected categories in the BB2025 engine factory and that the Brawlin' Brutes identifier exists. The catalog, service, browser and native setup tests added for activation cover the remaining data path; the complete release verification and hosted gameplay checks are recorded separately.
 
 Verification: the focused Java 21 Maven reactor command below passed with **1 test, 0 failures/errors/skips**. The first Java 8 attempt encountered Java 21 output already in `ffb-server/target`; the sandboxed Java 21 retry could not close a cached Netty JAR. The same offline Java 21 command passed with the required filesystem access. No clean build or integrated Orc match was run for this source and mapping slice.
 
@@ -50,11 +50,11 @@ Verification: the focused Java 21 Maven reactor command below passed with **1 te
 & ./.tools/apache-maven-3.9.9/bin/mvn.cmd --batch-mode --no-transfer-progress --settings .mvn/settings.xml --global-settings .mvn/settings.xml '-Dmaven.repo.local=.tools/repository' --offline -pl ffb-server -am '-Dtest=OrcContentMappingTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
-## Integration gates found in current code
+## Integration gates found during the source audit
 
 - `RosterCatalog`, `TeamValidation`, `BrowserTeamJson`, the browser decoder and editor, and `SavedTeamService` assume one Human catalog. The catalog request has no roster selector. A replacement catalog needs explicit roster selection and a new catalog version. Saved-team migration is unnecessary because account saved teams may be cleared at activation; the data reset is a release step, not part of this source audit.
 - `FrozenTeamEngineConverter` now maps every core skill ID, including Mutation access, but its frozen parameter check still assumes Human Loner 3+. Orc Troll requires Loner 4+ and additional base skills. Frozen parameters must be checked per resolved roster fact, not from a Human-wide constant.
 - `MatchJson` accepts only the Human roster, while match pairing requires matching catalog and preset IDs. Result metadata decoding also fixes the Human version. These need explicit compatible-version policy and tests before cross-roster play.
 - The engine contains the Orc base skill classes and Brawlin' Brutes identifier, but a factory mapping check is only the first level of verification. Native gameplay scenarios for Taunt, Unsteady, Really Stupid, Projectile Vomit and Throw Team-Mate remain required before public support.
 
-This content work is independent of the M5 renderer comparison. Public Orc availability remains gated by the catalog, saved-team, match and gameplay tests above. It requires no changes to the in-progress parity preview files.
+This content work is independent of the M5 renderer comparison. The release requires a fresh package, account saved-team backup and clearing, backend and Hosting deployment in both environments, and live account and match checks. It requires no changes to the in-progress parity preview files.

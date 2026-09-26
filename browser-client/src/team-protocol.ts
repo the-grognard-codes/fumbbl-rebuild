@@ -6,7 +6,7 @@ export type Skill = { id: string; name: string; category: string; selectable: bo
 type Header = { version: 1; requestId: string; catalogVersion: string; ruleset: 'BB2025'; draftVersion: 2 };
 export type Catalog = Header & { type: 'catalog'; rosterId: string; name: string; presetId: string; budget: number; minPlayers: number; maxPlayers: number; skillPoints: number; maxSecondary: number; maxElite: number; league: string; specialRule: string; positions: Position[]; skills: Skill[]; resources: { id: ResourceId; name: string; cost: number; maximum: number }[]; unsupported: string };
 export type Validation = Header & { type: 'teamValidation'; valid: boolean; total: number | null; budget: number; skillPoints: number; messages: { code: string; path: string; text: string }[] };
-export const catalogVersion = 'bb2025-human-2026-09-25.1';
+export const catalogVersion = 'bb2025-exhibition-2026-09-25.1';
 
 /** Choice hint only; the server evaluates the authoritative purchase rules. */
 export function canPurchaseSkill(skill: Skill, position: Position, captain: boolean): boolean {
@@ -48,6 +48,7 @@ export function decodeTeam(textJson: string): Catalog | Validation {
   text(message.requestId, 100); integer(message.budget); integer(message.skillPoints, 32);
   if (kind === 'catalog') {
     for (const key of ['rosterId', 'name', 'presetId', 'league', 'specialRule', 'unsupported']) text(message[key]);
+    if (!['human', 'orc'].includes(message.rosterId as string) || message.presetId !== 'exhibition-1150') throw Error('Unsupported roster or preset');
     for (const key of ['minPlayers', 'maxPlayers', 'maxSecondary', 'maxElite']) integer(message[key], 16);
     const skills = array(message.skills, 128);
     for (const value of skills) {

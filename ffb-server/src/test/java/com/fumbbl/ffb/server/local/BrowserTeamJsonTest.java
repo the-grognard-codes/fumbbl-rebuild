@@ -37,6 +37,11 @@ public class BrowserTeamJsonTest {
 				.add("cheerleaders", 0).add("apothecary", 1).add("dedicatedFans", 0));
 	}
 	private JsonObject player(JsonObject draft, int index) { return draft.get("players").asArray().get(index).asObject(); }
+	private JsonObject orcDraft() {
+		JsonObject draft = draft().set("rosterId", "orc");
+		for (JsonValue value : draft.get("players").asArray()) value.asObject().set("positionId", "orc-lineman");
+		return draft;
+	}
 	private JsonObject namedDraft() {
 		JsonObject result = draft().add("draftVersion", 2).add("teamName", "The Moles");
 		for (int index = 0; index < 11; index++) player(result, index).add("jerseyNumber", index + 1).add("playerName", "Mole " + (index + 1));
@@ -121,6 +126,43 @@ public class BrowserTeamJsonTest {
 		assertEquals(700000, json.evaluate("t", draft).getInt("total", -1));
 	}
 	@Test
+	public void orcCatalogPricesTheRosterAndCarriesTrollSkillValues() {
+		JsonObject projected = json.catalog("orc-catalog", "orc");
+		assertEquals("orc", projected.getString("rosterId", null));
+		assertEquals("exhibition-1150", projected.getString("presetId", null));
+		assertEquals(6, projected.get("positions").asArray().size());
+		assertEquals(108, projected.get("skills").asArray().size());
+		assertEquals(60000, projected.get("resources").asArray().get(0).asObject().getInt("cost", -1));
+		assertEquals(4, catalog.forRoster("orc").getPositions().get("troll").skillValue("loner"));
+		JsonObject draft = orcDraft();
+		assertTrue(json.evaluate("orc", draft).getBoolean("valid", false));
+		assertEquals(720000, json.evaluate("orc", draft).getInt("total", -1));
+		player(draft, 1).set("positionId", "lineman"); rejects(draft, "POSITION");
+		assertThrows(IllegalArgumentException.class, () -> json.catalog("wrong", "unknown"));
+	}
+	@Test
+	public void orcPurchasesAndPositionCapsFollowTheirOwnRoster() {
+		String[] positions = {"orc-lineman", "orc-lineman", "goblin-lineman", "orc-thrower", "big-un-blocker", "troll"};
+		String[] skills = {"block", "dodge", "tackle", "block", "dodge", "block"};
+		for (int i = 0; i < positions.length; i++) {
+			JsonObject draft = orcDraft(); player(draft, 1).set("positionId", positions[i]).set("skillIds", new JsonArray().add(skills[i]));
+			assertTrue(json.evaluate("orc-skill", draft).getBoolean("valid", false), positions[i] + ":" + skills[i]);
+		}
+		JsonObject draft = orcDraft(); for (int i = 0; i < 3; i++) player(draft, i).set("positionId", "orc-thrower"); rejects(draft, "POSITION_LIMIT");
+		draft = orcDraft(); for (int i = 0; i < 3; i++) player(draft, i).set("positionId", "big-un-blocker"); rejects(draft, "POSITION_LIMIT");
+		draft = orcDraft(); for (int i = 0; i < 2; i++) player(draft, i).set("positionId", "troll"); rejects(draft, "POSITION_LIMIT");
+		draft = orcDraft(); for (int i = 0; i < 5; i++) player(draft, i).set("positionId", "goblin-lineman"); rejects(draft, "POSITION_LIMIT");
+		draft = orcDraft(); player(draft, 0).set("positionId", "troll"); rejects(draft, "CAPTAIN_INELIGIBLE");
+		draft = orcDraft(); player(draft, 1).set("skillIds", new JsonArray().add("pass")); rejects(draft, "SKILL_INELIGIBLE");
+		draft = orcDraft(); player(draft, 1).set("positionId", "orc-blitzer").set("skillIds", new JsonArray().add("block")); rejects(draft, "DUPLICATE_SKILL");
+		draft = orcDraft(); player(draft, 1).set("positionId", "orc-thrower").set("skillIds", new JsonArray().add("pass")); rejects(draft, "DUPLICATE_SKILL");
+		draft = orcDraft(); for (int i = 0; i < 9; i++) player(draft, i).set("skillIds", new JsonArray().add("sure-hands")); rejects(draft, "SKILL_POINTS");
+		draft = orcDraft(); for (int i = 0; i < 3; i++) player(draft, i).set("skillIds", new JsonArray().add("dodge")); rejects(draft, "SECONDARY_LIMIT");
+		draft = orcDraft(); for (int i = 0; i < 5; i++) player(draft, i).set("skillIds", new JsonArray().add("block")); rejects(draft, "ELITE_LIMIT");
+		draft = orcDraft(); for (int slot = 12; slot <= 16; slot++) draft.get("players").asArray().add(new JsonObject().add("id", "p" + slot).add("slot", slot).add("positionId", "orc-lineman").add("skillIds", new JsonArray()));
+		draft.get("resources").asObject().set("rerolls", 8); rejects(draft, "OVER_BUDGET");
+	}
+	@Test
 	public void conditionalSkillPurchasesRequireTheirStartingTraits() {
 		for (String id : Arrays.asList("lethal-flight", "saboteur", "bullseye", "strong-arm")) {
 			JsonObject draft = draft();
@@ -196,7 +238,10 @@ public class BrowserTeamJsonTest {
 	public void pinnedWireFixtureMatchesServerCatalogAndEngineMappings() throws Exception {
 		String fixture = new String(Files.readAllBytes(Paths.get("../browser-client/test/fixtures/catalog-v1.json")), StandardCharsets.UTF_8);
 		assertEquals(JsonObject.readFrom(fixture), json.catalog("catalog-fixture"));
+		String orcFixture = new String(Files.readAllBytes(Paths.get("../browser-client/test/fixtures/catalog-orc-v1.json")), StandardCharsets.UTF_8);
+		assertEquals(JsonObject.readFrom(orcFixture), json.catalog("orc-catalog-fixture", "orc"));
 		assertTrue(json.catalog("catalog-fixture").toString().getBytes(StandardCharsets.UTF_8).length <= 16384);
+		assertTrue(json.catalog("orc-catalog-fixture", "orc").toString().getBytes(StandardCharsets.UTF_8).length <= 16384);
 		assertEquals(3, catalog.getPositions().get("ogre").skillValue("loner"));
 		assertEquals("AG", catalog.getPositions().get("ogre").secondary);
 	}
