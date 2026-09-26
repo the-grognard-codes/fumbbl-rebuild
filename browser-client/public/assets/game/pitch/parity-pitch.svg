@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="564" viewBox="0 0 960 564">
+  <defs>
+    <pattern id="stone" width="48" height="32" patternUnits="userSpaceOnUse">
+      <rect width="48" height="32" fill="#242723"/>
+      <path d="M0 0H48M0 16H48M24 0V16M8 16V32" stroke="#121915" stroke-width="2"/>
+      <path d="M2 3H22M27 3H46M11 19H45" stroke="#797460" opacity=".3"/>
+    </pattern>
+    <pattern id="grass" width="72" height="72" patternUnits="userSpaceOnUse">
+      <path d="M3 8h2v-1M30 16h1v-1M51 5h3v-1M14 37h2v-1M61 47h1v-1M39 55h3v-1M8 68h2v-1" stroke="#c5c18a" opacity=".2"/>
+      <path d="M19 12h2v-1M65 24h2v-1M36 30h1v-1M53 41h2v-1M25 58h3v-1" stroke="#1b301b" opacity=".3"/>
+    </pattern>
+    <pattern id="field-stripes" width="72" height="540" patternUnits="userSpaceOnUse"><rect width="36" height="540" fill="#495d2a"/></pattern>
+    <pattern id="endzone-checker" width="18" height="18" patternUnits="userSpaceOnUse">
+      <path d="M0 0h9v9H0zM9 9h9v9H9z" fill="#ded0a0" opacity=".66"/>
+    </pattern>
+    <radialGradient id="turf-light"><stop stop-color="#a2a366" stop-opacity=".07"/><stop offset="1" stop-color="#182211" stop-opacity=".26"/></radialGradient>
+    <filter id="turf-grain"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="8" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feBlend in="SourceGraphic" mode="soft-light"/></filter>
+  </defs>
+  <rect width="960" height="564" fill="url(#stone)"/>
+  <rect x="7" y="7" width="946" height="550" fill="#14291f" stroke="#adac85" stroke-width="2"/>
+  <g transform="translate(12 12)">
+    <rect width="936" height="540" fill="#56632b"/>
+    <rect width="936" height="540" fill="url(#field-stripes)"/>
+    <rect width="936" height="540" fill="url(#grass)"/>
+    <rect width="936" height="540" fill="url(#turf-light)"/>
+    <path d="M423 231L468 210 513 231 506 284 468 314 430 284z" fill="#d9d1a0" opacity=".08"/>
+    <rect width="36" height="540" fill="#223e54"/>
+    <rect x="900" width="36" height="540" fill="#805021"/>
+    <rect width="36" height="54" fill="url(#endzone-checker)"/>
+    <rect y="486" width="36" height="54" fill="url(#endzone-checker)"/>
+    <rect x="900" width="36" height="54" fill="url(#endzone-checker)"/>
+    <rect x="900" y="486" width="36" height="54" fill="url(#endzone-checker)"/>
+    <rect width="936" height="540" filter="url(#turf-grain)" opacity=".13"/>
+    <text x="26" y="270" transform="rotate(-90 26 270)" text-anchor="middle" fill="#e0d4aa" font-family="Georgia,serif" font-size="24" font-weight="700" letter-spacing="8">HUMANS</text>
+    <text x="909" y="270" transform="rotate(90 909 270)" text-anchor="middle" fill="#e0d4aa" font-family="Georgia,serif" font-size="24" font-weight="700" letter-spacing="8">ORCS</text>
+    <path d="M0 0V540M36 0V540M72 0V540M108 0V540M144 0V540M180 0V540M216 0V540M252 0V540M288 0V540M324 0V540M360 0V540M396 0V540M432 0V540M468 0V540M504 0V540M540 0V540M576 0V540M612 0V540M648 0V540M684 0V540M720 0V540M756 0V540M792 0V540M828 0V540M864 0V540M900 0V540M936 0V540M0 0H936M0 36H936M0 72H936M0 108H936M0 144H936M0 180H936M0 216H936M0 252H936M0 288H936M0 324H936M0 360H936M0 396H936M0 432H936M0 468H936M0 504H936M0 540H936" stroke="#d4cd99" opacity=".24" stroke-dasharray="3 2"/>
+    <rect x="1" y="1" width="934" height="538" fill="none" stroke="#ddd7b2" stroke-width="1.6" opacity=".72"/>
+    <path d="M36 0V540M900 0V540M468 0V540" stroke="#ddd7b2" stroke-width="1.6" opacity=".72"/>
+    <path d="M36 144H900M36 396H900" stroke="#ddd7b2" stroke-width="1.6" opacity=".72" stroke-dasharray="8 8"/>
+  </g>
+</svg>

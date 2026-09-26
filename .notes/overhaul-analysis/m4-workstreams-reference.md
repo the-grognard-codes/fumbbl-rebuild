@@ -1,4 +1,4 @@
-# M4 workstreams — implementation prompt reference
+# M4 workstreams â€” implementation prompt reference
 
 Status: planning reference produced from the accepted roadmap, PRD, ADRs, kickoff record, and M3e handoff on 2026-09-11. It breaks M4 into independently reviewable tranches; it does not authorize deployment, account-provider procurement, credential changes, catalog expansion, or any deletion/reset of retained evidence.
 
@@ -21,7 +21,7 @@ successfully. See [PROD evidence and remaining limits](verification/r3-d/prod-in
 This does not establish operational recovery, backup/restore, capacity or general
 public-service readiness.
 
-**Current owner decision — 2026-09-18 R3-C simplification:** authenticated
+**Current owner decision â€” 2026-09-18 R3-C simplification:** authenticated
 viewing is enabled by default. Every newly accepted account receives PLAYER and
 SPECTATOR application grants; membership in a particular match alone authorizes
 its game decisions. Players and spectators share the same public board, resource,
@@ -45,16 +45,16 @@ it does not claim public TLS, deployment, R3-D/R3-E, or full-R3 completion.
 M4 is the public-service-readiness milestone. Its acceptance is not a single build or test run. It requires process-failure recovery at a pending decision, role/projection verification, a measured load envelope, a successful separate-environment backup restore, and recorded content provenance. Runtime, authentication, operations, and release acceptance must be independently recorded.
 
 ```text
-R1 Runtime/transport ─────┬──> R3 Identity and route policy ──┐
-                           ├──> R4 Capacity and retention ─────┼──> R6 release evidence
-R2 Durable recovery ──────┼──> R5 Backup/operational failure ─┤
-R3 Identity/route policy ─┘                                   │
-R6 Renderer/content checks ───────────────────────────────────┘
+R1 Runtime/transport â”€â”€â”€â”€â”€â”¬â”€â”€> R3 Identity and route policy â”€â”€â”
+                           â”œâ”€â”€> R4 Capacity and retention â”€â”€â”€â”€â”€â”¼â”€â”€> R6 release evidence
+R2 Durable recovery â”€â”€â”€â”€â”€â”€â”¼â”€â”€> R5 Backup/operational failure â”€â”¤
+R3 Identity/route policy â”€â”˜                                   â”‚
+R6 Renderer/content checks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 Begin R1 and R2 in parallel. R3 needs an owner-approved account-provider and credential-lifecycle decision before production integration. R4 must use the recovery and runtime behavior actually delivered; R5 must back up and restore the compatible versions introduced by R1/R2. R6 is independently executable, but its evidence joins the final release record.
 
-## Shared prompt preamble — include in every tranche request
+## Shared prompt preamble â€” include in every tranche request
 
 > You are implementing one bounded M4 tranche in the FUMBBL rebuild. Preserve unrelated working-tree changes; do not reset, delete, truncate, or recreate existing database/backup volumes or retained synthetic evidence. The current accepted baseline is Java/Maven, the authoritative BB2025 Java engine, MariaDB/JDBC, React/Vite, and versioned JSON WebSockets. The frozen Human catalog, engine behavior, and replay schema are out of scope unless this tranche explicitly versions and validates a compatibility boundary. Keep server authority: membership/role checks precede every mutation, read, and retry; client input never determines dice, legality, or private state. Maintain one-at-a-time match mutation unless measured evidence justifies a separately reviewed concurrency change.
 >
@@ -62,7 +62,7 @@ Begin R1 and R2 in parallel. R3 needs an owner-approved account-provider and cre
 >
 > Start by reading the M3e acceptance report, `browser-client/disconnect.md`, `browser-client/action-coverage.md`, schema-4 migration material, accepted ADRs, and the M4 handoff. Work in a small, reviewable slice. Add focused characterization/contract tests and exact evidence for all changed behavior. Run the narrowest meaningful checks first, then the risk-appropriate Maven/browser/database checks. Record commands, versions, fixtures, configuration, result data, and known limits. Do not claim public-service readiness or another tranche's gate from local-only evidence.
 
-## R1 — Runtime and transport maintenance
+## R1 â€” Runtime and transport maintenance
 
 **Objective:** replace the unsupported Java 8 server runtime/Jetty 9.4 direction with a supported runtime and Jetty line while preserving the Java 8 characterization baseline as a comparison oracle.
 
@@ -79,7 +79,7 @@ Begin R1 and R2 in parallel. R3 needs an owner-approved account-provider and cre
 
 **Out of scope:** durable restart recovery itself (R2), real-provider authentication (R3), capacity benchmarks (R4), external deployment, and catalog expansion.
 
-## R2 — Durable in-progress engine recovery
+## R2 â€” Durable in-progress engine recovery
 
 **Objective:** recover an unfinished, authoritative match after a process kill without altering the pending decision, actor, resources, dice state, or request semantics.
 
@@ -92,11 +92,11 @@ Begin R1 and R2 in parallel. R3 needs an owner-approved account-provider and cre
 - Process-kill tests during pre-match, placement, defending-team decision, drive/half transition, and terminal commit.
 - Evidence that restoration presents precisely the original decision, actor, resources, and revision, and that an acknowledged/lost-ack request is replayed without a second engine execution.
 
-**Acceptance evidence:** real process termination—not graceful browser reconnect or completed-result read—followed by restart and two-client verification for every listed failure point. Include persisted/recovered artifact inspection and failed-recovery behavior for unsupported/corrupt versions.
+**Acceptance evidence:** real process terminationâ€”not graceful browser reconnect or completed-result readâ€”followed by restart and two-client verification for every listed failure point. Include persisted/recovered artifact inspection and failed-recovery behavior for unsupported/corrupt versions.
 
 **Out of scope:** generalized event-sourcing rewrite, historical replay import, capacity cleanup policy (R4), and public identity provider work (R3).
 
-## R3 — Real identities and production route policy
+## R3 â€” Real identities and production route policy
 
 **Current status (2026-09-17): partially complete.** The isolated DEV game-session proof has replaced the local diagnostic credential prompt on hosted `/play` with Firebase Authentication. Google and email-link users receive a fresh Firebase ID token only after WSS opens. The service verifies signature, expiry, issuer, audience, project, disabled-user and revocation state; maps the verified issuer/UID to a provider-neutral internal account; and never places the token in a URL, outbound message, or application log. It enforces one live connection per account, private two-player invitation-code sessions, reconnect, membership checks, bounded ordered chat history, exact DEV/PROD Origin configuration, and TLS-only game transport. The local diagnostic client remains an explicit local-only configuration.
 
@@ -129,7 +129,7 @@ disconnected abandoned sessions use a one-hour lifetime.
 
 ### R3 implementation workstreams
 
-#### R3-A — Principal, scope, and credential-lifecycle model
+#### R3-A â€” Principal, scope, and credential-lifecycle model
 
 **Can proceed now:** define provider-neutral interfaces and local doubles for internal principals, scope checks, expiration, disabled/revoked identity handling, and safe audit/log fields. Preserve the current `issuer + subject -> internal account` identity link; do not trust client-provided email, name, role, or UID.
 
@@ -137,7 +137,7 @@ disconnected abandoned sessions use a one-hour lifetime.
 
 **Evidence:** positive and negative tests for every scope, revoked/disabled/stale credentials, no account creation after rejected authentication, and absence of token, raw UID, email, private account data, and private team data in logs.
 
-#### R3-B — Invitation, player-slot, and reconnect policy
+#### R3-B â€” Invitation, player-slot, and reconnect policy
 
 **Can proceed now:** characterize the current session-code proof and write contracts for one account/one player slot, duplicate connection behavior, reconnect ordering, cross-session rejection, and the current process-local inactivity/purge behavior.
 
@@ -145,7 +145,7 @@ disconnected abandoned sessions use a one-hour lifetime.
 
 **Evidence:** independent two-player tests for valid acceptance, cross-match and non-invitee attempts, expired/revoked invitation, duplicate intent, disconnect/reconnect, simultaneous reconnect, and every defined failure response.
 
-#### R3-C — Route-projection matrix and public exposure policy
+#### R3-C â€” Route-projection matrix and public exposure policy
 
 Create and keep the following matrix with the public API specification. A route that is not authorized for the first release must be explicitly unavailable rather than implicitly protected by a missing client link.
 
@@ -201,7 +201,7 @@ development route only after it has passed authentication, membership,
 spectator-projection and recovery-parity checks. No marker-5 volume or retained
 evidence is modified or removed during this transition.
 
-#### R3-D — Transport, Origin, and local/public separation
+#### R3-D â€” Transport, Origin, and local/public separation
 
 **Closed for the defined R3-D scope, 2026-09-21.** Exact route/Host/Origin
 enforcement, hosted TLS, local loopback isolation, environment/credential
@@ -256,7 +256,7 @@ DEV/PROD rollout. See [evidence and limits](verification/r3-d/local-nginx.md).
 
 **Evidence:** TLS-required profile tests, exact/missing/foreign-Origin tests, DEV-to-PROD and PROD-to-DEV credential rejection, insecure/query credential rejection, and a documented local loopback check. A production deployment is not R3 work and remains separately authorized.
 
-#### R3-E — Projection-safe rendering, logs, and acceptance record
+#### R3-E â€” Projection-safe rendering, logs, and acceptance record
 
 **2026-09-21 bounded implementation:** all nine current v2 response envelopes
 have explicit field contracts and negative private-field tests. Player/watch
@@ -280,7 +280,7 @@ R3 closes only when the owner decisions are recorded, the approved R3-A through 
 
 **Out of scope:** selecting or purchasing a provider without authorization, public deployment, expanding the spectator feature beyond an authorized read-only projection, and implementation of M3 engine/result/replay behavior merely to populate a route matrix.
 
-## R4 — Capacity, retention, and completed-session release
+## R4 â€” Capacity, retention, and completed-session release
 
 **Objective:** replace the current 32-resident-lifetime ceiling with a bounded, observable session/retention policy that cannot double-execute durable work.
 
@@ -292,7 +292,7 @@ R3 closes only when the owner decisions are recorded, the approved R3-A through 
 - Explicit retention/eviction limits for request history and replay/recovery data, with correct behavior at limits and no silent loss of an action awaiting recovery.
 - A declared workload, machine/JDK/browser/database configuration, and measured heap/RSS, CPU where practical, queue delay, p95 accepted-action and reconnect latency, snapshot/replay size, failures, and cleanup behavior.
 
-**Backlog — R4.1 mutual save-and-resume:** implement a two-player request,
+**Backlog â€” R4.1 mutual save-and-resume:** implement a two-player request,
 accept, reject and cancellation protocol that suspends a match only after both
 current player slots agree. Persist a compatible authoritative recovery
 checkpoint, pending-decision/revision/request history and clock state before
@@ -303,11 +303,11 @@ behavior, and rejection outcomes before implementation. This work depends on
 R2 recovery compatibility and joins R4's retention and capacity evidence; it
 does not authorize an in-place engine/runtime upgrade.
 
-**Acceptance evidence:** repeatable run results—not M3e functional-fault counts—with enough lifecycle pressure to exercise release, eviction, slow clients, reconnect, retry, and abandoned sessions. State the supported envelope and the chosen rejection/backpressure behavior; do not invent production capacity claims.
+**Acceptance evidence:** repeatable run resultsâ€”not M3e functional-fault countsâ€”with enough lifecycle pressure to exercise release, eviction, slow clients, reconnect, retry, and abandoned sessions. State the supported envelope and the chosen rejection/backpressure behavior; do not invent production capacity claims.
 
 **Out of scope:** a per-match actor/microservice rewrite, host-sizing purchase, and changing recovery semantics without R2 review.
 
-## R5 — Backups and operational-failure recovery
+## R5 â€” Backups and operational-failure recovery
 
 **Objective:** prove that a compatible backup can restore an M4 match state, including one paused at a decision, into a separate approved environment.
 
@@ -323,13 +323,13 @@ does not authorize an in-place engine/runtime upgrade.
 
 **Out of scope:** cloud-provider selection, production backup credential provisioning, unsupported cross-version restores, and destructive reset of existing evidence.
 
-## R6 — Desktop renderer, accessibility, and content-release checks
+## R6 â€” Desktop renderer, accessibility, and content-release checks
 
 **Objective:** prove the integrated desktop match client works across declared browsers, layouts, zoom levels and assistive technologies, and record a public-use decision for each shipped asset. The local MVP is design evidence, not release acceptance.
 
 **Present surfaces and evidence (2026-09-24):** `/pitch-preview` is an isolated React DOM/SVG simulation; `/ui-ux-draft-v2` preserves the earlier study. The authenticated `/play` route uses `play-entry.tsx`, `V2Client`, the authoritative `/browser/v2` service and DOM `GameView` controls in `SetupPanel.tsx`. The MVP has a 26 x 15 pitch, 64:56 normal-player-to-square ratio (80:56 for large players), 56px fit when space permits and about 48px squares at 1920 x 1080, Human/Orc chibi sprites, resource icons, player cards, dugouts, movement overlays/paths, action strip and log/chat. It supports repeated-click deselection, Space to confirm a pinned valid sample action, Escape, zoom and pan. Its inferred actions, success outcomes, resource counts, log, chat and End Turn are mock state. Selected Chrome/Playwright viewport and fullscreen Fit checks passed; the required cross-browser, zoom and screen-reader matrix has not run. Keep its evidence separate from live match evidence and M1 Pixi/WebGL tests.
 
-### R6-0 — Renderer decision and live UI handoff (M5 implementation, R6 gate)
+### R6-0 â€” Renderer decision and live UI handoff (M5 implementation, R6 gate)
 
 Record an ADR-002 addendum before adopting the MVP board on the live route: keep Pixi for the board or select DOM/SVG after measured match performance, interaction and accessibility comparison. ADR-002 preferred Pixi but expressly allowed reconsidering DOM if a prototype proved simpler. Neither implementation inherits the other's test results. Pixi's Canvas renderer was announced as experimental after the ADR, but the current M1 board explicitly requests WebGL; do not count Canvas or accessibility fallback without testing the exact pinned renderer and a usable DOM control path. [Pixi v8.16 announcement](https://pixijs.com/blog/8.16.0); [current renderer guide](https://pixijs.com/8.x/guides/components/renderers).
 
@@ -337,25 +337,25 @@ Map the approved presentation components to the `/browser/v2` snapshot and serve
 
 **Handoff gate:** two authenticated players and an authorized spectator agree on the current revision, prompt, resources and outcome after an accepted action, rejection/stale action, disconnect/reconnect and pending decision. No new action is sent while outcome is uncertain. Existing labeled DOM grid/action controls remain available until the replacement passes these checks. Assemble the matching DEV Firebase Hosting artifact and verify the live route, asset base paths and CSP against that artifact before any separate publication decision.
 
-### R6-1 — Desktop browser, layout and zoom matrix
+### R6-1 â€” Desktop browser, layout and zoom matrix
 
 Record actual OS/browser versions and execution on current stable Chrome, Edge and Firefox on declared desktop platforms, and Safari on macOS. Test 100% and 200% browser zoom at 1280 x 720 and 1920 x 1080 CSS layouts; include 1920 x 900, 1920 x 820 and a reduced viewport near 1280 x 660 from the accepted [pitch requirements](../art-preview/pitch-and-ui-requirements-v2.md) where practical. Capture CSS content viewport, display scale, screenshots and measurements. Check 26 x 15 square geometry, one-square end zones, 4/7/4 wide-zone markings, sprite clarity/overlap in crowded formations, visible prompt and selected-player details, unclipped decision/End Turn controls, keyboard access to pan/zoom and stable Fit on fullscreen/resizing. List unavailable combinations as untested release gaps, never as passes.
 
-### R6-2 — Keyboard and screen-reader paths
+### R6-2 â€” Keyboard and screen-reader paths
 
 Inventory every live match control and record Tab/Shift+Tab, focus, Enter/Space and Escape paths: player selection/deselection, grid target and path preview, action menu and Commit, block/blitz/foul/pass/handoff, player details, resources, bench/KO/casualties, log/chat, End Turn, setup choices, server prompts, save/resume, reconnect/exact retry and spectator navigation. Hover affordances need focus equivalents; color-coded risk and team identity need text/shape cues. Text entry, dialogs, held keys and invalid/unpinned targets must not trigger Space commit.
 
 Record observed speech and focus order with declared browser/AT pairs, including NVDA with Windows Chrome/Edge and VoiceOver with macOS Safari if supported. Verify selection, actor/prompt, accepted/rejected/pending actions, turn/resources, connection loss, resync, asset/renderer failure and full time. ARIA inspection or automation alone is not screen-reader evidence. Keep an accessible text summary of the focused square/player and native labeled controls.
 
-### R6-3 — Renderer and asset failures
+### R6-3 â€” Renderer and asset failures
 
 Inject missing/corrupt sprites and fonts, renderer startup failure if a GPU renderer is used, stale state and disconnect. Show labeled fallback tokens, retained legal-action controls and actionable recovery text rather than a blank game view. Check failures never bypass actor/role or pending-command restrictions. Run M1 Pixi/WebGL failure tests separately from the current DOM/live route and document which renderer each observation covers. Fix defects in the owning slice or list reproducible release blockers with impact and retest criteria.
 
-### R6-4 — Asset provenance and public-use disposition
+### R6-4 â€” Asset provenance and public-use disposition
 
-Inventory every asset actually shipped by the match bundle and DEV/PROD Hosting artifacts: Human/Orc 64px chibi packs and earlier exports, ImageGen icon atlas and concept reference, bundled Alegreya SC/Barlow Semi Condensed fonts and OFL notices, pitch textures, site branding/logos, fallback tokens and any legacy imports. For each record path and served route, creator/source, prompt or source manifest, transformation, license/owner-permission evidence, attribution and keep/replace/omit disposition. The sprite source manifests and prompts are under `.notes/art-preview/*-team-64px-chibi-v1/`; icon provenance is in `browser-client/public/preview/mvp-art/PROVENANCE.md`; the [MVP notes](../../browser-client/pitch-layout.md) and [brand guardrails](../../docs/moles-under-the-pitch-branding-assets.md) identify current usage and constraints. Generated-art provenance, neutral test tokens and local catalog evidence do not establish artwork rights. Unresolved public-use permission blocks that asset until the owner/content reviewer records a disposition or the asset is removed/replaced.
+Inventory every asset actually shipped by the match bundle and DEV/PROD Hosting artifacts: Human/Orc 64px chibi packs and earlier exports, ImageGen icon atlas and concept reference, bundled Alegreya SC/Barlow Semi Condensed fonts and OFL notices, pitch textures, site branding/logos, fallback tokens and any legacy imports. For each record path and served route, creator/source, prompt or source manifest, transformation, license/owner-permission evidence, attribution and keep/replace/omit disposition. The sprite source manifests and prompts are under `assets/game/teams/<roster-id>/source/64px-chibi-v1/`; icon provenance is in `assets/game/ui/mvp-art/PROVENANCE.md`; the [MVP notes](../../browser-client/pitch-layout.md) and [brand guardrails](../../docs/moles-under-the-pitch-branding-assets.md) identify current usage and constraints. Generated-art provenance, neutral test tokens and local catalog evidence do not establish artwork rights. Unresolved public-use permission blocks that asset until the owner/content reviewer records a disposition or the asset is removed/replaced.
 
-### R6-5 — Dedicated setup and live match surfaces (M5 presentation backlog)
+### R6-5 â€” Dedicated setup and live match surfaces (M5 presentation backlog)
 
 The accepted [team-builder ADR](../../docs/adr/0001-account-owned-match-ready-teams.md) already gives `/teambuilder` a separate authenticated builder. `/play` still combines match creation/join, game browsing and live `GameView`. Move preparation to a setup-only route and navigate to a distinct match page only after the server confirms both player slots and activation. Allow authorized spectators into the same read-only match page. Support direct accessible resume after reload/reconnect or an uncertain request; no local animation/flag may assert activation. Keep the same authenticated `V2Client` contract, membership checks, request IDs, revision order, retry/recovery and publication policy. Verify both-player activation, setup-to-play navigation, spectator entry, pending-decision reload and full-time exit. This is a presentation/workflow slice, not a second match authority.
 
@@ -363,7 +363,7 @@ The accepted [team-builder ADR](../../docs/adr/0001-account-owned-match-ready-te
 
 **Out of scope:** visual redesign, new roster artwork, mobile delivery, rules changes and a public art-license conclusion without owner/content-review evidence.
 
-## Runtime decision — Java 8, 21, and 25
+## Runtime decision â€” Java 8, 21, and 25
 
 M4 explicitly covers a server-runtime upgrade from Java 8 to Java 21: ADR-001 accepts Java 21 as the new server target, and the M3e handoff calls for separately proving the accepted Java 21/supported-Jetty direction. The current Java 8/Maven checks are a characterization reference, not the M4 end state. Jetty 12 requires Java 17+, so remaining on Java 8 is incompatible with the accepted maintenance direction.
 

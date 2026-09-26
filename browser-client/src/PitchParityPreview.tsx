@@ -12,7 +12,7 @@ import './pitch-parity.css';
 
 type Renderer = 'dom' | 'pixi';
 type Display = 'both' | Renderer;
-const PITCH_URL = `${import.meta.env.BASE_URL}preview/parity-pitch.svg`;
+const PITCH_URL = `${import.meta.env.BASE_URL}assets/game/pitch/parity-pitch.svg`;
 const fault = new URLSearchParams(window.location.search).get('parityFault');
 
 function Marker({ player, state, scale, onSelect }: { player: ParityPlayer; state: ParityState; scale: number; onSelect: () => void }) {

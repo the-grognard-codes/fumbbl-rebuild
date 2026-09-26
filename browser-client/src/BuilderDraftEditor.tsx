@@ -22,7 +22,7 @@ const money = (value: number) => `${value.toLocaleString('en-US')} GP`;
 
 function sprite(rosterId: string, positionId: string) {
   const file = (rosterId === 'orc' ? orcSpriteFiles : spriteFiles)[positionId];
-  return file ? `/assets/team-sprites/${rosterId === 'orc' ? 'orcs' : 'humans'}/${file}` : null;
+  return file ? `${import.meta.env.BASE_URL}assets/game/teams/${rosterId}/${file}` : null;
 }
 
 function nextAvailable(values: number[], maximum: number) {

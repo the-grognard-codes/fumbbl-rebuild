@@ -83,7 +83,7 @@ export function PitchPreview() {
     <footer>Interactive design preview · 64:56 player-to-square ratio · Human & Orc chibi sprites · Sample actions assume success</footer>
     <dialog ref={reference} className="reference-dialog" aria-label="Original match screen reference" onClick={event => { if (event.target === reference.current) reference.current.close(); }}>
       <div><span>Original art direction</span><button onClick={() => reference.current?.close()}>Close reference</button></div>
-      <img src={`${import.meta.env.BASE_URL}preview/match-screen-reference.png`} alt="Original fantasy football match concept with steel-blue Humans, bronze Orcs, a dark engraved scoreboard and serif typography"/>
+      <img src={`${import.meta.env.BASE_URL}assets/game/references/match-screen-concept-v1.png`} alt="Original fantasy football match concept with steel-blue Humans, bronze Orcs, a dark engraved scoreboard and serif typography"/>
     </dialog>
   </main>;
 }
