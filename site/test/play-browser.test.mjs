@@ -16,7 +16,7 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 async function openGrid(page) { await page.getByText('Explore pitch squares with keyboard').click(); await page.getByLabel('Pitch grid', { exact: true }).waitFor(); }
 
-test('creator sees opponent join and automatically opens play when opponent starts', async () => {
+test('start opens a separate match window, with same-tab fallback when blocked', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
@@ -27,47 +27,74 @@ test('creator sees opponent join and automatically opens play when opponent star
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  const recipients = new Map(); const reads = []; let revision = 1;
+  const recipients = new Map(); const reads = []; const authentications = [0, 0]; let revision = 1;
   const member = role => ({ role, sourceTeamId: matchId, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'fixture', rosterId: 'human', presetId: 'fixture', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: {}, players: [] } });
   try {
-    const pages = [];
-    for (let index = 0; index < 2; index++) {
-      const page = await (await browser.newContext()).newPage(); pages.push(page);
-      await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
-      await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
-      await page.routeWebSocket('**/browser/v2', socket => {
-        const send = message => socket.send(JSON.stringify({ version: 2, ...message })); recipients.set(index, send);
-        socket.onMessage(raw => {
-          const request = JSON.parse(raw);
-          if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
-          if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
-          if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
-          if (request.type === 'preparedMatch') {
-            if (index === 1 && revision === 1) revision = 2;
-            if (request.operation === 'activate') revision = 3;
-            send({ type: 'preparedMatch', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, callerRole: index === 0 ? 'home' : 'away', recoveryMatchId: null,
-              document: { formatVersion: 1, matchId, documentVersion: revision, lifecycle: ['WAITING_FOR_OPPONENT', 'AWAITING_SETUP', 'ACTIVATED'][revision - 1], invitation: { intendedOpponent: 'away' }, home: member('home'), away: revision > 1 ? member('away') : null } });
-            if (index === 1) recipients.get(0)({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId });
-          }
-          if (request.type === 'setup') {
-            assert.equal(request.operation, 'load'); reads.push(index);
-            send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: { ...base, callerRole: index === 0 ? 'home' : 'away' } });
-          }
+    for (const popupBlocked of [false, true]) {
+      revision = 1; recipients.clear(); reads.length = 0; authentications.fill(0);
+      const pages = []; const contexts = [];
+      for (let index = 0; index < 2; index++) {
+        const context = await browser.newContext(); contexts.push(context);
+        const page = await context.newPage(); pages.push(page);
+        if (popupBlocked && index === 1) await page.addInitScript(() => { window.open = () => null; });
+        await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+        await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
+        await context.routeWebSocket('**/browser/v2', socket => {
+          const send = message => socket.send(JSON.stringify({ version: 2, ...message })); recipients.set(index, send);
+          socket.onMessage(raw => {
+            const request = JSON.parse(raw);
+            if (request.type === 'authenticate') { authentications[index]++; send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] }); }
+            if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
+            if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
+            if (request.type === 'preparedMatch') {
+              if (index === 1 && revision === 1) revision = 2;
+              if (request.operation === 'activate') revision = 3;
+              send({ type: 'preparedMatch', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, callerRole: index === 0 ? 'home' : 'away', recoveryMatchId: null,
+                document: { formatVersion: 1, matchId, documentVersion: revision, lifecycle: ['WAITING_FOR_OPPONENT', 'AWAITING_SETUP', 'ACTIVATED'][revision - 1], invitation: { intendedOpponent: 'away' }, home: member('home'), away: revision > 1 ? member('away') : null } });
+              if (index === 1) recipients.get(0)({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId });
+            }
+            if (request.type === 'setup') {
+              assert.equal(request.operation, 'load'); reads.push(index);
+              send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: { ...base, callerRole: index === 0 ? 'home' : 'away' } });
+            }
+          });
         });
-      });
-      await page.goto(`http://127.0.0.1:${server.address().port}/play`);
-      await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
-      await page.getByLabel('Match ID', { exact: true }).fill(matchId);
-      await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
-    }
-    await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
-    await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
-    for (const page of pages) await openGrid(page);
-    assert.deepEqual(reads.sort(), [0, 1], 'Both pages opened play without either clicking Resume play');
-    for (const page of pages) {
-      assert.equal(new URL(page.url()).pathname, '/play/match');
-      await page.reload();
-      await openGrid(page);
+        await page.goto(`http://127.0.0.1:${server.address().port}/play`);
+        await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+        await page.getByLabel('Match ID', { exact: true }).fill(matchId);
+        await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
+      }
+      await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
+      const opened = popupBlocked ? null : pages[1].waitForEvent('popup');
+      await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
+      const starterMatch = popupBlocked ? pages[1] : await opened;
+      await openGrid(starterMatch);
+      assert.equal(new URL(starterMatch.url()).pathname, '/play/match');
+      if (!popupBlocked) {
+        assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
+        assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
+        await pages[1].getByLabel('Match opened elsewhere').waitFor();
+        await pages[1].reload();
+        await pages[1].getByLabel('Match opened elsewhere').waitFor();
+        assert.equal(authentications[1], 2, 'Reloaded preparation must not replace its match connection');
+      }
+      await pages[0].getByRole('link', { name: 'Open match in a new tab or window' }).waitFor();
+      const opponentWindow = pages[0].waitForEvent('popup');
+      await pages[0].getByRole('link', { name: 'Open match in a new tab or window' }).click();
+      const opponentMatch = await opponentWindow;
+      await openGrid(opponentMatch);
+      assert.equal(new URL(pages[0].url()).pathname, '/play', 'Server notification leaves a usable preparation page');
+      await pages[0].getByLabel('Match opened elsewhere').waitFor();
+      await pages[0].reload();
+      await pages[0].getByLabel('Match opened elsewhere').waitFor();
+      assert.equal(authentications[0], 2, 'Reloaded preparation must not replace its match connection');
+      assert.deepEqual(reads.sort(), [0, 1], 'Both match windows loaded the authoritative setup');
+      for (const page of [opponentMatch, starterMatch]) {
+        assert.equal(new URL(page.url()).pathname, '/play/match');
+        await page.reload();
+        await openGrid(page);
+      }
+      for (const context of contexts) await context.close();
     }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
