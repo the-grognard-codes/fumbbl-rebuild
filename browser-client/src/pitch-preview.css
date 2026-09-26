@@ -1,6 +1,6 @@
-@font-face { font-family: 'Alegreya SC'; src: url('/preview/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
-@font-face { font-family: 'Alegreya SC'; src: url('/preview/fonts/AlegreyaSC-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
-@font-face { font-family: 'Barlow Semi Condensed'; src: url('/preview/fonts/BarlowSemiCondensed-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Alegreya SC'; src: url('/assets/game/ui/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Alegreya SC'; src: url('/assets/game/ui/fonts/AlegreyaSC-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Barlow Semi Condensed'; src: url('/assets/game/ui/fonts/BarlowSemiCondensed-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
 
 .pitch-preview {
   --display-font: 'Alegreya SC', Georgia, serif;

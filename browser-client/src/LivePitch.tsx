@@ -18,7 +18,7 @@ const orcSprites: Record<string, string[]> = {
   'big-un-blocker': ['04-big-un-man.png', '05-big-un-woman.png'],
   troll: ['01-troll-man.png']
 };
-const pitchUrl = import.meta.env.DEV ? '/live-pitch.svg' : '/assets/game/live-pitch.svg';
+const pitchUrl = `${import.meta.env.BASE_URL}assets/game/pitch/live-pitch.svg`;
 
 export function spriteUrl(player: SetupPlayer) {
   if (!player.art) return null;
@@ -26,7 +26,7 @@ export function spriteUrl(player: SetupPlayer) {
   const variants = roster === 'orc' ? orcSprites[player.art.positionId] : null;
   const file = variants?.[(player.slot - 1) % variants.length] ?? (roster === 'human' ? humanSprites[player.art.positionId] : null);
   if (!file) return null;
-  return import.meta.env.DEV ? `/preview/${roster === 'orc' ? 'orcs' : 'humans'}-64px-chibi-v1/${file}` : `/assets/team-sprites/${roster === 'orc' ? 'orcs' : 'humans'}/${file}`;
+  return `${import.meta.env.BASE_URL}assets/game/teams/${roster}/${file}`;
 }
 
 function PlayerMarker({ player, scale, active, selected, target, onSelect, onFocus, onBlur, readOnly }: {

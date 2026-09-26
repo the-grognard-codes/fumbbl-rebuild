@@ -7,7 +7,7 @@ const art: Record<ArtName, number[]> = {
   apothecary: [931, 489, 360, 315], ball: [1385, 514, 341, 292]
 };
 
-export function MatchArt({ name, atlasUrl = `${import.meta.env.BASE_URL}preview/mvp-art/match-ui-icon-atlas-v1.png` }: { name: ArtName; atlasUrl?: string }) {
+export function MatchArt({ name, atlasUrl = `${import.meta.env.BASE_URL}assets/game/ui/match-ui-icon-atlas-v1.png` }: { name: ArtName; atlasUrl?: string }) {
   const [x, y, width, height] = art[name];
   return <svg className={`match-art art-${name}`} viewBox={`${x} ${y} ${width} ${height}`} aria-hidden="true" focusable="false">
     <image href={atlasUrl} width="1774" height="887"/>

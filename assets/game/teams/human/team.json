@@ -1,0 +1,13 @@
+{
+  "rosterId": "human",
+  "artVersion": "64px-chibi-v1",
+  "master": "master",
+  "positions": {
+    "ogre": ["01-ogre-man.png"],
+    "blitzer": ["02-blitzer-man.png", "03-blitzer-woman.png"],
+    "catcher": ["04-catcher-woman.png", "05-catcher-man.png"],
+    "thrower": ["06-thrower-man.png", "07-thrower-woman.png"],
+    "lineman": ["08-lineman-man.png", "09-lineman-woman.png", "10-lineman-man.png", "11-lineman-woman.png", "12-lineman-man.png", "13-lineman-woman.png"],
+    "halfling": ["14-halfling-man.png", "15-halfling-woman.png", "16-halfling-woman.png"]
+  }
+}
