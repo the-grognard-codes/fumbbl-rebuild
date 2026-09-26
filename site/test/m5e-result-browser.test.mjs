@@ -54,7 +54,8 @@ test('hosted final decision leads to participant result and read-only replay aft
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Match scoreboard').waitFor();
-    assert.equal(await page.evaluate(() => document.querySelector('.live-pitch-scene').getBoundingClientRect().bottom <= innerHeight), true, 'Fit shows the entire field at 1280×660');
+    await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
+      null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.
     if (process.env.M5E_SCREENSHOT_DIR) {
       await mkdir(process.env.M5E_SCREENSHOT_DIR, { recursive: true });
       await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1280.png') });
