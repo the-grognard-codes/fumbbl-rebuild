@@ -201,8 +201,9 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 			}
 			try {
 				if ("catalog".equals(type)) {
-					teamJson.fields(message, "version", "type", "requestId");
-					connection.send(teamJson.catalog(requestId).toString());
+					if (message.get("rosterId") == null) teamJson.fields(message, "version", "type", "requestId");
+					else teamJson.fields(message, "version", "type", "requestId", "rosterId");
+					connection.send(teamJson.catalog(requestId, message.get("rosterId") == null ? "human" : message.get("rosterId").asString()).toString());
 				} else {
 					teamJson.fields(message, "version", "type", "requestId", "draft");
 					connection.send(teamJson.evaluate(requestId, message.get("draft").asObject()).toString());

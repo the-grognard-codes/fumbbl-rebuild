@@ -1,12 +1,12 @@
 {
   "version": 1,
   "type": "catalog",
-  "requestId": "catalog-fixture",
+  "requestId": "orc-catalog-fixture",
   "catalogVersion": "bb2025-exhibition-2026-09-25.1",
   "ruleset": "BB2025",
   "draftVersion": 2,
-  "rosterId": "human",
-  "name": "Human",
+  "rosterId": "orc",
+  "name": "Orc",
   "presetId": "exhibition-1150",
   "budget": 1150000,
   "minPlayers": 11,
@@ -14,40 +14,40 @@
   "skillPoints": 8,
   "maxSecondary": 2,
   "maxElite": 4,
-  "league": "Old World Classic",
-  "specialRule": "Team Captain",
+  "league": "Badlands Brawl",
+  "specialRule": "Brawlin' Brutes, Team Captain",
   "positions": [
     {
-      "id": "lineman",
-      "name": "Human Lineman",
+      "id": "orc-lineman",
+      "name": "Orc Lineman",
       "maximum": 16,
       "cost": 50000,
-      "ma": 6,
+      "ma": 5,
       "st": 3,
       "ag": 3,
       "pa": 4,
-      "av": 9,
+      "av": 10,
       "role": "Lineman",
-      "race": "Human",
-      "primary": "G",
-      "secondary": "ADS",
+      "race": "Orc",
+      "primary": "GS",
+      "secondary": "AD",
       "baseSkills": [],
       "canCaptain": true
     },
     {
-      "id": "halfling",
-      "name": "Halfling Hopeful",
-      "maximum": 3,
-      "cost": 30000,
-      "ma": 5,
+      "id": "goblin-lineman",
+      "name": "Goblin Lineman",
+      "maximum": 4,
+      "cost": 40000,
+      "ma": 6,
       "st": 2,
       "ag": 3,
       "pa": 4,
-      "av": 7,
+      "av": 8,
       "role": "Lineman",
-      "race": "Halfling",
-      "primary": "A",
-      "secondary": "DGS",
+      "race": "Goblin",
+      "primary": "AD",
+      "secondary": "GPS",
       "baseSkills": [
         {
           "id": "dodge",
@@ -65,34 +65,8 @@
       "canCaptain": true
     },
     {
-      "id": "catcher",
-      "name": "Human Catcher",
-      "maximum": 2,
-      "cost": 75000,
-      "ma": 8,
-      "st": 3,
-      "ag": 3,
-      "pa": 4,
-      "av": 8,
-      "role": "Catcher",
-      "race": "Human",
-      "primary": "AG",
-      "secondary": "DPS",
-      "baseSkills": [
-        {
-          "id": "catch",
-          "value": 0
-        },
-        {
-          "id": "dodge",
-          "value": 0
-        }
-      ],
-      "canCaptain": true
-    },
-    {
-      "id": "thrower",
-      "name": "Human Thrower",
+      "id": "orc-thrower",
+      "name": "Orc Thrower",
       "maximum": 2,
       "cost": 75000,
       "ma": 6,
@@ -101,9 +75,9 @@
       "pa": 3,
       "av": 9,
       "role": "Thrower",
-      "race": "Human",
+      "race": "Orc",
       "primary": "GP",
-      "secondary": "ADS",
+      "secondary": "ASD",
       "baseSkills": [
         {
           "id": "pass",
@@ -117,17 +91,17 @@
       "canCaptain": true
     },
     {
-      "id": "blitzer",
-      "name": "Human Blitzer",
+      "id": "orc-blitzer",
+      "name": "Orc Blitzer",
       "maximum": 2,
       "cost": 85000,
-      "ma": 7,
+      "ma": 6,
       "st": 3,
       "ag": 3,
       "pa": 4,
-      "av": 9,
+      "av": 10,
       "role": "Blitzer",
-      "race": "Human",
+      "race": "Orc",
       "primary": "GS",
       "secondary": "AD",
       "baseSkills": [
@@ -136,41 +110,83 @@
           "value": 0
         },
         {
-          "id": "tackle",
+          "id": "break-tackle",
           "value": 0
         }
       ],
       "canCaptain": true
     },
     {
-      "id": "ogre",
-      "name": "Ogre",
-      "maximum": 1,
-      "cost": 140000,
+      "id": "big-un-blocker",
+      "name": "Big Un Blocker",
+      "maximum": 2,
+      "cost": 95000,
       "ma": 5,
-      "st": 5,
+      "st": 4,
       "ag": 4,
+      "pa": 6,
+      "av": 10,
+      "role": "Blocker",
+      "race": "Orc",
+      "primary": "GS",
+      "secondary": "AD",
+      "baseSkills": [
+        {
+          "id": "mighty-blow",
+          "value": 1
+        },
+        {
+          "id": "taunt",
+          "value": 0
+        },
+        {
+          "id": "thick-skull",
+          "value": 0
+        },
+        {
+          "id": "unsteady",
+          "value": 0
+        }
+      ],
+      "canCaptain": true
+    },
+    {
+      "id": "troll",
+      "name": "Troll",
+      "maximum": 1,
+      "cost": 115000,
+      "ma": 4,
+      "st": 5,
+      "ag": 5,
       "pa": 5,
       "av": 10,
       "role": "Big Guy",
-      "race": "Ogre",
+      "race": "Troll",
       "primary": "S",
-      "secondary": "AG",
+      "secondary": "AGP",
       "baseSkills": [
         {
-          "id": "bone-head",
+          "id": "always-hungry",
           "value": 0
         },
         {
           "id": "loner",
-          "value": 3
+          "value": 4
         },
         {
           "id": "mighty-blow",
           "value": 1
         },
         {
-          "id": "thick-skull",
+          "id": "projectile-vomit",
+          "value": 0
+        },
+        {
+          "id": "really-stupid",
+          "value": 0
+        },
+        {
+          "id": "regeneration",
           "value": 0
         },
         {
@@ -943,7 +959,7 @@
     {
       "id": "rerolls",
       "name": "Team re-rolls",
-      "cost": 50000,
+      "cost": 60000,
       "maximum": 8
     },
     {
