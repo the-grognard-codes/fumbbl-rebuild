@@ -7,6 +7,11 @@ version 2, saved document format 3, and named match formats 3/4. See the
 [account saved-team request schema](account-team-request.schema.json).
 The v1 examples below describe the retained local diagnostic and earlier slice
 history.
+The current Human and Orc catalog is `bb2025-exhibition-2026-09-25.1` with preset
+`exhibition-1150`. A catalog request may include `"rosterId":"orc"`; omitting
+it selects Human. The pinned projections are `test/fixtures/catalog-v1.json`
+and `test/fixtures/catalog-orc-v1.json`. The older catalog values in
+these examples document the earlier protocol slice.
 
 Current product flow: [M3e connection/recovery](disconnect.md), [setup](setup.md),
 [supported actions](action-coverage.md), and [completion/private replay](results-replay.md).

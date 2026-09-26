@@ -20,9 +20,10 @@ public final class TeamValidation {
 		if (draft.draftVersion == TeamDraft.FORMAT_VERSION && !validName(draft.teamName, 50)) add(messages, "TEAM_NAME", "teamName", "Team name must be 1 to 50 plain-text characters.");
 		if (!RosterCatalog.VERSION.equals(draft.catalogVersion)) add(messages, "CATALOG_VERSION", "catalogVersion", "Unsupported catalog version.");
 		if (!RosterCatalog.RULESET.equals(draft.ruleset)) add(messages, "RULESET", "ruleset", "Only BB2025 is supported.");
-		if (!RosterCatalog.ROSTER.equals(draft.rosterId)) add(messages, "ROSTER", "rosterId", "Unsupported roster.");
+		if (!RosterCatalog.supports(draft.rosterId)) add(messages, "ROSTER", "rosterId", "Unsupported roster.");
 		if (!RosterCatalog.PRESET.equals(draft.presetId)) add(messages, "PRESET", "presetId", "Unsupported preset.");
 		if (!messages.isEmpty()) return new Evaluation(null, 0, messages);
+		RosterCatalog roster = catalog.forRoster(draft.rosterId);
 		if (draft.players.size() > 16) {
 			add(messages, "PLAYER_COUNT", "players", "A draft must contain 11 to 16 players.");
 			return new Evaluation(null, 0, messages);
@@ -47,7 +48,7 @@ public final class TeamValidation {
 				if (player.jerseyNumber < 1 || player.jerseyNumber > 99) add(messages, "JERSEY_NUMBER", path + ".jerseyNumber", "Jersey number must be from 1 to 99.");
 				else if (!jerseys.add(player.jerseyNumber)) add(messages, "DUPLICATE_JERSEY", path + ".jerseyNumber", "Jersey numbers must be unique.");
 			}
-			RosterCatalog.Position position = catalog.getPositions().get(player.positionId);
+			RosterCatalog.Position position = roster.getPositions().get(player.positionId);
 			if (position == null) {
 				add(messages, "POSITION", path, "Unknown or unsupported position."); priced = false; continue;
 			}
@@ -63,13 +64,16 @@ public final class TeamValidation {
 			if (player.skillIds.size() > 1) add(messages, "SKILL_LIMIT", path, "At most one purchased skill per player.");
 			Set<String> chosen = new HashSet<>();
 			for (String id : player.skillIds) {
-				RosterCatalog.SkillOption skill = catalog.getSkills().get(id);
+				RosterCatalog.SkillOption skill = roster.getSkills().get(id);
 				if (skill == null) { add(messages, "SKILL", path, "Unknown skill identifier."); continue; }
 				if (!chosen.add(id) || position.baseSkills.contains(id) || (captain && "pro".equals(id))) {
 					add(messages, "DUPLICATE_SKILL", path, "The player already has this skill."); continue;
 				}
 				if (!skill.selectable || (!position.primary.contains(skill.category) && !position.secondary.contains(skill.category))) {
 					add(messages, "SKILL_INELIGIBLE", path, "This skill is unsupported or unavailable to this position."); continue;
+				}
+				if (!canLearn(id, position.baseSkills)) {
+					add(messages, "SKILL_INELIGIBLE", path, "This skill requires a trait or conflicts with a starting skill."); continue;
 				}
 				boolean primary = position.primary.contains(skill.category);
 				points += primary ? 1 : 2;
@@ -83,10 +87,10 @@ public final class TeamValidation {
 		if (!captainFound) add(messages, "CAPTAIN", "captainId", "Captain must reference a player in this draft.");
 		if (points > RosterCatalog.SKILL_POINTS) add(messages, "SKILL_POINTS", "players", "The preset allows eight skill points.");
 		if (secondary > RosterCatalog.MAX_SECONDARY) add(messages, "SECONDARY_LIMIT", "players", "The preset allows two Secondary skills.");
-		if (!draft.resources.keySet().equals(catalog.getResources().keySet())) {
+		if (!draft.resources.keySet().equals(roster.getResources().keySet())) {
 			add(messages, "RESOURCES", "resources", "Provide exactly the supported resources."); priced = false;
 		}
-		for (Map.Entry<String, RosterCatalog.Resource> entry : catalog.getResources().entrySet()) {
+		for (Map.Entry<String, RosterCatalog.Resource> entry : roster.getResources().entrySet()) {
 			Integer quantity = draft.resources.get(entry.getKey());
 			if (quantity == null || quantity < 0 || quantity > entry.getValue().maximum) {
 				add(messages, "QUANTITY", "resources." + entry.getKey(), "Resource quantity is outside its permitted range."); priced = false;
@@ -97,6 +101,19 @@ public final class TeamValidation {
 	}
 
 	private void add(List<Message> messages, String code, String path, String text) { messages.add(new Message(code, path, text)); }
+	private boolean canLearn(String id, List<String> baseSkills) {
+		if ("lethal-flight".equals(id) && !baseSkills.contains("right-stuff")) return false;
+		if ("saboteur".equals(id) && !baseSkills.contains("secret-weapon")) return false;
+		if (("bullseye".equals(id) || "strong-arm".equals(id)) && !baseSkills.contains("throw-team-mate")) return false;
+		if ("leap".equals(id) && baseSkills.contains("pogo")) return false;
+		if ("frenzy".equals(id) && (baseSkills.contains("grab") || baseSkills.contains("hit-and-run")
+			|| baseSkills.contains("multiple-block") || baseSkills.contains("ball-and-chain"))) return false;
+		if (("grab".equals(id) || "hit-and-run".equals(id) || "multiple-block".equals(id))
+			&& (baseSkills.contains("frenzy") || baseSkills.contains("ball-and-chain"))) return false;
+		if (baseSkills.contains("ball-and-chain") && (id.equals("diving-tackle") || id.equals("eye-gouge")
+			|| id.equals("leap") || id.equals("on-the-ball") || id.equals("shadowing") || id.equals("steady-footing"))) return false;
+		return true;
+	}
 	private boolean validName(String name, int maximum) {
 		if (name == null || !name.equals(Normalizer.normalize(name.trim(), Normalizer.Form.NFC))) return false;
 		int length = name.codePointCount(0, name.length());

@@ -1,12 +1,16 @@
-# BB2025 Human starter catalog
+# BB2025 Human and Orc exhibition catalogs
 
-Catalog `bb2025-human-2026-09-08.1`, ruleset `BB2025`, preset
-`human-exhibition-1150`. The owner selected **1,150,000 gold** on 2026-09-07
+Current catalog `bb2025-exhibition-2026-09-25.1`, ruleset `BB2025`, preset
+`exhibition-1150`, with selectable `human` and `orc` rosters. The owner selected **1,150,000 gold** on 2026-09-07
 (local time). This budget is a project preset choice, not a universal rule.
-The catalog is immutable for this version; a source correction requires a new
-version and explicit draft migration in a later slice, never silent reinterpretation.
-The browser and Java tests share `test/fixtures/catalog-v1.json` as a pinned wire
-fixture. The Java catalog verifies every declared skill against the BB2025 engine
+The catalog is immutable for this version. Previous Human-only catalog versions
+`bb2025-human-2026-09-08.1`, `bb2025-human-2026-09-24.1`, and `bb2025-human-2026-09-25.1` remain
+readable in frozen matches.
+Account saved teams may be cleared at activation under the owner's authorization;
+there is no implicit draft migration.
+The browser and Java tests share `test/fixtures/catalog-v1.json` and
+`test/fixtures/catalog-orc-v1.json` as pinned Human and Orc wire fixtures.
+The Java catalog verifies every declared skill against the BB2025 engine
 factory and category, failing startup if a mapping is unresolved.
 
 ## Source and legacy comparison
@@ -47,16 +51,24 @@ Elite limit is per purchased skill, not an aggregate limit across all Elite skil
 
 ## Supported content and validation
 
-Exactly one roster: `human`. Positions: `lineman`, `halfling`, `catcher`, `thrower`,
-`blitzer`, `ogre`. All listed base skills are mandatory catalog facts, never client
-claims. Known skill IDs: `block`, `dodge`, `catch`, `pass`, `sure-hands`, `tackle`,
-`pro`, `right-stuff`, `stunty`, `bone-head`, `loner`, `mighty-blow`, `thick-skull`,
-`throw-team-mate`.
+Two rosters: `human` and `orc`. Human positions are `lineman`, `halfling`,
+`catcher`, `thrower`, `blitzer`, `ogre`. Orc positions are `orc-lineman`,
+`goblin-lineman`, `orc-thrower`, `orc-blitzer`, `big-un-blocker`, `troll`.
+The [Orc roster](https://bloodbowlbase.ru/bb2025/teams/Orc/) and its
+[readiness record](../.notes/overhaul-analysis/m6-orc-content-readiness.md)
+pin its costs, stats, skill access, starting traits and accepted sprite mapping.
+All listed base skills are mandatory catalog facts, never client
+claims. The [BB2025 definitions](../ffb-server/src/main/java/com/fumbbl/ffb/server/team/bb2025/SkillDefinitions.java)
+cover all 72 learnable core skills and 36 core traits. The 36 traits are
+cataloged as base-only and cannot be purchased. Human positions can legally
+purchase 59 of the 72 skills under their current categories and prerequisites:
+the twelve Mutation skills have no Human recipient, and Saboteur requires a
+Secret Weapon starting trait that no Human position has.
 
-Exactly seven purchasable skills: Block, Dodge, Catch, Pass, Sure Hands, Tackle,
-Pro. Access is checked against each position's Primary/Secondary categories.
-Block and Dodge are Elite. Base-only skills remain unavailable for purchase in
-this slice even when their category is eligible. Unknown IDs fail explicitly.
+Access is checked against each position's Primary/Secondary categories and
+the source's prerequisites and incompatible starting skills. Block, Dodge,
+Guard and Mighty Blow are Elite. A player cannot buy a skill already in their
+base profile, including an Ogre's Mighty Blow. Unknown IDs fail explicitly.
 The [Skills & Traits page](https://bloodbowlbase.ru/bb2025/core_rules/skills_and_traits/)
 supplies category semantics and Elite markings. Its HTML headings were inspected
 because the text reader omits empty-alt Elite icons. Java's existing skill factory
@@ -79,14 +91,12 @@ supports a subset of purchases; it does not require spending exactly the budget.
 The [Team Captain rule](https://bloodbowlbase.ru/bb2025/core_rules/the_teams/#team-captain)
 permits a single optional non-Big-Guy captain and grants Pro without increasing
 cost. The draft stores only the captain player ID; granted Pro is not a purchase
-and cannot be purchased again. No captain reroll gameplay or team-to-match mapping
-is implemented by M2a.
+and cannot be purchased again. Frozen match conversion maps the captain to the
+native Pro and Team Captain skills.
 
-Everything else is unsupported: other rosters; other purchased skills; star
-players; inducements; stat changes; injuries; league progression; saved-team
-files; matching, frozen match rosters and match creation. Their availability on
-the website does not expand this deliberately bounded catalog. Any future
-expansion must trace its additional costs, eligibility, quantities and parameters
-before accepting those identifiers. No explicitly missing legality data was
-encountered for the declared subset. Missing cosmetic/legacy service fields are
-excluded rather than guessed.
+Content outside this catalog remains unsupported: other rosters; trait purchases;
+star players; inducements; stat changes; injuries; league progression. Registering
+an unused skill or trait does not prove its game effect or future roster mapping.
+Parameterized traits such as Bloodlust, Animosity, Hatred and Loner still need
+per-roster values and frozen conversion checks before those positions are added.
+No future roster is activated by the skills registry alone.

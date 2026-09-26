@@ -5,11 +5,12 @@ pending/read-only text and fail-closed foreign-match responses. Terminal storage
 uncertainty keeps new actions locked until exact reconciliation. Result, replay
 and database formats remain unchanged.
 
-The unchanged `human-exhibition-1150` preset uses native BB2025 scoring, two
+The exhibition preset uses native BB2025 scoring, two
 eight-turn halves, subsequent drive setup/kickoff and halftime recovery/rerolls.
 Overtime is disabled (the existing default); draws are final results. There is
-no concession command, progression campaign, historical replay import or new
-catalog content. Native endgame settlement still runs. Only its legacy external
+no concession command, progression campaign or historical replay import.
+Human and Orc teams share the current exhibition preset; historical Human
+matches retain their frozen catalog metadata. Native endgame settlement still runs. Only its legacy external
 replay-save side effect is bypassed for application-owned engine sessions.
 
 ## Live state and completion
@@ -62,7 +63,7 @@ outside `[0,eventCount)` is rejected. Responses have exactly `version:1`,
 `code:"ACCEPTED"` and metadata:
 
 ```json
-{"formatVersion":1,"engineVersion":"ffb-3.4.0-bb2025-m3d.1","ruleset":"BB2025","catalogVersion":"bb2025-human-2026-09-08.1","presetId":"human-exhibition-1150","presetVersion":"bb2025-human-2026-09-08.1","matchId":"12345678-1234-1234-1234-123456789abc","homeScore":1,"awayScore":0,"finalRevision":100,"eventCount":101}
+{"formatVersion":1,"engineVersion":"ffb-3.4.0-bb2025-m3d.1","ruleset":"BB2025","catalogVersion":"bb2025-human-2026-09-25.1","presetId":"human-exhibition-1150","presetVersion":"bb2025-human-2026-09-25.1","matchId":"12345678-1234-1234-1234-123456789abc","homeScore":1,"awayScore":0,"finalRevision":100,"eventCount":101}
 ```
 
 `load` returns `event:null`. `replay` returns exactly one

@@ -148,7 +148,7 @@ public class StepDivingTackle extends AbstractStep {
 		state.dodgeRoll = IServerJsonOption.DODGE_ROLL.getFrom(source, jsonObject);
 		state.usingDivingTackle = IServerJsonOption.USING_DIVING_TACKLE.getFrom(source, jsonObject);
 		state.usingBreakTackle = IServerJsonOption.USING_BREAK_TACKLE.getFrom(source, jsonObject);
-		state.usingModifyingSkill = toPrimitive(IServerJsonOption.USING_MODIFYING_SKILL.getFrom(source, jsonObject));
+		state.usingModifyingSkill = IServerJsonOption.USING_MODIFYING_SKILL.getFrom(source, jsonObject);
 		return this;
 	}
 

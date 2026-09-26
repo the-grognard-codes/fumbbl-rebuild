@@ -22,6 +22,9 @@
         "requestId": {
           "type": "string",
           "pattern": "^[A-Za-z0-9_-]{1,100}$"
+        },
+        "rosterId": {
+          "enum": ["human", "orc"]
         }
       }
     },
@@ -68,16 +71,16 @@
       ],
       "properties": {
         "catalogVersion": {
-          "const": "bb2025-human-2026-09-08.1"
+          "const": "bb2025-exhibition-2026-09-25.1"
         },
         "ruleset": {
           "const": "BB2025"
         },
         "rosterId": {
-          "const": "human"
+          "enum": ["human", "orc"]
         },
         "presetId": {
-          "const": "human-exhibition-1150"
+          "const": "exhibition-1150"
         },
         "captainId": {
           "anyOf": [

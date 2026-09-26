@@ -14,7 +14,7 @@ import com.fumbbl.ffb.model.skill.Skill;
 public class SteadyFooting extends Skill {
 
 	public SteadyFooting() {
-		super("Steady Footing", SkillCategory.TRAIT);
+		super("Steady Footing", SkillCategory.GENERAL);
 	}
 
 	@Override
