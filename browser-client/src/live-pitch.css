@@ -143,9 +143,14 @@
 .hosted-match .match-bench ul { margin: 5px 0; padding-left: 18px; columns: 2; }
 .hosted-match .match-bench li { break-inside: avoid; }
 .play-runtime .hosted-match .match-bench button { margin: 2px; padding: 4px 6px; font-size: 12px; background: #243b43; box-shadow: none; }
-.hosted-match .match-side [aria-label="Placement controls"] label { margin: 4px 0; font-size: 12px; }
+.play-runtime .hosted-match .match-side [aria-label="Placement controls"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; }
+.hosted-match .match-side [aria-label="Placement controls"] h3,
+.hosted-match .match-side [aria-label="Placement controls"] label:first-of-type,
+.hosted-match .match-side [aria-label="Placement controls"] button:last-child { grid-column: 1 / -1; }
+.hosted-match .match-side [aria-label="Placement controls"] label { margin: 0; font-size: 12px; }
 .hosted-match .match-side [aria-label="Placement controls"] input,
-.hosted-match .match-side [aria-label="Placement controls"] select { width: 100%; padding: 4px; }
+.hosted-match .match-side [aria-label="Placement controls"] select { width: 100%; min-height: 27px; padding: 2px 4px; }
+.play-runtime .hosted-match .match-side [aria-label="Placement controls"] button { min-width: 0; margin: 0; padding: 4px 5px; font: 12px/1.1 'Match Barlow', 'Segoe UI', sans-serif; text-transform: none; }
 
 @media (max-width: 980px) { .hosted-match .match-layout { grid-template-columns: minmax(0, 1fr) 260px; } }
 @media (max-width: 1150px) { .hosted-match .match-scoreboard { grid-template-columns: 70px minmax(0, 1fr) 135px minmax(0, 1fr) 70px; }.hosted-match .match-team small { display: none; }.hosted-match .match-scoreboard .match-art { width: 34px; height: 36px; }.hosted-match .match-rerolls span { font-size: 11px; } }
