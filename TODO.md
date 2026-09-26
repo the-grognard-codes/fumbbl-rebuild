@@ -1,6 +1,11 @@
 # TODO
 
-- [ ] **M5 authoritative success percentages.** Add a reviewed, versioned
+GitHub Issues is the primary tracker for newly scoped work. Keep this Markdown
+file as the local design and handoff mirror, with issue links and matching status
+once an entry is published. The detailed backlog below was migrated to GitHub
+Issues on 2026-09-26 after review.
+
+- [ ] **M5 authoritative success percentages.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/37)) Add a reviewed, versioned
   `/browser/v2` contract for any per-step or whole-path success percentage shown
   on the DOM/SVG movement overlay. Define whether each value includes rerolls,
   distinguish it from a dice target such as `3+`, and verify the calculation
@@ -8,7 +13,7 @@
   supplies this information, omit percentage labels from the live client; do
   not derive odds from the local parity preview's illustrative risk colors.
 
-- [ ] **R4 storage admission policy.** Define the configured FUMBBL-owned
+- [ ] **R4 storage admission policy.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/38)) Define the configured FUMBBL-owned
   storage roots and enforce the requested 5 GiB per boot-disk admission cap
   before a new durable write. The policy must account for match results,
   recovery checkpoints, future transcript/chat records and database overhead
@@ -18,21 +23,21 @@
   MariaDB volume. Shared operating-system, unrelated service, and MariaDB log
   use must not be attributed to FUMBBL without an explicit storage-root mapping.
 
-- [ ] **R4 concurrent-match envelope.** Measure the current single-worker
+- [ ] **R4 concurrent-match envelope.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/39)) Measure the current single-worker
   runtime under a declared mixture of 32 resident active matches, reconnects,
   durable checkpoints, slow recipients and completed-session release. Record
   queue delay, p95/p99 accepted-action/reconnect latency, heap/RSS, CPU,
   MariaDB/container resource use, failures and cleanup. This measurement does
   not authorize parallel per-match mutation or multi-instance ownership.
 
-- [ ] **R4 operational telemetry and procedures.** Export the existing
+- [ ] **R4 operational telemetry and procedures.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/40)) Export the existing
   lifecycle/transport/storage counters through a reviewed local metrics surface,
   define logs, dashboards, alerts, accountable responders, retention and
   runbooks for the future centralized logging/metrics stack. Keep endpoints,
   credentials, alert destinations and deployment integration out of scope until
   production operations are explicitly authorized.
 
-- [ ] **R4.1 mutual save and restore.** Complete and accept the deliberate
+- [ ] **R4.1 mutual save and restore.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/41)) Complete and accept the deliberate
   two-player save/resume experience after the MVP: consent/reject/cancel controls,
   durable compatible checkpoint, paused/rebased clock, 30-day saved-match window,
   restart/backup recovery and a real browser/MariaDB save-resume journey. Track an
@@ -41,7 +46,7 @@
   than a disconnect outcome. Coordinate its retained state and replay coverage
   with `browser-client/replay-transcript-chat.md`.
 
-- [ ] **Versioned complete transcript and match chat.** Replace replay format 1
+- [ ] **Versioned complete transcript and match chat.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/42)) Replace replay format 1
   through a reviewed format/migration boundary that records accepted action
   intent, authoritative dice/report outcomes, revision snapshots and durable
   timestamped player chat. Remove obsolete format-1 replay artifacts/reader as
@@ -51,7 +56,7 @@
   authorization, and do not treat browser-local sample chat as authoritative.
   See `browser-client/replay-transcript-chat.md`.
 
-- [ ] **R3-A account lifecycle and profile capability.** Before exposing
+- [ ] **R3-A account lifecycle and profile capability.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/43)) Before exposing
   persistent user-owned teams, profile avatars, custom display names, or other
   account data, define and implement the owner-operated lifecycle: audited
   administrator grant/revoke and disable/revoke actions; account deletion,
@@ -62,7 +67,7 @@
   according to the approved retention policy. This must be a versioned,
   projection-safe change; it does not authorize a public admin route or alter
   existing accounts now.
-- [ ] **R5 non-blocking follow-up: full Slice 2 browser completion test.** R5 is
+- [ ] **R5 non-blocking follow-up: full Slice 2 browser completion test.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/44)) R5 is
   accepted as complete and this item does not block R6 or other future work. After
   an approved versioned `/browser/v2` completed-result/replay surface exists,
   repeat the separate current-version restore acceptance with two independent
@@ -74,7 +79,7 @@
   and do not substitute mocked browser responses for the live completed-replay
   check.
 
-- [ ] **R5.1 operational failure and rollback boundaries.** This is deferred,
+- [ ] **R5.1 operational failure and rollback boundaries.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/45)) This is deferred,
   non-blocking follow-up work. Schedule it after the planned review and any
   significant, explicitly versioned game-engine changes, then select and document
   the new current compatibility tuple before creating or choosing its retained
@@ -93,7 +98,7 @@
   and when forward recovery is required. Preserve every accepted restore, failed
   exercise environment, backup, volume, and synthetic fixture.
 
-- [ ] **R5.2 final runbook and closure rehearsal.** After the engine/runtime
+- [ ] **R5.2 final runbook and closure rehearsal.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/46)) After the engine/runtime
   compatibility re-baseline and R5.1 exercises, consolidate all R5 slices into an
   operator runbook and acceptance matrix. Perform another create-only restore of
   the selected current-version backup into an empty, non-aliasing local destination
@@ -110,7 +115,7 @@
   public-service readiness from this rehearsal.
 
 
-- [ ] **Containerized deployment parity across local, DEV, and PROD.** Replace
+- [ ] **Containerized deployment parity across local, DEV, and PROD.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/47)) Replace
   the native nginx/systemd JVM deployment candidate with a reviewed containerized
   deployment approach. Build versioned Java and nginx images through the same
   pipeline and promote the same immutable artifacts between environments, keeping

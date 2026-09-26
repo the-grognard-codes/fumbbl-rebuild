@@ -2,6 +2,21 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
+For newly scoped work, create or locate a GitHub issue before implementation.
+Keep a Markdown mirror in `TODO.md`, `issues.md`, or the relevant local spec with
+the issue URL, decisions, and acceptance evidence. GitHub owns issue state,
+assignment, and discussion; the local document keeps the design and handoff
+readable in the checkout. Update both when scope or status changes, and link the
+closing PR or verification in the issue before closing it. Historical completed
+work does not need retroactive issues.
+
+Review a backlog migration before creating issues in bulk. Issue bodies and local
+mirrors must not contain credentials, tokens, private account identifiers, or
+private game data. Use the designated project administrator for project logins
+and credential management; reserve test identities for application testing.
+The initial eleven-issue migration is recorded in
+`.notes/issue-migration-plan-2026-09-26.md`.
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`
