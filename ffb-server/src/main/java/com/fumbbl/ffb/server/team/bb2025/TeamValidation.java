@@ -71,6 +71,9 @@ public final class TeamValidation {
 				if (!skill.selectable || (!position.primary.contains(skill.category) && !position.secondary.contains(skill.category))) {
 					add(messages, "SKILL_INELIGIBLE", path, "This skill is unsupported or unavailable to this position."); continue;
 				}
+				if (!canLearn(id, position.baseSkills)) {
+					add(messages, "SKILL_INELIGIBLE", path, "This skill requires a trait or conflicts with a starting skill."); continue;
+				}
 				boolean primary = position.primary.contains(skill.category);
 				points += primary ? 1 : 2;
 				if (!primary) secondary++;
@@ -97,6 +100,19 @@ public final class TeamValidation {
 	}
 
 	private void add(List<Message> messages, String code, String path, String text) { messages.add(new Message(code, path, text)); }
+	private boolean canLearn(String id, List<String> baseSkills) {
+		if ("lethal-flight".equals(id) && !baseSkills.contains("right-stuff")) return false;
+		if ("saboteur".equals(id) && !baseSkills.contains("secret-weapon")) return false;
+		if (("bullseye".equals(id) || "strong-arm".equals(id)) && !baseSkills.contains("throw-team-mate")) return false;
+		if ("leap".equals(id) && baseSkills.contains("pogo")) return false;
+		if ("frenzy".equals(id) && (baseSkills.contains("grab") || baseSkills.contains("hit-and-run")
+			|| baseSkills.contains("multiple-block") || baseSkills.contains("ball-and-chain"))) return false;
+		if (("grab".equals(id) || "hit-and-run".equals(id) || "multiple-block".equals(id))
+			&& (baseSkills.contains("frenzy") || baseSkills.contains("ball-and-chain"))) return false;
+		if (baseSkills.contains("ball-and-chain") && (id.equals("diving-tackle") || id.equals("eye-gouge")
+			|| id.equals("leap") || id.equals("on-the-ball") || id.equals("shadowing") || id.equals("steady-footing"))) return false;
+		return true;
+	}
 	private boolean validName(String name, int maximum) {
 		if (name == null || !name.equals(Normalizer.normalize(name.trim(), Normalizer.Form.NFC))) return false;
 		int length = name.codePointCount(0, name.length());

@@ -45,13 +45,15 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
           if (request.type === 'validateTeam') {
             const valid = request.draft.teamName === 'The Moles' && request.draft.players.length === 11
               && new Set(request.draft.players.map(player => player.jerseyNumber)).size === 11;
+            const skillPoints = request.draft.players.filter(player => player.skillIds.length).length;
             send({ type: 'teamValidation', requestId: request.requestId, catalogVersion: catalog.catalogVersion, ruleset: 'BB2025', draftVersion: 2,
-              valid, total: valid ? 550000 : null, budget: catalog.budget, skillPoints: 0,
+              valid, total: valid ? 550000 : null, budget: catalog.budget, skillPoints,
               messages: valid ? [] : [{ code: 'PLAYER_COUNT', path: 'players', text: 'A draft must contain 11 players.' }] });
           }
           if (request.type === 'savedTeam') {
             const owned = documents.get(accounts[index]);
-            const validation = { valid: true, total: 550000, budget: catalog.budget, skillPoints: 0, messages: [] };
+            const validation = { valid: true, total: 550000, budget: catalog.budget,
+              skillPoints: request.draft?.players.filter(player => player.skillIds.length).length ?? 0, messages: [] };
             if (request.operation === 'create') {
               const document = { formatVersion: 3, teamId, documentVersion: 1, ruleset: 'BB2025', catalogVersion: catalog.catalogVersion,
                 owner: { namespace: 'account', subject: accounts[index] }, draft: request.draft, validation };
@@ -75,10 +77,15 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     }
     await pages[0].getByLabel('Team name').fill('The Moles');
     for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Human Lineman' }).click();
+    const skillChoices = await pages[0].getByLabel('Skill for slot 1', { exact: true }).locator('option').allTextContents();
+    for (const skill of ['Guard (Elite)', 'Wrestle', 'Sidestep', 'Sure Feet', 'Mighty Blow (Elite)'])
+      assert.ok(skillChoices.includes(skill), skill);
+    await pages[0].getByLabel('Skill for slot 1', { exact: true }).selectOption('wrestle');
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
     await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Moles/).waitFor();
+    assert.deepEqual(documents.get(accounts[0]).draft.players[0].skillIds, ['wrestle']);
     assert.equal(await pages[1].getByText('No saved teams yet.').count(), 1);
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/play`);
     await pages[0].getByLabel('Saved team').waitFor();

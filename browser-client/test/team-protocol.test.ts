@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { decodeTeam, emptyDraft } from '../src/team-protocol.ts';
+import { canPurchaseSkill, decodeTeam, emptyDraft } from '../src/team-protocol.ts';
 import type { Catalog, Validation } from '../src/team-protocol.ts';
 import { TeamValidationView } from '../src/team-validation-view.ts';
 
@@ -13,7 +13,23 @@ test('catalog fixture is runtime checked and new drafts retain version and rules
   const catalog = decodeTeam(JSON.stringify(fixture)) as Catalog;
   const draft = emptyDraft(catalog);
   assert.equal(draft.catalogVersion, catalog.catalogVersion); assert.equal(draft.ruleset, 'BB2025');
-  assert.equal(catalog.positions.length, 6); assert.equal(catalog.skills.filter(skill => skill.selectable).length, 7);
+  assert.equal(catalog.positions.length, 6); assert.equal(catalog.skills.length, 108);
+  assert.equal(catalog.skills.filter(skill => skill.selectable).length, 72);
+  assert.equal(catalog.skills.filter(skill => !skill.selectable && skill.category === 'T').length, 36);
+  assert.deepEqual(catalog.skills.filter(skill => skill.elite).map(skill => skill.id).sort(), ['block', 'dodge', 'guard', 'mighty-blow']);
+  for (const category of ['A', 'D', 'G', 'M', 'P', 'S']) assert.equal(catalog.skills.filter(skill => skill.category === category).length, 12);
+});
+test('Human skill choices respect category access, prerequisites and starting skills', () => {
+  const catalog = decodeTeam(JSON.stringify(fixture)) as Catalog;
+  const skill = (id: string) => catalog.skills.find(item => item.id === id)!;
+  const position = (id: string) => catalog.positions.find(item => item.id === id)!;
+  assert.equal(canPurchaseSkill(skill('bullseye'), position('lineman'), false), false);
+  assert.equal(canPurchaseSkill(skill('bullseye'), position('ogre'), false), true);
+  assert.equal(canPurchaseSkill(skill('lethal-flight'), position('lineman'), false), false);
+  assert.equal(canPurchaseSkill(skill('lethal-flight'), position('halfling'), false), true);
+  assert.equal(canPurchaseSkill(skill('saboteur'), position('lineman'), false), false);
+  assert.equal(canPurchaseSkill(skill('right-stuff'), position('halfling'), false), false);
+  assert.equal(canPurchaseSkill(skill('pro'), position('lineman'), true), false);
 });
 test('unknown schema versions, fields, references and duplicate identifiers fail closed', () => {
   for (const invalid of [

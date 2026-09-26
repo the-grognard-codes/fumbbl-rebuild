@@ -122,7 +122,7 @@ public final class BrowserTeamJson {
 			.add("skillPoints", RosterCatalog.SKILL_POINTS).add("maxSecondary", RosterCatalog.MAX_SECONDARY)
 			.add("maxElite", RosterCatalog.MAX_ELITE).add("league", "Old World Classic").add("specialRule", "Team Captain")
 			.add("positions", positions).add("skills", skills).add("resources", resources)
-			.add("unsupported", "All other rosters, skills for purchase, star players, inducements, progression and match creation are unsupported. Unspent budget is lost.");
+			.add("unsupported", "Other rosters, traits for purchase, star players, inducements and progression are unsupported. Unspent budget is lost.");
 	}
 
 	private JsonObject header(String type, String requestId) {

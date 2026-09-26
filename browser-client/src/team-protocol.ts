@@ -6,7 +6,22 @@ export type Skill = { id: string; name: string; category: string; selectable: bo
 type Header = { version: 1; requestId: string; catalogVersion: string; ruleset: 'BB2025'; draftVersion: 2 };
 export type Catalog = Header & { type: 'catalog'; rosterId: string; name: string; presetId: string; budget: number; minPlayers: number; maxPlayers: number; skillPoints: number; maxSecondary: number; maxElite: number; league: string; specialRule: string; positions: Position[]; skills: Skill[]; resources: { id: ResourceId; name: string; cost: number; maximum: number }[]; unsupported: string };
 export type Validation = Header & { type: 'teamValidation'; valid: boolean; total: number | null; budget: number; skillPoints: number; messages: { code: string; path: string; text: string }[] };
-export const catalogVersion = 'bb2025-human-2026-09-08.1';
+export const catalogVersion = 'bb2025-human-2026-09-25.1';
+
+/** Choice hint only; the server evaluates the authoritative purchase rules. */
+export function canPurchaseSkill(skill: Skill, position: Position, captain: boolean): boolean {
+  const base = new Set(position.baseSkills.map(item => item.id));
+  if (!skill.selectable || !(position.primary.includes(skill.category) || position.secondary.includes(skill.category))
+    || base.has(skill.id) || (captain && skill.id === 'pro')) return false;
+  if (skill.id === 'lethal-flight' && !base.has('right-stuff')) return false;
+  if (skill.id === 'saboteur' && !base.has('secret-weapon')) return false;
+  if ((skill.id === 'bullseye' || skill.id === 'strong-arm') && !base.has('throw-team-mate')) return false;
+  if (skill.id === 'leap' && base.has('pogo')) return false;
+  if (skill.id === 'frenzy' && ['grab', 'hit-and-run', 'multiple-block', 'ball-and-chain'].some(id => base.has(id))) return false;
+  if (['grab', 'hit-and-run', 'multiple-block'].includes(skill.id) && (base.has('frenzy') || base.has('ball-and-chain'))) return false;
+  if (base.has('ball-and-chain') && ['diving-tackle', 'eye-gouge', 'leap', 'on-the-ball', 'shadowing', 'steady-footing'].includes(skill.id)) return false;
+  return true;
+}
 
 function object(value: unknown, keys: string[]): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected object');
@@ -34,7 +49,7 @@ export function decodeTeam(textJson: string): Catalog | Validation {
   if (kind === 'catalog') {
     for (const key of ['rosterId', 'name', 'presetId', 'league', 'specialRule', 'unsupported']) text(message[key]);
     for (const key of ['minPlayers', 'maxPlayers', 'maxSecondary', 'maxElite']) integer(message[key], 16);
-    const skills = array(message.skills, 32);
+    const skills = array(message.skills, 128);
     for (const value of skills) {
       const skill = object(value, ['id', 'name', 'category', 'selectable', 'elite']);
       text(skill.id, 80); text(skill.name, 80); text(skill.category, 1);
