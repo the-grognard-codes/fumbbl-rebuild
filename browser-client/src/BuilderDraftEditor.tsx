@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { canPurchaseSkill } from './team-protocol';
 import type { Catalog, DraftPlayer, Position, TeamDraft, Validation } from './team-protocol';
 
 const spriteFiles: Record<string, string> = {
@@ -115,7 +116,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
     <section className="panel roster-panel"><div className="section-heading"><div><h2>Editable Roster</h2><p>Jersey numbers must be unique from 1–99. Use the order controls to arrange your team.</p></div><button type="button" disabled={!editable} onClick={validate}>Validate Roster</button></div>
       <div className="roster" aria-live="polite">{orderedPlayers.length ? orderedPlayers.map((player, index) => {
         const position = catalog.positions.find(item => item.id === player.positionId);
-        const eligibleSkills = catalog.skills.filter(skill => skill.selectable && position && (position.primary.includes(skill.category) || position.secondary.includes(skill.category)) && !position.baseSkills.some(base => base.id === skill.id) && !(draft.captainId === player.id && skill.id === 'pro'));
+        const eligibleSkills = catalog.skills.filter(skill => position && canPurchaseSkill(skill, position, draft.captainId === player.id));
         const image = sprite(player.positionId);
         return <article className="roster-row" key={player.id}>
           {image && <img src={image} alt="" />}

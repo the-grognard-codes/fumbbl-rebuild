@@ -98,7 +98,7 @@
           ],
           "properties": {
             "catalogVersion": {
-              "const": "bb2025-human-2026-09-08.1"
+              "const": "bb2025-human-2026-09-25.1"
             },
             "ruleset": {
               "const": "BB2025"
@@ -279,7 +279,7 @@
           ],
           "properties": {
             "catalogVersion": {
-              "const": "bb2025-human-2026-09-08.1"
+              "const": "bb2025-human-2026-09-25.1"
             },
             "ruleset": {
               "const": "BB2025"

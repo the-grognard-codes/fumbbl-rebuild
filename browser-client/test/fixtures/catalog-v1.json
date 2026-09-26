@@ -2,7 +2,7 @@
   "version": 1,
   "type": "catalog",
   "requestId": "catalog-fixture",
-  "catalogVersion": "bb2025-human-2026-09-08.1",
+  "catalogVersion": "bb2025-human-2026-09-25.1",
   "ruleset": "BB2025",
   "draftVersion": 2,
   "rosterId": "human",
@@ -183,11 +183,25 @@
   ],
   "skills": [
     {
-      "id": "block",
-      "name": "Block",
-      "category": "G",
+      "id": "catch",
+      "name": "Catch",
+      "category": "A",
       "selectable": true,
-      "elite": true
+      "elite": false
+    },
+    {
+      "id": "diving-catch",
+      "name": "Diving Catch",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "diving-tackle",
+      "name": "Diving Tackle",
+      "category": "A",
+      "selectable": true,
+      "elite": false
     },
     {
       "id": "dodge",
@@ -197,16 +211,198 @@
       "elite": true
     },
     {
-      "id": "catch",
-      "name": "Catch",
+      "id": "defensive",
+      "name": "Defensive",
       "category": "A",
       "selectable": true,
       "elite": false
     },
     {
-      "id": "pass",
-      "name": "Pass",
-      "category": "P",
+      "id": "hit-and-run",
+      "name": "Hit And Run",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "jump-up",
+      "name": "Jump Up",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "leap",
+      "name": "Leap",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "safe-pair-of-hands",
+      "name": "Safe Pair Of Hands",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "sidestep",
+      "name": "Sidestep",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "sprint",
+      "name": "Sprint",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "sure-feet",
+      "name": "Sure Feet",
+      "category": "A",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "dirty-player",
+      "name": "Dirty Player",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "eye-gouge",
+      "name": "Eye Gouge",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "fumblerooski",
+      "name": "Fumblerooski",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "lethal-flight",
+      "name": "Lethal Flight",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "lone-fouler",
+      "name": "Lone Fouler",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "pile-driver",
+      "name": "Pile Driver",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "put-the-boot-in",
+      "name": "Put the Boot In",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "quick-foul",
+      "name": "Quick Foul",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "saboteur",
+      "name": "Saboteur",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "shadowing",
+      "name": "Shadowing",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "sneaky-git",
+      "name": "Sneaky Git",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "violent-innovator",
+      "name": "Violent Innovator",
+      "category": "D",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "block",
+      "name": "Block",
+      "category": "G",
+      "selectable": true,
+      "elite": true
+    },
+    {
+      "id": "dauntless",
+      "name": "Dauntless",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "fend",
+      "name": "Fend",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "frenzy",
+      "name": "Frenzy",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "kick",
+      "name": "Kick",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "steady-footing",
+      "name": "Steady Footing",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "strip-ball",
+      "name": "Strip Ball",
+      "category": "G",
       "selectable": true,
       "elite": false
     },
@@ -225,22 +421,309 @@
       "elite": false
     },
     {
-      "id": "pro",
-      "name": "Pro",
+      "id": "taunt",
+      "name": "Taunt",
       "category": "G",
       "selectable": true,
       "elite": false
     },
     {
-      "id": "right-stuff",
-      "name": "Right Stuff",
+      "id": "wrestle",
+      "name": "Wrestle",
+      "category": "G",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "big-hand",
+      "name": "Big Hand",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "claws",
+      "name": "Claws",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "disturbing-presence",
+      "name": "Disturbing Presence",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "extra-arms",
+      "name": "Extra Arms",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "foul-appearance",
+      "name": "Foul Appearance",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "horns",
+      "name": "Horns",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "iron-hard-skin",
+      "name": "Iron Hard Skin",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "monstrous-mouth",
+      "name": "Monstrous Mouth",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "prehensile-tail",
+      "name": "Prehensile Tail",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "tentacles",
+      "name": "Tentacles",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "two-heads",
+      "name": "Two Heads",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "very-long-legs",
+      "name": "Very Long Legs",
+      "category": "M",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "accurate",
+      "name": "Accurate",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "cannoneer",
+      "name": "Cannoneer",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "cloud-burster",
+      "name": "Cloud Burster",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "dump-off",
+      "name": "Dump-Off",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "give-and-go",
+      "name": "Give and Go",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "hail-mary-pass",
+      "name": "Hail Mary Pass",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "leader",
+      "name": "Leader",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "nerves-of-steel",
+      "name": "Nerves of Steel",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "on-the-ball",
+      "name": "On The Ball",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "pass",
+      "name": "Pass",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "punt",
+      "name": "Punt",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "safe-pass",
+      "name": "Safe Pass",
+      "category": "P",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "arm-bar",
+      "name": "Arm Bar",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "brawler",
+      "name": "Brawler",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "break-tackle",
+      "name": "Break Tackle",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "bullseye",
+      "name": "Bullseye",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "grab",
+      "name": "Grab",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "guard",
+      "name": "Guard",
+      "category": "S",
+      "selectable": true,
+      "elite": true
+    },
+    {
+      "id": "juggernaut",
+      "name": "Juggernaut",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "mighty-blow",
+      "name": "Mighty Blow",
+      "category": "S",
+      "selectable": true,
+      "elite": true
+    },
+    {
+      "id": "multiple-block",
+      "name": "Multiple Block",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "stand-firm",
+      "name": "Stand Firm",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "strong-arm",
+      "name": "Strong Arm",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "thick-skull",
+      "name": "Thick Skull",
+      "category": "S",
+      "selectable": true,
+      "elite": false
+    },
+    {
+      "id": "always-hungry",
+      "name": "Always Hungry",
       "category": "T",
       "selectable": false,
       "elite": false
     },
     {
-      "id": "stunty",
-      "name": "Stunty",
+      "id": "animal-savagery",
+      "name": "Animal Savagery",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "animosity",
+      "name": "Animosity",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "ball-and-chain",
+      "name": "Ball and Chain",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "bloodlust",
+      "name": "Bloodlust",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "bombardier",
+      "name": "Bombardier",
       "category": "T",
       "selectable": false,
       "elite": false
@@ -253,6 +736,62 @@
       "elite": false
     },
     {
+      "id": "breathe-fire",
+      "name": "Breathe Fire",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "chainsaw",
+      "name": "Chainsaw",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "decay",
+      "name": "Decay",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "drunkard",
+      "name": "Drunkard",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "hatred",
+      "name": "Hatred",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "hypnotic-gaze",
+      "name": "Hypnotic Gaze",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "insignificant",
+      "name": "Insignificant",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "kick-team-mate",
+      "name": "Kick Team-Mate",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
       "id": "loner",
       "name": "Loner",
       "category": "T",
@@ -260,22 +799,141 @@
       "elite": false
     },
     {
-      "id": "mighty-blow",
-      "name": "Mighty Blow",
-      "category": "S",
+      "id": "my-ball",
+      "name": "My Ball",
+      "category": "T",
       "selectable": false,
-      "elite": true
+      "elite": false
     },
     {
-      "id": "thick-skull",
-      "name": "Thick Skull",
-      "category": "S",
+      "id": "no-ball",
+      "name": "No Ball",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "pick-me-up",
+      "name": "Pick-me-up",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "plague-ridden",
+      "name": "Plague Ridden",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "pogo",
+      "name": "Pogo",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "projectile-vomit",
+      "name": "Projectile Vomit",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "really-stupid",
+      "name": "Really Stupid",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "regeneration",
+      "name": "Regeneration",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "right-stuff",
+      "name": "Right Stuff",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "secret-weapon",
+      "name": "Secret Weapon",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "stab",
+      "name": "Stab",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "stunty",
+      "name": "Stunty",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "swoop",
+      "name": "Swoop",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "take-root",
+      "name": "Take Root",
+      "category": "T",
       "selectable": false,
       "elite": false
     },
     {
       "id": "throw-team-mate",
       "name": "Throw Team-Mate",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "timmm-ber",
+      "name": "Timmm-ber!",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "titchy",
+      "name": "Titchy",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "trickster",
+      "name": "Trickster",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "unchannelled-fury",
+      "name": "Unchannelled Fury",
+      "category": "T",
+      "selectable": false,
+      "elite": false
+    },
+    {
+      "id": "unsteady",
+      "name": "Unsteady",
       "category": "T",
       "selectable": false,
       "elite": false
@@ -313,5 +971,5 @@
       "maximum": 3
     }
   ],
-  "unsupported": "All other rosters, skills for purchase, star players, inducements, progression and match creation are unsupported. Unspent budget is lost."
+  "unsupported": "Other rosters, traits for purchase, star players, inducements and progression are unsupported. Unspent budget is lost."
 }

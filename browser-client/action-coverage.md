@@ -1,5 +1,8 @@
 # Supported browser actions and skills (M3c)
 
+This M3c inventory describes the earlier seven-skill catalog. The current
+catalog records all 108 core skills and traits; see [M6 core skills](../.notes/overhaul-analysis/m6-core-skills-2026-09-25.md).
+
 The supported scope remains BB2025 catalog `bb2025-human-2026-09-08.1`, preset
 `human-exhibition-1150`, and its frozen Human rosters. All six positions (lineman,
 halfling, catcher, thrower, blitzer, ogre), seven purchasable skills and captain Pro

@@ -121,6 +121,44 @@ public class BrowserTeamJsonTest {
 		assertEquals(700000, json.evaluate("t", draft).getInt("total", -1));
 	}
 	@Test
+	public void conditionalSkillPurchasesRequireTheirStartingTraits() {
+		for (String id : Arrays.asList("lethal-flight", "saboteur", "bullseye", "strong-arm")) {
+			JsonObject draft = draft();
+			player(draft, 0).set("skillIds", new JsonArray().add(id));
+			rejects(draft, "SKILL_INELIGIBLE");
+		}
+		JsonObject halfling = draft();
+		player(halfling, 0).set("positionId", "halfling").set("skillIds", new JsonArray().add("lethal-flight"));
+		assertTrue(json.evaluate("t", halfling).getBoolean("valid", false));
+		for (String id : Arrays.asList("bullseye", "strong-arm")) {
+			JsonObject ogre = draft().set("captainId", "p2");
+			player(ogre, 0).set("positionId", "ogre").set("skillIds", new JsonArray().add(id));
+			assertTrue(json.evaluate("t", ogre).getBoolean("valid", false), id);
+		}
+	}
+	@Test
+	public void additionalHumanSkillsUseTheirPositionAccessAndEliteLimits() {
+		String[] skills = {"guard", "wrestle", "sidestep", "sure-feet", "mighty-blow"};
+		String[] positions = {"blitzer", "lineman", "catcher", "halfling", "blitzer"};
+		for (int i = 0; i < skills.length; i++) {
+			JsonObject draft = draft();
+			player(draft, 1).set("positionId", positions[i]).set("skillIds", new JsonArray().add(skills[i]));
+			JsonObject result = json.evaluate("skill", draft);
+			assertTrue(result.getBoolean("valid", false), result.toString());
+			assertEquals(1, result.getInt("skillPoints", -1));
+		}
+		JsonObject secondary = draft();
+		player(secondary, 1).set("skillIds", new JsonArray().add("guard"));
+		assertTrue(json.evaluate("secondary", secondary).getBoolean("valid", false));
+		assertEquals(2, json.evaluate("secondary", secondary).getInt("skillPoints", -1));
+		JsonObject duplicate = draft();
+		player(duplicate, 1).set("positionId", "ogre").set("skillIds", new JsonArray().add("mighty-blow"));
+		rejects(duplicate, "DUPLICATE_SKILL");
+		JsonObject elite = draft();
+		for (int i = 0; i < 5; i++) player(elite, i + 1).set("skillIds", new JsonArray().add("guard"));
+		rejects(elite, "ELITE_LIMIT");
+	}
+	@Test
 	public void quantitiesAndOverBudgetCannotOverflowOrChangeInput() {
 		for (String id : catalog.getResources().keySet()) {
 			for (int invalid : new int[]{-1, catalog.getResources().get(id).maximum + 1, Integer.MAX_VALUE}) {
@@ -158,6 +196,7 @@ public class BrowserTeamJsonTest {
 	public void pinnedWireFixtureMatchesServerCatalogAndEngineMappings() throws Exception {
 		String fixture = new String(Files.readAllBytes(Paths.get("../browser-client/test/fixtures/catalog-v1.json")), StandardCharsets.UTF_8);
 		assertEquals(JsonObject.readFrom(fixture), json.catalog("catalog-fixture"));
+		assertTrue(json.catalog("catalog-fixture").toString().getBytes(StandardCharsets.UTF_8).length <= 16384);
 		assertEquals(3, catalog.getPositions().get("ogre").skillValue("loner"));
 		assertEquals("AG", catalog.getPositions().get("ogre").secondary);
 	}

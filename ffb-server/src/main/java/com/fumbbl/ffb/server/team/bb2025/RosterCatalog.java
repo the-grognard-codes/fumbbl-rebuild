@@ -18,7 +18,9 @@ import java.util.Map;
 /** Immutable curated recruitment data; provenance and exclusions: browser-client/catalog.md. */
 public final class RosterCatalog {
 
-	public static final String VERSION = "bb2025-human-2026-09-08.1";
+	public static final String LEGACY_VERSION = "bb2025-human-2026-09-08.1";
+	public static final String PREVIOUS_VERSION = "bb2025-human-2026-09-24.1";
+	public static final String VERSION = "bb2025-human-2026-09-25.1";
 	public static final String RULESET = "BB2025";
 	public static final String ROSTER = "human";
 	public static final String PRESET = "human-exhibition-1150";
@@ -38,20 +40,9 @@ public final class RosterCatalog {
 		game.initializeRules();
 		SkillFactory factory = game.getRules().getFactory(Factory.SKILL);
 		Map<String, SkillOption> skillData = new LinkedHashMap<>();
-		addSkill(skillData, factory, "block", "Block", SkillCategory.GENERAL, true, true);
-		addSkill(skillData, factory, "dodge", "Dodge", SkillCategory.AGILITY, true, true);
-		addSkill(skillData, factory, "catch", "Catch", SkillCategory.AGILITY, true, false);
-		addSkill(skillData, factory, "pass", "Pass", SkillCategory.PASSING, true, false);
-		addSkill(skillData, factory, "sure-hands", "Sure Hands", SkillCategory.GENERAL, true, false);
-		addSkill(skillData, factory, "tackle", "Tackle", SkillCategory.GENERAL, true, false);
-		addSkill(skillData, factory, "pro", "Pro", SkillCategory.GENERAL, true, false);
-		addSkill(skillData, factory, "right-stuff", "Right Stuff", SkillCategory.TRAIT, false, false);
-		addSkill(skillData, factory, "stunty", "Stunty", SkillCategory.TRAIT, false, false);
-		addSkill(skillData, factory, "bone-head", "Bone Head", SkillCategory.TRAIT, false, false);
-		addSkill(skillData, factory, "loner", "Loner", SkillCategory.TRAIT, false, false);
-		addSkill(skillData, factory, "mighty-blow", "Mighty Blow", SkillCategory.STRENGTH, false, true);
-		addSkill(skillData, factory, "thick-skull", "Thick Skull", SkillCategory.STRENGTH, false, false);
-		addSkill(skillData, factory, "throw-team-mate", "Throw Team-Mate", SkillCategory.TRAIT, false, false);
+		for (SkillDefinitions.Definition definition : SkillDefinitions.all().values()) {
+			addSkill(skillData, factory, definition);
+		}
 		skills = Collections.unmodifiableMap(skillData);
 		Map<String, Position> data = new LinkedHashMap<>();
 		addPosition(data, new Position("lineman", "Human Lineman", 16, 50000, 6, 3, 3, 4, 9, "Lineman", "Human", "G", "ADS"));
@@ -71,13 +62,13 @@ public final class RosterCatalog {
 		resources = Collections.unmodifiableMap(resourceData);
 	}
 
-	private void addSkill(Map<String, SkillOption> data, SkillFactory factory, String id, String name,
-		SkillCategory category, boolean selectable, boolean elite) {
-		Skill skill = factory.forName(name);
-		if (skill == null || skill.getCategory() != category) {
-			throw new IllegalStateException("Starter catalog skill mapping is unavailable: " + id);
+	private void addSkill(Map<String, SkillOption> data, SkillFactory factory, SkillDefinitions.Definition definition) {
+		Skill skill = factory.forName(definition.name);
+		if (skill == null || skill.getCategory() != definition.category) {
+			throw new IllegalStateException("BB2025 catalog skill mapping is unavailable: " + definition.id);
 		}
-		data.put(id, new SkillOption(id, skill.getName(), category, selectable, elite));
+		data.put(definition.id, new SkillOption(definition.id, skill.getName(), definition.category,
+			definition.category != SkillCategory.TRAIT, definition.elite));
 	}
 
 	private void addPosition(Map<String, Position> data, Position position) {

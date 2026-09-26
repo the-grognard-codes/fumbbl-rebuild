@@ -25,7 +25,6 @@ import com.fumbbl.ffb.model.skill.SkillValueEvaluator;
  * and he will not score a touchdown if he was in the opposing end zone.
  */
 @RulesCollection(Rules.BB2020)
-@RulesCollection(Rules.BB2025)
 public class Bloodlust extends Skill {
 
 	public Bloodlust() {

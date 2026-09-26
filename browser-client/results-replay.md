@@ -62,7 +62,7 @@ outside `[0,eventCount)` is rejected. Responses have exactly `version:1`,
 `code:"ACCEPTED"` and metadata:
 
 ```json
-{"formatVersion":1,"engineVersion":"ffb-3.4.0-bb2025-m3d.1","ruleset":"BB2025","catalogVersion":"bb2025-human-2026-09-08.1","presetId":"human-exhibition-1150","presetVersion":"bb2025-human-2026-09-08.1","matchId":"12345678-1234-1234-1234-123456789abc","homeScore":1,"awayScore":0,"finalRevision":100,"eventCount":101}
+{"formatVersion":1,"engineVersion":"ffb-3.4.0-bb2025-m3d.1","ruleset":"BB2025","catalogVersion":"bb2025-human-2026-09-25.1","presetId":"human-exhibition-1150","presetVersion":"bb2025-human-2026-09-25.1","matchId":"12345678-1234-1234-1234-123456789abc","homeScore":1,"awayScore":0,"finalRevision":100,"eventCount":101}
 ```
 
 `load` returns `event:null`. `replay` returns exactly one
