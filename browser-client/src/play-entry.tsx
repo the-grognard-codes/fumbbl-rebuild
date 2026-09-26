@@ -40,6 +40,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [replayEvent, setReplayEvent] = useState<ReplayEvent | null>(null);
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
   const [resultPending, setResultPending] = useState(false);
+  const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const [transferredMatchId, setTransferredMatchId] = useState(() => {
     if (location.pathname !== '/play') { sessionStorage.removeItem(transferredMatchKey); return ''; }
     const saved = sessionStorage.getItem(transferredMatchKey);
@@ -47,6 +48,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   });
   const client = useRef<V2Client | null>(null);
   const activationWindow = useRef<{ requestId: string; matchId: string; popup: Window | null } | null>(null);
+  useEffect(() => {
+    const updateFullscreen = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+  }, []);
   useEffect(() => {
     const connection = new V2Client({ ...options, storage: sessionStorage,
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
@@ -137,9 +143,10 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     // Reserve the browsing context in the click handler; the server response arrives too late for popup permission.
     let popup: Window | null = null;
     try {
-      popup = window.open('', '_blank', 'popup,width=1440,height=900');
+      popup = window.open('', '_blank', 'popup=yes,width=1440,height=900,menubar=no,toolbar=no,location=no,status=no');
       if (popup) {
         popup.opener = null;
+        popup.name = 'moles.play.launched-window';
         popup.document.title = 'Starting game';
         popup.document.body.textContent = 'Waiting for the game server to confirm activation…';
       }
@@ -154,13 +161,26 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       setError(failure instanceof Error ? failure.message : 'Game activation could not be sent.');
     }
   }
+  function exitMatch() {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    if (window.name === 'moles.play.launched-window') {
+      window.close();
+      if (window.closed) return;
+    }
+    location.assign('/play');
+  }
+  function toggleFullscreen() {
+    const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    void request.catch(() => setError('Fullscreen is unavailable in this browser window.'));
+  }
   return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
     <div className={matchRoute || resultRoute ? 'match-page-top' : undefined}>
       <h1>{resultRoute ? 'Match result' : matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{preparationTransferred ? 'Match opened in another tab or window' : status}</p>{error && <p role="alert">{error}</p>}
       {!connected && !preparationTransferred && <button onClick={() => connection?.connect()}>Reconnect</button>}
       {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
       {preparationTransferred && <button onClick={reconnectPreparation}>Reconnect preparation here</button>}
-      {(matchRoute || resultRoute) && <a href="/play">Match preparation and games</a>}
+      {matchRoute && <><button type="button" className="secondary" onClick={toggleFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button><button type="button" className="secondary" onClick={exitMatch}>Exit match</button></>}
+      {resultRoute && <a href="/play">Match preparation and games</a>}
     </div>
     {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}

@@ -20,7 +20,7 @@ const orcSprites: Record<string, string[]> = {
 };
 const pitchUrl = import.meta.env.DEV ? '/live-pitch.svg' : '/assets/game/live-pitch.svg';
 
-function spriteUrl(player: SetupPlayer) {
+export function spriteUrl(player: SetupPlayer) {
   if (!player.art) return null;
   const roster = player.art.rosterId;
   const variants = roster === 'orc' ? orcSprites[player.art.positionId] : null;
