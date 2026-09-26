@@ -88,6 +88,17 @@ class MatchServiceTest {
 		accepted("home", activate(id));
 	}
 	@Test
+	void twoOrcTeamsCanJoinAndActivateUnderTheSharedExhibitionPreset() throws Exception {
+		String homeOrcs = teams.create("home", orcDraft()).document.teamId;
+		String awayOrcs = teams.create("away", orcDraft()).document.teamId;
+		String id = matchId(accepted("home", create(homeOrcs, "away")));
+		JsonObject joined = accepted("away", join(id, awayOrcs)).get("document").asObject();
+		assertEquals("orc", joined.get("home").asObject().getString("rosterId", null));
+		assertEquals("orc", joined.get("away").asObject().getString("rosterId", null));
+		assertEquals("AWAITING_SETUP", joined.getString("lifecycle", null));
+		assertEquals("ACTIVATED", accepted("home", activate(id)).get("document").asObject().getString("lifecycle", null));
+	}
+	@Test
 	void expandedCatalogFitsPreparedMatchStorageLimitForTwoTeams() {
 		String id = matchId(accepted("home", create(homeTeam, "away")));
 		accepted("away", join(id, awayTeam));
