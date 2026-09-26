@@ -166,7 +166,7 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const awayOffPitch = offPitch.filter(player => player.role === 'away').length;
   const homeRoster = view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
   const awayRoster = view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
-  const liveAtlasUrl = import.meta.env.DEV ? '/preview/mvp-art/match-ui-icon-atlas-v1.png' : '/assets/game/match-ui-icon-atlas-v1.png';
+  const liveAtlasUrl = `${import.meta.env.BASE_URL}assets/game/ui/match-ui-icon-atlas-v1.png`;
   const saved = view.saveResume;
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;

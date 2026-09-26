@@ -70,7 +70,7 @@ export const PARITY_PLAYERS: readonly ParityPlayer[] = Object.freeze([
 ]);
 
 export const PARITY_GEOMETRY = Object.freeze({ width: 960, height: 564, originX: 12, originY: 12, cell: 36, columns: 26, rows: 15 });
-export const paritySpriteUrl = (player: ParityPlayer) => `${import.meta.env.BASE_URL}preview/${player.team === 'home' ? 'humans' : 'orcs'}-64px-chibi-v1/${player.sprite}`;
+export const paritySpriteUrl = (player: ParityPlayer) => `${import.meta.env.BASE_URL}assets/game/teams/${player.team === 'home' ? 'human' : 'orc'}/${player.sprite}`;
 export const squareKey = (square: ParitySquare) => `${square.x},${square.y}`;
 export const squareAt = (x: number, y: number): ParitySquare | null => x >= 0 && x < 26 && y >= 0 && y < 15 ? { x, y } : null;
 export const equalSquare = (a: ParitySquare | null, b: ParitySquare | null) => !!a && !!b && a.x === b.x && a.y === b.y;

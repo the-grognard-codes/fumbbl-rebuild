@@ -1,0 +1,13 @@
+{
+  "rosterId": "orc",
+  "artVersion": "64px-chibi-v1",
+  "master": "master",
+  "positions": {
+    "troll": ["01-troll-man.png"],
+    "orc-blitzer": ["02-blitzer-man.png", "03-blitzer-woman.png"],
+    "big-un-blocker": ["04-big-un-man.png", "05-big-un-woman.png"],
+    "orc-thrower": ["06-thrower-man.png", "07-thrower-woman.png"],
+    "orc-lineman": ["08-line-orc-man.png", "09-line-orc-woman.png", "10-line-orc-man.png", "11-line-orc-woman.png", "12-line-orc-man.png", "13-line-orc-woman.png"],
+    "goblin-lineman": ["14-goblin-man.png", "15-goblin-woman.png", "16-goblin-woman.png"]
+  }
+}

@@ -4,7 +4,7 @@ Status: **Orc source facts, catalog, validation, saved-team, match conversion, b
 
 ## Accepted sprite pack and roster binding
 
-The owner accepted `.notes/art-preview/orcs-team-64px-chibi-v1/` for this roster on 2026-09-25. The same 16 exported PNGs already exist at `browser-client/public/preview/orcs-64px-chibi-v1/`; `site/scripts/build.mjs` copies them to the site's Orc team sprite assets. The pack's `manifest.json` describes image dimensions and bounds, not roster rules. The Troll is 80x80 pixels; all other canvases are 64x64. Bind roster positions to filenames in roster content so the browser can render variants without defining gameplay facts:
+The owner accepted the 64px chibi v1 Orc pack, now under `assets/game/teams/orc/`, on 2026-09-25. The same 16 exported PNGs are delivered at `browser-client/public/assets/game/teams/orc/`; `site/scripts/build.mjs` copies the game art delivery tree under `/assets/game/`. The pack's `manifest.json` describes image dimensions and bounds, not roster rules. The Troll is 80x80 pixels; all other canvases are 64x64. The art inventory in `team.json` binds roster positions to filenames:
 
 | Orc position ID | Sprite filenames in accepted pack |
 | --- | --- |

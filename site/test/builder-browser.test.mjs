@@ -107,7 +107,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByLabel('Team', { exact: true }).selectOption('orc');
     await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).waitFor();
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'catalog' && entry.rosterId === 'orc'));
-    assert.match(await pages[0].locator('.recruitment img.sprite').first().getAttribute('src'), /team-sprites\/orcs\//);
+    assert.match(await pages[0].locator('.recruitment img.sprite').first().getAttribute('src'), /assets\/game\/teams\/orc\//);
     await pages[0].getByLabel('Team name').fill('The Orcs');
     for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).click();
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();

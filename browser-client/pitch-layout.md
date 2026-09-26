@@ -27,10 +27,11 @@ parent. It presents the selected player, supports an in-page end-turn
 confirmation, and shows the game log. Coach chat is intentionally local to the
 browser. Compare reference opens the original concept image in a modal dialog.
 
-The MVP uses the Human and Orc 64px chibi v1 packs supplied in
-`.notes/art-preview/*-team-64px-chibi-v1/*.zip`. All 32 sprite PNGs are copied
-unchanged to separate versioned public/preview folders; the older sprites remain
-available to Draft v2. Team, role and artwork stay aligned in the crowded view.
+The MVP uses the accepted Human and Orc 64px chibi v1 masters under
+`assets/game/teams/<roster-id>/master/`. All 32 sprite PNGs are synced unchanged
+to `public/assets/game/teams/`; the earlier Human pack remains available to
+Draft v2 under `public/assets/game/archive/`. Team, role and artwork stay aligned
+in the crowded view.
 
 ## Confirmation contract for game-engine integration
 
@@ -44,9 +45,10 @@ keyboard-only execution path. Escape cancels the preview.
 
 ## Assets
 
-The MVP bundles Alegreya SC Medium/Bold and Barlow Semi Condensed Regular under
-`public/preview/fonts`, including their OFL licensing material. The icon atlas
-and its provenance are under `public/preview/mvp-art`.
+The MVP bundles Alegreya SC Medium/Bold and Barlow Semi Condensed Regular from
+`assets/game/ui/fonts`, including their OFL licensing material. The icon atlas
+and its provenance are under `assets/game/ui/mvp-art`. Runtime copies are synced
+to `public/assets/game/ui/`.
 
 ## Verification
 
