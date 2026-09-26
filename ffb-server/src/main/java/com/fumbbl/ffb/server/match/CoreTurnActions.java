@@ -47,7 +47,7 @@ public final class CoreTurnActions {
                 if (!FieldCoordinateBounds.FIELD.isInBounds(at) || !game.getFieldModel().getPlayerState(target).canBeBlocked()) continue;
                 FieldCoordinate[] path = new PathFinderWithMultiJump().getPathToBlitzTarget(game, target);
                 if (!at.isAdjacent(from) && (path == null || path.length == 0)) continue;
-                result.add(new Action("target-" + target.getId(), "blitzTarget", "Blitz " + target.getName(), role, new ClientCommandTargetSelected(target.getId())));
+                result.add(new Action("target-" + target.getId(), "blitzTarget", "Blitz " + target.getName(), role, new ClientCommandTargetSelected(target.getId()), target.getId()));
             }
             return result;
         }
@@ -67,17 +67,17 @@ public final class CoreTurnActions {
                 boolean prone = status.getBase() == PlayerState.PRONE;
                 if (!prone && UtilGameOption.isOptionEnabled(game, GameOptionId.ENABLE_STALLING_CHECK))
                     result.add(new Action("forgo-" + player.getId(), "forgo", "Forgo activation of " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), PlayerAction.FORGO, false)));
+                        new ClientCommandActingPlayer(player.getId(), PlayerAction.FORGO, false), player.getId()));
                 new BallAndFoulActions().declarations(game, player, role, result);
                 result.add(new Action("select-" + player.getId(), prone ? "stand" : "select", (prone ? "Stand up " : "Move ") + player.getName(), role,
-                    new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP : PlayerAction.MOVE, false)));
+                    new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP : PlayerAction.MOVE, false), player.getId()));
                 if (!game.getTurnData().isBlitzUsed())
                     result.add(new Action("blitz-" + player.getId(), "blitz", "Start blitz with " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false)));
+                        new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false), player.getId()));
                 if (!prone && game.getTurnMode() == TurnMode.REGULAR && UtilPlayer.findAdjacentBlockablePlayers(game,
                     game.getOtherTeam(game.getActingTeam()), at).length > 0)
                     result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false)));
+                        new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false), player.getId()));
             }
             return result;
         }
@@ -99,7 +99,7 @@ public final class CoreTurnActions {
                 if (square.getMinimumRollGoForIt() > 0) label += " (rush " + square.getMinimumRollGoForIt() + "+)";
                 ClientCommand command = action.isBlitzing() ? new ClientCommandBlitzMove(id, oriented(from, role), new FieldCoordinate[] { oriented(to, role) })
                     : new ClientCommandMove(id, oriented(from, role), new FieldCoordinate[] { oriented(to, role) }, null);
-                result.add(new Action("move-" + to.getX() + "-" + to.getY(), acting.isJumping() ? "jump" : "move", label, role, command));
+                result.add(new Action("move-" + to.getX() + "-" + to.getY(), acting.isJumping() ? "jump" : "move", label, role, command, to));
             }
         }
         new BallAndFoulActions().targets(game, role, result);
@@ -109,7 +109,7 @@ public final class CoreTurnActions {
                 FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(target);
                 if (game.getFieldModel().getDiceDecoration(at) == null || selected != null && !target.getId().equals(selected.getSelectedPlayerId())) continue;
                 result.add(new Action("block-" + target.getId(), "block", "Block " + target.getName(), role,
-                    new ClientCommandBlock(id, target.getId(), false, false, false, false, false)));
+                    new ClientCommandBlock(id, target.getId(), false, false, false, false, false), target.getId()));
             }
         }
         return result;
@@ -118,8 +118,20 @@ public final class CoreTurnActions {
     public static final class Action {
         public final String id, kind, label, role;
         public final ClientCommand command;
+        public final String targetPlayerId;
+        public final FieldCoordinate targetSquare;
         public Action(String id, String kind, String label, String role, ClientCommand command) {
+            this(id, kind, label, role, command, null, null);
+        }
+        public Action(String id, String kind, String label, String role, ClientCommand command, String playerId) {
+            this(id, kind, label, role, command, playerId, null);
+        }
+        public Action(String id, String kind, String label, String role, ClientCommand command, FieldCoordinate square) {
+            this(id, kind, label, role, command, null, square);
+        }
+        private Action(String id, String kind, String label, String role, ClientCommand command, String playerId, FieldCoordinate square) {
             this.id = id; this.kind = kind; this.label = label; this.role = role; this.command = command;
+            this.targetPlayerId = playerId; this.targetSquare = square;
         }
     }
 }

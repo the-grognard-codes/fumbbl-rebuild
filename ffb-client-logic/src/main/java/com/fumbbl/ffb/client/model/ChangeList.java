@@ -11,6 +11,11 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addImprovement("BB2025 Human team builder offers all eligible core skills and records the full core skill and trait catalog")
+			.addImprovement("Browser matches add a labeled keyboard pitch companion, focused player summaries and reduced-motion friendly controls")
+			.addImprovement("Browser matches show live score, player status and off-pitch rosters, with final results and replay for participants")
+			.addImprovement("Browser match pitch highlights server-issued targets and commits pinned actions through one guarded command path")
+			.addImprovement("Browser matches show the authoritative DOM pitch with frozen-roster player art and readable fallback tokens")
+			.addImprovement("Browser match preparation and live match now have separate routes, with direct-link and reconnect recovery")
 			.addBugfix("Saved browser matches show resume requests correctly, recover their checkpoints, and keep spectators read-only")
 			.addBugfix("Moles Under the Pitch team builder restores the roster workshop layout while saving server-validated account teams")
 			.addFeature("Moles Under the Pitch team builder now saves validated Human teams to the signed-in account for match selection")

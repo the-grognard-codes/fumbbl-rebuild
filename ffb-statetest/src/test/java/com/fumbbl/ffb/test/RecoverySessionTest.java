@@ -14,6 +14,31 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoverySessionTest {
+	@Test void olderPresentationViewsRestoreWithoutWeakeningCurrentViewComparison() throws Exception {
+		SetupSession fixture = new SetupSessionTest().session(11);
+		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
+		MatchDocument document = (MatchDocument) documentField.get(fixture);
+		TestServer server = new TestServer();
+		SetupSession original = new SetupSession(server.getServer(), document, -15, true);
+		for (int version : new int[] {1, 2}) {
+			JsonObject payload = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
+			for (String role : new String[] {"homeView", "awayView"}) {
+				JsonObject saved = payload.get(role).asObject();
+				if (version == 1) {
+					saved.remove("projectionVersion");
+					for (com.eclipsesource.json.JsonValue item : saved.get("players").asArray()) item.asObject().remove("art");
+				} else saved.set("projectionVersion", 2);
+				for (com.eclipsesource.json.JsonValue item : saved.get("actions").asArray()) item.asObject().remove("target");
+			}
+			SetupSession restored = new SetupSession(server.getServer(), document, signed(payload));
+			assertEquals(3, view(restored, "home").getInt("projectionVersion", 0));
+			assertEquals(view(original, "away"), view(restored, "away"));
+		}
+		JsonObject tampered = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
+		tampered.get("homeView").asObject().get("players").asArray().get(0).asObject().get("art").asObject().set("positionId", "private-change");
+		assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class,
+			() -> new SetupSession(server.getServer(), document, signed(tampered))).code);
+	}
 	@Test void fullRequestHistoryPreservesExactRetryAndRejectsNewWorkBeforeDice() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);

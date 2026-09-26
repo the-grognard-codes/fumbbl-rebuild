@@ -43,7 +43,7 @@ public final class KickoffActions {
                 for (int y = 0; y < 15; y++) {
                     FieldCoordinate to = new FieldCoordinate(x, y);
                     actions.add(new Action("kick-" + x + "-" + y, "kickoff", "Kick to " + x + ", " + y, role,
-                        new ClientCommandKickoff(oriented(to, role))));
+                        new ClientCommandKickoff(oriented(to, role)), to));
                 }
             }
         } else if (game.getTurnMode() == TurnMode.TOUCHBACK) {
@@ -55,13 +55,13 @@ public final class KickoffActions {
                 if (FieldCoordinateBounds.FIELD.isInBounds(to) && game.getFieldModel().getPlayerState(player).hasTacklezones()
                     && !player.hasSkillProperty(NamedProperties.preventHoldBall)) {
                     actions.add(new Action("touch-" + player.getId(), "touchback", "Give ball to " + player.getName(), role,
-                        new ClientCommandTouchback(oriented(to, role))));
+                        new ClientCommandTouchback(oriented(to, role)), player.getId()));
                 }
             }
             if (actions.isEmpty()) for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                 FieldCoordinate to = new FieldCoordinate(x, y);
                 actions.add(new Action("touch-" + x + "-" + y, "touchback", "Place ball at " + x + ", " + y, role,
-                    new ClientCommandTouchback(oriented(to, role))));
+                    new ClientCommandTouchback(oriented(to, role)), to));
             }
         } else if (state.getCurrentStep().getId() == StepId.APPLY_KICKOFF_RESULT && game.getTurnMode() != TurnMode.SOLID_DEFENCE && game.getDialogParameter() instanceof DialogPlayerChoiceParameter) {
             DialogPlayerChoiceParameter dialog = (DialogPlayerChoiceParameter) game.getDialogParameter();
@@ -72,7 +72,7 @@ public final class KickoffActions {
                     boolean selected = selectedPlayers.contains(player.getId());
                     if (!selected && selectedPlayers.size() >= dialog.getMaxSelects()) continue;
                     actions.add(new Action("event-pick:" + player.getId(), "kickoffChoice",
-                        (selected ? "Deselect " : "Select ") + player.getName(), role, null));
+                        (selected ? "Deselect " : "Select ") + player.getName(), role, null, player.getId()));
                 }
                 List<Player<?>> selected = selected(eligible);
                 if (selected.size() >= dialog.getMinSelects() && selected.size() <= dialog.getMaxSelects()) {
@@ -97,7 +97,7 @@ public final class KickoffActions {
                     boolean legal = game.getFieldModel().getPlayer(to) == null && (game.getTurnMode() == TurnMode.HIGH_KICK
                         ? to.equals(game.getFieldModel().getBallCoordinate()) : Math.max(Math.abs(x - from.getX()), Math.abs(y - from.getY())) == 1);
                     if (legal) actions.add(new Action("event-" + player.getId() + "-" + x + "-" + y, "kickoffMove",
-                        player.getName() + " to " + x + ", " + y, role, new ClientCommandSetupPlayer(player.getId(), oriented(to, role))));
+                        player.getName() + " to " + x + ", " + y, role, new ClientCommandSetupPlayer(player.getId(), oriented(to, role)), to));
                 }
             }
         }
@@ -135,7 +135,7 @@ public final class KickoffActions {
             if (!game.getFieldModel().getPlayerState(player).isActive()
                 || !FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) continue;
             if (selectedPlayers.contains(player.getId()) && placing == null) placing = player;
-            actions.add(new Action("event-pick:" + player.getId(), "kickoffChoice", "Reposition " + player.getName(), role, null));
+            actions.add(new Action("event-pick:" + player.getId(), "kickoffChoice", "Reposition " + player.getName(), role, null, player.getId()));
         }
         if (placing != null) {
             Player<?> player = placing;
@@ -143,7 +143,7 @@ public final class KickoffActions {
                 FieldCoordinate to = new FieldCoordinate(x, y);
                 if (game.getFieldModel().getPlayer(to) == null) actions.add(new Action("solid-place:" + player.getId() + ":" + x + ":" + y,
                     "kickoffMove", "Place " + player.getName() + " at " + x + ", " + y, role,
-                    new ClientCommandSetupPlayer(player.getId(), oriented(to, role))));
+                    new ClientCommandSetupPlayer(player.getId(), oriented(to, role)), to));
             }
         }
         actions.add(new Action("confirm-solid-defence", "kickoffChoice", "Confirm Solid Defence", role,

@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.test;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
@@ -16,6 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +28,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SetupSessionTest {
+	@Test void crowdedPitchFixtureUsesEnginePlacementAndFrozenArt() throws Exception {
+		JsonObject projection = view(readySession());
+		JsonArray players = new JsonArray();
+		for (JsonValue value : projection.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (player.get("x").isNull() || player.get("y").isNull()) continue;
+			players.add(new JsonObject()
+				.add("id", player.getString("role", "") + "-" + player.getInt("slot", 0))
+				.add("name", player.get("name"))
+				.add("slot", player.get("slot"))
+				.add("role", player.get("role"))
+				.add("x", player.get("x"))
+				.add("y", player.get("y"))
+				.add("state", player.get("state"))
+				.add("art", player.get("art")));
+		}
+		assertEquals(22, players.size());
+		Files.createDirectories(Paths.get("target"));
+		Files.write(Paths.get("target", "m5c-crowded-players.json"), players.toString().getBytes(StandardCharsets.UTF_8));
+		assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5c-crowded-players.json")), StandardCharsets.UTF_8), players.toString());
+	}
 	@Test void twelvePlayerRosterMustFieldItsCaptainAndCanCorrectPlacementThroughReserves() throws Exception {
 		SetupSession session = session(12); choices(session);
 		JsonObject view = view(session); String actor = view.getString("actor", null);
