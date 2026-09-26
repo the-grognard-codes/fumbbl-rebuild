@@ -98,9 +98,11 @@ public final class BrowserTeamJson {
 		return response;
 	}
 
-	public JsonObject catalog(String requestId) {
+	public JsonObject catalog(String requestId) { return catalog(requestId, RosterCatalog.ROSTER); }
+	public JsonObject catalog(String requestId, String rosterId) {
+		RosterCatalog roster = catalog.forRoster(rosterId);
 		JsonArray positions = new JsonArray(), skills = new JsonArray(), resources = new JsonArray();
-		for (RosterCatalog.Position position : catalog.getPositions().values()) {
+		for (RosterCatalog.Position position : roster.getPositions().values()) {
 			JsonArray baseSkills = new JsonArray();
 			for (String id : position.baseSkills) baseSkills.add(new JsonObject().add("id", id).add("value", position.skillValue(id)));
 			positions.add(new JsonObject().add("id", position.id).add("name", position.name)
@@ -108,21 +110,21 @@ public final class BrowserTeamJson {
 				.add("ag", position.ag).add("pa", position.pa).add("av", position.av).add("role", position.role).add("race", position.race)
 				.add("primary", position.primary).add("secondary", position.secondary).add("baseSkills", baseSkills).add("canCaptain", position.canCaptain()));
 		}
-		for (RosterCatalog.SkillOption skill : catalog.getSkills().values()) {
+		for (RosterCatalog.SkillOption skill : roster.getSkills().values()) {
 			skills.add(new JsonObject().add("id", skill.id).add("name", skill.name).add("category", skill.category)
 				.add("selectable", skill.selectable).add("elite", skill.elite));
 		}
-		for (Map.Entry<String, RosterCatalog.Resource> entry : catalog.getResources().entrySet()) {
+		for (Map.Entry<String, RosterCatalog.Resource> entry : roster.getResources().entrySet()) {
 			resources.add(new JsonObject().add("id", entry.getKey()).add("name", entry.getValue().name)
 				.add("cost", entry.getValue().cost).add("maximum", entry.getValue().maximum));
 		}
-		return header("catalog", requestId).add("rosterId", RosterCatalog.ROSTER).add("name", "Human")
+		return header("catalog", requestId).add("rosterId", roster.getRosterId()).add("name", roster.getName())
 			.add("presetId", RosterCatalog.PRESET).add("budget", RosterCatalog.BUDGET)
 			.add("minPlayers", RosterCatalog.MIN_PLAYERS).add("maxPlayers", RosterCatalog.MAX_PLAYERS)
 			.add("skillPoints", RosterCatalog.SKILL_POINTS).add("maxSecondary", RosterCatalog.MAX_SECONDARY)
-			.add("maxElite", RosterCatalog.MAX_ELITE).add("league", "Old World Classic").add("specialRule", "Team Captain")
+			.add("maxElite", RosterCatalog.MAX_ELITE).add("league", roster.getLeague()).add("specialRule", roster.getSpecialRule())
 			.add("positions", positions).add("skills", skills).add("resources", resources)
-			.add("unsupported", "All other rosters, skills for purchase, star players, inducements, progression and match creation are unsupported. Unspent budget is lost.");
+			.add("unsupported", "Other rosters, traits for purchase, star players, inducements and progression are unsupported. Unspent budget is lost.");
 	}
 
 	private JsonObject header(String type, String requestId) {

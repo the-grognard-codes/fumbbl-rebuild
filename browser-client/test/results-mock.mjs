@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const matchId = '12345678-1234-1234-1234-123456789abc';
-const metadata = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1', presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 1, eventCount: 2 };
+const metadata = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-exhibition-2026-09-25.1', presetId: 'exhibition-1150', presetVersion: 'bb2025-exhibition-2026-09-25.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 1, eventCount: 2 };
 const snapshot = subject => ({ version: 1, type: 'snapshot', revision: 0, matchId, actor: subject, turnOwner: subject, prompt: null, ball: null, players: [{ id: 'p', role: subject, state: 'standing', x: 1, y: 1, movementUsed: 0, movementAllowance: 6 }], resources: { home: { rerolls: 0, rerollUsed: false, blitzUsed: false, passUsed: false, handOverUsed: false, foulUsed: false }, away: { rerolls: 0, rerollUsed: false, blitzUsed: false, passUsed: false, handOverUsed: false, foulUsed: false } } });
 const state = (revision, phase = 'PLAY') => ({ matchId, revision, callerRole: 'home', phase, actor: 'home', prompt: null, players: [], weather: 'NICE', homeRerolls: 0, awayRerolls: 0, actions: [], turn: revision, turnMode: phase, ball: null, activePlayerId: null, half: 1, homeTurn: revision, awayTurn: revision, homeScore: 2, awayScore: 1, drive: 1 });
 const reply = (requestId, event = null, code = 'ACCEPTED') => ({ version: 1, type: 'matchResult', requestId, code, result: code === 'ACCEPTED' ? metadata : null, event });

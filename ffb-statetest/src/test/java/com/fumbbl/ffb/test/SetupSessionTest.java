@@ -28,6 +28,35 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SetupSessionTest {
+	@Test void humanVersusOrcNativeSessionProjectsBothRostersAndBeginsSetup() throws Exception {
+		RosterCatalog catalog = new RosterCatalog();
+		List<TeamDraft.Player> humans = new ArrayList<>(), orcs = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) {
+			humans.add(new TeamDraft.Player("h" + slot, slot, "lineman", Collections.emptyList()));
+			orcs.add(new TeamDraft.Player("o" + slot, slot, slot == 11 ? "troll" : "orc-lineman", Collections.emptyList()));
+		}
+		Map<String, Integer> resources = new LinkedHashMap<>();
+		for (String key : catalog.getResources().keySet()) resources.put(key, "rerolls".equals(key) ? 2 : 0);
+		TeamDraft humanDraft = new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "h1", humans, resources);
+		TeamDraft orcDraft = new TeamDraft(RosterCatalog.VERSION, "BB2025", "orc", RosterCatalog.PRESET, "o1", orcs, resources);
+		TeamValidation validation = new TeamValidation(catalog);
+		TeamValidation.Evaluation human = validation.evaluate(humanDraft), orc = validation.evaluate(orcDraft);
+		assertTrue(human.isValid()); assertTrue(orc.isValid());
+		FrozenTeam home = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", humanDraft, human.total, human.skillPoints, catalog);
+		FrozenTeam away = new FrozenTeam(UUID.randomUUID().toString(), 1, "away", orcDraft, orc.total, orc.skillPoints, catalog);
+		MatchDocument document = new MatchDocument(UUID.randomUUID().toString(), 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
+		SetupSession session = new SetupSession(new TestServer().getServer(), document, -2);
+		JsonObject initial = view(session);
+		assertEquals("coin", initial.get("prompt").asObject().getString("kind", null));
+		int orcCount = 0; boolean troll = false;
+		for (JsonValue value : initial.get("players").asArray()) {
+			JsonObject art = value.asObject().get("art").asObject();
+			if ("orc".equals(art.getString("rosterId", null))) { orcCount++; troll |= "troll".equals(art.getString("positionId", null)); }
+		}
+		assertEquals(11, orcCount); assertTrue(troll);
+		choices(session); assertEquals("SETUP", view(session).getString("phase", null));
+	}
 	@Test void crowdedPitchFixtureUsesEnginePlacementAndFrozenArt() throws Exception {
 		JsonObject projection = view(readySession());
 		JsonArray players = new JsonArray();

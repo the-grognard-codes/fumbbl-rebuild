@@ -30,7 +30,7 @@ for (const page of pages) {
 }
 
 const base = operation => ({ version: 1, type: 'preparedMatch', operation, requestId: randomUUID() });
-const draft = () => ({ catalogVersion: 'bb2025-human-2026-09-08.1', ruleset: 'BB2025', rosterId: 'human', presetId: 'human-exhibition-1150', captainId: null, players: Array(11).fill('lineman').map((positionId, index) => ({ id: `p${index + 1}`, slot: index + 1, positionId, skillIds: [] })), resources: { rerolls: 4, assistantCoaches: 0, cheerleaders: 0, apothecary: 1, dedicatedFans: 0 } });
+const draft = () => ({ catalogVersion: 'bb2025-exhibition-2026-09-25.1', ruleset: 'BB2025', rosterId: 'human', presetId: 'exhibition-1150', captainId: null, players: Array(11).fill('lineman').map((positionId, index) => ({ id: `p${index + 1}`, slot: index + 1, positionId, skillIds: [] })), resources: { rerolls: 4, assistantCoaches: 0, cheerleaders: 0, apothecary: 1, dedicatedFans: 0 } });
 const indexFor = role => role === 'home' ? 0 : 1;
 
 async function connect(page, index, path) {

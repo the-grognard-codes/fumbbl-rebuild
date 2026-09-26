@@ -16,6 +16,12 @@ Status: **M0–M4 milestone direction accepted by the owner on 2026-09-06; M5/M6
 
 M0–M4 total **60–122 engineering days**, excluding dedicated art production, major rule defects, legal review, provider/account setup, unbounded roster expansion, and ongoing maintenance. M5 and M6 are additional ranges and are not included in that historical total. These ranges assume a limited starter catalog and reuse of the current executor/database. They are not a quote for every BB2025 roster or complete platform parity. Re-estimate M5 after a renderer parity spike and live-contract inventory; the integration and accessibility effort is not established by the local visual preview.
 
+The [Orc content readiness record](m6-orc-content-readiness.md) is an independently testable M6 content slice. It records source facts, engine mapping and the implemented catalog, saved-team, freeze and browser paths; hosted release checks remain outstanding.
+
+The [Human skill expansion](m6-human-skills-2026-09-25.md) adds five BB2025 purchases to the existing art-supported roster on the separate M6 working branch.
+
+The [core skills and traits inventory](m6-core-skills-2026-09-25.md) extends that slice to every entry in the BB2025 reference while keeping roster activation and effect-level match checks explicit.
+
 The M5 parity spike compared the crowded 26×15 DOM/SVG and Pixi boards. The owner reported a unanimous visual preference for the crisper DOM/SVG board, and the ADR-002 addendum selects it provisionally. Keep scoreboard, dugouts, action controls, log and accessible state/prompt/error summaries in React DOM; v2 chat is not yet a supported product contract. Port the DOM/SVG board behind a presentation-only interface, then replace preview simulation data with server snapshots and server-issued legal actions; the same validated command path serves the visible Commit control and Space. M5 repeats applicable M4 R6 browser, accessibility and provenance checks against the integrated release candidate; M1 diagnostic Pixi evidence and local preview screenshots do not satisfy that gate. The [M5 renderer parity plan](m5-renderer-parity-plan.md) retains the original comparison scope; the [DOM/SVG implementation slices](m5-dom-svg-match-gui-slices.md) define the next tasks and checks.
 
 Earlier audit and M1 verification references to “mobile M5” describe the former roadmap numbering; mobile/content expansion is M6 in this revised sequence. M4 service readiness and M5 GUI acceptance are both required before the polished desktop public beta.

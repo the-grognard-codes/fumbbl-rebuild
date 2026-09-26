@@ -11,6 +11,9 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addImprovement("Browser game activation opens the match in a separate tab or window, with a same-tab fallback when popups are blocked")
+			.addBugfix("Saved matches preserve unanswered Diving Tackle skill choices when recovering from a server restart")
+			.addFeature("BB2025 Orc teams can be built, saved and played against Human or Orc teams with the approved Orc sprites")
+			.addImprovement("BB2025 Human team builder offers all eligible core skills and records the full core skill and trait catalog")
 			.addImprovement("Browser matches add a labeled keyboard pitch companion, focused player summaries and reduced-motion friendly controls")
 			.addImprovement("Browser matches show live score, player status and off-pitch rosters, with final results and replay for participants")
 			.addImprovement("Browser match pitch highlights server-issued targets and commits pinned actions through one guarded command path")

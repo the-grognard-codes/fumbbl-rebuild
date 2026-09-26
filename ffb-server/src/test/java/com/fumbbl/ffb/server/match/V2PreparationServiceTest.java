@@ -70,6 +70,21 @@ class V2PreparationServiceTest {
 		assertEquals("away", response.get("document").asObject().get("invitation").asObject().getString("intendedOpponent", null));
 		verify(connection).commit(); verify(connection, never()).rollback();
 	}
+	@Test
+	void accountOwnedOrcTeamFreezesWithItsRosterAndTrollParameter() throws Exception {
+		Connection connection = connection(false); RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		SavedTeamService teams = new SavedTeamService(new MemoryTeams(), catalog);
+		SavedTeamService.Loaded saved = teams.create(account, "orc-seed", namedOrcDraft(catalog));
+		assertEquals("CURRENT", teams.load(account, saved.document.teamId).versionStatus);
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.fixed(Instant.ofEpochMilli(1000), ZoneOffset.UTC));
+		JsonObject response = service.handle(account, create("orc-create", saved.document.teamId));
+		assertEquals("ACCEPTED", response.getString("code", null));
+		JsonObject home = response.get("document").asObject().get("home").asObject();
+		assertEquals("orc", home.getString("rosterId", null));
+		assertEquals(4, home.get("roster").asObject().get("players").asArray().get(10).asObject()
+			.get("position").asObject().get("parameters").asObject().getInt("loner", -1));
+	}
 
 	@Test
 	void rollsBackAllCreateWritesWhenAnInviteWriteFails() throws Exception {
@@ -151,6 +166,15 @@ class V2PreparationServiceTest {
 		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("player" + slot, slot, slot, "Player " + slot, "lineman", Collections.emptyList()));
 		return new TeamDraft(TeamDraft.FORMAT_VERSION, "The Moles", RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET,
 			"player1", players, draft(catalog).resources);
+	}
+	private TeamDraft namedOrcDraft(RosterCatalog catalog) {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("player" + slot, slot, slot, "Orc " + slot,
+			slot == 11 ? "troll" : "orc-lineman", Collections.emptyList()));
+		Map<String, Integer> resources = new LinkedHashMap<>(); for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
+		resources.put("rerolls", 2);
+		return new TeamDraft(TeamDraft.FORMAT_VERSION, "The Orcs", RosterCatalog.VERSION, "BB2025", "orc", RosterCatalog.PRESET,
+			"player1", players, resources);
 	}
 
 	private static final class MemoryTeams implements SavedTeamRepository {
