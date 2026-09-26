@@ -79,8 +79,17 @@ The browser clears views on disconnect, sign-out and access loss.
 ## Hosted match route
 
 `/play` holds saved-team selection, match preparation and spectator browsing.
-After an `ACTIVATED` prepared-match response, both players navigate to
-`/play/match?matchId=<uuid>`; a spectator uses the same route with `watch=1`.
+Clicking **Start game** reserves one new browsing context during the user gesture;
+the confirmed `ACTIVATED` response then navigates it to
+`/play/match?matchId=<uuid>`. The browser decides whether the requested popup is
+a window or tab. If it blocks or closes that context, the initiating page opens
+the match in its current tab. The other player receives the server notification
+without a user gesture, so `/play` displays an explicit new-tab match link and
+a same-tab option instead of attempting an automatic popup. The preparation
+socket closes during the handoff because the server permits one active socket
+per account; a reloaded preparation tab remains disconnected until the player
+explicitly reconnects there. A spectator uses
+the same match route with `watch=1`.
 The match route mounts the existing setup/game view and seeds one `V2Client`
 subscription from its validated URL. `/play/result?matchId=<uuid>` requests
 participant-authorized `matchResult.load` and individual replay events; it is
