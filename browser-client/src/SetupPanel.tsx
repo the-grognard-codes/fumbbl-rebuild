@@ -247,8 +247,6 @@ export function GameView({ view, connected, pending, mutate, results = true, res
         onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare}/>
       </div><aside className="match-side" aria-label="Match decisions and players">
         <section aria-label="Selected player" className="match-selected-player"><h3>Selected player</h3>{selectedPlayer ? <div className="match-player-card">{spriteUrl(selectedPlayer) && <img src={spriteUrl(selectedPlayer)!} alt=""/>}<p><strong>{selectedPlayer.name} #{selectedPlayer.slot}</strong><br/>{selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? 'Off pitch' : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}</p></div> : <p>Select a player on the pitch or from the roster.</p>}</section>
-        <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
-        {serverActionPanel}
         {view.prompt && <section aria-label="Pre-match choice"><h3>{view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick'}</h3>
           {view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || suspended || view.prompt!.actor !== view.callerRole}>{option}</button>)}
         </section>}
@@ -260,6 +258,8 @@ export function GameView({ view, connected, pending, mutate, results = true, res
           <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
         </section>}
+        <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
+        {serverActionPanel}
       </aside></div>
       <div className="match-bench" aria-label="Off pitch summary"><span>Home · {homeOffPitch} off pitch</span><details><summary>Roster &amp; bench</summary><section aria-label="Off pitch players"><h3>Off pitch</h3>{offPitch.length ? <ul>{offPitch.map(player => <li key={player.id}><button type="button" onClick={() => selectPlayer(player.id)}>{player.role} · {player.name} #{player.slot} · {player.state}</button></li>)}</ul> : <p>All players are on the pitch.</p>}</section></details><span>Away · {awayOffPitch} off pitch</span></div></>}
       {!hosted && <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}

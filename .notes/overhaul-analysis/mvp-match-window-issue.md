@@ -87,6 +87,8 @@ validate actual browser-owned chrome. Firefox is not installed, and installed
 PWA mode was assessed from primary docs rather than installed locally. Native
 game-server projection shape and action handling were not changed; complete
 native-engine play remains an integrated release check.
+The Start Game browser test also checks that Confirm legal setup is visible in
+the 1280×660 match sidebar without scrolling it.
 
 The reference preview uses illustrative teams, log and dugout counts; they are
 not copied into live state.
