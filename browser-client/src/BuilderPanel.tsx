@@ -23,10 +23,13 @@ export function BuilderPanel({ options }: { options: Options }) {
   const [eligibility, setEligibility] = useState('CURRENT');
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const client = useRef<V2Client | null>(null);
+  const catalogRef = useRef<Catalog | null>(null);
+  catalogRef.current = catalog;
   const draftRef = useRef<TeamDraft | null>(null);
   draftRef.current = draft;
   const pendingValidations = useRef(new Map<string, string>());
   const operations = useRef(new Map<string, string>());
+  const catalogSelections = useRef(new Map<string, TeamDraft | null>());
 
   useEffect(() => {
     const connection = new V2Client({ ...options, storage: sessionStorage, onChange: (message: V2Message) => {
@@ -35,7 +38,16 @@ export function BuilderPanel({ options }: { options: Options }) {
       if (message.type === 'catalog') {
         try {
           const result = decodeTeam(JSON.stringify({ ...message, version: 1 }));
-          if (result.type === 'catalog') { setCatalog(result); setDraft(previous => previous ?? emptyDraft(result)); }
+          if (result.type === 'catalog') {
+            const selected = catalogSelections.current.has(message.requestId);
+            const requestedDraft = catalogSelections.current.get(message.requestId);
+            catalogSelections.current.delete(message.requestId);
+            if (selected) {
+              setCatalog(result); setDraft(requestedDraft ?? emptyDraft(result));
+            } else if (!draftRef.current || draftRef.current.rosterId === result.rosterId) {
+              setCatalog(result); setDraft(previous => previous ?? emptyDraft(result));
+            }
+          }
         } catch { setError('The server catalog could not be read.'); }
       }
       if (message.type === 'teamValidation') {
@@ -56,7 +68,10 @@ export function BuilderPanel({ options }: { options: Options }) {
           if (message.document) {
             const document = message.document as SavedDocument;
             setSaved(document); setEligibility(message.versionStatus ?? 'CURRENT');
-            setDraft(document.formatVersion === 3 ? document.draft : null);
+            if (document.formatVersion === 3 && document.draft.rosterId !== catalogRef.current?.rosterId) {
+              const id = connection.request('catalog', { rosterId: document.draft.rosterId });
+              catalogSelections.current.set(id, document.draft); setDraft(null);
+            } else setDraft(document.formatVersion === 3 ? document.draft : null);
             setValidation(null); setValidatedDraft(null);
           } else if (operation === 'delete') {
             setSaved(null); setDraft(null); setValidation(null); setValidatedDraft(null);
@@ -75,7 +90,7 @@ export function BuilderPanel({ options }: { options: Options }) {
 
   const connected = status === 'Connected';
   const busy = !connected || !!client.current?.pending;
-  const editable = !!catalog && !!draft && eligibility === 'CURRENT';
+  const editable = !!catalog && !!draft && catalog.rosterId === draft.rosterId && eligibility === 'CURRENT';
   const saveable = editable && validation?.valid && validatedDraft === JSON.stringify(draft) && !busy;
   function run(action: () => void) {
     try { setError(''); action(); }
@@ -86,6 +101,15 @@ export function BuilderPanel({ options }: { options: Options }) {
     operations.current.set(id, operation);
   }
   function update(next: TeamDraft) { draftRef.current = next; setDraft(next); setValidation(null); setValidatedDraft(null); }
+  function selectRoster(rosterId: string) {
+    if (!catalog || rosterId === catalog.rosterId || !['human', 'orc'].includes(rosterId)) return;
+    if ((saved || draft?.players.length || draft?.teamName) && !window.confirm('Start a new team with this roster? Unsaved edits will be discarded.')) return;
+    run(() => {
+      const id = client.current!.request('catalog', { rosterId });
+      catalogSelections.current.set(id, null);
+      setSaved(null); setEligibility('CURRENT'); setDraft(null); setValidation(null); setValidatedDraft(null);
+    });
+  }
   function validate() {
     if (!draft) return;
     run(() => { const id = client.current!.request('validateTeam', { draft }); pendingValidations.current.set(id, JSON.stringify(draft)); });
@@ -105,7 +129,7 @@ export function BuilderPanel({ options }: { options: Options }) {
     <p className="builder-connection" role="status">{status}</p>{error && <p className="builder-error" role="alert">{error}</p>}
     {!connected && <button type="button" onClick={() => client.current?.connect()}>Reconnect</button>}
     {client.current?.pending && <p className="builder-error">A change needs confirmation. Reconnect with the same account and <button type="button" onClick={() => run(() => client.current?.retry())}>repeat the retained request</button>.</p>}
-    {catalog && draft && <BuilderDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} validation={validation} />}
+    {catalog && draft && <BuilderDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} validation={validation} selectRoster={selectRoster} />}
     {validation && <div className="panel validation-errors"><TeamValidationView result={validation} /></div>}
     <section className="builder-actions panel" aria-label="Save team"><div>
       <button type="button" disabled={!saveable} onClick={save}>{saved ? 'Save changes' : 'Save team'}</button>

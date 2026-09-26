@@ -11,12 +11,16 @@ import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,6 +69,72 @@ class MatchServiceTest {
 		teams.importDocument("away", new SavedTeamJson(catalog).encode(imported).toString());
 		assertEquals(before, matches.rows.get(id).json);
 		assertEquals(1, accepted("home", load(id)).get("document").asObject().get("home").asObject().getInt("sourceDocumentVersion", 0));
+	}
+	@Test
+	void humanAndOrcTeamsSaveJoinAndFreezeIndependentRosterFacts() throws Exception {
+		String orcId = teams.create("away", orcDraft()).document.teamId;
+		assertEquals("CURRENT", teams.load("away", orcId).versionStatus);
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		JsonObject joined = accepted("away", join(id, orcId)).get("document").asObject();
+		assertEquals("human", joined.get("home").asObject().getString("rosterId", null));
+		assertEquals("orc", joined.get("away").asObject().getString("rosterId", null));
+		assertEquals(RosterCatalog.VERSION, joined.get("away").asObject().getString("catalogVersion", null));
+		JsonObject storedAway = JsonObject.readFrom(matches.rows.get(id).json).get("away").asObject();
+		assertEquals(60000, storedAway.get("resolvedCatalog").asObject().get("resources").asArray().get(0).asObject().getInt("cost", -1));
+		assertEquals(4, storedAway.get("roster").asObject().get("players").asArray().get(10).asObject()
+			.get("position").asObject().get("parameters").asObject().getInt("loner", -1));
+		assertEquals("AWAITING_SETUP", joined.getString("lifecycle", null));
+		assertEquals(joined, accepted("home", load(id)).get("document"));
+		accepted("home", activate(id));
+	}
+	@Test
+	void twoOrcTeamsCanJoinAndActivateUnderTheSharedExhibitionPreset() throws Exception {
+		String homeOrcs = teams.create("home", orcDraft()).document.teamId;
+		String awayOrcs = teams.create("away", orcDraft()).document.teamId;
+		String id = matchId(accepted("home", create(homeOrcs, "away")));
+		JsonObject joined = accepted("away", join(id, awayOrcs)).get("document").asObject();
+		assertEquals("orc", joined.get("home").asObject().getString("rosterId", null));
+		assertEquals("orc", joined.get("away").asObject().getString("rosterId", null));
+		assertEquals("AWAITING_SETUP", joined.getString("lifecycle", null));
+		assertEquals("ACTIVATED", accepted("home", activate(id)).get("document").asObject().getString("lifecycle", null));
+	}
+	@Test
+	void expandedCatalogFitsPreparedMatchStorageLimitForTwoTeams() {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam));
+		assertTrue(matches.rows.get(id).json.getBytes(StandardCharsets.UTF_8).length <= 65536);
+	}
+	@Test
+	void frozenMatchFromPreviousHumanCatalogRemainsReadable() {
+		Set<String> oldSkills = new HashSet<>(Arrays.asList("block", "dodge", "catch", "pass", "sure-hands", "tackle",
+			"pro", "right-stuff", "stunty", "bone-head", "loner", "mighty-blow", "thick-skull", "throw-team-mate"));
+		for (String version : Arrays.asList(RosterCatalog.LEGACY_VERSION, RosterCatalog.PREVIOUS_VERSION, RosterCatalog.HUMAN_SKILLS_VERSION)) {
+			String id = matchId(accepted("home", create(homeTeam, "away")));
+			JsonObject stored = JsonObject.readFrom(matches.rows.get(id).json);
+			JsonObject home = stored.get("home").asObject();
+			home.set("catalogVersion", version);
+			home.set("presetId", "human-exhibition-1150");
+			home.set("presetVersion", version);
+			JsonObject resolved = home.get("resolvedCatalog").asObject();
+			resolved.set("catalogVersion", version);
+			resolved.set("presetId", "human-exhibition-1150");
+			Set<String> supported = new HashSet<>(oldSkills);
+			if (RosterCatalog.PREVIOUS_VERSION.equals(version)) supported.addAll(Arrays.asList("guard", "wrestle", "sidestep", "sure-feet"));
+			if (RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)) supported.addAll(com.fumbbl.ffb.server.team.bb2025.SkillDefinitions.all().keySet());
+			com.eclipsesource.json.JsonArray skills = resolved.get("skills").asArray();
+			for (int index = skills.size() - 1; index >= 0; index--) {
+				JsonObject skill = skills.get(index).asObject();
+				String skillId = skill.get("id").asString();
+				if (!supported.contains(skillId)) skills.remove(index);
+				else if (!RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)
+					&& ("thick-skull".equals(skillId) || ("mighty-blow".equals(skillId) && RosterCatalog.LEGACY_VERSION.equals(version))))
+					skill.set("selectable", false);
+			}
+			matches.rows.put(id, new MatchRepository.Record(id, 1, stored.toString()));
+			assertEquals(version, accepted("home", load(id)).get("document").asObject()
+				.get("home").asObject().getString("catalogVersion", null));
+			assertEquals(stored.toString(), matches.rows.get(id).json);
+		}
 	}
 
 	@Test
@@ -252,7 +322,7 @@ class MatchServiceTest {
 	void corruptFrozenCostsSkillsAndCaptainCannotBeReinterpretedAsAccepted() {
 		String id = matchId(accepted("home", create(homeTeam, "away")));
 		MatchRepository.Record original = matches.rows.get(id);
-		for (String corruption : new String[] { "total", "points", "position-limit", "category", "captain", "base-duplicate", "secondary", "elite" }) {
+		for (String corruption : new String[] { "total", "points", "position-limit", "category", "captain", "base-duplicate", "secondary", "elite", "skill-metadata" }) {
 			JsonObject stored = JsonObject.readFrom(original.json), home = stored.get("home").asObject();
 			JsonObject roster = home.get("roster").asObject(), validation = home.get("validation").asObject();
 			com.eclipsesource.json.JsonArray players = roster.get("players").asArray();
@@ -267,6 +337,7 @@ class MatchServiceTest {
 			if ("base-duplicate".equals(corruption)) players.get(0).asObject().get("skillIds").asArray().add("pro");
 			if ("secondary".equals(corruption)) { for (int i = 1; i <= 3; i++) players.get(i).asObject().get("skillIds").asArray().add("dodge"); validation.set("skillPoints", 6); }
 			if ("elite".equals(corruption)) { for (int i = 1; i <= 5; i++) players.get(i).asObject().get("skillIds").asArray().add("block"); validation.set("skillPoints", 5); }
+			if ("skill-metadata".equals(corruption)) home.get("resolvedCatalog").asObject().get("skills").asArray().get(0).asObject().set("category", "T");
 			matches.rows.put(id, new MatchRepository.Record(id, 1, stored.toString()));
 			assertEquals("SNAPSHOT_UNSUPPORTED", invoke("home", load(id)).getString("code", null), corruption);
 			assertEquals(stored.toString(), matches.rows.get(id).json);
@@ -316,6 +387,14 @@ class MatchServiceTest {
 		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, "lineman", Collections.emptyList()));
 		Map<String, Integer> resources = new LinkedHashMap<>(); for (String key : catalog.getResources().keySet()) resources.put(key, 0); resources.put("rerolls", rerolls);
 		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "p1", players, resources);
+	}
+	private TeamDraft orcDraft() {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot,
+			slot == 11 ? "troll" : "orc-lineman", Collections.emptyList()));
+		Map<String, Integer> resources = new LinkedHashMap<>(); for (String key : catalog.getResources().keySet()) resources.put(key, 0);
+		resources.put("rerolls", 2); resources.put("apothecary", 1);
+		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "orc", RosterCatalog.PRESET, "p1", players, resources);
 	}
 	private static final class Teams implements SavedTeamRepository {
 		final Map<String, Record> rows = new LinkedHashMap<>(); Runnable afterRead;

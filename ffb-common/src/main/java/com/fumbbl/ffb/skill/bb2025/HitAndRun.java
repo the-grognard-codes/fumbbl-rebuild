@@ -8,7 +8,7 @@ import com.fumbbl.ffb.model.skill.Skill;
 @RulesCollection(RulesCollection.Rules.BB2025)
 public class HitAndRun extends Skill {
 	public HitAndRun() {
-		super("Hit And Run", SkillCategory.TRAIT);
+		super("Hit And Run", SkillCategory.AGILITY);
 	}
 
 	@Override

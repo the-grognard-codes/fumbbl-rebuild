@@ -3,8 +3,10 @@ package com.fumbbl.ffb.server.match;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.SkillCategory;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
+import com.fumbbl.ffb.server.team.bb2025.SkillDefinitions;
 
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
@@ -217,8 +219,10 @@ public final class MatchJson {
 		if (named && !plainName(teamName, 50)) throw new IllegalArgumentException();
 		String ruleset = object.get("ruleset").asString(), catalogVersion = object.get("catalogVersion").asString();
 		String rosterId = object.get("rosterId").asString(), presetId = object.get("presetId").asString(), presetVersion = object.get("presetVersion").asString();
-		if (!"BB2025".equals(ruleset) || !RosterCatalog.VERSION.equals(catalogVersion) || !"human".equals(rosterId)
-			|| !RosterCatalog.PRESET.equals(presetId) || !catalogVersion.equals(presetVersion)) throw new IllegalArgumentException();
+		boolean current = RosterCatalog.VERSION.equals(catalogVersion) && RosterCatalog.supports(rosterId) && RosterCatalog.PRESET.equals(presetId);
+		boolean historicalHuman = "human".equals(rosterId) && "human-exhibition-1150".equals(presetId)
+			&& (RosterCatalog.HUMAN_SKILLS_VERSION.equals(catalogVersion) || RosterCatalog.PREVIOUS_VERSION.equals(catalogVersion) || RosterCatalog.LEGACY_VERSION.equals(catalogVersion));
+		if (!"BB2025".equals(ruleset) || !(current || historicalHuman) || !catalogVersion.equals(presetVersion)) throw new IllegalArgumentException();
 		JsonObject resolved = object.get("resolvedCatalog").asObject();
 		checkCatalog(resolved, catalogVersion, rosterId, presetId);
 		JsonObject validation = object.get("validation").asObject(); exact(validation, "valid", "total", "budget", "skillPoints", "messages");
@@ -329,11 +333,23 @@ public final class MatchJson {
 		for (String key : new String[] { "budget", "minPlayers", "maxPlayers", "skillPoints", "maxSecondary", "maxElite" }) amount(catalog.get(key));
 		for (String key : new String[] { "name", "league", "specialRule", "unsupported" }) catalog.get(key).asString();
 		Set<String> supported = new HashSet<>(Arrays.asList("block", "dodge", "catch", "pass", "sure-hands", "tackle", "pro", "right-stuff", "stunty", "bone-head", "loner", "mighty-blow", "thick-skull", "throw-team-mate"));
+		if (RosterCatalog.PREVIOUS_VERSION.equals(version)) supported.addAll(Arrays.asList("guard", "wrestle", "sidestep", "sure-feet"));
+		if (RosterCatalog.VERSION.equals(version) || RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)) {
+			supported.clear();
+			supported.addAll(SkillDefinitions.all().keySet());
+		}
 		Set<String> skillIds = new HashSet<>();
 		for (JsonValue value : catalog.get("skills").asArray()) {
 			JsonObject skill = value.asObject(); exact(skill, "id", "name", "category", "selectable", "elite");
 			String id = identifier(skill.get("id")); if (!supported.contains(id) || !skillIds.add(id)) throw new IllegalArgumentException();
 			skill.get("name").asString(); skill.get("category").asString(); skill.get("selectable").asBoolean(); skill.get("elite").asBoolean();
+			if (RosterCatalog.VERSION.equals(version) || RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)) {
+				SkillDefinitions.Definition definition = SkillDefinitions.forId(id);
+				String category = definition.category == SkillCategory.TRAIT ? "T" : definition.category.name().substring(0, 1);
+				if (!definition.name.equals(skill.get("name").asString()) || !category.equals(skill.get("category").asString())
+					|| (definition.category != SkillCategory.TRAIT) != skill.get("selectable").asBoolean()
+					|| definition.elite != skill.get("elite").asBoolean()) throw new IllegalArgumentException();
+			}
 		}
 		if (!skillIds.equals(supported)) throw new IllegalArgumentException();
 		Set<String> positionIds = new HashSet<>();
@@ -345,10 +361,13 @@ public final class MatchJson {
 			position.get("canCaptain").asBoolean(); Set<String> bases = new HashSet<>();
 			for (JsonValue base : position.get("baseSkills").asArray()) {
 				JsonObject skill = base.asObject(); exact(skill, "id", "value"); String id = identifier(skill.get("id"));
-				if (!supported.contains(id) || !bases.add(id) || skill.get("value").asInt() != ("loner".equals(id) ? 3 : "mighty-blow".equals(id) ? 1 : 0)) throw new IllegalArgumentException();
+				if (!supported.contains(id) || !bases.add(id) || skill.get("value").asInt() != ("loner".equals(id) ? "orc".equals(roster) ? 4 : 3 : "mighty-blow".equals(id) ? 1 : 0)) throw new IllegalArgumentException();
 			}
 		}
-		if (!positionIds.equals(new HashSet<>(Arrays.asList("lineman", "halfling", "catcher", "thrower", "blitzer", "ogre")))) throw new IllegalArgumentException();
+		Set<String> expectedPositions = "orc".equals(roster)
+			? new HashSet<>(Arrays.asList("orc-lineman", "goblin-lineman", "orc-thrower", "orc-blitzer", "big-un-blocker", "troll"))
+			: new HashSet<>(Arrays.asList("lineman", "halfling", "catcher", "thrower", "blitzer", "ogre"));
+		if (!positionIds.equals(expectedPositions)) throw new IllegalArgumentException();
 		Set<String> resourceIds = new HashSet<>();
 		for (JsonValue value : catalog.get("resources").asArray()) {
 			JsonObject resource = value.asObject(); exact(resource, "id", "name", "cost", "maximum");

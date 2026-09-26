@@ -23,11 +23,11 @@ public final class FrozenTeam {
 		int total, int skillPoints, RosterCatalog catalog) {
 		this(sourceTeamId, sourceDocumentVersion, owner, draft.ruleset, draft.catalogVersion, draft.rosterId,
 			draft.presetId, draft.catalogVersion, draft.captainId, draft.teamName, total, RosterCatalog.BUDGET, skillPoints,
-			freezePlayers(draft, catalog), draft.resources, frozenCatalog(catalog));
+			freezePlayers(draft, catalog.forRoster(draft.rosterId)), draft.resources, frozenCatalog(catalog.forRoster(draft.rosterId)));
 	}
 
 	private static String frozenCatalog(RosterCatalog catalog) {
-		JsonObject resolved = new BrowserTeamJson(catalog).catalog(null);
+		JsonObject resolved = new BrowserTeamJson(catalog).catalog(null, catalog.getRosterId());
 		resolved.remove("draftVersion");
 		return resolved.add("validationPolicy", new JsonObject().add("formatVersion", 1).add("primarySkillPoints", 1)
 					.add("secondarySkillPoints", 2).add("maximumPurchasesPerPlayer", 1).add("purchasedSkillGold", 0)

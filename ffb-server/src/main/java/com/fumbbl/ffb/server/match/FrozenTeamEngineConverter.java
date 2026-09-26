@@ -14,6 +14,7 @@ import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.model.RosterPosition;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.skill.Skill;
+import com.fumbbl.ffb.server.team.bb2025.SkillDefinitions;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -70,12 +71,12 @@ public final class FrozenTeamEngineConverter {
 		IJsonOption.MAX_RE_ROLLS.addTo(document, rerolls.get("maximum").asInt());
 		IJsonOption.APOTHECARY.addTo(document, resourceDefinition(catalog, "apothecary").get("maximum").asInt() > 0);
 		JsonArray positions = new JsonArray();
-		for (FrozenTeam.Player player : unique.values()) positions.add(position(player, skills));
+		for (FrozenTeam.Player player : unique.values()) positions.add(position(player, skills, frozen.rosterId));
 		IJsonOption.POSITION_ARRAY.addTo(document, positions);
 		return new Roster().initFrom(factories, document);
 	}
 
-	private JsonObject position(FrozenTeam.Player source, SkillFactory skills) {
+	private JsonObject position(FrozenTeam.Player source, SkillFactory skills, String rosterId) {
 		JsonObject value = new RosterPosition().toJsonValue();
 		IJsonOption.POSITION_ID.addTo(value, source.positionId);
 		IJsonOption.POSITION_NAME.addTo(value, source.name);
@@ -94,7 +95,7 @@ public final class FrozenTeamEngineConverter {
 		if (!source.parameters.keySet().equals(new HashSet<>(source.baseSkillIds))) throw new IllegalArgumentException("Unsupported frozen parameters");
 		for (String id : source.baseSkillIds) {
 			names.add(skill(skills, id).getName());
-			int parameter = source.parameters.get(id), expected = "loner".equals(id) ? 3 : "mighty-blow".equals(id) ? 1 : 0;
+			int parameter = source.parameters.get(id), expected = "loner".equals(id) ? "orc".equals(rosterId) ? 4 : 3 : "mighty-blow".equals(id) ? 1 : 0;
 			if (parameter != expected) throw new IllegalArgumentException("Unsupported frozen parameter");
 			values.add(parameter == 0 ? JsonValue.NULL : JsonValue.valueOf(Integer.toString(parameter)));
 		}
@@ -116,6 +117,7 @@ public final class FrozenTeamEngineConverter {
 				case 'A': result.add(SkillCategory.AGILITY.getName()); break;
 				case 'D': result.add(SkillCategory.DEVIOUS.getName()); break;
 				case 'G': result.add(SkillCategory.GENERAL.getName()); break;
+				case 'M': result.add(SkillCategory.MUTATION.getName()); break;
 				case 'P': result.add(SkillCategory.PASSING.getName()); break;
 				case 'S': result.add(SkillCategory.STRENGTH.getName()); break;
 				default: throw new IllegalArgumentException("Unsupported frozen skill category");
@@ -123,5 +125,9 @@ public final class FrozenTeamEngineConverter {
 		}
 		return result;
 	}
-	private String name(String id) { if ("block".equals(id)) return "Block"; if ("dodge".equals(id)) return "Dodge"; if ("catch".equals(id)) return "Catch"; if ("pass".equals(id)) return "Pass"; if ("sure-hands".equals(id)) return "Sure Hands"; if ("tackle".equals(id)) return "Tackle"; if ("pro".equals(id)) return "Pro"; if ("right-stuff".equals(id)) return "Right Stuff"; if ("stunty".equals(id)) return "Stunty"; if ("bone-head".equals(id)) return "Bone Head"; if ("loner".equals(id)) return "Loner"; if ("mighty-blow".equals(id)) return "Mighty Blow"; if ("thick-skull".equals(id)) return "Thick Skull"; if ("throw-team-mate".equals(id)) return "Throw Team-Mate"; throw new IllegalArgumentException("Unsupported frozen skill: " + id); }
+	private String name(String id) {
+		SkillDefinitions.Definition definition = SkillDefinitions.forId(id);
+		if (definition == null) throw new IllegalArgumentException("Unsupported frozen skill: " + id);
+		return definition.name;
+	}
 }
