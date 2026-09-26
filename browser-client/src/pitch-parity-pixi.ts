@@ -4,7 +4,7 @@ import { PARITY_GEOMETRY, PARITY_PLAYERS, interpolatedSquare, parityPreview, par
 import type { ParityPlayer, ParitySquare, ParityState } from './pitch-parity-model';
 
 type PlayerView = { container: Container; sprite: Sprite | null };
-const pitchUrl = `${import.meta.env.BASE_URL}preview/parity-pitch.svg`;
+const pitchUrl = `${import.meta.env.BASE_URL}assets/game/pitch/parity-pitch.svg`;
 
 /** Local M5 experiment only. Receives presentation state and emits square intents. */
 export class ParityPixiBoard {

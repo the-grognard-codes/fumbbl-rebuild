@@ -10,7 +10,7 @@ const art: Record<ArtName, number[]> = {
 export function MatchArt({ name }: { name: ArtName }) {
   const [x, y, width, height] = art[name];
   return <svg className={`match-art art-${name}`} viewBox={`${x} ${y} ${width} ${height}`} aria-hidden="true" focusable="false">
-    <image href={`${import.meta.env.BASE_URL}preview/mvp-art/match-ui-icon-atlas-v1.png`} width="1774" height="887"/>
+    <image href={`${import.meta.env.BASE_URL}assets/game/ui/match-ui-icon-atlas-v1.png`} width="1774" height="887"/>
   </svg>;
 }
 

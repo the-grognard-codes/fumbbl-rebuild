@@ -8,7 +8,7 @@ export const initialPlayers: DemoPlayer[] = [
   ['Silas', 'Thrower', '06-thrower-man.png', 15, 4, 'away'],
   ['Ada', 'Lineman', '09-lineman-woman.png', 14, 10, 'away']
 ].map(([name, position, sprite, x, y, team], index) => ({ name: String(name), position: String(position), sprite: String(sprite), x: Number(x), y: Number(y), team: String(team), number: index + 1, zone: index === 5 ? 'Prone' : 'Standing', stats: position === 'Ogre' ? ['5', '5', '4+', '5+', '10+'] : position === 'Catcher' ? ['8', '2', '3+', '5+', '8+'] : ['6', '3', '3+', '3+', '9+'], skills: position === 'Blitzer' ? 'Block' : position === 'Catcher' ? 'Catch, Dodge' : position === 'Ogre' ? 'Bone Head, Mighty Blow' : position === 'Thrower' ? 'Pass, Sure Hands' : 'None', injury: index === 5 ? 'Prone · no lasting injury' : 'None', spp: index === 0 ? 2 : 0, earned: index === 0 ? '1 casualty' : 'None this game', career: 6, used: 0 }));
-export const spriteUrl = (file: string) => `${import.meta.env.BASE_URL}preview/humans/${file}`;
+export const spriteUrl = (file: string) => `${import.meta.env.BASE_URL}assets/game/archive/humans-36px-v1/${file}`;
 export const adjacent = (a: Square, b: Square) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) === 1;
 export type Route = { path: Square[]; dodge: boolean; rush: boolean };
 /** Illustrative shortest routes, not authoritative rules or success probabilities. */

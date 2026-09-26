@@ -76,8 +76,8 @@ try {
  await page.keyboard.down('Space');await page.keyboard.down('Space');await page.keyboard.up('Space');
  assert.notEqual(await page.locator('[data-player="1"]').getAttribute('style'),unchanged);
  assert.equal(await page.getByRole('log',{name:'Game log',exact:true}).getByText(/Alden: move/).count(),1);
- assert.equal(await page.locator('.pitch-player.away img').evaluateAll(imgs=>imgs.every(img=>img.src.includes('/orcs-64px-chibi-v1/')&&img.naturalWidth===64)),true);
- assert.equal(await page.locator('.dugout.away img').evaluateAll(imgs=>imgs.every(img=>img.src.includes('/orcs-64px-chibi-v1/')&&img.naturalWidth===64)),true);
+ assert.equal(await page.locator('.pitch-player.away img').evaluateAll(imgs=>imgs.every(img=>img.src.includes('/assets/game/teams/orc/')&&img.naturalWidth===64)),true);
+ assert.equal(await page.locator('.dugout.away img').evaluateAll(imgs=>imgs.every(img=>img.src.includes('/assets/game/teams/orc/')&&img.naturalWidth===64)),true);
  await page.getByLabel('Message', {exact:true}).fill('Testing the local chat preview');
  await page.getByRole('button',{name:'Send',exact:true}).click();
  assert.match(await page.getByRole('log',{name:'Local coach chat'}).textContent(),/Testing the local chat preview/);
