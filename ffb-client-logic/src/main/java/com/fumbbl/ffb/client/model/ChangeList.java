@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match windows use the MVP pitch-first layout, illustrated scoreboard and compact bench, with a visible exit and fullscreen control")
 			.addBugfix("Browser Play and Team Builder clear stale authentication errors after a successful reconnect")
 			.addImprovement("Browser game activation opens the match in a separate tab or window, with a same-tab fallback when popups are blocked")
 			.addBugfix("Saved matches preserve unanswered Diving Tackle skill choices when recovering from a server restart")
