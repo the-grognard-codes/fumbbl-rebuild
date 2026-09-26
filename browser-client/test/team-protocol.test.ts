@@ -8,6 +8,7 @@ import type { Catalog, Validation } from '../src/team-protocol.ts';
 import { TeamValidationView } from '../src/team-validation-view.ts';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/catalog-v1.json', import.meta.url), 'utf8'));
+const orcFixture = JSON.parse(readFileSync(new URL('./fixtures/catalog-orc-v1.json', import.meta.url), 'utf8'));
 const result: Validation = { version: 1, type: 'teamValidation', requestId: 'test', catalogVersion: fixture.catalogVersion, ruleset: 'BB2025', draftVersion: 2, valid: true, total: 700000, budget: 1150000, skillPoints: 0, messages: [] };
 test('catalog fixture is runtime checked and new drafts retain version and ruleset', () => {
   const catalog = decodeTeam(JSON.stringify(fixture)) as Catalog;
@@ -30,6 +31,19 @@ test('Human skill choices respect category access, prerequisites and starting sk
   assert.equal(canPurchaseSkill(skill('saboteur'), position('lineman'), false), false);
   assert.equal(canPurchaseSkill(skill('right-stuff'), position('halfling'), false), false);
   assert.equal(canPurchaseSkill(skill('pro'), position('lineman'), true), false);
+});
+test('Orc catalog exposes its positions, reroll price and legal skill choices', () => {
+  const catalog = decodeTeam(JSON.stringify(orcFixture)) as Catalog;
+  assert.equal(catalog.rosterId, 'orc'); assert.equal(catalog.positions.length, 6);
+  assert.equal(catalog.resources.find(resource => resource.id === 'rerolls')?.cost, 60000);
+  const troll = catalog.positions.find(position => position.id === 'troll')!;
+  assert.deepEqual(troll.baseSkills.find(skill => skill.id === 'loner'), { id: 'loner', value: 4 });
+  assert.equal(troll.canCaptain, false);
+  const skill = (id: string) => catalog.skills.find(item => item.id === id)!;
+  assert.equal(canPurchaseSkill(skill('block'), troll, false), true);
+  assert.equal(canPurchaseSkill(skill('pass'), catalog.positions.find(position => position.id === 'orc-lineman')!, false), false);
+  assert.equal(canPurchaseSkill(skill('block'), catalog.positions.find(position => position.id === 'orc-blitzer')!, false), false);
+  assert.equal(emptyDraft(catalog).rosterId, 'orc');
 });
 test('unknown schema versions, fields, references and duplicate identifiers fail closed', () => {
   for (const invalid of [

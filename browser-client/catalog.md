@@ -1,15 +1,16 @@
-# BB2025 Human exhibition catalog
+# BB2025 Human and Orc exhibition catalogs
 
-Catalog `bb2025-human-2026-09-25.1`, ruleset `BB2025`, preset
-`human-exhibition-1150`. The owner selected **1,150,000 gold** on 2026-09-07
+Current catalog `bb2025-exhibition-2026-09-25.1`, ruleset `BB2025`, preset
+`exhibition-1150`, with selectable `human` and `orc` rosters. The owner selected **1,150,000 gold** on 2026-09-07
 (local time). This budget is a project preset choice, not a universal rule.
-The catalog is immutable for this version. The previous
-`bb2025-human-2026-09-08.1` and `bb2025-human-2026-09-24.1` catalogs remain
+The catalog is immutable for this version. Previous Human-only catalog versions
+`bb2025-human-2026-09-08.1`, `bb2025-human-2026-09-24.1`, and `bb2025-human-2026-09-25.1` remain
 readable in frozen matches.
 Account saved teams may be cleared at activation under the owner's authorization;
 there is no implicit draft migration.
-The browser and Java tests share `test/fixtures/catalog-v1.json` as a pinned wire
-fixture. The Java catalog verifies every declared skill against the BB2025 engine
+The browser and Java tests share `test/fixtures/catalog-v1.json` and
+`test/fixtures/catalog-orc-v1.json` as pinned Human and Orc wire fixtures.
+The Java catalog verifies every declared skill against the BB2025 engine
 factory and category, failing startup if a mapping is unresolved.
 
 ## Source and legacy comparison
@@ -50,8 +51,13 @@ Elite limit is per purchased skill, not an aggregate limit across all Elite skil
 
 ## Supported content and validation
 
-Exactly one roster: `human`. Positions: `lineman`, `halfling`, `catcher`, `thrower`,
-`blitzer`, `ogre`. All listed base skills are mandatory catalog facts, never client
+Two rosters: `human` and `orc`. Human positions are `lineman`, `halfling`,
+`catcher`, `thrower`, `blitzer`, `ogre`. Orc positions are `orc-lineman`,
+`goblin-lineman`, `orc-thrower`, `orc-blitzer`, `big-un-blocker`, `troll`.
+The [Orc roster](https://bloodbowlbase.ru/bb2025/teams/Orc/) and its
+[readiness record](../.notes/overhaul-analysis/m6-orc-content-readiness.md)
+pin its costs, stats, skill access, starting traits and accepted sprite mapping.
+All listed base skills are mandatory catalog facts, never client
 claims. The [BB2025 definitions](../ffb-server/src/main/java/com/fumbbl/ffb/server/team/bb2025/SkillDefinitions.java)
 cover all 72 learnable core skills and 36 core traits. The 36 traits are
 cataloged as base-only and cannot be purchased. Human positions can legally

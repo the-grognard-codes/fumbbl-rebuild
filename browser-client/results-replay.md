@@ -5,11 +5,12 @@ pending/read-only text and fail-closed foreign-match responses. Terminal storage
 uncertainty keeps new actions locked until exact reconciliation. Result, replay
 and database formats remain unchanged.
 
-The unchanged `human-exhibition-1150` preset uses native BB2025 scoring, two
+The exhibition preset uses native BB2025 scoring, two
 eight-turn halves, subsequent drive setup/kickoff and halftime recovery/rerolls.
 Overtime is disabled (the existing default); draws are final results. There is
-no concession command, progression campaign, historical replay import or new
-catalog content. Native endgame settlement still runs. Only its legacy external
+no concession command, progression campaign or historical replay import.
+Human and Orc teams share the current exhibition preset; historical Human
+matches retain their frozen catalog metadata. Native endgame settlement still runs. Only its legacy external
 replay-save side effect is bypassed for application-owned engine sessions.
 
 ## Live state and completion

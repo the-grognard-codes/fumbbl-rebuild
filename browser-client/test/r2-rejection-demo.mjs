@@ -43,7 +43,7 @@ try {
   await Promise.all([connect(0), connect(1)]);
   const teams = [];
   for (let index = 0; index < 2; index++) {
-    const draft = { catalogVersion: 'bb2025-human-2026-09-25.1', ruleset: 'BB2025', rosterId: 'human', presetId: 'human-exhibition-1150', captainId: null,
+    const draft = { catalogVersion: 'bb2025-exhibition-2026-09-25.1', ruleset: 'BB2025', rosterId: 'human', presetId: 'exhibition-1150', captainId: null,
       players: Array.from({ length: 11 }, (_, n) => ({ id: `p${n + 1}`, slot: n + 1, positionId: 'lineman', skillIds: [] })),
       resources: { rerolls: 0, assistantCoaches: 0, cheerleaders: 0, apothecary: 0, dedicatedFans: 0 } };
     const reply = await raw(index, request('savedTeam', 'create', { draft })); assert.equal(reply.code, 'OK'); teams.push(reply.document);

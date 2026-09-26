@@ -10,13 +10,23 @@ const humanSprites: Record<string, string> = {
   lineman: '10-lineman-man.png', blitzer: '02-blitzer-man.png', catcher: '05-catcher-man.png',
   thrower: '06-thrower-man.png', ogre: '01-ogre-man.png', halfling: '14-halfling-man.png'
 };
+const orcSprites: Record<string, string[]> = {
+  'orc-lineman': ['08-line-orc-man.png', '09-line-orc-woman.png', '10-line-orc-man.png', '11-line-orc-woman.png', '12-line-orc-man.png', '13-line-orc-woman.png'],
+  'goblin-lineman': ['14-goblin-man.png', '15-goblin-woman.png', '16-goblin-woman.png'],
+  'orc-thrower': ['06-thrower-man.png', '07-thrower-woman.png'],
+  'orc-blitzer': ['02-blitzer-man.png', '03-blitzer-woman.png'],
+  'big-un-blocker': ['04-big-un-man.png', '05-big-un-woman.png'],
+  troll: ['01-troll-man.png']
+};
 const pitchUrl = import.meta.env.DEV ? '/live-pitch.svg' : '/assets/game/live-pitch.svg';
 
 function spriteUrl(player: SetupPlayer) {
-  if (player.art?.rosterId !== 'human') return null;
-  const file = humanSprites[player.art.positionId];
+  if (!player.art) return null;
+  const roster = player.art.rosterId;
+  const variants = roster === 'orc' ? orcSprites[player.art.positionId] : null;
+  const file = variants?.[(player.slot - 1) % variants.length] ?? (roster === 'human' ? humanSprites[player.art.positionId] : null);
   if (!file) return null;
-  return import.meta.env.DEV ? `/preview/humans-64px-chibi-v1/${file}` : `/assets/team-sprites/humans/${file}`;
+  return import.meta.env.DEV ? `/preview/${roster === 'orc' ? 'orcs' : 'humans'}-64px-chibi-v1/${file}` : `/assets/team-sprites/${roster === 'orc' ? 'orcs' : 'humans'}/${file}`;
 }
 
 function PlayerMarker({ player, scale, active, selected, target, onSelect, onFocus, onBlur, readOnly }: {
@@ -32,7 +42,7 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
     style={{ left: (OFFSET + player.x! * CELL) * scale, top: (OFFSET + player.y! * CELL) * scale,
       width: CELL * scale, height: CELL * scale, zIndex: 10 + player.y! * 26 + player.x! }}
     onFocus={onFocus} onBlur={onBlur} onClick={event => { event.stopPropagation(); onSelect(); }}>
-    {sprite && !failed ? <img src={sprite} alt="" onError={() => setFailed(true)} className={player.art?.positionId === 'ogre' ? 'large' : ''}/> :
+    {sprite && !failed ? <img src={sprite} alt="" onError={() => setFailed(true)} className={player.art?.positionId === 'ogre' || player.art?.positionId === 'troll' ? 'large' : ''}/> :
       <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{player.slot}</span>}
     <span className="live-number">{player.slot}</span>
   </button>;

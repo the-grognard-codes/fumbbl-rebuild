@@ -11,28 +11,36 @@ const spriteFiles: Record<string, string> = {
   lineman: '08-lineman-man.png',
   halfling: '14-halfling-man.png'
 };
+const orcSpriteFiles: Record<string, string> = {
+  troll: '01-troll-man.png', 'orc-blitzer': '02-blitzer-man.png',
+  'big-un-blocker': '04-big-un-man.png', 'orc-thrower': '06-thrower-man.png',
+  'orc-lineman': '08-line-orc-man.png', 'goblin-lineman': '14-goblin-man.png'
+};
 const positionOrder = ['ogre', 'blitzer', 'catcher', 'thrower', 'lineman', 'halfling'];
+const orcPositionOrder = ['troll', 'orc-blitzer', 'big-un-blocker', 'orc-thrower', 'orc-lineman', 'goblin-lineman'];
 const money = (value: number) => `${value.toLocaleString('en-US')} GP`;
 
-function sprite(positionId: string) {
-  const file = spriteFiles[positionId];
-  return file ? `/assets/team-sprites/humans/${file}` : null;
+function sprite(rosterId: string, positionId: string) {
+  const file = (rosterId === 'orc' ? orcSpriteFiles : spriteFiles)[positionId];
+  return file ? `/assets/team-sprites/${rosterId === 'orc' ? 'orcs' : 'humans'}/${file}` : null;
 }
 
 function nextAvailable(values: number[], maximum: number) {
   return Array.from({ length: maximum }, (_, index) => index + 1).find(value => !values.includes(value));
 }
 
-export function BuilderDraftEditor({ catalog, draft, update, editable, validate, validation }: {
+export function BuilderDraftEditor({ catalog, draft, update, editable, validate, validation, selectRoster }: {
   catalog: Catalog;
   draft: TeamDraft;
   update: (draft: TeamDraft) => void;
   editable: boolean;
   validate: () => void;
   validation: Validation | null;
+  selectRoster: (rosterId: string) => void;
 }) {
   const [detailsVisible, setDetailsVisible] = useState(false);
-  const positions = [...catalog.positions].sort((a, b) => positionOrder.indexOf(a.id) - positionOrder.indexOf(b.id));
+  const order = catalog.rosterId === 'orc' ? orcPositionOrder : positionOrder;
+  const positions = [...catalog.positions].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   const skillNames = new Map(catalog.skills.map(skill => [skill.id, skill.name]));
   const counts = new Map(catalog.positions.map(position => [position.id, draft.players.filter(player => player.positionId === position.id).length]));
   const playerTotal = draft.players.reduce((sum, player) => sum + (catalog.positions.find(position => position.id === player.positionId)?.cost ?? 0), 0);
@@ -77,7 +85,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
   return <>
     <section className="builder-controls panel" aria-label="Team Options">
       <label>Team Name <input aria-label="Team name" maxLength={50} placeholder="The Moles" autoComplete="off" disabled={!editable} value={draft.teamName} onChange={event => update({ ...draft, teamName: event.target.value.normalize('NFC') })} /></label>
-      <label>Team <select aria-label="Team" value={catalog.rosterId} disabled><option value={catalog.rosterId}>{catalog.name}</option></select></label>
+      <label>Team <select aria-label="Team" value={catalog.rosterId} disabled={!editable} onChange={event => selectRoster(event.target.value)}><option value="human">Human</option><option value="orc">Orc</option></select></label>
       <label>Creation mode <select aria-label="Creation mode" value={catalog.presetId} disabled><option value={catalog.presetId}>Match-ready · {money(catalog.budget)}</option></select></label>
       <button className="button secondary" type="button" aria-expanded={detailsVisible} onClick={() => setDetailsVisible(value => !value)}>{detailsVisible ? 'Hide' : 'Show'} Team Details</button>
     </section>
@@ -93,7 +101,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
     <div className="builder-grid">
       <section className="panel recruitment"><h2>Recruit Players</h2><div className="position-list">{positions.map(position => {
         const count = counts.get(position.id) ?? 0;
-        const image = sprite(position.id);
+        const image = sprite(catalog.rosterId, position.id);
         return <article className="position" key={position.id}>
           {image && <img className="sprite" src={image} alt="" />}
           <h3>{position.name}</h3><p>{count} / {position.maximum} · {money(position.cost)}</p>
@@ -117,7 +125,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
       <div className="roster" aria-live="polite">{orderedPlayers.length ? orderedPlayers.map((player, index) => {
         const position = catalog.positions.find(item => item.id === player.positionId);
         const eligibleSkills = catalog.skills.filter(skill => position && canPurchaseSkill(skill, position, draft.captainId === player.id));
-        const image = sprite(player.positionId);
+        const image = sprite(catalog.rosterId, player.positionId);
         return <article className="roster-row" key={player.id}>
           {image && <img src={image} alt="" />}
           <div className="position-name">{position?.name ?? player.positionId}<div className="skills">{position?.baseSkills.map(skill => skillNames.get(skill.id) ?? skill.id).join(', ') || 'No starting skills'}</div></div>

@@ -16,7 +16,7 @@ Status: **M0–M4 milestone direction accepted by the owner on 2026-09-06; M5/M6
 
 M0–M4 total **60–122 engineering days**, excluding dedicated art production, major rule defects, legal review, provider/account setup, unbounded roster expansion, and ongoing maintenance. M5 and M6 are additional ranges and are not included in that historical total. These ranges assume a limited starter catalog and reuse of the current executor/database. They are not a quote for every BB2025 roster or complete platform parity. Re-estimate M5 after a renderer parity spike and live-contract inventory; the integration and accessibility effort is not established by the local visual preview.
 
-The [Orc content readiness record](m6-orc-content-readiness.md) is an independently testable M6 content slice. It records source facts and engine mapping evidence; match-ready Orc support still requires the listed catalog, saved-team, freeze and gameplay gates.
+The [Orc content readiness record](m6-orc-content-readiness.md) is an independently testable M6 content slice. It records source facts, engine mapping and the implemented catalog, saved-team, freeze and browser paths; hosted release checks remain outstanding.
 
 The [Human skill expansion](m6-human-skills-2026-09-25.md) adds five BB2025 purchases to the existing art-supported roster on the separate M6 working branch.
 

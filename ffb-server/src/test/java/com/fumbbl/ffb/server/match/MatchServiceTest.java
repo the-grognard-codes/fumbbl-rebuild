@@ -71,6 +71,23 @@ class MatchServiceTest {
 		assertEquals(1, accepted("home", load(id)).get("document").asObject().get("home").asObject().getInt("sourceDocumentVersion", 0));
 	}
 	@Test
+	void humanAndOrcTeamsSaveJoinAndFreezeIndependentRosterFacts() throws Exception {
+		String orcId = teams.create("away", orcDraft()).document.teamId;
+		assertEquals("CURRENT", teams.load("away", orcId).versionStatus);
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		JsonObject joined = accepted("away", join(id, orcId)).get("document").asObject();
+		assertEquals("human", joined.get("home").asObject().getString("rosterId", null));
+		assertEquals("orc", joined.get("away").asObject().getString("rosterId", null));
+		assertEquals(RosterCatalog.VERSION, joined.get("away").asObject().getString("catalogVersion", null));
+		JsonObject storedAway = JsonObject.readFrom(matches.rows.get(id).json).get("away").asObject();
+		assertEquals(60000, storedAway.get("resolvedCatalog").asObject().get("resources").asArray().get(0).asObject().getInt("cost", -1));
+		assertEquals(4, storedAway.get("roster").asObject().get("players").asArray().get(10).asObject()
+			.get("position").asObject().get("parameters").asObject().getInt("loner", -1));
+		assertEquals("AWAITING_SETUP", joined.getString("lifecycle", null));
+		assertEquals(joined, accepted("home", load(id)).get("document"));
+		accepted("home", activate(id));
+	}
+	@Test
 	void expandedCatalogFitsPreparedMatchStorageLimitForTwoTeams() {
 		String id = matchId(accepted("home", create(homeTeam, "away")));
 		accepted("away", join(id, awayTeam));
@@ -80,22 +97,26 @@ class MatchServiceTest {
 	void frozenMatchFromPreviousHumanCatalogRemainsReadable() {
 		Set<String> oldSkills = new HashSet<>(Arrays.asList("block", "dodge", "catch", "pass", "sure-hands", "tackle",
 			"pro", "right-stuff", "stunty", "bone-head", "loner", "mighty-blow", "thick-skull", "throw-team-mate"));
-		for (String version : Arrays.asList(RosterCatalog.LEGACY_VERSION, RosterCatalog.PREVIOUS_VERSION)) {
+		for (String version : Arrays.asList(RosterCatalog.LEGACY_VERSION, RosterCatalog.PREVIOUS_VERSION, RosterCatalog.HUMAN_SKILLS_VERSION)) {
 			String id = matchId(accepted("home", create(homeTeam, "away")));
 			JsonObject stored = JsonObject.readFrom(matches.rows.get(id).json);
 			JsonObject home = stored.get("home").asObject();
 			home.set("catalogVersion", version);
+			home.set("presetId", "human-exhibition-1150");
 			home.set("presetVersion", version);
 			JsonObject resolved = home.get("resolvedCatalog").asObject();
 			resolved.set("catalogVersion", version);
+			resolved.set("presetId", "human-exhibition-1150");
 			Set<String> supported = new HashSet<>(oldSkills);
 			if (RosterCatalog.PREVIOUS_VERSION.equals(version)) supported.addAll(Arrays.asList("guard", "wrestle", "sidestep", "sure-feet"));
+			if (RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)) supported.addAll(com.fumbbl.ffb.server.team.bb2025.SkillDefinitions.all().keySet());
 			com.eclipsesource.json.JsonArray skills = resolved.get("skills").asArray();
 			for (int index = skills.size() - 1; index >= 0; index--) {
 				JsonObject skill = skills.get(index).asObject();
 				String skillId = skill.get("id").asString();
 				if (!supported.contains(skillId)) skills.remove(index);
-				else if ("thick-skull".equals(skillId) || ("mighty-blow".equals(skillId) && RosterCatalog.LEGACY_VERSION.equals(version)))
+				else if (!RosterCatalog.HUMAN_SKILLS_VERSION.equals(version)
+					&& ("thick-skull".equals(skillId) || ("mighty-blow".equals(skillId) && RosterCatalog.LEGACY_VERSION.equals(version))))
 					skill.set("selectable", false);
 			}
 			matches.rows.put(id, new MatchRepository.Record(id, 1, stored.toString()));
@@ -355,6 +376,14 @@ class MatchServiceTest {
 		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, "lineman", Collections.emptyList()));
 		Map<String, Integer> resources = new LinkedHashMap<>(); for (String key : catalog.getResources().keySet()) resources.put(key, 0); resources.put("rerolls", rerolls);
 		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "p1", players, resources);
+	}
+	private TeamDraft orcDraft() {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot,
+			slot == 11 ? "troll" : "orc-lineman", Collections.emptyList()));
+		Map<String, Integer> resources = new LinkedHashMap<>(); for (String key : catalog.getResources().keySet()) resources.put(key, 0);
+		resources.put("rerolls", 2); resources.put("apothecary", 1);
+		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "orc", RosterCatalog.PRESET, "p1", players, resources);
 	}
 	private static final class Teams implements SavedTeamRepository {
 		final Map<String, Record> rows = new LinkedHashMap<>(); Runnable afterRead;

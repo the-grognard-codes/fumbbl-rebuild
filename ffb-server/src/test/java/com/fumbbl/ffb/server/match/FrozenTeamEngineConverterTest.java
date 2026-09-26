@@ -85,6 +85,29 @@ class FrozenTeamEngineConverterTest {
 		assertNotEquals(converter.convert(frozen(null), game.getRules()).getPlayers()[0].getId(), converter.convert(frozen(null), game.getRules()).getPlayers()[0].getId());
 	}
 	@Test
+	void orcPositionsAndTrollLonerFourSurviveNativeConversion() {
+		RosterCatalog orcs = catalog.forRoster("orc");
+		List<TeamDraft.Player> players = new ArrayList<>(); int slot = 1;
+		for (String position : orcs.getPositions().keySet()) players.add(new TeamDraft.Player("p" + slot, slot++, position, Collections.emptyList()));
+		while (slot <= 11) { players.add(new TeamDraft.Player("p" + slot, slot, "orc-lineman", Collections.emptyList())); slot++; }
+		Map<String, Integer> resources = new LinkedHashMap<>(); for (String key : orcs.getResources().keySet()) resources.put(key, 0);
+		resources.put("rerolls", 2); resources.put("apothecary", 1);
+		TeamDraft draft = new TeamDraft(RosterCatalog.VERSION, "BB2025", "orc", RosterCatalog.PRESET, "p1", players, resources);
+		TeamValidation.Evaluation result = new TeamValidation(catalog).evaluate(draft);
+		assertTrue(result.isValid(), result.messages.toString());
+		FrozenTeam frozen = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", draft, result.total, result.skillPoints, catalog);
+		Team team = converter.convert(frozen, game.getRules());
+		assertEquals("orc", team.getRosterId()); assertEquals(60000, team.getRoster().getReRollCost());
+		Player<?> troll = team.getPlayerById(frozen.sourceTeamId + ":p6");
+		assertEquals("4", troll.getPosition().getSkillValue(skills.forName("Loner")));
+		assertEquals("1", troll.getPosition().getSkillValue(skills.forName("Mighty Blow")));
+		for (String name : new String[] {"Always Hungry", "Projectile Vomit", "Really Stupid", "Regeneration", "Throw Team-Mate"})
+			assertTrue(troll.hasSkillExcludingTemporaryOnes(skills.forName(name)), name);
+		Player<?> blocker = team.getPlayerById(frozen.sourceTeamId + ":p5");
+		assertTrue(blocker.hasSkillExcludingTemporaryOnes(skills.forName("Taunt")));
+		assertTrue(blocker.hasSkillExcludingTemporaryOnes(skills.forName("Unsteady")));
+	}
+	@Test
 	void namedPlayersUseTheirFrozenNamesAndJerseyNumbersInTheEngine() {
 		List<TeamDraft.Player> players = new ArrayList<>();
 		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, slot == 1 ? 99 : slot,
