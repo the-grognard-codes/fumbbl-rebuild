@@ -156,7 +156,12 @@ public final class MatchJson {
 				JsonObject event = value.asObject(); exact(event, "revision", "kind", "state"); int revision = event.getInt("revision", -1);
 				if (revision != prior + 1 || revision > finalRevision || !("START".equals(event.getString("kind", null)) || "ACTION".equals(event.getString("kind", null)) || "SELECTION".equals(event.getString("kind", null)) || "TOUCHDOWN".equals(event.getString("kind", null)) || "HALFTIME".equals(event.getString("kind", null)) || "FULL_TIME".equals(event.getString("kind", null)))) throw new IllegalArgumentException(); prior = revision;
 				JsonObject state = event.get("state").asObject();
-				exact(state, "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
+				boolean versionedArt = state.get("projectionVersion") != null;
+				if (versionedArt) {
+					int version = state.getInt("projectionVersion", -1);
+					if (version != 2 && version != 3) throw new IllegalArgumentException();
+					exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
+				} else exact(state, "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
 				if (state.get("actions").asArray().size() != 0 || !state.get("prompt").isNull() || !"home".equals(state.getString("callerRole", null)) || !document.matchId.equals(state.getString("matchId", null)) || state.getInt("revision", -1) != revision) throw new IllegalArgumentException();
                 validateReplayState(state);
                 if (event.toString().getBytes(StandardCharsets.UTF_8).length > 65536) throw new IllegalArgumentException();
@@ -180,7 +185,15 @@ public final class MatchJson {
         JsonArray players = state.get("players").asArray(); if (players.size() > 32) throw new IllegalArgumentException();
         Set<String> ids = new HashSet<>();
         for (JsonValue value : players) {
-            JsonObject player = value.asObject(); exact(player, "id", "name", "slot", "role", "state", "x", "y");
+			JsonObject player = value.asObject();
+			if (state.get("projectionVersion") != null) {
+				exact(player, "id", "name", "slot", "art", "role", "state", "x", "y");
+				if (!player.get("art").isNull()) {
+					JsonObject art = player.get("art").asObject(); exact(art, "rosterId", "positionId");
+					shortText(art.get("rosterId")); shortText(art.get("positionId"));
+					if (art.getString("rosterId", "").length() > 60 || art.getString("positionId", "").length() > 60) throw new IllegalArgumentException();
+				}
+			} else exact(player, "id", "name", "slot", "role", "state", "x", "y");
             shortText(player.get("id")); shortText(player.get("name")); shortText(player.get("state"));
             if (!ids.add(player.get("id").asString())) throw new IllegalArgumentException();
             bounded(player.get("slot"), 1, 16); subject(player.get("role"));

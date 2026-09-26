@@ -1,5 +1,13 @@
 # TODO
 
+- [ ] **M5 authoritative success percentages.** Add a reviewed, versioned
+  `/browser/v2` contract for any per-step or whole-path success percentage shown
+  on the DOM/SVG movement overlay. Define whether each value includes rerolls,
+  distinguish it from a dice target such as `3+`, and verify the calculation
+  against BB2025 engine cases and actor/spectator projections. Until the server
+  supplies this information, omit percentage labels from the live client; do
+  not derive odds from the local parity preview's illustrative risk colors.
+
 - [ ] **R4 storage admission policy.** Define the configured FUMBBL-owned
   storage roots and enforce the requested 5 GiB per boot-disk admission cap
   before a new durable write. The policy must account for match results,

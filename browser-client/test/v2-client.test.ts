@@ -77,6 +77,19 @@ test('foreign saved-team content is rejected even on uncertain save responses', 
   }
 });
 
+test('participant result reads retain match correlation and reject foreign replay content', async () => {
+  const metadata = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
+    presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId: match, homeScore: 1, awayScore: 0, finalRevision: 2, eventCount: 3 };
+  const accepted = fixture(); const socket = await accepted.connect();
+  const requestId = accepted.client.request('matchResult', { operation: 'load', matchId: match });
+  socket.reply({ type: 'matchResult', requestId, code: 'ACCEPTED', result: metadata, event: null });
+  assert.equal(accepted.events.at(-1).result.matchId, match);
+  const foreign = fixture(); const other = await foreign.connect();
+  const foreignId = foreign.client.request('matchResult', { operation: 'load', matchId: match });
+  other.reply({ type: 'matchResult', requestId: foreignId, code: 'ACCEPTED', result: { ...metadata, matchId: account }, event: null });
+  assert.equal(other.closed, true); assert.equal(foreign.events.at(-1).code, 'INVALID_RESPONSE');
+});
+
 test('an opponent preparation response cannot carry a creator invitation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });
@@ -93,17 +106,28 @@ class Socket {
   close() { this.closed = true; }
   reply(message: any) { this.onmessage?.({ data: JSON.stringify({ version: 2, ...message }) }); }
 }
-function fixture(storageData = new Map<string, string>()) {
+function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }) {
   const sockets: Socket[] = []; const events: any[] = [];
   const storage = { getItem: (key: string) => storageData.get(key) ?? null, setItem: (key: string, value: string) => { storageData.set(key, value); }, removeItem: (key: string) => storageData.delete(key) } as Storage;
   const client = new V2Client({ url: 'ws://127.0.0.1/browser/v2', getToken: async () => 'secret-bearer',
-    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage });
+    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch });
   async function connect() {
     client.connect(); const socket = sockets.at(-1)!; await socket.onopen!();
     socket.reply({ type: 'authentication', code: 'ACCEPTED', requestId: socket.sent[0].requestId, accountId: account }); return socket;
   }
   return { client, connect, sockets, events, storageData };
 }
+
+test('a direct spectator match link loads and reconnects through one v2 selection', async () => {
+  const { client, connect } = fixture(new Map(), { matchId: match, watch: true });
+  let socket = await connect();
+  assert.equal(socket.sent.filter(request => request.type === 'watch').length, 1);
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: socket.sent.at(-1).requestId, duplicate: false, state });
+  assert.equal(client.state?.callerRole, 'spectator');
+  socket = await connect();
+  assert.equal(socket.sent.filter(request => request.type === 'watch').length, 1);
+  assert.throws(() => client.request('setup', { matchId: match, operation: 'action' }, true), /read-only/);
+});
 
 test('unavailable Firebase token reports a safe authentication error before disconnecting', async () => {
   const socket = new Socket(); const events: any[] = [];
@@ -170,7 +194,7 @@ test('page reload recovers the pending player selection before an explicit exact
   const first = fixture(); const originalSocket = await first.connect();
   first.client.request('setup', { matchId: match, operation: 'confirm', expectedRevision: 2 }, true);
   const original = originalSocket.sent.at(-1);
-  const reloaded = fixture(first.storageData); const socket = await reloaded.connect();
+  const reloaded = fixture(first.storageData, { matchId: match, watch: false }); const socket = await reloaded.connect();
   assert.equal(socket.sent.at(-1).operation, 'load');
   assert.equal(socket.sent.filter(request => request.operation === 'confirm').length, 0);
   reloaded.client.retry(); assert.deepEqual(socket.sent.at(-1), original);

@@ -180,8 +180,8 @@ public final class CorePromptActions {
 			Pushback pushback = new Pushback(pushed.getId(), square.getCoordinate());
 			FieldCoordinate canonical = square.getCoordinate();
 			ClientCommand command = new ClientCommandPushback("away".equals(role) ? pushback.transform() : pushback);
-			add(result, "push:" + pushed.getId() + ":" + canonical.getX() + ":" + canonical.getY(), "push",
-				"Push to " + canonical.getX() + ", " + canonical.getY(), role, command);
+			result.add(new CoreTurnActions.Action("push:" + pushed.getId() + ":" + canonical.getX() + ":" + canonical.getY(), "push",
+				"Push to " + canonical.getX() + ", " + canonical.getY(), role, command, canonical));
 		}
 	}
 

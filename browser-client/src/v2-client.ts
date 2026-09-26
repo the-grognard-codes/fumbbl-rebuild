@@ -2,6 +2,7 @@ import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
+import { decodeMatchResult } from './result-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
@@ -9,6 +10,7 @@ export type PendingIntent = { accountId: string; request: V2Message };
 type ClientOptions = {
   url: string; getToken: () => Promise<string>; onChange: (message: V2Message) => void;
   makeSocket?: (url: string) => WebSocket; storage?: Storage;
+  initialMatch?: { matchId: string; watch: boolean };
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -28,6 +30,10 @@ export class V2Client {
   private options: ClientOptions;
   constructor(options: ClientOptions) {
     this.options = options;
+    if (options.initialMatch) {
+      if (!uuid.test(options.initialMatch.matchId)) throw Error('Enter a valid match ID.');
+      this.selection = options.initialMatch;
+    }
     try {
       const raw = options.storage?.getItem(v2PendingKey);
       if (raw && raw.length <= 20000) {
@@ -86,7 +92,7 @@ export class V2Client {
     const request = { ...fields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
       if (this.pending) throw Error('Resolve the retained request before submitting another change.');
-      if (type === 'setup' && this.state?.callerRole === 'spectator') throw Error('This game is read-only.');
+      if (type === 'setup' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
       if (!this.options.storage) throw Error('Retry storage is unavailable.');
       const pending = { accountId: this.accountId, request };
       this.options.storage.setItem(v2PendingKey, JSON.stringify(pending));
@@ -157,6 +163,11 @@ export class V2Client {
       this.preparationMatchId = message.document.matchId;
       this.selection = null; this.state = null;
     }
+    if (message.type === 'matchResult') {
+      const decoded = decodeMatchResult(JSON.stringify({ ...message, version: 1 }));
+      if (!request || request.type !== 'matchResult' || (decoded.result && decoded.result.matchId !== request.matchId)) throw Error('Foreign result');
+      message.result = decoded.result; message.event = decoded.event;
+    }
     if (message.type === 'savedTeam') {
       const document = message.document;
       if (document && (![2, 3].includes(document.formatVersion) || document.owner?.namespace !== 'account'
@@ -180,5 +191,10 @@ export class V2Client {
     }
     if (request) this.requests.delete(message.requestId);
     this.options.onChange(message);
+    if (request?.type === 'setup' && request.operation === 'action'
+      && ['STALE_REVISION', 'WRONG_PHASE', 'WRONG_ACTOR', 'PROMPT_MISMATCH'].includes(message.code)
+      && this.selection && !this.selection.watch) {
+      this.request('setup', { operation: 'load', matchId: this.selection.matchId });
+    }
   }
 }

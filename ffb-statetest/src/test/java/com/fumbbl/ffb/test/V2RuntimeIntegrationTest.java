@@ -222,6 +222,14 @@ class V2RuntimeIntegrationTest {
 		assertEquals(peerFrames + 1, opponent.unsolicited.size());
 		assertEquals(viewerFrames + 1, viewer.unsolicited.size());
 		assertEquals(1, completionWrites[0]);
+		JsonObject metadata = send(adapter, home, request("matchResult").add("operation", "load").add("matchId", match));
+		accepted(metadata);
+		assertEquals(2, metadata.getInt("version", -1));
+		int last = metadata.get("result").asObject().getInt("eventCount", 0) - 1;
+		JsonObject replay = send(adapter, away, request("matchResult").add("operation", "replay").add("matchId", match).add("index", last));
+		accepted(replay);
+		assertEquals("FULL_TIME", replay.get("event").asObject().getString("kind", null));
+		assertEquals("NOT_FOUND", send(adapter, viewer, request("matchResult").add("operation", "load").add("matchId", match)).getString("code", null));
 	}
 
 	private Object field(Object target, String name) throws Exception {
