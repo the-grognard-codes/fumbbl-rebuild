@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser Play and Team Builder clear stale authentication errors after a successful reconnect")
 			.addImprovement("Browser game activation opens the match in a separate tab or window, with a same-tab fallback when popups are blocked")
 			.addBugfix("Saved matches preserve unanswered Diving Tackle skill choices when recovering from a server restart")
 			.addFeature("BB2025 Orc teams can be built, saved and played against Human or Orc teams with the approved Orc sprites")

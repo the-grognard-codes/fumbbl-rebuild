@@ -11,6 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "build:play": "tsc --noEmit && vite build --config vite.play.config.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:reconnect-ui": "node test/reconnect-ui.mjs",
     "demo": "node test/browser-demo.mjs",
     "demo:choice": "node test/choice-demo.mjs",
     "demo:renderer-failures": "node test/renderer-failure-demo.mjs",

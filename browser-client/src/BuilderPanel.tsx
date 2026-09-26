@@ -34,7 +34,7 @@ export function BuilderPanel({ options }: { options: Options }) {
   useEffect(() => {
     const connection = new V2Client({ ...options, storage: sessionStorage, onChange: (message: V2Message) => {
       if (message.type === 'status') setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected');
-      if (message.type === 'authentication') setStatus('Connected');
+      if (message.type === 'authentication') { setStatus('Connected'); setError(''); }
       if (message.type === 'catalog') {
         try {
           const result = decodeTeam(JSON.stringify({ ...message, version: 1 }));
