@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Saved matches preserve unanswered Diving Tackle skill choices when recovering from a server restart")
 			.addFeature("BB2025 Orc teams can be built, saved and played against Human or Orc teams with the approved Orc sprites")
 			.addImprovement("BB2025 Human team builder offers all eligible core skills and records the full core skill and trait catalog")
 			.addImprovement("Browser matches add a labeled keyboard pitch companion, focused player summaries and reduced-motion friendly controls")
