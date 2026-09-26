@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Reconnect UI test</title></head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { mountPlay, mountBuilder } from '/src/play-entry.tsx';
+      const mount = new URLSearchParams(location.search).get('view') === 'builder' ? mountBuilder : mountPlay;
+      mount(document.getElementById('app'), { url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });
+    </script>
+  </body>
+</html>
