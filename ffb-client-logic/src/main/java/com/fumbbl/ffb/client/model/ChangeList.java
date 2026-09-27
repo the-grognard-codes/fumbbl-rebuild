@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser live matches keep the illustrated scoreboard, Fit pitch, compact dugouts, sidebar and decision ribbon together without page scrolling")
 			.addImprovement("Browser matches show frozen match-team names, player numbers, positions, attributes, skills and categorized bench status from the game server")
 			.addImprovement("Browser match windows use the MVP pitch-first layout, illustrated scoreboard and compact bench, with a visible exit and fullscreen control")
 			.addBugfix("Browser Play and Team Builder clear stale authentication errors after a successful reconnect")
