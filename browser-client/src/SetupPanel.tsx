@@ -3,7 +3,9 @@ import { decode } from './protocol.ts';
 import { LivePitch, spriteUrl } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
+import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
+import { matchDecision } from './match-decision.ts';
 import { PitchCompanion } from './PitchCompanion.tsx';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
@@ -205,6 +207,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
+  const decision = hosted ? matchDecision(view, availableActions) : null;
   const selectedActions = moreActions(availableActions, playerId);
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const canChoose = connected && !pending && !suspended;
@@ -299,6 +302,10 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? 'Home / Away' : view.callerRole === 'home' ? 'Home: You / Away: Opponent' : 'Home: Opponent / Away: You'}</p>
       {hosted && <LiveMatchScoreboard view={view}/>}
+      {decision && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
+        activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
+        onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
+        onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
         {availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
@@ -333,9 +340,6 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
       <LiveDugouts players={view.players} onSelect={selectPlayer}/>
       </div><aside className="match-side" aria-label="Match decisions and players">
         <section aria-label="Selected player" className="match-selected-player"><h3>Selected player</h3>{selectedPlayer ? <div className="match-player-card">{spriteUrl(selectedPlayer) && <img src={spriteUrl(selectedPlayer)!} alt=""/>}<p><strong>{selectedPlayer.name} #{selectedPlayer.number ?? selectedPlayer.slot}</strong><br/>{selectedPlayer.position ?? selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? (selectedPlayer.offPitch ?? 'Off pitch') : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}{selectedPlayer.ma !== undefined && <><br/>MA {selectedPlayer.ma} · ST {selectedPlayer.st} · AG {selectedPlayer.ag}+ · PA {selectedPlayer.pa ? `${selectedPlayer.pa}+` : '—'} · AV {selectedPlayer.av}+<br/>Skills: {selectedPlayer.skills?.join(', ') || 'None'}</>}</p></div> : <p>Select a player on the pitch or from the roster.</p>}</section>
-        {view.prompt && <section aria-label="Pre-match choice"><h3>{view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick'}</h3>
-          {view.prompt.actor === view.callerRole ? view.prompt.options.map(option => <button key={option} type="button" onClick={() => mutate('choice', { promptId: view.prompt!.id, optionId: option })} disabled={!connected || !!pending || suspended}>{option}</button>) : <p>Waiting for {view.prompt.actor} to choose.</p>}
-        </section>}
         {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Placement controls"><h3>Set up {view.actor}</h3>
           <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}><option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}>{player.name} #{player.slot}{player.x === null ? ' reserve' : ''}</option>)}</select></label>
           <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup} /></label>
