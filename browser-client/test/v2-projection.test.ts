@@ -10,6 +10,8 @@ const messages = [
   { type: 'preparationChanged', code: 'ACCEPTED', matchId: '12345678-1234-1234-1234-123456789abc' },
   { type: 'setupState', code: 'NOT_FOUND', duplicate: false, state: null },
   { type: 'matchResult', code: 'NOT_FOUND', result: null, event: null },
+  { type: 'matchTranscript', code: 'ACCEPTED', matchId: '12345678-1234-1234-1234-123456789abc',
+    page: { formatVersion: 2, from: 0, next: 0, total: 0, records: [] } },
   { type: 'preparedMatch', code: 'NOT_FOUND', duplicate: false, callerRole: null, document: null, recoveryMatchId: null },
   { type: 'savedTeam', code: 'NOT_FOUND', document: null, versionStatus: null, validation: null, teams: [] },
   JSON.parse(readFileSync(new URL('./fixtures/catalog-v1.json', import.meta.url), 'utf8')),

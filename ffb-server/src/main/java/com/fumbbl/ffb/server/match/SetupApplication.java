@@ -157,7 +157,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recovery.find(id);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume);
+					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
@@ -321,6 +321,18 @@ public final class SetupApplication {
 		if (session == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 		if (recovery != null) lastAccess.put(matchId, clock.millis());
 		return session.decorateSaveResumeState(session.spectatorView());
+	}
+
+	/** Bounded public history; the caller must authorize the viewer for this active match first. */
+	public JsonObject transcriptPage(String matchId, int from, int limit) throws SQLException {
+		MatchDocument document = matches.load("home", matchId).document;
+		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
+		releaseIdle();
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (recovery != null) lastAccess.put(matchId, clock.millis());
+		return session.transcriptPage(from, limit);
 	}
 
 	private void validate(JsonObject request) {
