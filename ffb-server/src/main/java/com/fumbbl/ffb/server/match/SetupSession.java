@@ -571,18 +571,11 @@ public final class SetupSession {
 				.add("options", new JsonArray().add(coin ? "heads" : "receive").add(coin ? "tails" : "kick"));
 		}
 		JsonArray legal = new JsonArray();
+        ActionSource source = new ActionSource();
         for (Action action : actions()) {
             JsonValue target = action.targetPlayerId != null ? new JsonObject().add("playerId", action.targetPlayerId)
                 : action.targetSquare != null ? new JsonObject().add("x", action.targetSquare.getX()).add("y", action.targetSquare.getY()) : JsonValue.NULL;
-            String sourcePlayerId = game.getActingPlayer().getPlayerId();
-            if (action.targetPlayerId != null && ("select".equals(action.kind) || "selectBlock".equals(action.kind)
-                || "blitz".equals(action.kind) || "stand".equals(action.kind) || "forgo".equals(action.kind)))
-                sourcePlayerId = action.targetPlayerId;
-            if (sourcePlayerId != null) {
-                Player<?> source = game.getPlayerById(sourcePlayerId);
-                Team actingTeam = "home".equals(action.role) ? game.getTeamHome() : game.getTeamAway();
-                if (source == null || source.getTeam() != actingTeam) sourcePlayerId = null;
-            }
+            String sourcePlayerId = source.playerId(game, action);
             legal.add(new JsonObject().add("id", actionId(action)).add("kind", action.kind)
                 .add("label", action.label).add("actor", action.role).add("target", target)
                 .add("sourcePlayerId", sourcePlayerId == null ? JsonValue.NULL : JsonValue.valueOf(sourcePlayerId)));
