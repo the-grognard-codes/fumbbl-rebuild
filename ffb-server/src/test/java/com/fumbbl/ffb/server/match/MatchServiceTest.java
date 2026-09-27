@@ -271,6 +271,24 @@ class MatchServiceTest {
 		JsonObject invalid = JsonObject.readFrom(completed(id, 0, 0).json()); invalid.get("events").asArray().get(0).asObject().set("kind", "TURN");
 		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class, () -> service.complete("home", id, new CompletedMatch(invalid.toString()))).code);
 	}
+	@Test
+	void versionFourReplayAcceptsPublicMatchFactsAndRejectsTampering() throws Exception {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam)); accepted("home", activate(id));
+		MatchDocument document = service.load("home", id).document;
+		JsonObject artifact = JsonObject.readFrom(completed(id, 0, 0).json());
+		JsonObject state = artifact.get("events").asArray().get(0).asObject().get("state").asObject();
+		state.add("projectionVersion", 4).add("homeTeamName", "Home").add("awayTeamName", "Away")
+			.add("homeResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0))
+			.add("awayResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0));
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		state.set("homeTeamName", "Imposter");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		state.set("homeTeamName", "Home").get("homeResources").asObject().add("privateGold", 1);
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+	}
 
 	@Test
 	void resultEndpointLimitsReadsToMembersAndReturnsOnlyRequestedReplayEvent() throws Exception {

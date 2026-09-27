@@ -159,8 +159,13 @@ public final class MatchJson {
 				boolean versionedArt = state.get("projectionVersion") != null;
 				if (versionedArt) {
 					int version = state.getInt("projectionVersion", -1);
-					if (version != 2 && version != 3) throw new IllegalArgumentException();
-					exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
+					if (version != 2 && version != 3 && version != 4) throw new IllegalArgumentException();
+					if (version == 4) {
+						exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls", "homeTeamName", "awayTeamName", "homeResources", "awayResources");
+						String homeName = document.home.team.teamName.isEmpty() ? "Home" : document.home.team.teamName;
+						String awayName = document.away.team.teamName.isEmpty() ? "Away" : document.away.team.teamName;
+						if (!homeName.equals(state.getString("homeTeamName", null)) || !awayName.equals(state.getString("awayTeamName", null))) throw new IllegalArgumentException();
+					} else exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
 				} else exact(state, "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls");
 				if (state.get("actions").asArray().size() != 0 || !state.get("prompt").isNull() || !"home".equals(state.getString("callerRole", null)) || !document.matchId.equals(state.getString("matchId", null)) || state.getInt("revision", -1) != revision) throw new IllegalArgumentException();
                 validateReplayState(state);
@@ -172,6 +177,17 @@ public final class MatchJson {
 	}
 
     private void validateReplayState(JsonObject state) {
+        boolean detailsV4 = state.getInt("projectionVersion", 1) == 4;
+        if (detailsV4) {
+            shortText(state.get("homeTeamName")); shortText(state.get("awayTeamName"));
+            for (String field : Arrays.asList("homeResources", "awayResources")) {
+                JsonObject resources = state.get(field).asObject();
+                exact(resources, "apothecaries", "assistantCoaches", "cheerleaders");
+                bounded(resources.get("apothecaries"), 0, 20);
+                bounded(resources.get("assistantCoaches"), 0, 20);
+                bounded(resources.get("cheerleaders"), 0, 20);
+            }
+        }
         for (String field : Arrays.asList("homeScore", "awayScore", "homeRerolls", "awayRerolls")) bounded(state.get(field), 0, 100);
         bounded(state.get("half"), 1, 2); bounded(state.get("drive"), 1, 100);
         bounded(state.get("homeTurn"), 0, 8); bounded(state.get("awayTurn"), 0, 8); bounded(state.get("turn"), 0, 8);
@@ -187,7 +203,16 @@ public final class MatchJson {
         for (JsonValue value : players) {
 			JsonObject player = value.asObject();
 			if (state.get("projectionVersion") != null) {
-				exact(player, "id", "name", "slot", "art", "role", "state", "x", "y");
+				if (detailsV4) {
+					exact(player, "id", "name", "slot", "art", "role", "state", "x", "y", "number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch");
+					bounded(player.get("number"), 1, 99); shortText(player.get("position"));
+					for (String stat : Arrays.asList("ma", "st", "ag", "pa", "av")) bounded(player.get(stat), 0, 30);
+					JsonArray skills = player.get("skills").asArray(); if (skills.size() > 64) throw new IllegalArgumentException();
+					for (JsonValue skill : skills) shortText(skill);
+					String offPitch = player.getString("offPitch", null);
+					if (!Arrays.asList("pitch", "reserve", "knockedOut", "casualty", "sentOff", "other").contains(offPitch)
+						|| player.get("x").isNull() == "pitch".equals(offPitch)) throw new IllegalArgumentException();
+				} else exact(player, "id", "name", "slot", "art", "role", "state", "x", "y");
 				if (!player.get("art").isNull()) {
 					JsonObject art = player.get("art").asObject(); exact(art, "rosterId", "positionId");
 					shortText(art.get("rosterId")); shortText(art.get("positionId"));

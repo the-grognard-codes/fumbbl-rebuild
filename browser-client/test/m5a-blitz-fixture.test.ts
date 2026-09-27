@@ -13,8 +13,8 @@ test('real-engine Blitz checkpoints decode for both coaches and spectator', () =
     const spectator = decodeSetupStateValue(frame.spectator, true);
     assert.equal(actor.revision, index);
     assert.equal(otherCoach.revision, index);
-    assert.equal(actor.projectionVersion, 3);
-    assert.equal(otherCoach.projectionVersion, 3);
+    assert.equal(actor.projectionVersion, 4);
+    assert.equal(otherCoach.projectionVersion, 4);
     assert.equal(spectator.revision, index);
     assert.equal(actor.callerRole, 'home');
     assert.equal(otherCoach.callerRole, 'away');
