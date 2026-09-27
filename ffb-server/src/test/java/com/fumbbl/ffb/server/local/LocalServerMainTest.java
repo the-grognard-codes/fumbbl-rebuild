@@ -16,6 +16,10 @@ class LocalServerMainTest {
 		properties.setProperty("local.browser.v2.firebase.project", BrowserV2TransportPolicy.PROJECT);
 		properties.setProperty("server.base", "http://127.0.0.1:22231");
 		assertDoesNotThrow(() -> LocalServerMain.validateProfile(properties));
+		Properties review = (Properties) properties.clone();
+		review.setProperty("db.url", LocalServerMain.REVIEW_DB_URL);
+		review.setProperty("server.base", "http://127.0.0.1:22234");
+		assertDoesNotThrow(() -> LocalServerMain.validateProfile(review));
 		Properties foreign = (Properties) properties.clone();
 		foreign.setProperty("local.browser.v2.firebase.project", "molesunderthepitch-dotorg");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(foreign));
@@ -25,6 +29,8 @@ class LocalServerMainTest {
 
 		Properties wrongUrl = (Properties) properties.clone();
 		wrongUrl.setProperty("db.url", LocalServerMain.LEGACY_DB_URL);
+		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
+		wrongUrl.setProperty("db.url", "jdbc:mariadb://host.docker.internal:23318/ffb_local");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
 	}
 
