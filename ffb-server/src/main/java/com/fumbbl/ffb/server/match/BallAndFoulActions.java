@@ -88,9 +88,13 @@ public final class BallAndFoulActions {
             for (Player<?> opponent : game.getOtherTeam(player.getTeam()).getPlayers()) {
                 if (onPitch(game, opponent) && from.isAdjacent(game.getFieldModel().getPlayerCoordinate(opponent))
                     && game.getFieldModel().getPlayerState(opponent).canBeFouled()
-                    && !opponent.hasSkillProperty(NamedProperties.preventBeingFouled))
+                    && !opponent.hasSkillProperty(NamedProperties.preventBeingFouled)) {
                     actions.add(new Action("foul-" + opponent.getId(), "foul", "Foul " + opponent.getName(), role,
                         new ClientCommandFoul(player.getId(), opponent.getId(), false), opponent.getId()));
+                    if (player.hasSkillProperty(NamedProperties.providesChainsawFoulingAlternative))
+                        actions.add(new Action("foul-chainsaw-" + opponent.getId(), "foulChainsaw", "Foul - Chainsaw " + opponent.getName(), role,
+                            new ClientCommandFoul(player.getId(), opponent.getId(), true), opponent.getId()));
+                }
             }
         }
         if (action == PlayerAction.THROW_TEAM_MATE_MOVE || action == PlayerAction.THROW_TEAM_MATE) {

@@ -14,6 +14,7 @@ import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.TargetSelectionState;
+import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandBlitzMove;
@@ -74,10 +75,13 @@ public final class CoreTurnActions {
                 if (!game.getTurnData().isBlitzUsed())
                     result.add(new Action("blitz-" + player.getId(), "blitz", "Start blitz with " + player.getName(), role,
                         new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false), player.getId()));
-                if (!prone && game.getTurnMode() == TurnMode.REGULAR && UtilPlayer.findAdjacentBlockablePlayers(game,
-                    game.getOtherTeam(game.getActingTeam()), at).length > 0)
+                boolean canBlock = !prone && game.getTurnMode() == TurnMode.REGULAR
+                    && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction)
+                    && UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at).length > 0;
+                if (canBlock)
                     result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,
                         new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false), player.getId()));
+                new SpecialBlockActions().declarations(player, status, canBlock, role, result);
             }
             return result;
         }
@@ -103,13 +107,15 @@ public final class CoreTurnActions {
             }
         }
         new BallAndFoulActions().targets(game, role, result);
-        if (action != null && (action == PlayerAction.BLOCK || action.isBlitzing()) && !acting.hasBlocked()) {
+        if (action != null && (action.isBlockOrSpecialAction() || action.isBlitzing()) && !acting.hasBlocked()) {
             TargetSelectionState selected = game.getFieldModel().getTargetSelectionState();
             for (Player<?> target : UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), from)) {
                 FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(target);
                 if (game.getFieldModel().getDiceDecoration(at) == null || selected != null && !target.getId().equals(selected.getSelectedPlayerId())) continue;
-                result.add(new Action("block-" + target.getId(), "block", "Block " + target.getName(), role,
-                    new ClientCommandBlock(id, target.getId(), false, false, false, false, false), target.getId()));
+                if (action == PlayerAction.BLOCK || action.isBlitzing())
+                    result.add(new Action("block-" + target.getId(), "block", "Block " + target.getName(), role,
+                        new ClientCommandBlock(id, target.getId(), false, false, false, false, false), target.getId()));
+                new SpecialBlockActions().targets(acting.getPlayer(), action, target, role, result);
             }
         }
         return result;
