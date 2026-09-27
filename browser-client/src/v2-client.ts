@@ -4,6 +4,7 @@ import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
 import { decodeMatchResult } from './result-protocol.ts';
 import { decodeTranscript } from './transcript-protocol.ts';
+import { decodeRoutePreview } from './route-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
@@ -91,6 +92,7 @@ export class V2Client {
   request(type: string, fields: V2Message = {}, mutation = false) {
     if (!this.accountId || this.socket?.readyState !== 1) throw Error('Reconnect before continuing.');
     if (this.requests.size >= 128) throw Error('Too many unanswered requests. Reconnect before continuing.');
+    if (type === 'routePreview' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
     const request = { ...fields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
       if (this.pending) throw Error('Resolve the retained request before submitting another change.');
@@ -177,6 +179,18 @@ export class V2Client {
         throw Error('Foreign transcript');
       message.page = decoded.page;
     }
+    if (message.type === 'routePreview') {
+      const decoded = decodeRoutePreview(JSON.stringify(message));
+      if (!request || request.type !== 'routePreview' || decoded.matchId !== request.matchId
+        || this.selection?.watch || this.selection?.matchId !== decoded.matchId
+        || decoded.route.revision !== request.expectedRevision || decoded.route.actor !== this.state?.callerRole
+        || !Array.isArray(request.waypoints) || !request.waypoints.length
+        || decoded.route.steps.at(-1)?.x !== request.waypoints.at(-1)?.x
+        || decoded.route.steps.at(-1)?.y !== request.waypoints.at(-1)?.y
+        || this.state?.revision === decoded.route.revision && decoded.route.playerId !== this.state.activePlayerId)
+        throw Error('Foreign route preview');
+      message.route = decoded.route;
+    }
     if (message.type === 'savedTeam') {
       const document = message.document;
       if (document && (![2, 3].includes(document.formatVersion) || document.owner?.namespace !== 'account'
@@ -203,7 +217,7 @@ export class V2Client {
     }
     if (request) this.requests.delete(message.requestId);
     this.options.onChange(message);
-    if (request?.type === 'setup' && request.operation === 'action'
+    if (request?.type === 'setup' && ['action', 'route'].includes(request.operation)
       && ['STALE_REVISION', 'WRONG_PHASE', 'WRONG_ACTOR', 'PROMPT_MISMATCH'].includes(message.code)
       && this.selection && !this.selection.watch) {
       this.request('setup', { operation: 'load', matchId: this.selection.matchId });

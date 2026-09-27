@@ -102,6 +102,31 @@ test('completed result can page its public transcript without a live watch selec
   assert.equal(events.at(-1).page.records[0].kind, 'START');
 });
 
+test('route previews are correlated to the active coach, revision and requested endpoint', async () => {
+  const active = { ...state, callerRole: 'home', phase: 'PLAY', actor: 'home', activePlayerId: 'p1',
+    players: [{ ...state.players[0], x: 7, y: 7 }] };
+  const valid = fixture(); const socket = await valid.connect();
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: valid.client.open(match, false), duplicate: false, state: active });
+  const requestId = valid.client.request('routePreview', { matchId: match, expectedRevision: 2, waypoints: [{ x: 8, y: 7 }] });
+  const route = { routeVersion: 1, playerId: 'p1', from: { x: 7, y: 7 }, remaining: 8,
+    steps: [{ x: 8, y: 7, dodge: 3, rush: 0, reactions: ['Diving Tackle'] }], revision: 2, actor: 'home' };
+  socket.reply({ type: 'routePreview', requestId, code: 'ACCEPTED', matchId: match, route });
+  assert.deepEqual(valid.events.at(-1).route, route);
+  assert.equal(valid.client.pending, null, 'A read-only route forecast does not retain a mutation');
+
+  const foreign = fixture(); const other = await foreign.connect();
+  other.reply({ type: 'setupState', code: 'ACCEPTED', requestId: foreign.client.open(match, false), duplicate: false, state: active });
+  const foreignId = foreign.client.request('routePreview', { matchId: match, expectedRevision: 2, waypoints: [{ x: 8, y: 7 }] });
+  other.reply({ type: 'routePreview', requestId: foreignId, code: 'ACCEPTED', matchId: match,
+    route: { ...route, steps: [{ ...route.steps[0], x: 9 }] } });
+  assert.equal(other.closed, true);
+  assert.equal(foreign.events.at(-1).code, 'INVALID_RESPONSE');
+
+  const watcher = fixture(); await watcher.connect();
+  watcher.client.open(match, true);
+  assert.throws(() => watcher.client.request('routePreview', { matchId: match, expectedRevision: 2, waypoints: [{ x: 8, y: 7 }] }), /read-only/);
+});
+
 test('an opponent preparation response cannot carry a creator invitation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });

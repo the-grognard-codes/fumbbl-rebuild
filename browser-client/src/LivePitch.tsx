@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
+import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import './live-pitch.css';
 
 const WIDTH = 960;
@@ -49,8 +50,9 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
 }
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false }: {
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
+  routePreview?: RoutePreview | null; waypoints?: RoutePoint[];
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -110,6 +112,13 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, onSelectPla
               <image href={pitchUrl} width={WIDTH} height={HEIGHT} onError={() => setBackgroundFailed(true)}/>}
             {[...targetSquares.values()].map(square => <rect key={`${square.x},${square.y}`} className="live-target-square"
               x={OFFSET + square.x * CELL + 2} y={OFFSET + square.y * CELL + 2} width={CELL - 4} height={CELL - 4}/>)}
+            {routePreview?.steps.map((step, index) => <rect key={`route-${index}`} className={`live-route-square${step.dodge && step.rush ? ' both' : step.dodge ? ' dodge' : step.rush ? ' rush' : ' clear'}${step.reactions.length ? ' reaction' : ''}`}
+              x={OFFSET + step.x * CELL + 2} y={OFFSET + step.y * CELL + 2} width={CELL - 4} height={CELL - 4}/>)}
+            {routePreview && <polyline className="live-route-line" points={[routePreview.from, ...routePreview.steps].map(square => `${OFFSET + square.x * CELL + CELL / 2},${OFFSET + square.y * CELL + CELL / 2}`).join(' ')}/>}
+            {waypoints.map((square, index) => <g key={`waypoint-${index}`} className="live-route-waypoint">
+              <circle cx={OFFSET + square.x * CELL + CELL / 2} cy={OFFSET + square.y * CELL + CELL / 2} r="8"/>
+              <text x={OFFSET + square.x * CELL + CELL / 2} y={OFFSET + square.y * CELL + CELL / 2 + 3} textAnchor="middle">{index + 1}</text>
+            </g>)}
             {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null &&
               <path className="live-target-line" d={`M ${OFFSET + activePlayer.x * CELL + CELL / 2} ${OFFSET + activePlayer.y * CELL + CELL / 2} L ${OFFSET + pinnedTarget.x * CELL + CELL / 2} ${OFFSET + pinnedTarget.y * CELL + CELL / 2}`}/>}
             {view.ball && <circle className="live-ball" cx={OFFSET + view.ball.x * CELL + CELL / 2} cy={OFFSET + view.ball.y * CELL + CELL / 2} r="6"/>}
