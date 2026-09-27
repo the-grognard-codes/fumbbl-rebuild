@@ -85,6 +85,7 @@ public final class CoreTurnActions {
                 if (canBlock)
                     result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,
                         new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false), player.getId()));
+                new MultipleBlockActions().declaration(game, player, status, role, result);
                 new SpecialBlockActions().declarations(player, status, canBlock, role, result);
             }
             return result;
@@ -112,6 +113,8 @@ public final class CoreTurnActions {
         }
         new BallAndFoulActions().targets(game, role, result);
         new SpecialTurnActions().targets(game, role, result);
+        if (action == PlayerAction.MULTIPLE_BLOCK && !acting.hasBlocked())
+            new MultipleBlockActions().targets(game, acting.getPlayer(), role, result);
         if (action != null && (action.isBlockOrSpecialAction() || action.isBlitzing()) && !acting.hasBlocked()) {
             TargetSelectionState selected = game.getFieldModel().getTargetSelectionState();
             for (Player<?> target : UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), from)) {
