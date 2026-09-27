@@ -331,6 +331,9 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
           {endTurnAction && <button type="button" onClick={useEndTurn} disabled={!canChoose}>{confirmEndTurn ? 'Confirm End Turn' : 'End Turn'}</button>}
         </div>
         {moreOpen && <div className="command-menu" aria-label="Additional actions">{selectedActions.map(action => <button key={action.id} type="button" onClick={() => selectMore(action)}>{action.label}</button>)}</div>}
+        {!moreOpen && targetChoices.length > 0 && <div className="command-menu target-action-menu" aria-label="Actions at selected target">{targetChoices.map(action => <button key={action.id} type="button"
+          aria-pressed={actionId === action.id} disabled={!canChoose} onClick={() => { setActionId(action.id); setMoreActionId(''); }}>
+          {action.label}</button>)}</div>}
         <div className="command-preview"><span>{confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : pinnedAction ? `Ready: ${pinnedAction.label}` : 'Target assist only selects a server action; Commit sends it.'}</span>
           <details><summary>All server actions</summary><div className="action-fallback">
           {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player, action, or square" disabled={!canChoose} /></label>}
