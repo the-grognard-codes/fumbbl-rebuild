@@ -52,10 +52,13 @@ public final class SetupSession {
 	/** A separate checkpoint contract; r2.2/r2.3 lifetimes are deliberately not upgraded in place. */
 	public static final String SAVE_RESUME_RUNTIME = "ffb-3.4.0-bb2025-r4.1";
 	public static final String TRANSCRIPT_RUNTIME = "ffb-3.4.0-bb2025-r5.1";
+	public static final String ROUTE_RUNTIME = "ffb-3.4.0-bb2025-r5.2";
 	private boolean defaultSetup;
 	private boolean saveResume;
 	private boolean transcriptV2;
+	private boolean routeV2;
 	private MatchTranscript transcript;
+	private PendingRoute pendingRoute;
 	private final GameState state;
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
@@ -89,12 +92,19 @@ public final class SetupSession {
 
 	/** New recoverable matches keep native reports with their accepted input in the same checkpoint. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2) {
+		this(server, document, engineId, recoverable, defaultSetup, saveResume, transcriptV2, false);
+	}
+
+	/** New r5.2 matches retain a committed route across native decision prompts. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2) {
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
 		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
 		if (transcriptV2 && !recoverable) throw new IllegalArgumentException("Transcript requires a versioned recovery lifetime");
+		if (routeV2 && !transcriptV2) throw new IllegalArgumentException("Routes require the transcript checkpoint runtime");
 		this.defaultSetup = defaultSetup;
 		this.saveResume = saveResume;
 		this.transcriptV2 = transcriptV2;
+		this.routeV2 = routeV2;
 		if (transcriptV2) transcript = new MatchTranscript();
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
@@ -151,24 +161,30 @@ public final class SetupSession {
 			boolean r2 = recoveryVersion == 2 && (LEGACY_RUNTIME.equals(runtime) || DEFAULT_SETUP_RUNTIME.equals(runtime));
 			boolean r41 = recoveryVersion == 3 && SAVE_RESUME_RUNTIME.equals(runtime);
 			boolean r51 = recoveryVersion == 4 && TRANSCRIPT_RUNTIME.equals(runtime);
-			if ((!r2 && !r41 && !r51)
+			boolean r52 = recoveryVersion == 5 && ROUTE_RUNTIME.equals(runtime);
+			if ((!r2 && !r41 && !r51 && !r52)
 				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
-				|| payload.getInt("replayVersion", -1) != (r51 ? 2 : 1))
+				|| payload.getInt("replayVersion", -1) != (r51 || r52 ? 2 : 1))
 				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
 			defaultSetup = !LEGACY_RUNTIME.equals(runtime);
-			saveResume = r41 || r51 && payload.getBoolean("saveResumeEnabled", false);
-			transcriptV2 = r51;
+			saveResume = r41 || (r51 || r52) && payload.getBoolean("saveResumeEnabled", false);
+			transcriptV2 = r51 || r52;
+			routeV2 = r52;
 			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
 			else if (r41) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResume");
-			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+			else if (r51) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
 				"saveResume");
-			if (r51 && !saveResume && !payload.get("saveResume").isNull())
+			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
+				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
+				"saveResume", "pendingRoute");
+			if ((r51 || r52) && !saveResume && !payload.get("saveResume").isNull())
 				throw new IllegalArgumentException("Unexpected save/resume state");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
 				throw new IllegalArgumentException("Recovery frozen inputs differ");
@@ -209,10 +225,19 @@ public final class SetupSession {
 			if (replayBytes > 16 * 1024 * 1024 || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
-			if (r51) {
+			if (r51 || r52) {
 				transcript = new MatchTranscript(payload.get("transcript").asObject());
 				if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
 					throw new IllegalArgumentException("Transcript checkpoint boundary");
+			}
+			if (r52 && !payload.get("pendingRoute").isNull())
+				pendingRoute = new PendingRoute(payload.get("pendingRoute").asObject());
+			if (pendingRoute != null) {
+				Player<?> active = state.getGame().getActingPlayer().getPlayer();
+				if (pendingRoute.declaredRevision >= revision || active == null
+					|| !pendingRoute.playerId.equals(active.getId())
+					|| !pendingRoute.expectedPosition().equals(state.getGame().getFieldModel().getPlayerCoordinate(active)))
+					throw new IllegalArgumentException("Pending route does not match native state");
 			}
 			assertSupported();
 			if (!ordered(recoveryNative()).equals(payload.get("native"))) throw new IllegalArgumentException("Native state did not round-trip");
@@ -232,8 +257,8 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", transcriptV2 ? 4 : saveResume ? 3 : 2)
-			.add("runtimeVersion", transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
+		JsonObject payload = new JsonObject().add("recoveryVersion", routeV2 ? 5 : transcriptV2 ? 4 : saveResume ? 3 : 2)
+			.add("runtimeVersion", routeV2 ? ROUTE_RUNTIME : transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
 			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", transcriptV2 ? 2 : 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
@@ -242,6 +267,7 @@ public final class SetupSession {
 		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.json())
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
+		if (routeV2) payload.add("pendingRoute", pendingRoute == null ? JsonValue.NULL : pendingRoute.json());
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -438,7 +464,13 @@ public final class SetupSession {
 		String operation = request.getString("operation", null);
 		ClientCommand command;
 		Game game = state.getGame();
-		if ("action".equals(operation)) {
+		if ("route".equals(operation)) {
+			JsonObject preview = routePreview(role, revision, request.get("waypoints").asArray());
+			if (!preview.getString("playerId", "").equals(request.getString("playerId", "")))
+				throw new MatchService.Failure("WRONG_PLAYER");
+			pendingRoute = new PendingRoute(role, revision, preview);
+			command = null;
+		} else if ("action".equals(operation)) {
             Action selected = null;
             for (Action action : actions()) if (actionId(action).equals(request.getString("actionId", null))) selected = action;
             if (selected == null) throw new MatchService.Failure("INVALID_OPTION");
@@ -505,7 +537,8 @@ public final class SetupSession {
 		String oldActor = actor();
 		try {
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
-			state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+			if (command != null) state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+			if (pendingRoute != null) continueRoute();
             kickoffSelection.clear();
 			assertSupported();
 			revision++;
@@ -742,6 +775,7 @@ public final class SetupSession {
 	}
 	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */
 	public JsonObject routePreview(String role, int expectedRevision, JsonArray points) {
+		if (!routeV2) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		if (expectedRevision != revision) throw new MatchService.Failure("STALE_REVISION");
 		if (failed || isComplete() || saveResume && saveResumeState.suspended())
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
@@ -774,6 +808,111 @@ public final class SetupSession {
 	private static final class Record {
 		final String fingerprint, code;
 		Record(String fingerprint, String code) { this.fingerprint = fingerprint; this.code = code; }
+	}
+
+	/** Remaining canonical squares after a route commit, retained through native prompts and recovery. */
+	private static final class PendingRoute {
+		final String actor, playerId;
+		final int declaredRevision;
+		final FieldCoordinate origin;
+		final List<FieldCoordinate> steps = new ArrayList<>();
+		int next;
+
+		PendingRoute(String actor, int revision, JsonObject preview) {
+			this.actor = actor;
+			playerId = preview.get("playerId").asString();
+			declaredRevision = revision;
+			origin = coordinate(preview.get("from").asObject());
+			for (JsonValue value : preview.get("steps").asArray()) {
+				JsonObject step = value.asObject();
+				if (step.size() != 5 || !step.names().containsAll(java.util.Arrays.asList(
+					"x", "y", "dodge", "rush", "reactions"))) throw new IllegalArgumentException("Invalid route step");
+				steps.add(new FieldCoordinate(step.get("x").asInt(), step.get("y").asInt()));
+			}
+			check();
+		}
+
+		PendingRoute(JsonObject saved) {
+			if (saved.size() != 6 || !saved.names().containsAll(java.util.Arrays.asList(
+				"actor", "playerId", "declaredRevision", "origin", "steps", "next")))
+				throw new IllegalArgumentException("Invalid pending route shape");
+			actor = saved.get("actor").asString();
+			playerId = saved.get("playerId").asString();
+			declaredRevision = saved.get("declaredRevision").asInt();
+			origin = coordinate(saved.get("origin").asObject());
+			for (JsonValue value : saved.get("steps").asArray()) steps.add(coordinate(value.asObject()));
+			next = saved.get("next").asInt();
+			check();
+		}
+
+		FieldCoordinate expectedPosition() { return next == 0 ? origin : steps.get(next - 1); }
+		FieldCoordinate nextSquare() { return steps.get(next); }
+		boolean complete() { return next >= steps.size(); }
+
+		JsonObject json() {
+			JsonArray path = new JsonArray();
+			for (FieldCoordinate coordinate : steps) path.add(point(coordinate));
+			return new JsonObject().add("actor", actor).add("playerId", playerId)
+				.add("declaredRevision", declaredRevision).add("origin", point(origin))
+				.add("steps", path).add("next", next);
+		}
+
+		private void check() {
+			if (!("home".equals(actor) || "away".equals(actor)) || playerId.isEmpty()
+				|| declaredRevision < 0 || !FieldCoordinateBounds.FIELD.isInBounds(origin)
+				|| steps.isEmpty() || steps.size() > 20 || next < 0 || next >= steps.size())
+				throw new IllegalArgumentException("Invalid pending route");
+			FieldCoordinate previous = origin;
+			for (FieldCoordinate coordinate : steps) {
+				if (!FieldCoordinateBounds.FIELD.isInBounds(coordinate) || !coordinate.isAdjacent(previous))
+					throw new IllegalArgumentException("Invalid pending route step");
+				previous = coordinate;
+			}
+		}
+		private static FieldCoordinate coordinate(JsonObject point) {
+			if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y"))
+				throw new IllegalArgumentException("Invalid route square");
+			return new FieldCoordinate(point.get("x").asInt(), point.get("y").asInt());
+		}
+		private static JsonObject point(FieldCoordinate coordinate) {
+			return new JsonObject().add("x", coordinate.getX()).add("y", coordinate.getY());
+		}
+	}
+
+	/** Native adjacent actions remain the authority at every square and after every resumed prompt. */
+	private void continueRoute() {
+		while (pendingRoute != null) {
+			Game game = state.getGame();
+			Player<?> active = game.getActingPlayer().getPlayer();
+			if (isComplete() || active == null || !pendingRoute.playerId.equals(active.getId())) {
+				pendingRoute = null;
+				return;
+			}
+			FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(active);
+			if (!pendingRoute.expectedPosition().equals(current)) {
+				pendingRoute = null;
+				return;
+			}
+			Action offered = null;
+			for (Action action : actions()) {
+				if ("move".equals(action.kind) && pendingRoute.actor.equals(action.role)
+					&& pendingRoute.nextSquare().equals(action.targetSquare)) { offered = action; break; }
+			}
+			if (offered == null) {
+				// An engine prompt may temporarily transfer the decision to the other coach.
+				if (game.getDialogParameter() != null || step() != StepId.INIT_MOVING && step() != StepId.INIT_SELECTING) return;
+				pendingRoute = null;
+				return;
+			}
+			state.handleCommand(new ReceivedCommand(offered.command, "home".equals(pendingRoute.actor)));
+			FieldCoordinate after = game.getFieldModel().getPlayerCoordinate(active);
+			if (!pendingRoute.nextSquare().equals(after)) {
+				if (game.getDialogParameter() == null) pendingRoute = null;
+				return;
+			}
+			pendingRoute.next++;
+			if (pendingRoute.complete()) pendingRoute = null;
+		}
 	}
 
 	/** Private checkpoint state for a consent protocol; public projection is deliberately smaller. */

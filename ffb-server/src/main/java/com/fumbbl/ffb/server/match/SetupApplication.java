@@ -157,7 +157,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recovery.find(id);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true);
+					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
@@ -368,6 +368,17 @@ public final class SetupApplication {
 			case "saveAccept": case "saveReject": case "saveCancel": case "resumeAccept": case "resumeReject": case "resumeCancel":
 				fields.add("proposalId"); if (!request.get("proposalId").asString().matches("[0-9a-f-]{36}")) throw new IllegalArgumentException(); break;
 			case "action": fields.add("actionId"); if (request.get("actionId").asString().length() > 200) throw new IllegalArgumentException(); break;
+			case "route":
+				fields.add("playerId"); fields.add("waypoints");
+				if (request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
+				com.eclipsesource.json.JsonArray waypoints = request.get("waypoints").asArray();
+				if (waypoints.size() < 1 || waypoints.size() > 20) throw new IllegalArgumentException();
+				for (JsonValue item : waypoints) {
+					JsonObject point = item.asObject();
+					if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y")) throw new IllegalArgumentException();
+					point.get("x").asInt(); point.get("y").asInt();
+				}
+				break;
 			case "choice": fields.add("promptId"); fields.add("optionId"); request.get("promptId").asString(); request.get("optionId").asString(); break;
 			case "place":
 				fields.add("playerId"); fields.add("to"); request.get("playerId").asString();

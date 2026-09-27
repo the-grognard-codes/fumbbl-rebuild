@@ -11,6 +11,7 @@ import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CorePromptActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupSession;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 
@@ -24,9 +25,69 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreTurnActionsTest {
+	@Test void committedPartialRoutesCanBeDeclaredAgainWhileMovementRemains() throws Exception {
+		GameState state = fixture(true);
+		state.getGame().getFieldModel().setWeather(Weather.NICE);
+		state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("away1"), new FieldCoordinate(20, 7));
+		SetupSession session = sessionWithState(state);
+		Field routeVersion = SetupSession.class.getDeclaredField("routeV2");
+		routeVersion.setAccessible(true);
+		routeVersion.setBoolean(session, true);
+		submit(session, "select", null);
+		for (int x : new int[] {9, 11}) {
+			JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+			JsonArray points = new JsonArray().add(new JsonObject().add("x", x).add("y", 7));
+			assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class,
+				() -> session.routePreview("home", view.getInt("revision", -1) - 1, points)).code);
+			JsonObject preview = session.routePreview("home", view.getInt("revision", -1), points);
+			assertEquals(2, preview.get("steps").asArray().size());
+			JsonObject request = new JsonObject().add("operation", "route").add("requestId", UUID.randomUUID().toString())
+				.add("expectedRevision", view.get("revision")).add("playerId", "home1").add("waypoints", points);
+			assertEquals("ACCEPTED", session.apply("home", request).getString("code", null));
+			assertEquals(new FieldCoordinate(x, 7), state.getGame().getFieldModel().getPlayerCoordinate(
+				state.getGame().getPlayerById("home1")));
+		}
+	}
+	@Test void committedSixSquareRouteResumesAfterNativeDodgeReroll() throws Exception {
+		GameState state = fixture(true);
+		state.getGame().getFieldModel().setWeather(Weather.NICE);
+		state.getGame().getTurnDataHome().setReRolls(2);
+		TestRolls.on(state).general(1, 6, 6);
+		SetupSession session = sessionWithState(state);
+		Field routeVersion = SetupSession.class.getDeclaredField("routeV2");
+		routeVersion.setAccessible(true);
+		routeVersion.setBoolean(session, true);
+		submit(session, "select", null);
+		JsonObject selected = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+		JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", 7).add("y", 6))
+			.add(new JsonObject().add("x", 7).add("y", 5)).add(new JsonObject().add("x", 7).add("y", 1));
+		JsonObject preview = session.routePreview("home", selected.getInt("revision", -1), waypoints);
+		assertEquals(6, preview.get("steps").asArray().size(), preview.toString());
+		assertTrue(preview.get("steps").asArray().get(0).asObject().getInt("dodge", 0) > 0);
+		assertTrue(preview.get("steps").asArray().get(1).asObject().getInt("dodge", 0) > 0);
+		JsonObject request = new JsonObject().add("version", 1).add("type", "setup").add("operation", "route")
+			.add("requestId", UUID.randomUUID().toString()).add("matchId", selected.get("matchId"))
+			.add("expectedRevision", selected.get("revision")).add("playerId", "home1").add("waypoints", waypoints);
+		assertEquals("ACCEPTED", session.apply("home", request).getString("code", null));
+		assertTrue(hasActionId(session, "reroll:team"));
+		JsonObject afterCommit = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+		assertTrue(session.apply("home", request).getBoolean("duplicate", false));
+		assertEquals(afterCommit, session.reply("load", "ACCEPTED", false, "home").get("state"));
+		JsonObject teamReroll = null;
+		for (JsonValue item : afterCommit.get("actions").asArray())
+			if (item.asObject().getString("id", "").endsWith("reroll:team")) teamReroll = item.asObject();
+		assertTrue(teamReroll != null);
+		assertEquals("ACCEPTED", session.apply("home", new JsonObject().add("version", 1).add("type", "setup")
+			.add("operation", "action").add("requestId", UUID.randomUUID().toString())
+			.add("matchId", afterCommit.get("matchId")).add("expectedRevision", afterCommit.get("revision"))
+			.add("actionId", teamReroll.get("id"))).getString("code", null));
+		assertEquals(new FieldCoordinate(7, 1), state.getGame().getFieldModel().getPlayerCoordinate(
+			state.getGame().getPlayerById("home1")), session.reply("load", "ACCEPTED", false, "home").toString());
+	}
     @Test void nativePushAndFollowupMoveBothPlayers() throws Exception {
         GameState state = fixture(true);
         TestRolls.on(state).block("pushback");
