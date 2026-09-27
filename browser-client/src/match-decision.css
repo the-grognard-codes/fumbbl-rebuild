@@ -1,0 +1,12 @@
+.match-decision-dialog { position: fixed; z-index: 100; box-sizing: border-box; width: min(390px, calc(100vw - 28px)); max-height: min(65dvh, 560px); margin: 0; padding: 18px; overflow: auto; color: #f1e5cb; background: linear-gradient(145deg, #283435, #0a1116 82%); border: 2px solid #a08d63; border-radius: 3px; box-shadow: inset 0 0 0 4px #0a1116, 0 16px 45px #000b; }
+.match-decision-dialog::backdrop { background: #02070a7a; }
+.match-decision-dialog.center { top: 25dvh; left: 50%; transform: translateX(-50%); }
+.match-decision-dialog.right { top: 24dvh; right: 6vw; left: auto; }
+.match-decision-dialog.left { top: 24dvh; left: 6vw; right: auto; }
+.match-decision-dialog h2 { margin: 0 0 7px; color: #f1e5cb; font: 500 27px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.match-decision-dialog p { margin: 0 0 13px; color: #b9c8ca; font: 13px 'Match Barlow', sans-serif; }
+.match-decision-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.match-decision-options button { min-height: 49px; padding: 8px; color: #f1e5cb; background: linear-gradient(#355672, #142d42); border: 1px solid #789bb9; border-radius: 2px; font: 500 15px 'Match Alegreya', Georgia, serif; text-align: center; }
+.match-decision-options button:hover, .match-decision-options button:focus-visible { outline: 2px solid #f7dc9a; outline-offset: 1px; background: #426d8d; }
+.match-decision-options button:disabled { opacity: .45; }
+@media (max-width: 700px) { .match-decision-dialog.left, .match-decision-dialog.right { top: 17dvh; left: 50%; right: auto; transform: translateX(-50%); } }

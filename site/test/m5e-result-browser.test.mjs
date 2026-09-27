@@ -20,6 +20,48 @@ const beforeFinalDecision = { ...fullTime, revision: 1, phase: 'PLAY', turnMode:
 const result = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
   presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 2, eventCount: 3 };
 
+test('hosted coin and receive choices keep focus in the required dialog and send exact prompt IDs', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
+    const choices = []; let stage = 0;
+    const prompts = [{ id: 'coin-1', actor: 'home', kind: 'coin', options: ['heads', 'tails'] },
+      { id: 'receive-1', actor: 'home', kind: 'receive', options: ['receive', 'kick'] }];
+    const state = () => ({ ...beforeFinalDecision, phase: stage < 2 ? 'PRE_MATCH' : 'PLAY', revision: stage,
+      prompt: prompts[stage] ?? null, actions: stage < 2 ? [] : beforeFinalDecision.actions });
+    await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+    await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
+    await page.routeWebSocket('**/browser/v2', socket => {
+      const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+      socket.onMessage(raw => {
+        const request = JSON.parse(raw);
+        if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+        if (request.type === 'setup') {
+          if (request.operation === 'choice') { choices.push(request); stage++; }
+          send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state() });
+        }
+      });
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
+    const dialog = page.getByRole('dialog', { name: 'Match decision' });
+    await dialog.getByRole('button', { name: 'Heads' }).waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('dialog')?.getAttribute('aria-label')), 'Match decision');
+    await dialog.getByRole('button', { name: 'Heads' }).click();
+    await dialog.getByRole('button', { name: 'Kick' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    assert.deepEqual(choices.map(choice => [choice.promptId, choice.optionId, choice.expectedRevision]), [['coin-1', 'heads', 0], ['receive-1', 'kick', 1]]);
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
 test('hosted final decision leads to participant result and read-only replay after reload', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;

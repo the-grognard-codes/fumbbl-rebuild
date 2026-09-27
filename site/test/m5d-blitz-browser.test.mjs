@@ -72,9 +72,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       const scale = (await scene.boundingBox()).width / 960;
       await scene.click({ position: { x: (12 + x * 36 + 18) * scale, y: (12 + y * 36 + 18) * scale } });
     };
-    const submit = async (actionId, pin, viaSpace = false) => {
+    const submit = async (actionId, pin, viaSpace = false, immediate = false) => {
+      if (immediate && process.env.M5D_SCREENSHOT_DIR && actionId.startsWith('7:push:')) {
+        await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
+        await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'push-decision-actor.png') });
+      }
       await pin();
-      assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), actionId);
+      if (!immediate) assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), actionId);
       if (actionId === '2:move-8-7') {
         const path = actor.getByLabel('Live match pitch').locator('.live-target-line');
         await path.waitFor({ state: 'attached' });
@@ -83,13 +87,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
         assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'none');
         await actor.emulateMedia({ reducedMotion: 'no-preference' });
       }
-      if (process.env.M5D_SCREENSHOT_DIR && ['2:move-8-7', '7:push:away1:12:6'].includes(actionId)) {
+      if (process.env.M5D_SCREENSHOT_DIR && actionId === '2:move-8-7') {
         await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
         await actor.getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, `${actionId.startsWith('2:') ? 'blitz-move' : 'push-choice'}-actor.png`) });
         await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, `${actionId.startsWith('2:') ? 'blitz-move' : 'push-choice'}-spectator.png`) });
       }
       if (viaSpace) { const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space'); }
-      else await commit.click();
+      else if (!immediate) await commit.click();
       await actor.getByText('A submitted change needs confirmation.', { exact: false }).waitFor();
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
@@ -139,8 +143,19 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await submit('1:target-away1', () => pinPlayer(1));
     for (const x of [8, 9, 10]) await submit(`${step}:move-${x}-7`, () => pinSquare(x, 7), x === 8);
     await submit('5:block-away1', () => pinPlayer(1));
-    await submit('6:block-die:0', async () => { await actor.getByText('All server actions', { exact: true }).click(); await actor.getByLabel('Server action', { exact: true }).selectOption('6:block-die:0'); });
-    await submit('7:push:away1:12:6', () => pinSquare(12, 6));
+    const decision = actor.getByRole('dialog', { name: 'Match decision' });
+    await decision.waitFor();
+    if (process.env.M5D_SCREENSHOT_DIR) {
+      await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
+      await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'block-die-decision.png') });
+    }
+    assert.equal(await actor.evaluate(() => document.activeElement?.closest('dialog')?.getAttribute('aria-label')), 'Match decision');
+    await decision.getByRole('button').first().press('Escape');
+    assert.equal(await decision.isVisible(), true, 'A required server decision cannot be dismissed');
+    assert.equal(await pages[1].getByRole('dialog', { name: 'Match decision' }).count(), 0);
+    await submit('6:block-die:0', () => actor.getByRole('dialog', { name: 'Match decision' }).getByRole('button', { name: frames[6].actor.actions[0].label }).click(), false, true);
+    assert.equal(await pages[2].getByRole('dialog', { name: 'Match decision' }).count(), 0);
+    await submit('7:push:away1:12:6', () => actor.getByRole('dialog', { name: 'Match decision' }).getByRole('button', { name: frames[7].actor.actions[0].label }).click(), false, true);
     assert.equal(step, 8);
     assert.equal(frames[8].checkpoint, 'pushed');
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
