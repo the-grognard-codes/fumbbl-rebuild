@@ -23,7 +23,7 @@ The [approved bottom-ribbon preview](../../browser-client/test-output/pitch-prev
 | Push choice | [capture](../../.notes/overhaul-analysis/verification/authoritative-match-review/push-decision-actor.png) |
 | Completed result | [capture](../../.notes/overhaul-analysis/verification/authoritative-match-review/result-1920.png) |
 
-The crowded fixture uses 11 human and 11 orc sprites to inspect placement and preserved art. The browser test now asserts that the complete Fit scene and all settled player markers are inside the pitch viewport at each target size, and that the page itself does not scroll. `site/test/play-browser.test.mjs` passed 2/2 in hosted Chrome. The separate real-engine Blitz/browser sequence passed 6/6 with the result browser tests. The isolated Java server image completed its Maven build and test suite, `LocalServerMainTest` passed, and `deployment/game-service/proxy/live-local-test.mjs` passed its real Java auth-gate and reconnect check.
+The crowded positions come from a native session fixture; its away art is changed to orc only within the visual browser test to inspect both available sprite sets. The native fixture file remains an exact generated snapshot. The browser test asserts that the complete Fit scene and all settled player markers are inside the pitch viewport at each target size, and that the page itself does not scroll. `site/test/play-browser.test.mjs` passed 2/2 in hosted Chrome. The separate real-engine Blitz/browser sequence passed 6/6 with the result browser tests. The isolated Java server image completed its Maven build and test suite, `LocalServerMainTest` passed, and `deployment/game-service/proxy/live-local-test.mjs` passed its real Java auth-gate and reconnect check.
 
 ## Limits of this evidence
 
