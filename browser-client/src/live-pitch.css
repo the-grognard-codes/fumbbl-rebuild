@@ -277,6 +277,15 @@
 .live-dice-overlay strong { display: block; margin-bottom: 5px; font: 600 12px 'Match Barlow', sans-serif; text-transform: uppercase; }
 .live-dice-overlay > div { display: flex; gap: 5px; }
 .match-die { display: block; width: 49px; height: 49px; filter: drop-shadow(0 2px 2px #0009); }
+.replay-seek { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 8px 0 14px; }
+.replay-seek form { display: flex; align-items: end; gap: 5px; margin: 0; }
+.replay-seek label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.replay-seek select, .replay-seek input[type="number"] { max-width: 190px; min-height: 30px; }
+.replay-seek input[type="number"] { width: 74px; }
+.replay-seek .replay-skip { flex-direction: row; align-items: center; }
+.replay-dice { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+.replay-dice > div { display: flex; align-items: center; gap: 4px; padding: 5px; border: 1px solid #776b56; background: #152125; }
+.replay-dice span { margin-right: 5px; font-size: 12px; }
 .match-history { display: flex; flex-direction: column; min-height: 210px; min-width: 0; }
 .hosted-match .match-side > .match-history { flex: 1; min-height: 210px; }
 .match-history-tabs { display: flex; gap: 5px; margin-bottom: 7px; }
