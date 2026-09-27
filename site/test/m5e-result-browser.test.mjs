@@ -20,6 +20,64 @@ const beforeFinalDecision = { ...fullTime, revision: 1, phase: 'PLAY', turnMode:
 const result = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
   presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 2, eventCount: 3 };
 
+test('hosted kickoff player choices toggle in one click and confirm separately', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
+    const requests = []; let selected = new Set(); let revision = 0;
+    const choice = (name, playerId) => ({ id: `${revision}:event-pick:${playerId}`, label: `${selected.has(playerId) ? 'Deselect' : 'Select'} ${name}`,
+      actor: 'home', kind: 'kickoffChoice', target: { playerId }, sourcePlayerId: null });
+    const state = () => ({ ...beforeFinalDecision, revision, turnMode: revision < 5 ? 'CHARGE' : 'REGULAR',
+      players: [...beforeFinalDecision.players, { ...beforeFinalDecision.players[0], id: 'p3', name: 'Runner', slot: 3, number: 3, x: 4 }],
+      actions: revision < 5 ? [choice('Lineman', 'p1'), choice('Runner', 'p3'),
+        ...(selected.size === 2 ? [{ id: `${revision}:event-confirm`, label: 'Confirm CHARGE', actor: 'home', kind: 'kickoffChoice', target: null, sourcePlayerId: null }] : [])]
+        : beforeFinalDecision.actions });
+    await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+    await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
+    await page.routeWebSocket('**/browser/v2', socket => {
+      const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+      socket.onMessage(raw => {
+        const request = JSON.parse(raw);
+        if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+        if (request.type === 'setup') {
+          if (request.operation === 'action') {
+            requests.push([request.actionId, request.expectedRevision]);
+            assert.equal(request.expectedRevision, revision);
+            if (request.actionId.endsWith(':event-confirm')) assert.equal(selected.size, 2);
+            else { const id = request.actionId.split(':').at(-1); if (selected.has(id)) selected.delete(id); else selected.add(id); }
+            revision++;
+          }
+          send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state() });
+        }
+      });
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
+    const ribbon = page.locator('.kickoff-command');
+    await ribbon.getByRole('button', { name: 'Select Lineman' }).click();
+    await ribbon.getByRole('button', { name: 'Deselect Lineman' }).click();
+    await ribbon.getByRole('button', { name: 'Select Lineman' }).click();
+    await ribbon.getByRole('button', { name: 'Select Runner' }).click();
+    assert.equal(await ribbon.getByRole('button', { name: 'Confirm selection' }).isEnabled(), true);
+    if (process.env.MATCH_CAPTURE_DIR) {
+      await mkdir(process.env.MATCH_CAPTURE_DIR, { recursive: true });
+      await page.screenshot({ path: resolve(process.env.MATCH_CAPTURE_DIR, 'kickoff-player-selection.png') });
+    }
+    await ribbon.getByRole('button', { name: 'Confirm selection' }).click();
+    await ribbon.waitFor({ state: 'detached' });
+    assert.deepEqual(requests, [['0:event-pick:p1', 0], ['1:event-pick:p1', 1], ['2:event-pick:p1', 2],
+      ['3:event-pick:p3', 3], ['4:event-confirm', 4]]);
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
 test('hosted coin and receive choices keep focus in the required dialog and send exact prompt IDs', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
