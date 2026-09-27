@@ -265,6 +265,13 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.getByLabel('Read-only replay pitch').waitFor();
     assert.match(await page.getByLabel('Replay event').textContent(), /Event 3 of 3: FULL_TIME/);
     assert.equal(await page.getByLabel('Read-only replay pitch').locator('.live-marker:enabled').count(), 0);
+    await page.getByLabel('Event', { exact: true }).fill('2');
+    await page.getByRole('button', { name: 'Seek', exact: true }).click();
+    await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
+    await page.getByLabel('Speed').selectOption('4');
+    await page.getByLabel('Skip animations').uncheck();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await page.getByRole('heading', { name: /Event 3 of 3/ }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'No horizontal control overflow at 1280×660');
     if (process.env.M5E_SCREENSHOT_DIR) {
       await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'result-1280.png') });
@@ -276,4 +283,60 @@ test('hosted final decision leads to participant result and read-only replay aft
     assert.equal(requests.filter(request => request.type === 'matchResult' && request.operation === 'load').length, 2);
     assert.equal(requests.filter(request => request.type === 'setup' && request.operation === 'action').length, 1);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
+test('completed replay keeps the selected event, native dice, log and chat together', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/result' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined) });
+    const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
+    await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+    await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-home'}));return()=>{};}` }));
+    const owner = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const spectator = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+    const snapshots = [0, 1, 2].map(revision => ({ ...fullTime, revision }));
+    const records = snapshots.map((state, index) => ({ index, revision: index, kind: index === 0 ? 'START' : index === 2 ? 'FULL_TIME' : 'ACTION',
+      actor: index === 0 ? 'system' : 'home', at: 1000 + index, decision: index === 0 ? null : { operation: 'action', actionId: `action-${index}` },
+      native: index === 1 ? [{ commandNr: 1, reportList: { reports: [{ reportId: 'goForItRoll', roll: 3, minimumRoll: 2, successful: true, playerId: 'p1' }] } }]
+        : index === 2 ? [{ commandNr: 2, reportList: { reports: [{ reportId: 'blockChoice', blockRoll: [1, 6], diceIndex: 1, defenderId: 'p2' }] } }] : [], state }));
+    const messages = [{ index: 0, at: 1001, revision: 1, authorId: owner, role: 'home', text: 'First turn' },
+      { index: 1, at: 1002, revision: 2, authorId: spectator, role: 'spectator', text: 'Final play' }];
+    await page.routeWebSocket('**/browser/v2', socket => {
+      const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+      socket.onMessage(raw => {
+        const request = JSON.parse(raw);
+        if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: owner });
+        if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
+        if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
+        if (request.type === 'matchResult') send({ type: 'matchResult', requestId: request.requestId, code: 'ACCEPTED', result: { ...result, formatVersion: 3 },
+          event: request.operation === 'replay' ? { revision: request.index, kind: records[request.index].kind, state: snapshots[request.index] } : null });
+        if (request.type === 'matchTranscript') send({ type: 'matchTranscript', requestId: request.requestId, code: 'ACCEPTED', matchId,
+          page: { formatVersion: 2, from: request.from, next: records.length, total: records.length, records: records.slice(request.from) } });
+        if (request.type === 'matchChat') send({ type: 'matchChat', requestId: request.requestId, code: 'ACCEPTED', matchId, duplicate: false,
+          page: { formatVersion: 1, from: request.from, next: messages.length, total: messages.length, messages: messages.slice(request.from) } });
+      });
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/play/result?matchId=${matchId}`);
+    await page.getByLabel('Final score').waitFor();
+    await page.getByLabel('Event', { exact: true }).fill('2');
+    await page.getByRole('button', { name: 'Seek', exact: true }).click();
+    await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
+    await page.getByRole('tab', { name: 'Chat' }).click();
+    await page.getByText('First turn').waitFor();
+    assert.equal(await page.getByText('Final play').count(), 0);
+    await page.getByRole('button', { name: 'Last', exact: true }).click();
+    await page.getByText('Final play').waitFor();
+    assert.equal(await page.getByLabel('Read-only replay pitch').locator('.live-dice-overlay .match-die').count(), 2);
+    await page.getByRole('tab', { name: 'Log' }).click();
+    await page.getByText(/selected die 2/).waitFor();
+  } finally { await browser?.close(); await new Promise(done => server.close(done)); }
 });
