@@ -27,6 +27,12 @@ public final class V2MatchAccess {
 		if (!memberships.isActive(matchId)) throw new MatchService.Failure("NOT_FOUND");
 	}
 
+	/** Public history remains readable after full time for a registered match. */
+	public void spectatorTranscript(AuthenticatedPrincipal principal, String matchId) throws SQLException {
+		require(principal, ApplicationScope.SPECTATOR);
+		if (!memberships.hasMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
+	}
+
 	/** Browse is scope-gated before the first visibility read and returns only v2-registered matches. */
 	public String opponentAccount(AuthenticatedPrincipal principal, String matchId) throws SQLException {
 		if (!"home".equals(playerRole(principal, matchId))) throw new MatchService.Failure("AUTHORIZATION");

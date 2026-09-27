@@ -55,6 +55,14 @@ class V2MatchAccessTest {
 		assertThrows(MatchService.Failure.class, () -> access.spectatorSnapshot(viewer, match));
 	}
 
+	@Test void registeredCompletedMatchKeepsPublicTranscriptAccessWithoutLiveWatchAccess() throws Exception {
+		AuthenticatedPrincipal viewer = principal(2000, ApplicationScope.SPECTATOR);
+		when(directory.reauthorize(viewer)).thenReturn(viewer);
+		when(memberships.hasMatch(match)).thenReturn(true);
+		access.spectatorTranscript(viewer, match);
+		assertThrows(MatchService.Failure.class, () -> access.spectatorSnapshot(viewer, match));
+	}
+
 	private AuthenticatedPrincipal principal(long expiry, ApplicationScope... scopes) {
 		return new AuthenticatedPrincipal(account, EnumSet.copyOf(Arrays.asList(scopes)), expiry);
 	}

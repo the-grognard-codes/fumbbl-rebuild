@@ -6,6 +6,7 @@ import { V2Client } from './v2-client.ts';
 import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
+import type { TranscriptRecord } from './transcript-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import './play-brand.css';
 
@@ -41,6 +42,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
   const [resultPending, setResultPending] = useState(false);
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
+  const [logRecords, setLogRecords] = useState<TranscriptRecord[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logUnavailable, setLogUnavailable] = useState(false);
+  const logRecordsRef = useRef<TranscriptRecord[]>([]);
+  const logRequestRef = useRef<string | null>(null);
+  const logUnavailableRef = useRef(false);
   const [transferredMatchId, setTransferredMatchId] = useState(() => {
     if (location.pathname !== '/play') { sessionStorage.removeItem(transferredMatchKey); return ''; }
     const saved = sessionStorage.getItem(transferredMatchKey);
@@ -54,20 +61,45 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
   useEffect(() => {
+    const requestLog = (from: number) => {
+      if (!(matchRoute || resultRoute) || !matchIdPattern.test(matchId) || logRequestRef.current || logUnavailableRef.current) return;
+      try {
+        logRequestRef.current = connection.request('matchTranscript', { matchId, from, limit: 8 });
+        setLogLoading(true);
+      } catch { setLogLoading(false); }
+    };
     const connection = new V2Client({ ...options, storage: sessionStorage,
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
       if (message.type === 'status') {
+        logRequestRef.current = null; setLogLoading(false);
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
-      if (message.type === 'authentication') { setStatus('Connected'); setError(''); if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
+      if (message.type === 'authentication') { setStatus('Connected'); setError(''); logUnavailableRef.current = false; setLogUnavailable(false);
+        if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
+      if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
+        && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
+      if (message.type === 'matchTranscript' && message.requestId === logRequestRef.current) {
+        logRequestRef.current = null;
+        const page = message.page;
+        if (page.from !== logRecordsRef.current.length || page.next <= page.from && page.next < page.total) throw Error('Transcript page gap');
+        logRecordsRef.current = [...logRecordsRef.current, ...page.records];
+        setLogRecords(logRecordsRef.current);
+        setLogLoading(false);
+        if (page.next < Math.max(page.total, (connection.state?.revision ?? -1) + 1)) requestLog(page.next);
+      }
+      if (message.type === 'error' && message.requestId === logRequestRef.current) {
+        logRequestRef.current = null; logUnavailableRef.current = true; setLogUnavailable(true); setLogLoading(false);
+      }
       const failedLaunch = message.type === 'error' && activationWindow.current?.requestId === message.requestId ? activationWindow.current : null;
       if (failedLaunch) { failedLaunch.popup?.close(); activationWindow.current = null; }
       if (resultRoute && message.type === 'error') setResultPending(false);
       if (message.type === 'matchResult') {
         setResultPending(false);
         if (message.code === 'ACCEPTED') {
+          if (message.result?.formatVersion === 2 && !logRequestRef.current
+            && logRecordsRef.current.length < message.result.eventCount) requestLog(logRecordsRef.current.length);
           setResult(message.result);
           if (message.event) { setReplayEvent(message.event); setReplayIndex(message.event.revision); }
           else { setReplayEvent(null); setReplayIndex(null); }
@@ -102,7 +134,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
           }
         } else launch?.popup?.close();
       }
-      if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
+      if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
+        && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
     const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
@@ -206,8 +239,10 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       acceptedActionId={connection.lastAcceptedActionId}
+      logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
       mutate={(operation, fields = {}) => run(() => { const state = connection.state!; connection.request('setup', { operation, matchId: state.matchId, expectedRevision: state.revision, ...fields }, true); })} />}
     {resultRoute && <HostedResult matchId={matchId} result={result} event={replayEvent} index={replayIndex} pending={resultPending} connected={connected}
+      logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
       onLoad={() => run(() => { connection!.request('matchResult', { operation: 'load', matchId }); setResultPending(true); })}
       onReplay={index => run(() => { connection!.request('matchResult', { operation: 'replay', matchId, index }); setResultPending(true); })}/>}
   </main>;

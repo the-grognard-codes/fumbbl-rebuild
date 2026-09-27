@@ -173,7 +173,7 @@ export class V2Client {
     if (message.type === 'matchTranscript') {
       const decoded = decodeTranscript(JSON.stringify(message));
       if (!request || request.type !== 'matchTranscript' || decoded.matchId !== request.matchId
-        || !this.selection || this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
+        || this.selection && this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
         throw Error('Foreign transcript');
       message.page = decoded.page;
     }
