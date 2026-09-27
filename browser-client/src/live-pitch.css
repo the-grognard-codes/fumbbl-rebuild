@@ -273,6 +273,29 @@
 .hosted-result .match-event-log { margin-top: 14px; border: 1px solid #635d4d; padding: 10px; background: #131c20; }
 .hosted-result .match-event-scroll { max-height: 300px; overflow: auto; }
 .hosted-result .match-event-scroll p { margin: 0; padding: 4px 2px; border-top: 1px solid #ffffff13; }
+.match-history { display: flex; flex-direction: column; min-height: 210px; min-width: 0; }
+.hosted-match .match-side > .match-history { flex: 1; min-height: 210px; }
+.match-history-tabs { display: flex; gap: 5px; margin-bottom: 7px; }
+.play-runtime .match-history-tabs button[aria-selected="true"] { background: linear-gradient(#345977, #182f44); border-color: #8aafd1; color: #fff4d9; }
+.match-history [role="tabpanel"] { min-height: 0; flex: 1; }
+.match-history [role="tabpanel"][hidden] { display: none; }
+.play-runtime .hosted-match .match-history .match-event-log { min-height: 0; height: 100%; padding: 0; border: 0; background: none; }
+.match-history .match-event-scroll { min-height: 100px; max-height: 270px; }
+.match-chat { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.match-chat header { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+.match-chat header h3 { margin: 0; }
+.match-chat-count { margin: 4px 0; color: #b5c2b9; }
+.match-chat-scroll { flex: 1; min-height: 100px; max-height: 270px; overflow: auto; scrollbar-color: #8e805f #111a1d; }
+.match-chat-scroll p { display: grid; grid-template-columns: auto 1fr; gap: 2px 7px; margin: 0; padding: 5px 2px; border-top: 1px solid #ffffff13; overflow-wrap: anywhere; }
+.match-chat-scroll time { color: #b9c7bd; font-variant-numeric: tabular-nums; }
+.match-chat-scroll strong { color: #8abdee; font-weight: 600; }
+.match-chat-scroll span { grid-column: 1 / -1; white-space: pre-wrap; }
+.match-chat form { margin-top: 8px; }
+.match-chat form label { display: block; margin-bottom: 4px; font-size: 12px; }
+.match-chat form > div { display: flex; gap: 5px; }
+.match-chat form input { flex: 1; min-width: 0; color: #f2e8cf; background: #0d171a; border: 1px solid #647272; }
+.match-chat form small { color: #afbeb6; }
+.hosted-result .match-history { margin-top: 14px; padding: 10px; border: 1px solid #635d4d; background: #131c20; }
 .play-runtime .hosted-match .match-side section { border-color: #444841; background: radial-gradient(ellipse at top, #283335, #0a1116); }
 .hosted-match .match-side h3 { font-size: 19px; }
 .hosted-match .match-player-card img { width: 66px; height: 88px; }
