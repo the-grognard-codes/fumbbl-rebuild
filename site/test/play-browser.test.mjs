@@ -199,8 +199,8 @@ test('two players and spectator use one board; updates, read-only controls and r
       await pages[0].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'actor-crowded.png') });
       await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'spectator-crowded.png') });
     }
-    assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
-    assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
+    assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
+    assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
     await pages[0].getByLabel('Server action', { exact: true }).selectOption('next');
     await pages[0].getByRole('button', { name: 'Commit action', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
