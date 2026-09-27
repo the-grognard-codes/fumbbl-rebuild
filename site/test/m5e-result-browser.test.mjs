@@ -9,13 +9,14 @@ import { resolveEnvironment, configurationScript } from '../../deployment/fireba
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const matchId = '12345678-1234-1234-1234-123456789abc';
-const fullTime = { projectionVersion: 3, matchId, revision: 2, callerRole: 'home', phase: 'FULL_TIME', actor: 'home', prompt: null,
-  players: [{ id: 'p1', name: 'Lineman', slot: 1, role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } },
-    { id: 'p2', name: 'Blitzer', slot: 2, role: 'away', x: null, y: null, state: 'stunned', art: { rosterId: 'human', positionId: 'blitzer' } }],
+const fullTime = { projectionVersion: 4, matchId, revision: 2, callerRole: 'home', phase: 'FULL_TIME', actor: 'home', prompt: null,
+  homeTeamName: 'Home', awayTeamName: 'Away', homeResources: { apothecaries: 1, assistantCoaches: 2, cheerleaders: 3 }, awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 1 },
+  players: [{ id: 'p1', name: 'Lineman', slot: 1, number: 1, position: 'Lineman', ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: ['Block'], offPitch: 'pitch', role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } },
+    { id: 'p2', name: 'Blitzer', slot: 2, number: 2, position: 'Blitzer', ma: 7, st: 3, ag: 3, pa: 5, av: 9, skills: ['Block'], offPitch: 'reserve', role: 'away', x: null, y: null, state: 'stunned', art: { rosterId: 'human', positionId: 'blitzer' } }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 8, turnMode: 'END', ball: { x: 13, y: 7 }, activePlayerId: null,
   half: 2, homeTurn: 8, awayTurn: 8, homeScore: 2, awayScore: 1, drive: 3 };
 const beforeFinalDecision = { ...fullTime, revision: 1, phase: 'PLAY', turnMode: 'PLAY',
-  actions: [{ id: '1:end-turn', label: 'End Turn', actor: 'home', kind: 'endTurn', target: null }] };
+  actions: [{ id: '1:end-turn', label: 'End Turn', actor: 'home', kind: 'endTurn', target: null, sourcePlayerId: null }] };
 const result = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
   presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 2, eventCount: 3 };
 
@@ -54,6 +55,8 @@ test('hosted final decision leads to participant result and read-only replay aft
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Match scoreboard').waitFor();
+    assert.match(await page.getByLabel('home resources').textContent(), /Rerolls2.*1.*AC\s*2.*CH\s*3/s);
+    assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);
     await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
       null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.
     const checkViewport = async () => {
@@ -61,16 +64,16 @@ test('hosted final decision leads to participant result and read-only replay aft
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
         return pitch && bench && pitch.top >= 0 && pitch.bottom <= innerHeight && bench.bottom <= innerHeight
-          && document.documentElement.scrollWidth <= innerWidth;
+          && document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight;
       }, null, { timeout: 5000 });
       const bounds = await page.evaluate(() => {
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
         return { pitchTop: pitch?.top, pitchBottom: pitch?.bottom, benchBottom: bench?.bottom,
-          height: innerHeight, scrollWidth: document.documentElement.scrollWidth, width: innerWidth };
+          height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight, width: innerWidth };
       });
       assert.ok(bounds.pitchTop >= 0 && bounds.pitchBottom <= bounds.height && bounds.benchBottom <= bounds.height
-        && bounds.scrollWidth <= bounds.width, `Critical match UI exceeds viewport: ${JSON.stringify(bounds)}`);
+        && bounds.scrollWidth <= bounds.width && bounds.scrollHeight <= bounds.height, `Critical match UI exceeds viewport: ${JSON.stringify(bounds)}`);
     };
     await checkViewport();
     if (process.env.M5E_SCREENSHOT_DIR) {
@@ -80,6 +83,9 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.setViewportSize({ width: 1920, height: 900 });
     await checkViewport();
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920-900.png') });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await checkViewport();
+    if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920-1080.png') });
     await page.setViewportSize({ width: 1920, height: 820 });
     await checkViewport();
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920.png') });
