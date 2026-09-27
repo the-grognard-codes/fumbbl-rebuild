@@ -40,7 +40,7 @@ export function decodeTranscript(json: string): TranscriptResponse {
       || !['START', 'ACTION', 'SELECTION', 'TOUCHDOWN', 'HALFTIME', 'FULL_TIME'].includes(record.kind as string))
       throw Error('Invalid transcript record');
     if (record.index === 0 ? record.kind !== 'START' : record.kind === 'START') throw Error('Invalid transcript start');
-    const at = integer(record.at, Number.MAX_SAFE_INTEGER);
+    const at = integer(record.at, 8_640_000_000_000_000);
     if (at < priorTime || (record.index === 0 ? record.decision !== null : !record.decision || typeof record.decision !== 'object' || Array.isArray(record.decision)))
       throw Error('Invalid transcript decision');
     priorTime = at;

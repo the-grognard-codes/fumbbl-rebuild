@@ -50,9 +50,9 @@ class BrowserV2AdapterTest {
 		JsonObject page = JsonObject.readFrom(connection.messages.get(1));
 		assertEquals("ACCEPTED", page.getString("code", null));
 		assertEquals(2, page.get("page").asObject().getInt("formatVersion", -1));
-		verify(access).spectatorSnapshot(spectator, MATCH);
+		verify(access).spectatorTranscript(spectator, MATCH);
 		verify(setup).transcriptPage(MATCH, 0, 4);
-		doThrow(new MatchService.Failure("NOT_FOUND")).when(access).spectatorSnapshot(spectator, MATCH);
+		doThrow(new MatchService.Failure("NOT_FOUND")).when(access).spectatorTranscript(spectator, MATCH);
 		adapter.receive(connection, request("matchTranscript", "denied").add("matchId", MATCH).add("from", 0).add("limit", 4).toString());
 		assertEquals("NOT_FOUND", code(connection, 2));
 		verify(setup, times(1)).transcriptPage(MATCH, 0, 4);

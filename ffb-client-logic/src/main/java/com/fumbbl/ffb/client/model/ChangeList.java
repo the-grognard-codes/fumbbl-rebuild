@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser live matches show a paged server-recorded log of decisions, rolls and player coordinate changes")
 			.addFeature("Browser matches offer eligible Multiple Block declarations and defender pairs")
 			.addFeature("Browser matches offer eligible Gaze, Bomb, Punt, Kick Team-mate and Recover actions")
 			.addFeature("Browser matches offer eligible Stab, Chainsaw, Projectile Vomit and Breathe Fire Block variants plus Chainsaw fouls")

@@ -90,6 +90,18 @@ test('participant result reads retain match correlation and reject foreign repla
   assert.equal(other.closed, true); assert.equal(foreign.events.at(-1).code, 'INVALID_RESPONSE');
 });
 
+test('completed result can page its public transcript without a live watch selection', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const requestId = client.request('matchTranscript', { matchId: match, from: 0, limit: 8 });
+  const snapshot = { ...state, revision: 0, callerRole: 'home', prompt: null };
+  socket.reply({ type: 'matchTranscript', requestId, code: 'ACCEPTED', matchId: match,
+    page: { formatVersion: 2, from: 0, next: 1, total: 1, records: [
+      { index: 0, revision: 0, kind: 'START', actor: 'system', at: 100, decision: null, native: [], state: snapshot },
+    ] } });
+  assert.equal(socket.closed, false);
+  assert.equal(events.at(-1).page.records[0].kind, 'START');
+});
+
 test('an opponent preparation response cannot carry a creator invitation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });
