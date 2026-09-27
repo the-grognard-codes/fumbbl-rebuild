@@ -55,6 +55,7 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Selected player').waitFor();
     await page.getByRole('button', { name: /away Blitzer/ }).first().click();
+    assert.equal(await page.getByLabel('Actions at selected target').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
     await page.getByRole('button', { name: 'More actions' }).click();
     if (process.env.SPECIAL_CAPTURE_DIR) {
       await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });

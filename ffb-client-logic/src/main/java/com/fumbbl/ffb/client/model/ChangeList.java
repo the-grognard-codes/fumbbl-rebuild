@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser matches offer eligible Gaze, Bomb, Punt, Kick Team-mate and Recover actions")
 			.addFeature("Browser matches offer eligible Stab, Chainsaw, Projectile Vomit and Breathe Fire Block variants plus Chainsaw fouls")
 			.addBugfix("Browser More actions now shows server-offered Foul, Pass, Hand-off and other player declarations")
 			.addImprovement("Browser kickoff player choices allow one-click selection and deselection in the match ribbon before confirmation")
