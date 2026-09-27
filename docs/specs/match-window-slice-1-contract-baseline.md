@@ -42,6 +42,7 @@ The current action family baseline is documented in `browser-client/action-cover
 | Evidence | What it proves today | What it does not prove |
 | --- | --- | --- |
 | Nine generated Blitz checkpoints in `m5a-blitz-projections.json` | A real-engine Blitz from selection through three one-square moves, block die and push; all nine include home coach, away coach and spectator projections at equal revisions. A Java test regenerates the exact fixture; a browser decoder test reads each role. | Multi-square commit, dodge/rush interruptions, special attack variants, durable roll reports, or a full match. |
+| Five generated movement interruption checkpoints in `m5-route-interruption-projections.json` | Native dodge and rush attempts reach team reroll decisions; each checkpoint contains equal public state for home, away and spectator. Java regeneration and browser decoding protect the current projection. | Automatic route continuation, full target/modifier reports, or skill and opponent-reaction decisions. |
 | `crowdedPitchFixtureUsesEnginePlacementAndFrozenArt` and `m5c-crowded-players.json` | A real 22-player setup projection and frozen Human/Orc art mapping for pitch density checks. | Visual parity at every viewport or match action coverage in a crowded state. |
 | Existing M5e/MVP match screenshots and the approved bottom-ribbon preview | Baseline live layout gap and desired pitch-first layout at desktop sizes. | Any sample value in the preview being authoritative. |
 | Existing 88 native action traces and local full-match demonstration | Supported core choice families, native dice ownership, exact retry and browser controls for the older supported subset. | Newly requested special actions, presentation parity, complete live history, or spectator chat. |
@@ -58,6 +59,6 @@ The next slices must add deterministic real-engine checkpoints for a six-square 
 
 ## Slice 1 completion evidence
 
-- The nine-checkpoint real-engine fixture now includes both coaches and a spectator, and both Java regeneration and browser decoder tests pass.
+- The nine-checkpoint Blitz and five-checkpoint dodge/rush fixtures include both coaches and a spectator. Java regeneration and browser decoder tests protect both; the kickoff coin prompt and 22-player projection have explicit three-view parity checks.
 - The field/action/asset gaps and next versioned seams are recorded above with slice ownership. No sample preview values enter the live projection.
-- Existing crowded and action fixtures are identified with their limits; missing deterministic scenarios are explicit work for the implementation slices rather than claimed coverage.
+- Existing crowded and action fixtures are identified with their limits. Blocked movement, special attacks and opponent reactions remain uncaptured because the current browser contract has no route or special-action representation; slices 3 and 5 must add real-engine fixtures alongside those contracts rather than fabricate baseline data.

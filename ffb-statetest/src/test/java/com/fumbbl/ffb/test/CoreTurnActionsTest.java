@@ -95,10 +95,7 @@ class CoreTurnActionsTest {
         GameState state = fixture(true);
         state.getGame().getFieldModel().setWeather(Weather.NICE);
         state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("away1"), new FieldCoordinate(11, 7));
-        SetupSession session = new SetupSessionTest().session(11);
-        Field field = SetupSession.class.getDeclaredField("state");
-        field.setAccessible(true);
-        field.set(session, state);
+        SetupSession session = sessionWithState(state);
         JsonArray frames = new JsonArray();
         capture(session, frames, "ready");
         submit(session, "blitz", null);
@@ -119,6 +116,57 @@ class CoreTurnActionsTest {
         Files.createDirectories(Paths.get("target"));
         Files.write(Paths.get("target", "m5a-blitz-projections.json"), frames.toString().getBytes(StandardCharsets.UTF_8));
         assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5a-blitz-projections.json")), StandardCharsets.UTF_8), frames.toString());
+    }
+
+    @Test void dodgeAndRushPromptsPublishConsistentCoachAndSpectatorCheckpoints() throws Exception {
+        JsonArray frames = new JsonArray();
+        GameState dodge = fixture(true);
+        dodge.getGame().getFieldModel().setWeather(Weather.NICE);
+        dodge.getGame().getTurnDataHome().setReRolls(2);
+        TestRolls.on(dodge).general(1, 6);
+        SetupSession dodgeSession = sessionWithState(dodge);
+        capture(dodgeSession, frames, "dodge-ready");
+        submit(dodgeSession, "select", null);
+        capture(dodgeSession, frames, "dodge-selected");
+        submit(dodgeSession, "move", null);
+        capture(dodgeSession, frames, "dodge-reroll");
+        assertTrue(hasActionId(dodgeSession, "reroll:team"));
+
+        GameState rush = fixture(true);
+        rush.getGame().getFieldModel().setWeather(Weather.NICE);
+        rush.getGame().getFieldModel().setPlayerCoordinate(rush.getGame().getPlayerById("away1"), new FieldCoordinate(20, 7));
+        rush.getGame().getTurnDataHome().setReRolls(2);
+        perform(rush, "select");
+        rush.getGame().getActingPlayer().setCurrentMove(6);
+        rush.getGame().getActingPlayer().setGoingForIt(true);
+        com.fumbbl.ffb.server.util.UtilServerPlayerMove.updateMoveSquares(rush, false);
+        TestRolls.on(rush).general(1, 6);
+        SetupSession rushSession = sessionWithState(rush);
+        capture(rushSession, frames, "rush-ready");
+        submit(rushSession, "move", null);
+        capture(rushSession, frames, "rush-reroll");
+        assertTrue(hasActionId(rushSession, "reroll:team"));
+
+        Files.createDirectories(Paths.get("target"));
+        Files.write(Paths.get("target", "m5-route-interruption-projections.json"), frames.toString().getBytes(StandardCharsets.UTF_8));
+        assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures",
+            "m5-route-interruption-projections.json")), StandardCharsets.UTF_8), frames.toString());
+    }
+
+    private SetupSession sessionWithState(GameState state) throws Exception {
+        SetupSession session = new SetupSessionTest().session(11);
+        Field field = SetupSession.class.getDeclaredField("state");
+        field.setAccessible(true);
+        field.set(session, state);
+        return session;
+    }
+
+    private boolean hasActionId(SetupSession session, String actionId) {
+        JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+        for (JsonValue value : view.get("actions").asArray()) {
+            if (value.asObject().getString("id", "").endsWith(actionId)) return true;
+        }
+        return false;
     }
 
     private void capture(SetupSession session, JsonArray frames, String checkpoint) {

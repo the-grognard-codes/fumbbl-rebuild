@@ -49,6 +49,12 @@ class SetupSessionTest {
 		SetupSession session = new SetupSession(new TestServer().getServer(), document, -2);
 		JsonObject initial = view(session);
 		assertEquals("coin", initial.get("prompt").asObject().getString("kind", null));
+		JsonObject awayView = session.reply("load", "ACCEPTED", false, "away").get("state").asObject();
+		JsonObject spectatorView = session.spectatorView();
+		assertEquals(initial.get("prompt"), awayView.get("prompt"));
+		assertEquals(initial.get("prompt"), spectatorView.get("prompt"));
+		assertEquals(initial.get("players"), awayView.get("players"));
+		assertEquals(initial.get("players"), spectatorView.get("players"));
 		int orcCount = 0; boolean troll = false;
 		for (JsonValue value : initial.get("players").asArray()) {
 			JsonObject art = value.asObject().get("art").asObject();
@@ -58,7 +64,12 @@ class SetupSessionTest {
 		choices(session); assertEquals("SETUP", view(session).getString("phase", null));
 	}
 	@Test void crowdedPitchFixtureUsesEnginePlacementAndFrozenArt() throws Exception {
-		JsonObject projection = view(readySession());
+		SetupSession session = readySession();
+		JsonObject projection = view(session);
+		JsonObject awayView = session.reply("load", "ACCEPTED", false, "away").get("state").asObject();
+		JsonObject spectatorView = session.spectatorView();
+		assertEquals(projection.get("players"), awayView.get("players"));
+		assertEquals(projection.get("players"), spectatorView.get("players"));
 		JsonArray players = new JsonArray();
 		for (JsonValue value : projection.get("players").asArray()) {
 			JsonObject player = value.asObject();
