@@ -3,6 +3,7 @@ import type { SetupState } from './setup-protocol.ts';
 import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
 import { decodeMatchResult } from './result-protocol.ts';
+import { decodeTranscript } from './transcript-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
@@ -168,6 +169,13 @@ export class V2Client {
       const decoded = decodeMatchResult(JSON.stringify({ ...message, version: 1 }));
       if (!request || request.type !== 'matchResult' || (decoded.result && decoded.result.matchId !== request.matchId)) throw Error('Foreign result');
       message.result = decoded.result; message.event = decoded.event;
+    }
+    if (message.type === 'matchTranscript') {
+      const decoded = decodeTranscript(JSON.stringify(message));
+      if (!request || request.type !== 'matchTranscript' || decoded.matchId !== request.matchId
+        || !this.selection || this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
+        throw Error('Foreign transcript');
+      message.page = decoded.page;
     }
     if (message.type === 'savedTeam') {
       const document = message.document;

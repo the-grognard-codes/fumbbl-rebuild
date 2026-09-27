@@ -84,6 +84,22 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				preparationSubscriptions.remove(connection);
 				send(connection, state); return;
 			}
+			if ("matchTranscript".equals(type)) {
+				fields(request, "version", "type", "requestId", "matchId", "from", "limit");
+				String id = request.get("matchId").asString();
+				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
+				int from = request.get("from").asInt(), limit = request.get("limit").asInt();
+				if (from < 0 || from > 8193 || limit < 1 || limit > 8) throw new IllegalArgumentException();
+				try { if (access.playerRole(principal, id) == null) throw new MatchService.Failure("NOT_FOUND"); }
+				catch (MatchService.Failure membership) {
+					if (!"NOT_FOUND".equals(membership.code) && !"AUTHORIZATION".equals(membership.code)) throw membership;
+					access.spectatorSnapshot(principal, id);
+				}
+				JsonObject page = setup.transcriptPage(id, from, limit);
+				send(connection, new JsonObject().add("type", "matchTranscript").add("requestId", requestId)
+					.add("code", "ACCEPTED").add("matchId", id).add("page", page));
+				return;
+			}
 			principal = access.require(principal, ApplicationScope.PLAYER);
 			request.set("version", 1); // Internal R2 contract remains version 1.
 			JsonObject response;

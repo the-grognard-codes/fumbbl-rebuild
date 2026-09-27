@@ -51,8 +51,11 @@ public final class SetupSession {
 	public static final String DEFAULT_SETUP_RUNTIME = "ffb-3.4.0-bb2025-r2.3";
 	/** A separate checkpoint contract; r2.2/r2.3 lifetimes are deliberately not upgraded in place. */
 	public static final String SAVE_RESUME_RUNTIME = "ffb-3.4.0-bb2025-r4.1";
+	public static final String TRANSCRIPT_RUNTIME = "ffb-3.4.0-bb2025-r5.1";
 	private boolean defaultSetup;
 	private boolean saveResume;
+	private boolean transcriptV2;
+	private MatchTranscript transcript;
 	private final GameState state;
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
@@ -81,10 +84,18 @@ public final class SetupSession {
 
 	/** A new r4.1 lifetime persists save/resume metadata in a distinct checkpoint version. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume) {
+		this(server, document, engineId, recoverable, defaultSetup, saveResume, false);
+	}
+
+	/** New recoverable matches keep native reports with their accepted input in the same checkpoint. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2) {
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
 		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
+		if (transcriptV2 && !recoverable) throw new IllegalArgumentException("Transcript requires a versioned recovery lifetime");
 		this.defaultSetup = defaultSetup;
 		this.saveResume = saveResume;
+		this.transcriptV2 = transcriptV2;
+		if (transcriptV2) transcript = new MatchTranscript();
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
 		matchId = document.matchId;
@@ -120,7 +131,7 @@ public final class SetupSession {
 			.pushSequence(new SequenceGenerator.SequenceParams(state));
 		state.startNextStep();
 		assertSupported();
-		 recordEvent("START");
+		recordEvent("START", "system", JsonValue.NULL);
 	}
 
 	/** Recovery uses native deserialization only: never start a sequence or execute a command. */
@@ -139,18 +150,26 @@ public final class SetupSession {
 			String runtime = payload.getString("runtimeVersion", null);
 			boolean r2 = recoveryVersion == 2 && (LEGACY_RUNTIME.equals(runtime) || DEFAULT_SETUP_RUNTIME.equals(runtime));
 			boolean r41 = recoveryVersion == 3 && SAVE_RESUME_RUNTIME.equals(runtime);
-			if ((!r2 && !r41)
+			boolean r51 = recoveryVersion == 4 && TRANSCRIPT_RUNTIME.equals(runtime);
+			if ((!r2 && !r41 && !r51)
 				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
-				|| payload.getInt("replayVersion", -1) != 1)
+				|| payload.getInt("replayVersion", -1) != (r51 ? 2 : 1))
 				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
 			defaultSetup = !LEGACY_RUNTIME.equals(runtime);
-			saveResume = r41;
+			saveResume = r41 || r51 && payload.getBoolean("saveResumeEnabled", false);
+			transcriptV2 = r51;
 			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
-			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+			else if (r41) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResume");
+			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
+				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
+				"saveResume");
+			if (r51 && !saveResume && !payload.get("saveResume").isNull())
+				throw new IllegalArgumentException("Unexpected save/resume state");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
 				throw new IllegalArgumentException("Recovery frozen inputs differ");
 			revision = payload.get("revision").asInt();
@@ -189,7 +208,12 @@ public final class SetupSession {
 			}
 			if (replayBytes > 16 * 1024 * 1024 || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
-			if (r41) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
+			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
+			if (r51) {
+				transcript = new MatchTranscript(payload.get("transcript").asObject());
+				if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
+					throw new IllegalArgumentException("Transcript checkpoint boundary");
+			}
 			assertSupported();
 			if (!ordered(recoveryNative()).equals(payload.get("native"))) throw new IllegalArgumentException("Native state did not round-trip");
 			if (!matchesRecoveredView(payload.get("homeView").asObject(), "home")
@@ -208,14 +232,16 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", saveResume ? 3 : 2)
-			.add("runtimeVersion", saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
-			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", 1).add("matchId", matchId)
+		JsonObject payload = new JsonObject().add("recoveryVersion", transcriptV2 ? 4 : saveResume ? 3 : 2)
+			.add("runtimeVersion", transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
+			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", transcriptV2 ? 2 : 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
 			.add("eventsJson", events.toString()).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
-		if (saveResume) payload.add("saveResume", saveResumeState.json());
+		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.json())
+			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
+		else if (saveResume) payload.add("saveResume", saveResumeState.json());
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -403,7 +429,9 @@ public final class SetupSession {
 		if (saveResume && saveResumeState.abandoned) throw new MatchService.Failure("MATCH_ABANDONED");
 		if (saveResume && saveResumeState.suspended()) throw new MatchService.Failure("MATCH_SUSPENDED");
 		// Reserve 128 KiB: one bounded 64 KiB projection plus the envelope and up to 8,193 array separators.
-		if (replayBytes > 16 * 1024 * 1024 - 128 * 1024) throw new MatchService.Failure("REPLAY_LIMIT");
+		if (replayBytes > (transcriptV2 ? 7 : 16) * 1024 * 1024 - 128 * 1024
+			|| transcriptV2 && transcript.bytes() > 7 * 1024 * 1024 - 128 * 1024)
+			throw new MatchService.Failure("REPLAY_LIMIT");
 		if (history.size() >= 8192) throw new MatchService.Failure("REQUEST_HISTORY_LIMIT");
 		if (request.get("expectedRevision").asInt() != revision) throw new MatchService.Failure("STALE_REVISION");
 		if (!"action".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
@@ -422,7 +450,7 @@ public final class SetupSession {
                 if (!kickoffSelection.remove(player)) kickoffSelection.add(player);
                 revision++;
                 history.put(key, new Record(fingerprint, "ACCEPTED"));
-                recordEvent("SELECTION");
+				recordEvent("SELECTION", role, request);
                 return reply(id, "ACCEPTED", false, role);
             }
             if ("confirm-solid-defence".equals(selected.id)) {
@@ -487,7 +515,7 @@ public final class SetupSession {
 			if (!isComplete() && (newHalf || touchdown)) drive++;
 			if (defaultSetup && step() == StepId.SETUP && (oldStep != StepId.SETUP || !oldActor.equals(actor())))
 				deployDefaultSetup();
-			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION");
+			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION", role, request);
 			return reply(id, "ACCEPTED", false, role);
 		} catch (RuntimeException failure) {
 			failed = true;
@@ -683,21 +711,35 @@ public final class SetupSession {
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
-    private void recordEvent(String kind) {
+    private void recordEvent(String kind, String role, JsonValue decision) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
         events.add(event);
+        if (transcriptV2) {
+            NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor());
+            JsonArray nativeOutcomes = new JsonArray();
+            capture.modelSyncs.forEach(nativeOutcomes::add);
+            JsonValue accepted = decision.isObject() ? JsonObject.readFrom(canonical(decision.asObject())) : JsonValue.NULL;
+            transcript.append(revision, kind, role, Math.max(System.currentTimeMillis(), transcript.lastTime()), accepted,
+                nativeOutcomes, snapshot, capture.lastCommandNr);
+        }
     }
     public CompletedMatch completedMatch() {
         if (!isComplete() || failed) throw new MatchService.Failure("NOT_COMPLETED");
-        return new CompletedMatch(new JsonObject().add("formatVersion", 1)
+        JsonObject result = new JsonObject().add("formatVersion", transcriptV2 ? 2 : 1)
             .add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("ruleset", document.home.team.ruleset)
             .add("catalogVersion", document.home.team.catalogVersion).add("presetId", document.home.team.presetId)
             .add("presetVersion", document.home.team.presetVersion).add("matchId", matchId)
             .add("homeScore", homeScore()).add("awayScore", awayScore()).add("finalRevision", revision)
-            .add("events", events).toString());
+            .add("events", events);
+        if (transcriptV2) result.add("transcript", transcript.json());
+        return new CompletedMatch(result.toString());
     }
+	public JsonObject transcriptPage(int from, int limit) {
+		if (!transcriptV2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");
+		return transcript.page(from, limit);
+	}
 	private SetupMechanic mechanic() {
 		MechanicsFactory factory = state.getGame().getFactory(FactoryType.Factory.MECHANIC);
 		return (SetupMechanic) factory.forName(Mechanic.Type.SETUP.name());
