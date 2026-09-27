@@ -243,6 +243,16 @@
 .play-runtime .live-dugout-players button:hover, .play-runtime .live-dugout-players button:focus-visible { border-color: #bcb392; background: #e4d1a315; }
 .live-dugout-players img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .hosted-match .match-side { border: 1px solid #635d4d; padding: 9px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #070c1088; }
+.hosted-match .match-event-log { min-height: 150px; display: flex; flex-direction: column; }
+.hosted-match .match-event-log header, .hosted-match .match-log-paging { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.hosted-match .match-event-log header h3 { margin: 0; }
+.hosted-match .match-event-scroll { max-height: 250px; min-height: 80px; overflow: auto; scrollbar-color: #8e805f #111a1d; }
+.hosted-match .match-event-scroll p { margin: 0; padding: 4px 2px; border-top: 1px solid #ffffff13; overflow-wrap: anywhere; }
+.hosted-match .match-event-scroll time, .hosted-match .match-log-revision { margin-right: 6px; color: #b9c7bd; font-variant-numeric: tabular-nums; }
+.hosted-match .match-log-count { color: #b9c7bd; }
+.hosted-result .match-event-log { margin-top: 14px; border: 1px solid #635d4d; padding: 10px; background: #131c20; }
+.hosted-result .match-event-scroll { max-height: 300px; overflow: auto; }
+.hosted-result .match-event-scroll p { margin: 0; padding: 4px 2px; border-top: 1px solid #ffffff13; }
 .play-runtime .hosted-match .match-side section { border-color: #444841; background: radial-gradient(ellipse at top, #283335, #0a1116); }
 .hosted-match .match-side h3 { font-size: 19px; }
 .hosted-match .match-player-card img { width: 66px; height: 88px; }

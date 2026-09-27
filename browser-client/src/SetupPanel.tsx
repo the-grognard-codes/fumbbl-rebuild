@@ -4,6 +4,8 @@ import { LivePitch, spriteUrl } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
 import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
+import { MatchEventLog } from './MatchEventLog.tsx';
+import type { TranscriptRecord } from './transcript-protocol.ts';
 import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
@@ -158,9 +160,11 @@ export function SetupPanel() {
 }
 
 /** The same board and decisions for players and read-only spectators. */
-export function GameView({ view, connected, pending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false }: {
+export function GameView({ view, connected, pending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
+  logRecords = [], logLoading = false, logUnavailable = false }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
+  logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
@@ -362,6 +366,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
         </section>}
         <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
+        <MatchEventLog records={logRecords} loading={logLoading} unavailable={logUnavailable}/>
         {view.phase === 'READY_FOR_KICKOFF' && <section aria-label="Kickoff status"><p>Both teams have confirmed legal setups. The kicking participant can choose a server-issued kick target.</p></section>}
         {view.phase === 'PLAY' && view.actions.length === 0 && <section role="alert"><p>This engine decision does not yet have browser controls. The match remains in memory; reconnecting will preserve this decision.</p></section>}
         {savePanel}

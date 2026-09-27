@@ -93,7 +93,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				try { if (access.playerRole(principal, id) == null) throw new MatchService.Failure("NOT_FOUND"); }
 				catch (MatchService.Failure membership) {
 					if (!"NOT_FOUND".equals(membership.code) && !"AUTHORIZATION".equals(membership.code)) throw membership;
-					access.spectatorSnapshot(principal, id);
+					access.spectatorTranscript(principal, id);
 				}
 				JsonObject page = setup.transcriptPage(id, from, limit);
 				send(connection, new JsonObject().add("type", "matchTranscript").add("requestId", requestId)
