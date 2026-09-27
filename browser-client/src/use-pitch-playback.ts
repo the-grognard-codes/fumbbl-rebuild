@@ -6,7 +6,7 @@ import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
 /** Late joins start at the current board. Only revisions received while mounted are played. */
-export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], enabled: boolean) {
+export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], enabled: boolean, speed = 1) {
   const [pitchView, setPitchView] = useState(view);
   const [active, setActive] = useState(false);
   const [diceMoment, setDiceMoment] = useState<DiceMoment | null>(null);
@@ -50,7 +50,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     const beats = playbackBeats(record);
     running.current = true;
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const delay = reduced ? 110 : 190;
+    const delay = (reduced ? 110 : 190) / speed;
     const finish = () => {
       const final = record.revision === latest.current.revision ? latest.current : {
         ...record.state, callerRole: latest.current.callerRole, actions: [], prompt: null
@@ -65,7 +65,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const beat = beats[index];
       if (beat.kind === 'dice') {
         setDiceMoment(beat.dice);
-        timer.current = setTimeout(() => advance(index + 1), reduced ? 500 : 750);
+        timer.current = setTimeout(() => advance(index + 1), (reduced ? 500 : 750) / speed);
         return;
       }
       setDiceMoment(null);
@@ -80,6 +80,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     };
     if (beats.length) advance(0);
     else finish();
-  }, [view, records, enabled, tick]);
+  }, [view, records, enabled, tick, speed]);
   return { pitchView, playbackActive: active, diceMoment };
 }
