@@ -1,6 +1,6 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 
-export type MatchDecision = { title: string; key: string; options: { id: string; label: string; kind: 'choice' | 'action' }[] };
+export type MatchDecision = { title: string; key: string; options: { id: string; label: string; kind: 'choice' | 'action'; face?: string }[] };
 
 const promptTitles: Record<string, string> = {
   blockDie: 'Choose a block die', reroll: 'Use a re-roll?', skill: 'Use a skill?',
@@ -22,5 +22,8 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   if (!kind) return null;
   const choices = ownActions.filter(action => action.kind === kind || kind === 'blockDie' && action.kind === 'reroll');
   return { title: promptTitles[kind], key: `${view.revision}:${kind}`,
-    options: choices.map(action => ({ id: action.id, label: action.label, kind: 'action' })) };
+    options: choices.map(action => {
+      const face = action.kind === 'blockDie' ? /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
+      return { id: action.id, label: action.label, kind: 'action', face };
+    }) };
 }

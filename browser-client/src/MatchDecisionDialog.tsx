@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { MatchDecision } from './match-decision.ts';
+import { DiceFace } from './DiceFace.tsx';
 import './match-decision.css';
 
 /** Native modal focus containment keeps required engine choices out of permanent match chrome. */
@@ -22,6 +23,7 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
     <h2>{decision.title}</h2>
     <p>Choose an option to continue play.</p>
     <div className="match-decision-options">{decision.options.map(option => <button key={option.id} type="button" disabled={disabled}
-      onClick={() => option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>{option.label}</button>)}</div>
+      onClick={() => option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>
+      {option.face && <DiceFace face={option.face}/>}<span>{option.label}</span></button>)}</div>
   </dialog>, document.body);
 }

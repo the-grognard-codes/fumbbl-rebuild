@@ -195,7 +195,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  const { pitchView, playbackActive } = usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable);
+  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable);
   const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
   useLayoutEffect(() => {
@@ -402,7 +402,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
-        routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []}
+        routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
         onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
       <LiveDugouts players={view.players} onSelect={selectPlayer}/>
       </div><aside className="match-side" aria-label="Match decisions and players">
