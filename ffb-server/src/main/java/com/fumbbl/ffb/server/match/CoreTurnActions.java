@@ -57,14 +57,18 @@ public final class CoreTurnActions {
                 || ((DialogPlayerChoiceParameter) game.getDialogParameter()).getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE);
         if ((state.getCurrentStep().getId() != StepId.INIT_SELECTING && state.getCurrentStep().getId() != StepId.INIT_MOVING && state.getCurrentStep().getId() != StepId.INIT_BLOCKING
             && state.getCurrentStep().getId() != StepId.INIT_PASSING && state.getCurrentStep().getId() != StepId.INIT_THROW_TEAM_MATE
-            && state.getCurrentStep().getId() != StepId.INIT_FOULING) || (game.getDialogParameter() != null && !consumedKickoffChoice)
+            && state.getCurrentStep().getId() != StepId.INIT_FOULING && state.getCurrentStep().getId() != StepId.INIT_BOMB
+            && state.getCurrentStep().getId() != StepId.INIT_PUNT && state.getCurrentStep().getId() != StepId.INIT_KICK_TEAM_MATE)
+            || (game.getDialogParameter() != null && !consumedKickoffChoice)
             || (game.getTurnMode() != TurnMode.REGULAR && game.getTurnMode() != TurnMode.BLITZ)) return result;
         result.add(new Action("end-turn", "endTurn", "End turn", role, new ClientCommandEndTurn(game.getTurnMode(), null)));
         if (acting.getPlayer() == null) {
             for (Player<?> player : game.getActingTeam().getPlayers()) {
                 PlayerState status = game.getFieldModel().getPlayerState(player);
                 FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
-                if (!FieldCoordinateBounds.FIELD.isInBounds(at) || !status.isActive() || !status.isAbleToMove()) continue;
+                if (!FieldCoordinateBounds.FIELD.isInBounds(at) || !status.isActive()) continue;
+                new SpecialTurnActions().declarations(game, player, status, role, result);
+                if (!status.isAbleToMove()) continue;
                 boolean prone = status.getBase() == PlayerState.PRONE;
                 if (!prone && UtilGameOption.isOptionEnabled(game, GameOptionId.ENABLE_STALLING_CHECK))
                     result.add(new Action("forgo-" + player.getId(), "forgo", "Forgo activation of " + player.getName(), role,
@@ -107,6 +111,7 @@ public final class CoreTurnActions {
             }
         }
         new BallAndFoulActions().targets(game, role, result);
+        new SpecialTurnActions().targets(game, role, result);
         if (action != null && (action.isBlockOrSpecialAction() || action.isBlitzing()) && !acting.hasBlocked()) {
             TargetSelectionState selected = game.getFieldModel().getTargetSelectionState();
             for (Player<?> target : UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), from)) {
