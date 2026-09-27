@@ -130,12 +130,14 @@ test('two players and spectator use one board; updates, read-only controls and r
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const live = new Map(); let revision = 2; const mutations = [];
   const crowdedPlayers = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/m5c-crowded-players.json', import.meta.url), 'utf8'));
+  const visualCrowdedPlayers = crowdedPlayers.map(player => player.role === 'away'
+    ? { ...player, art: { rosterId: 'orc', positionId: 'orc-lineman' } } : player);
   let crowded = false;
   const hostileName = '<img src=x onerror="window.__projectionExecuted=true">';
   const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
   const consoleSummary = { messages: 0, errors: 0, leaked: false };
   const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index],
-    players: crowded ? crowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
+    players: crowded ? visualCrowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
   try {
     const pages = [];
     for (let index = 0; index < 3; index++) {
@@ -198,6 +200,24 @@ test('two players and spectator use one board; updates, read-only controls and r
     if (process.env.M5C_SCREENSHOT_DIR) {
       await pages[0].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'actor-crowded.png') });
       await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'spectator-crowded.png') });
+    }
+    for (const [width, height] of [[1920, 1080], [1920, 900], [1920, 820], [1280, 660]]) {
+      await pages[2].setViewportSize({ width, height });
+      await pages[2].waitForFunction(() => {
+        const scene = document.querySelector('.live-pitch-scene');
+        const viewport = document.querySelector('.live-pitch-viewport');
+        if (!scene || !viewport) return false;
+        const pitch = scene.getBoundingClientRect(), frame = viewport.getBoundingClientRect();
+        if (pitch.left < frame.left - 1 || pitch.right > frame.right + 1 || pitch.top < frame.top - 1 || pitch.bottom > frame.bottom + 1) return false;
+        return [...scene.querySelectorAll('.live-marker')].every(marker => {
+          const box = marker.getBoundingClientRect();
+          return Math.abs(box.left - pitch.left - parseFloat(marker.style.left)) < 1
+            && Math.abs(box.top - pitch.top - parseFloat(marker.style.top)) < 1;
+        });
+      });
+      if (process.env.M5C_SCREENSHOT_DIR) await pages[2].screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, `spectator-crowded-${width}x${height}.png`) });
+      assert.equal(await pages[2].evaluate(() => document.documentElement.scrollHeight <= innerHeight), true,
+        `Crowded match must fit a ${width}x${height} viewport`);
     }
     assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
     assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
