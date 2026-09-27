@@ -74,9 +74,9 @@ withheld because live spectators were disabled.
    server-established live-spectator role before reading; assign server timestamp
    and sequence; bound UTF-8 text, rate and retained bytes; broadcast only after
    durable commit. Store the players' live-spectator choice separately from the
-   transcript. Completed replay chat is public regardless of that choice. Define
-   any spectator-send policy separately. Chat must not share the engine mutation
-   path or influence game legality.
+   transcript. Completed replay chat is public regardless of that choice.
+   Authenticated spectators with live access may send chat in the match-window
+   scope. Chat must not share the engine mutation path or influence game legality.
 5. Replace the result/replay reader and React UI with indexed action/turn
    controls, transcript detail and timestamped chat. Resolve player/team names
    from authoritative identity references; do not hard-code placeholder or
@@ -87,13 +87,15 @@ withheld because live spectators were disabled.
    storage-admission rejection. Include a real two-player browser/MariaDB run with
    dice, chat, save/resume, terminal completion and replay seeking.
 
-## Decisions still needed
+## Implementation choices and later work
 
 - Snapshot frequency and the maximum retained transcript/chat size once the 5 GiB
-  storage admission policy has a configured storage-root definition.
-- Chat moderation, deletion/editing policy, export/access policy, and whether
-  spectators may send chat. Spectators read the complete historical chat under
-  the target contract.
+  storage admission policy has a configured storage-root definition are technical
+  choices to make and test during implementation; they need no further product
+  input.
+- Chat moderation, deletion/editing policy, and export/access policy are later
+  work. Authenticated spectators with live access may send chat. Spectators read
+  the complete historical chat under the target contract.
 
 This work does not authorize an in-place upgrade of active matches, broad cluster
 mutation, public deployment or credential changes. The reviewed format-1

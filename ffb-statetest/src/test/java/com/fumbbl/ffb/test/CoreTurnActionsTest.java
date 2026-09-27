@@ -91,7 +91,7 @@ class CoreTurnActionsTest {
         assertEquals("away1", state.getGame().getFieldModel().getTargetSelectionState().getSelectedPlayerId());
         assertTrue(actions(state).stream().anyMatch(action -> "move".equals(action.kind)));
     }
-    @Test void continuousBlitzPublishesConsistentActorAndSpectatorCheckpoints() throws Exception {
+    @Test void continuousBlitzPublishesConsistentCoachAndSpectatorCheckpoints() throws Exception {
         GameState state = fixture(true);
         state.getGame().getFieldModel().setWeather(Weather.NICE);
         state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("away1"), new FieldCoordinate(11, 7));
@@ -123,18 +123,28 @@ class CoreTurnActionsTest {
 
     private void capture(SetupSession session, JsonArray frames, String checkpoint) {
         JsonObject actor = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+        JsonObject otherCoach = session.reply("load", "ACCEPTED", false, "away").get("state").asObject();
         JsonObject spectator = session.spectatorView();
+        assertEquals(actor.get("revision"), otherCoach.get("revision"));
         assertEquals(actor.get("revision"), spectator.get("revision"));
         assertEquals(3, actor.getInt("projectionVersion", 0));
+        assertEquals(3, otherCoach.getInt("projectionVersion", 0));
         assertEquals(actor.get("players"), spectator.get("players"));
+        assertEquals(actor.get("players"), otherCoach.get("players"));
         for (JsonValue value : actor.get("players").asArray()) assertTrue(value.asObject().get("art").isNull());
         assertEquals(actor.get("ball"), spectator.get("ball"));
+        assertEquals(actor.get("ball"), otherCoach.get("ball"));
         assertEquals(actor.get("phase"), spectator.get("phase"));
+        assertEquals(actor.get("phase"), otherCoach.get("phase"));
         assertEquals(actor.get("actions"), spectator.get("actions"));
+        assertEquals(actor.get("actions"), otherCoach.get("actions"));
         assertEquals(actor.get("prompt"), spectator.get("prompt"));
+        assertEquals(actor.get("prompt"), otherCoach.get("prompt"));
         actor.set("matchId", "00000000-0000-0000-0000-000000000001");
+        otherCoach.set("matchId", "00000000-0000-0000-0000-000000000001");
         spectator.set("matchId", "00000000-0000-0000-0000-000000000001");
-        frames.add(new JsonObject().add("checkpoint", checkpoint).add("actor", actor).add("spectator", spectator));
+        frames.add(new JsonObject().add("checkpoint", checkpoint).add("actor", actor)
+            .add("otherCoach", otherCoach).add("spectator", spectator));
     }
 
     private void submit(SetupSession session, String kind, Integer targetX) {
