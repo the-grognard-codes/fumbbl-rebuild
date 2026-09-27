@@ -210,7 +210,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const decision = hosted ? matchDecision(view, availableActions) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
-  const selectedActions = moreActions(availableActions, playerId);
+  const selectedActions = moreActions(availableActions, view.activePlayerId ?? playerId);
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const canChoose = connected && !pending && !suspended;
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
