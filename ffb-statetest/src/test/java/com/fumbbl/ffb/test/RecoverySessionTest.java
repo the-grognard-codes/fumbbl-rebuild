@@ -20,18 +20,25 @@ class RecoverySessionTest {
 		MatchDocument document = (MatchDocument) documentField.get(fixture);
 		TestServer server = new TestServer();
 		SetupSession original = new SetupSession(server.getServer(), document, -15, true);
-		for (int version : new int[] {1, 2}) {
+		for (int version : new int[] {1, 2, 3}) {
 			JsonObject payload = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 			for (String role : new String[] {"homeView", "awayView"}) {
 				JsonObject saved = payload.get(role).asObject();
+				saved.remove("homeTeamName"); saved.remove("awayTeamName");
+				saved.remove("homeResources"); saved.remove("awayResources");
+				for (com.eclipsesource.json.JsonValue item : saved.get("players").asArray()) {
+					JsonObject player = item.asObject();
+					for (String field : new String[] {"number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch"}) player.remove(field);
+				}
+				for (com.eclipsesource.json.JsonValue item : saved.get("actions").asArray()) item.asObject().remove("sourcePlayerId");
 				if (version == 1) {
 					saved.remove("projectionVersion");
 					for (com.eclipsesource.json.JsonValue item : saved.get("players").asArray()) item.asObject().remove("art");
-				} else saved.set("projectionVersion", 2);
-				for (com.eclipsesource.json.JsonValue item : saved.get("actions").asArray()) item.asObject().remove("target");
+				} else saved.set("projectionVersion", version);
+				if (version < 3) for (com.eclipsesource.json.JsonValue item : saved.get("actions").asArray()) item.asObject().remove("target");
 			}
 			SetupSession restored = new SetupSession(server.getServer(), document, signed(payload));
-			assertEquals(3, view(restored, "home").getInt("projectionVersion", 0));
+			assertEquals(4, view(restored, "home").getInt("projectionVersion", 0));
 			assertEquals(view(original, "away"), view(restored, "away"));
 		}
 		JsonObject tampered = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();

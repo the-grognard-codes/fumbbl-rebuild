@@ -100,7 +100,7 @@
 .hosted-match .match-rerolls strong { font-size: 27px; }
 .hosted-match .match-scoreboard > .match-team { display: flex; align-items: center; justify-content: flex-start; gap: clamp(7px, 1.4vw, 26px); padding: 3px 12px; }
 .hosted-match .match-team.away { justify-content: flex-end; }
-.hosted-match .match-team span { font-size: clamp(20px, 2.5vw, 36px); letter-spacing: 1.5px; }
+.hosted-match .match-team span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(20px, 2.5vw, 36px); letter-spacing: 1.5px; }
 .hosted-match .match-team strong { font-size: clamp(32px, 3vw, 48px); line-height: 1; }
 .hosted-match .match-team small { font: 12px 'Match Barlow', sans-serif; white-space: nowrap; }
 .hosted-match .match-scoreboard .match-art { width: 46px; height: 48px; flex: none; filter: drop-shadow(0 2px 2px #000b); }

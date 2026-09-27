@@ -12,6 +12,7 @@ import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandCoinChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
@@ -36,6 +37,8 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -542,10 +545,21 @@ public final class SetupSession {
 				FrozenTeam frozen = team == game.getTeamHome() ? document.home.team : document.away.team;
 				FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
 				boolean onPitch = FieldCoordinateBounds.FIELD.isInBounds(at);
+				PlayerState playerState = game.getFieldModel().getPlayerState(player);
+				JsonArray skills = new JsonArray();
+				List<String> skillNames = new ArrayList<>();
+				for (Skill skill : player.getSkillsIncludingTemporaryOnes()) skillNames.add(skill.getName());
+				Collections.sort(skillNames);
+				for (String skillName : skillNames) skills.add(skillName);
 				players.add(new JsonObject().add("id", player.getId()).add("name", player.getName())
 					.add("slot", rosterSlot(frozen, player)).add("art", artIdentity(frozen, player))
+					.add("number", player.getNr()).add("position", positionName(player))
+					.add("ma", player.getMovementWithModifiers(game)).add("st", player.getStrengthWithModifiers(game))
+					.add("ag", player.getAgilityWithModifiers(game)).add("pa", player.getPassingWithModifiers(game))
+					.add("av", player.getArmourWithModifiers(game)).add("skills", skills)
+					.add("offPitch", offPitch(playerState, onPitch))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
-                    .add("state", game.getFieldModel().getPlayerState(player).getDescription())
+					.add("state", playerState.getDescription())
 					.add("x", onPitch ? JsonValue.valueOf(at.getX()) : JsonValue.NULL)
 					.add("y", onPitch ? JsonValue.valueOf(at.getY()) : JsonValue.NULL));
 			}
@@ -560,11 +574,21 @@ public final class SetupSession {
         for (Action action : actions()) {
             JsonValue target = action.targetPlayerId != null ? new JsonObject().add("playerId", action.targetPlayerId)
                 : action.targetSquare != null ? new JsonObject().add("x", action.targetSquare.getX()).add("y", action.targetSquare.getY()) : JsonValue.NULL;
+            String sourcePlayerId = game.getActingPlayer().getPlayerId();
+            if (action.targetPlayerId != null && ("select".equals(action.kind) || "selectBlock".equals(action.kind)
+                || "blitz".equals(action.kind) || "stand".equals(action.kind) || "forgo".equals(action.kind)))
+                sourcePlayerId = action.targetPlayerId;
+            if (sourcePlayerId != null) {
+                Player<?> source = game.getPlayerById(sourcePlayerId);
+                Team actingTeam = "home".equals(action.role) ? game.getTeamHome() : game.getTeamAway();
+                if (source == null || source.getTeam() != actingTeam) sourcePlayerId = null;
+            }
             legal.add(new JsonObject().add("id", actionId(action)).add("kind", action.kind)
-                .add("label", action.label).add("actor", action.role).add("target", target));
+                .add("label", action.label).add("actor", action.role).add("target", target)
+                .add("sourcePlayerId", sourcePlayerId == null ? JsonValue.NULL : JsonValue.valueOf(sourcePlayerId)));
         }
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
-        return new JsonObject().add("projectionVersion", 3).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
+        return new JsonObject().add("projectionVersion", 4).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeScore", homeScore()).add("awayScore", awayScore())
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr())
             .add("actions", legal).add("turn", game.getTurnData().getTurnNr()).add("turnMode", game.getTurnMode().name())
@@ -574,7 +598,32 @@ public final class SetupSession {
 			.add("phase", isComplete() ? "FULL_TIME" : step() == StepId.KICKOFF ? "READY_FOR_KICKOFF" : step() == StepId.SETUP ? "SETUP" : step() == StepId.COIN_CHOICE || step() == StepId.RECEIVE_CHOICE ? "PRE_MATCH" : "PLAY")
 			.add("actor", actor()).add("prompt", prompt).add("players", players)
 			.add("weather", game.getFieldModel().getWeather().name())
-			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls());
+			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls())
+			.add("homeTeamName", game.getTeamHome().getName()).add("awayTeamName", game.getTeamAway().getName())
+			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome().getApothecaries()))
+			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
+	}
+	private JsonObject resources(Team team, int apothecaries) {
+		return new JsonObject().add("apothecaries", apothecaries)
+			.add("assistantCoaches", team.getAssistantCoaches()).add("cheerleaders", team.getCheerleaders());
+	}
+	private String positionName(Player<?> player) {
+		String name = player.getPosition().getName();
+		if (name != null && !name.isEmpty()) return name;
+		String id = player.getPositionId();
+		return id == null || id.isEmpty() ? "Player" : id;
+	}
+	private String offPitch(PlayerState playerState, boolean onPitch) {
+		if (onPitch) return "pitch";
+		switch (playerState.getBase()) {
+			case PlayerState.RESERVE: return "reserve";
+			case PlayerState.KNOCKED_OUT: return "knockedOut";
+			case PlayerState.BADLY_HURT:
+			case PlayerState.SERIOUS_INJURY:
+			case PlayerState.RIP: return "casualty";
+			case PlayerState.BANNED: return "sentOff";
+			default: return "other";
+		}
 	}
 	private JsonValue artIdentity(FrozenTeam frozen, Player<?> enginePlayer) {
 		if (frozen.rosterId == null || frozen.rosterId.isEmpty()) return JsonValue.NULL;
@@ -586,7 +635,17 @@ public final class SetupSession {
 	private boolean matchesRecoveredView(JsonObject saved, String role) {
 		JsonObject current = view(role);
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
-		if (version < 1 || version > 3) return false;
+		if (version < 1 || version > 4) return false;
+		if (version < 4) {
+			current.set("projectionVersion", 3);
+			current.remove("homeTeamName"); current.remove("awayTeamName");
+			current.remove("homeResources"); current.remove("awayResources");
+			for (JsonValue item : current.get("players").asArray()) {
+				JsonObject player = item.asObject();
+				for (String field : new String[] { "number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch" }) player.remove(field);
+			}
+			for (JsonValue item : current.get("actions").asArray()) item.asObject().remove("sourcePlayerId");
+		}
 		if (version == 1) {
 			current.remove("projectionVersion");
 			for (JsonValue item : current.get("players").asArray()) item.asObject().remove("art");

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { canPlaceReserve, decodeSetupState, decodeSetupStateValue } from '../src/setup-protocol.ts';
 
@@ -26,6 +27,21 @@ test('version-three actions require bounded server target metadata', () => {
   assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[1], target: { x: 26, y: 4 } }] }));
   assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ ...versioned.actions[2], target: { x: 4, y: 4, odds: 99 } }] }));
   assert.throws(() => decodeSetupStateValue({ ...versioned, actions: [{ id: '2:end-turn', label: 'End turn', actor: 'home', kind: 'endTurn' }] }));
+});
+test('version-four match details are strict and role-consistent', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const decoded = decodeSetupStateValue(live);
+  assert.equal(decoded.projectionVersion, 4);
+  assert.equal(decoded.homeTeamName, 'Home Team');
+  assert.equal(decoded.players[0].number, 1);
+  assert.equal(decoded.players[0].offPitch, 'pitch');
+  assert.equal(decoded.actions.find(action => action.kind === 'blitz')?.sourcePlayerId, decoded.players[0].id);
+  assert.throws(() => decodeSetupStateValue({ ...live, homeTeamName: '' }));
+  assert.throws(() => decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, bribes: 1 } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...live.players[0], offPitch: 'reserve' }, ...live.players.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: live.players[1].id }, ...live.actions.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: 'missing' }, ...live.actions.slice(1)] }));
 });
 test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
   const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
