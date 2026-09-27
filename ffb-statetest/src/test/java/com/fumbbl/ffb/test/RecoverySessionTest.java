@@ -14,6 +14,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoverySessionTest {
+	@Test void routeRuntimeRoundTripsAndRetainsTranscriptCheckpointCompatibility() throws Exception {
+		SetupSession seed = new SetupSessionTest().session(11);
+		Field documentField = SetupSession.class.getDeclaredField("document");
+		documentField.setAccessible(true);
+		MatchDocument document = (MatchDocument) documentField.get(seed);
+		TestServer server = new TestServer();
+		SetupSession current = new SetupSession(server.getServer(), document, -15, true, true, false, true, true);
+		JsonObject payload = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+		assertEquals(5, payload.getInt("recoveryVersion", -1));
+		assertEquals(SetupSession.ROUTE_RUNTIME, payload.getString("runtimeVersion", null));
+		assertTrue(payload.get("pendingRoute").isNull());
+		assertEquals(current.recoveryArtifact(), restore(server, document, current).recoveryArtifact());
+
+		SetupSession previous = new SetupSession(server.getServer(), document, -16, true, true, false, true);
+		assertEquals(4, JsonObject.readFrom(previous.recoveryArtifact()).get("payload").asObject().getInt("recoveryVersion", -1));
+		assertEquals(previous.recoveryArtifact(), restore(server, document, previous).recoveryArtifact());
+	}
 	@Test void olderPresentationViewsRestoreWithoutWeakeningCurrentViewComparison() throws Exception {
 		SetupSession fixture = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
