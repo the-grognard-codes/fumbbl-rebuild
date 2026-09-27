@@ -7,6 +7,7 @@ import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { MatchHistory } from './MatchHistory.tsx';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
+import { usePitchPlayback } from './use-pitch-playback.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
@@ -162,7 +163,7 @@ export function SetupPanel() {
 }
 
 /** The same board and decisions for players and read-only spectators. */
-export function GameView({ view, connected, pending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
+export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
   routePreview = null, routeError = '', requestRoutePreview }: {
@@ -194,6 +195,8 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
+  const { pitchView, playbackActive } = usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable);
+  const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
   useLayoutEffect(() => {
     if (displayedRevision.current === view.revision) return;
@@ -341,7 +344,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? 'Home / Away' : view.callerRole === 'home' ? 'Home: You / Away: Opponent' : 'Home: Opponent / Away: You'}</p>
       {hosted && <LiveMatchScoreboard view={view}/>}
-      {decision && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
+      {!playbackActive && decision && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
@@ -398,9 +401,9 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
       <p data-testid="setup-status" className={hosted ? 'match-technical-status' : undefined}>Revision {view.revision} · you are {view.callerRole} · decision owner {view.actor} · half {view.half}, drive {view.drive} · turns home {view.homeTurn}, away {view.awayTurn} · score home {view.homeScore}, away {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls home {view.homeRerolls}, away {view.awayRerolls}</p>
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
-      <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
-        routePreview={routeReady ? routePreview : null} waypoints={routeMode ? waypoints : []}
-        onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare}/>
+      <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
+        routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []}
+        onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare} readOnly={playbackActive}/>
       <LiveDugouts players={view.players} onSelect={selectPlayer}/>
       </div><aside className="match-side" aria-label="Match decisions and players">
         <section aria-label="Selected player" className="match-selected-player"><h3>Selected player</h3>{selectedPlayer ? <div className="match-player-card">{spriteUrl(selectedPlayer) && <img src={spriteUrl(selectedPlayer)!} alt=""/>}<p><strong>{selectedPlayer.name} #{selectedPlayer.number ?? selectedPlayer.slot}</strong><br/>{selectedPlayer.position ?? selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? (selectedPlayer.offPitch ?? 'Off pitch') : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}{selectedPlayer.ma !== undefined && <><br/>MA {selectedPlayer.ma} · ST {selectedPlayer.st} · AG {selectedPlayer.ag}+ · PA {selectedPlayer.pa ? `${selectedPlayer.pa}+` : '—'} · AV {selectedPlayer.av}+<br/>Skills: {selectedPlayer.skills?.join(', ') || 'None'}</>}</p></div> : <p>Select a player on the pitch or from the roster.</p>}</section>
@@ -413,7 +416,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
         </section>}
         <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
-        <MatchHistory matchId={view.matchId} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+        <MatchHistory matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
