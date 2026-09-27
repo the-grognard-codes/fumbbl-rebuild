@@ -94,6 +94,193 @@ class SetupSessionTest {
 		Files.write(Paths.get("target", "m5c-crowded-players.json"), players.toString().getBytes(StandardCharsets.UTF_8));
 		assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5c-crowded-players.json")), StandardCharsets.UTF_8), players.toString());
 	}
+	@Test void nativeRouteCanStopAndContinueWithAnotherDeclaration() throws Exception {
+		SetupSession session = readySession(true);
+		TestRolls.on(engine(session)).general(1, 1, 3, 3, 3, 3, 3, 3);
+		submit(session, view(session).get("actions").asArray().get(82).asObject());
+		assertEquals("REGULAR", view(session).getString("turnMode", null));
+		JsonObject before = view(session);
+		String role = before.getString("actor", null);
+		JsonObject runner = null;
+		for (JsonValue value : before.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (role.equals(player.getString("role", null)) && player.getInt("slot", -1) == 11) runner = player;
+		}
+		assertTrue(runner != null);
+		String playerId = runner.getString("id", null);
+		int startX = runner.getInt("x", -1), y = runner.getInt("y", -1);
+		int direction = "home".equals(role) ? -1 : 1;
+		JsonObject select = null;
+		for (JsonValue value : before.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if ("select".equals(action.getString("kind", null))
+				&& playerId.equals(action.get("target").asObject().getString("playerId", null))) select = action;
+		}
+		assertTrue(select != null);
+		submit(session, select);
+		JsonArray firstWaypoints = new JsonArray().add(new JsonObject().add("x", startX + 2 * direction).add("y", y));
+		JsonObject firstPreview = session.routePreview(role, view(session).getInt("revision", -1), firstWaypoints);
+		assertEquals(2, firstPreview.get("steps").asArray().size());
+		assertEquals(0, firstPreview.get("steps").asArray().get(0).asObject().getInt("dodge", -1));
+		JsonObject firstRoute = request(view(session), "route").add("playerId", playerId).add("waypoints", firstWaypoints);
+		assertEquals("ACCEPTED", session.apply(role, firstRoute).getString("code", null));
+		assertEquals(startX + 2 * direction, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());
+		assertTrue(session.apply(role, firstRoute).getBoolean("duplicate", false));
+		JsonArray secondWaypoints = new JsonArray().add(new JsonObject().add("x", startX + 3 * direction).add("y", y));
+		assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class,
+			() -> session.routePreview(role, firstPreview.getInt("revision", -1), secondWaypoints)).code);
+		JsonObject secondPreview = session.routePreview(role, view(session).getInt("revision", -1), secondWaypoints);
+		assertEquals(1, secondPreview.get("steps").asArray().size());
+		assertEquals("ACCEPTED", session.apply(role, request(view(session), "route")
+			.add("playerId", playerId).add("waypoints", secondWaypoints)).getString("code", null));
+		assertEquals(startX + 3 * direction, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());
+		assertEquals(view(session).get("players"), session.spectatorView().get("players"));
+	}
+	@Test void nativeRoutePausesForDodgeRerollThenContinuesRemainingSquares() throws Exception {
+		SetupSession session = readySession(true);
+		TestRolls.on(engine(session)).general(1, 1, 3, 3, 3, 3, 3, 3);
+		submit(session, view(session).get("actions").asArray().get(82).asObject());
+		assertEquals("REGULAR", view(session).getString("turnMode", null));
+		JsonObject before = view(session);
+		String role = before.getString("actor", null);
+		JsonObject runner = null;
+		for (JsonValue value : before.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (role.equals(player.getString("role", null)) && player.getInt("slot", -1) == 1) runner = player;
+		}
+		assertTrue(runner != null);
+		String playerId = runner.getString("id", null);
+		int startX = runner.getInt("x", -1), y = runner.getInt("y", -1);
+		int direction = "home".equals(role) ? -1 : 1;
+		JsonObject select = null;
+		for (JsonValue value : before.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if ("select".equals(action.getString("kind", null))
+				&& playerId.equals(action.get("target").asObject().getString("playerId", null))) select = action;
+		}
+		assertTrue(select != null);
+		submit(session, select);
+		JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", startX + direction).add("y", y))
+			.add(new JsonObject().add("x", startX + direction).add("y", y + 1));
+		JsonObject preview = session.routePreview(role, view(session).getInt("revision", -1), waypoints);
+		assertEquals(2, preview.get("steps").asArray().size());
+		assertTrue(preview.get("steps").asArray().get(0).asObject().getInt("dodge", 0) > 0);
+		engine(session).getDiceRoller().clearTestRolls();
+		TestRolls.on(engine(session)).general(1);
+		assertEquals("ACCEPTED", session.apply(role, request(view(session), "route")
+			.add("playerId", playerId).add("waypoints", waypoints)).getString("code", null));
+		assertEquals(startX + direction, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());
+		assertEquals(y, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getY());
+		JsonObject teamReroll = null;
+		for (JsonValue value : view(session).get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if (action.getString("id", "").endsWith("reroll:team")) teamReroll = action;
+		}
+		assertTrue(teamReroll != null, "Expected a team reroll after the forced failed dodge");
+		TestRolls.on(engine(session)).general(6);
+		submit(session, teamReroll);
+		assertEquals(startX + direction, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());
+		assertEquals(y + 1, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getY());
+		assertEquals(view(session).get("players"), session.spectatorView().get("players"));
+	}
+	@Test void nativeRouteIncludesBothRushSquaresAndResumesAfterTeamReroll() throws Exception {
+		SetupSession session = readySession(true);
+		TestRolls.on(engine(session)).general(1, 1, 3, 3, 3, 3, 3, 3);
+		submit(session, view(session).get("actions").asArray().get(82).asObject());
+		assertEquals("REGULAR", view(session).getString("turnMode", null));
+		JsonObject before = view(session);
+		String role = before.getString("actor", null);
+		JsonObject runner = null;
+		for (JsonValue value : before.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (role.equals(player.getString("role", null)) && player.getInt("slot", -1) == 11) runner = player;
+		}
+		assertTrue(runner != null);
+		String playerId = runner.getString("id", null);
+		int startX = runner.getInt("x", -1), y = runner.getInt("y", -1);
+		int direction = "home".equals(role) ? -1 : 1;
+		JsonObject select = null;
+		for (JsonValue value : before.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if ("select".equals(action.getString("kind", null))
+				&& playerId.equals(action.get("target").asObject().getString("playerId", null))) select = action;
+		}
+		assertTrue(select != null);
+		submit(session, select);
+		JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", startX + 8 * direction).add("y", y));
+		JsonObject preview = session.routePreview(role, view(session).getInt("revision", -1), waypoints);
+		assertEquals(8, preview.get("steps").asArray().size());
+		assertEquals(0, preview.get("steps").asArray().get(5).asObject().getInt("rush", -1));
+		assertTrue(preview.get("steps").asArray().get(6).asObject().getInt("rush", 0) > 0);
+		assertTrue(preview.get("steps").asArray().get(7).asObject().getInt("rush", 0) > 0);
+		engine(session).getDiceRoller().clearTestRolls();
+		TestRolls.on(engine(session)).general(1);
+		assertEquals("ACCEPTED", session.apply(role, request(view(session), "route")
+			.add("playerId", playerId).add("waypoints", waypoints)).getString("code", null));
+		JsonObject teamReroll = null;
+		for (JsonValue value : view(session).get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if (action.getString("id", "").endsWith("reroll:team")) teamReroll = action;
+		}
+		assertTrue(teamReroll != null, "Expected a team reroll after the forced failed rush");
+		TestRolls.on(engine(session)).general(6, 6);
+		submit(session, teamReroll);
+		assertEquals(startX + 8 * direction, engine(session).getGame().getFieldModel()
+			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());
+		assertEquals(view(session).get("players"), session.spectatorView().get("players"));
+	}
+	@Test void nativeRouteAvoidsDodgeWhileManualRiskyRouteRemainsAvailable() throws Exception {
+		SetupSession session = readySession(true);
+		TestRolls.on(engine(session)).general(1, 1, 3, 3, 3, 3, 3, 3);
+		submit(session, view(session).get("actions").asArray().get(82).asObject());
+		assertEquals("REGULAR", view(session).getString("turnMode", null));
+		JsonObject before = view(session);
+		String role = before.getString("actor", null);
+		JsonObject runner = null, opponent = null;
+		for (JsonValue value : before.get("players").asArray()) {
+			JsonObject player = value.asObject();
+			if (player.getInt("slot", -1) != 11) continue;
+			if (role.equals(player.getString("role", null))) runner = player;
+			else opponent = player;
+		}
+		assertTrue(runner != null && opponent != null);
+		String playerId = runner.getString("id", null);
+		int startX = runner.getInt("x", -1), y = runner.getInt("y", -1);
+		int direction = "home".equals(role) ? -1 : 1;
+		JsonObject select = null;
+		for (JsonValue value : before.get("actions").asArray()) {
+			JsonObject action = value.asObject();
+			if ("select".equals(action.getString("kind", null))
+				&& playerId.equals(action.get("target").asObject().getString("playerId", null))) select = action;
+		}
+		assertTrue(select != null);
+		submit(session, select);
+		engine(session).getGame().getFieldModel().setPlayerCoordinate(
+			engine(session).getGame().getPlayerById(opponent.getString("id", null)),
+			new com.fumbbl.ffb.FieldCoordinate(startX + 3 * direction, y));
+		JsonArray target = new JsonArray().add(new JsonObject().add("x", startX + 4 * direction).add("y", y));
+		JsonArray smart = session.routePreview(role, view(session).getInt("revision", -1), target).get("steps").asArray();
+		assertTrue(smart.size() <= 8);
+		for (JsonValue value : smart) {
+			assertEquals(0, value.asObject().getInt("dodge", -1));
+			assertEquals(0, value.asObject().getInt("rush", -1));
+			assertEquals(0, value.asObject().get("reactions").asArray().size());
+		}
+		JsonArray manualWaypoints = new JsonArray()
+			.add(new JsonObject().add("x", startX + direction).add("y", y))
+			.add(new JsonObject().add("x", startX + 2 * direction).add("y", y))
+			.add(new JsonObject().add("x", startX + 3 * direction).add("y", y + 1))
+			.add(new JsonObject().add("x", startX + 4 * direction).add("y", y));
+		JsonArray manual = session.routePreview(role, view(session).getInt("revision", -1), manualWaypoints).get("steps").asArray();
+		assertEquals(4, manual.size());
+		assertTrue(manual.get(2).asObject().getInt("dodge", 0) > 0);
+	}
 	@Test void twelvePlayerRosterMustFieldItsCaptainAndCanCorrectPlacementThroughReserves() throws Exception {
 		SetupSession session = session(12); choices(session);
 		JsonObject view = view(session); String actor = view.getString("actor", null);
@@ -423,8 +610,9 @@ class SetupSessionTest {
     private void submit(SetupSession session, JsonObject action) {
         assertEquals("ACCEPTED", session.apply(action.getString("actor", null), request(view(session), "action").add("actionId", action.get("id"))).getString("code", null));
     }
-    private SetupSession readySession() throws Exception {
-        SetupSession session = session(11); choices(session);
+    private SetupSession readySession() throws Exception { return readySession(false); }
+    private SetupSession readySession(boolean route) throws Exception {
+        SetupSession session = session(11, route); choices(session);
         for (int side = 0; side < 2; side++) {
             JsonObject snapshot = view(session); String role = snapshot.getString("actor", null); int index = 0;
             for (JsonValue value : snapshot.get("players").asArray()) {
@@ -457,7 +645,8 @@ class SetupSessionTest {
 			.add("requestId", UUID.randomUUID().toString()).add("matchId", view.get("matchId"))
 			.add("expectedRevision", view.get("revision"));
 	}
-	SetupSession session(int count) throws Exception {
+	SetupSession session(int count) throws Exception { return session(count, false); }
+	SetupSession session(int count, boolean route) throws Exception {
 		RosterCatalog catalog = new RosterCatalog(); List<TeamDraft.Player> players = new ArrayList<>();
 		for (int i = 1; i <= count; i++) players.add(new TeamDraft.Player("p" + i, i, "lineman", Collections.emptyList()));
 		Map<String, Integer> resources = new LinkedHashMap<>();
@@ -468,6 +657,7 @@ class SetupSessionTest {
 		FrozenTeam away = new FrozenTeam(UUID.randomUUID().toString(), 1, "home", draft, evaluation.total, evaluation.skillPoints, catalog);
 		MatchDocument document = new MatchDocument(UUID.randomUUID().toString(), 3, "home", MatchDocument.Lifecycle.ACTIVATED,
 			new MatchDocument.Member("home", "away", home), new MatchDocument.Member("away", "home", away));
-		return new SetupSession(new TestServer().getServer(), document, -2);
+		return route ? new SetupSession(new TestServer().getServer(), document, -2, true, false, false, true, true, true)
+			: new SetupSession(new TestServer().getServer(), document, -2);
 	}
 }
