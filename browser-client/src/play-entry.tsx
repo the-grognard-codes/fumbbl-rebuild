@@ -7,6 +7,7 @@ import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import './play-brand.css';
@@ -46,6 +47,18 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [logRecords, setLogRecords] = useState<TranscriptRecord[]>([]);
   const [logLoading, setLogLoading] = useState(false);
   const [logUnavailable, setLogUnavailable] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(matchRoute || resultRoute);
+  const [chatUnavailable, setChatUnavailable] = useState(false);
+  const [chatSendError, setChatSendError] = useState('');
+  const [chatSent, setChatSent] = useState<{ text: string; id: string } | null>(null);
+  const chatMessagesRef = useRef<ChatMessage[]>([]);
+  const chatRequestRef = useRef<string | null>(null);
+  const chatSendRef = useRef<string | null>(null);
+  const chatLoadedRef = useRef(0);
+  const chatTotalRef = useRef(0);
+  const chatInitializedRef = useRef(false);
+  const chatUnavailableRef = useRef(false);
   const [routePreview, setRoutePreview] = useState<RoutePreview | null>(null);
   const [routeError, setRouteError] = useState('');
   const routeRequestRef = useRef<string | null>(null);
@@ -65,6 +78,17 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
   useEffect(() => {
+    const requestChat = (from = chatLoadedRef.current) => {
+      if (!(matchRoute || resultRoute) || !matchIdPattern.test(matchId) || chatRequestRef.current || chatUnavailableRef.current) return;
+      try { chatRequestRef.current = connection.request('matchChat', { operation: 'load', matchId, from, limit: 32 }); setChatLoading(true); }
+      catch { setChatLoading(false); }
+    };
+    const addChat = (messages: ChatMessage[]) => {
+      const indexed = new Map(chatMessagesRef.current.map(message => [message.index, message]));
+      messages.forEach(message => indexed.set(message.index, message));
+      chatMessagesRef.current = [...indexed.values()].sort((left, right) => left.index - right.index);
+      setChatMessages(chatMessagesRef.current);
+    };
     const requestLog = (from: number) => {
       if (!(matchRoute || resultRoute) || !matchIdPattern.test(matchId) || logRequestRef.current || logUnavailableRef.current) return;
       try {
@@ -77,6 +101,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       onChange: message => {
       if (message.type === 'status') {
         logRequestRef.current = null; setLogLoading(false);
+        chatRequestRef.current = null; chatSendRef.current = null; chatInitializedRef.current = false; setChatLoading(false);
         routeRequestRef.current = null; setRoutePreview(null); setRouteError('');
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
@@ -85,6 +110,32 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
         && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
+      if (message.type === 'setupState' && message.state?.matchId === matchId && !chatInitializedRef.current) requestChat();
+      const chatFailure = message.type === 'error' && (chatRequestRef.current !== null && message.requestId === chatRequestRef.current
+        || chatSendRef.current !== null && message.requestId === chatSendRef.current);
+      if (message.type === 'matchChat' && message.matchId === matchId) {
+        addChat(message.page.messages);
+        chatTotalRef.current = message.page.total;
+        if (message.requestId === chatRequestRef.current) {
+          chatRequestRef.current = null; chatLoadedRef.current = message.page.next; chatInitializedRef.current = true;
+          if (chatLoadedRef.current < chatTotalRef.current) requestChat();
+          else setChatLoading(false);
+        } else if (message.requestId !== null && message.page.messages.length === 1
+          && message.page.messages[0].authorId === connection.accountId) {
+          chatSendRef.current = null; setChatSendError('');
+          setChatSent({ text: message.page.messages[0].text, id: message.requestId });
+        }
+        if (!chatRequestRef.current && chatLoadedRef.current < chatTotalRef.current) requestChat();
+      }
+      if (message.type === 'error' && chatRequestRef.current !== null && message.requestId === chatRequestRef.current) {
+        chatRequestRef.current = null; setChatLoading(false);
+        if (['CHAT_UNAVAILABLE', 'REPLAY_UNSUPPORTED'].includes(message.code)) {
+          chatUnavailableRef.current = true; setChatUnavailable(true);
+        }
+      }
+      if (message.type === 'error' && chatSendRef.current !== null && message.requestId === chatSendRef.current) {
+        chatSendRef.current = null; setChatSendError(message.code.replaceAll('_', ' '));
+      }
       const routeFailure = routeRequestRef.current !== null && message.type === 'error' && message.requestId === routeRequestRef.current;
       if (message.type === 'routePreview' && message.requestId === routeRequestRef.current) {
         routeRequestRef.current = null; setRoutePreview(message.route); setRouteError('');
@@ -112,6 +163,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         if (message.code === 'ACCEPTED') {
           if (message.result?.formatVersion >= 2 && !logRequestRef.current
             && logRecordsRef.current.length < message.result.eventCount) requestLog(logRecordsRef.current.length);
+          if (message.result?.formatVersion === 3 && !chatInitializedRef.current) requestChat();
+          else if (message.result?.formatVersion < 3) { chatUnavailableRef.current = true; setChatUnavailable(true); setChatLoading(false); }
           setResult(message.result);
           if (message.event) { setReplayEvent(message.event); setReplayIndex(message.event.revision); }
           else { setReplayEvent(null); setReplayIndex(null); }
@@ -148,6 +201,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       }
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
+        && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
@@ -253,6 +307,10 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       acceptedActionId={connection.lastAcceptedActionId}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+      chatMessages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable} chatSendError={chatSendError} chatSent={chatSent}
+      chatSending={connection.pending?.request.type === 'matchChat'} sendChat={text => run(() => {
+        setChatSendError(''); chatSendRef.current = connection.request('matchChat', { operation: 'send', matchId, text }, true);
+      })}
       routePreview={routePreview} routeError={routeError}
       requestRoutePreview={points => run(() => {
         setRoutePreview(null); setRouteError(''); routeRequestRef.current = null;
@@ -262,6 +320,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       mutate={(operation, fields = {}) => run(() => { const state = connection.state!; connection.request('setup', { operation, matchId: state.matchId, expectedRevision: state.revision, ...fields }, true); })} />}
     {resultRoute && <HostedResult matchId={matchId} result={result} event={replayEvent} index={replayIndex} pending={resultPending} connected={connected}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+      chatMessages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
       onLoad={() => run(() => { connection!.request('matchResult', { operation: 'load', matchId }); setResultPending(true); })}
       onReplay={index => run(() => { connection!.request('matchResult', { operation: 'replay', matchId, index }); setResultPending(true); })}/>}
   </main>;

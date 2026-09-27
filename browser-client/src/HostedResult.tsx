@@ -1,13 +1,15 @@
 import { LivePitch } from './LivePitch.tsx';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
-import { MatchEventLog } from './MatchEventLog.tsx';
+import { MatchHistory } from './MatchHistory.tsx';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import type { ChatMessage } from './chat-protocol.ts';
 
 export function HostedResult({ matchId, result, event, index, pending, connected, onLoad, onReplay,
-  logRecords, logLoading, logUnavailable }: {
+  logRecords, logLoading, logUnavailable, chatMessages, chatLoading, chatUnavailable }: {
   matchId: string; result: MatchResultMetadata | null; event: ReplayEvent | null; index: number | null;
   pending: boolean; connected: boolean; onLoad: () => void; onReplay: (index: number) => void;
   logRecords: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
+  chatMessages: ChatMessage[]; chatLoading: boolean; chatUnavailable: boolean;
 }) {
   const ready = connected && !pending;
   return <section aria-label="Authoritative result" className="hosted-result">
@@ -27,7 +29,9 @@ export function HostedResult({ matchId, result, event, index, pending, connected
         <p>Half {event.state.half} · Drive {event.state.drive} · Home turn {event.state.homeTurn} · Away turn {event.state.awayTurn} · {event.state.weather}</p>
         <LivePitch view={event.state} selectedId="" actions={[]} readOnly onSelectPlayer={() => {}} onSquare={() => {}}/>
       </section> : <p>Choose First or Last to view the recorded pitch.</p>}
-      {result.formatVersion === 2 && <MatchEventLog records={logRecords} loading={logLoading} unavailable={logUnavailable}/>}
+      {result.formatVersion >= 2 && <MatchHistory matchId={matchId} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+        messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable || result.formatVersion < 3}
+        connected={connected} sending={false} canSend={false} onSend={() => {}} sendError="" sent={null}/>}
     </>}
   </section>;
 }
