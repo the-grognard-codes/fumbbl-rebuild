@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match pitch shows recorded dice faces and highlights the server-selected block die; block choices use graphical dice buttons")
 			.addImprovement("Browser live matches show each server-confirmed movement square in order and hold decisions until the pitch catches up")
 			.addFeature("Browser match and replay views show shared log and chat tabs with durable conversation, unread messages and a retained draft")
 			.addFeature("Authenticated browser match chat persists coach and spectator messages through recovery and completed results")

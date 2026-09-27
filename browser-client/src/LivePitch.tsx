@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
+import type { DiceMoment } from './dice-presentation.ts';
+import { DiceFace } from './DiceFace.tsx';
 import './live-pitch.css';
 
 const WIDTH = 960;
@@ -50,9 +52,9 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
 }
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false, playback = false }: {
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null, onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false, playback = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
-  routePreview?: RoutePreview | null; waypoints?: RoutePoint[];
+  routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -78,6 +80,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     else if (action.target && 'x' in action.target) targetSquares.set(`${action.target.x},${action.target.y}`, action.target);
   }
   const activePlayer = view.players.find(player => player.id === view.activePlayerId);
+  const diceSubject = view.players.find(player => player.id === diceMoment?.subjectId) ?? activePlayer;
+  const diceX = diceSubject?.x !== null && diceSubject?.x !== undefined && diceSubject.x < 13 ? 16 : 3;
+  const diceY = diceSubject?.y !== null && diceSubject?.y !== undefined && diceSubject.y < 8 ? 10 : 2;
   const target = pinnedAction?.target;
   const pinnedTarget = target && ('playerId' in target
     ? view.players.find(player => player.id === target.playerId) : target);
@@ -126,6 +131,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {view.players.filter(player => player.x !== null && player.y !== null).map(player =>
             <PlayerMarker key={player.id} player={player} scale={scale} active={player.id === view.activePlayerId}
               selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)} onFocus={() => onFocusPlayer?.(player.id)} onBlur={() => onBlurPlayer?.()}/>)}
+          {diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}
+            style={{ left: (OFFSET + diceX * CELL) * scale, top: (OFFSET + diceY * CELL) * scale }}>
+            <strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index}/>)}</div>
+          </div>}
           {backgroundFailed && <span className="live-pitch-error">Pitch image unavailable; plain field shown.</span>}
         </div>
       </div>
