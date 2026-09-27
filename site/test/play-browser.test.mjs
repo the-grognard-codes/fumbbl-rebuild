@@ -130,12 +130,14 @@ test('two players and spectator use one board; updates, read-only controls and r
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const live = new Map(); let revision = 2; const mutations = [];
   const crowdedPlayers = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/m5c-crowded-players.json', import.meta.url), 'utf8'));
+  const visualCrowdedPlayers = crowdedPlayers.map(player => player.role === 'away'
+    ? { ...player, art: { rosterId: 'orc', positionId: 'orc-lineman' } } : player);
   let crowded = false;
   const hostileName = '<img src=x onerror="window.__projectionExecuted=true">';
   const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
   const consoleSummary = { messages: 0, errors: 0, leaked: false };
   const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index],
-    players: crowded ? crowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
+    players: crowded ? visualCrowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
   try {
     const pages = [];
     for (let index = 0; index < 3; index++) {
