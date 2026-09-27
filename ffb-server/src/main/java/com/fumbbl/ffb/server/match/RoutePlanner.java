@@ -64,7 +64,10 @@ final class RoutePlanner {
 		for (FieldCoordinate waypoint : waypoints) {
 			if (!FieldCoordinateBounds.FIELD.isInBounds(waypoint) || waypoint.equals(from)
 				|| occupied(waypoint)) throw new MatchService.Failure("INVALID_ROUTE");
-			List<Step> segment = span(from, waypoint, path.size());
+			List<Step> segment = waypoint.isAdjacent(from)
+				? (currentMove + path.size() < allowance
+					? java.util.Collections.singletonList(step(from, waypoint, path.size())) : null)
+				: span(from, waypoint, path.size());
 			if (segment == null) throw new MatchService.Failure("NO_ROUTE");
 			path.addAll(segment);
 			from = waypoint;
