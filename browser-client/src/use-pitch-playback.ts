@@ -13,13 +13,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const latest = useRef(view);
   const completed = useRef(view.revision);
   const running = useRef(false);
+  const waiting = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   latest.current = view;
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   useLayoutEffect(() => {
     if (!enabled) {
       if (timer.current) clearTimeout(timer.current);
-      timer.current = null; running.current = false; completed.current = view.revision;
+      timer.current = null; running.current = false; waiting.current = false; completed.current = view.revision;
       presented.current = view; setPitchView(view); setActive(false);
       return;
     }
@@ -30,7 +31,20 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     }
     setActive(true);
     const record = records[completed.current + 1];
-    if (!record || record.revision !== completed.current + 1) return;
+    if (!record || record.revision !== completed.current + 1) {
+      if (!waiting.current) {
+        waiting.current = true;
+        timer.current = setTimeout(() => {
+          // A legacy or temporarily unavailable transcript cannot hold an authoritative board forever.
+          waiting.current = false; timer.current = null; completed.current = latest.current.revision;
+          presented.current = latest.current; setPitchView(latest.current); setActive(false);
+          setTick(value => value + 1);
+        }, 1000);
+      }
+      return;
+    }
+    if (waiting.current && timer.current) clearTimeout(timer.current);
+    waiting.current = false; timer.current = null;
     const moves = confirmedMoves(record);
     running.current = true;
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
