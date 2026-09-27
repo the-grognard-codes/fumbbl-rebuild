@@ -53,11 +53,14 @@ public final class SetupSession {
 	public static final String SAVE_RESUME_RUNTIME = "ffb-3.4.0-bb2025-r4.1";
 	public static final String TRANSCRIPT_RUNTIME = "ffb-3.4.0-bb2025-r5.1";
 	public static final String ROUTE_RUNTIME = "ffb-3.4.0-bb2025-r5.2";
+	public static final String CHAT_RUNTIME = "ffb-3.4.0-bb2025-r5.3";
 	private boolean defaultSetup;
 	private boolean saveResume;
 	private boolean transcriptV2;
 	private boolean routeV2;
+	private boolean chatV1;
 	private MatchTranscript transcript;
+	private MatchChat chat;
 	private PendingRoute pendingRoute;
 	private final GameState state;
 	private final String matchId;
@@ -97,15 +100,23 @@ public final class SetupSession {
 
 	/** New r5.2 matches retain a committed route across native decision prompts. */
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2) {
+		this(server, document, engineId, recoverable, defaultSetup, saveResume, transcriptV2, routeV2, false);
+	}
+
+	/** New r5.3 matches retain public conversation alongside the native checkpoint. */
+	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId, boolean recoverable, boolean defaultSetup, boolean saveResume, boolean transcriptV2, boolean routeV2, boolean chatV1) {
 		if (defaultSetup && !recoverable) throw new IllegalArgumentException("Default setup requires a versioned recovery lifetime");
 		if (saveResume && !recoverable) throw new IllegalArgumentException("Save/resume requires a versioned recovery lifetime");
 		if (transcriptV2 && !recoverable) throw new IllegalArgumentException("Transcript requires a versioned recovery lifetime");
 		if (routeV2 && !transcriptV2) throw new IllegalArgumentException("Routes require the transcript checkpoint runtime");
+		if (chatV1 && !routeV2) throw new IllegalArgumentException("Chat requires the route checkpoint runtime");
 		this.defaultSetup = defaultSetup;
 		this.saveResume = saveResume;
 		this.transcriptV2 = transcriptV2;
 		this.routeV2 = routeV2;
+		this.chatV1 = chatV1;
 		if (transcriptV2) transcript = new MatchTranscript();
+		if (chatV1) chat = new MatchChat();
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
 		matchId = document.matchId;
@@ -162,14 +173,16 @@ public final class SetupSession {
 			boolean r41 = recoveryVersion == 3 && SAVE_RESUME_RUNTIME.equals(runtime);
 			boolean r51 = recoveryVersion == 4 && TRANSCRIPT_RUNTIME.equals(runtime);
 			boolean r52 = recoveryVersion == 5 && ROUTE_RUNTIME.equals(runtime);
-			if ((!r2 && !r41 && !r51 && !r52)
+			boolean r53 = recoveryVersion == 6 && CHAT_RUNTIME.equals(runtime);
+			if ((!r2 && !r41 && !r51 && !r52 && !r53)
 				|| !"ffb-3.4.0-bb2025-m3d.1".equals(payload.getString("engineVersion", null))
-				|| payload.getInt("replayVersion", -1) != (r51 || r52 ? 2 : 1))
+				|| payload.getInt("replayVersion", -1) != (r51 || r52 || r53 ? 2 : 1))
 				throw new MatchService.Failure("RECOVERY_UNSUPPORTED");
 			defaultSetup = !LEGACY_RUNTIME.equals(runtime);
-			saveResume = r41 || (r51 || r52) && payload.getBoolean("saveResumeEnabled", false);
-			transcriptV2 = r51 || r52;
-			routeV2 = r52;
+			saveResume = r41 || (r51 || r52 || r53) && payload.getBoolean("saveResumeEnabled", false);
+			transcriptV2 = r51 || r52 || r53;
+			routeV2 = r52 || r53;
+			chatV1 = r53;
 			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
@@ -180,11 +193,15 @@ public final class SetupSession {
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
 				"saveResume");
-			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+			else if (r52) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
 				"saveResume", "pendingRoute");
-			if ((r51 || r52) && !saveResume && !payload.get("saveResume").isNull())
+			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
+				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
+				"saveResume", "pendingRoute", "chat");
+			if ((r51 || r52 || r53) && !saveResume && !payload.get("saveResume").isNull())
 				throw new IllegalArgumentException("Unexpected save/resume state");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
 				throw new IllegalArgumentException("Recovery frozen inputs differ");
@@ -225,12 +242,13 @@ public final class SetupSession {
 			if (replayBytes > 16 * 1024 * 1024 || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
-			if (r51 || r52) {
+			if (r51 || r52 || r53) {
 				transcript = new MatchTranscript(payload.get("transcript").asObject());
 				if (transcript.size() != revision + 1 || transcript.nativeCursor() > state.getLastCommandNr())
 					throw new IllegalArgumentException("Transcript checkpoint boundary");
 			}
-			if (r52 && !payload.get("pendingRoute").isNull())
+			if (r53) chat = new MatchChat(payload.get("chat").asObject());
+			if ((r52 || r53) && !payload.get("pendingRoute").isNull())
 				pendingRoute = new PendingRoute(payload.get("pendingRoute").asObject());
 			if (pendingRoute != null) {
 				Player<?> active = state.getGame().getActingPlayer().getPlayer();
@@ -257,8 +275,8 @@ public final class SetupSession {
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			JsonArray queue = new JsonArray(); entry.getValue().forEach(roll -> queue.add(roll.testRoll())); rolls.add(entry.getKey(), queue);
 		});
-		JsonObject payload = new JsonObject().add("recoveryVersion", routeV2 ? 5 : transcriptV2 ? 4 : saveResume ? 3 : 2)
-			.add("runtimeVersion", routeV2 ? ROUTE_RUNTIME : transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
+		JsonObject payload = new JsonObject().add("recoveryVersion", chatV1 ? 6 : routeV2 ? 5 : transcriptV2 ? 4 : saveResume ? 3 : 2)
+			.add("runtimeVersion", chatV1 ? CHAT_RUNTIME : routeV2 ? ROUTE_RUNTIME : transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
 			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", transcriptV2 ? 2 : 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
@@ -268,6 +286,7 @@ public final class SetupSession {
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
 		if (routeV2) payload.add("pendingRoute", pendingRoute == null ? JsonValue.NULL : pendingRoute.json());
+		if (chatV1) payload.add("chat", chat.json());
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -760,18 +779,28 @@ public final class SetupSession {
     }
     public CompletedMatch completedMatch() {
         if (!isComplete() || failed) throw new MatchService.Failure("NOT_COMPLETED");
-        JsonObject result = new JsonObject().add("formatVersion", transcriptV2 ? 2 : 1)
+		JsonObject result = new JsonObject().add("formatVersion", chatV1 ? 3 : transcriptV2 ? 2 : 1)
             .add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("ruleset", document.home.team.ruleset)
             .add("catalogVersion", document.home.team.catalogVersion).add("presetId", document.home.team.presetId)
             .add("presetVersion", document.home.team.presetVersion).add("matchId", matchId)
             .add("homeScore", homeScore()).add("awayScore", awayScore()).add("finalRevision", revision)
             .add("events", events);
-        if (transcriptV2) result.add("transcript", transcript.json());
+		if (transcriptV2) result.add("transcript", transcript.json());
+		if (chatV1) result.add("chat", chat.json());
         return new CompletedMatch(result.toString());
     }
 	public JsonObject transcriptPage(int from, int limit) {
 		if (!transcriptV2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");
 		return transcript.page(from, limit);
+	}
+	public JsonObject chatPage(int from, int limit) {
+		if (!chatV1) throw new MatchService.Failure("CHAT_UNAVAILABLE");
+		return chat.page(from, limit);
+	}
+	public MatchChat.Outcome sendChat(String accountId, String role, String requestId, String content, long now) {
+		if (!chatV1) throw new MatchService.Failure("CHAT_UNAVAILABLE");
+		if (isComplete()) return chat.duplicate(accountId, requestId, content);
+		return chat.append(accountId, role, requestId, content, revision, now);
 	}
 	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */
 	public JsonObject routePreview(String role, int expectedRevision, JsonArray points) {

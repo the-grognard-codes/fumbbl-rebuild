@@ -5,6 +5,7 @@ const fields: Record<string, string[]> = {
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],
   routePreview: ['code', 'matchId', 'route'],
+  matchChat: ['code', 'matchId', 'duplicate', 'page'],
   preparedMatch: ['code', 'duplicate', 'callerRole', 'document', 'recoveryMatchId'],
   savedTeam: ['code', 'document', 'versionStatus', 'validation', 'teams'],
   catalog: ['catalogVersion', 'ruleset', 'draftVersion', 'rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers',

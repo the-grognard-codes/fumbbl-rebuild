@@ -38,6 +38,22 @@ final class ActiveMatchPublisher {
 
 	void remove(BrowserMatchAdapter.Connection connection) { viewers.remove(connection); }
 
+	void publishChat(String matchId, BrowserMatchAdapter.Connection source, JsonObject page) {
+		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
+			Viewer viewer = viewers.get(connection);
+			if (viewer == null || connection == source || !matchId.equals(viewer.matchId)) continue;
+			try {
+				if (viewer.spectator) access.spectatorTranscript(viewer.principal, matchId);
+				else access.playerRole(viewer.principal, matchId);
+				send(connection, new JsonObject().add("type", "matchChat").add("requestId", JsonValue.NULL)
+					.add("code", "ACCEPTED").add("matchId", matchId).add("duplicate", false).add("page", page));
+			} catch (SQLException | MatchService.Failure denied) {
+				viewers.remove(connection);
+				send(connection, new JsonObject().add("type", "error").add("requestId", JsonValue.NULL).add("code", "VIEW_UNAVAILABLE"));
+			}
+		}
+	}
+
 	void publish(String matchId, BrowserMatchAdapter.Connection source, JsonObject publicState) {
 		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
 			Viewer viewer = viewers.get(connection);

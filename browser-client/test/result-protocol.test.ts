@@ -19,9 +19,10 @@ test('accepts the shared Human and Orc exhibition result version', () => {
   assert.equal(decodeMatchResult(JSON.stringify({ ...response, result: shared })).result?.catalogVersion, version);
   assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, result: { ...shared, presetId: 'human-exhibition-1150' } })));
 });
-test('accepts format-two completed matches while rejecting unknown future formats', () => {
+test('accepts transcript and chat completed matches while rejecting unknown future formats', () => {
   assert.equal(decodeMatchResult(JSON.stringify({ ...response, result: { ...result, formatVersion: 2 } })).result?.formatVersion, 2);
-  assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, result: { ...result, formatVersion: 3 } })));
+  assert.equal(decodeMatchResult(JSON.stringify({ ...response, result: { ...result, formatVersion: 3 } })).result?.formatVersion, 3);
+  assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, result: { ...result, formatVersion: 4 } })));
 });
 test('fails closed for metadata, event and rejected-response inconsistencies', () => { assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, result: { ...result, extra: true } }))); assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, event: { revision: 7, kind: 'FULL_TIME', state: { ...state, actions: [{ id: 'a', label: 'a', actor: 'home', kind: 'a' }] } } }))); assert.throws(() => decodeMatchResult(JSON.stringify({ ...response, code: 'NOT_COMPLETED' }))); });
 
