@@ -200,6 +200,13 @@
 .live-match-clock .match-art { width: 20px; height: 20px; }
 .hosted-match .live-match-scoreboard .live-match-clock .match-art { width: 20px; height: 20px; }
 .hosted-match .match-command-bar { align-content: center; min-height: 0; margin: 0; padding: 8px 12px; border: 1px solid #635d4d; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #080e1180; }
+.hosted-match .kickoff-command { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 20px 34px; gap: 3px 10px; min-width: 0; }
+.hosted-match .kickoff-command-heading { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; min-width: 0; color: #ead9b3; font: 14px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.hosted-match .kickoff-command-heading span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9c8ca; font: 12px 'Match Barlow', sans-serif; text-transform: none; }
+.hosted-match .kickoff-command-players { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.hosted-match .kickoff-command-confirm { display: flex; gap: 4px; }
+.play-runtime .hosted-match .kickoff-command button { flex: none; height: 30px; padding: 2px 8px; font-size: 12px; }
+.play-runtime .hosted-match .kickoff-command button[aria-pressed=true] { border-color: #f1d890; background: #5e482c; }
 .hosted-match .match-command-bar p { margin: 0; color: #ddd5bf; font: 500 17px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
 .hosted-match .match-command-bar > span { display: block; grid-column: 1 / -1; }
 .hosted-match .match-command-bar:has(.command-heading) { position: relative; z-index: 3; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 19px 28px 24px; gap: 3px; padding: 7px 10px; }
@@ -221,6 +228,7 @@
 .hosted-match .command-menu { position: absolute; left: 10px; bottom: calc(100% - 35px); display: flex; flex-wrap: wrap; gap: 4px; width: min(500px, calc(100% - 20px)); max-height: 45vh; overflow: auto; padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
 .play-runtime .hosted-match .command-menu button { font-size: 12px; }
 @media (max-width: 700px) { .hosted-match .match-command-bar:has(.command-heading) { display: block; }.hosted-match .command-heading, .hosted-match .command-buttons, .hosted-match .command-preview { flex-wrap: wrap; margin: 4px 0; } }
+@media (max-width: 700px) { .hosted-match .kickoff-command { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; }.hosted-match .kickoff-command-heading { grid-column: 1; flex-wrap: wrap; }.hosted-match .kickoff-command-confirm { justify-content: flex-end; } }
 .live-dugouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 5px; }
 .hosted-match .live-dugouts.match-bench { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 38px; margin-top: 5px; border: 0; }
 .live-dugout { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 38px; padding: 3px 6px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); border: 1px solid #635d4d; border-left: 3px solid #83b6e9; box-shadow: inset 0 0 0 2px #05090c; }
