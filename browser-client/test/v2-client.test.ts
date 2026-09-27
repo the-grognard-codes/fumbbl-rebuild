@@ -127,6 +127,35 @@ test('route previews are correlated to the active coach, revision and requested 
   assert.throws(() => watcher.client.request('routePreview', { matchId: match, expectedRevision: 2, waypoints: [{ x: 8, y: 7 }] }), /read-only/);
 });
 
+test('spectator chat sends retain uncertain input and accept only the matching public message', async () => {
+  const { client, connect, events, storageData } = fixture(new Map(), { matchId: match, watch: true });
+  const socket = await connect();
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: socket.sent.at(-1).requestId, duplicate: false, state });
+  const requestId = client.request('matchChat', { operation: 'send', matchId: match, text: 'Hello' }, true);
+  assert.ok(storageData.has(v2PendingKey));
+  const page = { formatVersion: 1, from: 0, next: 1, total: 1, messages: [{ index: 0, at: 1000,
+    revision: 2, authorId: account, role: 'spectator', text: 'Hello' }] };
+  socket.reply({ type: 'error', requestId, code: 'MATCH_OUTCOME_UNKNOWN' });
+  assert.ok(client.pending);
+  client.retry();
+  socket.reply({ type: 'matchChat', requestId, code: 'ACCEPTED', matchId: match, duplicate: true, page });
+  assert.equal(client.pending, null);
+  assert.equal(events.at(-1).page.messages[0].text, 'Hello');
+  socket.reply({ type: 'matchChat', requestId: null, code: 'ACCEPTED', matchId: match, duplicate: false,
+    page: { ...page, from: 1, next: 2, total: 2, messages: [{ ...page.messages[0], index: 1, authorId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', role: 'away' }] } });
+  assert.equal(events.at(-1).page.messages[0].role, 'away');
+  assert.equal(socket.closed, false);
+});
+
+test('completed replay can read public chat without an active match selection', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const requestId = client.request('matchChat', { operation: 'load', matchId: match, from: 0, limit: 32 });
+  socket.reply({ type: 'matchChat', requestId, code: 'ACCEPTED', matchId: match, duplicate: false,
+    page: { formatVersion: 1, from: 0, next: 0, total: 0, messages: [] } });
+  assert.equal(socket.closed, false);
+  assert.equal(events.at(-1).page.total, 0);
+});
+
 test('an opponent preparation response cannot carry a creator invitation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'load', matchId: match });

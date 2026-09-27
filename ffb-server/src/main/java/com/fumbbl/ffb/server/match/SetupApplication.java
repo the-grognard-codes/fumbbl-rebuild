@@ -157,7 +157,7 @@ public final class SetupApplication {
 				RecoveryRepository.Record staged = recovery.find(id);
 				if (staged == null) {
 					// Persist an unpublished initial checkpoint first. Activation can then be retried after any crash.
-					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true);
+					SetupSession initial = new SetupSession(server, document, engineId--, true, defaultSetup, saveResume, true, true, true);
 					if (saveResume) initial.startSaveResumeRetention(clock.millis());
 					if (!recovery.save(new RecoveryRepository.Record(id, 1, initial.recoveryArtifact()), 0))
 						return preparedFailure(request, "CONFLICT");
@@ -328,7 +328,8 @@ public final class SetupApplication {
 		MatchDocument document = matches.load("home", matchId).document;
 		if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) {
 			JsonObject artifact = JsonObject.readFrom(document.completion.json());
-			if (artifact.getInt("formatVersion", -1) != 2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");
+			if (artifact.getInt("formatVersion", -1) != 2 && artifact.getInt("formatVersion", -1) != 3)
+				throw new MatchService.Failure("REPLAY_UNSUPPORTED");
 			return new MatchTranscript(artifact.get("transcript").asObject()).page(from, limit);
 		}
 		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
@@ -338,6 +339,44 @@ public final class SetupApplication {
 		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 		if (recovery != null) lastAccess.put(matchId, clock.millis());
 		return session.transcriptPage(from, limit);
+	}
+
+	/** Public chat is kept with the checkpoint and copied into the immutable completed result. */
+	public JsonObject chatPage(String matchId, int from, int limit) throws SQLException {
+		MatchDocument document = matches.load("home", matchId).document;
+		if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) {
+			JsonObject artifact = JsonObject.readFrom(document.completion.json());
+			if (artifact.getInt("formatVersion", -1) != 3) throw new MatchService.Failure("CHAT_UNAVAILABLE");
+			return new MatchChat(artifact.get("chat").asObject()).page(from, limit);
+		}
+		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
+		releaseIdle();
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (recovery != null) lastAccess.put(matchId, clock.millis());
+		return session.chatPage(from, limit);
+	}
+
+	/** The protocol caller has already authorized this coach or live spectator. */
+	public MatchChat.Outcome sendChat(String matchId, String accountId, String role, String requestId, String content) throws SQLException {
+		MatchDocument document = matches.load("home", matchId).document;
+		if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) {
+			JsonObject artifact = JsonObject.readFrom(document.completion.json());
+			if (artifact.getInt("formatVersion", -1) != 3) throw new MatchService.Failure("CHAT_UNAVAILABLE");
+			return new MatchChat(artifact.get("chat").asObject()).duplicate(accountId, requestId, content);
+		}
+		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
+		releaseIdle();
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (recovery == null) throw new MatchService.Failure("CHAT_UNAVAILABLE");
+		lastAccess.put(matchId, clock.millis());
+		String before = session.recoveryArtifact();
+		MatchChat.Outcome outcome = session.sendChat(accountId, role, requestId, content, clock.millis());
+		checkpoint("home", matchId, session, before);
+		return outcome;
 	}
 
 	/** Read-only route forecast for a registered coach; the caller has already authenticated the account. */

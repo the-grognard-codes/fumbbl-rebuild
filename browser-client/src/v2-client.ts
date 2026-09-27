@@ -5,6 +5,7 @@ import { decodePreparedMatch } from './prepared-match-protocol.ts';
 import { decodeMatchResult } from './result-protocol.ts';
 import { decodeTranscript } from './transcript-protocol.ts';
 import { decodeRoutePreview } from './route-protocol.ts';
+import { decodeChat } from './chat-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
 export type V2Message = Record<string, any>;
@@ -43,7 +44,7 @@ export class V2Client {
         const saved = JSON.parse(raw);
         if (uuid.test(saved.accountId) && saved.request?.version === 2
           && typeof saved.request.requestId === 'string'
-          && ['setup', 'preparedMatch', 'savedTeam'].includes(saved.request.type)
+          && ['setup', 'preparedMatch', 'savedTeam', 'matchChat'].includes(saved.request.type)
           && !('bearer' in saved.request)) {
           this.pending = saved;
           if (saved.request.type === 'setup' && uuid.test(saved.request.matchId)) this.selection = { matchId: saved.request.matchId, watch: false };
@@ -156,7 +157,7 @@ export class V2Client {
     if (message.type !== 'error') {
       const expected = request?.type === 'watch' || request?.type === 'setup' ? 'setupState'
         : request?.type === 'validateTeam' ? 'teamValidation' : request?.type;
-      if (request ? message.type !== expected : message.type !== 'setupState') throw Error('Uncorrelated response');
+      if (request ? message.type !== expected : message.type !== 'setupState' && message.type !== 'matchChat') throw Error('Uncorrelated response');
     }
     if (message.type === 'preparedMatch' && message.code === 'ACCEPTED') {
       const { invitationCode, ...response } = message;
@@ -190,6 +191,17 @@ export class V2Client {
         || this.state?.revision === decoded.route.revision && decoded.route.playerId !== this.state.activePlayerId)
         throw Error('Foreign route preview');
       message.route = decoded.route;
+    }
+    if (message.type === 'matchChat') {
+      const decoded = decodeChat(JSON.stringify(message));
+      if (this.selection && decoded.matchId !== this.selection.matchId
+        || !this.selection && !request
+        || request && (request.type !== 'matchChat' || decoded.matchId !== request.matchId
+          || request.operation === 'load' && decoded.page.from !== request.from
+          || request.operation === 'send' && (decoded.page.messages.length !== 1
+            || decoded.page.messages[0].authorId !== this.accountId || decoded.page.messages[0].text !== request.text))
+        || !request && decoded.requestId !== null) throw Error('Foreign chat response');
+      message.page = decoded.page;
     }
     if (message.type === 'savedTeam') {
       const document = message.document;
