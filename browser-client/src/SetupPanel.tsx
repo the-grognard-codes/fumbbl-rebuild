@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { decode } from './protocol.ts';
 import { LivePitch, spriteUrl } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
@@ -159,7 +159,12 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  useEffect(() => { setActionId(''); setActionFilter(''); }, [view.revision]);
+  const displayedRevision = useRef(view.revision);
+  useLayoutEffect(() => {
+    if (displayedRevision.current === view.revision) return;
+    displayedRevision.current = view.revision;
+    setActionId(''); setActionFilter('');
+  }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
   const offPitch = view.players.filter(player => player.x === null);
