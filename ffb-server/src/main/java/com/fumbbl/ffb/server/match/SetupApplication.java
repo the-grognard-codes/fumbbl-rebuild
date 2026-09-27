@@ -326,6 +326,11 @@ public final class SetupApplication {
 	/** Bounded public history; the caller must authorize the viewer for this active match first. */
 	public JsonObject transcriptPage(String matchId, int from, int limit) throws SQLException {
 		MatchDocument document = matches.load("home", matchId).document;
+		if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) {
+			JsonObject artifact = JsonObject.readFrom(document.completion.json());
+			if (artifact.getInt("formatVersion", -1) != 2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");
+			return new MatchTranscript(artifact.get("transcript").asObject()).page(from, limit);
+		}
 		if (document.lifecycle != MatchDocument.Lifecycle.ACTIVATED) throw new MatchService.Failure("NOT_FOUND");
 		releaseIdle();
 		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
