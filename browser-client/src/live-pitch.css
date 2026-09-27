@@ -273,6 +273,10 @@
 .hosted-result .match-event-log { margin-top: 14px; border: 1px solid #635d4d; padding: 10px; background: #131c20; }
 .hosted-result .match-event-scroll { max-height: 300px; overflow: auto; }
 .hosted-result .match-event-scroll p { margin: 0; padding: 4px 2px; border-top: 1px solid #ffffff13; }
+.live-dice-overlay { position: absolute; z-index: 70; width: max-content; max-width: 245px; padding: 8px; color: #f7ead0; background: #101d23ed; border: 2px solid #b79a68; border-radius: 4px; box-shadow: 0 8px 22px #000b; pointer-events: none; }
+.live-dice-overlay strong { display: block; margin-bottom: 5px; font: 600 12px 'Match Barlow', sans-serif; text-transform: uppercase; }
+.live-dice-overlay > div { display: flex; gap: 5px; }
+.match-die { display: block; width: 49px; height: 49px; filter: drop-shadow(0 2px 2px #0009); }
 .match-history { display: flex; flex-direction: column; min-height: 210px; min-width: 0; }
 .hosted-match .match-side > .match-history { flex: 1; min-height: 210px; }
 .match-history-tabs { display: flex; gap: 5px; margin-bottom: 7px; }

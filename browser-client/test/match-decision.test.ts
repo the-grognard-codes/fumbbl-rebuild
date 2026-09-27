@@ -11,6 +11,7 @@ test('real block dice and push options become actor-only decisions', () => {
   const dice = matchDecision(block, block.actions.filter(action => action.actor === block.callerRole));
   assert.equal(dice?.title, 'Choose a block die');
   assert.deepEqual(dice?.options.map(option => option.id), block.actions.map(action => action.id));
+  assert.equal(dice?.options[0].face, 'PUSHBACK');
   const push = frames[7].actor as SetupState;
   assert.equal(matchDecision(push, push.actions.filter(action => action.actor === push.callerRole))?.options.length, 3);
   const spectator = frames[6].spectator as SetupState;
