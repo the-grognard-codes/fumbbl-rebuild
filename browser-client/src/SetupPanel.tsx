@@ -6,6 +6,7 @@ import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
 import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
+import { kickoffChoice } from './kickoff-choice.ts';
 import { PitchCompanion } from './PitchCompanion.tsx';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
@@ -208,6 +209,7 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const decision = hosted ? matchDecision(view, availableActions) : null;
+  const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const selectedActions = moreActions(availableActions, playerId);
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const canChoose = connected && !pending && !suspended;
@@ -307,7 +309,15 @@ export function GameView({ view, connected, pending, mutate, acceptedActionId = 
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
-        {availableActions.length > 0 ? <>
+        {kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
+          <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
+          <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
+            aria-pressed={selected} disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}</div>
+          <div className="kickoff-command-confirm">{kickoff.decline && <button type="button" disabled={!canChoose}
+            onClick={() => mutate('action', { actionId: kickoff.decline!.id })}>{kickoff.decline.label}</button>}
+            <button type="button" disabled={!canChoose || !kickoff.confirm}
+              onClick={() => { if (kickoff.confirm) mutate('action', { actionId: kickoff.confirm.id }); }}>Confirm selection</button></div>
+        </div> : availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
           <span>{pinnedAction ? pinnedAction.label : 'Select a player or target, then choose an action.'}</span></div>
         <div className="command-buttons" role="group" aria-label="Player actions">
