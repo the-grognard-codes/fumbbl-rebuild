@@ -211,7 +211,8 @@ export function GameView({ view, connected, pending, mutate, results = true, res
     <p>{availableActions.length ? 'Choose an action issued for your team. Its actor and kind are shown in the list.' : 'The server has not issued an action for your team.'}</p>
     {targetChoices.length > 0 && <div aria-label="Actions at selected target"><strong>At selected target</strong>{targetChoices.map(action =>
       <button key={action.id} type="button" className="secondary" aria-pressed={actionId === action.id}
-        onClick={() => setActionId(action.id)} disabled={!connected || !!pending || suspended}>{action.label}</button>)}</div>}
+        onPointerDown={() => setActionId(action.id)} onClick={() => setActionId(action.id)}
+        disabled={!connected || !!pending || suspended}>{action.label}</button>)}</div>}
     <p>{pinnedAction ? `Pinned: ${pinnedAction.label}. Commit will send this server action.` : 'Select a server action, then Commit. Hover never sends an action.'}</p>
     {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player name, pass, or 8, 7" disabled={!connected || !!pending} /></label>}
     {actionFilter && <p>{matchingActions.length} matching actions</p>}
