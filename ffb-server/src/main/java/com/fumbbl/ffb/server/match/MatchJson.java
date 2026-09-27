@@ -143,8 +143,10 @@ public final class MatchJson {
 	void validateCompletion(CompletedMatch completed, MatchDocument document) {
 		try {
 			JsonObject artifact = JsonObject.readFrom(completed.json());
-			exact(artifact, "formatVersion", "engineVersion", "ruleset", "catalogVersion", "presetId", "presetVersion", "matchId", "homeScore", "awayScore", "finalRevision", "events");
-			if (artifact.getInt("formatVersion", -1) != 1 || !CompletedMatch.ENGINE_VERSION.equals(artifact.getString("engineVersion", null))
+			int format = artifact.getInt("formatVersion", -1);
+			if (format == 2) exact(artifact, "formatVersion", "engineVersion", "ruleset", "catalogVersion", "presetId", "presetVersion", "matchId", "homeScore", "awayScore", "finalRevision", "events", "transcript");
+			else exact(artifact, "formatVersion", "engineVersion", "ruleset", "catalogVersion", "presetId", "presetVersion", "matchId", "homeScore", "awayScore", "finalRevision", "events");
+			if ((format != 1 && format != 2) || !CompletedMatch.ENGINE_VERSION.equals(artifact.getString("engineVersion", null))
 				|| !"BB2025".equals(artifact.getString("ruleset", null)) || !document.matchId.equals(artifact.getString("matchId", null))
 				|| !document.home.team.catalogVersion.equals(artifact.getString("catalogVersion", null)) || !document.home.team.presetId.equals(artifact.getString("presetId", null))
 				|| !document.home.team.presetVersion.equals(artifact.getString("presetVersion", null))) throw new IllegalArgumentException();
@@ -173,6 +175,16 @@ public final class MatchJson {
 			}
 			JsonObject terminal = events.get(events.size() - 1).asObject().get("state").asObject();
 			if (prior != finalRevision || !"FULL_TIME".equals(events.get(events.size() - 1).asObject().getString("kind", null)) || !"FULL_TIME".equals(terminal.getString("phase", null)) || terminal.getInt("homeScore", -1) != home || terminal.getInt("awayScore", -1) != away) throw new IllegalArgumentException();
+			if (format == 2) {
+				MatchTranscript transcript = new MatchTranscript(artifact.get("transcript").asObject());
+				if (transcript.size() != events.size()) throw new IllegalArgumentException();
+				JsonArray records = transcript.json().get("records").asArray();
+				for (int index = 0; index < records.size(); index++) {
+					JsonObject record = records.get(index).asObject();
+					JsonObject event = events.get(index).asObject();
+					if (!record.get("kind").equals(event.get("kind")) || !record.get("state").equals(event.get("state"))) throw new IllegalArgumentException();
+				}
+			}
 		} catch (RuntimeException failure) { throw new MatchService.Failure("REPLAY_UNSUPPORTED"); }
 	}
 

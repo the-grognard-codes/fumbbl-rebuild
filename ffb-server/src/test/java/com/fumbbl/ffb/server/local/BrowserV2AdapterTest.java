@@ -36,6 +36,28 @@ class BrowserV2AdapterTest {
 	private static final String FIRST = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
+	@Test void authorizedSpectatorReadsBoundedTranscriptWithoutPlayerScope() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.playerRole(spectator, MATCH)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.transcriptPage(MATCH, 0, 4)).thenReturn(new JsonObject().add("formatVersion", 2)
+			.add("from", 0).add("next", 0).add("total", 0).add("records", new com.eclipsesource.json.JsonArray()));
+		BrowserV2Adapter adapter = adapter(bearer -> spectator, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "viewer").toString());
+		adapter.receive(connection, request("matchTranscript", "page").add("matchId", MATCH).add("from", 0).add("limit", 4).toString());
+		JsonObject page = JsonObject.readFrom(connection.messages.get(1));
+		assertEquals("ACCEPTED", page.getString("code", null));
+		assertEquals(2, page.get("page").asObject().getInt("formatVersion", -1));
+		verify(access).spectatorSnapshot(spectator, MATCH);
+		verify(setup).transcriptPage(MATCH, 0, 4);
+		doThrow(new MatchService.Failure("NOT_FOUND")).when(access).spectatorSnapshot(spectator, MATCH);
+		adapter.receive(connection, request("matchTranscript", "denied").add("matchId", MATCH).add("from", 0).add("limit", 4).toString());
+		assertEquals("NOT_FOUND", code(connection, 2));
+		verify(setup, times(1)).transcriptPage(MATCH, 0, 4);
+	}
+
 	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
