@@ -12,6 +12,8 @@ test('ribbon offers only this player’s server-issued uncommon declarations', (
   assert.equal(actionForPlayer(offered, 'p1', 'selectBlock')?.id, 'selectBlock-p1');
   assert.deepEqual(moreActions(offered, 'p1').map(item => item.kind), ['declareFoul', 'declarePass']);
   assert.deepEqual(moreActions(offered, 'p2').map(item => item.kind), ['declareFoul']);
+  assert.deepEqual(moreActions([action('block', 'p1', { playerId: 'opponent' }), action('blockStab', 'p1', { playerId: 'opponent' })], 'p1')
+    .map(item => item.kind), ['blockStab']);
   assert.deepEqual(moreActions(offered, ''), []);
   assert.equal(hasUnactivatedPlayers(offered), true);
   assert.equal(hasUnactivatedPlayers([action('endTurn', null)]), false);
