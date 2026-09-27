@@ -175,8 +175,8 @@ class CoreTurnActionsTest {
         JsonObject spectator = session.spectatorView();
         assertEquals(actor.get("revision"), otherCoach.get("revision"));
         assertEquals(actor.get("revision"), spectator.get("revision"));
-        assertEquals(3, actor.getInt("projectionVersion", 0));
-        assertEquals(3, otherCoach.getInt("projectionVersion", 0));
+        assertEquals(4, actor.getInt("projectionVersion", 0));
+        assertEquals(4, otherCoach.getInt("projectionVersion", 0));
         assertEquals(actor.get("players"), spectator.get("players"));
         assertEquals(actor.get("players"), otherCoach.get("players"));
         for (JsonValue value : actor.get("players").asArray()) assertTrue(value.asObject().get("art").isNull());
@@ -238,6 +238,20 @@ class CoreTurnActionsTest {
         state.getGame().setDialogParameter(new com.fumbbl.ffb.dialog.DialogSkillUseParameter("home1", primary, 0, true));
         Action never = actions(state).stream().filter(action -> action.id.equals("skill:never")).findFirst().get();
         assertTrue(((com.fumbbl.ffb.net.commands.ClientCommandUseSkill) never.command).isNeverUse());
+    }
+
+    @Test void opponentOwnedPromptDoesNotClaimActingPlayerAsItsSource() throws Exception {
+        GameState state = fixture(true);
+        state.getGame().getFieldModel().setWeather(Weather.NICE);
+        state.getGame().getActingPlayer().setPlayerId("home1");
+        com.fumbbl.ffb.model.skill.Skill block = state.getGame().getRules().getSkillFactory().forName("Block");
+        state.getGame().setDialogParameter(new com.fumbbl.ffb.dialog.DialogSkillUseParameter("away1", block, 0));
+        JsonObject view = sessionWithState(state).reply("load", "ACCEPTED", false, "away").get("state").asObject();
+        for (JsonValue item : view.get("actions").asArray()) {
+            JsonObject action = item.asObject();
+            assertEquals("away", action.getString("actor", null));
+            assertTrue(action.get("sourcePlayerId").isNull());
+        }
     }
 
     private GameState fixture(boolean home) throws Exception {

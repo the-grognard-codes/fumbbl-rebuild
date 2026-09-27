@@ -89,8 +89,8 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls[0].request.expectedRevision, step);
       assert.equal(calls[0].request.actionId, actionId);
       assert.equal(await commit.isDisabled(), true);
-      assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
-      assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).isDisabled(), true);
+      assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
+      assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
       const accepted = calls.shift();
       step++;
       sendState(0, accepted.send, accepted.request.requestId);

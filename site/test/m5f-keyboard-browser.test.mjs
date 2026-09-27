@@ -68,7 +68,7 @@ test('keyboard companion explores, pins and commits once while spectator stays r
       }
       if (index) {
         await page.keyboard.press('Enter');
-        assert.equal(await page.getByRole('button', { name: 'Commit action' }).isDisabled(), true);
+        assert.equal(await page.getByRole('button', { name: 'Commit action' }).count(), 0);
         const viewport = page.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space');
         assert.equal(calls.length, 0);
       } else {
