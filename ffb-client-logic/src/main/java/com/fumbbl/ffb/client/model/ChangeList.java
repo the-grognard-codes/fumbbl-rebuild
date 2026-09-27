@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match ribbon previews server-validated movement waypoints, square checks and reactions with Undo, Clear and Commit path")
 			.addFeature("Browser coaches can commit a bounded multi-waypoint movement path that pauses and resumes around native game decisions")
 			.addImprovement("Browser live matches show a paged server-recorded log of decisions, rolls and player coordinate changes")
 			.addFeature("Browser matches offer eligible Multiple Block declarations and defender pairs")

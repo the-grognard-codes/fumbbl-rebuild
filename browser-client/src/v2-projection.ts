@@ -4,6 +4,7 @@ const fields: Record<string, string[]> = {
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],
+  routePreview: ['code', 'matchId', 'route'],
   preparedMatch: ['code', 'duplicate', 'callerRole', 'document', 'recoveryMatchId'],
   savedTeam: ['code', 'document', 'versionStatus', 'validation', 'teams'],
   catalog: ['catalogVersion', 'ruleset', 'draftVersion', 'rosterId', 'name', 'presetId', 'budget', 'minPlayers', 'maxPlayers',

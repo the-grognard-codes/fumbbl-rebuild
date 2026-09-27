@@ -7,6 +7,7 @@ import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import './play-brand.css';
 
@@ -45,6 +46,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [logRecords, setLogRecords] = useState<TranscriptRecord[]>([]);
   const [logLoading, setLogLoading] = useState(false);
   const [logUnavailable, setLogUnavailable] = useState(false);
+  const [routePreview, setRoutePreview] = useState<RoutePreview | null>(null);
+  const [routeError, setRouteError] = useState('');
+  const routeRequestRef = useRef<string | null>(null);
   const logRecordsRef = useRef<TranscriptRecord[]>([]);
   const logRequestRef = useRef<string | null>(null);
   const logUnavailableRef = useRef(false);
@@ -73,6 +77,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       onChange: message => {
       if (message.type === 'status') {
         logRequestRef.current = null; setLogLoading(false);
+        routeRequestRef.current = null; setRoutePreview(null); setRouteError('');
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
@@ -80,6 +85,13 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
         && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
+      const routeFailure = routeRequestRef.current !== null && message.type === 'error' && message.requestId === routeRequestRef.current;
+      if (message.type === 'routePreview' && message.requestId === routeRequestRef.current) {
+        routeRequestRef.current = null; setRoutePreview(message.route); setRouteError('');
+      }
+      if (message.type === 'error' && message.requestId === routeRequestRef.current) {
+        routeRequestRef.current = null; setRoutePreview(null); setRouteError(message.code.replaceAll('_', ' '));
+      }
       if (message.type === 'matchTranscript' && message.requestId === logRequestRef.current) {
         logRequestRef.current = null;
         const page = message.page;
@@ -135,6 +147,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         } else launch?.popup?.close();
       }
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
+        && !routeFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
@@ -240,6 +253,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       acceptedActionId={connection.lastAcceptedActionId}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+      routePreview={routePreview} routeError={routeError}
+      requestRoutePreview={points => run(() => {
+        setRoutePreview(null); setRouteError(''); routeRequestRef.current = null;
+        if (points.length) routeRequestRef.current = connection.request('routePreview', {
+          matchId: connection.state!.matchId, expectedRevision: connection.state!.revision, waypoints: points });
+      })}
       mutate={(operation, fields = {}) => run(() => { const state = connection.state!; connection.request('setup', { operation, matchId: state.matchId, expectedRevision: state.revision, ...fields }, true); })} />}
     {resultRoute && <HostedResult matchId={matchId} result={result} event={replayEvent} index={replayIndex} pending={resultPending} connected={connected}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
