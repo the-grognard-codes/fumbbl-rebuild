@@ -164,6 +164,18 @@ test('uncertain player intent survives reconnect and retries exactly once on exp
   assert.equal(client.pending, null); assert.equal(storageData.size, 0);
 });
 
+test('only an accepted action with an advanced revision is available for Last used', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const load = client.open(match, false);
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: load, duplicate: false, state: { ...state, callerRole: 'home' } });
+  const rejected = client.request('setup', { matchId: match, operation: 'action', actionId: '2:declareFoul-p1', expectedRevision: 2 }, true);
+  socket.reply({ type: 'setupState', requestId: rejected, code: 'STALE_REVISION', duplicate: false, state: null });
+  assert.equal(client.lastAcceptedActionId, null);
+  const accepted = client.request('setup', { matchId: match, operation: 'action', actionId: '2:declareFoul-p1', expectedRevision: 2 }, true);
+  socket.reply({ type: 'setupState', requestId: accepted, code: 'ACCEPTED', duplicate: false, state: { ...state, revision: 3, callerRole: 'home' } });
+  assert.equal(client.lastAcceptedActionId, '2:declareFoul-p1');
+});
+
 test('retired sockets and foreign match responses cannot clear retained intent', async () => {
   const { client, connect, storageData } = fixture(); const old = await connect();
   const requestId = client.request('preparedMatch', { operation: 'activate', matchId: match, expectedRevision: 2 }, true);

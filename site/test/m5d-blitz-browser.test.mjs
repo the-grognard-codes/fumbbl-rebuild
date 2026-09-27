@@ -55,6 +55,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     }
     const actor = pages[0];
     const commit = actor.getByRole('button', { name: 'Commit action', exact: true });
+    assert.equal(await actor.getByRole('button', { name: 'Move', exact: true }).isDisabled(), true);
+    assert.equal(await actor.getByRole('button', { name: 'Block', exact: true }).isDisabled(), true);
+    await actor.getByRole('button', { name: 'End Turn', exact: true }).click();
+    assert.equal(await actor.getByRole('button', { name: 'Confirm End Turn', exact: true }).isVisible(), true);
+    assert.equal(calls.length, 0, 'End Turn pauses while unactivated players remain');
+    await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    assert.equal(await pages[2].getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().hover();
     const viewport = actor.getByLabel('Pitch action preview');
     await viewport.focus(); await viewport.press('Space');
@@ -103,7 +110,16 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls.length, 0, 'Duplicate projection does not create a new mutation');
     };
     await pinPlayer(0);
-    await actor.getByLabel('Actions at selected target').getByRole('button', { name: 'Start blitz with home1' }).click();
+    await actor.getByRole('button', { name: 'More actions', exact: true }).click();
+    await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation of home1' }).click();
+    assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '0:forgo-home1');
+    assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
+    await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await actor.getByRole('button', { name: 'Blitz', exact: true }).click();
+    if (process.env.M5D_SCREENSHOT_DIR) {
+      await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
+      await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'action-ribbon-blitz.png') });
+    }
     const initialSelection = await actor.evaluate(() => ({
       action: document.querySelector('[aria-label="Server action"]')?.value,
       status: document.querySelector('.match-page-top [role="status"]')?.textContent,
@@ -119,11 +135,11 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await actor.waitForFunction(() => !document.body.innerText.includes('A submitted change needs confirmation.'));
     assert.equal(calls.length, 0, 'Stale rejection never resubmits automatically');
     assert.ok(loads >= 3, 'Stale rejection requests a fresh read');
-    await submit('0:blitz-home1', async () => { await pinPlayer(0); await actor.getByLabel('Actions at selected target').getByRole('button', { name: 'Start blitz with home1' }).click(); });
+    await submit('0:blitz-home1', async () => { await pinPlayer(0); await actor.getByRole('button', { name: 'Blitz', exact: true }).click(); });
     await submit('1:target-away1', () => pinPlayer(1));
     for (const x of [8, 9, 10]) await submit(`${step}:move-${x}-7`, () => pinSquare(x, 7), x === 8);
     await submit('5:block-away1', () => pinPlayer(1));
-    await submit('6:block-die:0', () => actor.getByLabel('Server action', { exact: true }).selectOption('6:block-die:0'));
+    await submit('6:block-die:0', async () => { await actor.getByText('All server actions', { exact: true }).click(); await actor.getByLabel('Server action', { exact: true }).selectOption('6:block-die:0'); });
     await submit('7:push:away1:12:6', () => pinSquare(12, 6));
     assert.equal(step, 8);
     assert.equal(frames[8].checkpoint, 'pushed');

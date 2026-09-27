@@ -202,6 +202,25 @@
 .hosted-match .match-command-bar { align-content: center; min-height: 0; margin: 0; padding: 8px 12px; border: 1px solid #635d4d; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #080e1180; }
 .hosted-match .match-command-bar p { margin: 0; color: #ddd5bf; font: 500 17px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
 .hosted-match .match-command-bar > span { display: block; grid-column: 1 / -1; }
+.hosted-match .match-command-bar:has(.command-heading) { position: relative; z-index: 3; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 19px 28px 24px; gap: 3px; padding: 7px 10px; }
+.hosted-match .command-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; color: #e6d9bb; font: 12px 'Match Barlow', sans-serif; }
+.hosted-match .command-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 15px 'Match Alegreya', Georgia, serif; }
+.hosted-match .command-heading span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9c8ca; }
+.hosted-match .command-buttons, .hosted-match .command-preview { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.play-runtime .hosted-match .command-buttons button { flex: none; height: 28px; padding: 2px 8px; font-size: 11px; }
+.play-runtime .hosted-match .command-buttons .last-used-action { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.play-runtime .hosted-match .command-buttons button[aria-pressed=true] { border-color: #b8d2e7; background: #2b5678; }
+.hosted-match .command-preview > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d7d7cb; font: 12px 'Match Barlow', sans-serif; }
+.hosted-match .command-preview details { position: relative; flex: none; font: 11px 'Match Barlow', sans-serif; }
+.hosted-match .command-preview summary { cursor: pointer; color: #c5d7e2; }
+.hosted-match .command-preview .action-fallback { position: absolute; right: 0; bottom: 23px; display: grid; gap: 4px; width: min(420px, 70vw); padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
+.hosted-match .command-preview .action-fallback label { display: grid; gap: 3px; }
+.play-runtime .hosted-match .command-preview .action-fallback input,
+.play-runtime .hosted-match .command-preview .action-fallback select { box-sizing: border-box; width: 100%; min-width: 0; }
+.play-runtime .hosted-match .command-preview .commit-action { flex: none; font-size: 12px; }
+.hosted-match .command-menu { position: absolute; left: 10px; bottom: calc(100% - 35px); display: flex; flex-wrap: wrap; gap: 4px; width: min(500px, calc(100% - 20px)); max-height: 45vh; overflow: auto; padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
+.play-runtime .hosted-match .command-menu button { font-size: 12px; }
+@media (max-width: 700px) { .hosted-match .match-command-bar:has(.command-heading) { display: block; }.hosted-match .command-heading, .hosted-match .command-buttons, .hosted-match .command-preview { flex-wrap: wrap; margin: 4px 0; } }
 .live-dugouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 5px; }
 .hosted-match .live-dugouts.match-bench { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 38px; margin-top: 5px; border: 0; }
 .live-dugout { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 38px; padding: 3px 6px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); border: 1px solid #635d4d; border-left: 3px solid #83b6e9; box-shadow: inset 0 0 0 2px #05090c; }
@@ -228,6 +247,11 @@
 }
 @media (min-width: 1100px) and (max-height: 799px) {
   .play-runtime.live-match-page > .hosted-match { grid-template-rows: 76px minmax(0, 1fr) 76px; }
+  .hosted-match .match-command-bar:has(.command-heading) { grid-template-rows: 15px 25px 20px; gap: 2px; padding: 4px 8px; }
+  .hosted-match .command-heading strong { font-size: 13px; }
+  .hosted-match .command-heading span, .hosted-match .command-preview > span { font-size: 11px; }
+  .play-runtime .hosted-match .command-buttons button { height: 25px; padding: 1px 6px; }
+  .play-runtime .hosted-match .command-preview .commit-action { height: 20px; padding: 0 7px; }
   .hosted-match .live-match-scoreboard { height: 76px; min-height: 0; overflow: hidden; }
   .hosted-match .live-match-scoreboard > * { overflow: hidden; }
   .live-match-clock strong { font-size: 16px; }
