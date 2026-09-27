@@ -5,6 +5,7 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
+import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -112,6 +113,37 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				JsonObject route = setup.routePreview(principal.accountId(), id, request.get("expectedRevision").asInt(), waypoints);
 				send(connection, new JsonObject().add("type", "routePreview").add("requestId", requestId)
 					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
+				return;
+			}
+			if ("matchChat".equals(type)) {
+				String operation = request.getString("operation", "");
+				if ("load".equals(operation)) fields(request, "version", "type", "requestId", "operation", "matchId", "from", "limit");
+				else if ("send".equals(operation)) fields(request, "version", "type", "requestId", "operation", "matchId", "text");
+				else throw new IllegalArgumentException();
+				String id = request.get("matchId").asString();
+				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
+				String role;
+				try { role = access.playerRole(principal, id); }
+				catch (MatchService.Failure notPlayer) {
+					if (!"NOT_FOUND".equals(notPlayer.code) && !"AUTHORIZATION".equals(notPlayer.code)) throw notPlayer;
+					access.spectatorTranscript(principal, id);
+					role = "spectator";
+				}
+				JsonObject page;
+				boolean duplicate = false;
+				if ("load".equals(operation)) {
+					int from = request.get("from").asInt(), limit = request.get("limit").asInt();
+					if (from < 0 || from > 512 || limit < 1 || limit > 32) throw new IllegalArgumentException();
+					page = setup.chatPage(id, from, limit);
+				} else {
+					String content = request.get("text").asString();
+					MatchChat.Outcome outcome = setup.sendChat(id, principal.accountId(), role, requestId, content);
+					duplicate = outcome.duplicate;
+					page = setup.chatPage(id, outcome.message.getInt("index", -1), 1);
+				}
+				send(connection, new JsonObject().add("type", "matchChat").add("requestId", requestId)
+					.add("code", "ACCEPTED").add("matchId", id).add("duplicate", duplicate).add("page", page));
+				if ("send".equals(operation) && !duplicate) publisher.publishChat(id, connection, page);
 				return;
 			}
 			principal = access.require(principal, ApplicationScope.PLAYER);
