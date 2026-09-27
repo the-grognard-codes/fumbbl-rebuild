@@ -113,6 +113,10 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
     await ribbon.getByRole('button', { name: 'Deselect Lineman' }).click();
     await ribbon.getByRole('button', { name: 'Select Lineman' }).click();
     await ribbon.getByRole('button', { name: 'Select Runner' }).click();
+    await page.waitForFunction(() => {
+      const confirm = document.querySelector('.kickoff-command-confirm button:last-child');
+      return confirm instanceof HTMLButtonElement && !confirm.disabled;
+    });
     assert.equal(await ribbon.getByRole('button', { name: 'Confirm selection' }).isEnabled(), true);
     if (process.env.MATCH_CAPTURE_DIR) {
       await mkdir(process.env.MATCH_CAPTURE_DIR, { recursive: true });
