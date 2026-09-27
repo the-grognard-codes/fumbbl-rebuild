@@ -95,6 +95,7 @@ test('keyboard companion explores, pins and commits once while spectator stays r
     assert.match(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Focused player: home Lineman/);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().press('Space');
     assert.equal(calls.length, 0, 'Space on a player button selects only');
+    await actor.getByText('All server actions', { exact: true }).click();
     const search = actor.getByLabel('Find an action or target');
     await search.focus(); await search.press('Space');
     assert.doesNotMatch(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Focused player:/);

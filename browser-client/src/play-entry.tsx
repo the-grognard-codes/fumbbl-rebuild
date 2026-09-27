@@ -205,6 +205,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     </section>
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
+      acceptedActionId={connection.lastAcceptedActionId}
       mutate={(operation, fields = {}) => run(() => { const state = connection.state!; connection.request('setup', { operation, matchId: state.matchId, expectedRevision: state.revision, ...fields }, true); })} />}
     {resultRoute && <HostedResult matchId={matchId} result={result} event={replayEvent} index={replayIndex} pending={resultPending} connected={connected}
       onLoad={() => run(() => { connection!.request('matchResult', { operation: 'load', matchId }); setResultPending(true); })}
