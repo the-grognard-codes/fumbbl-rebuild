@@ -50,10 +50,10 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
 }
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false }: {
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false, playback = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[];
-  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean;
+  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -87,13 +87,13 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     const y = Math.floor(((clientY - rect.top) * HEIGHT / rect.height - OFFSET) / CELL);
     return x >= 0 && x < 26 && y >= 0 && y < 15 ? { x, y } : null;
   };
-  return <section className="live-pitch" aria-label={readOnly ? 'Read-only pitch' : 'Live match pitch'}>
+  return <section className="live-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     <div className="live-pitch-toolbar"><strong>Authoritative pitch</strong><span>{Math.round(CELL * scale)} px / square</span>
       <div><button type="button" aria-pressed={zoom === 1} onClick={() => setZoom(1)}>Fit</button>
         <button type="button" aria-pressed={zoom === 1.5} onClick={() => setZoom(1.5)}>1.5×</button>
         <button type="button" aria-pressed={zoom === 2} onClick={() => setZoom(2)}>2×</button></div>
     </div>
-    <div ref={viewport} className="live-pitch-viewport" tabIndex={readOnly ? -1 : 0} aria-label={readOnly ? 'Pitch playback' : 'Pitch action preview'}
+    <div ref={viewport} className="live-pitch-viewport" tabIndex={readOnly ? -1 : 0} aria-label={playback ? 'Pitch playback' : readOnly ? 'Replay pitch' : 'Pitch action preview'}
       style={{ overflow: zoom === 1 ? 'hidden' : 'auto', touchAction: zoom === 1 ? 'pan-y' : 'none' }}
       onKeyDown={event => { if (zoom === 1 || event.target !== event.currentTarget) return;
         const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];

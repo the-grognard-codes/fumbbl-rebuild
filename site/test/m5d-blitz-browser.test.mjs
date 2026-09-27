@@ -28,6 +28,12 @@ test('real-engine Blitz actions pin and commit once across both players and spec
   const state = index => ({ ...frames[step].actor, callerRole: index === 2 ? 'spectator' : index === 1 ? 'away' : 'home' });
   const sendState = (index, send, requestId = null, duplicate = false) => send({ type: 'setupState', requestId, code: 'ACCEPTED', duplicate, state: state(index) });
   const assertBoard = async page => {
+    await page.waitForFunction(players => {
+      const labels = [...document.querySelectorAll('[aria-label="Live match pitch"] .live-marker')].map(marker => marker.getAttribute('aria-label'));
+      return players.every(player => labels.some(label => label.includes(`${player.role} ${player.name},`)
+        && label.endsWith(`square ${player.x}, ${player.y}`)));
+    }, frames[step].actor.players.filter(player => player.x !== null));
+    await page.getByLabel('Pitch action preview').waitFor();
     const labels = await page.getByLabel('Live match pitch').locator('.live-marker').evaluateAll(markers => markers.map(marker => marker.getAttribute('aria-label')));
     for (const player of frames[step].actor.players.filter(player => player.x !== null))
       assert.ok(labels.some(label => label.includes(`${player.role} ${player.name},`) && label.endsWith(`square ${player.x}, ${player.y}`)), `Missing ${player.role} ${player.name} at ${player.x},${player.y}`);
