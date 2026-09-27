@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonArray;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
@@ -35,6 +36,31 @@ class BrowserV2AdapterTest {
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final String FIRST = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+
+	@Test void routePreviewRequiresCoachMembershipAndKeepsTheEngineReadOnly() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+		when(access.require(spectator, ApplicationScope.PLAYER)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		when(access.playerRole(player, MATCH)).thenReturn("home");
+		SetupApplication setup = mock(SetupApplication.class);
+		JsonArray points = new JsonArray().add(new JsonObject().add("x", 6).add("y", 7));
+		when(setup.routePreview(FIRST, MATCH, 9, points)).thenReturn(new JsonObject().add("routeVersion", 1)
+			.add("revision", 9).add("playerId", "p1").add("steps", new JsonArray()));
+		BrowserV2Adapter adapter = adapter(bearer -> "player".equals(bearer) ? player : spectator, access, setup);
+		Connection coach = new Connection(), viewer = new Connection();
+		adapter.receive(coach, authenticate("auth-coach", "player").toString());
+		adapter.receive(viewer, authenticate("auth-viewer", "spectator").toString());
+		JsonObject request = request("routePreview", "route").add("matchId", MATCH)
+			.add("expectedRevision", 9).add("waypoints", points);
+		adapter.receive(coach, request.toString());
+		assertEquals("ACCEPTED", code(coach, 1));
+		assertEquals(1, JsonObject.readFrom(coach.messages.get(1)).get("route").asObject().getInt("routeVersion", -1));
+		adapter.receive(viewer, request.toString());
+		assertEquals("AUTHORIZATION", code(viewer, 1));
+		verify(setup, times(1)).routePreview(FIRST, MATCH, 9, points);
+	}
 
 	@Test void authorizedSpectatorReadsBoundedTranscriptWithoutPlayerScope() throws Exception {
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
