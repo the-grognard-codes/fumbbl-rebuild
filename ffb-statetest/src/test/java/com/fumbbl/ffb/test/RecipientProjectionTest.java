@@ -21,16 +21,23 @@ class RecipientProjectionTest {
 		JsonObject spectator = session.spectatorView();
 		for (JsonObject view : Arrays.asList(home, away, spectator)) {
 			keys(view, "projectionVersion", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls",
-				"actions", "turn", "turnMode", "ball", "activePlayerId", "half", "homeTurn", "awayTurn", "homeScore", "awayScore", "drive");
-			assertEquals(3, view.getInt("projectionVersion", 0));
+				"actions", "turn", "turnMode", "ball", "activePlayerId", "half", "homeTurn", "awayTurn", "homeScore", "awayScore", "drive",
+				"homeTeamName", "awayTeamName", "homeResources", "awayResources");
+			assertEquals(4, view.getInt("projectionVersion", 0));
+			assertEquals("Home", view.getString("homeTeamName", null));
+			assertEquals("Away", view.getString("awayTeamName", null));
+			keys(view.get("homeResources").asObject(), "apothecaries", "assistantCoaches", "cheerleaders");
 			for (JsonValue value : view.get("players").asArray()) {
 				JsonObject player = value.asObject();
-				keys(player, "id", "name", "slot", "role", "state", "x", "y", "art");
+				keys(player, "id", "name", "slot", "role", "state", "x", "y", "art", "number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch");
+				assertEquals(player.get("x").isNull() ? "reserve" : "pitch", player.getString("offPitch", null));
+				assertEquals(6, player.getInt("ma", -1));
 				keys(player.get("art").asObject(), "rosterId", "positionId");
 				assertEquals("human", player.get("art").asObject().getString("rosterId", null));
 				assertEquals("lineman", player.get("art").asObject().getString("positionId", null));
 			}
 			keys(view.get("prompt").asObject(), "id", "actor", "kind", "options");
+			for (JsonValue value : view.get("actions").asArray()) assertEquals(true, value.asObject().get("sourcePlayerId") != null);
 		}
 		assertEquals(home, away.set("callerRole", "home"));
 		assertEquals(home, spectator.set("callerRole", "home"));

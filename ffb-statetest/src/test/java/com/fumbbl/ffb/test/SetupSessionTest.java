@@ -57,7 +57,12 @@ class SetupSessionTest {
 		assertEquals(initial.get("players"), spectatorView.get("players"));
 		int orcCount = 0; boolean troll = false;
 		for (JsonValue value : initial.get("players").asArray()) {
-			JsonObject art = value.asObject().get("art").asObject();
+			JsonObject projectedPlayer = value.asObject();
+			for (String stat : new String[] {"ma", "st", "ag", "pa", "av"}) {
+				assertTrue(projectedPlayer.getInt(stat, -1) >= 0 && projectedPlayer.getInt(stat, 31) <= 30, stat);
+			}
+			assertTrue(!projectedPlayer.getString("position", "").isEmpty());
+			JsonObject art = projectedPlayer.get("art").asObject();
 			if ("orc".equals(art.getString("rosterId", null))) { orcCount++; troll |= "troll".equals(art.getString("positionId", null)); }
 		}
 		assertEquals(11, orcCount); assertTrue(troll);

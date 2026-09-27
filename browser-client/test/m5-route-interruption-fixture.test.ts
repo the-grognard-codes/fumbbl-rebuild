@@ -13,7 +13,7 @@ test('real-engine dodge and rush interruptions decode consistently for both coac
     const actor = decodeSetupStateValue(frame.actor);
     const otherCoach = decodeSetupStateValue(frame.otherCoach);
     const spectator = decodeSetupStateValue(frame.spectator, true);
-    assert.equal(actor.projectionVersion, 3);
+    assert.equal(actor.projectionVersion, 4);
     assert.equal(actor.callerRole, 'home');
     assert.equal(otherCoach.callerRole, 'away');
     assert.equal(spectator.callerRole, 'spectator');
