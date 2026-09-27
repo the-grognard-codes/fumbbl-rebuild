@@ -71,6 +71,14 @@ class V2RuntimeIntegrationTest {
 		accepted(send(adapter, away, load(match)));
 		JsonObject watched = send(adapter, viewer, request("watch").add("matchId", match)); accepted(watched);
 		assertEquals(initial.set("callerRole", "spectator"), watched.get("state"));
+		JsonObject spectatorChat = request("matchChat").add("operation", "send").add("matchId", match).add("text", "Watching live");
+		JsonObject posted = send(adapter, viewer, spectatorChat); accepted(posted);
+		assertEquals("spectator", posted.get("page").asObject().get("messages").asArray().get(0).asObject().getString("role", null));
+		assertEquals("matchChat", home.last.getString("type", null));
+		assertEquals("matchChat", away.last.getString("type", null));
+		assertTrue(send(adapter, viewer, spectatorChat).getBoolean("duplicate", false));
+		assertEquals(1, send(adapter, home, request("matchChat").add("operation", "load").add("matchId", match)
+			.add("from", 0).add("limit", 32)).get("page").asObject().getInt("total", -1));
 		JdbcRecoveryRepository recovery = new JdbcRecoveryRepository(connections::open);
 		String before = recovery.find(match).json;
 		JsonObject choice = request("setup").add("operation", "choice").add("matchId", match)
@@ -87,7 +95,11 @@ class V2RuntimeIntegrationTest {
 		Peer restoredViewer = new Peer(), restoredActor = new Peer();
 		authenticate(recreated, restoredViewer, "viewer");
 		JsonObject restored = send(recreated, restoredViewer, request("watch").add("matchId", match)); accepted(restored);
-		assertEquals(viewer.last.get("state"), restored.get("state"));
+		assertEquals(watched.get("state"), restored.get("state"));
+		JsonObject chatAfterRestart = send(recreated, restoredViewer, request("matchChat").add("operation", "load")
+			.add("matchId", match).add("from", 0).add("limit", 32));
+		accepted(chatAfterRestart);
+		assertEquals("Watching live", chatAfterRestart.get("page").asObject().get("messages").asArray().get(0).asObject().getString("text", null));
 		authenticate(recreated, restoredActor, actor == home ? "home" : "away");
 		JsonObject repeated = send(recreated, restoredActor, choice); accepted(repeated); assertTrue(repeated.getBoolean("duplicate", false));
 		assertEquals(after, recovery.find(match).json);

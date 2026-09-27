@@ -14,6 +14,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoverySessionTest {
+	@Test void chatCheckpointKeepsMessagesWithoutChangingGameRevision() throws Exception {
+		SetupSession seed = new SetupSessionTest().session(11);
+		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
+		MatchDocument document = (MatchDocument) documentField.get(seed);
+		TestServer server = new TestServer();
+		SetupSession current = new SetupSession(server.getServer(), document, -17, true, true, false, true, true, true);
+		int before = view(current, "home").getInt("revision", -1);
+		current.sendChat("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "home", "chat-1", "Hello", 1000);
+		assertEquals(before, view(current, "home").getInt("revision", -1));
+		JsonObject payload = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+		assertEquals(6, payload.getInt("recoveryVersion", -1));
+		assertEquals(SetupSession.CHAT_RUNTIME, payload.getString("runtimeVersion", null));
+		SetupSession restored = restore(server, document, current);
+		assertEquals(1, restored.chatPage(0, 32).getInt("total", -1));
+		assertTrue(restored.sendChat("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "home", "chat-1", "Hello", 2000).duplicate);
+		assertEquals(current.recoveryArtifact(), restored.recoveryArtifact());
+	}
 	@Test void routeRuntimeRoundTripsAndRetainsTranscriptCheckpointCompatibility() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document");

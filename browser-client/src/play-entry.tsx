@@ -110,7 +110,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'matchResult') {
         setResultPending(false);
         if (message.code === 'ACCEPTED') {
-          if (message.result?.formatVersion === 2 && !logRequestRef.current
+          if (message.result?.formatVersion >= 2 && !logRequestRef.current
             && logRecordsRef.current.length < message.result.eventCount) requestLog(logRecordsRef.current.length);
           setResult(message.result);
           if (message.event) { setReplayEvent(message.event); setReplayIndex(message.event.revision); }

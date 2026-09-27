@@ -33,6 +33,7 @@ public final class MatchResultJson {
             }
             artifact.remove("events");
             artifact.remove("transcript");
+            artifact.remove("chat");
             artifact.add("eventCount", events.size());
             return response(id, "ACCEPTED", artifact, event);
         } catch (MatchService.Failure failure) { return response(id, failure.code, JsonValue.NULL, JsonValue.NULL); }
