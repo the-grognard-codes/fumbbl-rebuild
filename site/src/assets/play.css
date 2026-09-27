@@ -4,6 +4,7 @@ body.game-focused .site-header .brand img { width: 9rem; }
 @media (max-height: 700px) and (min-width: 981px) { body.game-focused .site-header { display: none; } }
 body.game-match { background: #101719; }
 body.game-match::before, body.game-match .site-header { display: none; }
+body.game-match #play-status { display: none; }
 body.game-match main.play-runtime { width: calc(100% - 2rem); }
 #play-status { max-width: 76rem; margin: 1rem auto; padding: 0 1rem; }
 [hidden] { display: none !important; }

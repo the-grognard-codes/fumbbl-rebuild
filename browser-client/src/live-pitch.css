@@ -155,3 +155,85 @@
 @media (max-width: 980px) { .hosted-match .match-layout { grid-template-columns: minmax(0, 1fr) 260px; } }
 @media (max-width: 1150px) { .hosted-match .match-scoreboard { grid-template-columns: 70px minmax(0, 1fr) 135px minmax(0, 1fr) 70px; }.hosted-match .match-team small { display: none; }.hosted-match .match-scoreboard .match-art { width: 34px; height: 36px; }.hosted-match .match-rerolls span { font-size: 11px; } }
 @media (max-width: 700px) { .hosted-match .match-layout, .hosted-match:not(:has(.match-command-bar)) .match-layout { display: block; height: auto; }.hosted-match .live-pitch-viewport { min-height: 300px; }.hosted-match .match-side { margin-top: 10px; max-height: none; }.hosted-match .match-bench ul { columns: 1; } }
+
+/* Live presentation uses the same five-panel and bottom-ribbon geometry as the approved preview. */
+@media (min-width: 1100px) {
+  .play-runtime.live-match-page:has(.hosted-match) { height: 100dvh; min-height: 0; overflow: hidden; padding: 8px 16px; box-sizing: border-box; }
+  .live-match-page:has(.hosted-match) .match-page-top { height: 30px; min-height: 0; }
+  .play-runtime.live-match-page > .hosted-match { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 268px; grid-template-rows: 90px minmax(0, 1fr) 94px; gap: 6px 10px; height: calc(100% - 38px); min-height: 0; margin: 0; }
+  .hosted-match > h2, .hosted-match > p[aria-label="Coach labels"], .hosted-match > .match-technical-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .hosted-match > .match-scoreboard { grid-column: 1 / -1; grid-row: 1; }
+  .hosted-match > .match-layout { display: contents; }
+  .hosted-match .match-board { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; min-height: 0; }
+  .hosted-match .match-side { grid-column: 2; grid-row: 2 / 4; }
+  .hosted-match > .match-command-bar { grid-column: 1; grid-row: 3; }
+  .play-runtime .hosted-match .match-layout .live-pitch { flex: 1; height: auto; min-height: 0; }
+  .hosted-match .live-pitch-toolbar { min-height: 28px; }
+  .hosted-match .live-dugouts { flex: none; }
+  .hosted-match .match-side { overflow: auto; }
+  .live-match-page:has(.hosted-match) > section:not(.hosted-match) { position: absolute; z-index: 50; top: 42px; right: 290px; width: min(500px, 40vw); max-height: 35dvh; overflow: auto; border: 1px solid #a08d63; background: #152126; box-shadow: 0 8px 30px #000a; }
+}
+
+.hosted-match .live-match-scoreboard { grid-template-columns: 148px minmax(0, 1fr) 194px minmax(0, 1fr) 148px; gap: 5px; height: 90px; font-variant-numeric: lining-nums tabular-nums; }
+.hosted-match .live-match-scoreboard > * { min-width: 0; min-height: 0; height: 100%; box-sizing: border-box; border: 1px solid #635d4d; outline: 1px solid #090d10; outline-offset: -4px; border-radius: 2px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 1px #d6c7a01c, inset 0 -2px #02070a, 0 2px 5px #0006; }
+.hosted-match .live-match-scoreboard > .live-resources { display: flex; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 0; padding: 4px 8px 5px; background: linear-gradient(140deg, #1b2b37, #0b151e); }
+.hosted-match .live-match-scoreboard > .live-resources.away { background: linear-gradient(140deg, #292318, #13140f); }
+.live-rerolls { display: flex; flex-direction: column; align-items: center; justify-content: center; font: 500 17px/1 'Match Alegreya', Georgia, serif; text-transform: uppercase; letter-spacing: 1px; }
+.live-rerolls strong { color: #83b6e9; font: 700 30px/1 'Match Alegreya', Georgia, serif; }
+.live-resources.away .live-rerolls, .live-resources.away .live-rerolls strong { color: #e9a36c; }
+.live-resource-counts { display: flex; align-items: center; justify-content: space-between; gap: 3px; border-top: 1px solid #8e816147; padding-top: 2px; font: 11px/1 'Match Barlow', sans-serif; }
+.live-resource-counts > span { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+.live-resource-counts .match-art { width: 18px; height: 18px; }
+.hosted-match .live-match-scoreboard .live-resource-counts .match-art { width: 18px; height: 18px; }
+.live-resource-counts b { color: #e9dcc0; font-size: 13px; }
+.hosted-match .live-match-scoreboard > .live-team-nameplate { display: flex; align-items: center; justify-content: flex-start; gap: clamp(8px, 2vw, 34px); padding: 4px 15px; }
+.hosted-match .live-team-nameplate.away { justify-content: flex-end; }
+.live-team-nameplate strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 clamp(24px, 2.6vw, 48px)/1 'Match Alegreya', Georgia, serif; letter-spacing: 2px; text-shadow: 0 2px 1px #000; }
+.live-team-nameplate b { color: #83b6e9; font: 700 53px/1 'Match Alegreya', Georgia, serif; }
+.live-team-nameplate.away strong, .live-team-nameplate.away b { color: #e9a36c; }
+.live-team-nameplate small { color: #bbc5c4; white-space: nowrap; font: 12px 'Match Barlow', sans-serif; }
+.hosted-match .live-team-nameplate .match-art { flex: none; width: 62px; height: 64px; }
+.hosted-match .live-match-scoreboard > .live-match-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font: 500 18px/1.3 'Match Alegreya', Georgia, serif; text-transform: uppercase; letter-spacing: 1px; }
+.live-match-clock strong { font-size: 21px; font-weight: 500; }
+.live-match-clock > span { width: 95%; border-block: 1px solid #82745c38; text-align: center; }
+.live-match-clock small { display: flex; align-items: center; gap: 3px; color: #83b6e9; font-size: 15px; }
+.live-match-clock .match-art { width: 20px; height: 20px; }
+.hosted-match .live-match-scoreboard .live-match-clock .match-art { width: 20px; height: 20px; }
+.hosted-match .match-command-bar { align-content: center; min-height: 0; margin: 0; padding: 8px 12px; border: 1px solid #635d4d; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #080e1180; }
+.hosted-match .match-command-bar p { margin: 0; color: #ddd5bf; font: 500 17px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.hosted-match .match-command-bar > span { display: block; grid-column: 1 / -1; }
+.live-dugouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 5px; }
+.hosted-match .live-dugouts.match-bench { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 38px; margin-top: 5px; border: 0; }
+.live-dugout { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 38px; padding: 3px 6px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); border: 1px solid #635d4d; border-left: 3px solid #83b6e9; box-shadow: inset 0 0 0 2px #05090c; }
+.live-dugout.away { border-left-color: #e9a36c; }
+.live-dugout-zone { display: flex; align-items: center; justify-content: center; flex: 1; gap: 4px; min-width: 0; }
+.live-dugout-zone > span { white-space: nowrap; font: 500 12px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.live-dugout-zone b { color: #83b6e9; font-size: 13px; }
+.live-dugout.away .live-dugout-zone b { color: #e9a36c; }
+.live-dugout-players { display: flex; justify-content: center; gap: 2px; min-width: 0; overflow: hidden; }
+.play-runtime .live-dugout-players button { flex: none; width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid transparent; background: none; box-shadow: none; }
+.play-runtime .live-dugout-players button:hover, .play-runtime .live-dugout-players button:focus-visible { border-color: #bcb392; background: #e4d1a315; }
+.live-dugout-players img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.hosted-match .match-side { border: 1px solid #635d4d; padding: 9px; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #070c1088; }
+.play-runtime .hosted-match .match-side section { border-color: #444841; background: radial-gradient(ellipse at top, #283335, #0a1116); }
+.hosted-match .match-side h3 { font-size: 19px; }
+.hosted-match .match-player-card img { width: 66px; height: 88px; }
+@media (min-width: 1100px) and (max-width: 1439px) {
+  .play-runtime.live-match-page > .hosted-match { grid-template-columns: minmax(0, 1fr) 230px; }
+  .hosted-match .live-match-scoreboard { grid-template-columns: 116px minmax(0, 1fr) 140px minmax(0, 1fr) 116px; }
+  .hosted-match .live-team-nameplate .match-art { width: 40px; height: 50px; }
+  .live-team-nameplate strong { font-size: 27px; }
+  .live-team-nameplate b { font-size: 40px; }
+  .live-dugout-zone { flex-direction: column; gap: 0; }
+}
+@media (min-width: 1100px) and (max-height: 799px) {
+  .play-runtime.live-match-page > .hosted-match { grid-template-rows: 76px minmax(0, 1fr) 76px; }
+  .hosted-match .live-match-scoreboard { height: 76px; min-height: 0; overflow: hidden; }
+  .hosted-match .live-match-scoreboard > * { overflow: hidden; }
+  .live-match-clock strong { font-size: 16px; }
+  .live-match-clock > span { font-size: 13px; }
+  .live-match-clock small { font-size: 12px; }
+  .live-dugout { min-height: 32px; }
+  .play-runtime .live-dugout-players button { width: 23px; height: 23px; }
+}
+.hosted-match .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

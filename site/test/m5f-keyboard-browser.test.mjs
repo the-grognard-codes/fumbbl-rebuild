@@ -79,7 +79,7 @@ test('keyboard companion explores, pins and commits once while spectator stays r
       }
     }
     const actor = pages[0]; const grid = actor.getByLabel('Pitch grid');
-    const roster = actor.getByText('Full roster and states');
+    const roster = actor.getByText('Roster & bench');
     await roster.focus(); await roster.press('Enter');
     await actor.getByRole('table', { name: 'Frozen team players' }).waitFor();
     await roster.press('Enter');
