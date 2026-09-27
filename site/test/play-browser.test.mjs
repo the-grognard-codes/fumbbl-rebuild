@@ -201,8 +201,7 @@ test('two players and spectator use one board; updates, read-only controls and r
     }
     assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
     assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
-    await pages[0].getByLabel('Server action', { exact: true }).selectOption('next');
-    await pages[0].getByRole('button', { name: 'Commit action', exact: true }).click();
+    await pages[0].getByRole('button', { name: 'End Turn', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
     await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).click();

@@ -3,6 +3,7 @@ import { decode } from './protocol.ts';
 import { LivePitch, spriteUrl } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
+import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
 import { PitchCompanion } from './PitchCompanion.tsx';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
@@ -57,6 +58,7 @@ export function SetupPanel() {
   const [last, setLast] = useState<RetainedSetup | null>(() => { try { return decodeRetainedSetup(sessionStorage.getItem(setupRetryKey)); } catch { return null; } });
   const [pending, setPending] = useState<string | null>(() => last ? String(last.request.requestId) : null);
   const [subject, setSubject] = useState('');
+  const [acceptedActionId, setAcceptedActionId] = useState<string | null>(null);
   const socket = useRef<WebSocket | null>(null);
   const currentView = useRef<SetupState | null>(null);
   const pendingId = useRef<string | null>(pending);
@@ -96,6 +98,10 @@ export function SetupPanel() {
           }
         }
         if (isAction && !setupOutcomeUncertain(message.code)) {
+          try {
+            const retained = decodeRetainedSetup(sessionStorage.getItem(setupRetryKey));
+            if (message.code === 'ACCEPTED' && retained?.request.operation === 'action' && typeof retained.request.actionId === 'string') setAcceptedActionId(retained.request.actionId);
+          } catch { /* A storage fault cannot invalidate a confirmed server response. */ }
           pendingId.current = null; setPending(null);
           try { sessionStorage.removeItem(setupRetryKey); } catch { /* The response is authoritative. */ }
         }
@@ -143,19 +149,31 @@ export function SetupPanel() {
     {pending && <p role="status">Action outcome awaiting confirmation. Reconnect with the original credential for match {last?.matchId}, then repeat the retained request. New actions remain locked.</p>}
     {pending && connected && last?.subject !== subject && <p role="alert">The retained action belongs to the other local credential. Disconnect and reconnect with the original credential to reconcile it.</p>}
     <button type="button" className="secondary" onClick={() => load()} disabled={!connected}>Reload setup snapshot</button>
-    {view && <GameView view={view} connected={connected} pending={pending} mutate={mutate} />}
+    {view && <GameView view={view} connected={connected} pending={pending} mutate={mutate} acceptedActionId={acceptedActionId} />}
     {last && view && <button type="button" onClick={retry} disabled={!connected || last.subject !== subject || last.matchId !== view.matchId}>Repeat last setup request</button>}
   </main>;
 }
 
 /** The same board and decisions for players and read-only spectators. */
-export function GameView({ view, connected, pending, mutate, results = true, resultUrl, hosted = false }: {
+export function GameView({ view, connected, pending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
+  acceptedActionId?: string | null;
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
   const [actionId, setActionId] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreActionId, setMoreActionId] = useState('');
+  const [targetAssist, setTargetAssist] = useState(true);
+  const [explicitBlitz, setExplicitBlitz] = useState(false);
+  const [confirmEndTurn, setConfirmEndTurn] = useState(false);
+  const recentKey = `ffb.match.more.${view.matchId}.${view.callerRole}`;
+  const candidateKey = `${recentKey}.candidate`;
+  const [lastUsed, setLastUsed] = useState<{ kind: string; label: string } | null>(() => {
+    try { const value = JSON.parse(sessionStorage.getItem(recentKey) ?? 'null'); return typeof value?.kind === 'string' && typeof value?.label === 'string' ? value : null; }
+    catch { return null; }
+  });
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
@@ -163,8 +181,23 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   useLayoutEffect(() => {
     if (displayedRevision.current === view.revision) return;
     displayedRevision.current = view.revision;
-    setActionId(''); setActionFilter('');
+    setActionId(''); setActionFilter(''); setMoreOpen(false); setMoreActionId(''); setExplicitBlitz(false); setConfirmEndTurn(false);
   }, [view.revision]);
+  useEffect(() => {
+    if (!acceptedActionId) return;
+    try {
+      const candidate = JSON.parse(sessionStorage.getItem(candidateKey) ?? 'null');
+      if (candidate?.id !== acceptedActionId || candidate.revision >= view.revision) return;
+      const recent = { kind: candidate.kind, label: candidate.label };
+      sessionStorage.setItem(recentKey, JSON.stringify(recent));
+      sessionStorage.removeItem(candidateKey);
+      setLastUsed(recent);
+    } catch { /* Last used is a convenience; match state is authoritative. */ }
+  }, [acceptedActionId, candidateKey, recentKey, view.revision]);
+  useEffect(() => {
+    try { const value = JSON.parse(sessionStorage.getItem(recentKey) ?? 'null'); setLastUsed(typeof value?.kind === 'string' && typeof value?.label === 'string' ? value : null); }
+    catch { setLastUsed(null); }
+  }, [recentKey]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
   const offPitch = view.players.filter(player => player.x === null);
@@ -172,6 +205,9 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
+  const selectedActions = moreActions(availableActions, playerId);
+  const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
+  const canChoose = connected && !pending && !suspended;
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const pinnedAction = availableActions.find(action => action.id === actionId);
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
@@ -179,14 +215,25 @@ export function GameView({ view, connected, pending, mutate, results = true, res
   const selectPlayer = (id: string) => {
     setPlayerId(id); setTargetFocus('player');
     const candidates = availableActions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === id);
-    setActionId(candidates.length === 1 ? candidates[0].id : '');
+    setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const selectSquare = (column: number, row: number) => {
     setX(column); setY(row); setTargetFocus('square');
     const candidates = availableActions.filter(action => action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
-    setActionId(candidates.length === 1 ? candidates[0].id : '');
+    setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
-  const commit = () => { if (mayAct && pinnedAction) mutate('action', { actionId: pinnedAction.id }); };
+  const commit = () => {
+    if (!mayAct || !pinnedAction) return;
+    if (pinnedAction.kind === 'endTurn' && hasUnactivatedPlayers(availableActions) && !confirmEndTurn) {
+      setConfirmEndTurn(true); return;
+    }
+    setConfirmEndTurn(false);
+    if (pinnedAction.id === moreActionId) {
+      try { sessionStorage.setItem(candidateKey, JSON.stringify({ id: pinnedAction.id, kind: pinnedAction.kind, label: recentActionLabel(pinnedAction), revision: view.revision })); }
+      catch { /* A failed local shortcut never blocks a legal game action. */ }
+    }
+    mutate('action', { actionId: pinnedAction.id });
+  };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.target instanceof Element)) return;
@@ -206,6 +253,19 @@ export function GameView({ view, connected, pending, mutate, results = true, res
     (groups[action.kind] ??= []).push(action);
     return groups;
   }, {});
+  const selectCommon = (kind: string) => {
+    const action = actionForPlayer(availableActions, playerId, kind);
+    if (!action || !canChoose) return;
+    setActionId(action.id); setMoreActionId(''); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
+  };
+  const selectMore = (action: typeof availableActions[number]) => {
+    setActionId(action.id); setMoreActionId(action.id); setMoreOpen(false); setConfirmEndTurn(false);
+  };
+  const useEndTurn = () => {
+    if (!endTurnAction || !canChoose) return;
+    if (hasUnactivatedPlayers(availableActions) && !confirmEndTurn) { setConfirmEndTurn(true); return; }
+    setConfirmEndTurn(false); mutate('action', { actionId: endTurnAction.id });
+  };
   const serverActionPanel = availableActions.length > 0 && <section aria-label="Server actions" className="server-actions">
     <h3>Server actions</h3>
     <p>{availableActions.length ? 'Choose an action issued for your team. Its actor and kind are shown in the list.' : 'The server has not issued an action for your team.'}</p>
@@ -241,12 +301,24 @@ export function GameView({ view, connected, pending, mutate, results = true, res
       {hosted && <LiveMatchScoreboard view={view}/>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
         {availableActions.length > 0 ? <>
-        <div className="decision-select"><span>Server action</span><select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || suspended || availableActions.length === 0}>
-          <option value="">Choose a decision</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label}</option>)}</optgroup>)}
-        </select></div>
-        {availableActions.find(action => action.kind === 'endTurn') && <button type="button" className="secondary" onClick={() => setActionId(availableActions.find(action => action.kind === 'endTurn')!.id)} disabled={!connected || !!pending || suspended}>Select End Turn</button>}
-        <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>
-        <span>{pinnedAction ? `Pinned: ${pinnedAction.label}` : 'Select an action. Commit sends the current server decision.'}</span></> :
+        <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
+          <span>{pinnedAction ? pinnedAction.label : 'Select a player or target, then choose an action.'}</span></div>
+        <div className="command-buttons" role="group" aria-label="Player actions">
+          <button type="button" aria-pressed={!!pinnedAction && ['select', 'stand'].includes(pinnedAction.kind)} disabled={!canChoose || !playerId || !availableActions.some(action => action.sourcePlayerId === playerId && ['select', 'stand'].includes(action.kind))} onClick={() => selectCommon(actionForPlayer(availableActions, playerId, 'select') ? 'select' : 'stand')}>Move</button>
+          <button type="button" aria-pressed={pinnedAction?.kind === 'selectBlock'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'selectBlock')} onClick={() => selectCommon('selectBlock')}>Block</button>
+          <button type="button" aria-pressed={pinnedAction?.kind === 'blitz'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'blitz')} onClick={() => selectCommon('blitz')}>Blitz</button>
+          <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !selectedActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = selectedActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
+          <button type="button" aria-expanded={moreOpen} disabled={!canChoose || selectedActions.length === 0} onClick={() => setMoreOpen(!moreOpen)}>More actions</button>
+          <button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
+          <button type="button" onClick={() => { setActionId(''); setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false); setTargetFocus(null); }}>Cancel</button>
+          {endTurnAction && <button type="button" onClick={useEndTurn} disabled={!canChoose}>{confirmEndTurn ? 'Confirm End Turn' : 'End Turn'}</button>}
+        </div>
+        {moreOpen && <div className="command-menu" aria-label="Additional actions">{selectedActions.map(action => <button key={action.id} type="button" onClick={() => selectMore(action)}>{action.label}</button>)}</div>}
+        <div className="command-preview"><span>{confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : pinnedAction ? `Ready: ${pinnedAction.label}` : 'Target assist only selects a server action; Commit sends it.'}</span>
+          <details><summary>All server actions</summary><select aria-label="Server action" value={actionId} onChange={event => { setActionId(event.target.value); setMoreActionId(''); }} disabled={!canChoose}>
+            <option value="">Choose a decision</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label}</option>)}</optgroup>)}
+          </select></details>
+          <button type="button" className="commit-action" onClick={commit} disabled={!mayAct}>Commit action</button></div></> :
         <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
       </div>}
       {!hosted && view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
@@ -273,7 +345,6 @@ export function GameView({ view, connected, pending, mutate, results = true, res
         <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
         {view.phase === 'READY_FOR_KICKOFF' && <section aria-label="Kickoff status"><p>Both teams have confirmed legal setups. The kicking participant can choose a server-issued kick target.</p></section>}
         {view.phase === 'PLAY' && view.actions.length === 0 && <section role="alert"><p>This engine decision does not yet have browser controls. The match remains in memory; reconnecting will preserve this decision.</p></section>}
-        {serverActionPanel}
         {savePanel}
         <PitchCompanion view={view} x={x} y={y} selectedPlayerId={playerId} focusedPlayerId={focusedPlayerId} pinnedActionLabel={pinnedAction?.label}
           onFocusSquare={(column, row) => { setX(column); setY(row); setFocusedPlayerId(null); }}
