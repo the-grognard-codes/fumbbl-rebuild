@@ -31,7 +31,7 @@ public final class CompletedMatch {
 			char ch = text.charAt(index);
 			if (quoted) { if (escaped) escaped = false; else if (ch == '\\') escaped = true; else if (ch == '"') quoted = false; }
 			else if (ch == '"') quoted = true;
-			else if (ch == '{' || ch == '[') { if (++depth > 16) throw new IllegalArgumentException(); }
+			else if (ch == '{' || ch == '[') { if (++depth > 64) throw new IllegalArgumentException(); }
 			else if (ch == '}' || ch == ']') depth--;
 		}
 		if (quoted || depth != 0) throw new IllegalArgumentException();
