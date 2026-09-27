@@ -340,6 +340,21 @@ public final class SetupApplication {
 		return session.transcriptPage(from, limit);
 	}
 
+	/** Read-only route forecast for a registered coach; the caller has already authenticated the account. */
+	public JsonObject routePreview(String owner, String matchId, int revision, com.eclipsesource.json.JsonArray waypoints) throws SQLException {
+		MatchDocument document = matches.load(owner, matchId).document;
+		String role = owner.equals(document.home.owner) ? "home"
+			: document.away != null && owner.equals(document.away.owner) ? "away" : null;
+		if (role == null || document.lifecycle != MatchDocument.Lifecycle.ACTIVATED)
+			throw new MatchService.Failure("NOT_FOUND");
+		releaseIdle();
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (recovery != null) lastAccess.put(matchId, clock.millis());
+		return session.routePreview(role, revision, waypoints);
+	}
+
 	private void validate(JsonObject request) {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };
