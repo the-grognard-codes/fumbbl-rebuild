@@ -104,6 +104,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     };
     await pinPlayer(0);
     await actor.getByLabel('Actions at selected target').getByRole('button', { name: 'Start blitz with home1' }).click();
+    const initialSelection = await actor.evaluate(() => ({
+      action: document.querySelector('[aria-label="Server action"]')?.value,
+      status: document.querySelector('.match-page-top [role="status"]')?.textContent,
+      pending: document.body.innerText.includes('A submitted change needs confirmation.'),
+      revision: document.querySelector('[data-testid="setup-status"]')?.textContent?.match(/Revision \d+/)?.[0],
+    }));
+    assert.equal(await commit.isEnabled(), true, `Initial Blitz action must be ready: ${JSON.stringify(initialSelection)}`);
     await commit.click();
     await actor.getByText('A submitted change needs confirmation.', { exact: false }).waitFor();
     assert.equal(calls.length, 1);
