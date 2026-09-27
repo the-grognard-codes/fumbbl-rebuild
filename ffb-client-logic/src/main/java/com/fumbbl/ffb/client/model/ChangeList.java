@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser kickoff player choices allow one-click selection and deselection in the match ribbon before confirmation")
 			.addImprovement("Browser match coin, receive, block die, reroll, skill, push and other native choices appear in focused game-styled dialogs")
 			.addImprovement("Browser matches offer server-issued Move, Block, Blitz and recent actions in the bottom ribbon, with target assist and End Turn confirmation")
 			.addImprovement("Browser live matches keep the illustrated scoreboard, Fit pitch, compact dugouts, sidebar and decision ribbon together without page scrolling")
