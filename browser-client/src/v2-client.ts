@@ -26,6 +26,7 @@ export class V2Client {
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
+  lastAcceptedActionId: string | null = null;
 
   private options: ClientOptions;
   constructor(options: ClientOptions) {
@@ -186,6 +187,9 @@ export class V2Client {
       if (!this.state || state.revision >= this.state.revision) this.state = state;
     }
     if (message.code === 'NOT_FOUND' || message.code === 'VIEW_UNAVAILABLE') { this.state = null; this.preparationMatchId = null; }
+    if (request?.type === 'setup' && request.operation === 'action' && message.code === 'ACCEPTED'
+      && typeof request.actionId === 'string' && message.state?.revision > request.expectedRevision)
+      this.lastAcceptedActionId = request.actionId;
     if (request && this.pending?.request.requestId === message.requestId && !uncertain.has(message.code)) {
       this.pending = null; this.options.storage?.removeItem(v2PendingKey);
     }

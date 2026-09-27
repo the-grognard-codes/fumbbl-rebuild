@@ -63,16 +63,22 @@ test('hosted final decision leads to participant result and read-only replay aft
       await page.waitForFunction(() => {
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
-        return pitch && bench && pitch.top >= 0 && pitch.bottom <= innerHeight && bench.bottom <= innerHeight
+        const ribbon = document.querySelector('.match-command-bar')?.getBoundingClientRect();
+        const commit = document.querySelector('.match-command-bar .commit-action')?.getBoundingClientRect();
+        return pitch && bench && ribbon && commit && pitch.top >= 0 && pitch.bottom <= innerHeight && bench.bottom <= innerHeight
+          && commit.bottom <= ribbon.bottom && ribbon.bottom <= innerHeight
           && document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight;
       }, null, { timeout: 5000 });
       const bounds = await page.evaluate(() => {
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
-        return { pitchTop: pitch?.top, pitchBottom: pitch?.bottom, benchBottom: bench?.bottom,
+        const ribbon = document.querySelector('.match-command-bar')?.getBoundingClientRect();
+        const commit = document.querySelector('.match-command-bar .commit-action')?.getBoundingClientRect();
+        return { pitchTop: pitch?.top, pitchBottom: pitch?.bottom, benchBottom: bench?.bottom, ribbonBottom: ribbon?.bottom, commitBottom: commit?.bottom,
           height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight, width: innerWidth };
       });
       assert.ok(bounds.pitchTop >= 0 && bounds.pitchBottom <= bounds.height && bounds.benchBottom <= bounds.height
+        && bounds.commitBottom <= bounds.ribbonBottom && bounds.ribbonBottom <= bounds.height
         && bounds.scrollWidth <= bounds.width && bounds.scrollHeight <= bounds.height, `Critical match UI exceeds viewport: ${JSON.stringify(bounds)}`);
     };
     await checkViewport();
@@ -91,8 +97,7 @@ test('hosted final decision leads to participant result and read-only replay aft
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'match-1920.png') });
     await page.setViewportSize({ width: 1280, height: 660 });
     await checkViewport();
-    await page.getByRole('button', { name: 'Select End Turn' }).click();
-    await page.getByRole('button', { name: 'Commit action' }).click();
+    await page.getByRole('button', { name: 'End Turn', exact: true }).click();
     await page.getByRole('link', { name: 'Open final result and replay' }).waitFor();
     await page.getByText('Roster & bench').click();
     const offPitch = page.getByLabel('Off pitch players').getByRole('button', { name: /Blitzer/ });
