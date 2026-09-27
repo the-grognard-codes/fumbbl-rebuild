@@ -213,7 +213,10 @@
 .hosted-match .command-preview > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d7d7cb; font: 12px 'Match Barlow', sans-serif; }
 .hosted-match .command-preview details { position: relative; flex: none; font: 11px 'Match Barlow', sans-serif; }
 .hosted-match .command-preview summary { cursor: pointer; color: #c5d7e2; }
-.hosted-match .command-preview details[open] select { position: absolute; right: 0; bottom: 23px; width: min(420px, 70vw); max-height: 55vh; }
+.hosted-match .command-preview .action-fallback { position: absolute; right: 0; bottom: 23px; display: grid; gap: 4px; width: min(420px, 70vw); padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
+.hosted-match .command-preview .action-fallback label { display: grid; gap: 3px; }
+.play-runtime .hosted-match .command-preview .action-fallback input,
+.play-runtime .hosted-match .command-preview .action-fallback select { box-sizing: border-box; width: 100%; min-width: 0; }
 .play-runtime .hosted-match .command-preview .commit-action { flex: none; font-size: 12px; }
 .hosted-match .command-menu { position: absolute; left: 10px; bottom: calc(100% - 35px); display: flex; flex-wrap: wrap; gap: 4px; width: min(500px, calc(100% - 20px)); max-height: 45vh; overflow: auto; padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
 .play-runtime .hosted-match .command-menu button { font-size: 12px; }
