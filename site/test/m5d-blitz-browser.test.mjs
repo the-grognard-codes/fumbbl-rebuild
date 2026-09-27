@@ -151,6 +151,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await submit('5:block-away1', () => pinPlayer(1));
     const decision = actor.getByRole('dialog', { name: 'Match decision' });
     await decision.waitFor();
+    assert.equal(await decision.locator('.match-die').count(), 1, 'The server-offered block face is a graphical choice');
     if (process.env.M5D_SCREENSHOT_DIR) {
       await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
       await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'block-die-decision.png') });
