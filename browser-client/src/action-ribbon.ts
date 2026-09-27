@@ -1,7 +1,8 @@
 import type { SetupAction } from './setup-protocol.ts';
 
 const commonKinds = new Set(['select', 'stand', 'selectBlock', 'blitz']);
-const contextualKinds = new Set(['move', 'jump', 'block', 'blitzTarget', 'pass', 'handOff', 'foul', 'liftTeamMate', 'throwTeamMate', 'push']);
+const contextualKinds = new Set(['move', 'jump', 'block', 'blitzTarget', 'pass', 'handOff', 'foul', 'liftTeamMate', 'throwTeamMate', 'push',
+  'gaze', 'bomb', 'punt', 'kickMate', 'kickMateTo']);
 const decisionKinds = new Set(['blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp']);
 
 export function actionForPlayer(actions: SetupAction[], playerId: string, kind: string): SetupAction | undefined {
