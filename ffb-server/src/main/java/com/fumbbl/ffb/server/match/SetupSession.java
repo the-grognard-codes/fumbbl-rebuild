@@ -740,6 +740,24 @@ public final class SetupSession {
 		if (!transcriptV2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");
 		return transcript.page(from, limit);
 	}
+	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */
+	public JsonObject routePreview(String role, int expectedRevision, JsonArray points) {
+		if (expectedRevision != revision) throw new MatchService.Failure("STALE_REVISION");
+		if (failed || isComplete() || saveResume && saveResumeState.suspended())
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		if (!role.equals(actor()) || actions().stream().noneMatch(action -> role.equals(action.role)
+			&& ("move".equals(action.kind) || "jump".equals(action.kind))))
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		if (points.size() < 1 || points.size() > 20) throw new MatchService.Failure("INVALID_ROUTE");
+		List<FieldCoordinate> waypoints = new ArrayList<>();
+		for (JsonValue value : points) {
+			JsonObject point = value.asObject();
+			if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y"))
+				throw new MatchService.Failure("INVALID_ROUTE");
+			waypoints.add(new FieldCoordinate(point.get("x").asInt(), point.get("y").asInt()));
+		}
+		return new RoutePlanner(state).preview(waypoints).add("revision", revision).add("actor", role);
+	}
 	private SetupMechanic mechanic() {
 		MechanicsFactory factory = state.getGame().getFactory(FactoryType.Factory.MECHANIC);
 		return (SetupMechanic) factory.forName(Mechanic.Type.SETUP.name());

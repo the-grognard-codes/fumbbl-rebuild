@@ -100,6 +100,20 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("code", "ACCEPTED").add("matchId", id).add("page", page));
 				return;
 			}
+			if ("routePreview".equals(type)) {
+				fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "waypoints");
+				principal = access.require(principal, ApplicationScope.PLAYER);
+				String id = request.get("matchId").asString();
+				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
+				if (request.get("expectedRevision").asInt() < 0) throw new IllegalArgumentException();
+				JsonArray waypoints = request.get("waypoints").asArray();
+				if (waypoints.size() < 1 || waypoints.size() > 20) throw new IllegalArgumentException();
+				access.playerRole(principal, id);
+				JsonObject route = setup.routePreview(principal.accountId(), id, request.get("expectedRevision").asInt(), waypoints);
+				send(connection, new JsonObject().add("type", "routePreview").add("requestId", requestId)
+					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
+				return;
+			}
 			principal = access.require(principal, ApplicationScope.PLAYER);
 			request.set("version", 1); // Internal R2 contract remains version 1.
 			JsonObject response;
