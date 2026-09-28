@@ -26,6 +26,7 @@ export class V2Client {
   private selection: { matchId: string; watch: boolean } | null = null;
   private preparationMatchId: string | null = null;
   private authenticationId = '';
+  private lastAutomaticRefresh = 0;
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
@@ -54,6 +55,11 @@ export class V2Client {
   }
 
   connect() {
+    this.lastAutomaticRefresh = 0;
+    this.connectSocket();
+  }
+
+  private connectSocket() {
     this.disconnect();
     const socket = (this.options.makeSocket ?? (url => new WebSocket(url)))(this.options.url);
     this.socket = socket;
@@ -151,6 +157,13 @@ export class V2Client {
       return;
     }
     if (message.requestId !== null && !request) return;
+    if (message.type === 'error' && message.code === 'AUTHENTICATION_REQUIRED' && this.accountId
+      && Date.now() - this.lastAutomaticRefresh > 30_000) {
+      // A match can outlive its socket credential. Fetch a fresh token and reload the
+      // authorized view; retained mutations still require an explicit exact retry.
+      this.lastAutomaticRefresh = Date.now();
+      this.connectSocket(); return;
+    }
     if (message.type === 'error' && ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED'].includes(message.code)) {
       this.disconnect(); this.options.onChange(message); return;
     }
