@@ -127,6 +127,48 @@ test('route previews are correlated to the active coach, revision and requested 
   assert.throws(() => watcher.client.request('routePreview', { matchId: match, expectedRevision: 2, waypoints: [{ x: 8, y: 7 }] }), /read-only/);
 });
 
+test('an expired credential during path preview refreshes the connection and restores the pitch', async () => {
+  const active = { ...state, callerRole: 'home', phase: 'PLAY', actor: 'home', activePlayerId: 'p1',
+    players: [{ ...state.players[0], x: 7, y: 7 }] };
+  const { client, connect, sockets, events } = fixture(new Map(), { matchId: match, watch: false });
+  const first = await connect();
+  first.reply({ type: 'setupState', code: 'ACCEPTED', requestId: first.sent.at(-1).requestId,
+    duplicate: false, state: active });
+  const requestId = client.request('routePreview', { matchId: match, expectedRevision: 2,
+    waypoints: [{ x: 8, y: 7 }] });
+  first.reply({ type: 'error', requestId, code: 'AUTHENTICATION_REQUIRED' });
+  assert.equal(sockets.length, 2, 'A preview rejection should refresh authentication without a manual reconnect');
+  const renewed = sockets[1];
+  await renewed.onopen!();
+  renewed.reply({ type: 'authentication', code: 'ACCEPTED', requestId: renewed.sent[0].requestId, accountId: account });
+  const load = renewed.sent.find(request => request.type === 'setup' && request.operation === 'load');
+  assert.ok(load);
+  renewed.reply({ type: 'setupState', code: 'ACCEPTED', requestId: load.requestId, duplicate: false, state: active });
+  assert.equal(client.state?.activePlayerId, 'p1');
+  assert.equal(events.at(-1).type, 'setupState');
+  assert.equal(events.some(message => message.code === 'AUTHENTICATION_REQUIRED'), false);
+});
+
+test('credential refresh stops after a second rejection and preserves an uncertain action', async () => {
+  const { client, connect, sockets, events, storageData } = fixture(new Map(), { matchId: match, watch: false });
+  const first = await connect();
+  const requestId = client.request('setup', { matchId: match, operation: 'action', expectedRevision: 2,
+    actionId: 'move-p1' }, true);
+  first.reply({ type: 'error', requestId, code: 'AUTHENTICATION_REQUIRED' });
+  assert.equal(sockets.length, 2);
+  assert.equal(client.pending?.request.requestId, requestId);
+  assert.ok(storageData.has(v2PendingKey));
+  const renewed = sockets[1];
+  await renewed.onopen!();
+  renewed.reply({ type: 'authentication', code: 'ACCEPTED', requestId: renewed.sent[0].requestId, accountId: account });
+  const browse = renewed.sent.find(request => request.type === 'browse');
+  renewed.reply({ type: 'error', requestId: browse.requestId, code: 'AUTHENTICATION_REQUIRED' });
+  assert.equal(sockets.length, 2, 'Repeated rejection must not cause an authentication loop');
+  assert.equal(renewed.closed, true);
+  assert.equal(client.pending?.request.requestId, requestId);
+  assert.equal(events.at(-1).code, 'AUTHENTICATION_REQUIRED');
+});
+
 test('spectator chat sends retain uncertain input and accept only the matching public message', async () => {
   const { client, connect, events, storageData } = fixture(new Map(), { matchId: match, watch: true });
   const socket = await connect();

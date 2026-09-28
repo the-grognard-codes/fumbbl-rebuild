@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser matches automatically refresh an expired connection and restore the pitch during path planning")
 			.addImprovement("Browser match history explains native injury, apothecary, foul, reroll and between-drive KO recovery reports")
 			.addImprovement("Completed browser replays can seek by turn or event, play at selected speed, skip animations, and align saved dice, log and chat")
 			.addImprovement("Browser match pitch shows recorded dice faces and highlights the server-selected block die; block choices use graphical dice buttons")

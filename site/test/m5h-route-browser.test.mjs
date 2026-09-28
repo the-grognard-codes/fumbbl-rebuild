@@ -36,6 +36,8 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const pages = [], previews = [], mutations = [];
+  let expiredPreview = false, coachAuthentications = 0, signalRefresh;
+  const refreshed = new Promise(resolve => { signalRefresh = resolve; });
   try {
     for (let index = 0; index < 2; index++) {
       const page = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage(); pages.push(page);
@@ -45,11 +47,15 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
         const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
         socket.onMessage(raw => {
           const request = JSON.parse(raw);
-          if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: index ? 'cccccccc-cccc-cccc-cccc-cccccccccccc' : 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+          if (request.type === 'authenticate') {
+            send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: index ? 'cccccccc-cccc-cccc-cccc-cccccccccccc' : 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+            if (!index && ++coachAuthentications === 2) signalRefresh();
+          }
           else if ((request.type === 'setup' && request.operation === 'load') || request.type === 'watch')
             send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: index ? frame.spectator : frame.actor });
           else if (request.type === 'routePreview') {
             previews.push({ index, request });
+            if (!index && !expiredPreview) { expiredPreview = true; send({ type: 'error', requestId: request.requestId, code: 'AUTHENTICATION_REQUIRED' }); return; }
             send({ type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId, route: preview(request.waypoints) });
           } else if (request.type === 'setup' && request.operation === 'route') mutations.push({ index, request });
         });
@@ -72,6 +78,13 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
       const scale = (await scene.boundingBox()).width / 960;
       await scene.click({ position: { x: (12 + x * 36 + 18) * scale, y: (12 + y * 36 + 18) * scale } });
     };
+    await square(8, 7);
+    await refreshed;
+    await actor.getByRole('button', { name: 'Plan path' }).waitFor();
+    assert.equal(await actor.getByRole('button', { name: 'Reconnect' }).count(), 0, 'The expired preview must restore the match without manual input');
+    assert.equal(await actor.getByLabel('Live match pitch').count(), 1);
+    await actor.getByLabel('Live match pitch').locator('.live-marker').first().click();
+    await actor.getByRole('button', { name: 'Plan path' }).click();
     await square(8, 7);
     await pathControls.getByRole('button', { name: 'Undo' }).click();
     assert.equal(await commit.isDisabled(), true);
