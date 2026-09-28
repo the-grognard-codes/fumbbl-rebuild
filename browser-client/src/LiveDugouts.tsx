@@ -15,8 +15,9 @@ const zones: Zone[] = [
   { id: 'other', label: 'Other' },
 ];
 
-export function LiveDugouts({ players, homeName, awayName, onSelect }: {
+export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlayer, onBlurPlayer }: {
   players: SetupPlayer[]; homeName?: string | null; awayName?: string | null; onSelect: (id: string) => void;
+  onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void;
 }) {
   const [modes, setModes] = useState<Record<'home' | 'away', DugoutMode>>({ home: 'normal', away: 'normal' });
   const setMode = (role: 'home' | 'away', mode: DugoutMode) => setModes(current => ({ ...current, [role]: mode }));
@@ -32,7 +33,10 @@ export function LiveDugouts({ players, homeName, awayName, onSelect }: {
       {mode !== 'compact' && <div className="live-dugout-zones">{zones.filter(zone => zone.id !== 'other' || team.some(player => player.offPitch === 'other')).map(zone => {
         const members = team.filter(player => zone.id === 'pitch' ? player.x !== null : player.x === null && (player.offPitch ?? 'reserve') === zone.id);
         return <div className="live-dugout-zone" key={zone.id}><span>{zone.label} <b>{members.length}</b></span><div className="live-dugout-players">
-          {members.map(player => <button key={player.id} type="button" onClick={() => onSelect(player.id)} aria-label={`${player.name}, number ${player.number ?? player.slot}, ${zone.label}`} title={`${player.name} #${player.number ?? player.slot} · ${zone.label}`}>
+          {members.map(player => <button key={player.id} type="button" onClick={() => onSelect(player.id)}
+            onPointerEnter={event => { if (event.pointerType !== 'touch') onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect()); }} onPointerLeave={onBlurPlayer}
+            onFocus={event => onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect())} onBlur={onBlurPlayer}
+            aria-label={`${player.name}, number ${player.number ?? player.slot}, ${zone.label}`}>
             {spriteUrl(player) ? <img src={spriteUrl(player)!} alt=""/> : <span>{player.number ?? player.slot}</span>}
           </button>)}
         </div></div>;

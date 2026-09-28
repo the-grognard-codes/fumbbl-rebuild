@@ -8,6 +8,7 @@ import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
+import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -28,6 +29,7 @@ import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.StepId;
+import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.StartGame;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
@@ -479,11 +481,13 @@ public final class SetupSession {
 			throw new MatchService.Failure("REPLAY_LIMIT");
 		if (history.size() >= 8192) throw new MatchService.Failure("REQUEST_HISTORY_LIMIT");
 		if (request.get("expectedRevision").asInt() != revision) throw new MatchService.Failure("STALE_REVISION");
-		if (!"action".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
+		if (!"action".equals(request.getString("operation", null)) && !"concede".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
 		String operation = request.getString("operation", null);
 		ClientCommand command;
 		Game game = state.getGame();
-		if ("route".equals(operation)) {
+		if ("concede".equals(operation)) {
+			command = null;
+		} else if ("route".equals(operation)) {
 			JsonObject preview = routePreview(role, revision, request.get("waypoints").asArray());
 			if (!preview.getString("playerId", "").equals(request.getString("playerId", "")))
 				throw new MatchService.Failure("WRONG_PLAYER");
@@ -556,7 +560,23 @@ public final class SetupSession {
 		String oldActor = actor();
 		try {
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
-			if (command != null) state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+			if ("concede".equals(operation)) {
+				pendingRoute = null;
+				kickoffSelection.clear();
+				Team conceding = "home".equals(role) ? game.getTeamHome() : game.getTeamAway();
+				GameMechanic gameMechanic = (GameMechanic) game.getFactory(FactoryType.Factory.MECHANIC)
+					.forName(Mechanic.Type.GAME.name());
+				game.setConcededLegally(gameMechanic.isLegalConcession(game, conceding));
+				if ("home".equals(role)) game.getGameResult().getTeamResultHome().setConceded(true);
+				else game.getGameResult().getTeamResultAway().setConceded(true);
+				state.getStepStack().clear();
+				SequenceGeneratorFactory factory = game.getFactory(FactoryType.Factory.SEQUENCE_GENERATOR);
+				((EndGame) factory.forName(SequenceGenerator.Type.EndGame.name()))
+					.pushSequence(new EndGame.SequenceParams(state, true));
+				state.startNextStep();
+				if (!isComplete()) throw new IllegalStateException("Concession stopped at " + step()
+					+ " with dialog " + game.getDialogParameter());
+			} else if (command != null) state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
 			if (pendingRoute != null) continueRoute();
             kickoffSelection.clear();
 			assertSupported();
