@@ -33,18 +33,20 @@ export function spriteUrl(player: SetupPlayer) {
 }
 
 function PlayerMarker({ player, scale, active, selected, target, onSelect, onFocus, onBlur, readOnly }: {
-  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void; onFocus: () => void; onBlur: () => void; readOnly: boolean;
+  player: SetupPlayer; scale: number; active: boolean; selected: boolean; target: boolean; onSelect: () => void; onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const sprite = spriteUrl(player);
   const prone = player.state.toLowerCase().includes('prone');
   const stunned = player.state.toLowerCase().includes('stunned');
-  return <button type="button" disabled={readOnly} className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}${prone ? ' prone' : ''}${stunned ? ' stunned' : ''}`}
+  return <button type="button" className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}${prone ? ' prone' : ''}${stunned ? ' stunned' : ''}`}
     aria-label={`${player.role} ${player.name}, number ${player.slot}, ${player.state}, square ${player.x}, ${player.y}`}
     title={`${player.name} #${player.slot} · ${player.state}`}
     style={{ left: (OFFSET + player.x! * CELL) * scale, top: (OFFSET + player.y! * CELL) * scale,
       width: CELL * scale, height: CELL * scale, zIndex: 10 + player.y! * 26 + player.x! }}
-    onFocus={onFocus} onBlur={onBlur} onClick={event => { event.stopPropagation(); onSelect(); }}>
+    onPointerEnter={event => { if (event.pointerType !== 'touch') onFocus(event.currentTarget.getBoundingClientRect()); }} onPointerLeave={onBlur}
+    onFocus={event => onFocus(event.currentTarget.getBoundingClientRect())} onBlur={onBlur}
+    onClick={event => { event.stopPropagation(); if (!readOnly) onSelect(); }}>
     {sprite && !failed ? <img src={sprite} alt="" onError={() => setFailed(true)} className={player.art?.positionId === 'ogre' || player.art?.positionId === 'troll' ? 'large' : ''}/> :
       <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{player.slot}</span>}
     <span className="live-number">{player.slot}</span>
@@ -55,7 +57,7 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null, onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, readOnly = false, playback = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
-  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
+  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -130,7 +132,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           </svg>
           {view.players.filter(player => player.x !== null && player.y !== null).map(player =>
             <PlayerMarker key={player.id} player={player} scale={scale} active={player.id === view.activePlayerId}
-              selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)} onFocus={() => onFocusPlayer?.(player.id)} onBlur={() => onBlurPlayer?.()}/>)}
+              selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly} onSelect={() => onSelectPlayer(player.id)} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>)}
           {diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}
             style={{ left: (OFFSET + diceX * CELL) * scale, top: (OFFSET + diceY * CELL) * scale }}>
             <strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index}/>)}</div>

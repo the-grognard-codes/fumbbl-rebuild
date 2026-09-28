@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { decode } from './protocol.ts';
-import { LivePitch, spriteUrl } from './LivePitch.tsx';
+import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
+import { PlayerHoverCard } from './PlayerHoverCard.tsx';
+import { GameMenu } from './GameMenu.tsx';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
 import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { MatchHistory } from './MatchHistory.tsx';
@@ -12,7 +14,6 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
-import { PitchCompanion } from './PitchCompanion.tsx';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
 import { decodeRetainedSetup, setupOutcomeUncertain, setupRetryKey } from './setup-recovery.ts';
@@ -166,7 +167,7 @@ export function SetupPanel() {
 export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
-  routePreview = null, routeError = '', requestRoutePreview }: {
+  routePreview = null, routeError = '', requestRoutePreview, matchControls }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
   logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
@@ -174,6 +175,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   chatSent?: { text: string; id: string } | null; chatSending?: boolean; sendChat?: (text: string) => void;
   routePreview?: RoutePreview | null; routeError?: string;
   requestRoutePreview?: (points: RoutePoint[]) => void;
+  matchControls?: { fullscreen: boolean; toggleFullscreen: () => void; exitMatch: () => void; disconnect: () => void; reconnect: () => void; error: string };
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
@@ -193,7 +195,15 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     catch { return null; }
   });
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
-  const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
+  const [hoverPlayer, setHoverPlayer] = useState<{ id: string; anchor: DOMRect } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusPlayer = (id: string, anchor: DOMRect) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setHoverPlayer(null);
+    hoverTimer.current = setTimeout(() => setHoverPlayer({ id, anchor }), 350);
+  };
+  const blurPlayer = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setHoverPlayer(null); };
+  useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
   const { pitchView, playbackActive, diceMoment } = usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable);
   const pending = requestPending || (playbackActive ? 'playback' : null);
@@ -221,7 +231,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   }, [recentKey]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
-  const offPitch = view.players.filter(player => player.x === null);
   const saved = view.saveResume;
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
@@ -282,8 +291,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.target instanceof Element)) return;
-      if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport, .hosted-match .pitch-companion')) {
-        setPlayerId(''); setActionId(''); setTargetFocus(null); setFocusedPlayerId(null);
+      if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport')) {
+        setPlayerId(''); setActionId(''); setTargetFocus(null); blurPlayer();
         return;
       }
       if (event.code === 'Space' && !event.repeat && (routeMode ? routeReady : mayAct) && event.target.classList.contains('live-pitch-viewport')) {
@@ -328,7 +337,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     </select></label>}
     {!hosted && <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>}
   </section>;
-  const rosterTable = <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name} #{player.number ?? player.slot}</td><td>{player.position ?? player.role}</td><td>{player.state}</td><td>{player.x === null ? (player.offPitch ?? (hosted ? 'off pitch' : 'reserve')) : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>;
+  const rosterTable = <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name} #{player.number ?? player.slot}</td><td>{player.position ?? player.role}</td><td>{player.state}</td><td>{player.x === null ? (player.offPitch ?? 'reserve') : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>;
   const savePanel = saved && <section aria-label="Save and resume"><h3>Save and resume</h3>
     {view.callerRole === 'spectator' ? <p>Match status: {saved.status.replaceAll('_', ' ').toLowerCase()}. Save and resume decisions belong to the two players.</p> : <>
     {saved.status === 'ACTIVE' && <><p>This match is active. A save proposal does not pause play until the other participant accepts.</p><button type="button" onClick={() => mutate('saveRequest') } disabled={!connected || !!pending}>Request mutual save</button></>}
@@ -393,7 +402,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
             <option value="">Choose a decision</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label}</option>)}</optgroup>)}
           </select></div></details>
           <button type="button" className="commit-action" onClick={commit} disabled={routeMode ? !canRoute || !routeReady : !mayAct}>{routeMode ? 'Commit path' : 'Commit action'}</button></div></> :
-        <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
+        <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.phase === 'PLAY' && view.actions.length === 0 ? 'Waiting for an engine decision. Reconnect if the match appears stuck.' : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
       </div>}
       {!hosted && view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
       {!hosted && connected && view.actor !== view.callerRole && view.phase !== 'FULL_TIME' && <p>Waiting for the other participant. Their decision will appear here when resolved.</p>}
@@ -402,9 +411,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
-        onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
-      </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer}/><aside className="match-side" aria-label="Match decisions and players">
-        <section aria-label="Selected player" className="match-selected-player"><h3>Selected player</h3>{selectedPlayer ? <div className="match-player-card">{spriteUrl(selectedPlayer) && <img src={spriteUrl(selectedPlayer)!} alt=""/>}<p><strong>{selectedPlayer.name} #{selectedPlayer.number ?? selectedPlayer.slot}</strong><br/>{selectedPlayer.position ?? selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? (selectedPlayer.offPitch ?? 'Off pitch') : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}{selectedPlayer.ma !== undefined && <><br/>MA {selectedPlayer.ma} · ST {selectedPlayer.st} · AG {selectedPlayer.ag}+ · PA {selectedPlayer.pa ? `${selectedPlayer.pa}+` : '—'} · AV {selectedPlayer.av}+<br/>Skills: {selectedPlayer.skills?.join(', ') || 'None'}</>}</p></div> : <p>Select a player on the pitch or from the roster.</p>}</section>
+        onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
+      </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}/><aside className="match-side" aria-label="Match decisions and players">
+        {matchControls && <div className="match-side-controls" aria-label="Match window controls"><span role="status">{connected ? 'Connected' : 'Disconnected'}</span>
+          <button type="button" onClick={connected ? matchControls.disconnect : matchControls.reconnect}>{connected ? 'Disconnect' : 'Reconnect'}</button>
+          <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
+          <button type="button" onClick={matchControls.exitMatch}>Exit match</button>
+          {matchControls.error && <p role="alert">{matchControls.error}</p>}</div>}
         {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Placement controls"><h3>Set up {view.actor}</h3>
           <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}><option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}>{player.name} #{player.slot}{player.x === null ? ' reserve' : ''}</option>)}</select></label>
           <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup} /></label>
@@ -413,18 +426,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
         </section>}
-        <MatchHistory matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
+        <MatchHistory stacked matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
-        {view.phase === 'READY_FOR_KICKOFF' && <section aria-label="Kickoff status"><p>Both teams have confirmed legal setups. The kicking participant can choose a server-issued kick target.</p></section>}
-        {view.phase === 'PLAY' && view.actions.length === 0 && <section role="alert"><p>This engine decision does not yet have browser controls. The match remains in memory; reconnecting will preserve this decision.</p></section>}
-        {savePanel}
-        <PitchCompanion view={view} x={x} y={y} selectedPlayerId={playerId} focusedPlayerId={focusedPlayerId} pinnedActionLabel={pinnedAction?.label}
-          onFocusSquare={(column, row) => { setX(column); setY(row); setFocusedPlayerId(null); }}
-          onActivateSquare={(column, row) => { const player = view.players.find(item => item.x === column && item.y === row); if (player) selectPlayer(player.id); else selectSquare(column, row); }}/>
-        <details className="roster-companion"><summary>Roster &amp; bench</summary><section aria-label="Off pitch players">{offPitch.length ? <ul>{offPitch.map(player => <li key={player.id}><button type="button" onClick={() => selectPlayer(player.id)}>{player.role} · {player.name} #{player.number ?? player.slot} · {player.offPitch ?? 'off pitch'} · {player.state}</button></li>)}</ul> : <p>All players are on the pitch.</p>}</section>{rosterTable}</details>
+        <GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}/>
       </aside></div></>}
+      {hosted && hoverPlayer && (() => { const player = view.players.find(item => item.id === hoverPlayer.id); return player ? <PlayerHoverCard player={player} anchor={hoverPlayer.anchor}/> : null; })()}
       {!hosted && <LivePitch view={view} selectedId={playerId} actions={view.actions} pinnedAction={pinnedAction}
         onSelectPlayer={selectPlayer} onSquare={selectSquare}/>}
       {!hosted && savePanel}

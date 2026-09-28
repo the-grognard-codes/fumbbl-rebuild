@@ -383,4 +383,47 @@
   .hosted-match .live-resource-counts { display: none; }
   .hosted-match .live-dugout-zones { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Match controls and history occupy the space released by the old page header and inspector. */
+@media (min-width: 1100px) {
+  .play-runtime.live-match-page > .hosted-match { height: 100%; }
+}
+.hosted-match .match-side { overflow: hidden; }
+.match-side-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: none; }
+.match-side-controls > span { width: 100%; color: #b6c8c6; font: 12px 'Match Barlow', sans-serif; }
+.match-side-controls > p { width: 100%; margin: 0; color: #ffc7a5; }
+.play-runtime .hosted-match .match-side-controls button { margin: 0; padding: 3px 5px; font: 11px 'Match Barlow', sans-serif; text-transform: none; }
+.hosted-match .match-side > .match-history { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(100px, 1fr) minmax(150px, 1fr); gap: 8px; }
+.play-runtime .hosted-match .match-side .match-history > section { display: flex; flex-direction: column; min-height: 0; padding: 8px; }
+.hosted-match .match-history .match-event-log, .hosted-match .match-history .match-chat { flex: 1; min-height: 0; }
+.hosted-match .match-history .match-event-scroll, .hosted-match .match-history .match-chat-scroll { flex: 1; min-height: 0; max-height: none; }
+.hosted-match .match-history .match-chat form { margin-top: 4px; }
+.hosted-match .match-history .match-chat form label, .hosted-match .match-history .match-chat form small { display: none; }
+.play-runtime .hosted-match .match-side > .game-menu-trigger { flex: none; width: 100%; margin: 0; padding: 7px 10px; text-align: center; font-size: 15px; }
+.live-player-hover { position: fixed; z-index: 3000; box-sizing: border-box; width: min(310px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: auto; padding: 11px; color: #e8dfc8; background: linear-gradient(145deg, #23333b, #0a1219); border: 2px solid #83b6e9; box-shadow: 0 12px 35px #000c; pointer-events: none; font: 13px/1.35 'Match Barlow', sans-serif; }
+.live-player-hover.away { border-color: #e9a36c; }
+.live-player-hover header { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 8px; border-bottom: 1px solid #8c8060; }
+.live-player-hover header h3 { margin: 3px 0; color: #fff1c6; font: 500 23px/1 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.live-player-hover header small, .live-player-hover header span { color: #b8c9cc; }
+.live-player-hover header img { width: 100px; height: 128px; object-fit: contain; image-rendering: pixelated; }
+.live-player-stats { display: grid; gap: 2px; margin: 8px 0; }
+.live-player-stats > div { display: flex; align-items: center; justify-content: space-between; padding: 1px 8px; background: #0b151c; border: 1px solid #586b6e; }
+.live-player-stats dt { color: #abc1c9; font-size: 11px; }
+.live-player-stats dd { margin: 0; color: #f1dc9e; font: 500 20px 'Match Alegreya', Georgia, serif; }
+.live-player-card-detail { border-top: 1px solid #756e58; padding: 5px 2px 0; }
+.live-player-card-detail strong { color: #83b6e9; font: 500 13px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
+.live-player-hover.away .live-player-card-detail strong { color: #e9a36c; }
+.live-player-card-detail p { margin: 2px 0 6px; }
+.game-menu-shade { position: fixed; z-index: 4000; inset: 0; display: grid; place-items: center; padding: 12px; background: #02080cbb; }
+.game-menu-dialog { box-sizing: border-box; width: min(650px, 100%); max-height: min(680px, calc(100dvh - 24px)); overflow: auto; padding: 14px; color: #e8dfc8; background: linear-gradient(145deg, #26343a, #0b141a); border: 2px solid #a5926d; box-shadow: 0 18px 60px #000e; }
+.game-menu-dialog > header { display: flex; align-items: center; justify-content: space-between; }
+.game-menu-dialog h2 { margin: 0; font: 500 27px 'Match Alegreya', Georgia, serif; }
+.game-menu-dialog h3 { margin: 0 0 5px; font: 500 19px 'Match Alegreya', Georgia, serif; }
+.game-menu-dialog nav { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0; border-bottom: 1px solid #796f58; padding-bottom: 8px; }
+.game-menu-dialog nav button[aria-selected=true] { background: #31577a; border-color: #8db9dc; }
+.game-menu-content { min-height: 180px; }
+.game-menu-content > section { margin: 8px 0; padding: 10px; border: 1px solid #536264; background: #121f25; }
+.game-menu-content .match-event-scroll { max-height: 45dvh; overflow: auto; }
+.game-menu-confirm { border: 1px solid #bb875f; padding: 8px; }
+@media (max-width: 800px) { .hosted-match .match-side { overflow: visible; }.hosted-match .match-side > .match-history { min-height: 440px; } }
 .hosted-match .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

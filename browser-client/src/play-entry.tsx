@@ -274,14 +274,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     void request.catch(() => setError('Fullscreen is unavailable in this browser window.'));
   }
   return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
-    <div className={matchRoute || resultRoute ? 'match-page-top' : undefined}>
+    {!matchRoute && <div className={resultRoute ? 'match-page-top' : undefined}>
       <h1>{resultRoute ? 'Match result' : matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{preparationTransferred ? 'Match opened in another tab or window' : status}</p>{error && <p role="alert">{error}</p>}
       {!connected && !preparationTransferred && <button onClick={() => connection?.connect()}>Reconnect</button>}
       {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
       {preparationTransferred && <button onClick={reconnectPreparation}>Reconnect preparation here</button>}
-      {matchRoute && <><button type="button" className="secondary" onClick={toggleFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button><button type="button" className="secondary" onClick={exitMatch}>Exit match</button></>}
       {resultRoute && <a href="/play">Match preparation and games</a>}
-    </div>
+    </div>}
+    {matchRoute && !connection?.state && <section className="match-connect-panel" aria-label="Match connection"><h1>Match</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
+      <button type="button" onClick={() => connection?.connect()} disabled={connected}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
     {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
@@ -305,6 +306,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     </section>
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
+      matchControls={{ fullscreen, toggleFullscreen, exitMatch, disconnect: () => connection.disconnect(), reconnect: () => connection.connect(), error }}
       acceptedActionId={connection.lastAcceptedActionId}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
       chatMessages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable} chatSendError={chatSendError} chatSent={chatSent}
