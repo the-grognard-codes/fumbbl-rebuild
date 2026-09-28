@@ -22,11 +22,9 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
       {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
       <strong title={view.homeTeamName ?? 'Home'}>{view.homeTeamName ?? 'Home'}</strong>
       <b aria-label={`Home score ${view.homeScore}`}>{view.homeScore}</b>
-      <small>Turn {view.homeTurn}</small>
     </div>
     <div className="live-match-clock"><strong>Half {view.half} · Drive {view.drive}</strong><span>Turn {view.turn} · {view.phase.replaceAll('_', ' ')}</span><small>{view.weather === 'Nice' && <MatchArt name="weather"/>}{view.weather}</small></div>
     <div className="live-team-nameplate away">
-      <small>Turn {view.awayTurn}</small>
       <strong title={view.awayTeamName ?? 'Away'}>{view.awayTeamName ?? 'Away'}</strong>
       <b aria-label={`Away score ${view.awayScore}`}>{view.awayScore}</b>
       {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
