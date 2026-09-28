@@ -17,7 +17,7 @@ const base = { projectionVersion: 3, matchId, revision: 1, callerRole: 'home', p
     ...Array.from({ length: 12 }, (_, index) => ({ id: `1:other-move-${index}`, label: `Other move ${index}`, actor: 'home', kind: 'move', target: null }))],
   turn: 1, turnMode: 'PLAY', ball: { x: 1, y: 1 }, activePlayerId: 'p1', half: 1, homeTurn: 1, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 
-test('keyboard companion explores, pins and commits once while spectator stays read-only', async () => {
+test('pitch keyboard focus shows player cards and commits only a selected coach action', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
@@ -43,64 +43,34 @@ test('keyboard companion explores, pins and commits once while spectator stays r
           if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
           if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
           if (request.type === 'setup' || request.type === 'watch') {
-            if (request.operation === 'action') { assert.equal(index, 0); calls.push(request); revision++; }
+            if (request.operation === 'action' || request.operation === 'concede') { assert.equal(index, 0); calls.push(request); revision++; }
             send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false,
               state: { ...base, revision, callerRole: role, actions: revision === 1 ? base.actions : [], players: revision === 1 ? base.players : base.players.map(player => player.id === 'p1' ? { ...player, x: 1, y: 1 } : player) } });
           }
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}${index ? '&watch=1' : ''}`);
-      await page.getByLabel('Pitch text companion').waitFor();
-      const summary = page.getByText('Explore pitch squares with keyboard');
-      await summary.focus(); await summary.press('Enter'); await summary.press('Tab');
-      assert.match(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), /Square 0, 0/);
-      assert.notEqual(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), 'none');
-      await page.keyboard.press('Shift+Tab');
-      assert.equal(await summary.evaluate(element => element === document.activeElement), true);
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown');
-      assert.match(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), /Square 1, 1/);
-      assert.equal(await page.locator('.pitch-companion .setup-grid button[tabindex="0"]').count(), 1);
-      assert.match(await page.getByLabel('Pitch text companion').getByRole('status').textContent(), /Square 1, 1: empty, ball here, 1 server-issued target/);
-      if (index === 0 && process.env.M5F_SCREENSHOT_DIR) {
-        await mkdir(process.env.M5F_SCREENSHOT_DIR, { recursive: true });
-        await page.getByLabel('Pitch text companion').screenshot({ path: resolve(process.env.M5F_SCREENSHOT_DIR, 'companion-1280.png') });
-      }
+      await page.getByLabel('Live match pitch').waitFor();
+      assert.equal(await page.getByLabel('Pitch text companion').count(), 0);
+      assert.equal(await page.getByText('Roster & bench').count(), 0);
+      const marker = page.getByLabel('Live match pitch').locator('.live-marker').first();
+      await marker.focus();
+      await page.getByRole('tooltip', { name: /Lineman player card/ }).waitFor();
+      assert.match(await page.getByRole('tooltip', { name: /Lineman player card/ }).textContent(), /MA.*ST.*AG.*PA.*AV/s);
+      assert.notEqual(await marker.evaluate(element => getComputedStyle(element).outlineStyle), 'none');
+      await marker.press('Space');
+      assert.equal(calls.length, 0, 'Space on a player selects only');
       if (index) {
-        await page.keyboard.press('Enter');
         assert.equal(await page.getByRole('button', { name: 'Commit action' }).count(), 0);
-        const viewport = page.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space');
-        assert.equal(calls.length, 0);
-      } else {
-        for (let count = 0; count < 24; count++) await page.keyboard.press('ArrowRight');
-        for (let count = 0; count < 13; count++) await page.keyboard.press('ArrowDown');
-        assert.match(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), /Square 25, 14/);
-        assert.ok(await page.getByLabel('Pitch grid').evaluate(element => element.scrollTop) > 0, 'Grid keeps the final row reachable');
+        await page.getByRole('button', { name: /Game Menu/ }).click();
+        assert.equal(await page.getByRole('button', { name: 'Concede match' }).isDisabled(), true);
+        await page.getByRole('button', { name: 'Close Game Menu' }).click();
       }
     }
-    const actor = pages[0]; const grid = actor.getByLabel('Pitch grid');
-    const roster = actor.getByText('Roster & bench');
-    await roster.focus(); await roster.press('Enter');
-    await actor.getByRole('table', { name: 'Frozen team players' }).waitFor();
-    await roster.press('Enter');
-    await grid.locator('button').nth(27).press('Enter');
-    assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '1:move');
-    assert.match(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Pinned action: Move Lineman to 1, 1/);
-    await grid.locator('button').nth(27).press('Escape');
-    assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '');
-    assert.doesNotMatch(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Pinned action:/);
-    await grid.locator('button').nth(27).press('Space');
-    assert.equal(calls.length, 0, 'Space on a grid button selects only');
-    await actor.getByLabel('Live match pitch').locator('.live-marker').first().focus();
-    assert.match(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Focused player: home Lineman/);
-    await actor.getByLabel('Live match pitch').locator('.live-marker').first().press('Space');
-    assert.equal(calls.length, 0, 'Space on a player button selects only');
+    const actor = pages[0];
     await actor.getByText('All server actions', { exact: true }).click();
-    const search = actor.getByLabel('Find an action or target');
-    await search.focus(); await search.press('Space');
-    assert.doesNotMatch(await actor.getByLabel('Pitch text companion').getByRole('status').textContent(), /Focused player:/);
-    assert.equal(calls.length, 0, 'Space in text entry does not commit');
-    await grid.locator('button').nth(27).press('Enter');
+    await actor.getByLabel('Server action', { exact: true }).selectOption('1:move');
+    assert.equal(calls.length, 0, 'Selecting an action does not send it');
     await actor.getByLabel('Live match pitch').getByRole('button', { name: '2×' }).click();
     const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus();
     await viewport.press('ArrowRight');
@@ -110,5 +80,12 @@ test('keyboard companion explores, pins and commits once while spectator stays r
     await viewport.press('Space');
     assert.equal(calls.length, 1); assert.equal(calls[0].actionId, '1:move'); assert.equal(calls[0].expectedRevision, 1);
     await actor.getByTestId('setup-status').filter({ hasText: 'Revision 2' }).waitFor({ state: 'attached' });
+    await actor.getByRole('button', { name: /Game Menu/ }).click();
+    await actor.getByRole('button', { name: 'Concede match' }).click();
+    assert.equal(calls.length, 1, 'Opening the concession confirmation does not submit');
+    await actor.getByRole('button', { name: 'Confirm concession' }).dispatchEvent('click');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].operation, 'concede');
+    assert.equal(calls[1].expectedRevision, 2);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });

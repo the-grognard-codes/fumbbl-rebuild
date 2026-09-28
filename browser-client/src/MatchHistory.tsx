@@ -6,6 +6,7 @@ import type { ChatMessage } from './chat-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
 type Props = {
+  stacked?: boolean;
   matchId: string; records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
   messages: ChatMessage[]; chatLoading: boolean; chatUnavailable: boolean;
   connected: boolean; sending: boolean; canSend: boolean; onSend: (text: string) => void;
@@ -21,9 +22,13 @@ export function MatchHistory(props: Props) {
   useEffect(() => {
     if (props.chatLoading) return;
     if (seen.current === null) { seen.current = props.messages.length; return; }
-    if (tab === 'chat') { seen.current = props.messages.length; setUnread(0); }
+    if (tab === 'chat' || props.stacked) { seen.current = props.messages.length; setUnread(0); }
     else if (props.messages.length > seen.current) setUnread(props.messages.length - seen.current);
-  }, [props.messages.length, props.chatLoading, tab]);
+  }, [props.messages.length, props.chatLoading, props.stacked, tab]);
+  if (props.stacked) return <div className="match-history" aria-label="Match history">
+    <section className="match-history-log" aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable}/></section>
+    <section className="match-history-chat" aria-label="Chat"><MatchChatPanel {...props} active/></section>
+  </div>;
   return <section className="match-history" aria-label="Match history">
     <div className="match-history-tabs" role="tablist" aria-label="History view" onKeyDown={event => {
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;

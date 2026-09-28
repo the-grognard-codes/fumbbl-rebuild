@@ -14,7 +14,7 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   players: [{ id: 'p1', name: 'Lineman', slot: 1, role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } }, { id: 'p2', name: 'Lineman', slot: 1, role: 'away', x: 22, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'blitzer' } }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
-async function openGrid(page) { await page.getByText('Explore pitch squares with keyboard').click(); await page.getByLabel('Pitch grid', { exact: true }).waitFor(); }
+async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor(); }
 
 test('start opens a separate match window, with same-tab fallback when blocked', async () => {
   const server = createServer(async (request, response) => {
@@ -176,11 +176,10 @@ test('two players and spectator use one board; updates, read-only controls and r
       assert.equal(await page.getByLabel('Live match pitch').locator('.live-marker img').count(), 2);
       await page.waitForFunction(() => [...document.querySelectorAll('.live-marker img')].length === 2 &&
         [...document.querySelectorAll('.live-marker img')].every(image => image.complete && image.naturalWidth > 0));
-      assert.equal(await page.getByLabel('Pitch grid', { exact: true }).getByRole('button').count(), 390);
+      assert.equal(await page.getByLabel('Pitch grid', { exact: true }).count(), 0);
       assert.equal(await page.getByLabel('Coach labels', { exact: true }).textContent(),
         ['Home: You / Away: Opponent', 'Home: Opponent / Away: You', 'Home / Away'][index]);
-      assert.ok((await page.getByLabel('Pitch grid', { exact: true }).getByRole('button').allTextContents()).length);
-      assert.equal(await page.getByLabel('Pitch grid', { exact: true }).locator('img').count(), 0);
+      assert.equal(await page.getByLabel('Live match pitch').locator('.live-marker img').count(), 2);
       assert.equal(await page.evaluate(() => window.__projectionExecuted === true), false);
       const text = await page.locator('body').innerText();
       assert.ok(privateSentinels.every(value => !text.includes(value)));
@@ -225,12 +224,12 @@ test('two players and spectator use one board; updates, read-only controls and r
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
     await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).click();
-    assert.equal(await pages[2].getByLabel('Pitch grid', { exact: true }).count(), 0);
+    assert.equal(await pages[2].getByLabel('Live match pitch').count(), 0);
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();
     await openGrid(pages[2]);
     assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 4/);
     live.get(2)({ type: 'error', requestId: null, code: 'VIEW_UNAVAILABLE' });
-    await pages[2].getByLabel('Pitch grid', { exact: true }).waitFor({ state: 'detached' });
+    await pages[2].getByLabel('Live match pitch').waitFor({ state: 'detached' });
     assert.equal(consoleSummary.leaked, false); assert.equal(consoleSummary.errors, 0);
     assert.ok(consoleSummary.messages <= 100, 'Bounded console inspection must not overflow');
     console.info('R3-E synthetic console summary:', JSON.stringify(consoleSummary));
