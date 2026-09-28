@@ -40,3 +40,21 @@ Existing open sockets must reconnect after the proxy switch. The previous
 runtime and volumes remain available on 22231. This review stack is local and
 does not change the hosted DEV or PROD service. Never run the provision script
 against a populated target or point the new container at the retained database.
+
+## Authentication preflight
+
+Before a signed-in review, run `node tools/match-review-adc-check.mjs` from the
+repository root. It checks the **exact ADC file mounted by the review server**,
+including refresh-token validity and Firebase Auth access for the dev project.
+It prints only a status code; it does not print credentials or bearer tokens.
+`Review Firebase ADC: OK` is the passing result. `REAUTHENTICATION_REQUIRED`
+means the mounted user credential must be renewed before coaches can connect.
+`SESSION_EXPIRED` identifies Google's `invalid_rapt` session-control subtype.
+The HTTP container healthcheck does not exercise this credential.
+
+The mounted file can differ from gcloud's standard ADC file. A successful
+`gcloud auth print-access-token` checks the separate Cloud CLI credential and
+does not establish that the game server can authenticate users. After renewing
+the mounted ADC, restart only `ffb-match-review-server-1`, rerun the preflight,
+and reconnect an already signed-in browser. See [ADC reauthentication](adc-reauthentication.md)
+for renewal behavior and recovery considerations.
