@@ -40,6 +40,12 @@ separation](https://docs.cloud.google.com/docs/authentication/application-defaul
 
 ## Check and recover
 
+The routine startup path is `node tools/match-review-start.mjs`. It performs
+the checks below, renews ADC interactively only after an actual expiry, updates
+the isolated review mount, and verifies the restarted server. It does not run
+`gcloud auth login`; the Cloud CLI identity is separate and is not required for
+signed-in local match play.
+
 1. For this stack, run `node tools/match-review-adc-check.mjs` from the
    repository root. It locates the **mounted** ADC through the exact review
    container and checks both token refresh and Firebase Auth access, without
