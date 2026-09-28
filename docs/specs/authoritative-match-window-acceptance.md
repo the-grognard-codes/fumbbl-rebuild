@@ -8,6 +8,8 @@
 
 The browser build and server image were built from the same source tree. The real Java v2 auth gate returned `AUTHENTICATION_REQUIRED` through nginx on initial connection and reconnect. The Hosting emulator served the assembled local-dev bundle. Edge Computer Use opened `/play`, read the `LOCAL-DEV` sign-in page, and confirmed the expected redirect to `/login?returnTo=%2Fplay`; no account was signed in by automation.
 
+A later owner sign-in in Chrome exposed `AUTHENTICATION FAILED`: the exact mounted user ADC returned `invalid_grant` on refresh, although the unauthenticated container healthcheck was healthy. After an approved local ADC renewal and restart of only the isolated review server, the same signed-in tab changed to `Connected`, loaded its saved team list, and showed the review database's game list. The [mounted-credential preflight](../../containers/local/match-review.md#authentication-preflight) now checks this dependency without printing tokens. This verifies one signed-in account's connection, not a two-coach match.
+
 ## Captures and checks
 
 The [approved bottom-ribbon preview](../../browser-client/test-output/pitch-preview/full-route.png) is the presentation reference. Captures of the current browser rendering:
