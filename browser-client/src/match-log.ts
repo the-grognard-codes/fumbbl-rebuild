@@ -104,6 +104,7 @@ function decisionLine(record: TranscriptRecord): string {
   if (operation === 'action') return `${record.actor} chose ${valueText(decision.actionId)}`;
   if (operation === 'choice') return `${record.actor} chose ${valueText(decision.optionId)}`;
   if (operation === 'place') return `${record.actor} placed ${playerName(decision.playerId, record.state.players)} at ${valueText(decision.to)}`;
+  if (operation === 'concede') return `${record.actor} conceded. ${record.actor === 'home' ? 'Away' : 'Home'} wins ${record.state.homeScore}–${record.state.awayScore}`;
   return `${record.actor} chose ${readable(operation)}`;
 }
 
