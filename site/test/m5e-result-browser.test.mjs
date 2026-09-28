@@ -55,13 +55,14 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Selected player').waitFor();
     await page.getByRole('button', { name: /away Blitzer/ }).first().click();
-    assert.equal(await page.getByLabel('Actions at selected target').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
+    assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
     await page.getByRole('button', { name: 'More actions' }).click();
+    assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
     if (process.env.SPECIAL_CAPTURE_DIR) {
       await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });
       await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
     }
-    await page.getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
+    await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
     await page.getByRole('button', { name: 'Commit action' }).click();
     assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
