@@ -43,6 +43,17 @@ against a populated target or point the new container at the retained database.
 
 ## Authentication preflight
 
+For subsequent local starts, run `node tools/match-review-start.mjs` from the
+repository root. It starts the existing isolated database and game containers,
+checks the exact ADC mount, and reuses it while valid. If it has expired, it
+checks the standard gcloud ADC file, opens `gcloud auth application-default login`
+only when both credentials need renewal, installs the validated credential into
+the review mount with the DEV quota project, restarts only the review server,
+and verifies Firebase Auth access before reporting ready. It never touches the
+retained `ffb-current-dev` runtime or builds a new image. Continue to assemble
+Hosting and start the local proxy separately when needed. Initial provisioning
+and source rebuilds still use the steps above.
+
 Before a signed-in review, run `node tools/match-review-adc-check.mjs` from the
 repository root. It checks the **exact ADC file mounted by the review server**,
 including refresh-token validity and Firebase Auth access for the dev project.
