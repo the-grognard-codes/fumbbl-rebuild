@@ -109,8 +109,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (request.get("expectedRevision").asInt() < 0) throw new IllegalArgumentException();
 				JsonArray waypoints = request.get("waypoints").asArray();
 				if (waypoints.size() < 1 || waypoints.size() > 20) throw new IllegalArgumentException();
-				access.playerRole(principal, id);
-				JsonObject route = setup.routePreview(principal.accountId(), id, request.get("expectedRevision").asInt(), waypoints);
+				String role = access.playerRole(principal, id);
+				JsonObject route = setup.routePreview(role, id, request.get("expectedRevision").asInt(), waypoints);
 				send(connection, new JsonObject().add("type", "routePreview").add("requestId", requestId)
 					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
 				return;
