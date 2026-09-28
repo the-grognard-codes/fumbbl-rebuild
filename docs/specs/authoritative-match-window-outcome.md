@@ -27,6 +27,8 @@ The fixture captures show the preview's intended pitch geometry, human/orc art s
 
 The remaining acceptance run is concrete: sign in as both coaches and an authorized spectator; start a new match on the review stack; inspect the 22-player layout, actions, route decisions, chat, log, replay, keyboard and reduced-motion behavior; then compare it visually with the linked MVP preview. Record any new defect against issue #53. Account sign-in and owner visual judgment are the only required human inputs for that pass.
 
+A subsequent signed-in Chrome check found a stale local Google ADC (`invalid_grant`) mounted by the isolated game server. After renewing that credential and restarting only the review server, one signed-in account reached `Connected` and loaded its saved teams. The [review stack preflight](../../containers/local/match-review.md#authentication-preflight) and [ADC renewal research](../../containers/local/adc-reauthentication.md) document the recurrence check. The full two-coach plus spectator acceptance run remains open.
+
 ## Retrospective
 
 1. **High — repeatable signed-in acceptance:** Browser protocol fixtures and native tests covered many roles, but no safe automated local identity flow existed for the real Firebase auth gate. The final three-person review therefore depends on interactive account access. Add a documented local auth-emulator or scoped test-identity path that exercises the same server admission rules without retaining credentials in the repo. Its completion criterion is a two-coach plus spectator run through the real browser endpoint and durable store.
