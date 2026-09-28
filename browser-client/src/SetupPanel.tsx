@@ -245,6 +245,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const pinnedAction = availableActions.find(action => action.id === actionId);
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === playerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
+  const additionalActions = [...selectedActions, ...targetChoices.filter(action =>
+    !['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && !selectedActions.some(item => item.id === action.id))];
   const selectPlayer = (id: string) => {
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
     setPlayerId(id); setTargetFocus('player');
@@ -364,14 +366,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" aria-pressed={!!pinnedAction && ['select', 'stand'].includes(pinnedAction.kind)} disabled={!canChoose || !playerId || !availableActions.some(action => action.sourcePlayerId === playerId && ['select', 'stand'].includes(action.kind))} onClick={() => selectCommon(actionForPlayer(availableActions, playerId, 'select') ? 'select' : 'stand')}>Move</button>
           <button type="button" aria-pressed={pinnedAction?.kind === 'selectBlock'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'selectBlock')} onClick={() => selectCommon('selectBlock')}>Block</button>
           <button type="button" aria-pressed={pinnedAction?.kind === 'blitz'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'blitz')} onClick={() => selectCommon('blitz')}>Blitz</button>
-          <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !selectedActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = selectedActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
-          <button type="button" aria-expanded={moreOpen} disabled={!canChoose || selectedActions.length === 0} onClick={() => setMoreOpen(!moreOpen)}>More actions</button>
+          <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !additionalActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = additionalActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
+          <button type="button" aria-expanded={moreOpen} disabled={!canChoose || additionalActions.length === 0} onClick={() => setMoreOpen(!moreOpen)}>More actions</button>
           <button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
           {canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); }}>Plan path</button>}
           <button type="button" onClick={() => { setActionId(''); setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false); setTargetFocus(null); setRouteMode(false); updateWaypoints([]); }}>Cancel</button>
           {endTurnAction && <button type="button" onClick={useEndTurn} disabled={!canChoose}>{confirmEndTurn ? 'Confirm End Turn' : 'End Turn'}</button>}
         </div>
-        {moreOpen && <div className="command-menu" aria-label="Additional actions">{selectedActions.map(action => <button key={action.id} type="button" onClick={() => selectMore(action)}>{action.label}</button>)}</div>}
+        {moreOpen && <div className="command-menu" aria-label="Additional actions">{additionalActions.map(action => <button key={action.id} type="button" onClick={() => selectMore(action)}>{action.label}</button>)}</div>}
         {routeMode && <div className="route-controls" aria-label="Movement path">
           <span title="Adjacent clicks preserve exact squares; distant clicks use the safest server route.">Click squares · adjacent exact · distant safest</span>
           <ol aria-label="Waypoints">{waypoints.map((point, index) => <li key={`${index}-${point.x}-${point.y}`}><button type="button" disabled={!canRoute}
@@ -384,9 +386,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           </li>)}</ol></details>}
           {routeError && <span role="alert">{routeError}</span>}
         </div>}
-        {!moreOpen && targetChoices.length > 0 && <div className="command-menu target-action-menu" aria-label="Actions at selected target">{targetChoices.map(action => <button key={action.id} type="button"
-          aria-pressed={actionId === action.id} disabled={!canChoose} onClick={() => { setActionId(action.id); setMoreActionId(''); }}>
-          {action.label}</button>)}</div>}
         <div className="command-preview"><span>{routeMode ? routeReady ? 'Server path ready. Commit moves until the next required decision.' : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : pinnedAction ? `Ready: ${pinnedAction.label}` : 'Target assist only selects a server action; Commit sends it.'}</span>
           <details><summary>All server actions</summary><div className="action-fallback">
           {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player, action, or square" disabled={!canChoose} /></label>}
@@ -404,8 +403,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
         onSelectPlayer={selectPlayer} onFocusPlayer={setFocusedPlayerId} onBlurPlayer={() => setFocusedPlayerId(null)} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
-      <LiveDugouts players={view.players} onSelect={selectPlayer}/>
-      </div><aside className="match-side" aria-label="Match decisions and players">
+      </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer}/><aside className="match-side" aria-label="Match decisions and players">
         <section aria-label="Selected player" className="match-selected-player"><h3>Selected player</h3>{selectedPlayer ? <div className="match-player-card">{spriteUrl(selectedPlayer) && <img src={spriteUrl(selectedPlayer)!} alt=""/>}<p><strong>{selectedPlayer.name} #{selectedPlayer.number ?? selectedPlayer.slot}</strong><br/>{selectedPlayer.position ?? selectedPlayer.role} · {selectedPlayer.state}<br/>{selectedPlayer.x === null ? (selectedPlayer.offPitch ?? 'Off pitch') : `Square ${selectedPlayer.x}, ${selectedPlayer.y}`}{selectedPlayer.ma !== undefined && <><br/>MA {selectedPlayer.ma} · ST {selectedPlayer.st} · AG {selectedPlayer.ag}+ · PA {selectedPlayer.pa ? `${selectedPlayer.pa}+` : '—'} · AV {selectedPlayer.av}+<br/>Skills: {selectedPlayer.skills?.join(', ') || 'None'}</>}</p></div> : <p>Select a player on the pitch or from the roster.</p>}</section>
         {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Placement controls"><h3>Set up {view.actor}</h3>
           <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}><option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}>{player.name} #{player.slot}{player.x === null ? ' reserve' : ''}</option>)}</select></label>
@@ -415,7 +413,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm legal setup</button>
         </section>}
-        <section aria-label="Match state" className="match-state-card"><h3>Match state</h3><p>Ball {view.ball ? `square ${view.ball.x}, ${view.ball.y}` : 'off pitch'} · {view.actor} to decide</p><p>{view.turnMode} · {view.phase.replaceAll('_', ' ').toLowerCase()}</p></section>
         <MatchHistory matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}

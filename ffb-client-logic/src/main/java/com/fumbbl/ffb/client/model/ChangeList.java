@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match layout aligns the scoreboard with the pitch and sidebar, places the action ribbon above expandable dugouts, and simplifies target actions and the match log")
 			.addBugfix("Browser movement path previews use the authenticated coach role and no longer fail as unauthenticated")
 			.addBugfix("Browser matches automatically refresh an expired connection and restore the pitch during path planning")
 			.addImprovement("Browser match history explains native injury, apothecary, foul, reroll and between-drive KO recovery reports")

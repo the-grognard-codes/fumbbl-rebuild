@@ -35,10 +35,7 @@ export function MatchEventLog({ records, loading, unavailable }: {
   };
   const later = () => setWindowRange({ first, last: Math.min(lines.length, last + PAGE) });
   return <section className="match-event-log" aria-label="Match log">
-    <header><h3>Match log</h3><div>
-      <button type="button" onClick={() => setWindowRange({ first: 0, last: Math.min(PAGE, lines.length) })} disabled={!lines.length}>Start</button>
-      <button type="button" onClick={() => setWindowRange(null)} disabled={!lines.length}>Latest</button>
-    </div></header>
+    <header><h3>Match log</h3></header>
     <p className="match-log-count">{lines.length ? `Entries ${first + 1}–${last} of ${lines.length}` : loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>
     <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll"
       onScroll={event => { if (windowRange !== null) return; const element = event.currentTarget;
