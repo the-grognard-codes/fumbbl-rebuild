@@ -379,12 +379,11 @@ public final class SetupApplication {
 		return outcome;
 	}
 
-	/** Read-only route forecast for a registered coach; the caller has already authenticated the account. */
-	public JsonObject routePreview(String owner, String matchId, int revision, com.eclipsesource.json.JsonArray waypoints) throws SQLException {
-		MatchDocument document = matches.load(owner, matchId).document;
-		String role = owner.equals(document.home.owner) ? "home"
-			: document.away != null && owner.equals(document.away.owner) ? "away" : null;
-		if (role == null || document.lifecycle != MatchDocument.Lifecycle.ACTIVATED)
+	/** Read-only route forecast for a registered coach; the transport has resolved account membership to a role. */
+	public JsonObject routePreview(String role, String matchId, int revision, com.eclipsesource.json.JsonArray waypoints) throws SQLException {
+		MatchDocument document = matches.load(role, matchId).document;
+		if (!role.equals(document.home.owner) && (document.away == null || !role.equals(document.away.owner))
+			|| document.lifecycle != MatchDocument.Lifecycle.ACTIVATED)
 			throw new MatchService.Failure("NOT_FOUND");
 		releaseIdle();
 		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);

@@ -46,7 +46,7 @@ class BrowserV2AdapterTest {
 		when(access.playerRole(player, MATCH)).thenReturn("home");
 		SetupApplication setup = mock(SetupApplication.class);
 		JsonArray points = new JsonArray().add(new JsonObject().add("x", 6).add("y", 7));
-		when(setup.routePreview(FIRST, MATCH, 9, points)).thenReturn(new JsonObject().add("routeVersion", 1)
+		when(setup.routePreview("home", MATCH, 9, points)).thenReturn(new JsonObject().add("routeVersion", 1)
 			.add("revision", 9).add("playerId", "p1").add("steps", new JsonArray()));
 		BrowserV2Adapter adapter = adapter(bearer -> "player".equals(bearer) ? player : spectator, access, setup);
 		Connection coach = new Connection(), viewer = new Connection();
@@ -59,7 +59,7 @@ class BrowserV2AdapterTest {
 		assertEquals(1, JsonObject.readFrom(coach.messages.get(1)).get("route").asObject().getInt("routeVersion", -1));
 		adapter.receive(viewer, request.toString());
 		assertEquals("AUTHORIZATION", code(viewer, 1));
-		verify(setup, times(1)).routePreview(FIRST, MATCH, 9, points);
+		verify(setup, times(1)).routePreview("home", MATCH, 9, points);
 	}
 
 	@Test void authorizedSpectatorReadsBoundedTranscriptWithoutPlayerScope() throws Exception {
