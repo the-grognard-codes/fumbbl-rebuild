@@ -1,6 +1,16 @@
 # TODO
 
+The popup on pretty much any UI selection.
+
 Player facing and sprites
+
+Kick button doesn't pop up on screen.
+
+Move the ribbon directly below the pitch, move the dugout below it.
+
+Remove the select word from the kickoff event list of choices.
+
+Considering the current view (see attached screenshot), each team's dugout should have a button to expand it tray style upward overlapping the pitch.  This should display all players either in reserves, knocked out, removed for casualty, or sent off.  A new category in the dugout for sent off should be created.   A second button should hide the dugout entirely
 
 Retrospective
 High — repeatable signed-in acceptance: Browser protocol fixtures and native tests covered many roles, but no safe automated local identity flow existed for the real Firebase auth gate. The final three-person review therefore depends on interactive account access. Add a documented local auth-emulator or scoped test-identity path that exercises the same server admission rules without retaining credentials in the repo. Its completion criterion is a two-coach plus spectator run through the real browser endpoint and durable store.
@@ -66,13 +76,11 @@ file as the local design and handoff mirror, with issue links and matching statu
 once an entry is published. The detailed backlog below was migrated to GitHub
 Issues on 2026-09-26 after review.
 
-- [ ] **Authoritative match window and gameplay parity.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/53)) Execute the confirmed eight-slice plan for the bottom-ribbon live match, legal BB2025 actions, waypoint movement, graphical prompts and dice, durable log/chat, and replay. See `docs/specs/authoritative-match-window-and-gameplay.md`; coordinate transcript work with #42 and defer displayed percentages to #37.
-
 - [ ] **M5 authoritative success percentages.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/37)) Add a reviewed, versioned
   `/browser/v2` contract for any per-step or whole-path success percentage shown
-  on the DOM/SVG movement overlay. Exclude all rerolls, including skill rerolls,
-  from those percentages; distinguish them from dice targets such as `3+`, and
-  verify the calculation against BB2025 engine cases and actor/spectator projections. Until the server
+  on the DOM/SVG movement overlay. Define whether each value includes rerolls,
+  distinguish it from a dice target such as `3+`, and verify the calculation
+  against BB2025 engine cases and actor/spectator projections. Until the server
   supplies this information, omit percentage labels from the live client; do
   not derive odds from the local parity preview's illustrative risk colors.
 
@@ -112,13 +120,12 @@ Issues on 2026-09-26 after review.
 - [ ] **Versioned complete transcript and match chat.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/42)) Replace replay format 1
   through a reviewed format/migration boundary that records accepted action
   intent, authoritative dice/report outcomes, revision snapshots and durable
-  timestamped match chat. Remove obsolete format-1 replay artifacts/reader as
+  timestamped player chat. Remove obsolete format-1 replay artifacts/reader as
   part of build-phase migration; provide the same authoritative information to
   players and spectators, let players control live spectator subscriptions only,
   make every completed replay public, preserve exact retries and server-side
   authorization, and do not treat browser-local sample chat as authoritative.
-  Authenticated spectators with access to a live match may send chat in this scope.
-  See `browser-client/replay-transcript-chat.md` and the match-window spec #53.
+  See `browser-client/replay-transcript-chat.md`.
 
 - [ ] **R3-A account lifecycle and profile capability.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/43)) Before exposing
   persistent user-owned teams, profile avatars, custom display names, or other
