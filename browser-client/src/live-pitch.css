@@ -18,6 +18,7 @@
 .live-pitch-scene > svg { display: block; width: 100%; height: 100%; }
 .live-ball { fill: #db9362; stroke: #fff2d1; stroke-width: 2; filter: drop-shadow(0 1px 2px #000); }
 .live-target-square { fill: #74d6e126; stroke: #b4e7e9; stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
+.live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
 .live-route-square { fill: #5eead42b; stroke: #5eead4; stroke-width: 1.5; pointer-events: none; }
 .live-route-square.dodge { fill: #f59e0b55; stroke: #f59e0b; }
 .live-route-square.rush { fill: #b699ff55; stroke: #b699ff; }
@@ -31,6 +32,7 @@
 .live-target-line { animation: live-path-chase .8s linear infinite; }
 @keyframes live-path-chase { to { stroke-dashoffset: -14; } }
 .play-runtime .live-marker { position: absolute; display: block; padding: 0; margin: 0; border: 0; border-bottom: 3px solid #78addd; border-radius: 0 0 40% 40%; background: transparent; box-shadow: none; overflow: visible; }
+.play-runtime .live-marker[draggable=true], .play-runtime .live-dugout-players button[draggable=true] { cursor: grab; }
 .play-runtime .live-marker { transition: left .2s linear, top .2s linear; }
 .play-runtime .live-marker:disabled { opacity: 1; cursor: default; }
 .play-runtime .live-marker.away { border-bottom-color: #ed9e5d; border-bottom-style: dashed; }
@@ -258,6 +260,7 @@
 .live-dugout-controls svg { display: block; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .live-dugout-zones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; min-width: 0; }
 .live-dugout-zone { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; border-left: 1px solid #8e816134; }
+.live-dugout-zone.drop-ready { outline: 2px dashed #9ee5a9; outline-offset: -2px; background: #79d48e25; }
 .live-dugout-zone > span { white-space: nowrap; font: 500 11px/1.1 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
 .live-dugout-zone b { color: #83b6e9; font-size: 13px; }
 .live-dugout.away .live-dugout-zone b { color: #e9a36c; }
