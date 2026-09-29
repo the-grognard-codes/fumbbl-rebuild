@@ -10,6 +10,10 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser live scoreboard emphasizes the turn, omits drive and staff counts, and simplifies the match action preview")
+			.addBugfix("Browser matches show retained-request recovery only when an action needs reconciliation")
+			.addBugfix("Browser match scoreboards fit full team names beside reserved emblem and score space")
+			.addImprovement("Browser dugouts show only four off-pitch categories with centered size controls, and match chat omits scroll shortcuts")
 			.addFeature("Browser coaches can concede from Game Menu, ending the match with an opponent win and recorded result")
 			.addImprovement("Browser match controls and pause requests move into the sidebar Game Menu, with separate Game Log and Chat sections")
 			.addImprovement("Browser pitch and dugout players show delayed illustrated stat cards on hover or keyboard focus")

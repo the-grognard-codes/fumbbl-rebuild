@@ -13,9 +13,11 @@ The current token source on the Windows development machine is `C:\secure\coach-
 | DEV (`dev-moles-under-the-pitch-org`) | `/etc/moles-computer-v2-dev/secrets/coach-bugman-token.key` | `moles-computer-v2-dev` |
 | PROD (`molesunderthepitch-dotorg`) | `/etc/moles-computer-v2-prod/secrets/coach-bugman-token.key` | `moles-computer-v2-prod` |
 
-Each computer identity is a dedicated non-login OS user and group, separate from the game-server service user. The token's parent directories are `0750 root:<computer group>`; the 43-byte token file is `0640 root:<computer group>`. The computer user can read it, while the game-server user cannot. Its SHA-256 hash was checked against the server profiles on each VM. Both VMs were returned to their original stopped state after the transfer. The computer daemon has not yet been installed or started there. When installing it, run it under the listed computer identity and pass that environment's host token path with `--service-token-file`.
+Each computer identity is a dedicated non-login OS user and group, separate from the game-server service user. The token's parent directories are `0750 root:<computer group>`; the 43-byte token file is `0640 root:<computer group>`. The computer user can read it, while the game-server user cannot. Its SHA-256 hash was checked against the server profiles on each VM.
 
-For the local-dev marker-6 Compose service, rebuild and recreate the game server container so it loads the updated INI. Start the separate process for the Hosting emulator:
+The hosted daemon runs as `moles-computer-v2-dev.service` or `moles-computer-v2-prod.service`, using the reviewed units in [`deployment/`](deployment/). Node 26.7.0 and the root-owned application files live under `/opt/moles-computer-v2-<environment>/`; Ubuntu's `libatomic1` is required by that Node binary. The units read the token from the matching `/etc` path above and start when their VMs boot. Each currently allows four concurrent game clients on the 2 GB VM; further games wait in the daemon queue. Check `systemctl status moles-computer-v2-<environment>` and `journalctl -u moles-computer-v2-<environment>` for health and registration. A healthy startup logs `Ready for computer matches; capacity 4.`
+
+For local-dev, rebuild and recreate the game server container so it loads the updated INI. The match-review stack routes port `22232` to its server on port `22234` and reads `containers/local/server.match-review.ini`; that profile must carry the same hash as `server.marker6.ini`. Start the separate process for the Hosting emulator:
 
 ```powershell
 cd computer-player
