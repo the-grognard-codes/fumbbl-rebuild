@@ -68,9 +68,11 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
       }
     }
     const actor = pages[0];
-    await actor.getByText('All server actions', { exact: true }).click();
-    await actor.getByLabel('Server action', { exact: true }).selectOption('1:move');
-    assert.equal(calls.length, 0, 'Selecting an action does not send it');
+    const actionScene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
+    const scale = (await actionScene.boundingBox()).width / 960;
+    await actionScene.click({ position: { x: (12 + 36 + 18) * scale, y: (12 + 36 + 18) * scale } });
+
+    assert.equal(calls.length, 0, 'Target assist pins the available move without sending it');
     await actor.getByLabel('Live match pitch').getByRole('button', { name: '2×' }).click();
     const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus();
     await viewport.press('ArrowRight');
