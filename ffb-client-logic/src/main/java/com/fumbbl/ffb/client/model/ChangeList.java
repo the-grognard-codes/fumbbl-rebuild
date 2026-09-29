@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser coaches can drag reserve players onto the pitch, return players to reserves, and reposition players during setup or Solid Defence")
 			.addImprovement("Browser target assist plans a move from an empty square or a Block, Blitz, or Foul from the selected opponent, with route review for distant attacks")
 			.addImprovement("Browser live scoreboard emphasizes the turn, omits drive and staff counts, and simplifies the match action preview")
 			.addBugfix("Browser matches show retained-request recovery only when an action needs reconciliation")

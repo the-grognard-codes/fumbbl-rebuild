@@ -16,6 +16,7 @@ import { matchDecision } from './match-decision.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
+import { canDragSetupPlayer, canDropSetupPlayer, solidDefenceDrop } from './setup-drag.ts';
 import { decodeRetainedSetup, setupOutcomeUncertain, setupRetryKey } from './setup-recovery.ts';
 import type { RetainedSetup } from './setup-recovery.ts';
 import './SetupPanel.css';
@@ -187,6 +188,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [moreActionId, setMoreActionId] = useState('');
   const [targetAssist, setTargetAssist] = useState(true);
   const [smartIntent, setSmartIntent] = useState<SmartIntent | null>(null);
+  const [draggingPlayerId, setDraggingPlayerId] = useState('');
+  const [solidDrop, setSolidDrop] = useState<{ playerId: string; to: RoutePoint; revision: number } | null>(null);
   const [targetPlayerId, setTargetPlayerId] = useState('');
   const autoActionRef = useRef('');
   const [explicitBlitz, setExplicitBlitz] = useState(false);
@@ -240,6 +243,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
+  const draggableIds = new Set(connected && !pending && !suspended && !playbackActive && hosted
+    ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
   const decision = hosted ? matchDecision(view, availableActions) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const selectedActions = moreActions(availableActions, view.activePlayerId ?? playerId);
@@ -311,6 +316,30 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
+  const dropPlayer = (id: string, column: number, row: number) => {
+    setDraggingPlayerId('');
+    if (!draggableIds.has(id)) return;
+    const to = { x: column, y: row };
+    if (view.phase === 'SETUP') {
+      if (canDropSetupPlayer(view, id, to)) mutate('place', { playerId: id, to });
+      return;
+    }
+    const choice = solidDefenceDrop(view, availableActions, id, to);
+    if (!choice) return;
+    if (choice.selecting) setSolidDrop({ playerId: id, to, revision: view.revision });
+    mutate('action', { actionId: choice.action.id });
+  };
+  const dropReserve = (id: string, role: 'home' | 'away') => {
+    setDraggingPlayerId('');
+    if (role === view.callerRole && draggableIds.has(id) && canDropSetupPlayer(view, id, null))
+      mutate('place', { playerId: id, to: null });
+  };
+  useEffect(() => {
+    if (!solidDrop || view.revision <= solidDrop.revision || !connected || pending || suspended || playbackActive) return;
+    const choice = solidDefenceDrop(view, availableActions, solidDrop.playerId, solidDrop.to);
+    setSolidDrop(null);
+    if (choice && !choice.selecting) mutate('action', { actionId: choice.action.id });
+  });
   const commit = () => {
     if (routeMode) {
       if (canRoute && routeReady && routePreview) {
@@ -495,8 +524,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
-        onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
-      </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}/><aside className="match-side" aria-label="Match decisions and players">
+        draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')}
+        onDropPlayer={dropPlayer} onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
+      </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
+        draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
         {matchControls && <div className="match-side-controls" aria-label="Match window controls"><span role="status">{connected ? 'Connected' : 'Disconnected'}</span>
           <button type="button" onClick={connected ? matchControls.disconnect : matchControls.reconnect}>{connected ? 'Disconnect' : 'Reconnect'}</button>
           <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
