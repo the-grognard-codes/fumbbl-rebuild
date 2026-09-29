@@ -1,6 +1,6 @@
 // One-command lifecycle for the isolated, real-DEV Firebase match review stack.
 import { execFileSync, spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,6 @@ import { startReview } from './match-review-start.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const toolsDirectory = join(root, '.tools');
-const stateFile = join(toolsDirectory, 'dev-local-state.json');
 const serverName = 'ffb-match-review-server-1';
 const databaseName = 'ffb-match-review-database-1';
 const project = 'dev-moles-under-the-pitch-org';
@@ -19,6 +18,21 @@ const mode = process.argv[2];
 function run(file, args, options = {}) {
   return execFileSync(file, args, { cwd: root, encoding: 'utf8', windowsHide: true, maxBuffer: 1024 * 1024,
     ...options });
+}
+
+function worktreeRoots() {
+  return run('git', ['worktree', 'list', '--porcelain']).split(/\r?\n/)
+    .filter(line => line.startsWith('worktree ')).map(line => resolve(line.slice('worktree '.length)));
+}
+
+function sharedStateFile() {
+  return join(resolve(run('git', ['rev-parse', '--path-format=absolute', '--git-common-dir']).trim()),
+    'dev-local-state.json');
+}
+
+function samePath(first, second) {
+  const normalize = value => process.platform === 'win32' ? resolve(value).toLowerCase() : resolve(value);
+  return normalize(first) === normalize(second);
 }
 
 function inspect(name, service) {
@@ -47,9 +61,7 @@ export function composeEnvironment(server, database) {
 
 function findNginx() {
   const candidates = [process.env.NGINX_LOCAL_BINARY, join(root, '.tools', 'nginx-1.30.5', 'nginx.exe')];
-  const worktrees = run('git', ['worktree', 'list', '--porcelain']).split(/\r?\n/)
-    .filter(line => line.startsWith('worktree ')).map(line => line.slice('worktree '.length));
-  for (const worktree of worktrees) candidates.push(join(worktree, '.tools', 'nginx-1.30.5', 'nginx.exe'));
+  for (const worktree of worktreeRoots()) candidates.push(join(worktree, '.tools', 'nginx-1.30.5', 'nginx.exe'));
   const found = candidates.find(candidate => candidate && existsSync(candidate));
   if (!found) throw Error('NGINX_BINARY_UNAVAILABLE');
   return resolve(found);
@@ -62,16 +74,26 @@ function firebaseCli() {
   return resolve(file);
 }
 
+export function readManagedState(sharedFile, worktrees) {
+  const files = [sharedFile, ...worktrees.map(worktree => join(worktree, '.tools', 'dev-local-state.json'))]
+    .filter(file => existsSync(file));
+  if (files.length > 1) throw Error('DEV_LOCAL_STATE_AMBIGUOUS');
+  if (!files.length) return null;
+  const file = files[0];
+  const state = JSON.parse(readFileSync(file, 'utf8'));
+  if (state.schema !== 1 || typeof state.root !== 'string'
+    || !worktrees.some(worktree => samePath(worktree, state.root))
+    || (!samePath(file, sharedFile) && !samePath(file, join(state.root, '.tools', 'dev-local-state.json'))))
+    throw Error('DEV_LOCAL_STATE_MISMATCH');
+  return { state, file };
+}
+
 function readState() {
-  if (!existsSync(stateFile)) return null;
-  const state = JSON.parse(readFileSync(stateFile, 'utf8'));
-  if (state.schema !== 1 || state.root !== root) throw Error('DEV_LOCAL_STATE_MISMATCH');
-  return state;
+  return readManagedState(sharedStateFile(), worktreeRoots());
 }
 
 function saveState(state) {
-  mkdirSync(toolsDirectory, { recursive: true });
-  writeFileSync(stateFile, JSON.stringify({ schema: 1, root, ...state }, null, 2));
+  writeFileSync(sharedStateFile(), JSON.stringify({ schema: 1, root, ...state }, null, 2));
 }
 
 function processCommandLine(pid) {
@@ -81,10 +103,10 @@ function processCommandLine(pid) {
   return run('powershell.exe', ['-NoProfile', '-Command', script]).trim();
 }
 
-function validateProxy(state) {
+function validateProxy(state, ownerRoot) {
   if (typeof state?.prefix !== 'string' || typeof state.binary !== 'string') throw Error('PROXY_STATE_MISMATCH');
   const prefix = resolve(state.prefix);
-  const expected = join(toolsDirectory, 'local-nginx-');
+  const expected = join(ownerRoot, '.tools', 'local-nginx-');
   if (!prefix.startsWith(expected) || prefix.slice(expected.length).includes(sep)
     || !existsSync(join(prefix, 'nginx.conf')) || !existsSync(state.binary)) throw Error('PROXY_STATE_MISMATCH');
   const config = readFileSync(join(prefix, 'nginx.conf'), 'utf8');
@@ -108,11 +130,12 @@ async function waitForPortFree(port) {
 }
 
 async function stopBrowserServices() {
-  const state = readState();
-  if (!state) {
+  const managed = readState();
+  if (!managed) {
     if (!await portFree(5000) || !await portFree(22232)) throw Error('UNMANAGED_LOCAL_SERVICE');
     return;
   }
+  const { state, file } = managed;
   if (state.hosting) {
     const commandLine = processCommandLine(state.hosting.pid);
     if (commandLine) {
@@ -123,7 +146,7 @@ async function stopBrowserServices() {
     await waitForPortFree(5000);
   }
   if (state.proxy) {
-    validateProxy(state.proxy);
+    validateProxy(state.proxy, state.root);
     const commandLine = processCommandLine(state.proxy.pid);
     if (commandLine) {
       if (!commandLine.includes(state.proxy.binary) || !commandLine.includes(state.proxy.prefix.replaceAll('\\', '/'))
@@ -132,7 +155,7 @@ async function stopBrowserServices() {
     }
     await waitForPortFree(22232);
   }
-  unlinkSync(stateFile);
+  unlinkSync(file);
 }
 
 async function stop() {
