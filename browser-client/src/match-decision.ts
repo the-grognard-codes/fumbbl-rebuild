@@ -1,4 +1,5 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
+import { pitchPushChoices } from './push-choice.ts';
 
 export type MatchDecision = { title: string; key: string; options: { id: string; label: string; kind: 'choice' | 'action'; face?: string }[] };
 
@@ -18,7 +19,8 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
     key: view.prompt.id,
     options: view.prompt.options.map(option => ({ id: option, label: option[0].toUpperCase() + option.slice(1), kind: 'choice' }))
   };
-  const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate));
+  const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate)
+    && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;
   const choices = ownActions.filter(action => action.kind === kind || kind === 'blockDie' && action.kind === 'reroll');
   return { title: promptTitles[kind], key: `${view.revision}:${kind}`,
