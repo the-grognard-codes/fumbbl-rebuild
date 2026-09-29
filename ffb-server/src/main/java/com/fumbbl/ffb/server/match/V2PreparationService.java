@@ -17,6 +17,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,11 +30,17 @@ public final class V2PreparationService {
 	private final SavedTeamService teams;
 	private final RosterCatalog catalog;
 	private final Clock clock;
+	private final ComputerOpponentService computers;
 	private final MatchJson json = new MatchJson();
 	private final SecureRandom random = new SecureRandom();
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock) {
-		this.connections = connections; this.teams = teams; this.catalog = catalog; this.clock = clock;
+		this(connections, teams, catalog, clock, new ComputerOpponentService(null));
+	}
+
+	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock,
+		ComputerOpponentService computers) {
+		this.connections = connections; this.teams = teams; this.catalog = catalog; this.clock = clock; this.computers = computers;
 	}
 
 	public JsonObject handle(String accountId, JsonObject request) {
@@ -41,6 +49,7 @@ public final class V2PreparationService {
 			account(accountId); header(request);
 			String operation = request.getString("operation", null);
 			if ("create".equals(operation)) return create(accountId, request);
+			if ("createComputer".equals(operation)) return createComputer(accountId, request);
 			if ("join".equals(operation)) return join(accountId, request);
 			if ("reissue".equals(operation)) return reissue(accountId, request);
 			if ("revoke".equals(operation)) return revoke(accountId, request);
@@ -51,6 +60,35 @@ public final class V2PreparationService {
 		// A JDBC close may fail after COMMIT; preparation callers must reconcile rather than assume rollback.
 		catch (SQLException failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
 		catch (RuntimeException failure) { return response(requestId, "INVALID_REQUEST", false, null, null, null); }
+	}
+
+	/** Authorized only through the separate computer WebSocket credential. */
+	public boolean isComputerMatch(String matchId) throws SQLException {
+		if (matchId == null || !matchId.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) return false;
+		try (Connection connection = connections.open()) {
+			if (!member(connection, matchId, computers.memberId(), "away")) return false;
+			MatchDocument document = document(connection, matchId, false);
+			return document != null && document.away != null
+				&& ComputerOpponentService.BUGMAN_TEAM_NAME.equals(document.away.team.teamName)
+				&& computers.cloneTeamId(matchId).equals(document.away.team.sourceTeamId);
+		}
+	}
+
+	/** Active jobs are replayed when the independent computer process reconnects. */
+	public List<String> activeComputerMatches() throws SQLException {
+		List<String> result = new ArrayList<>();
+		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+			"SELECT matchid FROM ffb_v2_match_members WHERE account_id=? AND role='away'")) {
+			query.setString(1, computers.memberId());
+			try (ResultSet rows = query.executeQuery()) {
+				while (rows.next()) {
+					String id = rows.getString(1);
+					MatchDocument document = document(connection, id, false);
+					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) result.add(id);
+				}
+			}
+		}
+		return result;
 	}
 
 	/** A disconnect tracker must grant this permission; clients cannot express it through {@link #handle}. */
@@ -110,6 +148,53 @@ public final class V2PreparationService {
 				insertDocument(connection, created); insertMember(connection, matchId, accountId, "home"); insertInvite(connection, matchId, accountId, code);
 				insertRetry(connection, matchId, accountId, requestId, fingerprint); commit(connection);
 				return accepted(requestId, created, "home", new Retry(code), false);
+			} catch (SQLException | RuntimeException failure) { rollback(connection, failure); throw failure; }
+		}
+	}
+
+	private JsonObject createComputer(String accountId, JsonObject request) throws SQLException {
+		exact(request, "version", "type", "operation", "requestId", "teamId", "expectedDocumentVersion",
+			"computerId", "computerTeamId", "expectedComputerDocumentVersion");
+		String requestId = request.getString("requestId", null), teamId = uuid(request.getString("teamId", null));
+		String computerTeamId = uuid(request.getString("computerTeamId", null));
+		int version = positive(request.get("expectedDocumentVersion").asInt());
+		int computerVersion = positive(request.get("expectedComputerDocumentVersion").asInt());
+		if (!computers.supports(request.getString("computerId", null))) throw new Failure("INVALID_REQUEST");
+		requestId(requestId);
+		String matchId = UUID.nameUUIDFromBytes(("v2-prepared-match\n" + accountId + "\n" + requestId)
+			.getBytes(StandardCharsets.UTF_8)).toString();
+		String fingerprint = "create|" + teamId + "|" + version + "|away";
+		String cloneId = computers.cloneTeamId(matchId);
+		try (Connection connection = connections.open()) {
+			connection.setAutoCommit(false);
+			try {
+				boolean creatorMembership = member(connection, matchId, accountId, "home");
+				MatchDocument existing = document(connection, matchId, true);
+				if (existing != null) {
+					if (!creatorMembership || !member(connection, matchId, computers.memberId(), "away")) throw new Failure("REQUEST_ID_REUSED");
+					Retry retry = retry(connection, matchId, accountId, requestId,
+						fingerprint + "|" + computerTeamId + "|" + computerVersion);
+					commit(connection); return accepted(requestId, existing, "home", retry, true);
+				}
+				FrozenTeam home = freeze(accountId, teamId, version, "home");
+				FrozenTeam source = freeze(accountId, computerTeamId, computerVersion, "away");
+				if (home.teamName.isEmpty()) home = home.copyForMatch(home.sourceTeamId, "home", "Home");
+				if (!home.ruleset.equals(source.ruleset) || !home.catalogVersion.equals(source.catalogVersion)
+					|| !home.presetId.equals(source.presetId) || !home.presetVersion.equals(source.presetVersion))
+					throw new Failure("INCOMPATIBLE_TEAM");
+				FrozenTeam away = source.copyForMatch(cloneId, "away", ComputerOpponentService.BUGMAN_TEAM_NAME);
+				Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
+				history.put("home\n" + requestId, new MatchDocument.Request(fingerprint));
+				history.put("away\ncomputer", new MatchDocument.Request("join|" + matchId + "|1|" + cloneId + "|" + computerVersion));
+				MatchDocument created = new MatchDocument(matchId, 2, "away", MatchDocument.Lifecycle.AWAITING_SETUP,
+					new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history);
+				insertDocument(connection, created);
+				insertMember(connection, matchId, accountId, "home");
+				insertMember(connection, matchId, computers.memberId(), "away");
+				insertRetry(connection, matchId, accountId, requestId,
+					fingerprint + "|" + computerTeamId + "|" + computerVersion);
+				commit(connection);
+				return accepted(requestId, created, "home", new Retry(null), false);
 			} catch (SQLException | RuntimeException failure) { rollback(connection, failure); throw failure; }
 		}
 	}

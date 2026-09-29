@@ -1,5 +1,66 @@
 # TODO
 
+Player facing and sprites
+
+Retrospective
+High — repeatable signed-in acceptance: Browser protocol fixtures and native tests covered many roles, but no safe automated local identity flow existed for the real Firebase auth gate. The final three-person review therefore depends on interactive account access. Add a documented local auth-emulator or scoped test-identity path that exercises the same server admission rules without retaining credentials in the repo. Its completion criterion is a two-coach plus spectator run through the real browser endpoint and durable store.
+Medium — generated fixture provenance: The 22-player browser fixture is an exact output of SetupSessionTest. Editing its art directly caused the first Java 21 PR check to fail after several minutes. Keep native snapshots generated, and put visual-only variants in the browser test as done in #78. A fast fixture parity check before the full target build would surface this in seconds; the existing CI check remains the final guard.
+Medium — representative visual state: The first integrated action capture had only two placeholder players and no history, which made art and layout differences look larger than a crowded match. Keep one labeled native 22-player capture and one action/route capture at the target viewports as review evidence. The new viewport assertion waits for marker transitions to settle before capturing or checking Fit.
+Low — local Java verification: The project-local Maven bootstrap was absent in this worktree, while the global Maven cache could not resolve dependencies in the sandbox. A reusable JDK 21 Docker test target with the existing BuildKit Maven cache would make focused native checks faster to invoke. The temporary test container used here passed the four route scenarios; CI completed the full Java target gate.
+
+
+------------
+Old notes, need refirement
+Spectator links.
+
+Rework the molesunderthepitch.org site to include new image assets.
+
+Make the grognard a player type section, show stats, etc. like the old site.
+
+Allow people to customize their coach avatar.
+
+The site should feel like a late 90's early 2000's site.  Functional, and before the era of tons of live, moving content.  
+
+Microsoft Auth login through Firebase
+
+-------------
+
+
+Percentage calculation / success engine.
+
+A Settings menu in the bottom right.
+
+It should include options such as:
+
+Mutual Save Request
+Concede option.
+Game Log Verbosity
+Show key bindings
+Add keyboard shortcuts
+
+Additional Settings popup which will be a placeholder for now for changing various aspects of the gameplay and UI.
+
+
+One side task - we need to allow players to define their player name in the pre-match screen.  This will later be revised to an actual username, but for now a simple manual defined name is fine.
+
+
+Cleanup all old rosters and existing games.
+
+Need to be able to drag players around the pitch during the setup sequence.
+
+Add stylized graphical popups rather than menu buttons for events such as kickoff heads/tails choice, receive/kick decision, whether to use a skill such as dodge or tackle.  Also need dice "rolled" and appearing on the game area, which are selectable when appropriate for actions like blocks.  Also need a safety check for a player selecting a "Both down" or "Attacker down" result when it may be a misclick (a "better" die could be selected not resulting in a turnover).  This also includes using various rerolls, unique star player abilities, and apothecary.
+
+Setup a most basic AI player, add AI opponent option when creating a game.  It can just take random plays for now, just to move the game along.  Needs to be a separate server, we will train it on replays later.
+
+
+The following message appears if the game service is down then comes back up while you have authed.  It will show connected, disconnect option for the button, but also show TRANSPORT UNAVAILABLE
+
+Choose to receive or kick
+is shown even for the team that lost the flip
+
+
+Retire in full /browser/v1, moving any tests, proof of recovery validation, etc over to v2.
+
 GitHub Issues is the primary tracker for newly scoped work. Keep this Markdown
 file as the local design and handoff mirror, with issue links and matching status
 once an entry is published. The detailed backlog below was migrated to GitHub

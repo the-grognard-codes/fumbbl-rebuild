@@ -1,6 +1,7 @@
 /** New response fields/families require a recipient projection test before rendering. */
 const fields: Record<string, string[]> = {
   authentication: ['code', 'accountId'], error: ['code'], browse: ['code', 'matches'],
+  computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],
@@ -25,4 +26,7 @@ export function assertV2Projection(message: Record<string, unknown>) {
   if (message.type === 'browse' && (!Array.isArray(message.matches) || message.matches.some(entry => !entry || typeof entry !== 'object'
     || Object.keys(entry).length !== 2 || !Object.hasOwn(entry, 'matchId') || !Object.hasOwn(entry, 'label'))))
     throw Error('Unexpected browse fields');
+  if (message.type === 'computerJobs' && (!Array.isArray(message.matches) || message.matches.length > 1024
+    || message.matches.some(id => typeof id !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))))
+    throw Error('Invalid computer jobs');
 }

@@ -37,6 +37,53 @@ import static org.mockito.Mockito.when;
 
 class V2PreparationServiceTest {
 	@Test
+	void createsComputerMatchWithDistinctFrozenCloneAndNoInvitation() throws Exception {
+		Connection connection = connection(false); RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		SavedTeamService teams = teamService(catalog, account);
+		String teamId = teams.list(account).get(0).teamId;
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.systemUTC());
+		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch")
+			.add("operation", "createComputer").add("requestId", "computer_1")
+			.add("teamId", teamId).add("expectedDocumentVersion", 1)
+			.add("computerId", ComputerOpponentService.BUGMAN_ID)
+			.add("computerTeamId", teamId).add("expectedComputerDocumentVersion", 1);
+		JsonObject response = service.handle(account, request);
+		assertEquals("ACCEPTED", response.getString("code", null));
+		JsonObject document = response.get("document").asObject();
+		assertEquals("AWAITING_SETUP", document.getString("lifecycle", null));
+		assertEquals(2, document.getInt("documentVersion", -1));
+		assertEquals("Bugman's Best", document.get("away").asObject().getString("teamName", null));
+		assertEquals(document.get("home").asObject().getString("rosterId", null),
+			document.get("away").asObject().getString("rosterId", null));
+		assertTrue(!document.get("home").asObject().getString("sourceTeamId", null)
+			.equals(document.get("away").asObject().getString("sourceTeamId", null)));
+		assertTrue(response.get("invitationCode").isNull());
+		verify(connection).commit();
+	}
+
+	@Test
+	void computerCanCloneDifferentOwnedRoster() throws Exception {
+		Connection connection = connection(false); RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		SavedTeamService teams = new SavedTeamService(new MemoryTeams(), catalog);
+		String humanTeamId = teams.create(account, "human-seed", namedDraft(catalog)).document.teamId;
+		String orcTeamId = teams.create(account, "orc-seed", namedOrcDraft(catalog)).document.teamId;
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.systemUTC());
+		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch")
+			.add("operation", "createComputer").add("requestId", "computer_orcs")
+			.add("teamId", humanTeamId).add("expectedDocumentVersion", 1)
+			.add("computerId", ComputerOpponentService.BUGMAN_ID)
+			.add("computerTeamId", orcTeamId).add("expectedComputerDocumentVersion", 1);
+		JsonObject response = service.handle(account, request);
+		assertEquals("ACCEPTED", response.getString("code", null));
+		JsonObject document = response.get("document").asObject();
+		assertEquals("human", document.get("home").asObject().getString("rosterId", null));
+		assertEquals("orc", document.get("away").asObject().getString("rosterId", null));
+		assertEquals("Bugman's Best", document.get("away").asObject().getString("teamName", null));
+	}
+
+	@Test
 	void rejectsMalformedAccountBeforeOpeningDatabase() {
 		V2PreparationService service = new V2PreparationService(() -> { throw new AssertionError("database must not be opened"); }, null, null, Clock.systemUTC());
 		JsonObject response = service.handle("not-an-account", new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "create").add("requestId", "create_1").add("teamId", "00000000-0000-0000-0000-000000000001").add("expectedDocumentVersion", 1));

@@ -6,6 +6,7 @@ import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchChat;
+import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -20,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -33,6 +35,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final MatchService matches;
 	private final V2PreparationService preparation;
 	private final BrowserSavedTeamJson teams;
+	private final ComputerOpponentService computers;
+	private BrowserMatchAdapter.Connection computerDispatcher;
+	private final Set<BrowserMatchAdapter.Connection> computerConnections = new HashSet<>();
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserMatchAdapter.Connection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
 	private final Map<BrowserMatchAdapter.Connection, String> preparationSubscriptions = new LinkedHashMap<>();
@@ -40,9 +45,15 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 
 	public BrowserV2Adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup,
 		MatchService matches, V2PreparationService preparation, BrowserSavedTeamJson teams) {
+		this(authenticator, access, setup, matches, preparation, teams, new ComputerOpponentService(null));
+	}
+
+	public BrowserV2Adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup,
+		MatchService matches, V2PreparationService preparation, BrowserSavedTeamJson teams, ComputerOpponentService computers) {
 		this.authenticator = authenticator; this.access = access; this.setup = setup;
 		this.matches = matches; this.preparation = preparation; this.teams = teams;
-		this.publisher = new ActiveMatchPublisher(access, setup);
+		this.computers = computers;
+		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
 	}
 
 	@Override public synchronized void receive(BrowserMatchAdapter.Connection connection, String text) {
@@ -55,9 +66,24 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
 			if (request.getInt("version", -1) != 2) { fail(connection, requestId, "UNSUPPORTED_VERSION"); return; }
 			String type = request.getString("type", "");
+			if ("authenticateComputer".equals(type)) {
+				fields(request, "version", "type", "requestId", "serviceToken");
+				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
+					fail(connection, requestId, "IDENTITY_REBINDING_FORBIDDEN"); return;
+				}
+				if (!computers.authenticate(request.get("serviceToken").asString())) {
+					fail(connection, requestId, "AUTHENTICATION_FAILED"); return;
+				}
+				computerConnections.add(connection);
+				send(connection, new JsonObject().add("type", "computerAuthentication")
+					.add("requestId", requestId).add("code", "ACCEPTED"));
+				return;
+			}
 			if ("authenticate".equals(type)) {
 				fields(request, "version", "type", "requestId", "bearer");
-				if (principals.containsKey(connection)) { fail(connection, requestId, "IDENTITY_REBINDING_FORBIDDEN"); return; }
+				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
+					fail(connection, requestId, "IDENTITY_REBINDING_FORBIDDEN"); return;
+				}
 				AuthenticatedPrincipal principal = authenticator.authenticate(request.get("bearer").asString());
 				// Newest authenticated connection wins, serialized on the same worker.
 				for (BrowserMatchAdapter.Connection prior : new java.util.ArrayList<>(principals.keySet())) {
@@ -68,6 +94,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				principals.put(connection, principal);
 				send(connection, new JsonObject().add("type", "authentication").add("requestId", requestId)
 					.add("code", "ACCEPTED").add("accountId", principal.accountId()));
+				return;
+			}
+			if (computerConnections.contains(connection)) {
+				handleComputerConnection(connection, request);
 				return;
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
@@ -149,7 +179,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			principal = access.require(principal, ApplicationScope.PLAYER);
 			request.set("version", 1); // Internal R2 contract remains version 1.
 			JsonObject response;
-			if ("setup".equals(type)) {
+			if ("computer".equals(type)) {
+				handleComputer(connection, request);
+				return;
+			} else if ("setup".equals(type)) {
 				String id = request.get("matchId").asString();
 				String role = access.playerRole(principal, id);
 				SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(role, request);
@@ -167,6 +200,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if ("release".equals(operation)) {
 					fields(request, "version", "type", "operation", "requestId", "matchId");
 					String id = request.get("matchId").asString();
+					access.playerRole(principal, id);
+					if (preparation.isComputerMatch(id)) throw new MatchService.Failure("RELEASE_NOT_PERMITTED");
 					String opponent = access.opponentAccount(principal, id);
 					boolean disconnected = opponent != null && principals.values().stream().noneMatch(p -> p.accountId().equals(opponent));
 					response = preparation.releaseAbandoned(principal.accountId(), id, requestId, disconnected);
@@ -191,11 +226,55 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				preparationSubscriptions.put(connection, id);
 				publisher.remove(connection);
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
+				if ("activate".equals(request.getString("operation", "")) && preparation.isComputerMatch(id))
+					sendComputerJobs(Collections.singletonList(id));
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
 		catch (MatchService.Failure rejected) { fail(connection, requestId, rejected.code); }
 		catch (SQLException unavailable) { fail(connection, requestId, "PERSISTENCE_FAILED"); }
 		catch (RuntimeException malformed) { fail(connection, requestId, "MALFORMED_MESSAGE"); }
+	}
+
+	private void handleComputer(BrowserMatchAdapter.Connection connection, JsonObject request) {
+		String operation = request.getString("operation", "");
+		String id = request.getString("requestId", null);
+		if (!"status".equals(operation)) throw new IllegalArgumentException();
+		fields(request, "version", "type", "operation", "requestId");
+		computerResponse(connection, id, computerDispatcher == null ? "UNAVAILABLE" : "READY");
+	}
+
+	private void handleComputerConnection(BrowserMatchAdapter.Connection connection, JsonObject request) throws SQLException {
+		String type = request.getString("type", "");
+		String id = request.getString("requestId", null);
+		if ("computer".equals(type) && "register".equals(request.getString("operation", ""))) {
+			fields(request, "version", "type", "operation", "requestId");
+			List<String> activeMatches = preparation.activeComputerMatches();
+			computerDispatcher = connection;
+			computerResponse(connection, id, "READY");
+			sendComputerJobs(activeMatches);
+		} else if ("setup".equals(type)) {
+			String matchId = request.get("matchId").asString();
+			if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
+			request.set("version", 1);
+			SetupApplication.HandleOutcome outcome = setup.handleWithOutcome("away", request);
+			JsonObject response = outcome.response();
+			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
+			send(connection, response);
+			if (outcome.publish()) publisher.publish(matchId, connection, response.get("state").asObject());
+		} else { fail(connection, id, "UNSUPPORTED_MESSAGE"); }
+	}
+
+	private void sendComputerJobs(List<String> matches) {
+		if (computerDispatcher == null || matches.isEmpty()) return;
+		for (int first = 0; first < matches.size(); first += 1024) {
+			JsonArray jobs = new JsonArray();
+			for (int index = first; index < Math.min(first + 1024, matches.size()); index++) jobs.add(matches.get(index));
+			send(computerDispatcher, new JsonObject().add("type", "computerJobs").add("requestId", JsonValue.NULL)
+				.add("code", "AVAILABLE").add("matches", jobs));
+		}
+	}
+	private void computerResponse(BrowserMatchAdapter.Connection connection, String requestId, String code) {
+		send(connection, new JsonObject().add("type", "computer").add("requestId", requestId).add("code", code));
 	}
 
 	private void preparationChanged(String matchId, BrowserMatchAdapter.Connection source) {
@@ -213,9 +292,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	@Override public synchronized void disconnect(BrowserMatchAdapter.Connection connection) {
+		if (connection == computerDispatcher) computerDispatcher = null;
+		computerConnections.remove(connection);
 		principals.remove(connection); publisher.remove(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserMatchAdapter.Connection connection) {
+		if (connection == computerDispatcher) computerDispatcher = null;
+		computerConnections.remove(connection);
 		principals.remove(connection);
 		publisher.remove(connection);
 		preparationSubscriptions.remove(connection);
