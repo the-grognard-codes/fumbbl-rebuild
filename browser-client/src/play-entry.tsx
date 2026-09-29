@@ -309,7 +309,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     </div>}
     {matchRoute && !connection?.state && <section className="match-connect-panel" aria-label="Match connection"><h1>Match</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
       <button type="button" onClick={() => connection?.connect()} disabled={connected}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
-    {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
+    {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
     <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>

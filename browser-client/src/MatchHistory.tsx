@@ -80,8 +80,7 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
     onSend(text);
   };
   return <div className="match-chat">
-    <header><h3>Match chat</h3><div><button type="button" onClick={() => { if (pane.current) { pane.current.scrollTop = 0; follow.current = false; } }}>Start</button>
-      <button type="button" onClick={() => { if (pane.current) { pane.current.scrollTop = pane.current.scrollHeight; follow.current = true; } }}>Latest</button></div></header>
+    <header><h3>Match chat</h3></header>
     <p className="match-chat-count">{chatUnavailable ? 'Chat is unavailable for this match.' : chatLoading ? 'Loading conversation…' : `${messages.length} messages`}</p>
     <div ref={pane} role="log" aria-label="Match chat messages" aria-live="polite" className="match-chat-scroll"
       onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
