@@ -11,7 +11,7 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import { usePitchPlayback } from './use-pitch-playback.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
-import { actionForPlayer, assistedTarget, hasUnactivatedPlayers, moreActions, recentActionLabel } from './action-ribbon.ts';
+import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
@@ -21,6 +21,8 @@ import type { RetainedSetup } from './setup-recovery.ts';
 import './SetupPanel.css';
 
 type Request = Record<string, unknown>;
+type SmartIntent = { kind: 'move' | 'block' | 'blitz' | 'foul'; playerId: string; targetId?: string;
+  destination?: RoutePoint; approachIndex?: number; stage: 'planned' | 'declaring' | 'targeting' | 'routing' | 'moving'; revision: number };
 const endpoint = 'ws://127.0.0.1:22227/browser/v1';
 const explanation = (code: SetupCode) => ({
   PERSISTENCE_FAILED: 'Storage is unavailable. The engine may already have resolved the turn. Reload or retry the exact retained request to reconcile.',
@@ -184,6 +186,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [moreOpen, setMoreOpen] = useState(false);
   const [moreActionId, setMoreActionId] = useState('');
   const [targetAssist, setTargetAssist] = useState(true);
+  const [smartIntent, setSmartIntent] = useState<SmartIntent | null>(null);
+  const [targetPlayerId, setTargetPlayerId] = useState('');
+  const autoActionRef = useRef('');
   const [explicitBlitz, setExplicitBlitz] = useState(false);
   const [confirmEndTurn, setConfirmEndTurn] = useState(false);
   const [routeMode, setRouteMode] = useState(false);
@@ -248,18 +253,34 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     && routePreview.steps.length > 0
     && routePreview.steps.at(-1)?.x === waypoints.at(-1)?.x && routePreview.steps.at(-1)?.y === waypoints.at(-1)?.y;
   const updateWaypoints = (points: RoutePoint[]) => {
+    if (smartIntent?.stage === 'routing') setSmartIntent({ ...smartIntent, approachIndex: -1 });
     setWaypoints(points); requestRoutePreview?.(points);
   };
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const pinnedAction = availableActions.find(action => action.id === actionId);
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
-    ? action.target.playerId === playerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
+    ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
   const additionalActions = [...selectedActions, ...targetChoices.filter(action =>
     !['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && !selectedActions.some(item => item.id === action.id))];
   const selectPlayer = (id: string) => {
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
-    setPlayerId(id); setTargetFocus('player');
-    const candidates = availableActions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === id);
+    const player = view.players.find(item => item.id === id);
+    if (player?.role === view.callerRole) {
+      setSmartIntent(null); setPlayerId(id); setTargetPlayerId(''); setTargetFocus('player'); setActionId('');
+      return;
+    }
+    setTargetPlayerId(id); setTargetFocus('player'); setSmartIntent(null);
+    if (targetAssist && hosted && view.phase === 'PLAY' && playerId) {
+      const attack = smartAttack(view, availableActions, playerId, id, explicitBlitz);
+      if (attack) {
+        setActionId(attack.action.id);
+        if (['selectBlock', 'blitz', 'declareFoul'].includes(attack.action.kind))
+          setSmartIntent({ kind: attack.kind, playerId, targetId: id, stage: 'planned', revision: view.revision });
+        return;
+      }
+    }
+    const candidates = availableActions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === id
+      && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const selectSquare = (column: number, row: number) => {
@@ -269,12 +290,34 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       return;
     }
     setX(column); setY(row); setTargetFocus('square');
-    const candidates = availableActions.filter(action => action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+    setSmartIntent(null);
+    if (targetAssist && hosted && view.phase === 'PLAY' && playerId
+      && !view.players.some(player => player.x === column && player.y === row)) {
+      const singleStep = availableActions.find(action => action.kind === 'move' && (action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId)
+        && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+      if (singleStep) { setActionId(singleStep.id); return; }
+      if (canRoute && view.activePlayerId === playerId) {
+        setRouteMode(true); updateWaypoints([{ x: column, y: row }]); setActionId('');
+        return;
+      }
+      const declaration = availableActions.find(action => action.sourcePlayerId === playerId && ['select', 'stand'].includes(action.kind));
+      if (declaration) {
+        setActionId(declaration.id);
+        setSmartIntent({ kind: 'move', playerId, destination: { x: column, y: row }, stage: 'planned', revision: view.revision });
+        return;
+      }
+    }
+    const candidates = availableActions.filter(action => action.target && 'x' in action.target && action.target.x === column && action.target.y === row
+      && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const commit = () => {
     if (routeMode) {
-      if (canRoute && routeReady && routePreview) mutate('route', { playerId: routePreview.playerId, waypoints });
+      if (canRoute && routeReady && routePreview) {
+        if (smartIntent?.stage === 'routing') setSmartIntent(smartIntent.kind === 'move'
+          ? null : { ...smartIntent, stage: 'moving', revision: view.revision });
+        mutate('route', { playerId: routePreview.playerId, waypoints });
+      }
       return;
     }
     if (!mayAct || !pinnedAction) return;
@@ -282,6 +325,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       setConfirmEndTurn(true); return;
     }
     setConfirmEndTurn(false);
+    if (smartIntent?.stage === 'planned') setSmartIntent({ ...smartIntent,
+      stage: pinnedAction.kind === 'blitzTarget' ? 'targeting' : 'declaring', revision: view.revision });
     if (pinnedAction.id === moreActionId) {
       try { sessionStorage.setItem(candidateKey, JSON.stringify({ id: pinnedAction.id, kind: pinnedAction.kind, label: recentActionLabel(pinnedAction), revision: view.revision })); }
       catch { /* A failed local shortcut never blocks a legal game action. */ }
@@ -289,10 +334,53 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     mutate('action', { actionId: pinnedAction.id });
   };
   useEffect(() => {
+    if (smartIntent?.stage === 'routing' && routeError === 'NO ROUTE' && connected && !pending && canRoute
+      && smartIntent.targetId && smartIntent.approachIndex !== undefined
+      && smartIntent.approachIndex >= 0) {
+      const index = smartIntent.approachIndex + 1;
+      const next = attackApproaches(view, smartIntent.playerId, smartIntent.targetId)[index];
+      if (next) {
+        setWaypoints([next]); requestRoutePreview?.([next]);
+        setSmartIntent({ ...smartIntent, approachIndex: index });
+      } else setSmartIntent({ ...smartIntent, approachIndex: -1 });
+      return;
+    }
+    if (!smartIntent || ['planned', 'routing'].includes(smartIntent.stage) || view.revision <= smartIntent.revision
+      || !connected || pending || suspended || playbackActive || view.actor !== view.callerRole || decision) return;
+    if (view.activePlayerId !== smartIntent.playerId) { setSmartIntent(null); return; }
+    const sendOffered = (action: typeof availableActions[number], stage: SmartIntent['stage'] | null) => {
+      const key = `${view.revision}:${action.id}`;
+      if (autoActionRef.current === key) return;
+      autoActionRef.current = key;
+      setSmartIntent(stage ? { ...smartIntent, stage, revision: view.revision } : null);
+      mutate('action', { actionId: action.id });
+    };
+    if (smartIntent.kind === 'blitz' && smartIntent.stage === 'declaring') {
+      const target = availableActions.find(action => action.kind === 'blitzTarget' && action.sourcePlayerId === smartIntent.playerId
+        && action.target && 'playerId' in action.target && action.target.playerId === smartIntent.targetId);
+      if (target) { sendOffered(target, 'targeting'); return; }
+    }
+    if (smartIntent.targetId) {
+      const attack = smartAttack(view, availableActions, smartIntent.playerId, smartIntent.targetId);
+      if (attack && ['block', 'foul'].includes(attack.action.kind)) { sendOffered(attack.action, null); return; }
+    }
+    if (canRoute) {
+      const destination = smartIntent.destination ?? (smartIntent.targetId
+        ? attackApproaches(view, smartIntent.playerId, smartIntent.targetId)[0] : null);
+      if (destination) {
+        setRouteMode(true); setActionId(''); setWaypoints([destination]); requestRoutePreview?.([destination]);
+        setSmartIntent({ ...smartIntent, stage: 'routing', revision: view.revision,
+          approachIndex: smartIntent.targetId ? 0 : undefined });
+        return;
+      }
+    }
+    setSmartIntent(null);
+  });
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.target instanceof Element)) return;
       if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport')) {
-        setPlayerId(''); setActionId(''); setTargetFocus(null); blurPlayer();
+        setPlayerId(''); setTargetPlayerId(''); setSmartIntent(null); setActionId(''); setTargetFocus(null); blurPlayer();
         return;
       }
       if (event.code === 'Space' && !event.repeat && (routeMode ? routeReady : mayAct) && event.target.classList.contains('live-pitch-viewport')) {
@@ -311,16 +399,16 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const action = actionForPlayer(availableActions, playerId, kind);
     if (!action || !canChoose) return;
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
-    setActionId(action.id); setMoreActionId(''); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
+    setSmartIntent(null); setActionId(action.id); setMoreActionId(''); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
   };
   const selectMore = (action: typeof availableActions[number]) => {
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
-    setActionId(action.id); setMoreActionId(action.id); setMoreOpen(false); setConfirmEndTurn(false);
+    setSmartIntent(null); setActionId(action.id); setMoreActionId(action.id); setMoreOpen(false); setConfirmEndTurn(false);
   };
   const useEndTurn = () => {
     if (!endTurnAction || !canChoose) return;
     if (hasUnactivatedPlayers(availableActions) && !confirmEndTurn) { setConfirmEndTurn(true); return; }
-    setConfirmEndTurn(false); mutate('action', { actionId: endTurnAction.id });
+    setSmartIntent(null); setConfirmEndTurn(false); mutate('action', { actionId: endTurnAction.id });
   };
   const serverActionPanel = availableActions.length > 0 && <section aria-label="Server actions" className="server-actions">
     <h3>Server actions</h3>
@@ -370,16 +458,17 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
               onClick={() => { if (kickoff.confirm) mutate('action', { actionId: kickoff.confirm.id }); }}>Confirm selection</button></div>
         </div> : availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
-          <span>{pinnedAction ? pinnedAction.label : 'Select a player or target, then choose an action.'}</span></div>
+          <span>{smartIntent?.stage === 'planned' ? `Plan ${smartIntent.kind}${smartIntent.targetId ? ` against ${view.players.find(player => player.id === smartIntent.targetId)?.name ?? 'target'}` : smartIntent.destination ? ` to ${smartIntent.destination.x}, ${smartIntent.destination.y}` : ''}`
+            : pinnedAction ? pinnedAction.label : 'Select a player or target, then choose an action.'}</span></div>
         <div className="command-buttons" role="group" aria-label="Player actions">
           <button type="button" aria-pressed={!!pinnedAction && ['select', 'stand'].includes(pinnedAction.kind)} disabled={!canChoose || !playerId || !availableActions.some(action => action.sourcePlayerId === playerId && ['select', 'stand'].includes(action.kind))} onClick={() => selectCommon(actionForPlayer(availableActions, playerId, 'select') ? 'select' : 'stand')}>Move</button>
           <button type="button" aria-pressed={pinnedAction?.kind === 'selectBlock'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'selectBlock')} onClick={() => selectCommon('selectBlock')}>Block</button>
           <button type="button" aria-pressed={pinnedAction?.kind === 'blitz'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'blitz')} onClick={() => selectCommon('blitz')}>Blitz</button>
           <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !additionalActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = additionalActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
           <button type="button" aria-expanded={moreOpen} disabled={!canChoose || additionalActions.length === 0} onClick={() => setMoreOpen(!moreOpen)}>More actions</button>
-          <button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
-          {canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); }}>Plan path</button>}
-          <button type="button" onClick={() => { setActionId(''); setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false); setTargetFocus(null); setRouteMode(false); updateWaypoints([]); }}>Cancel</button>
+          <button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setSmartIntent(null); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
+          {canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setSmartIntent(null); setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); }}>Plan path</button>}
+          <button type="button" onClick={() => { setSmartIntent(null); setTargetPlayerId(''); setActionId(''); setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false); setTargetFocus(null); setRouteMode(false); updateWaypoints([]); }}>Cancel</button>
           {endTurnAction && <button type="button" onClick={useEndTurn} disabled={!canChoose}>{confirmEndTurn ? 'Confirm End Turn' : 'End Turn'}</button>}
         </div>
         {moreOpen && <div className="command-menu" aria-label="Additional actions">{additionalActions.map(action => <button key={action.id} type="button" onClick={() => selectMore(action)}>{action.label}</button>)}</div>}
