@@ -395,12 +395,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           </li>)}</ol></details>}
           {routeError && <span role="alert">{routeError}</span>}
         </div>}
-        <div className="command-preview"><span>{routeMode ? routeReady ? 'Server path ready. Commit moves until the next required decision.' : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : pinnedAction ? `Ready: ${pinnedAction.label}` : 'Target assist only selects a server action; Commit sends it.'}</span>
-          <details><summary>All server actions</summary><div className="action-fallback">
-          {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player, action, or square" disabled={!canChoose} /></label>}
-          <select aria-label="Server action" value={actionId} onChange={event => { setActionId(event.target.value); setMoreActionId(''); }} disabled={!canChoose}>
-            <option value="">Choose a decision</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label}</option>)}</optgroup>)}
-          </select></div></details>
+        <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? routeReady ? 'Server path ready. Commit moves until the next required decision.' : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
           <button type="button" className="commit-action" onClick={commit} disabled={routeMode ? !canRoute || !routeReady : !mayAct}>{routeMode ? 'Commit path' : 'Commit action'}</button></div></> :
         <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.phase === 'PLAY' && view.actions.length === 0 ? 'Waiting for an engine decision. Reconnect if the match appears stuck.' : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
       </div>}

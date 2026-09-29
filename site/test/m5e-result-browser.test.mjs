@@ -208,7 +208,9 @@ test('hosted final decision leads to participant result and read-only replay aft
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Match scoreboard').waitFor();
-    assert.match(await page.getByLabel('home resources').textContent(), /Rerolls2.*1.*AC\s*2.*CH\s*3/s);
+    const homeResources = await page.getByLabel('home resources').textContent();
+    assert.match(homeResources, /Rerolls2.*1.*Apothecaries/s);
+    assert.doesNotMatch(homeResources, /Assistant coaches|Cheerleaders/);
     assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);
     await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
       null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.

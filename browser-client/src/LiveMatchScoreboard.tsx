@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
 import type { SetupState, TeamResources } from './setup-protocol.ts';
 
@@ -6,10 +7,54 @@ function Resources({ role, rerolls, resources }: { role: 'home' | 'away'; reroll
     <div className="live-rerolls"><span>Rerolls</span><strong>{rerolls}</strong></div>
     {resources && <div className="live-resource-counts">
       <span title="Available apothecaries"><MatchArt name="apothecary"/><b>{resources.apothecaries}</b><span className="sr-only">Apothecaries</span></span>
-      <span title="Assistant coaches">AC <b>{resources.assistantCoaches}</b></span>
-      <span title="Cheerleaders">CH <b>{resources.cheerleaders}</b></span>
     </div>}
   </section>;
+}
+
+function TeamName({ name }: { name: string }) {
+  const nameElement = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const element = nameElement.current;
+    const nameplate = element?.parentElement;
+    if (!element || !nameplate) return;
+
+    let disposed = false;
+    const fitName = () => {
+      if (disposed) return;
+      element.style.removeProperty('font-size');
+      const maximumSize = Number.parseFloat(window.getComputedStyle(element).fontSize);
+      if (!Number.isFinite(maximumSize)) return;
+
+      const fits = () => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight;
+      if (fits()) return;
+
+      let low = 1;
+      let high = maximumSize;
+      element.style.fontSize = `${low}px`;
+      if (!fits()) return;
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const candidate = (low + high) / 2;
+        element.style.fontSize = `${candidate}px`;
+        if (fits()) low = candidate;
+        else high = candidate;
+      }
+      element.style.fontSize = `${low}px`;
+    };
+
+    const observer = new ResizeObserver(fitName);
+    observer.observe(nameplate);
+    fitName();
+    void document.fonts.ready.then(fitName);
+
+    return () => {
+      disposed = true;
+      observer.disconnect();
+    };
+  }, [name]);
+
+  return <strong ref={nameElement} title={name}>{name}</strong>;
 }
 
 /** The preview's five-panel scoreboard, bound only to the server projection. */
@@ -20,12 +65,12 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
     <Resources role="home" rerolls={view.homeRerolls} resources={view.homeResources}/>
     <div className="live-team-nameplate home">
       {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
-      <strong title={view.homeTeamName ?? 'Home'}>{view.homeTeamName ?? 'Home'}</strong>
+      <TeamName name={view.homeTeamName ?? 'Home'}/>
       <b aria-label={`Home score ${view.homeScore}`}>{view.homeScore}</b>
     </div>
-    <div className="live-match-clock"><strong>Half {view.half} · Drive {view.drive}</strong><span>Turn {view.turn} · {view.phase.replaceAll('_', ' ')}</span><small>{view.weather === 'Nice' && <MatchArt name="weather"/>}{view.weather}</small></div>
+    <div className="live-match-clock"><strong>Turn {view.turn}</strong><span>Half {view.half} · {view.phase.replaceAll('_', ' ')}</span><small>{view.weather === 'Nice' && <MatchArt name="weather"/>}{view.weather}</small></div>
     <div className="live-team-nameplate away">
-      <strong title={view.awayTeamName ?? 'Away'}>{view.awayTeamName ?? 'Away'}</strong>
+      <TeamName name={view.awayTeamName ?? 'Away'}/>
       <b aria-label={`Away score ${view.awayScore}`}>{view.awayScore}</b>
       {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
     </div>

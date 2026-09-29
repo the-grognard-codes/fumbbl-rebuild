@@ -32,6 +32,10 @@ export class V2Client {
   pending: PendingIntent | null = null;
   lastAcceptedActionId: string | null = null;
 
+  get recoveryPending(): boolean {
+    return this.pending !== null && !this.requests.has(this.pending.request.requestId);
+  }
+
   private options: ClientOptions;
   constructor(options: ClientOptions) {
     this.options = options;
@@ -127,6 +131,7 @@ export class V2Client {
     const request = this.pending.request;
     if (request.type === 'setup') this.selection = { matchId: request.matchId, watch: false };
     this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
+    this.options.onChange({ type: 'pending' });
   }
 
   private receive(raw: string) {
