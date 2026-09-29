@@ -168,7 +168,11 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     assert.equal(await pages[1].getByRole('dialog', { name: 'Match decision' }).count(), 0);
     await submit('6:block-die:0', () => actor.getByRole('dialog', { name: 'Match decision' }).getByRole('button', { name: frames[6].actor.actions[0].label }).click(), false, true);
     assert.equal(await pages[2].getByRole('dialog', { name: 'Match decision' }).count(), 0);
-    await submit('7:push:away1:12:6', () => actor.getByRole('dialog', { name: 'Match decision' }).getByRole('button', { name: frames[7].actor.actions[0].label }).click(), false, true);
+    assert.equal(await actor.getByRole('dialog', { name: 'Match decision' }).count(), 0, 'Push uses pitch arrows instead of a modal');
+    assert.equal(await actor.getByLabel('Live match pitch').locator('.live-push-choice').count(), 3);
+    assert.equal(await pages[1].getByLabel('Live match pitch').locator('.live-push-choice').count(), 0);
+    assert.equal(await pages[2].getByLabel('Live match pitch').locator('.live-push-choice').count(), 0);
+    await submit('7:push:away1:12:6', () => pinSquare(12, 6), false, true);
     assert.equal(step, 8);
     assert.equal(frames[8].checkpoint, 'pushed');
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
