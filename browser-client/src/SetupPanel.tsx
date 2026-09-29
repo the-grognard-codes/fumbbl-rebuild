@@ -274,13 +274,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       const attack = smartAttack(view, availableActions, playerId, id, explicitBlitz);
       if (attack) {
         setActionId(attack.action.id);
-        if (['selectBlock', 'blitz', 'blitzTarget', 'declareFoul'].includes(attack.action.kind))
+        if (['selectBlock', 'blitz', 'declareFoul'].includes(attack.action.kind))
           setSmartIntent({ kind: attack.kind, playerId, targetId: id, stage: 'planned', revision: view.revision });
         return;
       }
     }
     const candidates = availableActions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === id
-      && (!playerId || action.sourcePlayerId === playerId));
+      && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const selectSquare = (column: number, row: number) => {
@@ -293,6 +293,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setSmartIntent(null);
     if (targetAssist && hosted && view.phase === 'PLAY' && playerId
       && !view.players.some(player => player.x === column && player.y === row)) {
+      const singleStep = availableActions.find(action => action.kind === 'move' && (action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId)
+        && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+      if (singleStep) { setActionId(singleStep.id); return; }
       if (canRoute && view.activePlayerId === playerId) {
         setRouteMode(true); updateWaypoints([{ x: column, y: row }]); setActionId('');
         return;
@@ -305,7 +308,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       }
     }
     const candidates = availableActions.filter(action => action.target && 'x' in action.target && action.target.x === column && action.target.y === row
-      && (!playerId || action.sourcePlayerId === playerId));
+      && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const commit = () => {
