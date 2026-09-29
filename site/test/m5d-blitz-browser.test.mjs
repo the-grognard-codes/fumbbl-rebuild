@@ -25,6 +25,10 @@ test('real-engine Blitz actions pin and commit once across both players and spec
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const sockets = new Map(); const calls = []; const pages = [];
   let step = 0; let loads = 0;
+  const waitForLoadCount = async count => {
+    const deadline = Date.now() + 5000;
+    while (loads < count && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+  };
   const state = index => ({ ...frames[step].actor, callerRole: index === 2 ? 'spectator' : index === 1 ? 'away' : 'home' });
   const sendState = (index, send, requestId = null, duplicate = false) => send({ type: 'setupState', requestId, code: 'ACCEPTED', duplicate, state: state(index) });
   const assertBoard = async page => {
@@ -84,7 +88,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
         await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'push-decision-actor.png') });
       }
       await pin();
-      if (!immediate) assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), actionId);
+      if (!immediate) assert.equal(await commit.isEnabled(), true, `Pinned action ${actionId} must be ready for an explicit commit`);
       if (actionId === '2:move-8-7') {
         const path = actor.getByLabel('Live match pitch').locator('.live-target-line');
         await path.waitFor({ state: 'attached' });
@@ -100,7 +104,8 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       }
       if (viaSpace) { const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space'); }
       else if (!immediate) await commit.click();
-      await actor.getByText('A submitted change needs confirmation.', { exact: false }).waitFor();
+      await actor.waitForFunction(() => document.querySelector('.command-preview .commit-action')?.disabled === true);
+      assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
       assert.equal(calls[0].request.expectedRevision, step);
@@ -122,7 +127,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await pinPlayer(0);
     await actor.getByRole('button', { name: 'More actions', exact: true }).click();
     await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation of home1' }).click();
-    assert.equal(await actor.getByLabel('Server action', { exact: true }).inputValue(), '0:forgo-home1');
+    assert.equal(await commit.isEnabled(), true, 'More actions pins a commit-ready server choice');
     assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
     await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
     await actor.getByRole('button', { name: 'Blitz', exact: true }).click();
@@ -131,18 +136,19 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'action-ribbon-blitz.png') });
     }
     const initialSelection = await actor.evaluate(() => ({
-      action: document.querySelector('[aria-label="Server action"]')?.value,
+      preview: document.querySelector('.command-preview')?.textContent,
       status: document.querySelector('.match-page-top [role="status"]')?.textContent,
       pending: document.body.innerText.includes('A submitted change needs confirmation.'),
       revision: document.querySelector('[data-testid="setup-status"]')?.textContent?.match(/Revision \d+/)?.[0],
     }));
     assert.equal(await commit.isEnabled(), true, `Initial Blitz action must be ready: ${JSON.stringify(initialSelection)}`);
     await commit.click();
-    await actor.getByText('A submitted change needs confirmation.', { exact: false }).waitFor();
+    await actor.waitForFunction(() => document.querySelector('.command-preview .commit-action')?.disabled === true);
+    assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
     assert.equal(calls.length, 1);
     const stale = calls.shift();
     stale.send({ type: 'setupState', requestId: stale.request.requestId, code: 'STALE_REVISION', duplicate: false, state: null });
-    await actor.waitForFunction(() => !document.body.innerText.includes('A submitted change needs confirmation.'));
+    await waitForLoadCount(3);
     assert.equal(calls.length, 0, 'Stale rejection never resubmits automatically');
     assert.ok(loads >= 3, 'Stale rejection requests a fresh read');
     await submit('0:blitz-home1', async () => { await pinPlayer(0); await actor.getByRole('button', { name: 'Blitz', exact: true }).click(); });
