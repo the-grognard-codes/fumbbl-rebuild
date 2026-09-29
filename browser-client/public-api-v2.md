@@ -50,8 +50,10 @@ JDBC/listener addresses and a process-held storage lock. Startup verifies existi
 marker-6 storage only; it cannot initialize or migrate a database. Neither this
 launcher nor its systemd candidate is installed or activated by the repository.
 
-Each JSON request has `version:2`, `type`, and a unique `requestId`. Authenticate
-first with `{type:"authenticate",bearer:<Firebase ID token>}`. Neither client
+Each JSON request has `version:2`, `type`, and a unique `requestId`. Human clients
+authenticate first with `{type:"authenticate",bearer:<Firebase ID token>}`;
+the independent computer service uses `authenticateComputer` with its service
+token instead. Neither client
 roles, email, name, UID, dice nor legal actions are accepted as authority. A
 successful response exposes only the caller's internal account ID for exact
 intent recovery. The newest successful connection replaces the account's old
@@ -62,9 +64,12 @@ provider/JDBC exception details and request bodies are not logged.
 | Family | Authorization before reads/retries | Recipient data | Mutations / denial |
 | --- | --- | --- | --- |
 | `catalog`, `validateTeam`, `savedTeam` | PLAYER, active identity | Frozen catalog or caller's own saved team | Existing validation/save/load/list; account document format 2; `AUTHENTICATION_REQUIRED`, `AUTHORIZATION`, existing validation/storage codes |
-| `preparedMatch` | PLAYER; bearer proof for join; persisted membership for load/activate/creator operations | Frozen prepared game, caller role; fresh invitation code only for creator | create/join/load/activate/reissue/revoke/release; no client-selected account/role |
+| `preparedMatch` | PLAYER; bearer proof for human join; persisted membership for load/activate/creator operations | Frozen prepared game, caller role; fresh invitation code only for a human match creator | create/createComputer/join/load/activate/reissue/revoke/release; computer creation freezes two caller-owned teams and creates no invitation |
+| `authenticateComputer` | Separate 32-byte service token, checked against the configured SHA-256 hash | `computerAuthentication` acknowledgement | Service connections never gain a Firebase account or PLAYER scope |
+| `computer` | PLAYER for `status`; service credential for `register` | `READY`, `UNAVAILABLE`, or rejection code | `register` designates the daemon dispatcher; service workers can open separate connections |
+| `computerJobs` (server event) | Delivered only to the registered service dispatcher | Active computer match IDs, without team documents | The daemon starts one independent away-side WebSocket client per match, up to its configured capacity |
 | `preparationChanged` (server event) | Rechecked PLAYER scope and persisted membership of a preparation subscriber | Match ID only; no invitation or team document | Read invalidation only; recipient denial `VIEW_UNAVAILABLE` |
-| `setup` | PLAYER plus account-to-match membership before every load/action/retry | Existing R2 public setup state | Existing server-issued decisions and exact retries; non-member `NOT_FOUND` |
+| `setup` | PLAYER plus account-to-match membership, or a service connection for the verified computer away side, before every load/action/retry | Existing R2 public setup state | Existing server-issued decisions and exact retries; non-member `NOT_FOUND` |
 | `browse` | SPECTATOR | Up to 100 active marker-6 match IDs, Home vs Away | Read only; copied R2-only rows never listed |
 | `watch` | SPECTATOR plus active match with both marker-6 membership rows | Same public state as players; `callerRole:"spectator"` | Live read-only subscription; unavailable/finished/reference match `NOT_FOUND` |
 | `matchResult` | PLAYER plus completed-match participant membership | Final score/metadata on `load`; one bounded recorded event on `replay` | Read-only; spectator and non-member `NOT_FOUND`; existing R2 result codes |
@@ -78,7 +83,15 @@ The browser clears views on disconnect, sign-out and access loss.
 
 ## Hosted match route
 
-`/play` holds saved-team selection, match preparation and spectator browsing.
+`/play` starts with a play-mode dropdown. The human option shows the existing
+invitation setup. The computer option shows Coach Bugman - Random, the player's
+own saved team, and a second caller-owned saved roster to clone for Bugman.
+The match freezes both rosters immediately; the away clone has a separate
+in-match identity and the name **Bugman's Best**. The creator then selects
+**Start game**. Computer creation is available while a daemon is registered.
+Local and hosted environments use the same v2 messages and each needs its own
+service token and running daemon; no computer accounts are required. See
+[computer player setup](../computer-player/README.md).
 Clicking **Start game** reserves one new browsing context during the user gesture;
 the confirmed `ACTIVATED` response then navigates it to
 `/play/match?matchId=<uuid>`. The browser decides whether the requested popup is
@@ -118,6 +131,9 @@ preparation and game structures retain their existing decoder contracts.
 | `authentication` | `code`, `accountId` | Caller's internal account only, for retained intent; never a displayed name |
 | `error` | `code` | No provider/JDBC exception, account or team payload |
 | `browse` | `code`, `matches` | Each entry has exactly `matchId`, `label`; label is Home vs Away |
+| `computer` | `code` | Current availability or service registration acknowledgement, with no account or team data |
+| `computerAuthentication` | `code` | Service credential acknowledgement, with no account or team data |
+| `computerJobs` | `code`, `matches` | Unsolicited match IDs only for the registered service dispatcher |
 | `preparationChanged` | `code`, `matchId` | Authorized subscriber invalidation; no team or invitation |
 | `preparedMatch` | `code`, `duplicate`, `callerRole`, `document`, `recoveryMatchId`; optional `invitationCode` | Member's frozen public preparation; non-null invitation only for creator/home |
 | `savedTeam` | `code`, `document`, `versionStatus`, `validation`, `teams` | Own-account document, including uncertain-save responses; foreign/extra ownership fields rejected |
@@ -126,7 +142,7 @@ preparation and game structures retain their existing decoder contracts.
 | `catalog` | Existing catalog metadata, positions, skills, resources and unsupported text | Frozen public catalog; no identity or storage internals |
 | `teamValidation` | `catalogVersion`, `ruleset`, `valid`, `budget`, `skillPoints`, `messages`, `total` | Server validation of caller-supplied draft, no other account's data |
 
-`v2-projection.ts` and `v2-projection.test.ts` declare/test all ten envelopes.
+`v2-projection.ts` and `v2-projection.test.ts` declare/test all thirteen envelopes.
 The existing nested decoders and service/native projection tests cover the
 recipient boundaries. New DTOs or fields require explicit positive/negative
 projection tests and a reviewed protocol compatibility decision before exposure.
@@ -154,6 +170,10 @@ presentation subset while retaining exact checks for the gameplay fields.
 See [R3-E evidence and limits](../.notes/overhaul-analysis/verification/r3-e/README.md).
 
 Preparation create selects an owned `teamId` and `expectedDocumentVersion`.
+`createComputer` additionally selects `computerId`, an owned `computerTeamId`,
+and `expectedComputerDocumentVersion`. The server freezes both saved teams in
+one transaction, creates a distinct away clone named Bugman's Best, and adds
+synthetic away membership without storing an invitation or a bot account.
 Join supplies the transferable 128-bit `invitationCode` plus an owned team.
 Invitations expire after one hour, can be revoked/reissued, and are hashed at
 rest. A lost creation/reissue reply may recover the match without recovering its

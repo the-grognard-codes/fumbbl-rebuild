@@ -35,7 +35,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [error, setError] = useState('');
   const [games, setGames] = useState<{ matchId: string; label: string }[]>([]);
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
+  const [playMode, setPlayMode] = useState<'human' | 'computer'>('human');
+  const [computerAvailable, setComputerAvailable] = useState(false);
+  const [computerId, setComputerId] = useState('coach-bugman-random');
   const [teamId, setTeamId] = useState('');
+  const [computerTeamId, setComputerTeamId] = useState('');
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
   const [matchId, setMatchId] = useState(() => new URLSearchParams(location.search).get('matchId') ?? '');
   const [prepared, setPrepared] = useState<V2Message | null>(null);
@@ -104,10 +108,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         chatRequestRef.current = null; chatSendRef.current = null; chatInitializedRef.current = false; setChatLoading(false);
         routeRequestRef.current = null; setRoutePreview(null); setRouteError('');
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
+        setComputerAvailable(false);
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
       if (message.type === 'authentication') { setStatus('Connected'); setError(''); logUnavailableRef.current = false; setLogUnavailable(false);
-        if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); } }
+        if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); }
+        if (!matchRoute && !resultRoute) connection.request('computer', { operation: 'status' }); }
+      if (message.type === 'computer' && ['READY', 'UNAVAILABLE'].includes(message.code)) {
+        setComputerAvailable(message.code === 'READY');
+      }
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
         && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
       if (message.type === 'setupState' && message.state?.matchId === matchId && !chatInitializedRef.current) requestChat();
@@ -175,7 +184,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'browse' && Array.isArray(message.matches)) setGames(message.matches);
       if (message.type === 'savedTeam' && message.code === 'OK') {
         if (message.document) connection.request('savedTeam', { operation: 'list' });
-        else if (Array.isArray(message.teams)) { setTeams(message.teams); setTeamId(previous => message.teams.some((team: SavedTeamSummary) => team.teamId === previous && team.eligibility === 'CURRENT') ? previous : message.teams.find((team: SavedTeamSummary) => team.eligibility === 'CURRENT')?.teamId || ''); }
+        else if (Array.isArray(message.teams)) {
+          setTeams(message.teams);
+          const current = (previous: string) => message.teams.some((team: SavedTeamSummary) => team.teamId === previous && team.eligibility === 'CURRENT')
+            ? previous : message.teams.find((team: SavedTeamSummary) => team.eligibility === 'CURRENT')?.teamId || '';
+          setTeamId(current); setComputerTeamId(current);
+        }
       }
       if (message.type === 'preparedMatch' && ['STALE_TEAM_REVISION', 'NOT_FOUND', 'MIGRATION_REQUIRED', 'VERSION_UNAVAILABLE', 'VALIDATION_FAILED'].includes(message.code))
         connection.request('savedTeam', { operation: 'list' });
@@ -202,7 +216,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
         && !chatFailure
-        && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')) setError(message.code.replaceAll('_', ' '));
+        && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
+        && !['READY', 'INVITED', 'UNAVAILABLE'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
     const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
@@ -222,6 +237,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const preparationTransferred = !!transferredMatchId && !matchRoute && !resultRoute;
   const busy = !connected || !!connection?.pending;
   const selected = teams.find(team => team.teamId === teamId && team.eligibility === 'CURRENT');
+  const selectedComputer = teams.find(team => team.teamId === computerTeamId && team.eligibility === 'CURRENT');
   function transferToMatch(id: string, connection: V2Client) {
     try { sessionStorage.setItem(transferredMatchKey, id); } catch { /* The current page still disconnects. */ }
     setTransferredMatchId(id);
@@ -238,6 +254,16 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       : operation === 'join' ? { invitationCode: invite, teamId, expectedDocumentVersion: selected?.documentVersion }
       : { matchId };
     run(() => connection?.request('preparedMatch', { operation, ...fields }, operation !== 'load'));
+  }
+  function startComputer() {
+    run(() => {
+      if (!selected || !selectedComputer) throw Error('Choose both saved teams first.');
+      if (!connection?.request('preparedMatch', { operation: 'createComputer', teamId: selected.teamId,
+        expectedDocumentVersion: selected.documentVersion, computerId,
+        computerTeamId: selectedComputer.teamId,
+        expectedComputerDocumentVersion: selectedComputer.documentVersion }, true))
+        throw Error('Reconnect before creating a game.');
+    });
   }
   function startGame() {
     // Reserve the browsing context in the click handler; the server response arrives too late for popup permission.
@@ -286,7 +312,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {connection?.pending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
-    <section aria-label="Match preparation"><h2>Your game</h2>
+    <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
+      <option value="human">Play against a human opponent</option>
+      <option value="computer">Play against a computer opponent</option>
+    </select></label>
+    {playMode === 'human' && <section aria-label="Match preparation"><h2>Your game</h2>
       <p>Need a new roster? <a href="/teambuilder">Open Team Builder</a>, validate it, and save the resulting team definition before creating a game.</p>
       <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}{team.eligibility !== 'CURRENT' ? ` · unavailable: ${team.eligibility}` : ''}</option>)}</select></label>
       <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
@@ -294,16 +324,28 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       <label>Invitation code <input value={invite} onChange={event => setInvite(event.target.value)} autoComplete="off" /></label>
       <button disabled={busy || !selected || !invite} onClick={() => prepare('join')}>Join game</button>
       {prepared?.callerRole === 'home' && invite && <p><a href={`/play?invite=${encodeURIComponent(invite)}`}>Invitation link</a> — share with your opponent. Expires after one hour.</p>}
+      {prepared?.callerRole === 'home' && prepared.document.lifecycle !== 'ACTIVATED' && <><button disabled={busy} onClick={() => prepare('reissue')}>Refresh invitation</button><button disabled={busy} onClick={() => prepare('release')}>Release disconnected opponent</button></>}
+    </section>}
+    {playMode === 'computer' && <section aria-label="Computer opponent"><h2>Computer opponent</h2>
+      <label>Opponent <select value={computerId} onChange={event => setComputerId(event.target.value)}><option value="coach-bugman-random">Coach Bugman - Random</option></select></label>
+      <label>Your saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose your team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
+      <label>Roster for Bugman's Best <select value={computerTeamId} onChange={event => setComputerTeamId(event.target.value)}><option value="">Choose a roster to clone</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
+      <p>Bugman receives an independent copy of the selected roster named Bugman's Best.</p>
+      <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
+      <button disabled={!connected} onClick={() => run(() => connection?.request('computer', { operation: 'status' }))}>Refresh computer availability</button>
+      {!computerAvailable && connected && <p>The computer opponent process is currently unavailable.</p>}
+      <button disabled={busy || !selected || !selectedComputer || !computerAvailable} onClick={startComputer}>Create computer game</button>
+    </section>}
+    <section aria-label="Current game"><h2>Current game</h2>
       <label>Match ID <input value={matchId} onChange={event => setMatchId(event.target.value)} /></label>
       <button disabled={!connected || !matchId} onClick={() => prepare('load')}>Reload game setup</button>
       <button disabled={busy || !matchId} onClick={() => run(() => location.assign(matchUrl(matchId, false)))}>Resume play</button>
       {prepared?.document.lifecycle === 'AWAITING_SETUP' && <button disabled={busy} onClick={startGame}>Start game</button>}
       {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a> · <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a></p>}
-      {prepared?.callerRole === 'home' && prepared.document.lifecycle !== 'ACTIVATED' && <><button disabled={busy} onClick={() => prepare('reissue')}>Refresh invitation</button><button disabled={busy} onClick={() => prepare('release')}>Release disconnected opponent</button></>}
     </section>
-    <section aria-label="Watch games"><h2>Games in progress</h2><button disabled={!connected} onClick={() => run(() => connection?.request('browse'))}>Refresh games</button>{connected && games.length === 0 && <p>No games in progress.</p>}
+    {playMode === 'human' && <section aria-label="Watch games"><h2>Games in progress</h2><button disabled={!connected} onClick={() => run(() => connection?.request('browse'))}>Refresh games</button>{connected && games.length === 0 && <p>No games in progress.</p>}
       {games.map(game => <button key={game.matchId} disabled={busy} onClick={() => run(() => location.assign(matchUrl(game.matchId, true)))}>Watch Home vs Away · {game.matchId.slice(0, 8)}</button>)}
-    </section>
+    </section>}
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       matchControls={{ fullscreen, toggleFullscreen, exitMatch, disconnect: () => connection.disconnect(), reconnect: () => connection.connect(), error }}

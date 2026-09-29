@@ -1,0 +1,11 @@
+{
+  "name": "ffb-computer-player",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=26" },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "daemon": "node src/daemon.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
