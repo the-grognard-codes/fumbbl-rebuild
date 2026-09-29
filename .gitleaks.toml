@@ -47,6 +47,18 @@ regexes = [
   '''stale/disabled/revoked credentials'''
 ]
 
+[[rules.allowlists]]
+description = "One-way computer service-token verifiers in fixed runtime profiles"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^ffb-server/src/main/resources/local-schema/native-(dev|prod)\.properties$''',
+  '''^containers/local/server\.marker6\.ini$'''
+]
+regexes = [
+  '''^\+?\s*local\.browser\.v2\.computer\.token\.sha256=[0-9a-f]{64}\s*$'''
+]
+
 # Public protocol nonce: base64("0123456789abcdef"), not a bearer or service secret.
 [[rules.allowlists]]
 description = "Exact synthetic WebSocket handshake nonce in the read-only DEV probe"
