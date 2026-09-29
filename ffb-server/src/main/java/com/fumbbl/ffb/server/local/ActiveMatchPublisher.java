@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
+import com.fumbbl.ffb.server.match.V2PreparationService;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -17,11 +18,13 @@ import java.util.Map;
 final class ActiveMatchPublisher {
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
+	private final V2PreparationService preparation;
 	private final Map<BrowserMatchAdapter.Connection, Viewer> viewers = new LinkedHashMap<>();
 
-	ActiveMatchPublisher(V2MatchAccess access, SetupApplication setup) {
+	ActiveMatchPublisher(V2MatchAccess access, SetupApplication setup, V2PreparationService preparation) {
 		this.access = access;
 		this.setup = setup;
+		this.preparation = preparation;
 	}
 
 	JsonObject watch(BrowserMatchAdapter.Connection connection, AuthenticatedPrincipal principal,
@@ -34,6 +37,10 @@ final class ActiveMatchPublisher {
 
 	void enrollPlayer(BrowserMatchAdapter.Connection connection, AuthenticatedPrincipal principal, String matchId) {
 		viewers.put(connection, new Viewer(principal, matchId, false));
+	}
+
+	void enrollComputer(BrowserMatchAdapter.Connection connection, String matchId) {
+		viewers.put(connection, new Viewer(null, matchId, false));
 	}
 
 	void remove(BrowserMatchAdapter.Connection connection) { viewers.remove(connection); }
@@ -65,7 +72,11 @@ final class ActiveMatchPublisher {
 					send(connection, state(null, JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator")));
 					if ("FULL_TIME".equals(publicState.getString("phase", ""))) viewers.remove(connection);
 				} else {
-					String role = access.playerRole(viewer.principal, matchId);
+					String role;
+					if (viewer.principal == null) {
+						if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
+						role = "away";
+					} else role = access.playerRole(viewer.principal, matchId);
 					JsonObject response = setup.handle(role, new JsonObject().add("version", 1).add("type", "setup")
 						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId));
 					response.set("requestId", JsonValue.NULL);

@@ -34,6 +34,7 @@ public class ChangeList {
 			.addImprovement("Browser matches offer server-issued Move, Block, Blitz and recent actions in the bottom ribbon, with target assist and End Turn confirmation")
 			.addImprovement("Browser live matches keep the illustrated scoreboard, Fit pitch, compact dugouts, sidebar and decision ribbon together without page scrolling")
 			.addImprovement("Browser matches show frozen match-team names, player numbers, positions, attributes, skills and categorized bench status from the game server")
+			.addFeature("Play setup offers Coach Bugman - Random using a cloned saved roster named Bugman's Best and a standalone computer service")
 			.addImprovement("Browser match windows use the MVP pitch-first layout, illustrated scoreboard and compact bench, with a visible exit and fullscreen control")
 			.addBugfix("Browser Play and Team Builder clear stale authentication errors after a successful reconnect")
 			.addImprovement("Browser game activation opens the match in a separate tab or window, with a same-tab fallback when popups are blocked")

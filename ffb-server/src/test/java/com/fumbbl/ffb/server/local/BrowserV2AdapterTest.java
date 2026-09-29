@@ -36,6 +36,8 @@ class BrowserV2AdapterTest {
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final String FIRST = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+	private static final String SERVICE_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+	private static final String SERVICE_HASH = "66d34fba71f8f450f7e45598853e53bfc23bbd129027cbb131a2f4ffd7878cd0";
 
 	@Test void routePreviewRequiresCoachMembershipAndKeepsTheEngineReadOnly() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
@@ -84,6 +86,76 @@ class BrowserV2AdapterTest {
 		verify(setup, times(1)).transcriptPage(MATCH, 0, 4);
 	}
 
+	@Test void computerServiceHasSeparateAuthenticationAndCanServeConcurrentMatches() throws Exception {
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.activeComputerMatches()).thenReturn(java.util.Collections.singletonList(MATCH));
+		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(1);
+			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
+				.add("code", "ACCEPTED").add("duplicate", false)
+				.add("state", new JsonObject().add("matchId", MATCH).add("callerRole", "away")), false);
+		});
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
+			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
+			new com.fumbbl.ffb.server.match.ComputerOpponentService(SERVICE_HASH));
+		Connection player = new Connection(), dispatcher = new Connection(), workerOne = new Connection(), workerTwo = new Connection();
+		adapter.receive(player, authenticate("player-auth", "human").toString());
+		adapter.receive(player, request("computer", "early").add("operation", "status").toString());
+		adapter.receive(player, request("computer", "human-register").add("operation", "register").toString());
+		adapter.receive(dispatcher, request("authenticateComputer", "bad").add("serviceToken", "invalid").toString());
+		adapter.receive(dispatcher, request("authenticateComputer", "auth").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").toString());
+		adapter.receive(player, request("computer", "ready").add("operation", "status").toString());
+		adapter.receive(workerOne, request("authenticateComputer", "worker-1").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(workerTwo, request("authenticateComputer", "worker-2").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(workerOne, setup("load-1").toString());
+		adapter.receive(workerTwo, setup("load-2").toString());
+		adapter.receive(workerOne, setup("human-match").set("matchId", SECOND).toString());
+		assertEquals("UNAVAILABLE", code(player, 1));
+		assertEquals("MALFORMED_MESSAGE", code(player, 2));
+		assertEquals("AUTHENTICATION_FAILED", code(dispatcher, 0));
+		assertEquals("ACCEPTED", code(dispatcher, 1));
+		assertEquals("READY", code(dispatcher, 2));
+		assertEquals("computerJobs", JsonObject.readFrom(dispatcher.messages.get(3)).getString("type", null));
+		assertEquals(MATCH, JsonObject.readFrom(dispatcher.messages.get(3)).get("matches").asArray().get(0).asString());
+		assertEquals("READY", code(player, 3));
+		assertEquals("ACCEPTED", code(workerOne, 1));
+		assertEquals("NOT_FOUND", code(workerOne, 2));
+		assertEquals("ACCEPTED", code(workerTwo, 1));
+		assertEquals(0, workerOne.closeStatusCode);
+		assertEquals(0, workerTwo.closeStatusCode);
+		adapter.disconnect(dispatcher);
+		adapter.receive(player, request("computer", "offline").add("operation", "status").toString());
+		assertEquals("UNAVAILABLE", code(player, 4));
+	}
+
+	@Test void activationDispatchesComputerMatchToRegisteredDaemon() throws Exception {
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
+		when(access.playerRole(home, MATCH)).thenReturn("home");
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.activate(eq("home"), any(String.class))).thenAnswer(call -> preparedResponse());
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> home, access, setup,
+			mock(MatchService.class), preparation, mock(BrowserSavedTeamJson.class),
+			new com.fumbbl.ffb.server.match.ComputerOpponentService(SERVICE_HASH));
+		Connection player = new Connection(), dispatcher = new Connection();
+		adapter.receive(player, authenticate("player-auth", "human").toString());
+		adapter.receive(dispatcher, request("authenticateComputer", "service-auth").add("serviceToken", SERVICE_TOKEN).toString());
+		adapter.receive(dispatcher, request("computer", "register").add("operation", "register").toString());
+		adapter.receive(player, request("preparedMatch", "activate").add("operation", "activate")
+			.add("matchId", MATCH).toString());
+		assertEquals("ACCEPTED", code(player, 1));
+		assertEquals("computerJobs", JsonObject.readFrom(dispatcher.messages.get(2)).getString("type", null));
+		assertEquals(MATCH, JsonObject.readFrom(dispatcher.messages.get(2)).get("matches").asArray().get(0).asString());
+	}
 	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);

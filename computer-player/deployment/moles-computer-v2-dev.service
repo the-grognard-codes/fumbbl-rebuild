@@ -1,0 +1,23 @@
+[Unit]
+Description=DEV Coach Bugman computer opponent
+After=network-online.target moles-game-v2-dev.service
+Wants=network-online.target moles-game-v2-dev.service
+
+[Service]
+Type=simple
+User=moles-computer-v2-dev
+Group=moles-computer-v2-dev
+WorkingDirectory=/opt/moles-computer-v2-dev
+ExecStart=/opt/moles-computer-v2-dev/node/bin/node /opt/moles-computer-v2-dev/computer-player/src/daemon.mjs --url wss://game-dev.molesunderthepitch.org/browser/v2 --origin https://dev.molesunderthepitch.org --service-token-file /etc/moles-computer-v2-dev/secrets/coach-bugman-token.key --max-matches 4
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

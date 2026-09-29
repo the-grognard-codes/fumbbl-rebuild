@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
 import com.fumbbl.ffb.server.match.JdbcMatchRepository;
@@ -42,8 +43,13 @@ public final class BrowserV2Runtime {
 		JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, clock);
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(project, directory);
 		V2MatchAccess access = new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), verifier.liveDirectory(), clock);
+		String computerTokenHash = server.getProperty("local.browser.v2.computer.token.sha256");
+		if (computerTokenHash == null || computerTokenHash.isEmpty())
+			computerTokenHash = System.getenv("FFB_COMPUTER_SERVICE_TOKEN_SHA256");
+		ComputerOpponentService computers = new ComputerOpponentService(computerTokenHash);
 		BrowserV2Adapter adapter = new BrowserV2Adapter(verifier, access,
-			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock), new BrowserSavedTeamJson(teams, true));
+			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock, computers),
+			new BrowserSavedTeamJson(teams, true), computers);
 		mountRoutes(context, server, adapter);
 	}
 

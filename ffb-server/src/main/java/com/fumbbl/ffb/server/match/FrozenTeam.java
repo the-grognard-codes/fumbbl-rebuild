@@ -53,6 +53,13 @@ public final class FrozenTeam {
 		this.resolvedCatalogJson = resolvedCatalogJson;
 	}
 
+	/** Copies immutable roster choices under a separate in-match identity and display name. */
+	public FrozenTeam copyForMatch(String matchTeamId, String matchOwner, String matchTeamName) {
+		return new FrozenTeam(matchTeamId, sourceDocumentVersion, matchOwner, ruleset, catalogVersion,
+			rosterId, presetId, presetVersion, captainId, matchTeamName, total, budget, skillPoints,
+			players, resources, resolvedCatalogJson);
+	}
+
 	private static List<Player> freezePlayers(TeamDraft draft, RosterCatalog catalog) {
 		List<Player> players = new ArrayList<>();
 		for (TeamDraft.Player choice : draft.players) {
