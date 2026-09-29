@@ -53,7 +53,7 @@ condition = "AND"
 regexTarget = "line"
 paths = [
   '''^ffb-server/src/main/resources/local-schema/native-(dev|prod)\.properties$''',
-  '''^containers/local/server\.marker6\.ini$'''
+  '''^containers/local/server\.(marker6|match-review)\.ini$'''
 ]
 regexes = [
   '''^\+?\s*local\.browser\.v2\.computer\.token\.sha256=[0-9a-f]{64}\s*$'''
