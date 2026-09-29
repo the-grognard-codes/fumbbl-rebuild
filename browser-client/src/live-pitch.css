@@ -19,6 +19,9 @@
 .live-ball { fill: #db9362; stroke: #fff2d1; stroke-width: 2; filter: drop-shadow(0 1px 2px #000); }
 .live-target-square { fill: #74d6e126; stroke: #b4e7e9; stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
 .live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
+.play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 1px; margin: 0; border: 2px solid #fff1b5; border-radius: 5px; background: #174f62dc; box-shadow: 0 1px 5px #000c; cursor: pointer; }
+.live-push-choice svg { width: 100%; height: 100%; fill: none; stroke: #fff1b5; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 1px #000); }
+.play-runtime .live-push-choice:hover, .play-runtime .live-push-choice:focus-visible { background: #267489; outline: 3px solid #fff; outline-offset: 1px; }
 .live-route-square { fill: #5eead42b; stroke: #5eead4; stroke-width: 1.5; pointer-events: none; }
 .live-route-square.dodge { fill: #f59e0b55; stroke: #f59e0b; }
 .live-route-square.rush { fill: #b699ff55; stroke: #b699ff; }

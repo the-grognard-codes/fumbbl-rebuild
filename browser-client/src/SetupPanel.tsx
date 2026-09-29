@@ -13,6 +13,7 @@ import { usePitchPlayback } from './use-pitch-playback.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
+import { pitchPushChoices } from './push-choice.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
 import type { SetupCode, SetupState } from './setup-protocol.ts';
@@ -245,6 +246,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const draggableIds = new Set(connected && !pending && !suspended && !playbackActive && hosted
     ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
+  const pushChoices = hosted ? pitchPushChoices(view, availableActions) : [];
   const decision = hosted ? matchDecision(view, availableActions) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const selectedActions = moreActions(availableActions, view.activePlayerId ?? playerId);
@@ -524,6 +526,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
+        pushChoices={canChoose && !playbackActive ? pushChoices : []}
+        onPushChoice={id => { if (canChoose && pushChoices.some(choice => choice.action.id === id)) mutate('action', { actionId: id }); }}
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')}
         onDropPlayer={dropPlayer} onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}

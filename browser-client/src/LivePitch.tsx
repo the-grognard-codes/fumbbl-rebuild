@@ -4,6 +4,7 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import { DiceFace } from './DiceFace.tsx';
 import { canPlaceReserve } from './setup-protocol.ts';
+import type { PushChoice } from './push-choice.ts';
 import './live-pitch.css';
 
 const WIDTH = 960;
@@ -61,12 +62,13 @@ function PlayerMarker({ player, scale, active, selected, target, onSelect, onFoc
 
 /** Presentation only: positions, state, ball and identity come from the server projection. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null, onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare,
-  draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag, onDropPlayer, readOnly = false, playback = false }: {
+  draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag, onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
+  pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -152,6 +154,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
               selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
               canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
               onSelect={() => onSelectPlayer(player.id)} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>)}
+          {pushChoices.map(choice => <button key={choice.action.id} type="button" className="live-push-choice"
+            aria-label={choice.action.label} title={choice.action.label}
+            style={{ left: (OFFSET + choice.x * CELL) * scale, top: (OFFSET + choice.y * CELL) * scale,
+              width: CELL * scale, height: CELL * scale }}
+            onClick={event => { event.stopPropagation(); onPushChoice?.(choice.action.id); }}>
+            <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(choice.y - choice.fromY, choice.x - choice.fromX) * 180 / Math.PI}deg)` }}>
+              <path d="M4 16h20m-8-8 8 8-8 8"/>
+            </svg>
+          </button>)}
           {diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}
             style={{ left: (OFFSET + diceX * CELL) * scale, top: (OFFSET + diceY * CELL) * scale }}>
             <strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index}/>)}</div>
