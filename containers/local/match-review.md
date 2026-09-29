@@ -1,5 +1,36 @@
 # Isolated authoritative match review stack
 
+## Daily dev-local command
+
+From the repository root, run one of:
+
+```powershell
+node tools/dev-local.mjs --start
+node tools/dev-local.mjs --stop
+node tools/dev-local.mjs --restart
+```
+
+`--start` assembles the latest local-dev Firebase Hosting site, rebuilds and
+starts the isolated Docker game server and database, validates or renews the
+game server's Google Application Default Credential, starts the local WebSocket
+proxy and Hosting emulator, and checks both browser routes. Open
+<http://localhost:5000/play>. `--restart` stops and repeats that sequence;
+`--stop` shuts down only these review processes and containers, retaining their
+database volumes. The script records the browser processes it owns in the
+ignored `.tools/dev-local-state.json` file so it can stop the exact instances.
+It refuses to take over an unrelated process on port 5000 or 22232.
+
+The one-time review stack provisioning below must already have been completed.
+Docker Desktop, Node.js, the Firebase CLI, and the local nginx binary must be
+installed. The command reuses the existing mounted secret files; it does not
+print or copy their contents into the repository. A Google sign-in opens only
+if both the mounted ADC and standard gcloud ADC need renewal. A normal local
+Firebase Hosting start does not require a separate Firebase CLI sign-in.
+
+Hosting output is saved under `.tools/dev-local-hosting*.log`. If startup fails,
+fix the reported condition and rerun `--start`; the next run stops any browser
+processes recorded by the interrupted run before starting them again.
+
 The review stack uses `compose.match-review.yaml`, MariaDB port 23317, game-server
 port 22234, and separate Docker volumes. The retained `ffb-current-dev` game
 container, its four activated matches, and its database/backup volumes stay
@@ -30,7 +61,7 @@ paths before creating anything.
    containers/local/compose.match-review.yaml up -d --build server`. Verify
    health and the loopback 22234 listener before changing the proxy.
 4. Stop only the known local nginx instance bound to 22232 using its recorded
-   `nginx -p <instance-prefix> -c nginx.conf -s quit` command. Set
+   process ID and verified command line. Set
    `LOCAL_GAME_BACKEND_PORT=22234` and run
    `node deployment/game-service/proxy/start-local.mjs`. Assemble local-dev
    Hosting with `npm run assemble --prefix deployment/firebase --
@@ -43,16 +74,15 @@ against a populated target or point the new container at the retained database.
 
 ## Authentication preflight
 
-For subsequent local starts, run `node tools/match-review-start.mjs` from the
-repository root. It starts the existing isolated database and game containers,
+`tools/dev-local.mjs` invokes `tools/match-review-start.mjs` as part of the full
+startup. That helper starts the existing isolated database and game containers,
 checks the exact ADC mount, and reuses it while valid. If it has expired, it
 checks the standard gcloud ADC file, opens `gcloud auth application-default login`
 only when both credentials need renewal, installs the validated credential into
 the review mount with the DEV quota project, restarts only the review server,
 and verifies Firebase Auth access before reporting ready. It never touches the
-retained `ffb-current-dev` runtime or builds a new image. Continue to assemble
-Hosting and start the local proxy separately when needed. Initial provisioning
-and source rebuilds still use the steps above.
+retained `ffb-current-dev` runtime. Run it on its own only when checking the
+review containers without building or serving the browser site.
 
 Before a signed-in review, run `node tools/match-review-adc-check.mjs` from the
 repository root. It checks the **exact ADC file mounted by the review server**,

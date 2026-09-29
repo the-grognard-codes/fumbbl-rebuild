@@ -41,6 +41,8 @@ try {
   if (!ready) throw Error('Local nginx did not become ready.');
   console.log(`Local nginx ready: ws://127.0.0.1:22232/browser/v2 -> 127.0.0.1:${backendPort}`);
   console.log(`Instance prefix: ${directory}`);
-  console.log(`Stop this instance with nginx -p "${directory.replaceAll('\\', '/')}/" -c nginx.conf -s quit`);
+  console.log(`Process ID: ${child.pid}`);
+  console.log(process.platform === 'win32' ? `Stop this instance with taskkill /PID ${child.pid} /F`
+    : `Stop this instance with kill -TERM ${child.pid}`);
   child.unref();
 } catch (error) { child.kill(); throw error; }
