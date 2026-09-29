@@ -14,7 +14,8 @@ const after = { ...chain, revision: 9, actions: [] };
 const root = fileURLToPath(new URL('../', import.meta.url));
 const server = await createServer({ root, configFile: false, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+  || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
