@@ -1,10 +1,35 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { composeEnvironment } from '../dev-local.mjs';
+import { composeEnvironment, readManagedState } from '../dev-local.mjs';
+
+test('finds a managed browser stack started from another checkout of the same repository', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'dev-local-state-test-'));
+  const first = join(directory, 'first');
+  const second = join(directory, 'second');
+  const legacy = join(first, '.tools', 'dev-local-state.json');
+  const shared = join(directory, 'shared-state.json');
+  mkdirSync(join(first, '.tools'), { recursive: true });
+  mkdirSync(second);
+  try {
+    writeFileSync(legacy, JSON.stringify({ schema: 1, root: first, proxy: { pid: 42 } }));
+    assert.equal(readManagedState(shared, [first, second]).file, legacy);
+    assert.equal(readManagedState(shared, [first, second]).state.root, first);
+    assert.equal(readManagedState(shared, [second]), null);
+    writeFileSync(shared, JSON.stringify({ schema: 1, root: second }));
+    assert.throws(() => readManagedState(shared, [first, second]), /DEV_LOCAL_STATE_AMBIGUOUS/);
+  } finally {
+    if (readdirSync(directory).includes('shared-state.json')) unlinkSync(shared);
+    unlinkSync(legacy);
+    rmdirSync(join(first, '.tools'));
+    rmdirSync(first);
+    rmdirSync(second);
+    rmdirSync(directory);
+  }
+});
 
 test('reuses only the existing read-only review mount sources', () => {
   const directory = mkdtempSync(join(tmpdir(), 'dev-local-test-'));

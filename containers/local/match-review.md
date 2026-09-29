@@ -17,7 +17,9 @@ proxy and Hosting emulator, and checks both browser routes. Open
 <http://localhost:5000/play>. `--restart` stops and repeats that sequence;
 `--stop` shuts down only these review processes and containers, retaining their
 database volumes. The script records the browser processes it owns in the
-ignored `.tools/dev-local-state.json` file so it can stop the exact instances.
+repository's shared `.git/dev-local-state.json` file so it can stop the exact
+instances from any checkout of this repository. It also recognizes the former
+`.tools/dev-local-state.json` file when upgrading an already running session.
 It refuses to take over an unrelated process on port 5000 or 22232.
 
 The one-time review stack provisioning below must already have been completed.
