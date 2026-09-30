@@ -433,7 +433,15 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setSmartIntent(null); setActionId(action.id); setMoreActionId(''); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
   };
   const selectMore = (action: typeof availableActions[number]) => {
+    if (!canChoose) return;
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
+    if (action.kind === 'endAction') {
+      setSmartIntent(null); setMoreOpen(false); setActionId(''); setMoreActionId(''); setConfirmEndTurn(false);
+      try { sessionStorage.setItem(candidateKey, JSON.stringify({ id: action.id, kind: action.kind, label: recentActionLabel(action), revision: view.revision })); }
+      catch { /* A failed local shortcut never blocks a legal game action. */ }
+      mutate('action', { actionId: action.id });
+      return;
+    }
     setSmartIntent(null); setActionId(action.id); setMoreActionId(action.id); setMoreOpen(false); setConfirmEndTurn(false);
   };
   const useEndTurn = () => {

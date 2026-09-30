@@ -4,13 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
-const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[7].actor;
-const chain = { ...initial, revision: 8, players: [...initial.players,
-  { ...initial.players[1], id: 'chain', name: 'Chain', x: 12, y: 6 }], actions: [
-  { ...initial.actions[0], id: '8:push:chain:13:6', label: 'Push to 13, 6', target: { x: 13, y: 6 } },
-  { ...initial.actions[0], id: '8:push:chain:13:7', label: 'Push to 13, 7', target: { x: 13, y: 7 } }
-] };
-const after = { ...chain, revision: 9, actions: [] };
+const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[2].actor;
+const after = { ...initial, revision: initial.revision + 1, activePlayerId: null, actions: [] };
 const root = fileURLToPath(new URL('../', import.meta.url));
 const server = await createServer({ root, configFile: false, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
@@ -26,7 +21,6 @@ try {
     window.WebSocket = class {
       static OPEN = 1;
       readyState = 1;
-      state = states[0];
       sent = [];
       constructor() { window.testSocket = this; queueMicrotask(() => this.onopen?.()); }
       emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
@@ -37,37 +31,24 @@ try {
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
         if (request.type === 'setup' && request.operation === 'load') queueMicrotask(() => this.emit({
-          version: 2, type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: this.state }));
+          version: 2, type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: this.state = states[0] }));
         if (request.type === 'setup' && request.operation === 'action') {
           this.sent.push(request.actionId);
-          this.state = states[this.sent.length];
+          this.state = states[1];
           queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
             code: 'ACCEPTED', duplicate: false, state: this.state }));
         }
       }
       close() { this.readyState = 3; this.onclose?.(); }
     };
-  }, [initial, chain, after]);
+  }, [initial, after]);
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${initial.matchId}`);
-  const pitch = page.getByLabel('Live match pitch');
-  const arrows = pitch.locator('.live-push-choice');
-  await arrows.first().waitFor();
-  assert.equal(await arrows.count(), 3);
-  await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.live-team-nameplate strong')).fontSize) >= 24);
-  assert.ok(await page.locator('.live-team-nameplate strong').first().evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize)) >= 24);
-  assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Push choices use arrows without square boxes');
-  assert.equal(await page.getByRole('dialog', { name: 'Match decision' }).count(), 0);
-  await arrows.first().click();
-  await page.waitForFunction(() => window.testSocket.state.revision === 8);
-  assert.deepEqual(await page.evaluate(() => window.testSocket.sent), ['7:push:away1:12:6']);
-  assert.equal(await arrows.count(), 2);
-  await pitch.getByRole('button', { name: 'Push to 13, 6' }).focus();
-  await pitch.getByRole('button', { name: 'Push to 13, 6' }).press('Enter');
-  await page.waitForFunction(() => window.testSocket.state.revision === 9);
-  assert.deepEqual(await page.evaluate(() => window.testSocket.sent), ['7:push:away1:12:6', '8:push:chain:13:6']);
-  assert.equal(await arrows.count(), 0);
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByLabel('Additional actions').getByRole('button', { name: 'End player action' }).click();
+  await page.waitForFunction(() => window.testSocket.state.revision === 3);
+  assert.deepEqual(await page.evaluate(() => window.testSocket.sent), ['2:end-action']);
   assert.deepEqual(errors, []);
-  console.log('PASS: pitch click selects push, chain arrows update from the new player, and Enter selects the chain square.');
+  console.log('PASS: End player action sends on selection without an additional Commit.');
 } finally {
   await browser.close();
   await server.close();

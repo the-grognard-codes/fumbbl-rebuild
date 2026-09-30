@@ -26,7 +26,9 @@ function TeamName({ name }: { name: string }) {
       const maximumSize = Number.parseFloat(window.getComputedStyle(element).fontSize);
       if (!Number.isFinite(maximumSize)) return;
 
-      const fits = () => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight;
+      const plateStyle = window.getComputedStyle(nameplate);
+      const availableHeight = nameplate.clientHeight - Number.parseFloat(plateStyle.paddingTop) - Number.parseFloat(plateStyle.paddingBottom);
+      const fits = () => element.scrollWidth <= element.clientWidth && element.scrollHeight <= availableHeight;
       if (fits()) return;
 
       let low = 1;
