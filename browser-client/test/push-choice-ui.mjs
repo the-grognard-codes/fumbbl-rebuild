@@ -53,6 +53,9 @@ try {
   const arrows = pitch.locator('.live-push-choice');
   await arrows.first().waitFor();
   assert.equal(await arrows.count(), 3);
+  await page.waitForFunction(() => Number.parseFloat(getComputedStyle(document.querySelector('.live-team-nameplate strong')).fontSize) >= 24);
+  assert.ok(await page.locator('.live-team-nameplate strong').first().evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize)) >= 24);
+  assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Push choices use arrows without square boxes');
   assert.equal(await page.getByRole('dialog', { name: 'Match decision' }).count(), 0);
   await arrows.first().click();
   await page.waitForFunction(() => window.testSocket.state.revision === 8);

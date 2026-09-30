@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match push and movement plans use smaller animated arrows on the pitch")
+			.addImprovement("Browser match team names remain readable within their scoreboard panels")
+			.addImprovement("Browser End player action sends immediately when selected")
 			.addImprovement("Browser push and chain-push choices appear as directional arrows on the pitch")
 			.addImprovement("Browser coaches can drag reserve players onto the pitch, return players to reserves, and reposition players during setup or Solid Defence")
 			.addImprovement("Browser target assist plans a move from an empty square or a Block, Blitz, or Foul from the selected opponent, with route review for distant attacks")

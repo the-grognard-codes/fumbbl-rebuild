@@ -19,15 +19,16 @@
 .live-ball { fill: #db9362; stroke: #fff2d1; stroke-width: 2; filter: drop-shadow(0 1px 2px #000); }
 .live-target-square { fill: #74d6e126; stroke: #b4e7e9; stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
 .live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
-.play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 1px; margin: 0; border: 2px solid #fff1b5; border-radius: 5px; background: #174f62dc; box-shadow: 0 1px 5px #000c; cursor: pointer; }
-.live-push-choice svg { width: 100%; height: 100%; fill: none; stroke: #fff1b5; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 1px #000); }
-.play-runtime .live-push-choice:hover, .play-runtime .live-push-choice:focus-visible { background: #267489; outline: 3px solid #fff; outline-offset: 1px; }
-.live-route-square { fill: #5eead42b; stroke: #5eead4; stroke-width: 1.5; pointer-events: none; }
-.live-route-square.dodge { fill: #f59e0b55; stroke: #f59e0b; }
-.live-route-square.rush { fill: #b699ff55; stroke: #b699ff; }
-.live-route-square.both { fill: #fb718555; stroke: #fb7185; }
-.live-route-square.reaction { stroke-width: 3; stroke-dasharray: 3 2; }
-.live-route-line { fill: none; stroke: #fff6c8; stroke-width: 2; stroke-dasharray: 5 3; pointer-events: none; }
+.play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; cursor: pointer; }
+.live-push-choice svg { width: 70%; height: 70%; overflow: visible; fill: none; stroke: #f0f2ec; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 2px #071014); }
+.live-push-shaft { stroke-dasharray: 5 9; animation: live-arrow-chase .7s linear infinite; }
+.play-runtime .live-push-choice:hover, .play-runtime .live-push-choice:focus-visible { outline: none; background: transparent; border: 0; box-shadow: none; }
+.play-runtime .live-push-choice:hover svg, .play-runtime .live-push-choice:focus-visible svg { stroke: #fff; filter: drop-shadow(0 0 4px #f3e9b7); }
+.live-route-guide, .live-route-line { fill: none; pointer-events: none; stroke-linecap: round; stroke-linejoin: round; }
+.live-route-guide { stroke: #e6e9e6; stroke-width: 2; opacity: .25; }
+.live-route-line { stroke: #eef0ed; stroke-width: 3; opacity: .68; stroke-dasharray: 5 9; animation: live-arrow-chase .7s linear infinite; }
+.live-route-arrowhead { fill: #eef0ed; opacity: .72; }
+@keyframes live-arrow-chase { to { stroke-dashoffset: -14; } }
 .live-route-waypoint { pointer-events: none; }
 .live-route-waypoint circle { fill: #10202b; stroke: #fff6c8; stroke-width: 2; }
 .live-route-waypoint text { fill: #fff6c8; font: bold 9px sans-serif; }
@@ -90,7 +91,7 @@
 @media (max-width: 620px) { .match-scoreboard { gap: .25rem; padding: .4rem; } .match-scoreboard > div { display: block; } .match-scoreboard strong { display: block; } .match-side { display: block; } }
 @media (max-width: 760px) { .match-command-bar { grid-template-columns: 1fr; } .match-command-bar span { grid-column: 1; } }
 @media (max-height: 700px) and (min-width: 981px) { .live-match-page .live-pitch-viewport { min-height: 260px; max-height: calc(100dvh - 350px); } }
-@media (prefers-reduced-motion: reduce) { .live-target-line { animation: none; } .play-runtime .live-marker { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .live-target-line, .live-route-line, .live-push-shaft { animation: none; } .play-runtime .live-marker { transition: none; } }
 
 /* The live match uses the content viewport; supporting controls follow below it. */
 @font-face { font-family: 'Match Alegreya'; src: url('/assets/game/ui/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
@@ -204,7 +205,7 @@
 .live-resource-counts .match-art { width: 18px; height: 18px; }
 .hosted-match .live-match-scoreboard .live-resource-counts .match-art { width: 18px; height: 18px; }
 .live-resource-counts b { color: #e9dcc0; font-size: 13px; }
-.hosted-match .live-match-scoreboard > .live-team-nameplate { display: flex; align-items: center; justify-content: flex-start; gap: clamp(8px, 2vw, 34px); padding: 4px 15px; }
+.hosted-match .live-match-scoreboard > .live-team-nameplate { display: flex; align-items: center; justify-content: flex-start; gap: clamp(6px, .9vw, 16px); padding: 4px 10px; }
 .hosted-match .live-team-nameplate.away { justify-content: flex-end; }
 .live-team-nameplate strong { display: block; flex: 1 1 0; min-width: 0; max-height: 100%; overflow: hidden; overflow-wrap: anywhere; text-align: center; text-overflow: clip; white-space: normal; font: 500 clamp(24px, 2.6vw, 48px)/1 'Match Alegreya', Georgia, serif; letter-spacing: clamp(0px, .07em, 2px); text-shadow: 0 2px 1px #000; }
 .live-team-nameplate b { flex: 0 0 2.5ch; color: #83b6e9; font: 700 53px/1 'Match Alegreya', Georgia, serif; text-align: center; }
