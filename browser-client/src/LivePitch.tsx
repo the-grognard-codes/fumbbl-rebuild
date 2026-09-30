@@ -11,6 +11,24 @@ const WIDTH = 960;
 const HEIGHT = 564;
 const CELL = 36;
 const OFFSET = 12;
+
+function curvedRoute(points: RoutePoint[]): string {
+  if (points.length < 2) return '';
+  const centers = points.map(point => ({ x: OFFSET + point.x * CELL + CELL / 2, y: OFFSET + point.y * CELL + CELL / 2 }));
+  const end = centers[centers.length - 1];
+  const previous = centers[centers.length - 2];
+  const length = Math.hypot(end.x - previous.x, end.y - previous.y);
+  end.x -= 12 * (end.x - previous.x) / length;
+  end.y -= 12 * (end.y - previous.y) / length;
+  const segments = centers.slice(0, -1).map((from, index) => {
+    const to = centers[index + 1];
+    const before = centers[Math.max(0, index - 1)];
+    const after = centers[Math.min(centers.length - 1, index + 2)];
+    return `C ${from.x + (to.x - before.x) / 6} ${from.y + (to.y - before.y) / 6}`
+      + ` ${to.x - (after.x - from.x) / 6} ${to.y - (after.y - from.y) / 6} ${to.x} ${to.y}`;
+  });
+  return `M ${centers[0].x} ${centers[0].y} ${segments.join(' ')}`;
+}
 const humanSprites: Record<string, string> = {
   lineman: '10-lineman-man.png', blitzer: '02-blitzer-man.png', catcher: '05-catcher-man.png',
   thrower: '06-thrower-man.png', ogre: '01-ogre-man.png', halfling: '14-halfling-man.png'
@@ -90,7 +108,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const targetPlayers = new Set<string>();
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target) targetSquares.set(`${action.target.x},${action.target.y}`, action.target);
+    else if (action.target && 'x' in action.target && action.kind !== 'push' && !(routePreview && action.kind === 'move'))
+      targetSquares.set(`${action.target.x},${action.target.y}`, action.target);
   }
   const activePlayer = view.players.find(player => player.id === view.activePlayerId);
   const diceSubject = view.players.find(player => player.id === diceMoment?.subjectId) ?? activePlayer;
@@ -100,6 +119,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 15 * 26 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) }))
       .filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
+  const routePath = routePreview ? curvedRoute([routePreview.from, ...routePreview.steps]) : '';
   const pinnedTarget = target && ('playerId' in target
     ? view.players.find(player => player.id === target.playerId) : target);
   const point = (clientX: number, clientY: number) => {
@@ -132,15 +152,16 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             const square = point(event.clientX, event.clientY); if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
           onClick={event => { if (readOnly) return; if (suppressClick.current) { suppressClick.current = false; return; } const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); }}>
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} aria-hidden="true">
+            <defs><marker id="live-route-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/>
+            </marker></defs>
             {backgroundFailed ? <><rect width={WIDTH} height={HEIGHT} fill="#263422"/><rect x={OFFSET} y={OFFSET} width="936" height="540" fill="#56632b"/></> :
               <image href={pitchUrl} width={WIDTH} height={HEIGHT} onError={() => setBackgroundFailed(true)}/>}
             {[...targetSquares.values()].map(square => <rect key={`${square.x},${square.y}`} className="live-target-square"
               x={OFFSET + square.x * CELL + 2} y={OFFSET + square.y * CELL + 2} width={CELL - 4} height={CELL - 4}/>)}
             {placementSquares.map(square => <rect key={`place-${square.x}-${square.y}`} className="live-placement-square"
               x={OFFSET + square.x * CELL + 3} y={OFFSET + square.y * CELL + 3} width={CELL - 6} height={CELL - 6}/>)}
-            {routePreview?.steps.map((step, index) => <rect key={`route-${index}`} className={`live-route-square${step.dodge && step.rush ? ' both' : step.dodge ? ' dodge' : step.rush ? ' rush' : ' clear'}${step.reactions.length ? ' reaction' : ''}`}
-              x={OFFSET + step.x * CELL + 2} y={OFFSET + step.y * CELL + 2} width={CELL - 4} height={CELL - 4}/>)}
-            {routePreview && <polyline className="live-route-line" points={[routePreview.from, ...routePreview.steps].map(square => `${OFFSET + square.x * CELL + CELL / 2},${OFFSET + square.y * CELL + CELL / 2}`).join(' ')}/>}
+            {routePath && <><path className="live-route-guide" d={routePath}/><path className="live-route-line" d={routePath} markerEnd="url(#live-route-arrowhead)"/></>}
             {waypoints.map((square, index) => <g key={`waypoint-${index}`} className="live-route-waypoint">
               <circle cx={OFFSET + square.x * CELL + CELL / 2} cy={OFFSET + square.y * CELL + CELL / 2} r="8"/>
               <text x={OFFSET + square.x * CELL + CELL / 2} y={OFFSET + square.y * CELL + CELL / 2 + 3} textAnchor="middle">{index + 1}</text>
@@ -160,7 +181,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
               width: CELL * scale, height: CELL * scale }}
             onClick={event => { event.stopPropagation(); onPushChoice?.(choice.action.id); }}>
             <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(choice.y - choice.fromY, choice.x - choice.fromX) * 180 / Math.PI}deg)` }}>
-              <path d="M4 16h20m-8-8 8 8-8 8"/>
+              <path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/>
             </svg>
           </button>)}
           {diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}
