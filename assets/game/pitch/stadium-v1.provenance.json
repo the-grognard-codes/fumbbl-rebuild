@@ -1,0 +1,10 @@
+{
+  "source": "docs/adr/references/0003-angled-pitch-v2/art/stadium.png",
+  "decision": "docs/adr/0003-coach-oriented-angled-pitch.md",
+  "tool": "built-in image_gen.imagegen",
+  "prompt": "Edit target: the supplied approved MUTP match-screen illustration. Maintain its exact pixel-art look, chunky connected pixel clusters, colors, mature fantasy atmosphere and 1672x941 landscape composition. This is an asset separation step for a deterministic geometry correction, not a UI redesign. Produce ONLY the empty stadium and its unmarked grass/turf background. Remove every player, football, mole field emblem, ALL chalk lines and ALL grid markings; heal them with consistent layered green pixel turf. Remove ALL HUD panels, labels, cards, controls, logo and other UI, healing their areas with the empty scene behind. Preserve the crowd, left/right stone walls, torches, blue/ivory left and burnt-rust right banners, and edge architecture exactly. The entire central field must be blank green pixel-art turf without any hint of painted or shadow grid lines. No grid at all. Full landscape image, opaque.",
+  "pixels": "1672 x 941",
+  "sourceRegistration": "Approved 55-degree painting, zero yaw, focus 13; reprojected by shared production camera",
+  "limitation": "Painted-depth distortion and repeated scenery plates retained from the approved v4 study",
+  "sha256": "ce5bfcc65cb95ff167914b1c58a18e572a7b09398af50441996e8f87389a0112"
+}
