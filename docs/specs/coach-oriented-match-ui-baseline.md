@@ -66,8 +66,8 @@ The new runner must prepare genuine Human and Orc frozen teams, drive UI intents
 | --- | --- |
 | Reconciliation prerequisite | Merged PR #100; all automated checks passed |
 | 1. Baseline and inventory | Merged [PR #102](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/102), revision `c2742c8b7fa25fc20b6df255207362c97b86cb0a`; all checks passed |
-| 2. Projection service | Implemented on `codex/coach-pitch-projection`; independent review approved, 132 browser tests/build passed; publication pending |
-| 3. Art pack and resolver | In progress on isolated `codex/coach-pitch-art` worktree; native-size sample QA precedes full pack |
+| 2. Projection service | Merged [PR #103](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/103), revision `7e7ccac4d21926db52d67b5ec76079b49c2a0e44`; independent review approved, 132 browser tests/build and all automated checks passed |
+| 3. Art pack and resolver | 84 bodies and 12 portraits accepted at native/enlarged size; strict alpha/catalog/delivery checks, 137 browser tests and both builds passed; publication pending |
 | 4. Live pitch replacement | Pending |
 | 5. Live HUD binding | Pending |
 | 6. Playback, decisions and dice | Pending |

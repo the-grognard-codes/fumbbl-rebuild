@@ -1,0 +1,30 @@
+{
+  "tool": "built-in image_gen",
+  "standardVersion": "1.1",
+  "selectedSheets": {
+    "lineman": {
+      "file": "sheets/lineman.png",
+      "sha256": "c86c9ea5695f78a26d442a0f395b3ba3b3e19480525c4950a63c44fd0d2f97e1"
+    },
+    "blitzer": {
+      "file": "sheets/blitzer.png",
+      "sha256": "6c07d6aa1e8f3a5535766e0be98d019eac51159aececa9f655c49ed09de124a1"
+    },
+    "catcher": {
+      "file": "sheets/catcher.png",
+      "sha256": "7943d8e18ccf81ce0709da1108e8c97ec6d7a0ac20818982b43bddfda6f1bf24"
+    },
+    "thrower": {
+      "file": "sheets/thrower.png",
+      "sha256": "3ac65b71dee3676b568aea5fb1a1170dbe897c8e95f1d646ebf8076d5fa7e3f2"
+    },
+    "ogre": {
+      "file": "sheets/ogre.png",
+      "sha256": "95706c0cb320aaeb2a75140acd7ec673f4058964bb44442028232ec518034991"
+    },
+    "halfling": {
+      "file": "sheets/halfling.png",
+      "sha256": "d2fec37332b80d8c78ded321fe913ab8fb91238688305dea7c1fb37738174eff"
+    }
+  }
+}
