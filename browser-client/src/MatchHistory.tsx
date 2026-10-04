@@ -8,6 +8,7 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 type Props = {
   stacked?: boolean;
   matchId: string; records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
+  homeTeamName?: string; awayTeamName?: string;
   messages: ChatMessage[]; chatLoading: boolean; chatUnavailable: boolean;
   connected: boolean; sending: boolean; canSend: boolean; onSend: (text: string) => void;
   sendError: string; sent: { text: string; id: string } | null;
@@ -48,7 +49,8 @@ export function MatchHistory(props: Props) {
   </section>;
 }
 
-function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, connected, sending, canSend, onSend, sendError, sent, active }: Props & { active: boolean }) {
+function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, connected, sending, canSend, onSend, sendError, sent, active,
+  homeTeamName, awayTeamName }: Props & { active: boolean }) {
   const draftKey = `ffb.match.chat.draft.${matchId}`;
   const scrollKey = `ffb.match.chat.scroll.${matchId}`;
   const [draft, setDraft] = useState(() => { try { return sessionStorage.getItem(draftKey) ?? ''; } catch { return ''; } });
@@ -86,7 +88,7 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
       onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
         try { sessionStorage.setItem(scrollKey, String(element.scrollTop)); } catch { /* Scroll position remains in memory. */ } }}>
       {messages.map(message => <p key={message.index}><time dateTime={new Date(message.at).toISOString()}>{new Date(message.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-        <strong>{message.role === 'spectator' ? 'Spectator' : `${message.role === 'home' ? 'Home' : 'Away'} coach`} · {message.authorId.slice(0, 8)}</strong>
+        <strong>{message.role === 'spectator' ? 'Spectator' : `${message.role === 'home' ? homeTeamName || 'Home' : awayTeamName || 'Away'} coach`} · {message.authorId.slice(0, 8)}</strong>
         <span>{message.text}</span></p>)}
     </div>
     {canSend && !chatUnavailable && <form onSubmit={submit}><label htmlFor="match-chat-draft">Message the match</label>

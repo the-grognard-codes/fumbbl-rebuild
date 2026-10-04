@@ -1,0 +1,206 @@
+{
+  "sets": [
+    {
+      "id": "ivory-cyan",
+      "blockFaces": [
+        "SKULL",
+        "BOTH DOWN",
+        "PUSHBACK",
+        "PUSHBACK",
+        "POW/PUSH",
+        "POW"
+      ],
+      "d6Pips": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "animations": [
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(-2px, -3px) rotate(150deg)",
+            "translate(0px, -1px) rotate(300deg)",
+            "translate(0px, 0px) rotate(360deg)"
+          ]
+        },
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(2px, -3px) rotate(-150deg)",
+            "translate(0px, -1px) rotate(-300deg)",
+            "translate(0px, 0px) rotate(-360deg)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "navy-steel",
+      "blockFaces": [
+        "SKULL",
+        "BOTH DOWN",
+        "PUSHBACK",
+        "PUSHBACK",
+        "POW/PUSH",
+        "POW"
+      ],
+      "d6Pips": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "animations": [
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(-2px, -3px) rotate(150deg)",
+            "translate(0px, -1px) rotate(300deg)",
+            "translate(0px, 0px) rotate(360deg)"
+          ]
+        },
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(2px, -3px) rotate(-150deg)",
+            "translate(0px, -1px) rotate(-300deg)",
+            "translate(0px, 0px) rotate(-360deg)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gilded-brass",
+      "blockFaces": [
+        "SKULL",
+        "BOTH DOWN",
+        "PUSHBACK",
+        "PUSHBACK",
+        "POW/PUSH",
+        "POW"
+      ],
+      "d6Pips": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "animations": [
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(-2px, -3px) rotate(150deg)",
+            "translate(0px, -1px) rotate(300deg)",
+            "translate(0px, 0px) rotate(360deg)"
+          ]
+        },
+        {
+          "duration": 440,
+          "iterations": 1,
+          "frames": [
+            "translate(0px, 0px) rotate(0deg)",
+            "translate(2px, -3px) rotate(-150deg)",
+            "translate(0px, -1px) rotate(-300deg)",
+            "translate(0px, 0px) rotate(-360deg)"
+          ]
+        }
+      ]
+    }
+  ],
+  "animation": {
+    "milliseconds": 440,
+    "maximumTranslation": 3,
+    "looping": false
+  },
+  "errors": [],
+  "reducedMotion": "instant final faces; no spin or cycling",
+  "layouts": [
+    {
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "width": 1224,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    }
+  ],
+  "exports": [
+    {
+      "set": "ivory-cyan",
+      "kind": "block",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 15526
+    },
+    {
+      "set": "ivory-cyan",
+      "kind": "d6",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 15526
+    },
+    {
+      "set": "navy-steel",
+      "kind": "block",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 17978
+    },
+    {
+      "set": "navy-steel",
+      "kind": "d6",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 17978
+    },
+    {
+      "set": "gilded-brass",
+      "kind": "block",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 20763
+    },
+    {
+      "set": "gilded-brass",
+      "kind": "d6",
+      "width": 768,
+      "height": 128,
+      "cornerAlpha": 0,
+      "transparentPixels": 20763
+    }
+  ],
+  "recording": {
+    "format": "APNG",
+    "width": 1200,
+    "height": 264,
+    "frames": 10,
+    "plays": 1,
+    "milliseconds": 1100
+  }
+}

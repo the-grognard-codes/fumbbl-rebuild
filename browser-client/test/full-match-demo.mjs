@@ -124,7 +124,7 @@ async function arrange(view) {
     await page.getByLabel('Setup Y', { exact: true }).fill(String(y));
     view = await submit(page, page.getByRole('button', { name: 'Place on empty own-half square', exact: true }), view.revision + 1, integrated && i === 0);
   }
-  return submit(page, page.getByRole('button', { name: 'Confirm legal setup', exact: true }), view.revision + 1);
+  return submit(page, page.getByRole('button', { name: 'Confirm Setup', exact: true }), view.revision + 1);
 }
 const distance = (a,b) => Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y));
 const attemptedTurns = new Set();

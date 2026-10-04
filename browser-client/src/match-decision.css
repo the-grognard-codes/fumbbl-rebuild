@@ -11,4 +11,7 @@
 .match-decision-options .match-die { width: 56px; height: 56px; }
 .match-decision-options button:hover, .match-decision-options button:focus-visible { outline: 2px solid #f7dc9a; outline-offset: 1px; background: #426d8d; }
 .match-decision-options button:disabled { opacity: .45; }
+.match-decision-dialog.compact { width: min(230px, calc(100vw - 28px)); padding: 12px; }
+.match-decision-dialog.compact h2 { margin-bottom: 9px; font-size: 20px; text-align: center; }
+.match-decision-dialog.compact .match-decision-options button { min-height: 36px; padding: 5px; }
 @media (max-width: 700px) { .match-decision-dialog.left, .match-decision-dialog.right { top: 17dvh; left: 50%; right: auto; transform: translateX(-50%); } }

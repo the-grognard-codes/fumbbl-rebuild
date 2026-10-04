@@ -10,6 +10,13 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser required pitch choices stay visible on narrow screens and native roll reports retain their team names")
+			.addImprovement("Browser player cards enlarge character art, show roster subtypes and concise conditions, and omit pitch coordinates")
+			.addBugfix("Computer coaches resume active matches after a missed match notice or a failed game client")
+			.addImprovement("Browser match rolls use compact pitch choices, follow-ups use Yes and No, and the scoreboard shows two-minute turn clocks with ten-minute reserve banks")
+			.addImprovement("Browser match history uses team names and omits setup bookkeeping, team IDs, and position debug lines")
+			.addImprovement("Browser match actions use shorter labels, move Target Assist and End Turn, and compact the connection indicator and chat controls")
+			.addImprovement("Browser match setup keeps Confirm Setup prominent, preserves collapsible keyboard and touch placement, and moves pitch size controls beside the match window controls")
 			.addImprovement("Browser match push and movement plans use smaller animated arrows on the pitch")
 			.addImprovement("Browser match team names remain readable within their scoreboard panels")
 			.addImprovement("Browser End player action sends immediately when selected")

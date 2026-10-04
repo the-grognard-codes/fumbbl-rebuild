@@ -348,7 +348,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     </section>}
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
-      matchControls={{ fullscreen, toggleFullscreen, exitMatch, disconnect: () => connection.disconnect(), reconnect: () => connection.connect(), error }}
+      matchControls={{ fullscreen, toggleFullscreen, exitMatch, reconnect: () => connection.connect(), error }}
       acceptedActionId={connection.lastAcceptedActionId}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
       chatMessages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable} chatSendError={chatSendError} chatSent={chatSent}

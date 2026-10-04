@@ -1,0 +1,48 @@
+{
+  "team": "MUTP camera reference stand-ins",
+  "standardVersion": "1.1",
+  "players": [
+    {
+      "id": "human-back",
+      "role": "line-player",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "human-back.png"
+    },
+    {
+      "id": "human-front",
+      "role": "line-player",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "human-front.png"
+    },
+    {
+      "id": "orc-front",
+      "role": "line-player",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "orc-front.png"
+    },
+    {
+      "id": "orc-back",
+      "role": "line-player",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "orc-back.png"
+    },
+    {
+      "id": "alden-back",
+      "role": "blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "alden-back.png"
+    },
+    {
+      "id": "alden-front",
+      "role": "blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "source": "alden-front.png"
+    }
+  ]
+}

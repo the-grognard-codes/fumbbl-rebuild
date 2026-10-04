@@ -9,23 +9,28 @@ const url = option('--url');
 const origin = option('--origin');
 const tokenFile = option('--service-token-file', false);
 const maxMatches = Number(option('--max-matches', false) ?? 32);
+const refreshMs = Number(option('--refresh-ms', false) ?? 30000);
 if (!url || !origin || !['ws:', 'wss:'].includes(new URL(url).protocol)
   || new URL(url).pathname !== '/browser/v2' || new URL(url).search || new URL(url).hash
   || !/^https?:\/\/[^/]+$/.test(origin) || (!tokenFile && !process.env.FFB_COMPUTER_SERVICE_TOKEN)
-  || !Number.isInteger(maxMatches) || maxMatches < 1 || maxMatches > 64) {
-  console.error('Usage: node src/daemon.mjs --url <ws(s)://host/browser/v2> --origin <allowed origin> --service-token-file <path> [--max-matches 32]');
+  || !Number.isInteger(maxMatches) || maxMatches < 1 || maxMatches > 64
+  || !Number.isInteger(refreshMs) || refreshMs < 1000 || refreshMs > 300000) {
+  console.error('Usage: node src/daemon.mjs --url <ws(s)://host/browser/v2> --origin <allowed origin> --service-token-file <path> [--max-matches 32] [--refresh-ms 30000]');
   process.exit(2);
 }
 
 let socket;
 let stopped = false;
+let authenticated = false;
 let retryDelay = 1000;
 let authId;
 let registerId;
 let sentAt = 0;
+let ready = false;
 const queued = new Set();
 const children = new Map();
-const failed = new Set();
+const failures = new Map();
+const completed = new Set();
 
 function option(flag, required = true) {
   const index = process.argv.indexOf(flag);
@@ -35,11 +40,23 @@ function option(flag, required = true) {
 }
 function log(message) { console.log(`[computer-daemon] ${message}`); }
 function send(request) { socket.send(JSON.stringify(request)); sentAt = Date.now(); }
+function register() {
+  if (stopped || !authenticated || !socket || socket.readyState !== WebSocket.OPEN || registerId) return;
+  registerId = randomUUID();
+  send({ version: 2, type: 'computer', operation: 'register', requestId: registerId });
+}
+function markFailure(matchId, reason) {
+  const attempts = (failures.get(matchId)?.attempts ?? 0) + 1;
+  const delay = Math.min(1000 * 2 ** Math.min(attempts - 1, 9), 300000);
+  failures.set(matchId, { attempts, retryAt: Date.now() + delay });
+  log(`${reason}; retrying active match ${matchId} after ${delay} ms.`);
+}
 function startQueued() {
   while (!stopped && children.size < maxMatches && queued.size) {
     const matchId = queued.values().next().value;
     queued.delete(matchId);
-    if (children.has(matchId) || failed.has(matchId)) continue;
+    if (children.has(matchId) || completed.has(matchId)
+      || (failures.get(matchId)?.retryAt ?? 0) > Date.now()) continue;
     const args = [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--match', matchId,
       '--url', url, '--origin', origin];
     if (tokenFile) args.push('--service-token-file', tokenFile);
@@ -47,15 +64,15 @@ function startQueued() {
     children.set(matchId, child);
     log(`Started match ${matchId}; ${children.size} active computer clients.`);
     child.once('error', error => {
-      children.delete(matchId); failed.add(matchId);
-      log(`Could not start match ${matchId}: ${error.message}`);
+      children.delete(matchId);
+      markFailure(matchId, `Could not start match ${matchId}: ${error.message}`);
       startQueued();
     });
     child.once('exit', code => {
       if (children.get(matchId) !== child) return;
       children.delete(matchId);
-      if (code !== 0 && !stopped) { failed.add(matchId); log(`Match ${matchId} stopped with status ${code}.`); }
-      else log(`Match ${matchId} completed.`);
+      if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
+      else if (code === 0) { completed.add(matchId); failures.delete(matchId); log(`Match ${matchId} completed.`); }
       startQueued();
     });
   }
@@ -69,20 +86,22 @@ function receive(raw) {
   if (message.type === 'computerAuthentication' && message.requestId === authId) {
     sentAt = 0;
     if (message.code !== 'ACCEPTED') throw Error('Computer service authentication failed');
+    authenticated = true;
     retryDelay = 1000;
-    registerId = randomUUID();
-    send({ version: 2, type: 'computer', operation: 'register', requestId: registerId });
+    register();
     return;
   }
   if (message.type === 'computer' && message.requestId === registerId) {
     sentAt = 0; registerId = null;
     if (message.code !== 'READY') throw Error(`Computer registration rejected: ${message.code}`);
-    log(`Ready for computer matches; capacity ${maxMatches}.`);
+    if (!ready) log(`Ready for computer matches; capacity ${maxMatches}.`);
+    ready = true;
     return;
   }
   if (message.type === 'computerJobs' && message.requestId === null) {
     if (message.code !== 'AVAILABLE') throw Error('Invalid computer jobs');
-    for (const matchId of message.matches) if (!children.has(matchId) && !failed.has(matchId)) queued.add(matchId);
+    for (const matchId of message.matches) if (!children.has(matchId) && !completed.has(matchId)
+      && (failures.get(matchId)?.retryAt ?? 0) <= Date.now()) queued.add(matchId);
     startQueued();
   }
 }
@@ -103,7 +122,7 @@ async function connect() {
   current.addEventListener('error', () => { if (socket === current) log('Transport error.'); });
   current.addEventListener('close', () => {
     if (socket !== current || stopped) return;
-    socket = null; sentAt = 0; registerId = null;
+    socket = null; sentAt = 0; registerId = null; ready = false; authenticated = false;
     const delay = retryDelay;
     retryDelay = Math.min(retryDelay * 2, 30000);
     log(`Disconnected; reconnecting in ${delay} ms.`);
@@ -119,6 +138,7 @@ function stop() {
 }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
+setInterval(register, refreshMs).unref();
 setInterval(() => {
   if (sentAt && Date.now() - sentAt > 15000 && socket?.readyState === WebSocket.OPEN) {
     log('Response timed out; reconnecting.');

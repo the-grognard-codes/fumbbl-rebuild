@@ -1,4 +1,4 @@
-.play-runtime.live-match-page { max-width: 1920px; padding: 8px 16px; }
+.play-runtime.live-match-page { max-width: 1920px; padding: 8px; }
 .live-match-page .match-page-top { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; }
 .live-match-page .match-page-top h1 { margin: 0 auto 0 0; font-size: clamp(1.3rem, 2vw, 2rem); }
 .live-match-page .match-page-top p { margin: 0; }
@@ -97,7 +97,7 @@
 @font-face { font-family: 'Match Alegreya'; src: url('/assets/game/ui/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
 @font-face { font-family: 'Match Alegreya'; src: url('/assets/game/ui/fonts/AlegreyaSC-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 @font-face { font-family: 'Match Barlow'; src: url('/assets/game/ui/fonts/BarlowSemiCondensed-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-.play-runtime.live-match-page:has(.hosted-match) { max-width: none; padding: 6px 16px 16px; font: 14px/1.4 system-ui, 'Segoe UI', sans-serif; }
+.play-runtime.live-match-page:has(.hosted-match) { width: 100%; max-width: none; padding: 6px 8px 16px; font: 14px/1.4 system-ui, 'Segoe UI', sans-serif; }
 .live-match-page:has(.hosted-match) h1,
 .live-match-page:has(.hosted-match) h2,
 .live-match-page:has(.hosted-match) h3 { font-family: inherit; }
@@ -139,8 +139,6 @@
 .hosted-match:not(:has(.match-command-bar)) .match-layout { height: clamp(310px, calc(100dvh - 223px), 760px); }
 .hosted-match .match-board { min-width: 0; min-height: 0; }
 .play-runtime .hosted-match .match-layout .live-pitch { display: flex; flex-direction: column; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; }
-.hosted-match .live-pitch-toolbar { min-height: 34px; padding: 2px 6px; }
-.hosted-match .live-pitch-toolbar strong { font-size: 12px; font-weight: 500; }
 .hosted-match .live-pitch-viewport { flex: 1; min-height: 0; max-height: none; height: auto; aspect-ratio: auto; border: 1px solid #435657; border-radius: 4px; background: #172124; }
 .hosted-match .match-side { display: flex; flex-direction: column; min-height: 0; overflow: auto; gap: 10px; }
 .play-runtime .hosted-match .match-side section { margin: 0; padding: 10px 12px; border: 1px solid #425454; background: #1c292c; }
@@ -161,14 +159,8 @@
 .hosted-match .match-bench ul { margin: 5px 0; padding-left: 18px; columns: 2; }
 .hosted-match .match-bench li { break-inside: avoid; }
 .play-runtime .hosted-match .match-bench button { margin: 2px; padding: 4px 6px; font-size: 12px; background: #243b43; box-shadow: none; }
-.play-runtime .hosted-match .match-side [aria-label="Placement controls"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; }
-.hosted-match .match-side [aria-label="Placement controls"] h3,
-.hosted-match .match-side [aria-label="Placement controls"] label:first-of-type,
-.hosted-match .match-side [aria-label="Placement controls"] button:last-child { grid-column: 1 / -1; }
-.hosted-match .match-side [aria-label="Placement controls"] label { margin: 0; font-size: 12px; }
-.hosted-match .match-side [aria-label="Placement controls"] input,
-.hosted-match .match-side [aria-label="Placement controls"] select { width: 100%; min-height: 27px; padding: 2px 4px; }
-.play-runtime .hosted-match .match-side [aria-label="Placement controls"] button { min-width: 0; margin: 0; padding: 4px 5px; font: 12px/1.1 'Match Barlow', 'Segoe UI', sans-serif; text-transform: none; }
+.play-runtime .hosted-match .match-side [aria-label="Placement controls"] { padding: 0; }
+.play-runtime .hosted-match .match-side [aria-label="Placement controls"] button { display: block; width: 100%; margin: 0; padding: 6px; font: 12px/1.1 'Match Barlow', 'Segoe UI', sans-serif; text-transform: none; }
 
 @media (max-width: 980px) { .hosted-match .match-layout { grid-template-columns: minmax(0, 1fr) 260px; } }
 @media (max-width: 1150px) { .hosted-match .match-scoreboard { grid-template-columns: 70px minmax(0, 1fr) 135px minmax(0, 1fr) 70px; }.hosted-match .match-team small { display: none; }.hosted-match .match-scoreboard .match-art { width: 34px; height: 36px; }.hosted-match .match-rerolls span { font-size: 11px; } }
@@ -176,7 +168,7 @@
 
 /* Live presentation uses the same five-panel and bottom-ribbon geometry as the approved preview. */
 @media (min-width: 1100px) {
-  .play-runtime.live-match-page:has(.hosted-match) { height: 100dvh; min-height: 0; overflow: hidden; padding: 8px 16px; box-sizing: border-box; }
+  .play-runtime.live-match-page:has(.hosted-match) { height: 100dvh; min-height: 0; overflow: hidden; padding: 8px; box-sizing: border-box; }
   .live-match-page:has(.hosted-match) .match-page-top { height: 30px; min-height: 0; }
   .play-runtime.live-match-page > .hosted-match { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 268px; grid-template-rows: 90px minmax(0, 1fr) 94px auto; gap: 6px 10px; height: calc(100% - 38px); min-height: 0; margin: 0; }
   .hosted-match > h2, .hosted-match > p[aria-label="Coach labels"], .hosted-match > .match-technical-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -187,7 +179,6 @@
   .hosted-match > .match-command-bar { grid-column: 1; grid-row: 3; }
   .hosted-match .live-dugouts { grid-column: 1; grid-row: 4; }
   .play-runtime .hosted-match .match-layout .live-pitch { flex: 1; height: auto; min-height: 0; }
-  .hosted-match .live-pitch-toolbar { min-height: 28px; }
   .hosted-match .live-dugouts { flex: none; }
   .hosted-match .match-side { overflow: auto; }
   .live-match-page:has(.hosted-match) > section:not(.hosted-match) { position: absolute; z-index: 50; top: 42px; right: 290px; width: min(500px, 40vw); max-height: 35dvh; overflow: auto; border: 1px solid #a08d63; background: #152126; box-shadow: 0 8px 30px #000a; }
@@ -212,12 +203,21 @@
 .live-team-nameplate.away strong, .live-team-nameplate.away b { color: #e9a36c; }
 .live-team-nameplate small { color: #bbc5c4; white-space: nowrap; font: 12px 'Match Barlow', sans-serif; }
 .hosted-match .live-team-nameplate .match-art { flex: none; width: 62px; height: 64px; }
-.hosted-match .live-match-scoreboard > .live-match-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font: 500 18px/1.3 'Match Alegreya', Georgia, serif; text-transform: uppercase; letter-spacing: 1px; }
-.live-match-clock strong { font-size: 25px; font-weight: 500; }
-.live-match-clock > span { width: 95%; border-block: 1px solid #82745c38; font-size: 16px; text-align: center; }
-.live-match-clock small { display: flex; align-items: center; gap: 3px; color: #83b6e9; font-size: 15px; }
-.live-match-clock .match-art { width: 20px; height: 20px; }
-.hosted-match .live-match-scoreboard .live-match-clock .match-art { width: 20px; height: 20px; }
+.hosted-match .live-match-scoreboard > .live-match-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 2px 5px; font: 500 17px/1 'Match Alegreya', Georgia, serif; text-transform: uppercase; letter-spacing: 1px; }
+.live-match-clock strong { font-size: 20px; font-weight: 500; }
+.live-match-clock > span { width: 95%; border-bottom: 1px solid #82745c38; font-size: 13px; text-align: center; }
+.live-chess-clocks { display: grid; gap: 2px; width: 100%; margin-top: 3px; font: 600 11px/1 'Match Barlow', sans-serif; letter-spacing: 0; }
+.live-chess-clock { display: grid; box-sizing: border-box; grid-template-columns: 26px 1fr 1fr; align-items: center; min-height: 17px; padding: 1px 4px; color: #b7bfbd; background: #121a1e; border: 1px solid #665f4b; border-radius: 2px; font-variant-numeric: tabular-nums; }
+.live-chess-clock.home > span { color: #83b6e9; }
+.live-chess-clock.away > span { color: #f0a66b; }
+.live-chess-clock b { color: #f1e5cb; font-size: 12px; text-align: center; }
+.live-chess-clock small { color: #aebdbd; font-size: 10px; text-align: right; }
+.live-chess-clock.active { background: #22394a; border-color: #83b6e9; }
+.live-chess-clock.away.active { background: #432d21; border-color: #f0a66b; }
+.live-chess-clock.urgent { color: #ffbbbb; background: #5d171b; border-color: #f45f60; animation: live-clock-urgent 1s ease-in-out infinite alternate; }
+.live-chess-clock.urgent b { color: #fff0f0; }
+@keyframes live-clock-urgent { from { opacity: 1; } to { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .live-chess-clock.urgent { animation: none; } }
 .hosted-match .match-command-bar { align-content: center; min-height: 0; margin: 0; padding: 8px 12px; border: 1px solid #635d4d; background: linear-gradient(115deg, #1c2223, #0c1114 75%); box-shadow: inset 0 0 0 3px #080e1180; }
 .hosted-match .kickoff-command { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 20px 34px; gap: 3px 10px; min-width: 0; }
 .hosted-match .kickoff-command-heading { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; min-width: 0; color: #ead9b3; font: 14px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
@@ -237,15 +237,18 @@
 .hosted-match .route-controls button { height: 23px; padding: 1px 5px; }
 .hosted-match .route-controls details { position: relative; flex: none; }
 .hosted-match .route-controls details[open] ol { position: fixed; z-index: 60; right: 20px; bottom: 112px; display: block; max-height: 40vh; overflow: auto; padding: 10px 20px 10px 30px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
-.hosted-match .command-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; color: #e6d9bb; font: 12px 'Match Barlow', sans-serif; }
+.hosted-match .command-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding-right: 113px; color: #e6d9bb; font: 12px 'Match Barlow', sans-serif; }
 .hosted-match .command-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 15px 'Match Alegreya', Georgia, serif; }
 .hosted-match .command-heading span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9c8ca; }
+.play-runtime .hosted-match .target-assist { position: absolute; top: 5px; right: 8px; height: 19px; margin: 0; padding: 0 5px; font: 11px 'Match Barlow', sans-serif; text-transform: none; }
+.play-runtime .hosted-match .target-assist[aria-pressed=true] { border-color: #b8d2e7; background: #2b5678; }
 .hosted-match .command-buttons, .hosted-match .command-preview { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .play-runtime .hosted-match .command-buttons button { flex: none; height: 28px; padding: 2px 8px; font-size: 11px; }
 .play-runtime .hosted-match .command-buttons .last-used-action { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .play-runtime .hosted-match .command-buttons button[aria-pressed=true] { border-color: #b8d2e7; background: #2b5678; }
+.play-runtime .hosted-match .command-buttons .commit-action { margin-left: 0; font-size: 12px; }
 .hosted-match .command-preview > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d7d7cb; font: 12px 'Match Barlow', sans-serif; }
-.play-runtime .hosted-match .command-preview .commit-action { flex: none; margin-left: auto; font-size: 12px; }
+.play-runtime .hosted-match .command-preview .end-turn-action { flex: none; margin-left: auto; font-size: 12px; }
 .hosted-match .command-menu { position: absolute; left: 10px; bottom: calc(100% - 35px); display: flex; flex-wrap: wrap; gap: 4px; width: min(430px, calc(100% - 20px)); max-height: 45vh; overflow: auto; padding: 8px; border: 1px solid #8e8063; background: #132026; box-shadow: 0 8px 22px #000a; }
 .play-runtime .hosted-match .command-menu button { font-size: 12px; }
 @media (max-width: 700px) { .hosted-match .match-command-bar:has(.command-heading) { display: block; }.hosted-match .command-heading, .hosted-match .command-buttons, .hosted-match .command-preview { flex-wrap: wrap; margin: 4px 0; } }
@@ -295,6 +298,12 @@
 .live-dice-overlay { position: absolute; z-index: 70; width: max-content; max-width: 245px; padding: 8px; color: #f7ead0; background: #101d23ed; border: 2px solid #b79a68; border-radius: 4px; box-shadow: 0 8px 22px #000b; pointer-events: none; }
 .live-dice-overlay strong { display: block; margin-bottom: 5px; font: 600 12px 'Match Barlow', sans-serif; text-transform: uppercase; }
 .live-dice-overlay > div { display: flex; gap: 5px; }
+.live-dice-overlay.interactive { box-sizing: border-box; width: min(245px, 80vw); max-width: none; overflow: auto; pointer-events: auto; z-index: 200; }
+.live-dice-choices { flex-wrap: wrap; }
+.live-dice-choices button { display: flex; flex: 1 1 68px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 34px; padding: 4px; color: #f7ead0; background: linear-gradient(#355672, #142d42); border: 1px solid #789bb9; border-radius: 2px; font: 600 11px 'Match Barlow', sans-serif; cursor: pointer; }
+.live-dice-choices button:disabled { opacity: .45; cursor: default; }
+.live-dice-choices button:focus-visible { outline: 2px solid #f7dc9a; outline-offset: 1px; }
+.live-dice-choices .match-die { width: 35px; height: 35px; }
 .match-die { display: block; width: 49px; height: 49px; filter: drop-shadow(0 2px 2px #0009); }
 .replay-seek { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 8px 0 14px; }
 .replay-seek form { display: flex; align-items: end; gap: 5px; margin: 0; }
@@ -343,13 +352,13 @@
   .hosted-match .match-command-bar:has(.route-controls) { grid-template-rows: 25px 23px 20px; }
   .hosted-match .command-heading strong { font-size: 13px; }
   .hosted-match .command-heading span, .hosted-match .command-preview > span { font-size: 11px; }
+  .play-runtime .hosted-match .target-assist { top: 3px; height: 15px; font-size: 10px; }
   .play-runtime .hosted-match .command-buttons button { height: 25px; padding: 1px 6px; }
-  .play-runtime .hosted-match .command-preview .commit-action { height: 20px; padding: 0 7px; }
+  .play-runtime .hosted-match .command-preview .end-turn-action { height: 20px; padding: 0 7px; }
   .hosted-match .live-match-scoreboard { height: 76px; min-height: 0; overflow: hidden; }
   .hosted-match .live-match-scoreboard > * { overflow: hidden; }
-  .live-match-clock strong { font-size: 20px; }
-  .live-match-clock > span { font-size: 13px; }
-  .live-match-clock small { font-size: 12px; }
+  .live-match-clock strong { font-size: 17px; }
+  .live-match-clock > span { font-size: 12px; }
   .live-dugout { min-height: 32px; }
 }
 @media (max-width: 1099px) {
@@ -388,7 +397,9 @@
   .hosted-match .live-match-clock { font-size: 12px; }
   .hosted-match .live-match-clock strong { font-size: 16px; }
   .hosted-match .live-match-clock > span { font-size: 11px; }
-  .hosted-match .live-match-clock small { font-size: 11px; }
+  .hosted-match .live-chess-clock { grid-template-columns: 19px 1fr 1fr; padding-inline: 1px; font-size: 8px; }
+  .hosted-match .live-chess-clock b { font-size: 9px; }
+  .hosted-match .live-chess-clock small { font-size: 8px; }
   .hosted-match .live-match-scoreboard > .live-resources { padding: 3px; }
   .hosted-match .live-resource-counts { display: none; }
   .hosted-match .live-dugout-zones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -400,24 +411,34 @@
 }
 .hosted-match .match-side { overflow: hidden; }
 .match-side-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: none; }
-.match-side-controls > span { width: 100%; color: #b6c8c6; font: 12px 'Match Barlow', sans-serif; }
+.match-side-controls > span { color: #b6c8c6; font: 12px 'Match Barlow', sans-serif; }
+.match-connection-status { display: inline-flex; align-items: center; gap: 5px; margin-right: auto; }
+.match-connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #50c878; box-shadow: 0 0 4px #50c878; }
+.match-connection-status.disconnected .match-connection-dot { background: #d97d69; box-shadow: 0 0 4px #d97d69; }
 .match-side-controls > p { width: 100%; margin: 0; color: #ffc7a5; }
 .play-runtime .hosted-match .match-side-controls button { margin: 0; padding: 3px 5px; font: 11px 'Match Barlow', sans-serif; text-transform: none; }
+.match-pitch-zoom { display: flex; width: 100%; gap: 4px; }
+.play-runtime .hosted-match .match-pitch-zoom button { flex: 1; }
+.play-runtime .hosted-match .match-pitch-zoom button[aria-pressed=true] { background: linear-gradient(#365977, #152e43); border-color: #789bb9; }
 .hosted-match .match-side > .match-history { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(100px, 1fr) minmax(150px, 1fr); gap: 8px; }
 .play-runtime .hosted-match .match-side .match-history > section { display: flex; flex-direction: column; min-height: 0; padding: 8px; }
 .hosted-match .match-history .match-event-log, .hosted-match .match-history .match-chat { flex: 1; min-height: 0; }
 .hosted-match .match-history .match-event-scroll, .hosted-match .match-history .match-chat-scroll { flex: 1; min-height: 0; max-height: none; }
 .hosted-match .match-history .match-chat form { margin-top: 4px; }
 .hosted-match .match-history .match-chat form label, .hosted-match .match-history .match-chat form small { display: none; }
+.play-runtime .hosted-match .match-chat form input,
+.play-runtime .hosted-match .match-chat form button { height: 28px; box-sizing: border-box; margin: 0; padding: 3px 6px; font: 12px/1.4 system-ui, 'Segoe UI', sans-serif; }
+.play-runtime .hosted-match .match-chat form input { min-height: 0; }
 .play-runtime .hosted-match .match-side > .game-menu-trigger { flex: none; width: 100%; margin: 0; padding: 7px 10px; text-align: center; font-size: 15px; }
 .live-player-hover { position: fixed; z-index: 3000; box-sizing: border-box; width: min(310px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: auto; padding: 11px; color: #e8dfc8; background: linear-gradient(145deg, #23333b, #0a1219); border: 2px solid #83b6e9; box-shadow: 0 12px 35px #000c; pointer-events: none; font: 13px/1.35 'Match Barlow', sans-serif; }
 .live-player-hover.away { border-color: #e9a36c; }
-.live-player-hover header { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 8px; border-bottom: 1px solid #8c8060; }
+.live-player-hover header { border-bottom: 1px solid #8c8060; }
 .live-player-hover header h3 { margin: 3px 0; color: #fff1c6; font: 500 23px/1 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
 .live-player-hover header small, .live-player-hover header span { color: #b8c9cc; }
-.live-player-hover header img { width: 100px; height: 128px; object-fit: contain; image-rendering: pixelated; }
-.live-player-stats { display: grid; gap: 2px; margin: 8px 0; }
-.live-player-stats > div { display: flex; align-items: center; justify-content: space-between; padding: 1px 8px; background: #0b151c; border: 1px solid #586b6e; }
+.live-player-card-main { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: start; gap: 8px; margin-top: 8px; }
+.live-player-hover header img { width: 100%; height: 164px; object-fit: contain; object-position: center top; image-rendering: pixelated; }
+.live-player-stats { display: grid; gap: 2px; margin: 0 0 8px; }
+.live-player-stats > div { display: flex; align-items: center; justify-content: space-between; min-height: 30px; box-sizing: border-box; padding: 1px 6px; background: #0b151c; border: 1px solid #586b6e; }
 .live-player-stats dt { color: #abc1c9; font-size: 11px; }
 .live-player-stats dd { margin: 0; color: #f1dc9e; font: 500 20px 'Match Alegreya', Georgia, serif; }
 .live-player-card-detail { border-top: 1px solid #756e58; padding: 5px 2px 0; }

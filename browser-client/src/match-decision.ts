@@ -1,7 +1,7 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
 
-export type MatchDecision = { title: string; key: string; options: { id: string; label: string; kind: 'choice' | 'action'; face?: string }[] };
+export type MatchDecision = { title: string; key: string; kind: string; options: { id: string; label: string; kind: 'choice' | 'action'; face?: string }[] };
 
 const promptTitles: Record<string, string> = {
   blockDie: 'Choose a block die', reroll: 'Use a re-roll?', skill: 'Use a skill?',
@@ -17,15 +17,17 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   if (view.prompt?.actor === view.callerRole) return {
     title: view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick',
     key: view.prompt.id,
+    kind: view.prompt.kind,
     options: view.prompt.options.map(option => ({ id: option, label: option[0].toUpperCase() + option.slice(1), kind: 'choice' }))
   };
   const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate)
     && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;
   const choices = ownActions.filter(action => action.kind === kind || kind === 'blockDie' && action.kind === 'reroll');
-  return { title: promptTitles[kind], key: `${view.revision}:${kind}`,
+  return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind,
     options: choices.map(action => {
       const face = action.kind === 'blockDie' ? /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
-      return { id: action.id, label: action.label, kind: 'action', face };
+      const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
+      return { id: action.id, label, kind: 'action', face };
     }) };
 }

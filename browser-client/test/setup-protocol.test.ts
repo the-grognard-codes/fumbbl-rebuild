@@ -43,6 +43,25 @@ test('version-four match details are strict and role-consistent', () => {
   assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: live.players[1].id }, ...live.actions.slice(1)] }));
   assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: 'missing' }, ...live.actions.slice(1)] }));
 });
+
+test('version-four player card fields accept authoritative subtypes and status only', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const player = { ...live.players[0], positionRace: 'Human', positionRole: 'Lineman', status: 'Distracted' };
+  assert.equal(decodeSetupStateValue({ ...live, players: [player, ...live.players.slice(1)] }).players[0].status, 'Distracted');
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...player, positionRole: undefined }, ...live.players.slice(1)] }));
+  assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...player, cardSecret: true }, ...live.players.slice(1)] }));
+});
+
+test('version-four clock projection accepts bounded times and rejects malformed roles', () => {
+  const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+  const live = frames[0].actor;
+  const clock = { activeRole: 'home', turnElapsedMs: 15_000, homeReserveMs: 600_000, awayReserveMs: 600_000 };
+  assert.deepEqual(decodeSetupStateValue({ ...live, clock }).clock, clock);
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, activeRole: 'spectator' } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, homeReserveMs: 600_001 } }));
+  assert.throws(() => decodeSetupStateValue({ ...live, clock: { ...clock, privateTime: 1 } }));
+});
 test('decodes the versioned save/resume status and rejects malformed proposal data', () => {
   const saveResume = { status: 'SAVE_PENDING', proposalId: '12345678-1234-1234-1234-123456789abc', proposer: 'away', expiresAt: 1_700_000_000_000 };
   assert.equal(decodeSetupState(JSON.stringify({ ...response, state: { ...state, saveResume } })).state?.saveResume?.status, 'SAVE_PENDING');

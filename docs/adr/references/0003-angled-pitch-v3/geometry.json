@@ -1,0 +1,4625 @@
+{
+  "pitch": {
+    "length": 26,
+    "width": 15,
+    "squares": 390,
+    "endZoneRows": [
+      0,
+      25
+    ],
+    "midfieldBoundary": 13,
+    "wideZoneBoundaries": [
+      4,
+      11
+    ]
+  },
+  "fixture": [
+    {
+      "id": "home-1",
+      "team": "home",
+      "number": 1,
+      "x": 11,
+      "y": 6
+    },
+    {
+      "id": "home-2",
+      "team": "home",
+      "number": 2,
+      "x": 11,
+      "y": 7
+    },
+    {
+      "id": "home-3",
+      "team": "home",
+      "number": 3,
+      "x": 9,
+      "y": 7,
+      "hero": true
+    },
+    {
+      "id": "home-4",
+      "team": "home",
+      "number": 4,
+      "x": 11,
+      "y": 8
+    },
+    {
+      "id": "home-5",
+      "team": "home",
+      "number": 5,
+      "x": 10,
+      "y": 2
+    },
+    {
+      "id": "home-6",
+      "team": "home",
+      "number": 6,
+      "x": 10,
+      "y": 4
+    },
+    {
+      "id": "home-7",
+      "team": "home",
+      "number": 7,
+      "x": 10,
+      "y": 10
+    },
+    {
+      "id": "home-8",
+      "team": "home",
+      "number": 8,
+      "x": 10,
+      "y": 12
+    },
+    {
+      "id": "home-9",
+      "team": "home",
+      "number": 9,
+      "x": 9,
+      "y": 5
+    },
+    {
+      "id": "home-10",
+      "team": "home",
+      "number": 10,
+      "x": 9,
+      "y": 9
+    },
+    {
+      "id": "home-11",
+      "team": "home",
+      "number": 11,
+      "x": 9,
+      "y": 3
+    },
+    {
+      "id": "away-1",
+      "team": "away",
+      "number": 1,
+      "x": 14,
+      "y": 6
+    },
+    {
+      "id": "away-2",
+      "team": "away",
+      "number": 2,
+      "x": 14,
+      "y": 7
+    },
+    {
+      "id": "away-3",
+      "team": "away",
+      "number": 3,
+      "x": 14,
+      "y": 8
+    },
+    {
+      "id": "away-4",
+      "team": "away",
+      "number": 4,
+      "x": 15,
+      "y": 2
+    },
+    {
+      "id": "away-5",
+      "team": "away",
+      "number": 5,
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "away-6",
+      "team": "away",
+      "number": 6,
+      "x": 15,
+      "y": 10
+    },
+    {
+      "id": "away-7",
+      "team": "away",
+      "number": 7,
+      "x": 15,
+      "y": 12
+    },
+    {
+      "id": "away-8",
+      "team": "away",
+      "number": 8,
+      "x": 16,
+      "y": 5
+    },
+    {
+      "id": "away-9",
+      "team": "away",
+      "number": 9,
+      "x": 16,
+      "y": 9
+    },
+    {
+      "id": "away-10",
+      "team": "away",
+      "number": 10,
+      "x": 16,
+      "y": 7
+    },
+    {
+      "id": "away-11",
+      "team": "away",
+      "number": 11,
+      "x": 16,
+      "y": 11
+    }
+  ],
+  "captures": [
+    {
+      "view": "parallel-40-home",
+      "framing": "play",
+      "camera": {
+        "elevation": 40,
+        "yaw": 0,
+        "end": "home",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 80.8,
+        "center": {
+          "x": 836,
+          "y": 445
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 792.368,
+            "y": 177.31916398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 1159.2,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 1115.568,
+            "y": 177.31916398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 630.768,
+            "y": 177.31916398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 177.31916398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 388.368,
+            "y": 229.25640284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 229.25640284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 229.25640284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 229.25640284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 281.19364170599147,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 792.368,
+            "y": 281.19364170599147,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 873.168,
+            "y": 281.19364170599147,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 438.3688582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 792.368,
+            "y": 438.3688582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 873.168,
+            "y": 438.3688582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 388.368,
+            "y": 490.3060971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 490.3060971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 490.3060971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 490.3060971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 542.2433360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 512.8,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 469.16799999999995,
+            "y": 542.2433360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 792.368,
+            "y": 544.9703360193532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 60
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 630.768,
+            "y": 542.2433360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "parallel-40-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000030657855645117376,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 230,
+          "right": 1442,
+          "top": -230.18411254882812,
+          "bottom": 1120.18408203125
+        }
+      }
+    },
+    {
+      "view": "parallel-40-home",
+      "framing": "full",
+      "camera": {
+        "elevation": 40,
+        "yaw": 0,
+        "end": "home",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 33.50789780930119,
+        "center": {
+          "x": 836,
+          "y": 449
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 337.9923007568713,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 970.0315912372048,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 951.9373264201821,
+            "y": 337.9923007568713,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 768.9842043813976,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 750.8899395643749,
+            "y": 337.9923007568713,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 903.0157956186024,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 884.9215308015797,
+            "y": 337.9923007568713,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 668.460510953494,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 650.3662461364713,
+            "y": 359.5307622953328,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 735.4763065720964,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 717.3820417550737,
+            "y": 359.5307622953328,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 936.5236934279036,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 918.4294286108809,
+            "y": 359.5307622953328,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1003.539489046506,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 985.4452242294833,
+            "y": 359.5307622953328,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 802.4921021906988,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 784.3978373736761,
+            "y": 381.06922383379435,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 381.06922383379435,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 869.5078978093012,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 851.4136329922785,
+            "y": 381.06922383379435,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 802.4921021906988,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 784.3978373736761,
+            "y": 446.25005422471094,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 446.25005422471094,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 869.5078978093012,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 851.4136329922785,
+            "y": 446.25005422471094,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 668.460510953494,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 650.3662461364713,
+            "y": 467.7885157631725,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 735.4763065720964,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 717.3820417550737,
+            "y": 467.7885157631725,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 936.5236934279036,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 918.4294286108809,
+            "y": 467.7885157631725,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1003.539489046506,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 985.4452242294833,
+            "y": 467.7885157631725,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 903.0157956186024,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 884.9215308015797,
+            "y": 489.326977301634,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 701.9684087627952,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 683.8741439457725,
+            "y": 489.326977301634,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 490.4578688526979,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 60
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 768.9842043813976,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 750.8899395643749,
+            "y": 489.326977301634,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/parallel-40-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000018182886221227374,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 584.6907958984375,
+          "right": 1087.3092041015625,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "parallel-40-away",
+      "framing": "play",
+      "camera": {
+        "elevation": 40,
+        "yaw": 0,
+        "end": "away",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 80.8,
+        "center": {
+          "x": 836,
+          "y": 445
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 630.768,
+            "y": 184.13666398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 1159.2,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 1115.568,
+            "y": 184.13666398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 792.368,
+            "y": 182.7731639806467,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 59
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 263.2196639806467
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 184.13666398064672,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 236.07390284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 236.07390284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 236.07390284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 315.1569028433191
+          },
+          "image": {
+            "x": 388.368,
+            "y": 236.07390284331908,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 873.168,
+            "y": 288.01114170599146,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 792.368,
+            "y": 288.01114170599146,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 367.09414170599143
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 288.01114170599146,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 873.168,
+            "y": 443.8228582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 792.368,
+            "y": 443.8228582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 522.9058582940086
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 443.8228582940086,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 495.7600971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 495.7600971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 495.7600971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 574.8430971566809
+          },
+          "image": {
+            "x": 388.368,
+            "y": 495.7600971566809,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 792.368,
+            "y": 547.6973360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 512.8,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 469.16799999999995,
+            "y": 547.6973360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 547.6973360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 626.7803360193533
+          },
+          "image": {
+            "x": 630.768,
+            "y": 547.6973360193533,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "parallel-40-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000030657855645117376,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 230,
+          "right": 1442,
+          "top": -230.18411254882812,
+          "bottom": 1120.18408203125
+        }
+      }
+    },
+    {
+      "view": "parallel-40-away",
+      "framing": "full",
+      "camera": {
+        "elevation": 40,
+        "yaw": 0,
+        "end": "away",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 33.50789780930119,
+        "center": {
+          "x": 836,
+          "y": 449
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 768.9842043813976,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 750.8899395643749,
+            "y": 340.8195296345311,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 970.0315912372048,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 951.9373264201821,
+            "y": 340.8195296345311,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 340.25408385899914,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 59
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 903.0157956186024,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 884.9215308015797,
+            "y": 340.8195296345311,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1003.539489046506,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 985.4452242294833,
+            "y": 362.35799117299257,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 936.5236934279036,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 918.4294286108809,
+            "y": 362.35799117299257,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 735.4763065720964,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 717.3820417550737,
+            "y": 362.35799117299257,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 668.460510953494,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 650.3662461364713,
+            "y": 362.35799117299257,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 869.5078978093012,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 851.4136329922785,
+            "y": 383.8964527114541,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 383.8964527114541,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 802.4921021906988,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 784.3978373736761,
+            "y": 383.8964527114541,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 869.5078978093012,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 851.4136329922785,
+            "y": 448.51183732683876,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 448.51183732683876,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 802.4921021906988,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 784.3978373736761,
+            "y": 448.51183732683876,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1003.539489046506,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 985.4452242294833,
+            "y": 470.0502988653003,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 936.5236934279036,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 918.4294286108809,
+            "y": 470.0502988653003,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 735.4763065720964,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 717.3820417550737,
+            "y": 470.0502988653003,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 668.460510953494,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 650.3662461364713,
+            "y": 470.0502988653003,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 817.9057351829773,
+            "y": 491.5887604037618,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 701.9684087627952,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 683.8741439457725,
+            "y": 491.5887604037618,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 903.0157956186024,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 884.9215308015797,
+            "y": 491.5887604037618,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 768.9842043813976,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 750.8899395643749,
+            "y": 491.5887604037618,
+            "scale": 0.5654457755319576,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/parallel-40-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000018182886221227374,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 584.6907958984375,
+          "right": 1087.3092041015625,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "parallel-35-home",
+      "framing": "play",
+      "camera": {
+        "elevation": 35,
+        "yaw": 0,
+        "end": "home",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 80.8,
+        "center": {
+          "x": 836,
+          "y": 445
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 792.368,
+            "y": 196.89208379992417,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 1159.2,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 1115.568,
+            "y": 196.89208379992417,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 630.768,
+            "y": 196.89208379992417,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 196.89208379992417,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 388.368,
+            "y": 243.23705985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 243.23705985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 243.23705985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 243.23705985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 289.5820359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 792.368,
+            "y": 289.5820359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 873.168,
+            "y": 289.5820359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 429.98046408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 792.368,
+            "y": 429.98046408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 873.168,
+            "y": 429.98046408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 388.368,
+            "y": 476.3254401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 476.3254401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 476.3254401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 476.3254401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 522.6704162000758,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 512.8,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 469.16799999999995,
+            "y": 522.6704162000758,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 792.368,
+            "y": 525.3974162000759,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 60
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 630.768,
+            "y": 522.6704162000758,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "parallel-35-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00002784254501160513,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 230,
+          "right": 1442,
+          "top": -157.4846954345703,
+          "bottom": 1047.4847412109375
+        }
+      }
+    },
+    {
+      "view": "parallel-35-home",
+      "framing": "full",
+      "camera": {
+        "elevation": 35,
+        "yaw": 0,
+        "end": "home",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 37.55116175183904,
+        "center": {
+          "x": 836,
+          "y": 449
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 333.69380577796073,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 986.2046470073561,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 965.927019661363,
+            "y": 333.69380577796073,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 760.8976764963219,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 740.6200491503288,
+            "y": 333.69380577796073,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 911.1023235036781,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 890.824696157685,
+            "y": 333.69380577796073,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 648.2441912408049,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 627.9665638948118,
+            "y": 355.2322673164223,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 723.3465147444829,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 703.0688873984898,
+            "y": 355.2322673164223,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 948.6534852555171,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 928.375857909524,
+            "y": 355.2322673164223,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1023.7558087591951,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 1003.478181413202,
+            "y": 355.2322673164223,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 798.448838248161,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 778.1712109021679,
+            "y": 376.7707288548838,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 376.7707288548838,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 873.551161751839,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 853.2735344058459,
+            "y": 376.7707288548838,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 63
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 798.448838248161,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 778.1712109021679,
+            "y": 442.01978932483075,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 442.01978932483075,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 873.551161751839,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 853.2735344058459,
+            "y": 442.01978932483075,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 648.2441912408049,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 627.9665638948118,
+            "y": 463.5582508632923,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 723.3465147444829,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 703.0688873984898,
+            "y": 463.5582508632923,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 948.6534852555171,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 928.375857909524,
+            "y": 463.5582508632923,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 1023.7558087591951,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 1003.478181413202,
+            "y": 463.5582508632923,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 911.1023235036781,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 890.824696157685,
+            "y": 485.09671240175373,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 685.7953529926439,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 665.5177256466508,
+            "y": 485.09671240175373,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 486.3640641108783,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 60
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 760.8976764963219,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 740.6200491503288,
+            "y": 485.09671240175373,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 62
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/parallel-35-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000019934436535859946,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 554.3662719726562,
+          "right": 1117.6336669921875,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "parallel-35-away",
+      "framing": "play",
+      "camera": {
+        "elevation": 35,
+        "yaw": 0,
+        "end": "away",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 80.8,
+        "center": {
+          "x": 836,
+          "y": 445
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 630.768,
+            "y": 203.70958379992416,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 1159.2,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 1115.568,
+            "y": 203.70958379992416,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 792.368,
+            "y": 202.34608379992414,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 59
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 282.79258379992416
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 203.70958379992416,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 250.05455985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 250.05455985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 250.05455985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 329.1375598570887
+          },
+          "image": {
+            "x": 388.368,
+            "y": 250.05455985708872,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 873.168,
+            "y": 296.3995359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 792.368,
+            "y": 296.3995359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 375.4825359142532
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 296.3995359142532,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 916.8,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 873.168,
+            "y": 435.43446408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 792.368,
+            "y": 435.43446408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 755.2,
+            "y": 514.5174640857467
+          },
+          "image": {
+            "x": 711.5680000000001,
+            "y": 435.43446408574675,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1240,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 1196.368,
+            "y": 481.7794401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 1078.4,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 1034.768,
+            "y": 481.7794401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 593.6,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 549.9680000000001,
+            "y": 481.7794401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 432,
+            "y": 560.8624401429113
+          },
+          "image": {
+            "x": 388.368,
+            "y": 481.7794401429113,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 792.368,
+            "y": 528.1244162000759,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 512.8,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 469.16799999999995,
+            "y": 528.1244162000759,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 997.6,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 953.9680000000001,
+            "y": 528.1244162000759,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 674.4,
+            "y": 607.2074162000758
+          },
+          "image": {
+            "x": 630.768,
+            "y": 528.1244162000759,
+            "scale": 1.3635,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "parallel-35-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00002784254501160513,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 230,
+          "right": 1442,
+          "top": -157.4846954345703,
+          "bottom": 1047.4847412109375
+        }
+      }
+    },
+    {
+      "view": "parallel-35-away",
+      "framing": "full",
+      "camera": {
+        "elevation": 35,
+        "yaw": 0,
+        "end": "away",
+        "perspective": false,
+        "distance": 60,
+        "focus": 13,
+        "scale": 37.55116175183904,
+        "center": {
+          "x": 836,
+          "y": 449
+        },
+        "worldPanY": 0
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 760.8976764963219,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 740.6200491503288,
+            "y": 336.86218505077215,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenFeet": {
+            "x": 986.2046470073561,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 965.927019661363,
+            "y": 336.86218505077215,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 336.22850919620987,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 59
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 911.1023235036781,
+            "y": 373.61538461538464
+          },
+          "image": {
+            "x": 890.824696157685,
+            "y": 336.86218505077215,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1023.7558087591951,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 1003.478181413202,
+            "y": 358.4006465892337,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 948.6534852555171,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 928.375857909524,
+            "y": 358.4006465892337,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 723.3465147444829,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 703.0688873984898,
+            "y": 358.4006465892337,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 648.2441912408049,
+            "y": 395.15384615384613
+          },
+          "image": {
+            "x": 627.9665638948118,
+            "y": 358.4006465892337,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 873.551161751839,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 853.2735344058459,
+            "y": 379.93910812769525,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 379.93910812769525,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 798.448838248161,
+            "y": 416.6923076923077
+          },
+          "image": {
+            "x": 778.1712109021679,
+            "y": 379.93910812769525,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenFeet": {
+            "x": 873.551161751839,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 853.2735344058459,
+            "y": 444.5544927430799,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 444.5544927430799,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldFeet": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenFeet": {
+            "x": 798.448838248161,
+            "y": 481.3076923076923
+          },
+          "image": {
+            "x": 778.1712109021679,
+            "y": 444.5544927430799,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenFeet": {
+            "x": 1023.7558087591951,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 1003.478181413202,
+            "y": 466.09295428154144,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenFeet": {
+            "x": 948.6534852555171,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 928.375857909524,
+            "y": 466.09295428154144,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenFeet": {
+            "x": 723.3465147444829,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 703.0688873984898,
+            "y": 466.09295428154144,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldFeet": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenFeet": {
+            "x": 648.2441912408049,
+            "y": 502.84615384615387
+          },
+          "image": {
+            "x": 627.9665638948118,
+            "y": 466.09295428154144,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenFeet": {
+            "x": 836,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 815.7223726540069,
+            "y": 487.63141582000287,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenFeet": {
+            "x": 685.7953529926439,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 665.5177256466508,
+            "y": 487.63141582000287,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenFeet": {
+            "x": 911.1023235036781,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 890.824696157685,
+            "y": 487.63141582000287,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldFeet": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenFeet": {
+            "x": 760.8976764963219,
+            "y": 524.3846153846154
+          },
+          "image": {
+            "x": 740.6200491503288,
+            "y": 487.63141582000287,
+            "scale": 0.6336758545622838,
+            "anchorX": 32,
+            "anchorY": 58
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/parallel-35-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000019934436535859946,
+        "maximumRoundTripErrorSquares": 3.972054645195637e-15,
+        "extent": {
+          "left": 554.3662719726562,
+          "right": 1117.6336669921875,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    }
+  ],
+  "panChecks": [
+    {
+      "end": "home",
+      "focus": 0,
+      "worldShiftPixels": -675.1841052147408,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000054733609306898304
+    },
+    {
+      "end": "home",
+      "focus": 6.5,
+      "worldShiftPixels": -337.5920526073704,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000050564854054931844
+    },
+    {
+      "end": "home",
+      "focus": 19.5,
+      "worldShiftPixels": 337.5920526073704,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000059338618374350586
+    },
+    {
+      "end": "home",
+      "focus": 26,
+      "worldShiftPixels": 675.1841052147408,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.00010562236833442794
+    },
+    {
+      "end": "away",
+      "focus": 0,
+      "worldShiftPixels": 675.1841052147408,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.00010562236833442794
+    },
+    {
+      "end": "away",
+      "focus": 6.5,
+      "worldShiftPixels": 337.5920526073704,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000059338618374350586
+    },
+    {
+      "end": "away",
+      "focus": 19.5,
+      "worldShiftPixels": -337.5920526073704,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000050564854054931844
+    },
+    {
+      "end": "away",
+      "focus": 26,
+      "worldShiftPixels": -675.1841052147408,
+      "turfRailsStandsPlayersMoveTogether": true,
+      "hudFixed": true,
+      "footErrorPixels": 0.000054733609306898304
+    }
+  ]
+}

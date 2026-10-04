@@ -289,6 +289,36 @@ class MatchServiceTest {
 		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
 			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
 	}
+	@Test
+	void versionFourReplayAcceptsBoundedOptionalPlayerDetailsOnly() throws Exception {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam)); accepted("home", activate(id));
+		MatchDocument document = service.load("home", id).document;
+		JsonObject artifact = JsonObject.readFrom(completed(id, 0, 0).json());
+		JsonObject state = artifact.get("events").asArray().get(0).asObject().get("state").asObject();
+		state.add("projectionVersion", 4).add("homeTeamName", "Home").add("awayTeamName", "Away")
+			.add("homeResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0))
+			.add("awayResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0));
+		JsonObject player = JsonObject.readFrom("{\"id\":\"home1\",\"name\":\"Player\",\"slot\":1,\"art\":null,\"role\":\"home\",\"state\":\"is standing\",\"x\":7,\"y\":7,\"number\":1,\"position\":\"Lineman\",\"ma\":6,\"st\":3,\"ag\":3,\"pa\":5,\"av\":8,\"skills\":[],\"offPitch\":\"pitch\"}");
+		state.get("players").asArray().add(player);
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		player.add("status", "Standing");
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		player.add("positionRace", "Human").add("positionRole", "Lineman");
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		player.remove("positionRole");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		player.add("positionRole", "Lineman").set("status", "");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		player.set("status", "Standing").add("privateGold", 1);
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		player.remove("privateGold"); state.add("clock", new JsonObject());
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+	}
 
 	@Test
 	void resultEndpointLimitsReadsToMembersAndReturnsOnlyRequestedReplayEvent() throws Exception {

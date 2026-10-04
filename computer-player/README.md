@@ -26,7 +26,7 @@ npm run daemon -- --url ws://127.0.0.1:22232/browser/v2 --origin http://localhos
 
 For hosted DEV use `wss://game-dev.molesunderthepitch.org/browser/v2` and Origin `https://dev.molesunderthepitch.org`; for hosted PROD use `wss://game.molesunderthepitch.org/browser/v2` and Origin `https://molesunderthepitch.org`. The current local-dev, DEV, and PROD profiles share the supplied credential. The process can later run on another machine that can reach the same WSS endpoint. The local loopback WS profile is only for local testing.
 
-The daemon registers as Coach Bugman - Random and starts a separate game client for each activated computer match. It defaults to 32 concurrent clients; `--max-matches N` sets a limit from 1 to 64. Additional matches wait in a queue. On reconnect, the game server sends its active computer matches again so the daemon can resume missing clients. A failed match client is logged and not automatically retried in a loop; restart the daemon to retry it after diagnosis.
+The daemon registers as Coach Bugman - Random and starts a separate game client for each activated computer match. It defaults to 32 concurrent clients; `--max-matches N` sets a limit from 1 to 64. Additional matches wait in a queue. Every 30 seconds the daemon refreshes the server's active match list, recovering missed notices and checking that its connection is still healthy. A failed game client is retried while its match remains active, with a delay that grows to at most five minutes; `--refresh-ms N` changes the refresh interval (1,000 to 300,000 milliseconds).
 
 For a single existing computer match, the game client can run directly:
 

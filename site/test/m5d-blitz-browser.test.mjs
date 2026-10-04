@@ -24,23 +24,27 @@ test('real-engine Blitz actions pin and commit once across both players and spec
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const sockets = new Map(); const calls = []; const pages = [];
-  let step = 0; let loads = 0;
+  let step = 0; let loads = 0; let overrideState = null;
   const waitForLoadCount = async count => {
     const deadline = Date.now() + 5000;
     while (loads < count && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
   };
-  const state = index => ({ ...frames[step].actor, callerRole: index === 2 ? 'spectator' : index === 1 ? 'away' : 'home' });
+  const state = index => ({ ...(overrideState ?? frames[step].actor), callerRole: index === 2 ? 'spectator' : index === 1 ? 'away' : 'home',
+    clock: { activeRole: 'home', turnElapsedMs: 110_000, homeReserveMs: 600_000, awayReserveMs: 600_000 } });
   const sendState = (index, send, requestId = null, duplicate = false) => send({ type: 'setupState', requestId, code: 'ACCEPTED', duplicate, state: state(index) });
   const assertBoard = async page => {
     await page.waitForFunction(players => {
       const labels = [...document.querySelectorAll('[aria-label="Live match pitch"] .live-marker')].map(marker => marker.getAttribute('aria-label'));
-      return players.every(player => labels.some(label => label.includes(`${player.role} ${player.name},`)
+      return players.every(player => labels.some(label => label.includes(`${player.teamName} ${player.name},`)
         && label.endsWith(`square ${player.x}, ${player.y}`)));
-    }, frames[step].actor.players.filter(player => player.x !== null));
+    }, frames[step].actor.players.filter(player => player.x !== null).map(player => ({ ...player,
+      teamName: player.role === 'home' ? frames[step].actor.homeTeamName : frames[step].actor.awayTeamName })));
     await page.getByLabel('Pitch action preview').waitFor();
     const labels = await page.getByLabel('Live match pitch').locator('.live-marker').evaluateAll(markers => markers.map(marker => marker.getAttribute('aria-label')));
-    for (const player of frames[step].actor.players.filter(player => player.x !== null))
-      assert.ok(labels.some(label => label.includes(`${player.role} ${player.name},`) && label.endsWith(`square ${player.x}, ${player.y}`)), `Missing ${player.role} ${player.name} at ${player.x},${player.y}`);
+    for (const player of frames[step].actor.players.filter(player => player.x !== null)) {
+      const teamName = player.role === 'home' ? frames[step].actor.homeTeamName : frames[step].actor.awayTeamName;
+      assert.ok(labels.some(label => label.includes(`${teamName} ${player.name},`) && label.endsWith(`square ${player.x}, ${player.y}`)), `Missing ${player.role} ${player.name} at ${player.x},${player.y}`);
+    }
     assert.equal(await page.getByLabel('Live match pitch').locator('.live-ball').count(), frames[step].actor.ball ? 1 : 0);
   };
   try {
@@ -64,7 +68,33 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       await assertBoard(page);
     }
     const actor = pages[0];
-    const commit = actor.getByRole('button', { name: 'Commit action', exact: true });
+    await actor.setViewportSize({ width: 1224, height: 604 });
+    assert.equal(await actor.locator('.live-chess-clock.home.urgent').count(), 1, 'The active turn pulses during its last 15 seconds');
+    assert.doesNotMatch(await actor.locator('.live-match-clock').textContent(), /PLAY|NICE/i);
+    assert.equal(await actor.locator('.live-match-clock').evaluate(element => element.scrollHeight <= element.clientHeight + 1), true,
+      'Both clocks fit in the center scoreboard panel');
+    const layout = await actor.evaluate(() => {
+      const box = selector => document.querySelector(selector)?.getBoundingClientRect();
+      const bar = box('.match-command-bar'), assist = box('.target-assist');
+      const confirm = box('.command-buttons .commit-action'), endTurn = box('.command-preview .end-turn-action');
+      const input = document.querySelector('#match-chat-draft');
+      const send = input?.nextElementSibling;
+      return { assistTop: assist?.top, confirmTop: confirm?.top, endTurnTop: endTurn?.top,
+        assistRight: assist?.right, endTurnRight: endTurn?.right, barRight: bar?.right,
+        inputHeight: input?.getBoundingClientRect().height, sendHeight: send?.getBoundingClientRect().height,
+        inputFont: input && getComputedStyle(input).fontFamily,
+        inputStyle: input && { height: getComputedStyle(input).height, minHeight: getComputedStyle(input).minHeight,
+          padding: getComputedStyle(input).padding, flex: getComputedStyle(input).flex },
+        chatFont: getComputedStyle(document.querySelector('.match-chat-scroll')).fontFamily,
+        scoreLeft: box('.live-match-scoreboard')?.left, mainLeft: box('main.play-runtime')?.left };
+    });
+    assert.ok(layout.assistTop < layout.confirmTop && layout.confirmTop < layout.endTurnTop, JSON.stringify(layout));
+    assert.ok(layout.barRight - layout.assistRight < 16 && layout.barRight - layout.endTurnRight < 16, JSON.stringify(layout));
+    assert.equal(layout.inputHeight, layout.sendHeight, JSON.stringify(layout));
+    assert.equal(layout.inputFont, layout.chatFont);
+    assert.equal(layout.mainLeft, 0);
+    assert.ok(Math.abs(layout.scoreLeft - layout.mainLeft - 8) < 2, JSON.stringify(layout));
+    const commit = actor.getByRole('button', { name: 'Confirm Action', exact: true });
     assert.equal(await actor.getByRole('button', { name: 'Move', exact: true }).isDisabled(), true);
     assert.equal(await actor.getByRole('button', { name: 'Block', exact: true }).isDisabled(), true);
     await actor.getByRole('button', { name: 'End Turn', exact: true }).click();
@@ -104,15 +134,15 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       }
       if (viaSpace) { const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space'); }
       else if (!immediate) await commit.click();
-      await actor.waitForFunction(() => document.querySelector('.command-preview .commit-action')?.disabled === true);
+      await actor.waitForFunction(() => document.querySelector('.command-buttons .commit-action')?.disabled === true);
       assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
       assert.equal(calls[0].request.expectedRevision, step);
       assert.equal(calls[0].request.actionId, actionId);
       assert.equal(await commit.isDisabled(), true);
-      assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
-      assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
+      assert.equal(await pages[1].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
+      assert.equal(await pages[2].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
       const accepted = calls.shift();
       step++;
       sendState(0, accepted.send, accepted.request.requestId);
@@ -126,7 +156,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     };
     await pinPlayer(0);
     await actor.getByRole('button', { name: 'More actions', exact: true }).click();
-    await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation of home1' }).click();
+    await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation' }).click();
     assert.equal(await commit.isEnabled(), true, 'More actions pins a commit-ready server choice');
     assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
     await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -143,7 +173,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     }));
     assert.equal(await commit.isEnabled(), true, `Initial Blitz action must be ready: ${JSON.stringify(initialSelection)}`);
     await commit.click();
-    await actor.waitForFunction(() => document.querySelector('.command-preview .commit-action')?.disabled === true);
+    await actor.waitForFunction(() => document.querySelector('.command-buttons .commit-action')?.disabled === true);
     assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
     assert.equal(calls.length, 1);
     const stale = calls.shift();
@@ -155,25 +185,48 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await submit('1:target-away1', () => pinPlayer(1));
     for (const x of [8, 9, 10]) await submit(`${step}:move-${x}-7`, () => pinSquare(x, 7), x === 8);
     await submit('5:block-away1', () => pinPlayer(1));
-    const decision = actor.getByRole('dialog', { name: 'Match decision' });
+    const decision = actor.getByRole('dialog', { name: 'Choose a block die' });
     await decision.waitFor();
+    assert.equal(await actor.locator('dialog.match-decision-dialog').count(), 0, 'Block dice use the compact pitch overlay');
     assert.equal(await decision.locator('.match-die').count(), 1, 'The server-offered block face is a graphical choice');
     if (process.env.M5D_SCREENSHOT_DIR) {
       await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
       await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'block-die-decision.png') });
     }
-    assert.equal(await actor.evaluate(() => document.activeElement?.closest('dialog')?.getAttribute('aria-label')), 'Match decision');
+    assert.equal(await actor.evaluate(() => document.activeElement?.closest('[role="dialog"]')?.getAttribute('aria-label')), 'Choose a block die');
     await decision.getByRole('button').first().press('Escape');
     assert.equal(await decision.isVisible(), true, 'A required server decision cannot be dismissed');
-    assert.equal(await pages[1].getByRole('dialog', { name: 'Match decision' }).count(), 0);
-    await submit('6:block-die:0', () => actor.getByRole('dialog', { name: 'Match decision' }).getByRole('button', { name: frames[6].actor.actions[0].label }).click(), false, true);
-    assert.equal(await pages[2].getByRole('dialog', { name: 'Match decision' }).count(), 0);
-    assert.equal(await actor.getByRole('dialog', { name: 'Match decision' }).count(), 0, 'Push uses pitch arrows instead of a modal');
+    assert.equal(await pages[1].getByRole('dialog', { name: 'Choose a block die' }).count(), 0);
+    await submit('6:block-die:0', () => actor.getByRole('dialog', { name: 'Choose a block die' }).getByRole('button', { name: frames[6].actor.actions[0].label }).click(), false, true);
+    assert.equal(await pages[2].getByRole('dialog', { name: 'Choose a block die' }).count(), 0);
+    assert.equal(await actor.getByRole('dialog', { name: 'Choose a block die' }).count(), 0, 'Push uses pitch arrows instead of a modal');
     assert.equal(await actor.getByLabel('Live match pitch').locator('.live-push-choice').count(), 3);
     assert.equal(await pages[1].getByLabel('Live match pitch').locator('.live-push-choice').count(), 0);
     assert.equal(await pages[2].getByLabel('Live match pitch').locator('.live-push-choice').count(), 0);
     await submit('7:push:away1:12:6', () => pinSquare(12, 6), false, true);
     assert.equal(step, 8);
     assert.equal(frames[8].checkpoint, 'pushed');
+    overrideState = { ...frames[8].actor, revision: 9, actor: 'home', actions: [
+      { id: '9:reroll:none', kind: 'reroll', label: 'Do not re-roll Dodge', actor: 'home', target: null, sourcePlayerId: null },
+      { id: '9:reroll:dodge', kind: 'reroll', label: 'Use Dodge re-roll', actor: 'home', target: null, sourcePlayerId: null },
+      { id: '9:reroll:team', kind: 'reroll', label: 'Use team re-roll for Dodge', actor: 'home', target: null, sourcePlayerId: null }
+    ] };
+    sendState(0, sockets.get(0));
+    const reroll = actor.getByRole('dialog', { name: 'Use a re-roll?' });
+    await reroll.waitFor();
+    assert.equal(await reroll.getByRole('button', { name: 'Use Dodge re-roll' }).count(), 1);
+    assert.equal(await reroll.getByRole('button', { name: 'Use team re-roll for Dodge' }).count(), 1);
+    assert.equal(await actor.locator('dialog.match-decision-dialog').count(), 0);
+    overrideState = { ...overrideState, revision: 10, actions: [
+      { id: '10:follow:no', kind: 'followUp', label: 'Do not follow up', actor: 'home', target: null, sourcePlayerId: null },
+      { id: '10:follow:yes', kind: 'followUp', label: 'Follow up', actor: 'home', target: null, sourcePlayerId: null }
+    ] };
+    sendState(0, sockets.get(0));
+    const followUp = actor.getByRole('dialog', { name: 'Match decision' });
+    await followUp.waitFor();
+    assert.equal(await followUp.getByRole('button', { name: 'No', exact: true }).count(), 1);
+    assert.equal(await followUp.getByRole('button', { name: 'Yes', exact: true }).count(), 1);
+    assert.equal(await followUp.getByText('Choose an option to continue play.').count(), 0);
+    assert.ok((await followUp.boundingBox()).width < 260, 'Follow Up uses a compact dialog');
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });

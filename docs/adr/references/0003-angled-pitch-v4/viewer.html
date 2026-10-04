@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUTP · travelling perspective camera</title>
+  <style>
+    :root { color-scheme: dark; color: #edf5ff; background: #070d16; font: 15px system-ui, sans-serif; }
+    * { box-sizing: border-box; } body { margin: 0; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 20px; background: #101c2b; border-bottom: 1px solid #40637e; }
+    .toolbar[hidden], #show-controls[hidden] { display: none; }
+    #show-controls { margin: 4px 20px; padding: 3px 10px; font-size: 12px; }
+    button, select, input { font: inherit; color: #edf5ff; background: #142639; border: 1px solid #4d7c9c; padding: 7px 10px; }
+    button, select { cursor: pointer; } input { padding: 0; vertical-align: middle; }
+    :focus-visible { outline: 2px solid #ffe17b; outline-offset: 3px; } a { color: #77d8ff; }
+    label { display: flex; align-items: center; gap: 8px; }
+    #stage { position: relative; width: 100%; aspect-ratio: 1672 / 941; overflow: hidden; background: #070d16; }
+    #camera-frame { position: absolute; width: 1672px; height: 941px; transform-origin: 0 0; overflow: hidden; }
+    #stadium-world { position: absolute; inset: 0; pointer-events: none; }
+    .stadium-plate { position: absolute; left: 0; top: 0; width: 1672px; height: 941px; transform-origin: 0 0; }
+    .stadium-strip { position: absolute; left: -1672px; top: 0; width: 5016px; height: 941px; mask-image: linear-gradient(transparent,black 12%,black 85%,transparent); }
+    .stadium-plate img { position: absolute; width: 1672px; height: 941px; image-rendering: pixelated; }
+    #hud, #pitch { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
+    #hud { pointer-events: none; image-rendering: pixelated; }
+    #pitch { overflow: hidden; cursor: grab; touch-action: none; } #pitch.dragging { cursor: grabbing; }
+    #pitch image { image-rendering: pixelated; }
+    #occupants [data-player-id]:focus { outline: none; }
+    #square-readout { margin-left: auto; color: #ffe17b; font-family: ui-monospace, monospace; }
+    body.capture .toolbar, body.capture #show-controls { display: none; } body.capture #stage { width: 1672px; height: 941px; }
+  </style>
+  <link rel="stylesheet" href="hud.css">
+</head>
+<body>
+  <button id="show-controls" type="button" aria-expanded="true" aria-controls="reference-controls" hidden>Show reference controls</button>
+  <div id="reference-controls" class="toolbar">
+    <button id="hide-controls" type="button" aria-controls="reference-controls">Hide controls ↑</button>
+    <a href="index.html">← Gallery</a>
+    <a href="dice/index.html">Dice review</a>
+    <label>View <select id="view"></select></label>
+    <button id="toggle-tactical" type="button" aria-pressed="false">Top-down view</button>
+    <label>Turn track <select id="turn-period"><option value="1">1–8 · First half</option><option value="2">9–16 · Second half</option><option value="3">17–24 · Overtime study</option></select></label>
+    <label>Camera position <input id="pan" type="range" min="0" max="26" step="0.25" value="13"></label>
+    <button id="center" type="button">Return to midfield</button>
+    <label><input id="coordinates" type="checkbox"> Square coordinates / anchors</label>
+    <output id="square-readout" aria-live="polite">26 × 15 · 390 squares · 11 + 11 players</output>
+  </div>
+  <div id="stage" tabindex="0" aria-label="Pitch; wheel, drag or arrow keys to scroll north–south along the field">
+    <div id="camera-frame">
+      <div id="stadium-world"></div>
+      <svg id="pitch" viewBox="0 0 1672 941" role="img" aria-label="Canonical pitch with centered player anchors"></svg>
+      <div id="hud" aria-label="Match interface">
+        <section id="home-resources" class="hud-panel resources" aria-label="Ironbank Rovers inducements and rerolls">
+          <div class="resource-list" data-team="home"></div>
+        </section>
+        <svg id="scoreboard-art" viewBox="477 8 715 68" role="img" aria-label="Ironbank Rovers 1–0 Cinderclaw Crew">
+          <image href="../0003-angled-pitch-v2/art/hud.png" width="1672" height="941"/>
+        </svg>
+        <ol id="home-turns" class="turn-track" aria-label="Ironbank Rovers turns"></ol>
+        <div id="weather-slot" aria-hidden="true"></div>
+        <ol id="away-turns" class="turn-track" aria-label="Cinderclaw Crew turns"></ol>
+        <section id="away-resources" class="hud-panel resources" aria-label="Cinderclaw Crew inducements and rerolls">
+          <div class="resource-list" data-team="away"></div>
+        </section>
+        <div id="home-clock" class="hud-panel clock active" aria-label="Ironbank Rovers turn timer 1 minute 32 seconds, time bank 7 minutes 45 seconds">
+          <span>BANK <b>07:45</b></span><span data-clock-line="turn">TURN <b>01:32</b></span>
+        </div>
+        <div id="away-clock" class="hud-panel clock" aria-label="Cinderclaw Crew turn timer 2 minutes, time bank 6 minutes 10 seconds">
+          <span>BANK <b>06:10</b></span><span data-clock-line="turn">TURN <b>02:00</b></span>
+        </div>
+        <aside id="player-card" class="hud-panel hover-card" role="tooltip" hidden aria-label="Player details">
+          <svg id="player-card-art" viewBox="25 770 394 130" aria-hidden="true">
+            <image href="../0003-angled-pitch-v2/art/hud.png" width="1672" height="941"/>
+          </svg>
+          <div id="generic-player-summary" hidden>
+            <img id="player-summary-sprite" alt="">
+            <div><h2 id="player-summary-name"></h2><p id="player-summary-role"></p>
+              <dl id="player-summary-stats"></dl>
+            </div>
+          </div>
+          <div class="player-detail"><strong>SKILLS</strong><span id="player-skills">Block, Tackle</span></div>
+          <div class="player-detail" title="Status also covers Distracted, Prone, Stunned, Knocked out, Seriously injured, Dead and Sent off."><strong>STATUS</strong><span id="player-status">Standing · Ready</span></div>
+        </aside>
+        <div id="resource-tooltip" class="hud-panel hover-card" role="tooltip" hidden></div>
+        <section id="match-chat" class="hud-panel" aria-label="Match chat">
+          <header><h2>MATCH CHAT</h2><span id="chat-hint">ENTER to chat</span></header>
+          <ol id="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
+            <li><strong class="opponent">Grom:</strong> Good luck!</li><li><strong>You:</strong> Have a good match.</li>
+          </ol>
+          <form id="chat-form" hidden><label class="visually-hidden" for="chat-entry">Message</label><input id="chat-entry" type="text" maxlength="240" placeholder="Say something…" autocomplete="off"><span>ENTER · send &nbsp; ESC · close</span></form>
+        </section>
+        <nav id="action-dock" aria-label="Player actions">
+          <div id="confirmation-row" class="hud-panel action-row">
+            <button id="confirm-action" type="button" data-glyph="confirm" aria-label="Confirm proposed Move for Alden">Confirmed!</button>
+          </div>
+          <div id="other-actions" class="hud-panel action-row" aria-label="Other available actions" hidden>
+            <button type="button" data-action="Pass" data-glyph="pass">PASS</button>
+            <button type="button" data-action="Hand-off" data-glyph="hand-off">HAND-OFF</button>
+            <button type="button" data-action="Foul" data-glyph="foul">FOUL</button>
+          </div>
+          <div id="primary-actions" class="hud-panel action-row">
+            <button type="button" data-action="Move" data-glyph="move" aria-pressed="true">MOVE</button>
+            <button type="button" data-action="Block" data-glyph="block" aria-pressed="false">BLOCK</button>
+            <button type="button" data-action="Blitz" data-glyph="blitz" aria-pressed="false">BLITZ</button>
+            <button id="toggle-other" type="button" data-glyph="other" aria-expanded="false" aria-controls="other-actions">OTHER ACTION</button>
+            <button class="end-turn" type="button" data-action="End turn" data-glyph="end-turn">END TURN</button>
+          </div>
+        </nav>
+        <section id="event-log" class="hud-panel" aria-label="Match event log" data-font-size="medium">
+          <header><h2>MATCH EVENTS</h2><div class="log-font-controls" role="group" aria-label="Event log font size">
+            <button type="button" data-log-size="small" aria-label="Small event log font" aria-pressed="false">A</button>
+            <button type="button" data-log-size="medium" aria-label="Medium event log font" aria-pressed="true">A</button>
+            <button type="button" data-log-size="large" aria-label="Large event log font" aria-pressed="false">A</button>
+          </div></header>
+          <ol id="event-messages" role="log" aria-live="polite" aria-relevant="additions">
+            <li class="current">Alden selected.</li><li class="current">Choose a destination.</li>
+            <li>Half 1 · Turn 4</li><li>Ironbank Rovers leading 1–0</li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="../0003-angled-pitch-v2/scene.js"></script><script src="scene.js"></script>
+  <script src="../0003-angled-pitch-v2/art/sprites/manifest.js"></script><script src="hud.js"></script><script src="renderer.js"></script>
+</body>
+</html>

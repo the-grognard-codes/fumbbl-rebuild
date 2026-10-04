@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUTP · lower parallel pitch</title>
+  <style>
+    :root { color-scheme: dark; color: #edf5ff; background: #070d16; font: 15px system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 20px; background: #101c2b; border-bottom: 1px solid #40637e; }
+    button, select, input { font: inherit; color: #edf5ff; background: #142639; border: 1px solid #4d7c9c; padding: 7px 10px; }
+    button, select { cursor: pointer; }
+    input { padding: 0; vertical-align: middle; }
+    :focus-visible { outline: 2px solid #ffe17b; outline-offset: 3px; }
+    a { color: #77d8ff; }
+    label { display: flex; align-items: center; gap: 8px; }
+    #stage { position: relative; width: 100%; aspect-ratio: 1672 / 941; overflow: hidden; }
+    #hud, #pitch { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
+    #hud { pointer-events: none; image-rendering: pixelated; }
+    #pitch { overflow: hidden; cursor: grab; touch-action: none; }
+    #pitch.dragging { cursor: grabbing; }
+    #pitch image { image-rendering: pixelated; }
+    #away-label { position: absolute; right: 3.55%; top: 2.45%; width: 8.4%; height: 4.6%; align-items: center; justify-content: center; background: #101d2b; color: #3fe1ff; font: bold clamp(9px, 1.4vw, 23px) ui-monospace, monospace; pointer-events: none; }
+    #away-label[hidden] { display: none; }
+    #away-label:not([hidden]) { display: flex; }
+    #square-readout { margin-left: auto; color: #ffe17b; font-family: ui-monospace, monospace; }
+    .notes { margin: 16px 20px; color: #b8d0e2; line-height: 1.6; max-width: 100ch; }
+    body.capture .toolbar, body.capture .notes { display: none; }
+    body.capture #stage { width: 1672px; height: 941px; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="index.html">← Gallery</a>
+    <label>View <select id="view"></select></label>
+    <label>Framing <select id="framing"><option value="play">Width fit · pan length</option><option value="full">Full 26 × 15</option></select></label>
+    <label>Longitudinal pan <input id="pan" type="range" min="0" max="26" step="0.25" value="13"></label>
+    <button id="center" type="button">Return to midfield</button>
+    <label><input id="coordinates" type="checkbox"> Square coordinates / feet</label>
+    <output id="square-readout" aria-live="polite">26 × 15 · 390 squares · 11 + 11 players</output>
+  </div>
+  <div id="stage" tabindex="0" aria-label="Lower parallel pitch; wheel, drag or arrow keys to pan the entire scene">
+    <svg id="pitch" viewBox="0 0 1672 941" role="img" aria-label="Canonical pitch and centered player anchors"></svg>
+    <img id="hud" src="../0003-angled-pitch-v2/art/hud.png" alt="MUTP match controls, Ironbank Rovers 1–0 Cinderclaw Crew, half 1 turn 4, Alden selected">
+    <div id="away-label" hidden>AWAY VIEW</div>
+  </div>
+  <p class="notes">Reference fixture for ADR 0003. All views share the same 390 squares, 22 canonical player positions and ball. Players stand at projected square centers; the cyan frame is Alden's square. The 40° and 35° end-on views use parallel projection. Wheel, drag, arrow keys or the slider pan the entire world: turf, pitch, markings, players, sidelines and stands. The HUD stays fixed. Choose Full 26 × 15 to inspect every square. Click a square to read its canonical coordinates. This viewer changes framing only; it does not issue game actions.</p>
+  <script src="../0003-angled-pitch-v2/scene.js"></script>
+  <script src="scene.js"></script>
+  <script src="../0003-angled-pitch-v2/art/sprites/manifest.js"></script>
+  <script src="art/manifest.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

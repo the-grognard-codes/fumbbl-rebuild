@@ -172,7 +172,7 @@ try {
       await page.getByRole('button', { name: 'Place on empty own-half square', exact: true }).click();
       view = await waitRevision(view.revision + 1);
     }
-    await page.getByRole('button', { name: 'Confirm legal setup', exact: true }).click();
+    await page.getByRole('button', { name: 'Confirm Setup', exact: true }).click();
     view = await waitRevision(view.revision + 1);
   }
   assert.equal(view.phase, 'READY_FOR_KICKOFF');

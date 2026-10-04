@@ -13,7 +13,7 @@ export function MatchEventLog({ records, loading, unavailable }: {
   const lines = useMemo(() => {
     if (records.length < cache.current.processed) cache.current = { processed: 0, lines: [] };
     for (let index = cache.current.processed; index < records.length; index++)
-      appendMatchLogLines(cache.current.lines, records[index], records[index - 1]);
+      appendMatchLogLines(cache.current.lines, records[index]);
     cache.current.processed = records.length;
     return cache.current.lines;
   }, [records]);

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MatchEventLog } from './MatchEventLog.tsx';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import { matchTeamName } from './match-team-name.ts';
 
 type Tab = 'Game Options' | 'Interface' | 'Key Bindings' | 'Game Log';
 
@@ -42,12 +43,12 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             <section><h3>Request Match Pause</h3>
               {!saved && <p>Pause is unavailable for this match.</p>}
               {saved?.status === 'ACTIVE' && <><p>Both coaches must agree before play pauses.</p><button type="button" disabled={!canAct} onClick={() => mutate('saveRequest')}>Request Match Pause</button></>}
-              {saved?.status === 'SAVE_PENDING' && <><p>Requested by {saved.proposer}. Expires {new Date(saved.expiresAt!).toLocaleString()}.</p>
+              {saved?.status === 'SAVE_PENDING' && <><p>Requested by {matchTeamName(view, saved.proposer!)}. Expires {new Date(saved.expiresAt!).toLocaleString()}.</p>
                 {saved.proposer === view.callerRole ? <button type="button" disabled={!canAct} onClick={() => mutate('saveCancel', { proposalId: saved.proposalId })}>Cancel request</button> :
                   <><button type="button" disabled={!canAct} onClick={() => mutate('saveAccept', { proposalId: saved.proposalId })}>Accept pause</button>
                     <button type="button" disabled={!canAct} onClick={() => mutate('saveReject', { proposalId: saved.proposalId })}>Reject pause</button></>}</>}
               {saved?.status === 'SUSPENDED' && <><p>This match is paused.</p><button type="button" disabled={!canAct} onClick={() => mutate('resumeRequest')}>Request resume</button></>}
-              {saved?.status === 'RESUME_PENDING' && <><p>Resume requested by {saved.proposer}. Expires {new Date(saved.expiresAt!).toLocaleString()}.</p>
+              {saved?.status === 'RESUME_PENDING' && <><p>Resume requested by {matchTeamName(view, saved.proposer!)}. Expires {new Date(saved.expiresAt!).toLocaleString()}.</p>
                 {saved.proposer === view.callerRole ? <button type="button" disabled={!canAct} onClick={() => mutate('resumeCancel', { proposalId: saved.proposalId })}>Cancel request</button> :
                   <><button type="button" disabled={!canAct} onClick={() => mutate('resumeAccept', { proposalId: saved.proposalId })}>Accept resume</button>
                     <button type="button" disabled={!canAct} onClick={() => mutate('resumeReject', { proposalId: saved.proposalId })}>Reject resume</button></>}</>}
