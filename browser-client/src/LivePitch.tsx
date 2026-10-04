@@ -242,7 +242,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           </button>;
         })}
         {decision && <PitchDecisionOverlay key={decision.key} decision={decision} disabled={decisionDisabled} viewport={viewport} scene={scene} x={diceX} y={diceY} onAction={onDecisionAction}/>}
-        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index}/>)}</div></div>}
+        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div></div>}
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>

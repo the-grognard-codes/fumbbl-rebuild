@@ -1,6 +1,6 @@
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null };
+export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null; rollKey?: string };
 
 const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
 export function blockFace(roll: number): string | null { return Number.isInteger(roll) && roll >= 1 && roll <= 6 ? blockFaces[roll - 1] : null; }
