@@ -9,14 +9,20 @@ import java.sql.SQLException;
 public final class JdbcRecoveryRepository implements RecoveryRepository {
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
+	private final BoundedJsonStorageCodec codec;
 	public static final int MAX_RETAINED_RECORDS = 1024;
 	private final int retainedLimit;
 
 	public JdbcRecoveryRepository(Connections connections) { this(connections, MAX_RETAINED_RECORDS); }
 
 	public JdbcRecoveryRepository(Connections connections, int retainedLimit) {
+		this(connections, retainedLimit, new BoundedJsonStorageCodec(BoundedJsonStorageCodec.RECOVERY_ENCODED_LIMIT,
+			BoundedJsonStorageCodec.RECOVERY_DECODED_LIMIT));
+	}
+
+	JdbcRecoveryRepository(Connections connections, int retainedLimit, BoundedJsonStorageCodec codec) {
 		if (retainedLimit < 1 || retainedLimit > MAX_RETAINED_RECORDS) throw new IllegalArgumentException("Invalid recovery retention limit");
-		this.connections = connections; this.retainedLimit = retainedLimit;
+		this.connections = connections; this.retainedLimit = retainedLimit; this.codec = codec;
 	}
 
 	@Override
@@ -25,7 +31,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 			"SELECT matchid,generation,artifact_json FROM ffb_match_recovery WHERE matchid=?")) {
 			query.setString(1, matchId);
 			try (ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), rows.getString(3)) : null;
+				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decode(rows.getString(3))) : null;
 			}
 		}
 	}
@@ -34,6 +40,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	public boolean save(Record record, long expectedGeneration) throws SQLException {
 		if (expectedGeneration < 0 || expectedGeneration == Long.MAX_VALUE || record.generation != expectedGeneration + 1)
 			throw new SQLException("Invalid recovery generation");
+		String storedJson = codec.encode(record.json);
 		boolean commitAttempted = false;
 		try (Connection connection = connections.open()) {
 			connection.setAutoCommit(false);
@@ -43,13 +50,13 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 					reserveRetention(record.matchId, connection);
 					try (PreparedStatement statement = connection.prepareStatement(
 						"INSERT INTO ffb_match_recovery(matchid,generation,artifact_json) VALUES (?,?,?)")) {
-						statement.setString(1, record.matchId); statement.setLong(2, 1); statement.setString(3, record.json);
+						statement.setString(1, record.matchId); statement.setLong(2, 1); statement.setString(3, storedJson);
 						count = statement.executeUpdate();
 					}
 				} else {
 					try (PreparedStatement statement = connection.prepareStatement(
 						"UPDATE ffb_match_recovery SET generation=?,artifact_json=? WHERE matchid=? AND generation=?")) {
-						statement.setLong(1, expectedGeneration + 1); statement.setString(2, record.json);
+						statement.setLong(1, expectedGeneration + 1); statement.setString(2, storedJson);
 						statement.setString(3, record.matchId); statement.setLong(4, expectedGeneration);
 						count = statement.executeUpdate();
 					}

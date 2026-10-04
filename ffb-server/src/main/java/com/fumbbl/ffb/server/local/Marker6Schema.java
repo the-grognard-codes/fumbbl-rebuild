@@ -13,6 +13,10 @@ import java.util.Set;
 final class Marker6Schema {
 	void verify(Connection connection) throws SQLException {
 		verifyMarker(connection);
+		verifyTables(connection);
+	}
+
+	void verifyTables(Connection connection) throws SQLException {
 		verifyTable(connection, "ffb_v2_match_members",
 			new String[] {"matchid|char(36)|NO|ascii|ascii_bin", "account_id|char(36)|NO|ascii|ascii_bin", "role|enum('home','away')|NO|ascii|ascii_bin"},
 			set("PRIMARY|0|matchid", "PRIMARY|0|account_id", "ffb_v2_match_members_role|0|matchid", "ffb_v2_match_members_role|0|role"), set(), set());

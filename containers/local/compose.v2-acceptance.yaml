@@ -1,0 +1,101 @@
+# Fresh-volume, schema-only authenticated browser acceptance profile.
+name: ffb-v2-acceptance
+services:
+  database:
+    image: mariadb:11.8.9@sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3
+    command: ["--max-allowed-packet=64M"]
+    environment:
+      MARIADB_DATABASE: ffb_local
+      MARIADB_USER: ffb_m6_runtime
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    ports: ["127.0.0.1:23318:3306"]
+    volumes: [database:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [acceptance]
+  server:
+    image: ffb-server:acceptance
+    build:
+      context: ../..
+      dockerfile: containers/local/Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    ports: ["127.0.0.1:22235:22227"]
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+      JAVA_TOOL_OPTIONS: "-Dffb.v2.auth.diagnostics=${ACCEPTANCE_AUTH_DIAGNOSTICS:-false}"
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ./server.v2-acceptance.ini:/config/server.ini:ro
+      - ./fixtures/teams:/app/teams:ro
+      - ./fixtures/rosters:/app/rosters:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing ADC file}:/run/adc/application_default_credentials.json:ro
+      - backup:/data/backup
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD-SHELL, "test \"$$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: 127.0.0.1:22235' -H 'Origin: http://localhost:5000' http://127.0.0.1:22227/browser/v2)\" = 405"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [acceptance]
+  schema-bootstrap:
+    image: ffb-server:acceptance
+    profiles: [bootstrap]
+    depends_on:
+      database:
+        condition: service_healthy
+    entrypoint: ["java", "-cp", "FantasyFootballServer.jar:lib/*", "com.fumbbl.ffb.server.local.LocalAcceptanceBootstrap", "/config/server.ini"]
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    secrets: [db_password, admin_password, coach_password]
+    volumes:
+      - ./server.v2-acceptance.ini:/config/server.ini:ro
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing ADC file}:/run/adc/application_default_credentials.json:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [acceptance]
+  token-mint:
+    image: ffb-server:acceptance
+    profiles: [tokens]
+    entrypoint: ["java", "-cp", "FantasyFootballServer.jar:lib/*", "com.fumbbl.ffb.server.local.LocalAcceptanceTokenMint"]
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
+      ACCEPTANCE_FIREBASE_PROJECT: dev-moles-under-the-pitch-org
+      ACCEPTANCE_SIGNING_SERVICE_ACCOUNT: ${ACCEPTANCE_SIGNING_SERVICE_ACCOUNT:-coach-ui-acceptance@dev-moles-under-the-pitch-org.iam.gserviceaccount.com}
+    volumes:
+      - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing ADC file}:/run/adc/application_default_credentials.json:ro
+      - ../../.tools/coach-oriented-match-ui:/output
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [acceptance]
+networks:
+  acceptance:
+    internal: false
+volumes:
+  database:
+  backup:
+secrets:
+  db_password:
+    file: ${M6_DB_PASSWORD_FILE:?Set M6_DB_PASSWORD_FILE to the existing local secret file}
+  db_root_password:
+    file: ${M6_DB_ROOT_PASSWORD_FILE:?Set M6_DB_ROOT_PASSWORD_FILE to the existing local secret file}
+  admin_password:
+    file: ${M6_ADMIN_PASSWORD_FILE:?Set M6_ADMIN_PASSWORD_FILE to the existing local secret file}
+  coach_password:
+    file: ${M6_COACH_PASSWORD_FILE:?Set M6_COACH_PASSWORD_FILE to the existing local secret file}

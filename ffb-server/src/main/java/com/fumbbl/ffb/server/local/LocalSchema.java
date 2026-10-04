@@ -68,6 +68,25 @@ public class LocalSchema {
 		}
 	}
 
+	/** Creates only baseline schema on a verified empty database; acceptance bootstrap never seeds fixture coaches. */
+	void initializeSchemaOnly(DbConnectionManager manager) throws SQLException {
+		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement();
+			 ResultSet tables = statement.executeQuery("SHOW TABLES")) {
+			if (tables.next()) throw new SQLException("Schema-only initialization requires an empty database");
+		}
+		new DbInitializer(manager).initDb(false);
+		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
+			statement.executeUpdate("ALTER TABLE ffb_games_serialized MODIFY serialized LONGBLOB");
+			statement.executeUpdate("CREATE TABLE ffb_local_schema (version INT NOT NULL PRIMARY KEY)");
+			statement.executeUpdate("INSERT INTO ffb_local_schema VALUES (1)");
+			connection.commit();
+			migrateSavedTeams(connection);
+			migratePreparedMatches(connection);
+			migrateCompletedMatches(connection);
+			migrateRecovery(connection);
+		}
+	}
+
 	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
 			if (schemaVersion(statement) != 7) throw new SQLException("Named-team startup requires a separately migrated schema version 7 database");

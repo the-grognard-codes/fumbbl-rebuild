@@ -20,6 +20,10 @@ class LocalServerMainTest {
 		review.setProperty("db.url", LocalServerMain.REVIEW_DB_URL);
 		review.setProperty("server.base", "http://127.0.0.1:22234");
 		assertDoesNotThrow(() -> LocalServerMain.validateProfile(review));
+		Properties acceptance = (Properties) properties.clone();
+		acceptance.setProperty("db.url", LocalServerMain.ACCEPTANCE_DB_URL);
+		acceptance.setProperty("server.base", "http://127.0.0.1:22235");
+		assertDoesNotThrow(() -> LocalServerMain.validateProfile(acceptance));
 		Properties foreign = (Properties) properties.clone();
 		foreign.setProperty("local.browser.v2.firebase.project", "molesunderthepitch-dotorg");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(foreign));
@@ -30,8 +34,11 @@ class LocalServerMainTest {
 		Properties wrongUrl = (Properties) properties.clone();
 		wrongUrl.setProperty("db.url", LocalServerMain.LEGACY_DB_URL);
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
-		wrongUrl.setProperty("db.url", "jdbc:mariadb://host.docker.internal:23318/ffb_local");
+		wrongUrl.setProperty("db.url", "jdbc:mariadb://host.docker.internal:23319/ffb_local");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
+		Properties acceptanceWrongUser = (Properties) acceptance.clone();
+		acceptanceWrongUser.setProperty("db.user", "root");
+		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(acceptanceWrongUser));
 	}
 
 	@Test void legacyProfileCannotSelectMarker6TargetOrLiveSettings() {

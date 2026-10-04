@@ -32,6 +32,8 @@ public final class V2PreparationService {
 	private final Clock clock;
 	private final ComputerOpponentService computers;
 	private final MatchJson json = new MatchJson();
+	private final BoundedJsonStorageCodec storageCodec = new BoundedJsonStorageCodec(
+		BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT);
 	private final SecureRandom random = new SecureRandom();
 
 	public V2PreparationService(Connections connections, SavedTeamService teams, RosterCatalog catalog, Clock clock) {
@@ -78,7 +80,10 @@ public final class V2PreparationService {
 	public List<String> activeComputerMatches() throws SQLException {
 		List<String> result = new ArrayList<>();
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
-			"SELECT matchid FROM ffb_v2_match_members WHERE account_id=? AND role='away'")) {
+			"SELECT p.match_id FROM ffb_prepared_matches p "
+				+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
+				+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
+				+ "WHERE p.document_version=3 ORDER BY p.match_id")) {
 			query.setString(1, computers.memberId());
 			try (ResultSet rows = query.executeQuery()) {
 				while (rows.next()) {
@@ -262,7 +267,9 @@ public final class V2PreparationService {
 
 	private MatchDocument document(Connection connection, String matchId, boolean lock) throws SQLException {
 		try (PreparedStatement query = connection.prepareStatement("SELECT document_version,document_json FROM ffb_prepared_matches WHERE match_id=?" + (lock ? " FOR UPDATE" : ""))) {
-			query.setString(1, matchId); try (ResultSet rows = query.executeQuery()) { return rows.next() ? json.decode(rows.getString(2), rows.getInt(1)) : null; }
+			query.setString(1, matchId); try (ResultSet rows = query.executeQuery()) {
+				return rows.next() ? json.decode(storageCodec.decode(rows.getString(2)), rows.getInt(1)) : null;
+			}
 		}
 	}
 	private boolean member(Connection connection, String matchId, String accountId, String role) throws SQLException {
