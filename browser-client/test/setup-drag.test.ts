@@ -24,6 +24,10 @@ test('setup dragging accepts only owned reserves or pitch players and empty own-
   assert.equal(canDropSetupPlayer(setup, 'reserve', { x: 8, y: 7 }), true);
   assert.equal(canDropSetupPlayer(setup, 'home1', null), true);
   assert.equal(canDropSetupPlayer(setup, 'reserve', null), false);
+  assert.equal(canDropSetupPlayer(setup, 'ko', { x: 8, y: 7 }), false);
+  const exhausted: SetupState = { ...setup, players: [...setup.players,
+    { ...initial.players[0], id: 'exhausted', x: null, y: null, offPitch: 'other', state: 'is exhausted' }] };
+  assert.equal(canDropSetupPlayer(exhausted, 'exhausted', { x: 8, y: 7 }), false);
   assert.equal(canDropSetupPlayer(setup, 'home1', { x: 7, y: 7 }), false);
   assert.equal(canDropSetupPlayer(setup, 'home1', { x: 13, y: 7 }), false);
   assert.equal(canDropSetupPlayer({ ...setup, actor: 'away' }, 'home1', null), false);

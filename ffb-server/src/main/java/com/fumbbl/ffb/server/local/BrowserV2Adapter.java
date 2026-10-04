@@ -194,7 +194,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				send(connection, response);
 				if (outcome.publish()) publisher.publish(id, connection, response.get("state").asObject());
 				return;
-			} else if ("matchResult".equals(type)) response = new MatchResultJson().handle(matches, principal.accountId(), request);
+			} else if ("matchResult".equals(type)) {
+				String role = access.playerRole(principal, request.get("matchId").asString());
+				response = new MatchResultJson().handle(matches, role, request);
+			}
 			else if ("preparedMatch".equals(type)) {
 				String operation = request.getString("operation", "");
 				if ("release".equals(operation)) {

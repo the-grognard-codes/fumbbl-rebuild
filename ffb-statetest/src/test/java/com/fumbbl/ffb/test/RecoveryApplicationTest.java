@@ -229,6 +229,48 @@ class RecoveryApplicationTest {
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
 	}
 
+	@Test void completedRecoveryLoadKeepsLiveSaveResumeAndClockDecorationWithoutChangingFrozenResult() throws Exception {
+		Fixture fixture = fixture();
+		MutableClock clock = new MutableClock(1_700_000_000_000L);
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		FinishedMatch finished = finishWithResponse(application, fixture.id);
+		String role = finished.role;
+		JsonObject liveState = accepted(finished.response).get("state").asObject();
+		assertEquals("FULL_TIME", liveState.getString("phase", null));
+		assertEquals("ACTIVE", liveState.get("saveResume").asObject().getString("status", null));
+		assertNotNull(liveState.get("clock"));
+		assertTrue(liveState.get("clock").asObject().get("activeRole").isNull());
+
+		String completion = fixture.matches.result(role, fixture.id).json();
+		String checkpoint = fixture.recovery.rows.get(fixture.id).json;
+		JsonObject retried = accepted(application.handleWithOutcome(role, finished.request).response());
+		assertTrue(retried.getBoolean("duplicate", false));
+		JsonObject retryState = retried.get("state").asObject();
+		assertNotNull(retryState.get("saveResume"), "An exact terminal retry must include save/resume status");
+		assertNotNull(retryState.get("clock"), "An exact terminal retry must include clock eligibility");
+		assertEquals(liveState.get("saveResume").toString(), retryState.get("saveResume").toString());
+		assertEquals(liveState.get("clock").toString(), retryState.get("clock").toString());
+		for (String field : new String[] {"revision", "phase", "half", "drive", "homeScore", "awayScore", "turnMode", "actions", "players"})
+			assertEquals(liveState.get(field).toString(), retryState.get(field).toString(),
+				"Exact terminal retry must preserve authoritative " + field + " projection");
+
+		JsonObject loaded = accepted(application.handleWithOutcome(role, load(fixture.id, "completed-load")).response());
+		JsonObject loadedState = loaded.get("state").asObject();
+		assertNotNull(loadedState.get("saveResume"), "A recovered terminal load must include save/resume status");
+		assertNotNull(loadedState.get("clock"), "A recovered terminal load must include clock eligibility");
+		assertEquals(liveState.get("saveResume").toString(), loadedState.get("saveResume").toString(),
+			"A recovered terminal load must retain the live save/resume status");
+		assertEquals(liveState.get("clock").toString(), loadedState.get("clock").toString(),
+			"A recovered terminal load must retain live clock eligibility");
+		for (String field : new String[] {"revision", "phase", "half", "drive", "homeScore", "awayScore", "turnMode", "actions", "players"})
+			assertEquals(liveState.get(field).toString(), loadedState.get(field).toString(),
+				"Completed load must preserve authoritative " + field + " projection");
+		assertFalse(loaded.getBoolean("duplicate", true));
+		assertEquals(completion, fixture.matches.result(role, fixture.id).json(), "Completed-load decoration cannot rewrite the frozen result or transcript");
+		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id).json, "A terminal read cannot rewrite the recovery checkpoint");
+	}
+
 	@Test void ambiguousCompletionCommitReconcilesRetryAndBroadcastWithoutAnotherWrite() throws Exception {
 		Fixture fixture = fixture();
 		MutableClock clock = new MutableClock();
@@ -326,11 +368,25 @@ class RecoveryApplicationTest {
 
 	/** Native complete game with deterministic kickoff fixture dice; no product dice inputs. */
 	private JsonObject finish(SetupApplication application, String id) throws Exception {
+		FinishedMatch finished = finishWithResponse(application, id);
+		return finished.request.add("testRole", finished.role);
+	}
+
+	private static final class FinishedMatch {
+		private final JsonObject request;
+		private final String role;
+		private final JsonObject response;
+		private FinishedMatch(JsonObject request, String role, JsonObject response) {
+			this.request = request; this.role = role; this.response = response;
+		}
+	}
+
+	private FinishedMatch finishWithResponse(SetupApplication application, String id) throws Exception {
 		java.lang.reflect.Field field = SetupApplication.class.getDeclaredField("sessions"); field.setAccessible(true);
 		SetupSession session = (SetupSession) ((Map<?, ?>) field.get(application)).get(id);
 		java.lang.reflect.Field stateField = SetupSession.class.getDeclaredField("state"); stateField.setAccessible(true);
 		com.fumbbl.ffb.server.GameState engine = (com.fumbbl.ffb.server.GameState) stateField.get(session);
-		JsonObject last = null; String role = null;
+		JsonObject last = null, terminalResponse = null; String role = null;
 		for (int index = 0; index < 160 && !session.isComplete(); index++) {
 			JsonObject view = accepted(onWorker(() -> application.handle("home", load(id, "view")))).get("state").asObject();
 			role = view.getString("actor", null);
@@ -353,6 +409,7 @@ class RecoveryApplicationTest {
 			long actionStarted = System.nanoTime();
 			String selectedRole = role; JsonObject selectedRequest = last;
 			JsonObject response = onWorker(() -> application.handle(selectedRole, selectedRequest));
+			terminalResponse = response;
 			actionNanos.add(System.nanoTime() - actionStarted);
 			if (response.get("state") != null && !response.get("state").isNull())
 				maxSnapshotBytes = Math.max(maxSnapshotBytes, response.get("state").toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
@@ -361,7 +418,7 @@ class RecoveryApplicationTest {
 				|| "MATCH_OUTCOME_UNKNOWN".equals(response.getString("code", null)))) accepted(response);
 		}
 		assertTrue(session.isComplete());
-		return last.add("testRole", role);
+		return new FinishedMatch(last, role, terminalResponse);
 	}
 	@Test
 	void recreatedApplicationRestoresAcceptedActivationAndRequestRetry() throws Exception {

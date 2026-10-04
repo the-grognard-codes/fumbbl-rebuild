@@ -9,8 +9,16 @@ import java.sql.SQLException;
 public final class JdbcMatchRepository implements MatchRepository {
 	public interface Connections { Connection open() throws SQLException; }
 	private final Connections connections;
+	private final BoundedJsonStorageCodec codec;
 
-	public JdbcMatchRepository(Connections connections) { this.connections = connections; }
+	public JdbcMatchRepository(Connections connections) {
+		this(connections, new BoundedJsonStorageCodec(BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT,
+			BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT));
+	}
+
+	JdbcMatchRepository(Connections connections, BoundedJsonStorageCodec codec) {
+		this.connections = connections; this.codec = codec;
+	}
 
 	@Override
 	public Record find(String id) throws SQLException {
@@ -18,7 +26,7 @@ public final class JdbcMatchRepository implements MatchRepository {
 			"SELECT match_id,document_version,document_json FROM ffb_prepared_matches WHERE match_id=?")) {
 			query.setString(1, id);
 			try (ResultSet rows = query.executeQuery()) {
-				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), rows.getString(3)) : null;
+				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decode(rows.getString(3))) : null;
 			}
 		}
 	}
@@ -30,6 +38,7 @@ public final class JdbcMatchRepository implements MatchRepository {
 	public boolean replace(Record record, int expectedVersion) throws SQLException { return write(record, expectedVersion, false); }
 
 	private boolean write(Record record, int expectedVersion, boolean insert) throws SQLException {
+		String storedJson = codec.encode(record.json);
 		boolean commitAttempted = false;
 		try (Connection connection = connections.open()) {
 			connection.setAutoCommit(false);
@@ -39,12 +48,12 @@ public final class JdbcMatchRepository implements MatchRepository {
 					try (PreparedStatement statement = connection.prepareStatement(
 						"INSERT INTO ffb_prepared_matches(match_id,document_version,document_json) VALUES (?,?,?)")) {
 						statement.setString(1, record.matchId); statement.setInt(2, record.documentVersion);
-						statement.setString(3, record.json); count = statement.executeUpdate();
+						statement.setString(3, storedJson); count = statement.executeUpdate();
 					}
 				} else {
 					try (PreparedStatement statement = connection.prepareStatement(
 						"UPDATE ffb_prepared_matches SET document_version=?,document_json=? WHERE match_id=? AND document_version=?")) {
-						statement.setInt(1, record.documentVersion); statement.setString(2, record.json);
+						statement.setInt(1, record.documentVersion); statement.setString(2, storedJson);
 						statement.setString(3, record.matchId); statement.setInt(4, expectedVersion);
 						count = statement.executeUpdate();
 					}

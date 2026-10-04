@@ -49,6 +49,9 @@ import java.util.Set;
 
 /** One authoritative engine lifetime, initialized once or restored from a versioned private checkpoint. */
 public final class SetupSession {
+	private static final int MAX_RECOVERY_ARTIFACT_BYTES = 128 * 1024 * 1024;
+	private static final int MAX_MATCH_ARTIFACT_BYTES = CompletedMatch.MAX_BYTES;
+	private static final int MATCH_ARTIFACT_RESERVE_BYTES = 1024 * 1024;
 	public static final String LEGACY_RUNTIME = "ffb-3.4.0-bb2025-r2.2";
 	public static final String DEFAULT_SETUP_RUNTIME = "ffb-3.4.0-bb2025-r2.3";
 	/** A separate checkpoint contract; r2.2/r2.3 lifetimes are deliberately not upgraded in place. */
@@ -169,7 +172,7 @@ public final class SetupSession {
 			@Override public boolean usesLegacyPersistence() { return false; }
 		};
 		try {
-			JsonObject envelope = new MatchJson().parse(artifact, 33554432, 128);
+			JsonObject envelope = new MatchJson().parse(artifact, MAX_RECOVERY_ARTIFACT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
@@ -261,7 +264,7 @@ public final class SetupSession {
 				events.add(event);
 				replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
 			}
-			if (replayBytes > 16 * 1024 * 1024 || events.size() != revision + 1
+			if (replayBytes > MAX_MATCH_ARTIFACT_BYTES || events.size() != revision + 1
 				|| payload.get("pendingTerminal").asBoolean() != isComplete()) throw new IllegalArgumentException("Recovery event boundary");
 			if (saveResume) saveResumeState = new SaveResumeState(payload.get("saveResume").asObject());
 			if (r51 || r52 || r53) {
@@ -270,6 +273,8 @@ public final class SetupSession {
 					throw new IllegalArgumentException("Transcript checkpoint boundary");
 			}
 			if (r53) chat = new MatchChat(payload.get("chat").asObject());
+			if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
+				throw new IllegalArgumentException("Recovery match artifact limit");
 			if ((r52 || r53) && !payload.get("pendingRoute").isNull())
 				pendingRoute = new PendingRoute(payload.get("pendingRoute").asObject());
 			if (pendingRoute != null) {
@@ -312,7 +317,7 @@ public final class SetupSession {
 			.add("homeUsedMs", homeReserveUsedMs).add("awayUsedMs", awayReserveUsedMs));
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
-		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
+		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_RECOVERY_ARTIFACT_BYTES) throw new MatchService.Failure("RECOVERY_LIMIT");
 		return artifact;
 	}
 
@@ -511,9 +516,8 @@ public final class SetupSession {
 		if (isComplete()) throw new MatchService.Failure("MATCH_COMPLETED");
 		if (saveResume && saveResumeState.abandoned) throw new MatchService.Failure("MATCH_ABANDONED");
 		if (saveResume && saveResumeState.suspended()) throw new MatchService.Failure("MATCH_SUSPENDED");
-		// Reserve 128 KiB: one bounded 64 KiB projection plus the envelope and up to 8,193 array separators.
-		if (replayBytes > (transcriptV2 ? 7 : 16) * 1024 * 1024 - 128 * 1024
-			|| transcriptV2 && transcript.bytes() > 7 * 1024 * 1024 - 128 * 1024)
+		// Reserve 1 MiB for one bounded projection, chat growth, canonical JSON, and the terminal envelope.
+		if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
 			throw new MatchService.Failure("REPLAY_LIMIT");
 		if (history.size() >= 8192) throw new MatchService.Failure("REQUEST_HISTORY_LIMIT");
 		if (request.get("expectedRevision").asInt() != revision) throw new MatchService.Failure("STALE_REVISION");
@@ -564,6 +568,8 @@ public final class SetupSession {
 			Player<?> player = game.getPlayerById(request.getString("playerId", null));
 			Team team = "home".equals(role) ? game.getTeamHome() : game.getTeamAway();
 			if (player == null || !team.hasPlayer(player)) throw new MatchService.Failure("WRONG_PLAYER");
+			if (!game.getFieldModel().getPlayerState(player).canBeMovedDuringSetup())
+				throw new MatchService.Failure("ILLEGAL_PLACEMENT");
 			JsonValue to = request.get("to");
 			FieldCoordinate coordinate;
 			if (to.isNull()) {
@@ -870,7 +876,7 @@ public final class SetupSession {
                 nativeOutcomes, snapshot, capture.lastCommandNr);
         }
     }
-    public CompletedMatch completedMatch() {
+	public CompletedMatch completedMatch() {
         if (!isComplete() || failed) throw new MatchService.Failure("NOT_COMPLETED");
 		JsonObject result = new JsonObject().add("formatVersion", chatV1 ? 3 : transcriptV2 ? 2 : 1)
             .add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("ruleset", document.home.team.ruleset)
@@ -893,7 +899,15 @@ public final class SetupSession {
 	public MatchChat.Outcome sendChat(String accountId, String role, String requestId, String content, long now) {
 		if (!chatV1) throw new MatchService.Failure("CHAT_UNAVAILABLE");
 		if (isComplete()) return chat.duplicate(accountId, requestId, content);
+		if (artifactBytes() > MAX_MATCH_ARTIFACT_BYTES - MATCH_ARTIFACT_RESERVE_BYTES)
+			throw new MatchService.Failure("REPLAY_LIMIT");
 		return chat.append(accountId, role, requestId, content, revision, now);
+	}
+	private long artifactBytes() {
+		long total = replayBytes;
+		if (transcriptV2) total += transcript.bytes();
+		if (chatV1) total += chat.json().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+		return total;
 	}
 	/** A revision-bound forecast; neither the engine nor the checkpoint is changed. */
 	public JsonObject routePreview(String role, int expectedRevision, JsonArray points) {

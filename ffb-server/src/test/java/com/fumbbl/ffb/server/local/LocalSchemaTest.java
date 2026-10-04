@@ -21,6 +21,22 @@ import static org.mockito.ArgumentMatchers.startsWith;
 
 class LocalSchemaTest {
 	@Test
+	void schemaOnlyInitializationRefusesNonEmptyDatabaseBeforeWriting() throws Exception {
+		DbConnectionManager manager = mock(DbConnectionManager.class);
+		Connection connection = mock(Connection.class);
+		Statement statement = mock(Statement.class);
+		ResultSet tables = mock(ResultSet.class);
+		when(manager.openDbConnection()).thenReturn(connection);
+		when(connection.createStatement()).thenReturn(statement);
+		when(statement.executeQuery("SHOW TABLES")).thenReturn(tables);
+		when(tables.next()).thenReturn(true);
+
+		assertThrows(SQLException.class, () -> new LocalSchema().initializeSchemaOnly(manager));
+
+		verify(statement, never()).executeUpdate(anyString());
+	}
+
+	@Test
 	void refusesUnversionedNonemptyDatabaseWithoutWriting() throws Exception {
 		DbConnectionManager manager = mock(DbConnectionManager.class);
 		Connection connection = mock(Connection.class);

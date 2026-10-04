@@ -8,6 +8,8 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 
+import java.sql.SQLException;
+
 /**
  * Firebase Admin token verifier for the marker-6 authority. Revocation is checked while a bearer
  * first enters this boundary. Operation-time checks retain only expiry, provider identifiers and auth_time,
@@ -33,18 +35,56 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	}
 
 	@Override public AuthenticatedPrincipal authenticate(String bearer) throws Rejected {
+		FirebaseToken token;
 		try {
-			FirebaseToken token = auth.verifyIdToken(bearer, true);
+			token = auth.verifyIdToken(bearer, true);
+		} catch (FirebaseAuthException failure) {
+			diagnostic("provider", failure.getErrorCode() == null ? null : failure.getErrorCode().name());
+			throw new Rejected();
+		} catch (Exception failure) {
+			diagnostic("provider", failure.getClass().getSimpleName());
+			throw new Rejected();
+		}
+		VerifiedIdentity identity;
+		try {
 			String issuer = "https://securetoken.google.com/" + projectId;
 			Object audience = token.getClaims().get("aud"); Object claimedIssuer = token.getClaims().get("iss"); Object expires = token.getClaims().get("exp"); Object authenticationTime = token.getClaims().get("auth_time");
-			if (!issuer.equals(claimedIssuer) || !projectId.equals(audience) || token.getUid() == null || token.getUid().isEmpty() || !(expires instanceof Number) || !(authenticationTime instanceof Number)) throw new Rejected();
+			if (!issuer.equals(claimedIssuer) || !projectId.equals(audience) || token.getUid() == null || token.getUid().isEmpty() || !(expires instanceof Number) || !(authenticationTime instanceof Number)) {
+				diagnostic("claims", "rejected");
+				throw new Rejected();
+			}
 			long expiration = ((Number) expires).longValue() * 1000L;
 			long authenticatedAt = ((Number) authenticationTime).longValue() * 1000L;
-			if (expiration <= System.currentTimeMillis() || authenticatedAt < 1 || authenticatedAt > expiration) throw new Rejected();
-			return principals.authenticate(new VerifiedIdentity(issuer, token.getUid(), expiration, authenticatedAt));
-		} catch (Rejected rejected) { throw rejected;
-		} catch (FirebaseAuthException failure) { throw new Rejected();
-		} catch (Exception failure) { throw new Rejected(); }
+			if (expiration <= System.currentTimeMillis() || authenticatedAt < 1 || authenticatedAt > expiration) {
+				diagnostic("time_claims", "rejected");
+				throw new Rejected();
+			}
+			identity = new VerifiedIdentity(issuer, token.getUid(), expiration, authenticatedAt);
+		} catch (Rejected rejected) {
+			throw rejected;
+		} catch (Exception failure) {
+			diagnostic("claims", failure.getClass().getSimpleName());
+			throw new Rejected();
+		}
+		try {
+			return principals.authenticate(identity);
+		} catch (SQLException failure) {
+			diagnostic("principal_directory_sql", "state_" + failure.getSQLState() + "_" + failure.getClass().getSimpleName());
+			throw new Rejected();
+		} catch (Rejected rejected) {
+			diagnostic("principal_directory", "rejected");
+			throw rejected;
+		} catch (Exception failure) {
+			diagnostic("principal_directory", failure.getClass().getSimpleName());
+			throw new Rejected();
+		}
+	}
+
+	private static void diagnostic(String stage, String code) {
+		if (!Boolean.getBoolean("ffb.v2.auth.diagnostics")) return;
+		String safeCode = code == null ? "unspecified" : code.replaceAll("[^A-Za-z0-9_.-]", "_");
+		if (safeCode.length() > 64) safeCode = safeCode.substring(0, 64);
+		System.err.println("FFB_V2_AUTH_DIAGNOSTIC stage=" + stage + " code=" + safeCode);
 	}
 
 	@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws Rejected {
