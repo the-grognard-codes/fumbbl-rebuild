@@ -458,3 +458,27 @@
 .game-menu-confirm { border: 1px solid #bb875f; padding: 8px; }
 @media (max-width: 800px) { .hosted-match .match-side { overflow: visible; }.hosted-match .match-side > .match-history { min-height: 440px; } }
 .hosted-match .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Shared coach-oriented scene; the camera moves world layers, never the HUD. */
+.projected-pitch { position: relative; }
+.projected-pitch .live-pitch-viewport { position: relative; overflow: hidden; touch-action: none; background: #40572a; cursor: grab; }
+.projected-pitch .live-pitch-scene { position: absolute; inset: 0; overflow: hidden; }
+.projected-pitch .live-pitch-scene > svg { position: absolute; inset: 0; pointer-events: none; }
+.pitch-stadium-world { position: absolute; inset: 0; pointer-events: none; }
+.pitch-stadium-plate { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.pitch-stadium-strip { position: absolute; left: -1672px; top: 0; width: 5016px; height: 941px; mask-image: linear-gradient(transparent,black 12%,black 85%,transparent); }
+.pitch-stadium-strip > img, .pitch-stadium-strip > svg { position: absolute; top: 0; width: 1672px; height: 941px; image-rendering: pixelated; }
+.pitch-chalk { fill: none; stroke: #f0eed2; stroke-width: 2; stroke-opacity: .84; }
+.pitch-chalk.wide { stroke-dasharray: 12 10; }
+.live-selection-square { fill: #36ddff18; stroke: #36ddff; stroke-width: 3; }
+.live-keyboard-square { fill: #ffe17b18; stroke: #ffe17b; stroke-width: 2; stroke-dasharray: 4 3; }
+.play-runtime .projected-pitch .live-marker { border: 0; border-radius: 0; box-shadow: none; outline: none; transition: none; background: transparent; overflow: visible; }
+.play-runtime .projected-pitch .live-marker:focus-visible { outline: none; }
+.projected-pitch .live-marker:focus-visible .live-number { color: #101c2b; background: #ffe17b; }
+.projected-pitch .live-marker.target .live-number { border: 1px dashed #36ddff; }
+.projected-pitch .live-marker.active .live-number { border-bottom: 2px solid #ffe17b; }
+.projected-pitch .live-marker img { position: absolute; bottom: auto; max-width: none; pointer-events: none; transform-origin: center; image-rendering: pixelated; }
+.projected-pitch .live-number { right: 0; bottom: 0; font-size: 9px; }
+.live-camera-controls { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; flex: none; }
+.play-runtime .live-camera-controls button { margin: 0; padding: 3px 6px; color: #e8f4ff; background: #101c2be6; border: 1px solid #497a9c; font: 12px 'Match Barlow', sans-serif; }
+.play-runtime .live-camera-controls button[aria-pressed=true] { border-color: #36ddff; color: #36ddff; }

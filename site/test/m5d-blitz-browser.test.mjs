@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { squarePosition } from '../../browser-client/test/projected-pitch-helper.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -109,8 +110,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     const pinPlayer = async playerIndex => actor.getByLabel('Live match pitch').locator('.live-marker').nth(playerIndex).click();
     const pinSquare = async (x, y) => {
       const scene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
-      const scale = (await scene.boundingBox()).width / 960;
-      await scene.click({ position: { x: (12 + x * 36 + 18) * scale, y: (12 + y * 36 + 18) * scale } });
+      await scene.click({ position: await squarePosition(actor, x, y) });
     };
     const submit = async (actionId, pin, viaSpace = false, immediate = false) => {
       if (immediate && process.env.M5D_SCREENSHOT_DIR && actionId.startsWith('7:push:')) {
