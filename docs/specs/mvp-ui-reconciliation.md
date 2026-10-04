@@ -1,6 +1,6 @@
 # Completed MVP UI work reconciliation
 
-Status: reconciliation in review on 2026-10-04. Base: `68d3d2fcd` (`main`); branch: `codex/reconcile-mvp-ui`. Related existing gameplay issue: [#53](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/53). PR/check/merge evidence will be recorded before starting new implementation.
+Status: reconciliation under [PR #100](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/100) on 2026-10-04. Base: `68d3d2fcd` (`main`); branch: `codex/reconcile-mvp-ui`. Related existing gameplay issue: [#53](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/53). Final check/merge evidence will be recorded before starting new implementation.
 
 The owner authorized publishing the completed work before replacing the first pitch MVP. This reconciliation preserves both the existing live application's refinements and the approved angled-pitch reference. It records the [approved integration specification](coach-oriented-playable-match-ui.md); it does not claim that specification is implemented.
 
@@ -23,6 +23,8 @@ The documentation references remain illustrative: resource counts, timers, messa
 Independent review found three issues in the uncommitted refinements: setup had lost its keyboard/touch placement path; required pitch choices could clip on narrow screens; generic reports dropped team attribution. Repairs restore collapsible placement controls through the existing guarded placement callbacks, keep required choices in a viewport-bounded portal with focus restoration, and translate native team IDs through frozen player identities into team names. Focused tests cover placement/return and rejected drops without dragging, a 375px required-choice viewport, and paired home/away fan rolls.
 
 The first full Java target verification exposed compatibility gaps around the new optional player detail fields and retained replay/checkpoint fixtures. The replay validator now accepts bounded public status and paired position fields while rejecting unknown/private fields, malformed pairs and transient clock state. Projection assertions and retained fixtures include the new public status. A route test also needed two fixed dice: Team Captain rolls before the Dodge reroll. Its destination assertions remain unchanged; the focused method passed eight repetitions and the complete class passed all 18 tests.
+
+The first CI run exposed another test precondition: random starting Sweltering Heat could exhaust a player before the halftime formation assertion. A controlled heat run reproduced the off-pitch exhausted player. The layout test now explicitly starts in Nice weather and preserves every slot assertion; all five tests in its class pass. Native weather and exhaustion behavior are unchanged. [The initial CI run](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/37194387001) passed its other jobs; the repaired revision must pass fresh checks before merge.
 
 | Check | Local result |
 | --- | --- |
