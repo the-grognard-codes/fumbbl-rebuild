@@ -8,7 +8,7 @@ Slice 1 records the starting contracts and affected checks. It adds no gameplay 
 
 | Responsibility | Existing boundary | Preserve while replacing presentation |
 | --- | --- | --- |
-| Authenticated match entry | `browser-client/src/play-entry.tsx` → `GameView` in `SetupPanel.tsx`, using `V2Client` | Account/team ownership, independent actor, guarded pending requests, reconnect and completed result |
+| Authenticated match entry | `browser-client/src/play-entry.tsx` â†’ `GameView` in `SetupPanel.tsx`, using `V2Client` | Account/team ownership, independent actor, guarded pending requests, reconnect and completed result |
 | Action/route orchestration | `browser-client/src/SetupPanel.tsx` | Offered declarations and targets, route preview/commit, smart continuation, setup and required choices |
 | Transport and strict decoding | `v2-client.ts`, `setup-protocol.ts` | Current request IDs/revisions, accepted-response reconciliation, canonical coordinates and exact public fields |
 | Shared scene | `LivePitch.tsx`, `LiveDugouts.tsx`, `PitchCompanion.tsx` | Canonical player/drop/square callbacks, off-pitch inspection, keyboard/text fallback |
@@ -68,8 +68,8 @@ The new runner must prepare genuine Human and Orc frozen teams, drive UI intents
 | 1. Baseline and inventory | Merged [PR #102](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/102), revision `c2742c8b7fa25fc20b6df255207362c97b86cb0a`; all checks passed |
 | 2. Projection service | Merged [PR #103](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/103), revision `7e7ccac4d21926db52d67b5ec76079b49c2a0e44`; independent review approved, 132 browser tests/build and all automated checks passed |
 | 3. Art pack and resolver | Merged [PR #104](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/104), revision `17cad7043dbde33a92c7c2fe457d879db8981421`; 84 bodies and 12 portraits accepted at native/enlarged size, strict alpha/catalog/delivery checks, 137 browser tests, both builds and all automated checks passed |
-| 4. Live pitch replacement | Shared camera now renders canonical cells, moving registered stadium, new poses, routes, ball and push choices in both coach views; independent input review approved. 138 unit tests, ten site browser tests and all five interaction runners passed; publication pending. HUD remains the next slice |
-| 5. Live HUD binding | Pending |
+| 4. Live pitch replacement | Merged [PR #105](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/105), revision `b1efe7723f174b33b108a93180dd8e2ccaf1f3b0`; independent input review approved, 138 unit tests, ten site browser tests, five interaction runners and all automated checks passed |
+| 5. Live HUD binding | Authoritative resources, BANK/TURN clocks and eight-slot turn tracks; 30% supporting backgrounds, fixed chat/log, opposite-side inspector, compact categorized dugouts and reviewed proposals. Other action/text fallback, native prompts and menu controls retained. Independent review finding repaired; 140 unit tests, ten site browser tests, six interaction runners, route/reconnect checks, both builds and 161 asset checks passed. Publication pending |
 | 6. Playback, decisions and dice | Pending |
 | 7. Real-server verification and repairs | Pending |
 | 8. Cutover and retrospective | Pending |

@@ -63,7 +63,7 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
       await marker.press('Space');
       assert.equal(calls.length, 0, 'Space on a player selects only');
       if (index) {
-        assert.equal(await page.getByRole('button', { name: 'Confirm Action' }).count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Confirmed!' }).count(), 0);
         await page.getByRole('button', { name: /Game Menu/ }).click();
         assert.equal(await page.getByRole('button', { name: 'Concede match' }).isDisabled(), true);
         await page.getByRole('button', { name: 'Close Game Menu' }).click();
@@ -74,7 +74,10 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
     await actionScene.click({ position: await squarePosition(actor, 1, 1) });
 
     assert.equal(calls.length, 0, 'Target assist pins the available move without sending it');
+    await actor.getByRole('button', { name: /Game Menu/ }).click();
+    await actor.getByRole('tab', { name: 'Interface', exact: true }).click();
     await actor.getByRole('group', { name: 'Pitch size' }).getByRole('button', { name: '2×' }).click();
+    await actor.getByRole('button', { name: 'Close Game Menu' }).click();
     const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus();
     await viewport.press('ArrowRight');
     assert.ok(await actor.locator('.live-keyboard-square').count() > 0, 'Arrow key traverses canonical cells in a zoomed pitch');
@@ -84,6 +87,7 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
     assert.equal(calls.length, 1); assert.equal(calls[0].actionId, '1:move'); assert.equal(calls[0].expectedRevision, 1);
     await actor.getByTestId('setup-status').filter({ hasText: 'Revision 2' }).waitFor({ state: 'attached' });
     await actor.getByRole('button', { name: /Game Menu/ }).click();
+    await actor.getByRole('tab', { name: 'Game Options', exact: true }).click();
     await actor.getByRole('button', { name: 'Concede match' }).click();
     assert.equal(calls.length, 1, 'Opening the concession confirmation does not submit');
     await actor.getByRole('button', { name: 'Confirm concession' }).dispatchEvent('click');

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { MatchEventLog } from './MatchEventLog.tsx';
 import type { SetupState } from './setup-protocol.ts';
@@ -7,9 +8,10 @@ import { matchTeamName } from './match-team-name.ts';
 
 type Tab = 'Game Options' | 'Interface' | 'Key Bindings' | 'Game Log';
 
-export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable }: {
+export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls }: {
   view: SetupState; connected: boolean; pending: boolean; mutate: (operation: string, fields?: Record<string, unknown>) => void;
   records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
+  interfaceControls?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('Game Options');
@@ -62,6 +64,8 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             </section>
           </>}
           {tab === 'Game Log' && <MatchEventLog records={records} loading={logLoading} unavailable={logUnavailable}/>}
+          {tab === 'Interface' && <section><h3>Pitch and interface</h3>{interfaceControls}<p>Supporting panels use 30% background opacity. Event log text has three size controls.</p></section>}
+          {tab === 'Key Bindings' && <section><h3>Keyboard controls</h3><p>Arrow keys: navigate the pitch. Enter on the pitch: choose a square. Space on the pitch: confirm a valid proposal. Enter outside controls: chat. Escape: close chat or this menu.</p><p>Tab navigates players and commands. Setup also offers numeric placement controls.</p></section>}
         </div>
       </div>
     </div>}

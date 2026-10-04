@@ -8,7 +8,10 @@ export async function squarePosition(page, x, y) {
     mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom) }));
   let camera = new PitchProjection(options);
   const point = { x: x + .5, y: y + .5 };
-  if (!camera.isVisible(point, 20)) {
+  const screen = camera.project(point);
+  // Overlay HUDs reserve top/bottom space; exercise camera travel to expose
+  // the intended ground cell rather than scrolling a clipped DOM scene.
+  if (!camera.isVisible(point, 20) || !screen || screen.y < options.height * .27 || screen.y > options.height * .7) {
     await page.locator('.live-pitch-viewport').first().dispatchEvent('wheel', { deltaY: (options.focus - point.x) * (options.end === 'home' ? 1 : -1) / .012 });
     await page.waitForFunction(focus => Math.abs(Number(document.querySelector('.live-pitch-scene').dataset.focus) - focus) < 1e-6, point.x);
     options = { ...options, focus: point.x }; camera = new PitchProjection(options);

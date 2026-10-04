@@ -87,12 +87,15 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       assert.equal(setupBounds.setupDetailsOpen, false);
       assert.equal(await starterMatch.getByLabel('Setup player').isVisible(), false, 'keyboard placement stays collapsed until requested');
       assert.equal(setupBounds.toolbarCount, 0);
-      assert.ok(setupBounds.confirmBottom <= Math.min(setupBounds.sideBottom, setupBounds.height),
+      assert.ok(setupBounds.confirmBottom > 0 && setupBounds.confirmBottom <= setupBounds.height,
         `Setup confirmation must be visible: ${JSON.stringify(setupBounds)}`);
       const zoomControls = starterMatch.getByRole('group', { name: 'Pitch size' });
+      await starterMatch.getByRole('button', { name: /Game Menu/ }).click();
+      await starterMatch.getByRole('tab', { name: 'Interface', exact: true }).click();
       await zoomControls.getByRole('button', { name: '2×' }).click();
       assert.equal(await zoomControls.getByRole('button', { name: '2×' }).getAttribute('aria-pressed'), 'true');
       await zoomControls.getByRole('button', { name: 'Fit' }).click();
+      await starterMatch.getByRole('button', { name: 'Close Game Menu' }).click();
       if (!popupBlocked) {
         assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
         assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
@@ -237,9 +240,11 @@ test('two players and spectator use one board; updates, read-only controls and r
       assert.equal(await pages[2].evaluate(() => document.documentElement.scrollHeight <= innerHeight), true,
         `Crowded match must fit a ${width}x${height} viewport`);
     }
-    assert.equal(await pages[2].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
-    assert.equal(await pages[1].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
+    assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
+    assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
     await pages[0].getByRole('button', { name: 'End Turn', exact: true }).click();
+    assert.equal(mutations.length, 0, 'End Turn is a reviewed proposal');
+    await pages[0].getByRole('button', { name: 'Confirmed!', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
     assert.equal(await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).count(), 0);
