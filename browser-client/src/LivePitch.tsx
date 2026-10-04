@@ -78,7 +78,7 @@ function PlayerMarker({ player, teamName, camera, facing, order, active, selecte
     }}>
     {body && failedUrl !== body.url ? <img src={body.url} alt="" draggable={false} onError={() => setFailedUrl(body.url)}
       style={{ width: body.width * scale, height: body.height * scale, left: width / 2 - anchor.x * scale,
-        top: height / 2 - anchor.y * scale, transform: body.mirror ? 'scaleX(-1)' : undefined }}/>
+        top: height / 2 - anchor.y * scale, transform: body.mirror ? 'scaleX(-1)' : 'none' }}/>
       : <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{number}</span>}
     <span className="live-number">{number}</span>
   </button>;
@@ -88,7 +88,7 @@ function PlayerMarker({ player, teamName, camera, facing, order, active, selecte
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false,
-  zoom: controlledZoom, onZoomChange, showToolbar = true, decision = null, decisionDisabled = false, onDecisionAction }: {
+  zoom: controlledZoom, onZoomChange, showToolbar = true, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -97,6 +97,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
   zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean;
+  onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
   const markerId = useId().replace(/:/g, '');
@@ -145,6 +146,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     prior.current = { matchId: view.matchId, revision: view.revision, players: view.players };
   }, [view.matchId, view.revision, view.players]);
   const activePlayer = view.players.find(player => player.id === view.activePlayerId), selected = view.players.find(player => player.id === selectedId);
+  useEffect(() => {
+    const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
+    onSelectionPosition?.(p ? { x: p.x, width: camera.width } : null);
+  }, [selected?.x, selected?.y, end, mode, travel.focus, travel.transverseFocus, size.width, size.height, zoom, onSelectionPosition]);
   const reveal = (point: Point | null | undefined) => { if (point) changeCamera(cameraRef.current.reveal(point, 50)); };
   useEffect(() => {
     if (!decision) return;

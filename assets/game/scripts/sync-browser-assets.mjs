@@ -131,6 +131,7 @@ const inputs = [
   ['pitch', 'pitch'],
   ['ui/fonts', 'ui/fonts'],
   ['ui/mvp-art/match-ui-icon-atlas-v1.png', 'ui/match-ui-icon-atlas-v1.png'],
+  ['ui/reroll-v1.png', 'ui/reroll-v1.png'],
   ['references/match-screen-concept-v1.png', 'references/match-screen-concept-v1.png'],
   ['archive/teams/human/36px-v1/sprites', 'archive/humans-36px-v1']
 ];

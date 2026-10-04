@@ -1,16 +1,44 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
+import { hudResources, turnSlots } from './hud-model.ts';
+import type { HudResource } from './hud-model.ts';
 import { clockValues, formatClock } from './match-clock.ts';
 import { matchTeamName } from './match-team-name.ts';
-import type { SetupState, TeamResources } from './setup-protocol.ts';
+import type { SetupState } from './setup-protocol.ts';
 
-function Resources({ role, teamName, rerolls, resources }: { role: 'home' | 'away'; teamName: string; rerolls: number; resources?: TeamResources }) {
+function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName: string; items: HudResource[] }) {
+  const id = useId();
+  if (!items.length) return null;
   return <section className={`live-resources ${role}`} aria-label={`${teamName} resources`}>
-    <div className="live-rerolls"><span>Rerolls</span><strong>{rerolls}</strong></div>
-    {resources && <div className="live-resource-counts">
-      <span title="Available apothecaries"><MatchArt name="apothecary"/><b>{resources.apothecaries}</b><span className="sr-only">Apothecaries</span></span>
-    </div>}
+    <div className="live-resource-counts">{items.map(item => <div key={item.kind} className="live-resource-item">
+      <button type="button" className={`live-resource ${item.kind}`} title={`${item.label}: ${item.count} available`}
+        aria-label={`${item.label}: ${item.count} available`} aria-describedby={`${id}-${item.kind}`} style={{ cursor: 'help' }}>
+        {item.kind === 'reroll' ? <img src={`${import.meta.env.BASE_URL}assets/game/ui/reroll-v1.png`} alt=""/>
+          : item.kind === 'apothecary' ? <MatchArt name="apothecary"/>
+            : <span aria-hidden="true" className="live-resource-glyph">{item.kind === 'assistantCoach' ? 'AC' : 'CL'}</span>}
+        <b>{item.count}</b>
+      </button>
+      <span className="live-resource-tooltip" role="tooltip" id={`${id}-${item.kind}`}>{item.label} · {item.count} available</span>
+    </div>)}</div>
   </section>;
+}
+
+function ClockPanel({ role, teamName, clock }: { role: 'home' | 'away'; teamName: string; clock: ReturnType<typeof clockValues> }) {
+  const active = clock.activeRole === role;
+  const turn = active ? clock.turnMs : 120_000;
+  const bank = role === 'home' ? clock.homeReserveMs : clock.awayReserveMs;
+  return <div className={`live-chess-clock ${role}${active ? ' active' : ''}${active && turn <= 15_000 ? ' urgent' : ''}`}
+    aria-label={`${teamName}: time bank ${formatClock(bank)}, turn ${formatClock(turn)}`}>
+    <span>BANK <b>{formatClock(bank)}</b></span>
+    <span data-clock-line="turn">TURN <b>{formatClock(turn)}</b></span>
+  </div>;
+}
+
+function TurnTrack({ role, teamName, half, teamTurn, phase }: { role: 'home' | 'away'; teamName: string; half: number; teamTurn: number; phase: SetupState['phase'] }) {
+  return <ol className={`live-turn-track ${role}`} aria-label={`${teamName} turns`}>
+    {turnSlots(half, teamTurn, phase).map(slot => <li key={slot.number} className={slot.past ? 'past' : undefined}
+      aria-current={slot.current ? 'step' : undefined}>{slot.number}</li>)}
+  </ol>;
 }
 
 function TeamName({ name }: { name: string }) {
@@ -61,7 +89,7 @@ function TeamName({ name }: { name: string }) {
   return <strong ref={nameElement} title={name}>{name}</strong>;
 }
 
-/** The preview's five-panel scoreboard, bound only to the server projection. */
+/** The approved coach HUD, bound only to the server projection. */
 export function LiveMatchScoreboard({ view }: { view: SetupState }) {
   const [elapsedSinceProjection, setElapsedSinceProjection] = useState(0);
   const paused = view.saveResume?.status === 'SUSPENDED' || view.saveResume?.status === 'RESUME_PENDING';
@@ -72,34 +100,32 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
     const timer = window.setInterval(() => setElapsedSinceProjection(performance.now() - receivedAt), 250);
     return () => window.clearInterval(timer);
   }, [view.clock, paused]);
-  const clock = clockValues(view.clock, elapsedSinceProjection, paused);
+  const clock = view.clock ? clockValues(view.clock, elapsedSinceProjection, paused) : null;
   const homeName = matchTeamName(view, 'home');
   const awayName = matchTeamName(view, 'away');
   const homeArt = view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
   const awayArt = view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
   return <div className="match-scoreboard live-match-scoreboard" aria-label="Match scoreboard">
-    <Resources role="home" teamName={matchTeamName(view, 'home')} rerolls={view.homeRerolls} resources={view.homeResources}/>
-    <div className="live-team-nameplate home">
-      {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
-      <TeamName name={matchTeamName(view, 'home')}/>
-      <b aria-label={`${matchTeamName(view, 'home')} score ${view.homeScore}`}>{view.homeScore}</b>
+    <Resources role="home" teamName={homeName} items={hudResources(view, 'home')}/>
+    {clock && <ClockPanel role="home" teamName={homeName} clock={clock}/>}
+    <div className="coach-score-center">
+      <div className="live-team-nameplate home">
+        {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
+        <TeamName name={homeName}/>
+      </div>
+      <div className="coach-score">
+        <b aria-label={`${homeName} score ${view.homeScore}`}>{view.homeScore}</b><span aria-hidden="true">–</span>
+        <b aria-label={`${awayName} score ${view.awayScore}`}>{view.awayScore}</b>
+      </div>
+      <div className="live-team-nameplate away">
+        <TeamName name={awayName}/>
+        {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
+      </div>
     </div>
-    <div className="live-match-clock"><strong>Turn {view.turn}</strong><span>Half {view.half}</span>
-      <div className="live-chess-clocks" aria-label="Turn clocks">
-        <div className={`live-chess-clock home${clock.activeRole === 'home' ? ' active' : ''}${clock.activeRole === 'home' && clock.turnMs <= 15_000 ? ' urgent' : ''}`}
-          aria-label={`${homeName}: turn ${formatClock(clock.activeRole === 'home' ? clock.turnMs : 120_000)}, reserve ${formatClock(clock.homeReserveMs)}`}>
-          <span title={homeName}>{homeName.slice(0, 3)}</span><b>{formatClock(clock.activeRole === 'home' ? clock.turnMs : 120_000)}</b><small>{formatClock(clock.homeReserveMs)}</small>
-        </div>
-        <div className={`live-chess-clock away${clock.activeRole === 'away' ? ' active' : ''}${clock.activeRole === 'away' && clock.turnMs <= 15_000 ? ' urgent' : ''}`}
-          aria-label={`${awayName}: turn ${formatClock(clock.activeRole === 'away' ? clock.turnMs : 120_000)}, reserve ${formatClock(clock.awayReserveMs)}`}>
-          <span title={awayName}>{awayName.slice(0, 3)}</span><b>{formatClock(clock.activeRole === 'away' ? clock.turnMs : 120_000)}</b><small>{formatClock(clock.awayReserveMs)}</small>
-        </div>
-      </div></div>
-    <div className="live-team-nameplate away">
-      <TeamName name={matchTeamName(view, 'away')}/>
-      <b aria-label={`${matchTeamName(view, 'away')} score ${view.awayScore}`}>{view.awayScore}</b>
-      {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
-    </div>
-    <Resources role="away" teamName={matchTeamName(view, 'away')} rerolls={view.awayRerolls} resources={view.awayResources}/>
+    {clock && <ClockPanel role="away" teamName={awayName} clock={clock}/>}
+    <Resources role="away" teamName={awayName} items={hudResources(view, 'away')}/>
+    <TurnTrack role="home" teamName={homeName} half={view.half} teamTurn={view.homeTurn} phase={view.phase}/>
+    <div className="coach-weather-slot" aria-hidden="true"/>
+    <TurnTrack role="away" teamName={awayName} half={view.half} teamTurn={view.awayTurn} phase={view.phase}/>
   </div>;
 }

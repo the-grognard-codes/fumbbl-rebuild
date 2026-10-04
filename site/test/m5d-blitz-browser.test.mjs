@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { squarePosition } from '../../browser-client/test/projected-pitch-helper.mjs';
+import { squarePosition, revealPlayer } from '../../browser-client/test/projected-pitch-helper.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -70,44 +70,36 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     }
     const actor = pages[0];
     await actor.setViewportSize({ width: 1224, height: 604 });
+    await actor.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').getBoundingClientRect().bottom - innerHeight) < 1);
     assert.equal(await actor.locator('.live-chess-clock.home.urgent').count(), 1, 'The active turn pulses during its last 15 seconds');
-    assert.doesNotMatch(await actor.locator('.live-match-clock').textContent(), /PLAY|NICE/i);
-    assert.equal(await actor.locator('.live-match-clock').evaluate(element => element.scrollHeight <= element.clientHeight + 1), true,
-      'Both clocks fit in the center scoreboard panel');
+    assert.equal(await actor.locator('.live-chess-clock').evaluateAll(elements => elements.every(element => element.scrollHeight <= element.clientHeight + 1)), true,
+      'Both clocks fit beside the team plates');
     const layout = await actor.evaluate(() => {
       const box = selector => document.querySelector(selector)?.getBoundingClientRect();
-      const bar = box('.match-command-bar'), assist = box('.target-assist');
-      const confirm = box('.command-buttons .commit-action'), endTurn = box('.command-preview .end-turn-action');
-      const input = document.querySelector('#match-chat-draft');
-      const send = input?.nextElementSibling;
-      return { assistTop: assist?.top, confirmTop: confirm?.top, endTurnTop: endTurn?.top,
-        assistRight: assist?.right, endTurnRight: endTurn?.right, barRight: bar?.right,
-        inputHeight: input?.getBoundingClientRect().height, sendHeight: send?.getBoundingClientRect().height,
-        inputFont: input && getComputedStyle(input).fontFamily,
-        inputStyle: input && { height: getComputedStyle(input).height, minHeight: getComputedStyle(input).minHeight,
-          padding: getComputedStyle(input).padding, flex: getComputedStyle(input).flex },
-        chatFont: getComputedStyle(document.querySelector('.match-chat-scroll')).fontFamily,
-        scoreLeft: box('.live-match-scoreboard')?.left, mainLeft: box('main.play-runtime')?.left };
+      const bar = box('.match-command-bar'), confirm = box('.confirmation-row .commit-action');
+      const chat = box('.match-history-chat'), log = box('.match-history-log'), scene = box('.live-pitch-scene');
+      return { confirmBottom: confirm?.bottom, barTop: bar?.top, barLeft: bar?.left, barRight: bar?.right,
+        chatRight: chat?.right, logLeft: log?.left, sceneTop: scene?.top, sceneBottom: scene?.bottom, height: innerHeight,
+        panelAlpha: getComputedStyle(document.querySelector('.match-history-log')).backgroundColor };
     });
-    assert.ok(layout.assistTop < layout.confirmTop && layout.confirmTop < layout.endTurnTop, JSON.stringify(layout));
-    assert.ok(layout.barRight - layout.assistRight < 16 && layout.barRight - layout.endTurnRight < 16, JSON.stringify(layout));
-    assert.equal(layout.inputHeight, layout.sendHeight, JSON.stringify(layout));
-    assert.equal(layout.inputFont, layout.chatFont);
-    assert.equal(layout.mainLeft, 0);
-    assert.ok(Math.abs(layout.scoreLeft - layout.mainLeft - 8) < 2, JSON.stringify(layout));
-    const commit = actor.getByRole('button', { name: 'Confirm Action', exact: true });
+    assert.ok(layout.confirmBottom < layout.barTop && layout.chatRight < layout.barLeft && layout.barRight < layout.logLeft, JSON.stringify(layout));
+    assert.equal(layout.sceneTop, 0); assert.ok(Math.abs(layout.sceneBottom - layout.height) < 1);
+    assert.equal(layout.panelAlpha, 'rgba(9, 23, 38, 0.3)');
+    const commit = actor.getByRole('button', { name: 'Confirmed!', exact: true });
     assert.equal(await actor.getByRole('button', { name: 'Move', exact: true }).isDisabled(), true);
     assert.equal(await actor.getByRole('button', { name: 'Block', exact: true }).isDisabled(), true);
     await actor.getByRole('button', { name: 'End Turn', exact: true }).click();
-    assert.equal(await actor.getByRole('button', { name: 'Confirm End Turn', exact: true }).isVisible(), true);
+    assert.equal(await commit.isEnabled(), true);
+    assert.match(await actor.locator('.command-preview').textContent(), /Unactivated players remain/);
     assert.equal(calls.length, 0, 'End Turn pauses while unactivated players remain');
-    await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await actor.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
     assert.equal(await pages[2].getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
+    await revealPlayer(actor, actor.getByLabel('Live match pitch').locator('.live-marker').first());
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().hover();
     const viewport = actor.getByLabel('Pitch action preview');
     await viewport.focus(); await viewport.press('Space');
     assert.equal(calls.length, 0, 'Hover and unpinned Space do not send');
-    const pinPlayer = async playerIndex => actor.getByLabel('Live match pitch').locator('.live-marker').nth(playerIndex).click();
+    const pinPlayer = async playerIndex => { const id = await actor.getByLabel('Live match pitch').locator('.live-marker').nth(playerIndex).getAttribute('data-player-id'); await revealPlayer(actor, actor.locator(`[data-player-id="${id}"]`)); await actor.locator(`[data-player-id="${id}"]`).click(); };
     const pinSquare = async (x, y) => {
       const scene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
       await scene.click({ position: await squarePosition(actor, x, y) });
@@ -134,15 +126,15 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       }
       if (viaSpace) { const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space'); }
       else if (!immediate) await commit.click();
-      await actor.waitForFunction(() => document.querySelector('.command-buttons .commit-action')?.disabled === true);
+      await actor.waitForFunction(() => document.querySelector('.confirmation-row .commit-action')?.disabled === true);
       assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
       assert.equal(calls[0].request.expectedRevision, step);
       assert.equal(calls[0].request.actionId, actionId);
       assert.equal(await commit.isDisabled(), true);
-      assert.equal(await pages[1].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
-      assert.equal(await pages[2].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
+      assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
+      assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
       const accepted = calls.shift();
       step++;
       sendState(0, accepted.send, accepted.request.requestId);
@@ -155,11 +147,11 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls.length, 0, 'Duplicate projection does not create a new mutation');
     };
     await pinPlayer(0);
-    await actor.getByRole('button', { name: 'More actions', exact: true }).click();
+    await actor.getByRole('button', { name: 'Other action', exact: true }).click();
     await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation' }).click();
     assert.equal(await commit.isEnabled(), true, 'More actions pins a commit-ready server choice');
     assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
-    await actor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await actor.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
     await actor.getByRole('button', { name: 'Blitz', exact: true }).click();
     if (process.env.M5D_SCREENSHOT_DIR) {
       await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
@@ -173,7 +165,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     }));
     assert.equal(await commit.isEnabled(), true, `Initial Blitz action must be ready: ${JSON.stringify(initialSelection)}`);
     await commit.click();
-    await actor.waitForFunction(() => document.querySelector('.command-buttons .commit-action')?.disabled === true);
+    await actor.waitForFunction(() => document.querySelector('.confirmation-row .commit-action')?.disabled === true);
     assert.equal(await actor.getByText('A submitted change needs confirmation.', { exact: false }).count(), 0, 'In-flight requests do not show recovery');
     assert.equal(calls.length, 1);
     const stale = calls.shift();

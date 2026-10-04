@@ -66,13 +66,14 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
     }
     const actor = pages[0], spectator = pages[1];
     assert.equal(await spectator.getByRole('button', { name: 'Plan path' }).count(), 0);
-    assert.equal(await spectator.getByRole('button', { name: 'Commit path' }).count(), 0);
+    assert.equal(await spectator.getByRole('button', { name: 'Confirmed!' }).count(), 0);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().hover();
     assert.equal(mutations.length, 0);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().click();
+    await actor.getByRole('button', { name: 'Other action' }).click();
     await actor.getByRole('button', { name: 'Plan path' }).click();
     const pathControls = actor.getByLabel('Movement path');
-    const commit = actor.getByRole('button', { name: 'Commit path' });
+    const commit = actor.getByRole('button', { name: 'Confirmed!' });
     assert.equal(await commit.isDisabled(), true);
     const square = async (x, y) => {
       const scene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
@@ -80,10 +81,11 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
     };
     await square(8, 7);
     await refreshed;
-    await actor.getByRole('button', { name: 'Plan path' }).waitFor();
+    await actor.getByRole('button', { name: 'Other action' }).waitFor();
     assert.equal(await actor.getByRole('button', { name: 'Reconnect' }).count(), 0, 'The expired preview must restore the match without manual input');
     assert.equal(await actor.getByLabel('Live match pitch').count(), 1);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().click();
+    await actor.getByRole('button', { name: 'Other action' }).click();
     await actor.getByRole('button', { name: 'Plan path' }).click();
     await square(8, 7);
     await pathControls.getByRole('button', { name: 'Undo' }).click();

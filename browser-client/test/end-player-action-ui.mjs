@@ -43,7 +43,7 @@ try {
     };
   }, [initial, after]);
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${initial.matchId}`);
-  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('button', { name: 'Other action' }).click();
   await page.getByLabel('Additional actions').getByRole('button', { name: 'End player action' }).click();
   await page.waitForFunction(() => window.testSocket.state.revision === 3);
   assert.deepEqual(await page.evaluate(() => window.testSocket.sent), ['2:end-action']);
