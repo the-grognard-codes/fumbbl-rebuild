@@ -60,14 +60,14 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
     await revealPlayer(page, defender);
     await defender.click();
     assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
-    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('button', { name: 'Other action' }).click();
     assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
     if (process.env.SPECIAL_CAPTURE_DIR) {
       await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });
       await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
     }
     await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
-    await page.getByRole('button', { name: 'Confirm Action' }).click();
+    await page.getByRole('button', { name: 'Confirmed!' }).click();
     assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
@@ -211,9 +211,11 @@ test('hosted final decision leads to participant result and read-only replay aft
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Match scoreboard').waitFor();
-    const homeResources = await page.getByLabel('home resources').textContent();
-    assert.match(homeResources, /Rerolls2.*1.*Apothecaries/s);
-    assert.doesNotMatch(homeResources, /Assistant coaches|Cheerleaders/);
+    const homeResources = page.getByLabel('home resources');
+    for (const label of ['Rerolls: 2 available', 'Apothecaries: 1 available', 'Assistant coaches: 2 available', 'Cheerleaders: 3 available'])
+      assert.equal(await homeResources.getByRole('button', { name: label }).count(), 1);
+    assert.equal(await page.getByLabel('away resources').getByRole('button', { name: /Apothecaries/ }).count(), 0);
+    await page.getByRole('button', { name: 'Restore away dugout' }).click();
     assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);
     await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
       null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.
@@ -256,6 +258,8 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.setViewportSize({ width: 1280, height: 660 });
     await checkViewport();
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
+    assert.equal(completed, false, 'Staging End Turn does not submit it');
+    await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
     await page.getByRole('link', { name: 'Open final result and replay' }).waitFor();
     const offPitch = page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ });
     await offPitch.focus();
@@ -274,7 +278,8 @@ test('hosted final decision leads to participant result and read-only replay aft
     assert.ok(cardBounds.x >= 8 && cardBounds.y >= 8 && cardBounds.x + cardBounds.width <= 1280 - 8
       && cardBounds.y + cardBounds.height <= 660 - 8, `Player card fits inside the match viewport: ${JSON.stringify(cardBounds)}`);
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'full-time-1280.png') });
-    assert.match(await page.getByLabel('Match scoreboard').textContent(), /Home2.*Away1/s);
+    assert.equal(await page.getByLabel('Home score 2', { exact: true }).textContent(), '2');
+    assert.equal(await page.getByLabel('Away score 1', { exact: true }).textContent(), '1');
     assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);
     await page.getByRole('link', { name: 'Open final result and replay' }).click();
     assert.equal(new URL(page.url()).pathname, '/play/result');

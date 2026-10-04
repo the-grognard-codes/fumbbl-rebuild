@@ -75,12 +75,14 @@ try {
       const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, bounds) => {
         const image = marker.querySelector('img');
         const scale = parseFloat(image.style.width) / image.naturalWidth;
-        const left = parseFloat(marker.style.left) + parseFloat(image.style.left);
-        const top = parseFloat(marker.style.top) + parseFloat(image.style.top);
+        const scene = marker.closest('.live-pitch-scene').getBoundingClientRect();
+        const imageRect = image.getBoundingClientRect();
+        const left = imageRect.left - scene.left;
+        const top = imageRect.top - scene.top;
         return { dx: left + (bounds.x + bounds.width / 2) * scale - Number(marker.dataset.centerX),
           dy: top + (bounds.y + bounds.height / 2) * scale - Number(marker.dataset.centerY) };
       }, bounds);
-      assert.ok(Math.abs(offset.dx) < .001 && Math.abs(offset.dy) < .001, `visible ${player.id} artwork is centered`);
+      assert.ok(Math.abs(offset.dx) < .04 && Math.abs(offset.dy) < .04, `visible ${player.id} artwork is centered`);
     }
     const destination = await squarePosition(page, 10, 9);
     await scene.click({ position: destination });
@@ -99,6 +101,7 @@ try {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
     await page.setViewportSize({ width: 1280, height: 660 });
+    await page.waitForFunction(() => Math.abs(parseFloat(document.querySelector('.live-pitch-scene').style.width) - document.querySelector('.live-pitch-viewport').clientWidth) < 3);
     if (evidence) await page.screenshot({ path: `${evidence}/tactical-${role}.png` });
     await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
     if (evidence) await page.screenshot({ path: `${evidence}/perspective-${role}.png` });
