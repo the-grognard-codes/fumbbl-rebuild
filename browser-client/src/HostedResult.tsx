@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LivePitch } from './LivePitch.tsx';
+import { LiveDugouts } from './LiveDugouts.tsx';
+import { PlayerHoverCard } from './PlayerHoverCard.tsx';
 import { DiceFace } from './DiceFace.tsx';
 import { recordDice } from './dice-presentation.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
@@ -95,10 +97,20 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
   const { pitchView, playbackActive, diceMoment } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
+  const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
+  const clearHover = useCallback(() => setHover(null), []);
+  const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);
+  const hoveredPlayer = hover ? pitchView.players.find(player => player.id === hover.id) : null;
+  useEffect(clearHover, [pitchView.revision, clearHover]);
   useEffect(() => { onBusy(playbackActive); onRevision(pitchView.revision); }, [playbackActive, pitchView.revision]);
   const moments = records[pitchView.revision] ? recordDice(records[pitchView.revision]) : [];
   const visibleDice = diceMoment ?? (playbackActive ? null : moments.at(-1) ?? null);
-  return <><LivePitch view={pitchView} selectedId="" actions={[]} readOnly diceMoment={visibleDice} onSelectPlayer={() => {}} onSquare={() => {}}/>
+  return <><div className="replay-board">
+    <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
+      onSelectPlayer={() => {}} onSquare={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/>
+    <div className="replay-dugouts"><LiveDugouts players={pitchView.players} homeName={matchTeamName(pitchView, 'home')}
+      awayName={matchTeamName(pitchView, 'away')} onSelect={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/></div>
+    {hover && hoveredPlayer && <PlayerHoverCard player={hoveredPlayer} anchor={hover.anchor} teamName={matchTeamName(pitchView, hoveredPlayer.role)}/>}</div>
     {moments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{moments.map((moment, index) =>
       <div key={index}><span>{moment.label}</span>{moment.faces.map((face, faceIndex) => <DiceFace key={faceIndex} face={face} selected={moment.selected === faceIndex}/>)}</div>)}</div>}
   </>;

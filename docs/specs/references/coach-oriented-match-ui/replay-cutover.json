@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "protocol": "/browser/v2",
+  "matchId": "1d9a0f2e-df34-3e01-a259-38ac2b4659f9",
+  "browser": "154.0.8037.93",
+  "observations": [
+    {
+      "role": "home",
+      "finalRevision": 393,
+      "event": 51,
+      "cameraEnds": [
+        "home",
+        "away"
+      ],
+      "projections": [
+        "perspective",
+        "top-down"
+      ],
+      "canonicalCells": 390,
+      "unchangedPlayerIds": 22,
+      "pitchInspector": true,
+      "dugoutInspector": true,
+      "mutationRequests": 0
+    },
+    {
+      "role": "away",
+      "finalRevision": 393,
+      "event": 51,
+      "cameraEnds": [
+        "home",
+        "away"
+      ],
+      "projections": [
+        "perspective",
+        "top-down"
+      ],
+      "canonicalCells": 390,
+      "unchangedPlayerIds": 22,
+      "pitchInspector": true,
+      "dugoutInspector": true,
+      "mutationRequests": 0
+    }
+  ]
+}
