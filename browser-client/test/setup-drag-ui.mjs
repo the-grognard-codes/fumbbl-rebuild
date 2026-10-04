@@ -73,6 +73,7 @@ try {
   const scene = page.locator('.live-pitch-scene');
   const sent = () => page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation === 'place'));
   const reserveButton = page.getByRole('button', { name: 'Reserve, number 2, Reserves' });
+  await page.locator('.live-dugout.home').getByRole('button', { name: /Reserves.*1/ }).click();
   await reserveButton.dragTo(scene, { targetPosition: await squarePosition(page, 8, 7) });
   await page.waitForFunction(() => window.testSocket.state.revision === 1);
   assert.deepEqual((await sent())[0].to, { x: 8, y: 7 });

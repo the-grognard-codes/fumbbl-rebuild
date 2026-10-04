@@ -7,6 +7,7 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 
 type Props = {
   stacked?: boolean;
+  overlay?: boolean;
   matchId: string; records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
   homeTeamName?: string; awayTeamName?: string;
   messages: ChatMessage[]; chatLoading: boolean; chatUnavailable: boolean;
@@ -28,7 +29,7 @@ export function MatchHistory(props: Props) {
   }, [props.messages.length, props.chatLoading, props.stacked, tab]);
   if (props.stacked) return <div className="match-history" aria-label="Match history">
     <section className="match-history-log" aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable}/></section>
-    <section className="match-history-chat" aria-label="Chat"><MatchChatPanel {...props} active/></section>
+    <section className="match-history-chat" aria-label="Chat"><MatchChatPanel {...props} active overlay={Boolean(props.overlay)}/></section>
   </div>;
   return <section className="match-history" aria-label="Match history">
     <div className="match-history-tabs" role="tablist" aria-label="History view" onKeyDown={event => {
@@ -44,17 +45,21 @@ export function MatchHistory(props: Props) {
       <MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable}/>
     </div>
     <div id="match-chat-panel" role="tabpanel" aria-labelledby="match-chat-tab" hidden={tab !== 'chat'}>
-      <MatchChatPanel {...props} active={tab === 'chat'}/>
+      <MatchChatPanel {...props} active={tab === 'chat'} overlay={false}/>
     </div>
   </section>;
 }
 
 function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, connected, sending, canSend, onSend, sendError, sent, active,
-  homeTeamName, awayTeamName }: Props & { active: boolean }) {
+  homeTeamName, awayTeamName, overlay }: Props & { active: boolean; overlay: boolean }) {
   const draftKey = `ffb.match.chat.draft.${matchId}`;
   const scrollKey = `ffb.match.chat.scroll.${matchId}`;
   const [draft, setDraft] = useState(() => { try { return sessionStorage.getItem(draftKey) ?? ''; } catch { return ''; } });
+  const [entryOpen, setEntryOpen] = useState(false);
   const pane = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const entry = useRef<HTMLInputElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
   const follow = useRef(true);
   const restored = useRef(false);
   const previousCount = useRef(0);
@@ -75,14 +80,38 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
     try { sessionStorage.setItem(draftKey, value); } catch { /* Draft remains in memory. */ }
   };
   useEffect(() => { if (sent && draft.trim() === sent.text) setText(''); }, [sent]);
+  useEffect(() => {
+    if (!overlay || !active || !canSend || chatUnavailable) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('dialog, [role="dialog"]') || document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')) return;
+      if (event.key === 'Escape' && entryOpen) {
+        event.preventDefault();
+        setEntryOpen(false);
+        (previousFocus.current?.isConnected ? previousFocus.current : root.current)?.focus();
+        return;
+      }
+      if (event.key !== 'Enter' || target?.closest('input, textarea, select, button, a[href], summary, [contenteditable], [role="button"], [role="link"], [role="textbox"]')) return;
+      event.preventDefault();
+      if (!entryOpen) previousFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+      setEntryOpen(true);
+      requestAnimationFrame(() => entry.current?.focus());
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [overlay, active, canSend, chatUnavailable, entryOpen]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
     if (!text || !canSend || !connected || sending) return;
     onSend(text);
   };
-  return <div className="match-chat">
-    <header><h3>Match chat</h3></header>
+  return <div ref={root} className={`match-chat${overlay && entryOpen ? ' composing' : ''}`} tabIndex={overlay ? -1 : undefined}>
+    <header><h3>Match chat</h3>{overlay && canSend && !chatUnavailable && !entryOpen && <button type="button" className="match-chat-compose" onClick={() => {
+      previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setEntryOpen(true); requestAnimationFrame(() => entry.current?.focus());
+    }}>Write message</button>}</header>
     <p className="match-chat-count">{chatUnavailable ? 'Chat is unavailable for this match.' : chatLoading ? 'Loading conversation…' : `${messages.length} messages`}</p>
     <div ref={pane} role="log" aria-label="Match chat messages" aria-live="polite" className="match-chat-scroll"
       onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
@@ -91,8 +120,9 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
         <strong>{message.role === 'spectator' ? 'Spectator' : `${message.role === 'home' ? homeTeamName || 'Home' : awayTeamName || 'Away'} coach`} · {message.authorId.slice(0, 8)}</strong>
         <span>{message.text}</span></p>)}
     </div>
-    {canSend && !chatUnavailable && <form onSubmit={submit}><label htmlFor="match-chat-draft">Message the match</label>
-      <div><input id="match-chat-draft" value={draft} onChange={event => setText(event.target.value)} maxLength={300} autoComplete="off" disabled={!connected || sending}/>
+    {overlay && canSend && !chatUnavailable && !entryOpen && <p className="match-chat-hint">Press Enter to write a message.</p>}
+    {canSend && !chatUnavailable && (!overlay || entryOpen) && <form onSubmit={submit}><label htmlFor="match-chat-draft">Message the match</label>
+      <div><input ref={entry} id="match-chat-draft" value={draft} onChange={event => setText(event.target.value)} maxLength={300} autoComplete="off" disabled={!connected || sending}/>
         <button type="submit" disabled={!connected || sending || !draft.trim()}>{sending ? 'Sending…' : 'Send'}</button></div>
       <small>{connected ? sending ? 'Waiting for the server to save this message.' : 'Visible to coaches and spectators.' : 'Reconnect to send.'}</small>
       {sendError && <p role="alert">{sendError}</p>}</form>}

@@ -57,10 +57,10 @@ try {
   await page.locator('.live-marker.away').click();
   assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), 0);
   await page.getByText('Plan blitz against away1').waitFor();
-  await page.getByRole('button', { name: 'Confirm Action', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
   await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId?.endsWith('target-away1')));
-  await page.getByRole('button', { name: 'Commit path' }).waitFor();
-  await page.getByRole('button', { name: 'Commit path' }).click();
+  await page.getByRole('button', { name: 'Confirmed!' }).waitFor();
+  await page.getByRole('button', { name: 'Confirmed!' }).click();
   await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId?.endsWith('block-away1')));
   const sent = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load'));
   assert.deepEqual(sent.map(request => request.operation === 'route' ? `route:${request.waypoints.at(-1).x},${request.waypoints.at(-1).y}` : request.actionId.split(':')[1]),

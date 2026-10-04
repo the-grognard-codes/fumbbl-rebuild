@@ -1,16 +1,18 @@
 import { useState } from 'react';
 
 import { spriteUrl } from './LivePitch.tsx';
+import { resolvePlayerPortrait } from './player-art.ts';
 import type { OffPitchCategory, SetupPlayer } from './setup-protocol.ts';
 
 type DugoutMode = 'compact' | 'normal' | 'expanded';
-type Zone = { id: Exclude<OffPitchCategory, 'pitch' | 'other'>; label: string };
+type Zone = { id: Exclude<OffPitchCategory, 'pitch'>; label: string };
 
 const zones: Zone[] = [
   { id: 'reserve', label: 'Reserves' },
   { id: 'knockedOut', label: 'Knocked out' },
   { id: 'casualty', label: 'Casualties' },
   { id: 'sentOff', label: 'Sent off' },
+  { id: 'other', label: 'Other' },
 ];
 
 function DugoutArrow({ direction }: { direction: 'up' | 'down' }) {
@@ -26,7 +28,8 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropReserve?: (id: string, role: 'home' | 'away') => void;
 }) {
-  const [modes, setModes] = useState<Record<'home' | 'away', DugoutMode>>({ home: 'normal', away: 'normal' });
+  const [modes, setModes] = useState<Record<'home' | 'away', DugoutMode>>({ home: 'compact', away: 'compact' });
+  const [failedImages, setFailedImages] = useState<Record<string, string>>({});
   const setMode = (role: 'home' | 'away', mode: DugoutMode) => setModes(current => ({ ...current, [role]: mode }));
   return <div className="live-dugouts match-bench" aria-label="Team dugouts">{(['home', 'away'] as const).map(role => {
     const mode = modes[role];
@@ -37,24 +40,29 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
         {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'compact' ? 'Restore' : 'Expand'} ${name} dugout`} title={mode === 'compact' ? 'Restore dugout' : 'Expand dugout'} onClick={() => setMode(role, mode === 'compact' ? 'normal' : 'expanded')}><DugoutArrow direction="up"/></button>}
         {mode !== 'compact' && <button type="button" aria-label={`${mode === 'expanded' ? 'Restore' : 'Minimize'} ${name} dugout`} title={mode === 'expanded' ? 'Restore dugout' : 'Minimize dugout'} onClick={() => setMode(role, mode === 'expanded' ? 'normal' : 'compact')}><DugoutArrow direction="down"/></button>}
       </div></header>
-      {mode !== 'compact' && <div className="live-dugout-zones">{zones.map(zone => {
+      <div className={`live-dugout-zones${mode === 'compact' ? ' compact-summary' : ''}`}>{zones.map(zone => {
         const members = team.filter(player => player.x === null && (player.offPitch ?? 'reserve') === zone.id);
         const canReceive = zone.id === 'reserve' && players.some(player => player.id === draggingPlayerId && player.role === role && player.x !== null);
         return <div className={`live-dugout-zone${canReceive ? ' drop-ready' : ''}`} key={zone.id}
           onDragOver={event => { if (canReceive) event.preventDefault(); }}
           onDrop={event => { if (!canReceive) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player');
-            if (id) onDropReserve?.(id, role); onEndDrag?.(); }}><span>{zone.label} <b>{members.length}</b></span><div className="live-dugout-players">
-          {members.map(player => <button key={player.id} type="button" onClick={() => onSelect(player.id)} draggable={draggableIds?.has(player.id) ?? false}
+            if (id) onDropReserve?.(id, role); onEndDrag?.(); }}>
+          {mode === 'compact' ? <button type="button" className="live-dugout-zone-summary" onClick={() => setMode(role, 'normal')}
+            aria-label={`${name} ${zone.label}: ${members.length}; expand dugout`}>{zone.label} <b>{members.length}</b></button>
+            : <><span>{zone.label} <b>{members.length}</b></span><div className="live-dugout-players">
+          {members.map(player => { const image = resolvePlayerPortrait(player) ?? spriteUrl(player); return <button key={player.id} type="button" onClick={() => onSelect(player.id)} draggable={draggableIds?.has(player.id) ?? false}
             onDragStart={event => { if (!draggableIds?.has(player.id)) return;
               event.dataTransfer.setData('application/x-fumbbl-setup-player', player.id); event.dataTransfer.effectAllowed = 'move'; onStartDrag?.(player.id); }}
             onDragEnd={() => onEndDrag?.()}
             onPointerEnter={event => { if (event.pointerType !== 'touch') onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect()); }} onPointerLeave={onBlurPlayer}
             onFocus={event => onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect())} onBlur={onBlurPlayer}
             aria-label={`${player.name}, number ${player.number ?? player.slot}, ${zone.label}`}>
-            {spriteUrl(player) ? <img src={spriteUrl(player)!} alt=""/> : <span>{player.number ?? player.slot}</span>}
-          </button>)}
-        </div></div>;
-      })}</div>}
+            {image && failedImages[player.id] !== image ? <img src={image} alt="" onError={() => setFailedImages(current => ({ ...current, [player.id]: image }))}/>
+              : <span>{player.number ?? player.slot}</span>}
+          </button>; })}
+        </div></>}
+        </div>;
+      })}</div>
     </section>;
   })}</div>;
 }
