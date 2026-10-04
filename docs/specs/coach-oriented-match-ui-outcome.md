@@ -1,6 +1,6 @@
 # Coach-oriented MUTP pitch: integration outcome
 
-The approved 40-degree perspective and scrolling tactical view replace the first pitch presentation in the production match application. A real BB2025 Human/Orc match is playable through the new UI. All eight implementation slices are implemented; the final cutover PR/check/merge cycle is in progress. Hosted signed-in release acceptance remains separate.
+The approved 40-degree perspective and scrolling tactical view replace the first pitch presentation in the production match application. A real BB2025 Human/Orc match is playable through the new UI. All eight implementation slices merged, ending with [PR #109](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/109) at `ff71703c04f47860634616a901cbe36521e19f8e`; all eleven automated checks passed. Hosted signed-in release acceptance remains separate.
 
 The result matches [ADR 0003](../adr/0003-coach-oriented-angled-pitch.md) and the [approved integration spec](coach-oriented-playable-match-ui.md): MUTP pixel art, opposite coach views, consistent square identities and an unobstructed fixed HUD sit over a whole travelling stadium. DOM/SVG proved sufficient. The new renderer reuses the existing authoritative engine, transport, saved teams, route planner and durable match records.
 
@@ -26,10 +26,10 @@ Normal `/play/match` coach/spectator and `/play/result` entry points use the sam
 
 ## Verification and delivery
 
-The [acceptance report](coach-oriented-match-ui-acceptance.md) contains scenario IDs, exact continuation boundaries, build/runtime versions, screenshots and foreground measurements. Browser unit/interaction/reconnect/build and asset checks pass; site checks, six unit tests and ten browser scenarios pass, with the five result scenarios rerun after the final replay change. The computer player passes eight tests. The final Java clean install passes 697 tests with zero failures/errors and nine existing opt-in environment skips. Slice 7 [PR #108](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/108) merged after all eleven automated checks passed; earlier slice PRs and revisions are in the [baseline ledger](coach-oriented-match-ui-baseline.md).
+The [acceptance report](coach-oriented-match-ui-acceptance.md) contains scenario IDs, exact continuation boundaries, build/runtime versions, screenshots and foreground measurements. Browser unit/interaction/reconnect/build and asset checks pass; site checks, six unit tests and ten browser scenarios pass, with the five result scenarios rerun after the final replay change. The computer player passes eight tests. The final Java clean install ran 697 tests: 688 passed, nine existing opt-in environment skips, zero failures/errors. Every implementation PR merged after passing its automated checks; revisions are in the [baseline ledger](coach-oriented-match-ui-baseline.md).
 
 The storage repair is lossless and bounded, preserving SQL/public-format/CAS contracts. Newly compressed rows require the new readers, including during rollback. Retained history limits remain explicit; they were increased and tested rather than removed. Credentials, full development logs and private account data are outside the tracked evidence.
 
 Hosted signed-in release testing, overtime gameplay, yaw, additional roster art and a refined stadium model remain later work. Local evidence satisfies the owner's agreed unattended completion gate; it does not claim a hosted account test or sustained animation/memory benchmark.
 
-The final retrospective will be recorded after the final slice merges.
+The [final retrospective](coach-oriented-match-ui-retrospective.md) reviews compliance, intent, delivery limits and improvements to the agent environment after all slices merged.
