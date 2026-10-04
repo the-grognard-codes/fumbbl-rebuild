@@ -1,6 +1,6 @@
 # Coach-oriented match UI: local acceptance
 
-Status: required local match acceptance passed on 2026-10-04. Hosted signed-in release acceptance remains separate. Cutover and the final retrospective are the remaining implementation slice.
+Status: required local match acceptance and replay cutover passed on 2026-10-04. Hosted signed-in release acceptance remains separate. The final cutover PR/check/merge cycle and retrospective remain in progress.
 
 ## Reproducible environment
 
@@ -59,6 +59,10 @@ The computer run exposed the old separate 7 MiB replay/transcript limits before 
 
 Compatibility: older binaries cannot read newly compressed rows. Roll out the codec readers with the writers, and retain those readers during a rollback. Legacy raw rows remain readable; no SQL migration or public projection/transcript format changed.
 
-Local verification also passed 140 browser unit tests, all seven interaction runners, reconnect coverage, both browser builds, eight computer-player tests and the asset/build checks exercised by Hosting assembly. The nine Maven skips require explicitly configured JDBC or retained-reference environments; they were not disabled or counted as passing. The actual isolated v2 UI matches independently exercise the required local transport, durable storage and recovery paths. Final site/entry-point checks are recorded with cutover.
+Local verification also passed 140 browser unit tests, all seven interaction runners, reconnect coverage, both browser builds, eight computer-player tests and 166 asset checks. Site checks, six unit tests and ten browser scenarios pass. The nine Maven skips require explicitly configured JDBC or retained-reference environments; they were not disabled or counted as passing. The actual isolated v2 UI matches independently exercise the required local transport, durable storage and recovery paths.
+
+Final [real replay cutover evidence](references/coach-oriented-match-ui/replay-cutover.json) verifies both actual coach accounts read the same retained result and inspect its recorded players on the pitch and in the dugouts. Both camera ends and both projections retain all 390 cells and the same 22 player identities; zero mutation requests are sent. [The real result/replay screenshot](references/coach-oriented-match-ui/replay.png) complements the live pitch views above. The hosted replay regression originally failed on the missing away-view control and now passes with camera/inspector/dugout checks.
+
+For this read-only check, run `node browser-client/test/real-server-replay.mjs` with `COACH_ACCEPTANCE_TOKENS_FILE` and `COACH_ACCEPTANCE_COMPLETED_FILE` pointing to a retained acceptance identity file and the corresponding passed match evidence. Refresh only those synthetic identities if their custom tokens expire.
 
 Hosted signed-in account acceptance, production stadium refinement, overtime, yaw and additional team art remain separate release/future work.
