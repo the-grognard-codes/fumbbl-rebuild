@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
+import { squarePosition } from './projected-pitch-helper.mjs';
 
 const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const reserve = { ...frame.players[0], id: 'reserve', name: 'Reserve', slot: 2, number: 2,
@@ -66,11 +67,6 @@ async function open(initial) {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${frame.matchId}`);
   await page.locator('.live-pitch-scene').waitFor();
   return { page, errors };
-}
-async function squarePosition(page, x, y) {
-  const box = await page.locator('.live-pitch-scene').boundingBox();
-  const scale = box.width / 960;
-  return { x: (12 + x * 36 + 18) * scale, y: (12 + y * 36 + 18) * scale };
 }
 try {
   const { page, errors } = await open(setup);

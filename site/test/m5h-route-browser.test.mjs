@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { squarePosition } from '../../browser-client/test/projected-pitch-helper.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -75,8 +76,7 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
     assert.equal(await commit.isDisabled(), true);
     const square = async (x, y) => {
       const scene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
-      const scale = (await scene.boundingBox()).width / 960;
-      await scene.click({ position: { x: (12 + x * 36 + 18) * scale, y: (12 + y * 36 + 18) * scale } });
+      await scene.click({ position: await squarePosition(actor, x, y) });
     };
     await square(8, 7);
     await refreshed;

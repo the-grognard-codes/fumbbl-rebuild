@@ -8,6 +8,7 @@ export type PitchCameraOptions = {
 };
 export type PitchDirection = 'up' | 'down' | 'left' | 'right';
 export type PitchViewportRect = { left: number; top: number; width: number; height: number };
+export type PlaneMatrix = readonly (readonly number[])[];
 
 export const PITCH_LENGTH = 26;
 export const PITCH_WIDTH = 15;
@@ -201,5 +202,22 @@ export class PitchProjection {
   get vanishingPoint(): Point | null {
     return this.mode === 'perspective'
       ? { x: this.center.x, y: this.center.y - this.scale * DISTANCE * this.sine / this.cosine } : null;
+  }
+
+  /** Ground homography for painted scenery registered in canonical world space. */
+  planeImageTransform(sourceToWorld: PlaneMatrix): string {
+    if (sourceToWorld.length !== 3 || sourceToWorld.some(row => row.length !== 3 || !row.every(Number.isFinite)))
+      throw new RangeError('Scenery registration must be a finite 3 by 3 matrix');
+    const o = this.orientation, s = this.scale, d = DISTANCE, cx = this.center.x, cy = this.center.y;
+    const k = d - o * this.focus * this.cosine;
+    const projection = this.mode === 'top-down'
+      ? [[0, o * s, cx - o * s * this.transverseFocus], [-o * s, 0, cy + o * s * this.focus], [0, 0, 1]]
+      : [[cx * o * this.cosine, o * s * d, cx * k - o * s * d * this.transverseFocus],
+        [o * (cy * this.cosine - s * d * this.sine), 0, cy * k + o * s * d * this.sine * this.focus],
+        [o * this.cosine, 0, k]];
+    const h = projection.map(row => [0, 1, 2].map(column => row.reduce((sum, value, index) => sum + value * sourceToWorld[index][column], 0)));
+    const n = Math.abs(h[2][2]) || 1;
+    return `matrix3d(${[h[0][0], h[1][0], 0, h[2][0], h[0][1], h[1][1], 0, h[2][1],
+      0, 0, n, 0, h[0][2], h[1][2], 0, h[2][2]].map(value => value / n).join(',')})`;
   }
 }

@@ -67,8 +67,8 @@ The new runner must prepare genuine Human and Orc frozen teams, drive UI intents
 | Reconciliation prerequisite | Merged PR #100; all automated checks passed |
 | 1. Baseline and inventory | Merged [PR #102](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/102), revision `c2742c8b7fa25fc20b6df255207362c97b86cb0a`; all checks passed |
 | 2. Projection service | Merged [PR #103](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/103), revision `7e7ccac4d21926db52d67b5ec76079b49c2a0e44`; independent review approved, 132 browser tests/build and all automated checks passed |
-| 3. Art pack and resolver | 84 bodies and 12 portraits accepted at native/enlarged size; strict alpha/catalog/delivery checks, 137 browser tests and both builds passed; publication pending |
-| 4. Live pitch replacement | Pending |
+| 3. Art pack and resolver | Merged [PR #104](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/104), revision `17cad7043dbde33a92c7c2fe457d879db8981421`; 84 bodies and 12 portraits accepted at native/enlarged size, strict alpha/catalog/delivery checks, 137 browser tests, both builds and all automated checks passed |
+| 4. Live pitch replacement | Shared camera now renders canonical cells, moving registered stadium, new poses, routes, ball and push choices in both coach views; independent input review approved. 138 unit tests, ten site browser tests and all five interaction runners passed; publication pending. HUD remains the next slice |
 | 5. Live HUD binding | Pending |
 | 6. Playback, decisions and dice | Pending |
 | 7. Real-server verification and repairs | Pending |
