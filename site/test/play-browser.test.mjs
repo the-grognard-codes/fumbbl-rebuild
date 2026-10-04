@@ -123,7 +123,11 @@ test('start opens a separate match window, with same-tab fallback when blocked',
         await starterMatch.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
       } else {
         const closed = starterMatch.waitForEvent('close');
-        await starterMatch.getByRole('button', { name: 'Exit match' }).click();
+        await starterMatch.getByRole('button', { name: 'Exit match' }).click().catch(error => {
+          // The native close can win the race with Playwright's click response.
+          // Suppress only that expected outcome; the close event still must arrive.
+          if (!starterMatch.isClosed() || !/Target page, context or browser has been closed/.test(error.message)) throw error;
+        });
         await closed;
       }
       for (const context of contexts) await context.close();
