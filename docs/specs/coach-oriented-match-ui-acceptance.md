@@ -1,6 +1,6 @@
 # Coach-oriented match UI: local acceptance
 
-Status: required local match acceptance and replay cutover passed on 2026-10-04. Hosted signed-in release acceptance remains separate. The final cutover PR/check/merge cycle and retrospective remain in progress.
+Status: required local match acceptance and replay cutover passed on 2026-10-04. All eight slices merged; final cutover [PR #109](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/109) passed all eleven checks. The [retrospective](coach-oriented-match-ui-retrospective.md) records the completed outcome. Hosted signed-in release acceptance remains separate.
 
 ## Reproducible environment
 
