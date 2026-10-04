@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { squarePosition, revealPlayer } from '../../browser-client/test/projected-pitch-helper.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -54,10 +55,11 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
       assert.equal(await page.getByLabel('Pitch text companion').count(), 0);
       assert.equal(await page.getByText('Roster & bench').count(), 0);
       const marker = page.getByLabel('Live match pitch').locator('.live-marker').first();
+      await revealPlayer(page, marker);
       await marker.focus();
       await page.getByRole('tooltip', { name: /Lineman player card/ }).waitFor();
       assert.match(await page.getByRole('tooltip', { name: /Lineman player card/ }).textContent(), /MA.*ST.*AG.*PA.*AV/s);
-      assert.notEqual(await marker.evaluate(element => getComputedStyle(element).outlineStyle), 'none');
+      assert.equal(await marker.locator('.live-number').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 225, 123)', 'keyboard focus uses the MUTP yellow identity cue');
       await marker.press('Space');
       assert.equal(calls.length, 0, 'Space on a player selects only');
       if (index) {
@@ -69,14 +71,13 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
     }
     const actor = pages[0];
     const actionScene = actor.getByLabel('Live match pitch').locator('.live-pitch-scene');
-    const scale = (await actionScene.boundingBox()).width / 960;
-    await actionScene.click({ position: { x: (12 + 36 + 18) * scale, y: (12 + 36 + 18) * scale } });
+    await actionScene.click({ position: await squarePosition(actor, 1, 1) });
 
     assert.equal(calls.length, 0, 'Target assist pins the available move without sending it');
     await actor.getByRole('group', { name: 'Pitch size' }).getByRole('button', { name: '2×' }).click();
     const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus();
     await viewport.press('ArrowRight');
-    assert.ok(await viewport.evaluate(element => element.scrollLeft) > 0, 'Arrow key pans a zoomed pitch');
+    assert.ok(await actor.locator('.live-keyboard-square').count() > 0, 'Arrow key traverses canonical cells in a zoomed pitch');
     await viewport.dispatchEvent('keydown', { key: ' ', code: 'Space', repeat: true, bubbles: true });
     assert.equal(calls.length, 0, 'Held Space does not commit');
     await viewport.press('Space');

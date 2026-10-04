@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { revealPlayer } from '../../browser-client/test/projected-pitch-helper.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -55,7 +56,9 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Live match pitch').waitFor();
     assert.equal(await page.getByLabel('Selected player').count(), 0);
-    await page.getByRole('button', { name: /Away Blitzer/ }).first().click();
+    const defender = page.locator('.live-marker[data-player-id="p2"]');
+    await revealPlayer(page, defender);
+    await defender.click();
     assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
     await page.getByRole('button', { name: 'More actions' }).click();
     assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);

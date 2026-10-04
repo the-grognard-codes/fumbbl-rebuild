@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser matches use a travelling 40-degree coach perspective with an opposite coach view, centered tactical view and new directional Human and Orc sprites")
 			.addBugfix("Browser required pitch choices stay visible on narrow screens and native roll reports retain their team names")
 			.addImprovement("Browser player cards enlarge character art, show roster subtypes and concise conditions, and omit pitch coordinates")
 			.addBugfix("Computer coaches resume active matches after a missed match notice or a failed game client")
