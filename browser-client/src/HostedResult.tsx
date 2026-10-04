@@ -94,10 +94,10 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(event.state, records, !skipAnimations, speed);
+  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
   useEffect(() => { onBusy(playbackActive); onRevision(pitchView.revision); }, [playbackActive, pitchView.revision]);
   const moments = records[pitchView.revision] ? recordDice(records[pitchView.revision]) : [];
-  const visibleDice = playbackActive ? diceMoment : moments.at(-1) ?? null;
+  const visibleDice = diceMoment ?? (playbackActive ? null : moments.at(-1) ?? null);
   return <><LivePitch view={pitchView} selectedId="" actions={[]} readOnly diceMoment={visibleDice} onSelectPlayer={() => {}} onSquare={() => {}}/>
     {moments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{moments.map((moment, index) =>
       <div key={index}><span>{moment.label}</span>{moment.faces.map((face, faceIndex) => <DiceFace key={faceIndex} face={face} selected={moment.selected === faceIndex}/>)}</div>)}</div>}

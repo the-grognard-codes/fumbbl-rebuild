@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match dice use the approved ivory and cyan art with short rolls that do not delay required choices, while replay seeks cancel stale playback")
 			.addImprovement("Browser matches use the MUTP overlay HUD with turn tracks, reviewed action confirmation, resource tooltips, opposite-side player cards and adjustable game-log text")
 			.addImprovement("Browser matches use a travelling 40-degree coach perspective with an opposite coach view, centered tactical view and new directional Human and Orc sprites")
 			.addBugfix("Browser required pitch choices stay visible on narrow screens and native roll reports retain their team names")

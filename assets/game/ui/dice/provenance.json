@@ -1,0 +1,15 @@
+{
+  "created": "2026-10-04",
+  "approvedReference": "docs/adr/references/0003-angled-pitch-v4/dice/",
+  "body": {
+    "file": "ivory-cyan-v1.png",
+    "source": "docs/adr/references/0003-angled-pitch-v4/dice/art/ivory-cyan-v1.png",
+    "sha256": "333378be81e30cec3e44541895f5a5262f90496fe11c3c5106df9a8695884229",
+    "generatedBody": "Blank ivory die with cyan seam and gold bevel; copied unchanged."
+  },
+  "exports": {
+    "block": { "file": "ivory-cyan-block-atlas.png", "source": "docs/adr/references/0003-angled-pitch-v4/dice/exports/ivory-cyan-block-atlas.png", "sha256": "cf91665ec5d63fca9e41d06b27a049edee8d3182cb41270e5a1c6beb77c94b19" },
+    "d6": { "file": "ivory-cyan-d6-atlas.png", "source": "docs/adr/references/0003-angled-pitch-v4/dice/exports/ivory-cyan-d6-atlas.png", "sha256": "c00581dcf13ec0c34c1e383ae8d901e32357ceeaec412aaab708afd1a2a1fcfe8" }
+  },
+  "symbols": "Crisp SVG marks matching the reference dice.js; exact face identities remain native data."
+}
