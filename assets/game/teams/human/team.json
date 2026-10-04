@@ -1,6 +1,7 @@
 {
   "rosterId": "human",
   "artVersion": "64px-chibi-v1",
+  "posePack": "coach-oriented-v1",
   "master": "master",
   "positions": {
     "ogre": ["01-ogre-man.png"],

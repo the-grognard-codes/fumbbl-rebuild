@@ -1,0 +1,847 @@
+{
+  "team": "human",
+  "standardVersion": "1.1",
+  "filter": "nearest-neighbor",
+  "players": [
+    {
+      "id": "lineman-front",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-front.png",
+      "original": "originals/lineman-front.png",
+      "sourceSha256": "19F909E14D2B298F1074FF911E6AA90CEEF13C9B396CAD24139846002DA4A37F",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 56,
+        "width": 53,
+        "y": 7
+      }
+    },
+    {
+      "id": "lineman-back",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-back.png",
+      "original": "originals/lineman-back.png",
+      "sourceSha256": "F4079E3E52A1CA4FB5AE1A80319C7388EE31232AF5808203747E431694BC4E0B",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 4,
+        "height": 56,
+        "width": 52,
+        "y": 6
+      }
+    },
+    {
+      "id": "lineman-front45",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-front45.png",
+      "original": "originals/lineman-front45.png",
+      "sourceSha256": "FED39D915115640C9647B8A379BE23076528ABDFC875D3DC68D77FEFD3B12688",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 56,
+        "width": 44,
+        "y": 7
+      }
+    },
+    {
+      "id": "lineman-back45",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-back45.png",
+      "original": "originals/lineman-back45.png",
+      "sourceSha256": "6BE69114D4872CDDF86E33C990AE19C6745680A39AD37B703595F6BFD731267D",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 15,
+        "height": 60,
+        "width": 43,
+        "y": 3
+      }
+    },
+    {
+      "id": "lineman-side",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-side.png",
+      "original": "originals/lineman-side.png",
+      "sourceSha256": "CC46F643B262E702A2A7072AA917526070583A1F1DE66DF870CE96B4E2605DFE",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 17,
+        "height": 58,
+        "width": 40,
+        "y": 3
+      }
+    },
+    {
+      "id": "lineman-prone",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-prone.png",
+      "original": "originals/lineman-prone.png",
+      "sourceSha256": "CD0F6B997214AF7978E7B9DF8D80E01AD21E7F21A98E1CB8FA8FC159017666C9",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 3,
+        "height": 54,
+        "width": 57,
+        "y": 9
+      }
+    },
+    {
+      "id": "lineman-stunned",
+      "role": "lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/lineman-stunned.png",
+      "original": "originals/lineman-stunned.png",
+      "sourceSha256": "5AFA455201E948495B5C62301C809933AC0A594E6B89A4BEFAB338F680B5D8F5",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 4,
+        "height": 49,
+        "width": 58,
+        "y": 13
+      }
+    },
+    {
+      "id": "blitzer-front",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-front.png",
+      "original": "originals/blitzer-front.png",
+      "sourceSha256": "B44FFC4EC3B7933C9BA6531737B392EE8758AD3B04D8C55FB9F787016EDBC2C7",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "blitzer-back",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-back.png",
+      "original": "originals/blitzer-back.png",
+      "sourceSha256": "EFEF02FC98044DFAE9C095A1DBE786255E666DCA3CC7079A8C525F73480D95BD",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 60,
+        "width": 39,
+        "y": 3
+      }
+    },
+    {
+      "id": "blitzer-front45",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-front45.png",
+      "original": "originals/blitzer-front45.png",
+      "sourceSha256": "318BFBCA76E4025F69682D9A534EDCB8FD11ED7A3A781A7E47C2EB4AF152F449",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 60,
+        "width": 40,
+        "y": 3
+      }
+    },
+    {
+      "id": "blitzer-back45",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-back45.png",
+      "original": "originals/blitzer-back45.png",
+      "sourceSha256": "841A2F4B62B22666C8130B75680ADE6A6314A3A1ED1FF5E6793C88E95004C8D0",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 14,
+        "height": 60,
+        "width": 40,
+        "y": 3
+      }
+    },
+    {
+      "id": "blitzer-side",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-side.png",
+      "original": "originals/blitzer-side.png",
+      "sourceSha256": "B48C2E8AE42CC2D7F7975658ECE3F8DFFBEE89E735EE282D060DE9B892FCB60D",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 16,
+        "height": 59,
+        "width": 31,
+        "y": 4
+      }
+    },
+    {
+      "id": "blitzer-prone",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-prone.png",
+      "original": "originals/blitzer-prone.png",
+      "sourceSha256": "2074C21B1CFCFD06ACD1B684FFF8540FEB1EF8FA87B321E2C8D9903C69CADA34",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 56,
+        "width": 46,
+        "y": 7
+      }
+    },
+    {
+      "id": "blitzer-stunned",
+      "role": "blitzer",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/blitzer-stunned.png",
+      "original": "originals/blitzer-stunned.png",
+      "sourceSha256": "6FFDE070CFF3F2EC168B7EBEFFBD987D7B80A2030B316BCEF0813C13197ACCDE",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 51,
+        "width": 45,
+        "y": 9
+      }
+    },
+    {
+      "id": "catcher-front",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-front.png",
+      "original": "originals/catcher-front.png",
+      "sourceSha256": "76EE1E3C0C81A2C5F991F8BBF6594A6F556C82326055B34E02EFD386F8BC6794",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "catcher-back",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-back.png",
+      "original": "originals/catcher-back.png",
+      "sourceSha256": "37A44441C709AC4002F2FDDDDD654B9AC71FFE53357E1345A262CF387D2B0D97",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 11,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "catcher-front45",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-front45.png",
+      "original": "originals/catcher-front45.png",
+      "sourceSha256": "CF3A4444B7E070C95E67CF68B256A439F50EC988FD40DFF92B06881A77AC4A80",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "catcher-back45",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-back45.png",
+      "original": "originals/catcher-back45.png",
+      "sourceSha256": "DD8F4A97F930549AB79479ABC9E35F7A30B05E214EB9258394CF1A5F1AA00FCC",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 13,
+        "height": 60,
+        "width": 43,
+        "y": 3
+      }
+    },
+    {
+      "id": "catcher-side",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-side.png",
+      "original": "originals/catcher-side.png",
+      "sourceSha256": "458340CBCC7859DDDB15777CF962D1C0152D25C9F9FA12AEA200936E64B75270",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 11,
+        "height": 60,
+        "width": 42,
+        "y": 3
+      }
+    },
+    {
+      "id": "catcher-prone",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-prone.png",
+      "original": "originals/catcher-prone.png",
+      "sourceSha256": "B9EFD2DB977A3CD9108DA8C3FC6A2E45D9B457ACD8DAECC67CA13E39CE33707C",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 57,
+        "width": 58,
+        "y": 6
+      }
+    },
+    {
+      "id": "catcher-stunned",
+      "role": "catcher",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/catcher-stunned.png",
+      "original": "originals/catcher-stunned.png",
+      "sourceSha256": "F64D6DDEDEBCB7C7AB8288C223C00C316B3F7E651ECA782A2E35A74F32EA6B6B",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 57,
+        "width": 60,
+        "y": 6
+      }
+    },
+    {
+      "id": "thrower-front",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-front.png",
+      "original": "originals/thrower-front.png",
+      "sourceSha256": "7DF200451675F199EE64902A884AE28FB2B1632295070E58FCEFE654BC738A6E",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 4,
+        "height": 60,
+        "width": 56,
+        "y": 3
+      }
+    },
+    {
+      "id": "thrower-back",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-back.png",
+      "original": "originals/thrower-back.png",
+      "sourceSha256": "E35C1EAAA851F9E7DB9921FEB9835B7B80F1BF2AA2F6514DC5EC4A3648781EFF",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 60,
+        "width": 51,
+        "y": 3
+      }
+    },
+    {
+      "id": "thrower-front45",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-front45.png",
+      "original": "originals/thrower-front45.png",
+      "sourceSha256": "90E884E570AC5247550556CA7C57E284FE517B51C5CDB0AB729FE02AA9506B73",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 5,
+        "height": 59,
+        "width": 50,
+        "y": 4
+      }
+    },
+    {
+      "id": "thrower-back45",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-back45.png",
+      "original": "originals/thrower-back45.png",
+      "sourceSha256": "E74B24C81ACDEAD0777EF673CD1BA780A49CE9752ADA627A0B87FD3769128FA4",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 7,
+        "height": 60,
+        "width": 54,
+        "y": 3
+      }
+    },
+    {
+      "id": "thrower-side",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-side.png",
+      "original": "originals/thrower-side.png",
+      "sourceSha256": "FCE130F630489AF04D15BBA72A7628730BC514B901943FCC41E53BE3E289DACD",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 11,
+        "height": 60,
+        "width": 49,
+        "y": 3
+      }
+    },
+    {
+      "id": "thrower-prone",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-prone.png",
+      "original": "originals/thrower-prone.png",
+      "sourceSha256": "FE3FD6B8C902C8692427B3F690644BD6250482635AF12DA5312E1CA8DF1C497E",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 45,
+        "width": 60,
+        "y": 18
+      }
+    },
+    {
+      "id": "thrower-stunned",
+      "role": "thrower",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/thrower-stunned.png",
+      "original": "originals/thrower-stunned.png",
+      "sourceSha256": "07E3922F4930785A758AC4C9588167FCC88D4FB39535D1F5AA9A07213A59CF4A",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 4,
+        "height": 54,
+        "width": 57,
+        "y": 9
+      }
+    },
+    {
+      "id": "ogre-front",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-front.png",
+      "original": "originals/ogre-front.png",
+      "sourceSha256": "EC1185668DB80D59C6AE498520CFFB8E4A3C29407ACB2CC1EA4A68E6109B6355",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 7,
+        "height": 72,
+        "width": 67,
+        "y": 7
+      }
+    },
+    {
+      "id": "ogre-back",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-back.png",
+      "original": "originals/ogre-back.png",
+      "sourceSha256": "1F85983827981CB69914C1C414CE8F0AFBB22CB047F7AE795E4C45E3F7B2793D",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 3,
+        "height": 73,
+        "width": 75,
+        "y": 6
+      }
+    },
+    {
+      "id": "ogre-front45",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-front45.png",
+      "original": "originals/ogre-front45.png",
+      "sourceSha256": "CA3D0C467EB37BCBFA1CB4B44E1FD4E21274BCBCE27B59A7E9A3C55781CD5BDE",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 9,
+        "height": 74,
+        "width": 62,
+        "y": 4
+      }
+    },
+    {
+      "id": "ogre-back45",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-back45.png",
+      "original": "originals/ogre-back45.png",
+      "sourceSha256": "DEC8D963A4A477C932087D547D5515B67F1DD4703E99981226EF29528D928EE9",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 11,
+        "height": 76,
+        "width": 64,
+        "y": 3
+      }
+    },
+    {
+      "id": "ogre-side",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-side.png",
+      "original": "originals/ogre-side.png",
+      "sourceSha256": "F4C89A4B54D9D96C7276D072C88B5245C40E95662FD23BCD0FC5C0C31ACFACAA",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 20,
+        "height": 76,
+        "width": 39,
+        "y": 3
+      }
+    },
+    {
+      "id": "ogre-prone",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-prone.png",
+      "original": "originals/ogre-prone.png",
+      "sourceSha256": "97552ABC538439FDAA141CFD82C0368622AEC99304979CB30FAE87BCA832BE7D",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 2,
+        "height": 52,
+        "width": 76,
+        "y": 21
+      }
+    },
+    {
+      "id": "ogre-stunned",
+      "role": "ogre",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/ogre-stunned.png",
+      "original": "originals/ogre-stunned.png",
+      "sourceSha256": "F5843D59C6E6E42A1D07F73191825862C5BD0E2F56CDE20FAA6E25464DB2D510",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 2,
+        "height": 49,
+        "width": 76,
+        "y": 30
+      }
+    },
+    {
+      "id": "halfling-front",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-front.png",
+      "original": "originals/halfling-front.png",
+      "sourceSha256": "69A0F2890F76AE6D5DBB21B026071D0FD4583B644803EB4826C5D98131E8EC4D",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 18,
+        "height": 42,
+        "width": 37,
+        "y": 21
+      }
+    },
+    {
+      "id": "halfling-back",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-back.png",
+      "original": "originals/halfling-back.png",
+      "sourceSha256": "175DBE9EFC00F9BD0E3FB4094357258047D5DF0D9BEA843A4C50F3F4F85EA729",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 44,
+        "width": 38,
+        "y": 19
+      }
+    },
+    {
+      "id": "halfling-front45",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-front45.png",
+      "original": "originals/halfling-front45.png",
+      "sourceSha256": "4300FE8219BE3AF5554AAE62AD3EB4276CCCF7ABC847B78127D0419065CAAB17",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 21,
+        "height": 43,
+        "width": 34,
+        "y": 20
+      }
+    },
+    {
+      "id": "halfling-back45",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-back45.png",
+      "original": "originals/halfling-back45.png",
+      "sourceSha256": "175D316260B5E7F6B48C0B3BBF0B82EB712B30F765FD5ADEBF2CC09B53C7BF21",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 46,
+        "width": 35,
+        "y": 17
+      }
+    },
+    {
+      "id": "halfling-side",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-side.png",
+      "original": "originals/halfling-side.png",
+      "sourceSha256": "E6312AEB9C920B9EBFF11ED1B472EA510B1F5FC92ABC834675A12A5A047B3777",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 21,
+        "height": 42,
+        "width": 20,
+        "y": 19
+      }
+    },
+    {
+      "id": "halfling-prone",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-prone.png",
+      "original": "originals/halfling-prone.png",
+      "sourceSha256": "2BD744455114F9F47144BABAA63253CEE4A9C67F94569EACC4F2E0FEF5A3A6E5",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 34,
+        "width": 40,
+        "y": 27
+      }
+    },
+    {
+      "id": "halfling-stunned",
+      "role": "halfling",
+      "gender": "woman",
+      "sizeClass": "small",
+      "file": "sprites/halfling-stunned.png",
+      "original": "originals/halfling-stunned.png",
+      "sourceSha256": "637704DAA8A04967F9DA8949CF1163E1A29DD030B31CF4E260C3FE48040955F5",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 29,
+        "width": 41,
+        "y": 34
+      }
+    }
+  ]
+}

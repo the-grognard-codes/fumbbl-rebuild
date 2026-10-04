@@ -1,0 +1,900 @@
+{
+  "version": "coach-oriented-v1",
+  "rosterId": "orc",
+  "positions": {
+    "orc-lineman": {
+      "sizeClass": "standard",
+      "poses": {
+        "front": {
+          "file": "master/orc-lineman-front.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 4,
+            "y": 3,
+            "width": 49,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 28.5,
+            "y": 32.0
+          }
+        },
+        "back": {
+          "file": "master/orc-lineman-back.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 10,
+            "y": 3,
+            "width": 49,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 34.5,
+            "y": 32.0
+          }
+        },
+        "front45": {
+          "file": "master/orc-lineman-front45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 8,
+            "y": 3,
+            "width": 45,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 30.5,
+            "y": 32.5
+          }
+        },
+        "back45": {
+          "file": "master/orc-lineman-back45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 17,
+            "y": 3,
+            "width": 43,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 38.5,
+            "y": 32.5
+          }
+        },
+        "side": {
+          "file": "master/orc-lineman-side.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 9,
+            "y": 4,
+            "width": 30,
+            "height": 57
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 24.0,
+            "y": 32.5
+          }
+        },
+        "prone": {
+          "file": "master/orc-lineman-prone.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 2,
+            "y": 23,
+            "width": 57,
+            "height": 39
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 30.5,
+            "y": 42.5
+          }
+        },
+        "stunned": {
+          "file": "master/orc-lineman-stunned.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 4,
+            "y": 21,
+            "width": 57,
+            "height": 41
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 32.5,
+            "y": 41.5
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/orc-lineman-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 4,
+          "y": 15,
+          "width": 152,
+          "height": 129
+        }
+      }
+    },
+    "orc-blitzer": {
+      "sizeClass": "standard",
+      "poses": {
+        "front": {
+          "file": "master/orc-blitzer-front.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 10,
+            "y": 9,
+            "width": 41,
+            "height": 52
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 30.5,
+            "y": 35.0
+          }
+        },
+        "back": {
+          "file": "master/orc-blitzer-back.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 10,
+            "y": 5,
+            "width": 44,
+            "height": 56
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 32.0,
+            "y": 33.0
+          }
+        },
+        "front45": {
+          "file": "master/orc-blitzer-front45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 15,
+            "y": 7,
+            "width": 39,
+            "height": 56
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 34.5,
+            "y": 35.0
+          }
+        },
+        "back45": {
+          "file": "master/orc-blitzer-back45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 13,
+            "y": 5,
+            "width": 41,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 33.5,
+            "y": 34.0
+          }
+        },
+        "side": {
+          "file": "master/orc-blitzer-side.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 18,
+            "y": 4,
+            "width": 27,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 31.5,
+            "y": 33.0
+          }
+        },
+        "prone": {
+          "file": "master/orc-blitzer-prone.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 9,
+            "y": 16,
+            "width": 44,
+            "height": 38
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 54
+          },
+          "groundAnchor": {
+            "x": 31.0,
+            "y": 35.0
+          }
+        },
+        "stunned": {
+          "file": "master/orc-blitzer-stunned.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 12,
+            "y": 20,
+            "width": 42,
+            "height": 35
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 55
+          },
+          "groundAnchor": {
+            "x": 33.0,
+            "y": 37.5
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/orc-blitzer-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 14,
+          "y": 4,
+          "width": 131,
+          "height": 152
+        }
+      }
+    },
+    "big-un-blocker": {
+      "sizeClass": "standard",
+      "poses": {
+        "front": {
+          "file": "master/big-un-blocker-front.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 5,
+            "y": 4,
+            "width": 49,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 29.5,
+            "y": 33.0
+          }
+        },
+        "back": {
+          "file": "master/big-un-blocker-back.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 8,
+            "y": 4,
+            "width": 47,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 31.5,
+            "y": 33.0
+          }
+        },
+        "front45": {
+          "file": "master/big-un-blocker-front45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 8,
+            "y": 4,
+            "width": 45,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 30.5,
+            "y": 33.5
+          }
+        },
+        "back45": {
+          "file": "master/big-un-blocker-back45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 14,
+            "y": 4,
+            "width": 43,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 35.5,
+            "y": 33.0
+          }
+        },
+        "side": {
+          "file": "master/big-un-blocker-side.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 17,
+            "y": 4,
+            "width": 26,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 30.0,
+            "y": 33.0
+          }
+        },
+        "prone": {
+          "file": "master/big-un-blocker-prone.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 4,
+            "y": 21,
+            "width": 54,
+            "height": 40
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 61
+          },
+          "groundAnchor": {
+            "x": 31.0,
+            "y": 41.0
+          }
+        },
+        "stunned": {
+          "file": "master/big-un-blocker-stunned.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 3,
+            "y": 20,
+            "width": 58,
+            "height": 40
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 60
+          },
+          "groundAnchor": {
+            "x": 32.0,
+            "y": 40.0
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/big-un-blocker-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 8,
+          "y": 4,
+          "width": 144,
+          "height": 152
+        }
+      }
+    },
+    "orc-thrower": {
+      "sizeClass": "standard",
+      "poses": {
+        "front": {
+          "file": "master/orc-thrower-front.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 8,
+            "y": 4,
+            "width": 38,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 27.0,
+            "y": 33.5
+          }
+        },
+        "back": {
+          "file": "master/orc-thrower-back.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 6,
+            "y": 3,
+            "width": 42,
+            "height": 60
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 27.0,
+            "y": 33.0
+          }
+        },
+        "front45": {
+          "file": "master/orc-thrower-front45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 6,
+            "y": 5,
+            "width": 43,
+            "height": 58
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 27.5,
+            "y": 34.0
+          }
+        },
+        "back45": {
+          "file": "master/orc-thrower-back45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 13,
+            "y": 3,
+            "width": 40,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 33.0,
+            "y": 32.5
+          }
+        },
+        "side": {
+          "file": "master/orc-thrower-side.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 13,
+            "y": 3,
+            "width": 32,
+            "height": 59
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 29.0,
+            "y": 32.5
+          }
+        },
+        "prone": {
+          "file": "master/orc-thrower-prone.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 3,
+            "y": 21,
+            "width": 55,
+            "height": 41
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 30.5,
+            "y": 41.5
+          }
+        },
+        "stunned": {
+          "file": "master/orc-thrower-stunned.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 3,
+            "y": 22,
+            "width": 57,
+            "height": 41
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 31.5,
+            "y": 42.5
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/orc-thrower-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 15,
+          "y": 4,
+          "width": 129,
+          "height": 152
+        }
+      }
+    },
+    "troll": {
+      "sizeClass": "big",
+      "poses": {
+        "front": {
+          "file": "master/troll-front.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 11,
+            "y": 4,
+            "width": 57,
+            "height": 74
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 78
+          },
+          "groundAnchor": {
+            "x": 39.5,
+            "y": 41.0
+          }
+        },
+        "back": {
+          "file": "master/troll-back.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 13,
+            "y": 4,
+            "width": 55,
+            "height": 70
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 74
+          },
+          "groundAnchor": {
+            "x": 40.5,
+            "y": 39.0
+          }
+        },
+        "front45": {
+          "file": "master/troll-front45.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 15,
+            "y": 6,
+            "width": 49,
+            "height": 68
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 74
+          },
+          "groundAnchor": {
+            "x": 39.5,
+            "y": 40.0
+          }
+        },
+        "back45": {
+          "file": "master/troll-back45.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 14,
+            "y": 5,
+            "width": 52,
+            "height": 72
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 77
+          },
+          "groundAnchor": {
+            "x": 40.0,
+            "y": 41.0
+          }
+        },
+        "side": {
+          "file": "master/troll-side.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 20,
+            "y": 4,
+            "width": 40,
+            "height": 75
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 79
+          },
+          "groundAnchor": {
+            "x": 40.0,
+            "y": 41.5
+          }
+        },
+        "prone": {
+          "file": "master/troll-prone.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 11,
+            "y": 24,
+            "width": 57,
+            "height": 46
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 70
+          },
+          "groundAnchor": {
+            "x": 39.5,
+            "y": 47.0
+          }
+        },
+        "stunned": {
+          "file": "master/troll-stunned.png",
+          "width": 80,
+          "height": 80,
+          "bounds": {
+            "x": 11,
+            "y": 25,
+            "width": 55,
+            "height": 44
+          },
+          "footAnchor": {
+            "x": 40,
+            "y": 69
+          },
+          "groundAnchor": {
+            "x": 38.5,
+            "y": 47.0
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/troll-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 10,
+          "y": 4,
+          "width": 140,
+          "height": 152
+        }
+      }
+    },
+    "goblin-lineman": {
+      "sizeClass": "small",
+      "poses": {
+        "front": {
+          "file": "master/goblin-lineman-front.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 16,
+            "y": 22,
+            "width": 34,
+            "height": 41
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 33.0,
+            "y": 42.5
+          }
+        },
+        "back": {
+          "file": "master/goblin-lineman-back.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 15,
+            "y": 21,
+            "width": 32,
+            "height": 41
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 31.0,
+            "y": 41.5
+          }
+        },
+        "front45": {
+          "file": "master/goblin-lineman-front45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 17,
+            "y": 21,
+            "width": 33,
+            "height": 42
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 33.5,
+            "y": 42.0
+          }
+        },
+        "back45": {
+          "file": "master/goblin-lineman-back45.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 19,
+            "y": 18,
+            "width": 31,
+            "height": 45
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 34.5,
+            "y": 40.5
+          }
+        },
+        "side": {
+          "file": "master/goblin-lineman-side.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 17,
+            "y": 18,
+            "width": 30,
+            "height": 44
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 32.0,
+            "y": 40.0
+          }
+        },
+        "prone": {
+          "file": "master/goblin-lineman-prone.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 9,
+            "y": 33,
+            "width": 44,
+            "height": 29
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 62
+          },
+          "groundAnchor": {
+            "x": 31.0,
+            "y": 47.5
+          }
+        },
+        "stunned": {
+          "file": "master/goblin-lineman-stunned.png",
+          "width": 64,
+          "height": 64,
+          "bounds": {
+            "x": 10,
+            "y": 32,
+            "width": 43,
+            "height": 31
+          },
+          "footAnchor": {
+            "x": 32,
+            "y": 63
+          },
+          "groundAnchor": {
+            "x": 31.5,
+            "y": 47.5
+          }
+        }
+      },
+      "portrait": {
+        "file": "master/goblin-lineman-portrait.png",
+        "width": 160,
+        "height": 160,
+        "bounds": {
+          "x": 4,
+          "y": 10,
+          "width": 152,
+          "height": 139
+        }
+      }
+    }
+  }
+}
