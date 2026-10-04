@@ -55,7 +55,7 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Live match pitch').waitFor();
     assert.equal(await page.getByLabel('Selected player').count(), 0);
-    await page.getByRole('button', { name: /away Blitzer/ }).first().click();
+    await page.getByRole('button', { name: /Away Blitzer/ }).first().click();
     assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
     await page.getByRole('button', { name: 'More actions' }).click();
     assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
@@ -64,7 +64,7 @@ test('active player keeps Blitz - Stab in More actions after selecting the defen
       await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
     }
     await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
-    await page.getByRole('button', { name: 'Commit action' }).click();
+    await page.getByRole('button', { name: 'Confirm Action' }).click();
     assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
@@ -257,7 +257,19 @@ test('hosted final decision leads to participant result and read-only replay aft
     const offPitch = page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ });
     await offPitch.focus();
     await page.getByRole('tooltip', { name: /Blitzer player card/ }).waitFor();
-    assert.match(await page.getByRole('tooltip', { name: /Blitzer player card/ }).textContent(), /Blitzer.*stunned/s);
+    const card = page.getByRole('tooltip', { name: /Blitzer player card/ });
+    assert.match(await card.textContent(), /Blitzer \(Human, Blitzer\).*StatusStunned/s);
+    assert.doesNotMatch(await card.textContent(), /Square \d|Match notes/i);
+    const portraitLayout = await card.evaluate(element => {
+      const stat = element.querySelector('.live-player-stats > div').getBoundingClientRect();
+      const portrait = element.querySelector('header img').getBoundingClientRect();
+      return { statWidth: stat.width, portraitWidth: portrait.width, topDifference: Math.abs(stat.top - portrait.top) };
+    });
+    assert.ok(portraitLayout.statWidth < portraitLayout.portraitWidth && portraitLayout.topDifference < 2,
+      `Portrait should start beside the narrower MA stat: ${JSON.stringify(portraitLayout)}`);
+    const cardBounds = await card.boundingBox();
+    assert.ok(cardBounds.x >= 8 && cardBounds.y >= 8 && cardBounds.x + cardBounds.width <= 1280 - 8
+      && cardBounds.y + cardBounds.height <= 660 - 8, `Player card fits inside the match viewport: ${JSON.stringify(cardBounds)}`);
     if (process.env.M5E_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.M5E_SCREENSHOT_DIR, 'full-time-1280.png') });
     assert.match(await page.getByLabel('Match scoreboard').textContent(), /Home2.*Away1/s);
     assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);

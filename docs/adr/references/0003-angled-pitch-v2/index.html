@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exact pitch camera references — MUTP</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; color: #edf5ff; background: #070d16; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background-image: linear-gradient(#66c1ff0a 1px, transparent 1px), linear-gradient(90deg, #66c1ff0a 1px, transparent 1px); background-size: 16px 16px; }
+    main { width: min(1500px, calc(100% - 40px)); margin: 24px auto 48px; }
+    header { display: flex; gap: 24px; align-items: center; border-bottom: 2px solid #40637e; padding-bottom: 20px; }
+    header img { width: 150px; height: auto; }
+    h1, h2, h3 { font-family: ui-monospace, monospace; line-height: 1.3; }
+    h1 { margin: 0 0 10px; font-size: clamp(22px, 3vw, 34px); color: #ffe17b; }
+    h2 { margin: 0; font-size: 22px; color: #bdeaff; }
+    h3 { margin: 0; font-size: 16px; }
+    p { max-width: 100ch; line-height: 1.6; margin: 8px 0; color: #b8d0e2; }
+    a { color: #77d8ff; text-underline-offset: 3px; }
+    a:focus-visible { outline: 3px solid #ffe17b; outline-offset: 4px; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 20px 0; font-family: ui-monospace, monospace; }
+    section { margin: 22px 0 40px; scroll-margin-top: 20px; }
+    .section-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; margin-bottom: 12px; }
+    .status { font-size: 13px; color: #ffe17b; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+    figure { margin: 0; min-width: 0; background: #101c2bc9; border: 1px solid #40637e; }
+    figure > a { display: block; }
+    figure img { display: block; width: 100%; height: auto; }
+    figcaption { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 14px 16px; }
+    .parameters { color: #a9c8da; font-size: 14px; }
+    .framing { padding: 16px 0 0; }
+    button { background: #101c2b; color: #edf5ff; border: 1px solid #40637e; font: inherit; padding: 10px 14px; margin: 0 10px 8px 0; cursor: pointer; }
+    button[aria-pressed=true] { border-color: #77d8ff; color: #77d8ff; }
+    .view-links { display: flex; gap: 16px; width: 100%; font-size: 14px; }
+    .notes { border-top: 1px solid #40637e; padding-top: 20px; }
+    @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } main { width: calc(100% - 24px); margin-top: 16px; } header { flex-direction: column; align-items: flex-start; gap: 12px; } header img { width: 110px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="../../../../site/src/assets/brand-package-v4/moles-under-the-pitch-logo-compact.svg" alt="Moles Under the Pitch">
+      <div>
+        <h1>MUTP pitch camera references</h1>
+        <p><strong>Latest review:</strong> <a href="../0003-angled-pitch-v3/index.html">Lower parallel views with whole-world scrolling</a>. This gallery retains the earlier camera comparisons.</p>
+        <p>The supplied end-on perspective is the default direction. A fixed isometric preset is the preferred parallel-grid alternative to review; adjustable yaw is deferred.</p>
+        <p>The approved MUTP pixel-art HUD is preserved. Every view uses one exact 26 × 15 pitch, including both end zones, and the same 11 + 11 player positions. Each player's feet are centered in an assigned square.</p>
+      </div>
+    </header>
+    <div class="framing"><button type="button" data-framing="play" aria-pressed="true">Width fit · match framing</button><button type="button" data-framing="full" aria-pressed="false">Full pitch · all 390 squares</button><p>Each example includes a full-pitch capture and a pannable viewer with square coordinates and feet markers.</p></div>
+    <nav aria-label="Camera references">
+      <a href="#default">Default / opposite coach</a>
+      <a href="#parallel">Parallel grid</a>
+      <a href="#isometric">Isometric</a>
+      <a href="#lower">Lower angle</a>
+      <a href="#higher">Higher angle</a>
+      <a href="#yaw">Deferred yaw</a>
+    </nav>
+    <section id="default" aria-labelledby="default-title">
+      <div class="section-head"><h2 id="default-title">Reference-style perspective</h2><span class="status">Selected default direction</span></div>
+      <div class="grid">
+        <figure data-view="perspective-55-home"><a class="image-link" href="perspective-55-home.png"><img src="perspective-55-home.png" alt="Site-style pixel pitch from the home end, with humans near, orcs far, converging sidelines, and translucent navy match controls."></a><figcaption><h3>Home coach</h3><span class="parameters">55° elevation · 0° yaw · perspective</span><span class="view-links"><a href="full-pitch/perspective-55-home.png">Full 26 × 15 image</a><a href="viewer.html?view=perspective-55-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="perspective-55-away"><a class="image-link" href="perspective-55-away.png"><img src="perspective-55-away.png" alt="Opposing coach reference: orcs near seen from behind, humans far facing the camera, with upright screen-space match controls."></a><figcaption><h3>Away coach</h3><span class="parameters">55° elevation · opposite end · perspective</span><span class="view-links"><a href="full-pitch/perspective-55-away.png">Full 26 × 15 image</a><a href="viewer.html?view=perspective-55-away">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <section id="parallel" aria-labelledby="parallel-title">
+      <div class="section-head"><h2 id="parallel-title">End-on parallel grid</h2><span class="status">Consistent-size comparison</span></div>
+      <div class="grid">
+        <figure data-view="parallel-55-home"><a class="image-link" href="parallel-55-home.png"><img src="parallel-55-home.png" loading="lazy" alt="End-on orthographic reference with parallel touchlines, consistent apparent grid sizes, and the same site-style pixel HUD."></a><figcaption><h3>Parallel / orthographic</h3><span class="parameters">55° elevation · 0° yaw</span><span class="view-links"><a href="full-pitch/parallel-55-home.png">Full 26 × 15 image</a><a href="viewer.html?view=parallel-55-home">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <section id="isometric" aria-labelledby="isometric-title">
+      <div class="section-head"><h2 id="isometric-title">Fixed isometric</h2><span class="status">Preferred parallel-view alternative to review</span></div>
+      <div class="grid">
+        <figure data-view="isometric-home"><a class="image-link" href="isometric-home.png"><img src="isometric-home.png" loading="lazy" alt="Classical diagonal isometric reference with a diamond-like parallel grid, consistent player scale, and upright translucent site-style HUD."></a><figcaption><h3>Classical isometric</h3><span class="parameters">35.264° elevation · fixed 45° yaw · parallel</span><span class="view-links"><a href="full-pitch/isometric-home.png">Full 26 × 15 image</a><a href="viewer.html?view=isometric-home">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <section id="lower" aria-labelledby="lower-title">
+      <div class="section-head"><h2 id="lower-title">Lower, more dramatic view</h2><span class="status">Elevation study</span></div>
+      <div class="grid">
+        <figure data-view="perspective-45-home"><a class="image-link" href="perspective-45-home.png"><img src="perspective-45-home.png" loading="lazy" alt="Lower end-on perspective concept showing compressed ground rows and more upright player silhouettes."></a><figcaption><h3>Lower perspective</h3><span class="parameters">45° elevation · 0° yaw</span><span class="view-links"><a href="full-pitch/perspective-45-home.png">Full 26 × 15 image</a><a href="viewer.html?view=perspective-45-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="parallel-45-home"><a class="image-link" href="parallel-45-home.png"><img src="parallel-45-home.png" loading="lazy" alt="Lower end-on parallel concept retaining consistent grid and player scale."></a><figcaption><h3>Lower parallel</h3><span class="parameters">45° elevation · 0° yaw</span><span class="view-links"><a href="full-pitch/parallel-45-home.png">Full 26 × 15 image</a><a href="viewer.html?view=parallel-45-home">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <section id="higher" aria-labelledby="higher-title">
+      <div class="section-head"><h2 id="higher-title">Higher tactical view</h2><span class="status">Elevation study</span></div>
+      <div class="grid">
+        <figure data-view="perspective-65-home"><a class="image-link" href="perspective-65-home.png"><img src="perspective-65-home.png" loading="lazy" alt="Higher end-on perspective concept with more visible ground between player rows."></a><figcaption><h3>Higher perspective</h3><span class="parameters">65° elevation · 0° yaw</span><span class="view-links"><a href="full-pitch/perspective-65-home.png">Full 26 × 15 image</a><a href="viewer.html?view=perspective-65-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="parallel-65-home"><a class="image-link" href="parallel-65-home.png"><img src="parallel-65-home.png" loading="lazy" alt="Higher end-on parallel concept with taller ground rows and consistent apparent sizes."></a><figcaption><h3>Higher parallel</h3><span class="parameters">65° elevation · 0° yaw</span><span class="view-links"><a href="full-pitch/parallel-65-home.png">Full 26 × 15 image</a><a href="viewer.html?view=parallel-65-home">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <section id="yaw" aria-labelledby="yaw-title">
+      <div class="section-head"><h2 id="yaw-title">Slight three-quarter yaw</h2><span class="status">Deferred enhancement</span></div>
+      <div class="grid">
+        <figure data-view="yaw-left-perspective-home"><a class="image-link" href="yaw-left-perspective-home.png"><img src="yaw-left-perspective-home.png" loading="lazy" alt="Slight left-yaw perspective study with diagonally inclined field geometry and fixed upright UI."></a><figcaption><h3>Left yaw · perspective</h3><span class="parameters">55° elevation · −15° yaw</span><span class="view-links"><a href="full-pitch/yaw-left-perspective-home.png">Full 26 × 15 image</a><a href="viewer.html?view=yaw-left-perspective-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="yaw-left-parallel-home"><a class="image-link" href="yaw-left-parallel-home.png"><img src="yaw-left-parallel-home.png" loading="lazy" alt="Slight left-yaw parallel-projection study with diagonally inclined field geometry and fixed upright UI."></a><figcaption><h3>Left yaw · parallel</h3><span class="parameters">55° elevation · −15° yaw</span><span class="view-links"><a href="full-pitch/yaw-left-parallel-home.png">Full 26 × 15 image</a><a href="viewer.html?view=yaw-left-parallel-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="yaw-right-perspective-home"><a class="image-link" href="yaw-right-perspective-home.png"><img src="yaw-right-perspective-home.png" loading="lazy" alt="Slight right-yaw perspective study with the opposite ground inclination and fixed upright UI."></a><figcaption><h3>Right yaw · perspective</h3><span class="parameters">55° elevation · +15° yaw</span><span class="view-links"><a href="full-pitch/yaw-right-perspective-home.png">Full 26 × 15 image</a><a href="viewer.html?view=yaw-right-perspective-home">Pan / inspect square placement</a></span></figcaption></figure>
+        <figure data-view="yaw-right-parallel-home"><a class="image-link" href="yaw-right-parallel-home.png"><img src="yaw-right-parallel-home.png" loading="lazy" alt="Slight right-yaw parallel-projection study with the opposite ground inclination and fixed upright UI."></a><figcaption><h3>Right yaw · parallel</h3><span class="parameters">55° elevation · +15° yaw</span><span class="view-links"><a href="full-pitch/yaw-right-parallel-home.png">Full 26 × 15 image</a><a href="viewer.html?view=yaw-right-parallel-home">Pan / inspect square placement</a></span></figcaption></figure>
+      </div>
+    </section>
+    <footer class="notes">
+      <p>All 12 views use mathematically projected geometry: 390 squares; one-square end zones; 4 / 7 / 4 width divisions; midfield at the boundary between the 13-square halves. Width fit shows a slice of the finite pitch. Full-pitch captures show every square. These documentation references do not establish live gameplay or performance acceptance.</p>
+      <p><a href="../../0003-coach-oriented-angled-pitch.md">ADR 0003</a> · <a href="README.md">Reference notes</a> · <a href="art/prompts.json">Artwork provenance</a> · <a href="geometry.json">Verified geometry / player anchors</a></p>
+    </footer>
+  </main>
+<script>
+    for (const button of document.querySelectorAll('[data-framing]')) {
+      button.addEventListener('click', () => {
+        const full = button.dataset.framing === 'full';
+        for (const control of document.querySelectorAll('[data-framing]')) control.setAttribute('aria-pressed', String(control === button));
+        for (const figure of document.querySelectorAll('figure[data-view]')) {
+          const source = (full ? 'full-pitch/' : '') + figure.dataset.view + '.png';
+          figure.querySelector('img').src = source;
+          figure.querySelector('.image-link').href = source;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -181,7 +181,8 @@ class SetupSessionTest {
 			if (action.getString("id", "").endsWith("reroll:team")) teamReroll = action;
 		}
 		assertTrue(teamReroll != null, "Expected a team reroll after the forced failed dodge");
-		TestRolls.on(engine(session)).general(6);
+		// The native team reroll checks Team Captain before rerolling Dodge.
+		TestRolls.on(engine(session)).general(6, 6);
 		submit(session, teamReroll);
 		assertEquals(startX + direction, engine(session).getGame().getFieldModel()
 			.getPlayerCoordinate(engine(session).getGame().getPlayerById(playerId)).getX());

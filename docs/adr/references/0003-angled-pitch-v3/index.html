@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUTP · lower parallel pitch</title>
+  <style>
+    :root { color-scheme: dark; background: #070d16; color: #edf5ff; font: 16px system-ui, sans-serif; }
+    * { box-sizing: border-box; } body { margin: 0; } main { width: min(1500px, calc(100% - 32px)); margin: 28px auto; }
+    h1,h2,h3 { font-family: ui-monospace, monospace; } h1 { color: #ffe17b; font-size: clamp(22px,3vw,34px); } h2 { color: #bdeaff; }
+    p { color: #b8d0e2; line-height: 1.6; max-width: 100ch; } a { color: #77d8ff; text-underline-offset: 3px; }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; margin:20px 0; } button,.launch { padding:12px 16px; border:1px solid #40637e; background:#101c2b; color:#edf5ff; font:inherit; cursor:pointer; }
+    button[aria-pressed=true],.launch { border-color:#77d8ff; color:#77d8ff; } :focus-visible { outline:2px solid #ffe17b; outline-offset:3px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-bottom:30px; }
+    figure { margin:0; border:1px solid #40637e; background:#101c2bc9; } figure img { display:block; width:100%; height:auto; }
+    figcaption { padding:14px 16px; } h3 { margin:0 0 10px; font-size:16px; } .links { display:flex; gap:16px; flex-wrap:wrap; font-size:14px; }
+    footer { border-top:1px solid #40637e; padding-top:16px; } @media(max-width:850px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body><main>
+  <h1>MUTP · lower parallel pitch</h1>
+  <p>This interpretation is superseded by the <a href="../0003-angled-pitch-v4/index.html">travelling perspective study</a>, which restores the original stadium and aligns parallel world edges to a common screen vanishing point.</p>
+  <p>Lower end-on views with parallel touchlines and stadium rails. The complete world scrolls together: turf, pitch, markings, players, sidelines, crowd stands, banners and torches. The approved HUD stays fixed.</p>
+  <p>Each view retains the same exact <strong>26 × 15 pitch: 390 squares</strong>, end zones, 4 / 7 / 4 divisions, and 22 players with centered feet.</p>
+  <div class="controls"><a class="launch" href="viewer.html">Open viewer · wheel / drag / arrows to pan</a><button data-framing="play" aria-pressed="true">Match view</button><button data-framing="full" aria-pressed="false">Full 26 × 15</button></div>
+  <h2>40° elevation · zero yaw · orthographic</h2>
+  <div class="grid">
+    <figure data-view="parallel-40-home"><a class="image-link" href="parallel-40-home.png"><img src="parallel-40-home.png" alt="Lower 40-degree home view with parallel touchlines, MUTP pixel stadium and fixed approved HUD."></a><figcaption><h3>Home coach</h3><div class="links"><a href="viewer.html?view=parallel-40-home">Pan / inspect</a><a href="full-pitch/parallel-40-home.png">Full pitch image</a></div></figcaption></figure>
+    <figure data-view="parallel-40-away"><a class="image-link" href="parallel-40-away.png"><img src="parallel-40-away.png" alt="Lower 40-degree opposing coach view of the same canonical formation and world scenery."></a><figcaption><h3>Away coach</h3><div class="links"><a href="viewer.html?view=parallel-40-away">Pan / inspect</a><a href="full-pitch/parallel-40-away.png">Full pitch image</a></div></figcaption></figure>
+  </div>
+  <h2>35° elevation · lower comparison</h2>
+  <div class="grid">
+    <figure data-view="parallel-35-home"><a class="image-link" href="parallel-35-home.png"><img src="parallel-35-home.png" alt="35-degree lower home view, showing greater row compression with consistent square and sprite scale."></a><figcaption><h3>Home coach</h3><div class="links"><a href="viewer.html?view=parallel-35-home">Pan / inspect</a><a href="full-pitch/parallel-35-home.png">Full pitch image</a></div></figcaption></figure>
+    <figure data-view="parallel-35-away"><a class="image-link" href="parallel-35-away.png"><img src="parallel-35-away.png" alt="35-degree lower opposing coach view with the same pitch and player positions."></a><figcaption><h3>Away coach</h3><div class="links"><a href="viewer.html?view=parallel-35-away">Pan / inspect</a><a href="full-pitch/parallel-35-away.png">Full pitch image</a></div></figcaption></figure>
+  </div>
+  <h2>The entire pitch moves</h2>
+  <p>These 40° home-view captures show the near and far ends. Use the live viewer to follow a grass patch, torch or banner as it moves with the squares. The HUD remains in the same screen position.</p>
+  <div class="grid">
+    <figure><a href="pan/parallel-40-home-near.png"><img src="pan/parallel-40-home-near.png" alt="Home-end pan showing the near one-square end zone and registered turf and stadium scenery."></a><figcaption><h3>Near end · canonical x=0</h3></figcaption></figure>
+    <figure><a href="pan/parallel-40-home-far.png"><img src="pan/parallel-40-home-far.png" alt="Opposite-end pan showing the far one-square end zone; all scene layers moved together while the HUD stayed fixed."></a><figcaption><h3>Far end · canonical x=25</h3></figcaption></figure>
+  </div>
+  <footer><p><a href="../../0003-coach-oriented-angled-pitch.md">ADR 0003</a> · <a href="README.md">Reference notes</a> · <a href="geometry.json">Geometry / whole-world pan checks</a> · <a href="art/prompts.json">Artwork provenance</a></p><p>Documentation reference only. These views replace the earlier fixed backdrop for this camera review. Elevation remains a study choice; live gameplay integration and foreground-performance acceptance remain separate.</p></footer>
+</main><script>
+  for(const button of document.querySelectorAll('[data-framing]')) button.addEventListener('click',()=>{
+    for(const other of document.querySelectorAll('[data-framing]')) other.setAttribute('aria-pressed',String(other===button));
+    for(const figure of document.querySelectorAll('[data-view]')) {
+      const src=(button.dataset.framing==='full'?'full-pitch/':'')+figure.dataset.view+'.png';
+      figure.querySelector('img').src=src;figure.querySelector('.image-link').href=src;
+    }
+  });
+</script></body></html>

@@ -8,6 +8,7 @@ import { MatchHistory } from './MatchHistory.tsx';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import { usePitchPlayback } from './use-pitch-playback.ts';
+import { matchTeamName } from './match-team-name.ts';
 
 export function HostedResult({ matchId, result, event, index, pending, connected, onLoad, onReplay,
   logRecords, logLoading, logUnavailable, chatMessages, chatLoading, chatUnavailable }: {
@@ -41,17 +42,18 @@ export function HostedResult({ matchId, result, event, index, pending, connected
       const key = `${record.state.half}:${record.actor}:${turn}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      stops.push({ index: record.index, label: `Half ${record.state.half} · ${record.actor === 'home' ? 'Home' : 'Away'} turn ${turn}` });
+      stops.push({ index: record.index, label: `Half ${record.state.half} · ${matchTeamName(record.state, record.actor)} turn ${turn}` });
     }
     return stops;
   }, [logRecords]);
   const shownRevision = skipAnimations ? event?.revision ?? -1 : displayRevision ?? event?.revision ?? -1;
+  const names = event?.state ?? logRecords[0]?.state ?? {};
   return <section aria-label="Authoritative result" className="hosted-result">
     <p>Completed match {matchId}. Final score and recorded events are loaded from the game server.</p>
     <button type="button" onClick={onLoad} disabled={!ready}>Reload result</button>
     {pending && <p role="status">Loading saved match history…</p>}
     {result && <>
-      <div className="match-scoreboard" aria-label="Final score"><div><span>Home</span><strong>{result.homeScore}</strong></div><p>Full time</p><div><span>Away</span><strong>{result.awayScore}</strong></div></div>
+      <div className="match-scoreboard" aria-label="Final score"><div><span>{matchTeamName(names, 'home')}</span><strong>{result.homeScore}</strong></div><p>Full time</p><div><span>{matchTeamName(names, 'away')}</span><strong>{result.awayScore}</strong></div></div>
       <p>{result.eventCount} recorded events · {result.ruleset}</p>
       <nav className="replay-controls" aria-label="Replay controls">
         <button type="button" onClick={() => onReplay(0)} disabled={!ready || index === 0}>First</button>
@@ -77,10 +79,11 @@ export function HostedResult({ matchId, result, event, index, pending, connected
         <label className="replay-skip"><input type="checkbox" checked={skipAnimations} onChange={choice => setSkipAnimations(choice.target.checked)}/> Skip animations</label>
       </div>
       {event ? <section aria-label="Replay event"><h2>Event {event.revision + 1} of {result.eventCount}: {event.kind}</h2>
-        <p>Half {event.state.half} · Drive {event.state.drive} · Home turn {event.state.homeTurn} · Away turn {event.state.awayTurn} · {event.state.weather}</p>
+        <p>Half {event.state.half} · Drive {event.state.drive} · {matchTeamName(event.state, 'home')} turn {event.state.homeTurn} · {matchTeamName(event.state, 'away')} turn {event.state.awayTurn} · {event.state.weather}</p>
         <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
       </section> : <p>Choose First or Last to view the recorded pitch.</p>}
       {result.formatVersion >= 2 && <MatchHistory matchId={matchId} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}
+        homeTeamName={matchTeamName(names, 'home')} awayTeamName={matchTeamName(names, 'away')}
         messages={chatMessages.filter(message => message.revision <= shownRevision)} chatLoading={chatLoading} chatUnavailable={chatUnavailable || result.formatVersion < 3}
         connected={connected} sending={false} canSend={false} onSend={() => {}} sendError="" sent={null}/>}
     </>}

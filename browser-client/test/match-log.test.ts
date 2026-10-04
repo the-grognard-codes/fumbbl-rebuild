@@ -9,11 +9,12 @@ const player = { id: 'runner', name: 'Runner', role: 'home' as const, slot: 1, x
 const state = (revision: number, x: number): SetupState => ({ matchId: '12345678-1234-1234-1234-123456789abc',
   revision, callerRole: 'home', phase: 'PLAY', actor: 'home', prompt: null, players: [{ ...player, x }],
   weather: 'NICE', homeRerolls: 2, awayRerolls: 2, actions: [], turn: 1, turnMode: 'REGULAR', ball: null,
-  activePlayerId: 'runner', half: 1, homeTurn: 1, awayTurn: 1, homeScore: 0, awayScore: 0, drive: 1 });
+  activePlayerId: 'runner', half: 1, homeTurn: 1, awayTurn: 1, homeScore: 0, awayScore: 0, drive: 1,
+  homeTeamName: 'Tusk Love Dugout', awayTeamName: "Bugman's Best Dugout" });
 const start: TranscriptRecord = { index: 0, revision: 0, kind: 'START', actor: 'system', at: 100,
   decision: null, native: [], state: state(0, 4) };
 
-test('logs raw dodge target, net modifier, reroll, block dice and one coordinate span', () => {
+test('logs raw dodge target, net modifier, reroll and block dice without coordinate debug lines', () => {
   const action: TranscriptRecord = { index: 1, revision: 1, kind: 'ACTION', actor: 'home', at: 101,
     decision: { operation: 'action', actionId: '1:move:runner' },
     native: [{ commandNr: 1, reportList: { reports: [
@@ -27,7 +28,7 @@ test('logs raw dodge target, net modifier, reroll, block dice and one coordinate
   assert.ok(lines.some(line => line.includes('re roll') && line.includes('Dodge')));
   assert.ok(lines.some(line => line.includes('dice [4, 6]')));
   assert.ok(lines.some(line => line.includes('selected die 2: PUSHBACK')));
-  assert.equal(lines.filter(line => line.includes('(4, 7) → (10, 7)')).length, 1);
+  assert.ok(lines.every(line => !line.includes('(4, 7) → (10, 7)')));
 });
 
 test('renders retained injury, apothecary, foul rulings, rerolls and KO recovery from native fields', () => {
@@ -65,4 +66,38 @@ test('renders retained injury, apothecary, foul rulings, rerolls and KO recovery
   assert.ok(lines.some(line => line.includes('source Team re roll') && line.includes('roll 3')));
   assert.ok(lines.some(line => line.includes('block re roll') && line.includes('source Brawler')));
   assert.equal(lines.filter(line => line.startsWith('KO recovery · Runner')).length, 2);
+});
+
+test('uses team names for kickoff choices and hides setup bookkeeping, team IDs, and placement changes', () => {
+  const teamId = '39395928-d9e7-318a-b54f-719989a4ca68';
+  const choice: TranscriptRecord = { index: 1, revision: 1, kind: 'SELECTION', actor: 'away', at: 101,
+    decision: { operation: 'choice', optionId: 'kick' }, native: [{ commandNr: 1, reportList: { reports: [
+      { reportId: 'receiveChoice', teamId, receiveChoice: false },
+      { reportId: 'startHalf', half: 1 },
+      { reportId: 'fanFactor', teamId, dedicatedFans: 2, dedicatedFansResult: 3, dedicatedFansRoll: 1 },
+    ] } }], state: state(1, 13) };
+  const placement: TranscriptRecord = { index: 2, revision: 2, kind: 'ACTION', actor: 'away', at: 102,
+    decision: { operation: 'place', playerId: 'runner', to: { x: 13, y: 6 } }, native: [], state: state(2, 13) };
+  const lines = matchLogLines([start, choice, placement]).map(line => line.text);
+  assert.ok(lines.includes("Bugman's Best Dugout chooses to kick."));
+  assert.ok(lines.some(line => line.startsWith('fan factor:')));
+  assert.ok(lines.every(line => !line.includes(teamId) && !line.startsWith('receive choice')
+    && !line.startsWith('start half') && !line.includes('off pitch') && !line.includes('placed Runner')));
+});
+
+test('attributes simultaneous home and away fan rolls without exposing native team IDs', () => {
+  const homeId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', awayId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  const view = { ...state(1, 4), players: [
+    { ...player, id: `${homeId}:runner`, role: 'home' as const },
+    { ...player, id: `${awayId}:opponent`, role: 'away' as const }
+  ] };
+  const record: TranscriptRecord = { index: 1, revision: 1, kind: 'ACTION', actor: 'home', at: 101,
+    decision: { operation: 'action', actionId: 'spectators' }, state: view, native: [{ commandNr: 1, reportList: { reports: [
+      { reportId: 'fanFactor', teamId: homeId, dedicatedFansRoll: 1 },
+      { reportId: 'fanFactor', teamId: awayId, dedicatedFansRoll: 3 }
+    ] } }] };
+  const lines = matchLogLines([record]).map(line => line.text);
+  assert.ok(lines.some(line => line.includes('fan factor · Tusk Love Dugout: dedicated fans roll 1')));
+  assert.ok(lines.some(line => line.includes("fan factor · Bugman's Best Dugout: dedicated fans roll 3")));
+  assert.ok(lines.every(line => !line.includes(homeId) && !line.includes(awayId)));
 });

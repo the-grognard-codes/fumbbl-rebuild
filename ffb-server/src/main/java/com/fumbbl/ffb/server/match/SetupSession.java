@@ -76,6 +76,10 @@ public final class SetupSession {
 	private boolean failed;
 	private RecoveryDice recoveryDice;
 	private SaveResumeState saveResumeState;
+	private long homeReserveUsedMs;
+	private long awayReserveUsedMs;
+	private static final long TURN_ALLOWANCE_MS = 120_000L;
+	private static final long RESERVE_ALLOWANCE_MS = 600_000L;
 
 	public SetupSession(FantasyFootballServer server, MatchDocument document, long engineId) {
 		this(server, document, engineId, false);
@@ -199,10 +203,18 @@ public final class SetupSession {
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
 				"saveResume", "pendingRoute");
-			else exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
-				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
-				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
-				"saveResume", "pendingRoute", "chat");
+			else {
+				String[] base = { "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
+					"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
+					"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView", "saveResumeEnabled", "transcript",
+					"saveResume", "pendingRoute", "chat" };
+				if (payload.get("clock") == null) exactRecovery(payload, base);
+				else {
+					String[] withClock = java.util.Arrays.copyOf(base, base.length + 1);
+					withClock[base.length] = "clock";
+					exactRecovery(payload, withClock);
+				}
+			}
 			if ((r51 || r52 || r53) && !saveResume && !payload.get("saveResume").isNull())
 				throw new IllegalArgumentException("Unexpected save/resume state");
 			if (!matchId.equals(payload.getString("matchId", null)) || !ordered(frozen()).equals(payload.get("frozen")))
@@ -216,6 +228,14 @@ public final class SetupSession {
 			state.initFrom(server.getFactorySource(), payload.get("native"));
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
+			if (r53 && payload.get("clock") != null) {
+				JsonObject clock = payload.get("clock").asObject();
+				exactRecovery(clock, "homeUsedMs", "awayUsedMs");
+				homeReserveUsedMs = clock.get("homeUsedMs").asLong();
+				awayReserveUsedMs = clock.get("awayUsedMs").asLong();
+				if (homeReserveUsedMs < 0 || awayReserveUsedMs < 0 || homeReserveUsedMs > RESERVE_ALLOWANCE_MS
+					|| awayReserveUsedMs > RESERVE_ALLOWANCE_MS) throw new IllegalArgumentException("Invalid clock bank");
+			}
 			state.initCommandNrGenerator(payload.get("lastCommandNr").asLong());
 			for (JsonObject.Member queue : payload.get("testRolls").asObject()) {
 				java.util.ArrayList<com.fumbbl.ffb.DiceCategory> rolls = new java.util.ArrayList<>();
@@ -288,7 +308,8 @@ public final class SetupSession {
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
 		if (routeV2) payload.add("pendingRoute", pendingRoute == null ? JsonValue.NULL : pendingRoute.json());
-		if (chatV1) payload.add("chat", chat.json());
+		if (chatV1) payload.add("chat", chat.json()).add("clock", new JsonObject()
+			.add("homeUsedMs", homeReserveUsedMs).add("awayUsedMs", awayReserveUsedMs));
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 33554432) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -449,17 +470,32 @@ public final class SetupSession {
 		saveResumeState.suspendedAt = -1L;
 	}
 
-	/** Add save state to a wire projection only; replay snapshots retain their frozen schema. */
+	/** Add live status to a wire projection only; replay snapshots retain their frozen schema. */
 	public JsonObject decorateSaveResume(JsonObject response) {
-		if (saveResume && response.get("state") != null && !response.get("state").isNull())
-			response.get("state").asObject().add("saveResume", saveResumeState.publicJson());
+		if (response.get("state") != null && !response.get("state").isNull())
+			decorateSaveResumeState(response.get("state").asObject());
 		return response;
 	}
 
-	/** Spectators receive only the same small suspension status, never checkpoint details. */
+	/** Spectators receive only public suspension and clock status, never checkpoint details. */
 	public JsonObject decorateSaveResumeState(JsonObject state) {
 		if (saveResume) state.add("saveResume", saveResumeState.publicJson());
+		if (chatV1) state.add("clock", clockProjection());
 		return state;
+	}
+
+	private JsonObject clockProjection() {
+		Game game = state.getGame();
+		long started = state.getTurnTimeStarted();
+		boolean running = !isComplete() && game.isTurnTimeEnabled() && started > 0;
+		long now = saveResume && saveResumeState.suspended() ? saveResumeState.suspendedAt : System.currentTimeMillis();
+		long elapsed = running ? Math.max(0L, now - started) : 0L;
+		long excess = Math.max(0L, elapsed - TURN_ALLOWANCE_MS);
+		boolean home = game.isHomePlaying();
+		return new JsonObject().add("activeRole", running ? JsonValue.valueOf(home ? "home" : "away") : JsonValue.NULL)
+			.add("turnElapsedMs", elapsed)
+			.add("homeReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - homeReserveUsedMs - (running && home ? excess : 0L)))
+			.add("awayReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - awayReserveUsedMs - (running && !home ? excess : 0L)));
 	}
 
 	public JsonObject apply(String role, JsonObject request) {
@@ -555,6 +591,9 @@ public final class SetupSession {
 			command = new ClientCommandEndTurn(TurnMode.SETUP, null);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		int oldHalf = game.getHalf();
+		int oldTurn = game.getTurnData().getTurnNr();
+		long oldTurnStarted = state.getTurnTimeStarted();
+		boolean oldHomePlaying = game.isHomePlaying();
 		int oldScore = homeScore() + awayScore();
 		StepId oldStep = step();
 		String oldActor = actor();
@@ -578,6 +617,13 @@ public final class SetupSession {
 					+ " with dialog " + game.getDialogParameter());
 			} else if (command != null) state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
 			if (pendingRoute != null) continueRoute();
+			if (chatV1 && oldTurnStarted > 0 && (oldTurnStarted != state.getTurnTimeStarted()
+				|| oldHomePlaying != game.isHomePlaying() || oldHalf != game.getHalf() || oldTurn != game.getTurnData().getTurnNr())) {
+				long elapsed = Math.max(0L, System.currentTimeMillis() - oldTurnStarted);
+				long excess = Math.min(RESERVE_ALLOWANCE_MS, Math.max(0L, elapsed - TURN_ALLOWANCE_MS));
+				if (oldHomePlaying) homeReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, homeReserveUsedMs + excess);
+				else awayReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, awayReserveUsedMs + excess);
+			}
             kickoffSelection.clear();
 			assertSupported();
 			revision++;
@@ -651,7 +697,7 @@ public final class SetupSession {
 				for (Skill skill : player.getSkillsIncludingTemporaryOnes()) skillNames.add(skill.getName());
 				Collections.sort(skillNames);
 				for (String skillName : skillNames) skills.add(skillName);
-				players.add(new JsonObject().add("id", player.getId()).add("name", player.getName())
+				JsonObject projected = new JsonObject().add("id", player.getId()).add("name", player.getName())
 					.add("slot", rosterSlot(frozen, player)).add("art", artIdentity(frozen, player))
 					.add("number", player.getNr()).add("position", positionName(player))
 					.add("ma", player.getMovementWithModifiers(game)).add("st", player.getStrengthWithModifiers(game))
@@ -659,9 +705,13 @@ public final class SetupSession {
 					.add("av", player.getArmourWithModifiers(game)).add("skills", skills)
 					.add("offPitch", offPitch(playerState, onPitch))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
-					.add("state", playerState.getDescription())
+					.add("state", playerState.getDescription()).add("status", playerStatus(playerState))
 					.add("x", onPitch ? JsonValue.valueOf(at.getX()) : JsonValue.NULL)
-					.add("y", onPitch ? JsonValue.valueOf(at.getY()) : JsonValue.NULL));
+					.add("y", onPitch ? JsonValue.valueOf(at.getY()) : JsonValue.NULL);
+				FrozenTeam.Player source = frozenPlayer(frozen, player);
+				if (source != null && !source.race.isEmpty() && !source.role.isEmpty())
+					projected.add("positionRace", source.race).add("positionRole", source.role);
+				players.add(projected);
 			}
 		}
 		JsonValue prompt = JsonValue.NULL;
@@ -706,6 +756,15 @@ public final class SetupSession {
 		String id = player.getPositionId();
 		return id == null || id.isEmpty() ? "Player" : id;
 	}
+	private String playerStatus(PlayerState playerState) {
+		if (playerState.isDistracted()) return "Distracted";
+		switch (playerState.getBase()) {
+			case PlayerState.STUNNED: return "Stunned";
+			case PlayerState.SERIOUS_INJURY: return "Seriously Injured";
+			case PlayerState.BANNED: return "Sent Off";
+			default: return playerState.getButtonText() == null ? "Unknown" : playerState.getButtonText();
+		}
+	}
 	private String offPitch(PlayerState playerState, boolean onPitch) {
 		if (onPitch) return "pitch";
 		switch (playerState.getBase()) {
@@ -720,15 +779,29 @@ public final class SetupSession {
 	}
 	private JsonValue artIdentity(FrozenTeam frozen, Player<?> enginePlayer) {
 		if (frozen.rosterId == null || frozen.rosterId.isEmpty()) return JsonValue.NULL;
-		for (FrozenTeam.Player player : frozen.players)
-			if ((frozen.sourceTeamId + ":" + player.id).equals(enginePlayer.getId()) && player.positionId != null && !player.positionId.isEmpty())
-				return new JsonObject().add("rosterId", frozen.rosterId).add("positionId", player.positionId);
+		FrozenTeam.Player player = frozenPlayer(frozen, enginePlayer);
+		if (player != null && player.positionId != null && !player.positionId.isEmpty())
+			return new JsonObject().add("rosterId", frozen.rosterId).add("positionId", player.positionId);
 		return JsonValue.NULL;
+	}
+	private FrozenTeam.Player frozenPlayer(FrozenTeam frozen, Player<?> enginePlayer) {
+		for (FrozenTeam.Player player : frozen.players)
+			if ((frozen.sourceTeamId + ":" + player.id).equals(enginePlayer.getId())) return player;
+		return null;
 	}
 	private boolean matchesRecoveredView(JsonObject saved, String role) {
 		JsonObject current = view(role);
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;
+		JsonArray savedPlayers = saved.get("players").asArray();
+		JsonArray currentPlayers = current.get("players").asArray();
+		if (savedPlayers.size() != currentPlayers.size()) return false;
+		for (int index = 0; index < savedPlayers.size(); index++) {
+			JsonObject previous = savedPlayers.get(index).asObject();
+			JsonObject now = currentPlayers.get(index).asObject();
+			for (String field : new String[] { "status", "positionRace", "positionRole" })
+				if (previous.get(field) == null) now.remove(field);
+		}
 		if (version < 4) {
 			current.set("projectionVersion", 3);
 			current.remove("homeTeamName"); current.remove("awayTeamName");

@@ -223,7 +223,16 @@ public final class MatchJson {
 			JsonObject player = value.asObject();
 			if (state.get("projectionVersion") != null) {
 				if (detailsV4) {
-					exact(player, "id", "name", "slot", "art", "role", "state", "x", "y", "number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch");
+					List<String> fields = new ArrayList<>(Arrays.asList("id", "name", "slot", "art", "role", "state", "x", "y", "number", "position", "ma", "st", "ag", "pa", "av", "skills", "offPitch"));
+					if (player.get("status") != null) {
+						fields.add("status");
+						shortText(player.get("status"));
+					}
+					if (player.get("positionRace") != null || player.get("positionRole") != null) {
+						fields.add("positionRace"); fields.add("positionRole");
+						shortText(player.get("positionRace")); shortText(player.get("positionRole"));
+					}
+					exact(player, fields.toArray(new String[0]));
 					bounded(player.get("number"), 1, 99); shortText(player.get("position"));
 					for (String stat : Arrays.asList("ma", "st", "ag", "pa", "av")) bounded(player.get(stat), 0, 30);
 					JsonArray skills = player.get("skills").asArray(); if (skills.size() > 64) throw new IllegalArgumentException();

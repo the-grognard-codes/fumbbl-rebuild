@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-03",
+  "tool": "built-in image_gen.imagegen",
+  "reference": "../../0003-angled-pitch-v2/art/stadium.png",
+  "purpose": "World-space turf and modular scenery for lower orthographic views; HUD and player cutouts reused unchanged from v2.",
+  "assets": [
+    {
+      "id": "turf",
+      "transparent": false,
+      "prompt": "Use the supplied approved MUTP pixel stadium as the art/style reference. Preserve its chunky pixel-art clusters, stone/wood fantasy architecture, navy/ivory and burnt-rust accents, warm torches, mature crowd and game-like scale. This is a reusable world-space scenery asset for an exact, end-on ORTHOGRAPHIC match pitch at 40 degrees above ground, zero yaw. Parallel projection: constant width at every distance, NO vanishing point or converging sidelines. Make one square seamless TOP-DOWN turf texture tile. Only layered green pixel grass with subtle connected darker and lighter patches, a few natural bare-earth accents. Match the supplied turf palette and pixel density closely. Texture fills the entire image, can repeat in both directions without a visible seam. No grid, chalk, shadows of structures, stadium, player, ball, words or UI. Opaque image.",
+      "original": "C:\\Users\\jaken\\.codex\\generated_images\\01a1038c-e47c-7431-adb3-b56c2ac1148e\\exec-d190f8ea-ed6e-4728-8e23-918b482754d7.png",
+      "file": "turf.png"
+    },
+    {
+      "id": "blue-stand",
+      "transparent": true,
+      "prompt": "Use the supplied approved MUTP pixel stadium as the art/style reference. Preserve its chunky pixel-art clusters, stone/wood fantasy architecture, navy/ivory and burnt-rust accents, warm torches, mature crowd and game-like scale. This is a reusable world-space scenery asset for an exact, end-on ORTHOGRAPHIC match pitch at 40 degrees above ground, zero yaw. Parallel projection: constant width at every distance, NO vanishing point or converging sidelines. Extract/adapt ONE modular LEFT-sideline stand bay: a compact complete section of stone wall, wooden rail, small seated crowd above it, ONE blue/ivory hanging banner with the existing simple white cross-like team emblem, and a torch. The inner/pitch-facing edge is on the RIGHT. Bracket-style full bay, viewed from the home end with a lower elevated camera, with the far and near ground edge at the SAME horizontal screen position. Base footprint approximately 3 squares long by 2.5 squares wide; the module will repeat longitudinally. Keep a straight rail section with no diagonal taper across the bay. Square-ish asset composition, full structure intact with generous clear margins, true transparent background. No field/turf, ground shadow, grid, players, labels or HUD. One scenery bay, not a full stadium, not multiple separate asset options.",
+      "original": "C:\\Users\\jaken\\.codex\\generated_images\\01a1038c-e47c-7431-adb3-b56c2ac1148e\\exec-72f666ab-4f23-4192-b90c-217c50cf5b97.png",
+      "file": "blue-stand.png"
+    },
+    {
+      "id": "rust-stand",
+      "transparent": true,
+      "prompt": "Use the supplied approved MUTP pixel stadium as the art/style reference. Preserve its chunky pixel-art clusters, stone/wood fantasy architecture, navy/ivory and burnt-rust accents, warm torches, mature crowd and game-like scale. This is a reusable world-space scenery asset for an exact, end-on ORTHOGRAPHIC match pitch at 40 degrees above ground, zero yaw. Parallel projection: constant width at every distance, NO vanishing point or converging sidelines. Extract/adapt ONE modular RIGHT-sideline stand bay: a compact complete section of stone wall, wooden rail, small seated crowd above it, ONE burnt-rust/charcoal hanging banner with the existing simple skull/orc team emblem, and a torch. The inner/pitch-facing edge is on the LEFT. Bracket-style full bay, viewed from the home end with a lower elevated camera, with the far and near ground edge at the SAME horizontal screen position. Base footprint approximately 3 squares long by 2.5 squares wide; the module will repeat longitudinally. Keep a straight rail section with no diagonal taper across the bay. Square-ish asset composition, full structure intact with generous clear margins, true transparent background. No field/turf, ground shadow, grid, players, labels or HUD. One scenery bay, not a full stadium, not multiple separate asset options.",
+      "original": "C:\\Users\\jaken\\.codex\\generated_images\\01a1038c-e47c-7431-adb3-b56c2ac1148e\\exec-098593ef-4bbc-473e-abfd-fc64dc5ec3fe.png",
+      "file": "rust-stand.png"
+    }
+  ]
+}

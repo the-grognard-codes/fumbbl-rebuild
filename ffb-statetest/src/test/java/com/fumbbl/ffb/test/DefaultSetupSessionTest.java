@@ -2,6 +2,7 @@ package com.fumbbl.ffb.test;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.SetupSession;
 
@@ -37,6 +38,8 @@ class DefaultSetupSessionTest {
 	@Test void defaultFormationReturnsForBothSidesAtHalftimeWithoutAutoConfirming() throws Exception {
 		MatchDocument document = document(12); TestServer server = new TestServer();
 		SetupSession session = new SetupSession(server.getServer(), document, -3, true, true);
+		// Match construction rolls weather; heat exhausts players before the halftime formation.
+		engine(session).getGame().getFieldModel().setWeather(Weather.NICE);
 		choices(session); int setups = 0;
 		for (int i = 0; i < 180 && !session.isComplete(); i++) {
 			JsonObject snapshot = view(session);
@@ -125,6 +128,8 @@ class DefaultSetupSessionTest {
 		for (int slot = 1; slot <= 12; slot++) {
 			JsonObject player = player(snapshot, actor, slot);
 			if (slot == 12) { assertTrue(player.get("x").isNull()); continue; }
+			assertTrue(!player.get("x").isNull(), "Expected deployed slot " + slot + " for " + actor + " at revision "
+				+ snapshot.getInt("revision", -1) + ": " + player);
 			int x = slot <= 3 ? 12 : 11;
 			assertEquals("home".equals(actor) ? x : 25 - x, player.getInt("x", -1));
 			assertEquals(rows[slot - 1], player.getInt("y", -1));

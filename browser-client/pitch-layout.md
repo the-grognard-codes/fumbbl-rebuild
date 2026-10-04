@@ -1,5 +1,20 @@
 # Pitch Preview MVP
 
+The [2026-10-03 angled-pitch ADR](../docs/adr/0003-coach-oriented-angled-pitch.md)
+sets the new presentation direction: opposing coach views, full-width framing,
+and a travelling perspective camera along the pitch length with pixel sprites.
+The 2026-10-04 clarification keeps height and lens fixed during travel, aligns
+pitch and crowd edges to one vanishing point, and moves crowd/stands with the camera.
+The selected default is 40-degree perspective with zero yaw. A selectable 90-degree
+top-down view preserves square cells and parallel edges for crowded scrums, with
+the same north–south scrolling. Switching projections retains the current camera
+position and coach end. The reference viewer removes the full-pitch fit option;
+complete-pitch captures remain geometry evidence.
+The [current reference viewer](../docs/adr/references/0003-angled-pitch-v4/viewer.html)
+demonstrates that framing. The layout below describes
+the existing overhead preview and its historical geometry, not the new camera's
+requirements or acceptance evidence.
+
 `/pitch-preview` is the polished, isolated MVP. It is a local simulation only:
 it does not connect to the game engine, send game commands, or calculate rolls.
 The earlier Draft v2 study remains available at `/ui-ux-draft-v2`, with its

@@ -18,10 +18,9 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
     element.querySelector<HTMLButtonElement>('button')?.focus();
     return () => { element.close(); if (prior?.isConnected) prior.focus(); };
   }, [decision.key]);
-  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
+  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${decision.kind === 'followUp' ? 'compact' : ''} ${activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
     aria-label="Match decision" onCancel={event => event.preventDefault()}>
     <h2>{decision.title}</h2>
-    <p>Choose an option to continue play.</p>
     <div className="match-decision-options">{decision.options.map(option => <button key={option.id} type="button" disabled={disabled}
       onClick={() => option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>
       {option.face && <DiceFace face={option.face}/>}<span>{option.label}</span></button>)}</div>

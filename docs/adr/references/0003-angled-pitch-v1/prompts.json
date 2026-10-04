@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "date": "2026-10-03",
+  "tool": "built-in image_gen.imagegen",
+  "purpose": "Illustrative SITE-style camera references for ADR 0003, not runtime art or geometry acceptance.",
+  "styleReferences": [
+    ".notes/art-preview/molesunderthepitch-first-draft.png",
+    "site/src/assets/brand-package-v4/preview.png",
+    "site/src/assets/grognard-troll-slayer.jpg"
+  ],
+  "default": {
+    "id": "perspective-55-home",
+    "file": "perspective-55-home.png",
+    "elevationTargetDegrees": 55,
+    "yawOffsetTargetDegrees": 0,
+    "projection": "perspective",
+    "coach": "home",
+    "prompt": "Use case: ui-mockup. Asset type: polished landscape game-screen reference accompanying an architecture decision, 16:9 desktop frame.\nInput images: reference 1 is the original Moles Under the Pitch SITE portal and supplies the UI art direction; reference 2 is the site's brand palette and pixel logo system; reference 3 supplies the bold adult fantasy-athlete pixel rendering style. They are style references. Design a NEW match pitch screen, not a sign-in page.\nPrimary request: DEFAULT END-ON PERSPECTIVE coach view. Elevated camera about 55 degrees above the ground, straight along the long axis, ZERO diagonal yaw, from the near home half toward the distant away half. The field is a trapezoid: near width wider, far width narrower, both sidelines fully on screen. Visible playable field fills about 85% of the screen. Length extends vertically beyond the framing, suggesting vertical camera pan; focus around midfield. Do not draw a whole-pitch diamond or overhead field.\nArt: crisp high-detail PIXEL ART matching SITE reference, connected pixel clusters, bold dark edges, layered green turf, gently worn chalk square grid, compact adult fantasy-football athletes. Home humans wear navy/cyan/ivory with brown leather and steel; away orcs wear charcoal/rust/gold and olive skin. Show a representative 11-versus-11 formation around midfield, home closer and away further. Athletes stand upright above their square bases; slightly larger near players and smaller distant players. One reddish-brown elongated American football with laces. Original modest timber/stone fantasy stadium at the edges, original tiny mole emblem on midfield. No existing game-company logos.\nUI art direction: SITE's restrained dark navy, cyan highlights, gold key actions, rust team contrast, off-white readable labels; square edged pixel-style frames, small pixel display headings and clean small labels. DO NOT use the current MVP pitch's ornate serif typography, brown parchment, oversized sidebars or brass medieval chrome.\nTransparency: slim top scoreboard and corner panels use translucent navy glass at roughly 60-70% opacity with visible grass/grid/players behind them, opaque crisp light lettering and cyan/gold outlines. Panels should float over pitch, not reduce its width. Slightly denser backing immediately behind text. No frosted blur; preserve pixel clarity.\nLayout: small upper-left mole brand and 'MOLES UNDER THE PITCH'; compact centered scoreboard 'IRONBANK ROVERS  1 - 0  CINDERCLAW CREW' and 'HALF 1 · TURN 4'; narrow upper-right 'HOME VIEW'. Bottom-left compact selected-player card 'ALDEN · BLITZER' with 'MA 6  ST 3  AG 3+  AV 9+'. Bottom-center thin floating action strip 'MOVE' 'BLOCK' 'BLITZ' 'PASS' 'END TURN', selected MOVE in cyan and END TURN in gold. Bottom-right small translucent event log with 'Alden selected' and 'Choose a destination'. Tiny offscreen-navigation chevrons near the lower edge. Keep center of pitch mostly unobstructed.\nConstraints: one coherent complete match-screen image, no comparison grid, no browser frame, no explanatory labels about architecture, no slogans, no fake photographic 3D models. Keep text minimal and legible. This is illustrative art, not rules-validated gameplay."
+  },
+  "variants": [
+    {
+      "id": "parallel-55-home",
+      "name": "Parallel grid · 55°",
+      "file": "parallel-55-home.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET: the Moles Under the Pitch default match-screen concept. References 2 and 3 are SITE STYLE references only. Create one full landscape screen.\nCHANGE ONLY THE CAMERA/PROJECTION as specified: Change the pitch ground projection to an END-ON ORTHOGRAPHIC parallel projection, camera elevation 55 degrees, zero yaw. Both sidelines are vertical PARALLEL lines, NOT a trapezoid: the field must have the SAME width near and far. All grid tiles have the SAME apparent width and row height at all distances. Every player is the SAME apparent scale regardless of distance (retain original character art). Keep looking down the length with home in the near half and away in the far half. Field length can extend offscreen vertically.\nINVARIANTS: same original pixel-art stadium, turf, chalk grid, mole branding, 11-versus-11 humans/orcs formation and kits, football, selected Alden, half 1 turn 4, score 1-0, team names, and same compact translucent navy/cyan/gold square HUD placement. Preserve crisp pixel character clusters and the SITE styling; no ornate MVP serif/brass UI. Make grass/grid details clearly visible through the HUD backgrounds, keep text/control glyphs fully opaque and readable. Do NOT make cosmetic color changes as a substitute for changing ground-camera geometry. Retain HOME VIEW label.\nOutput is one coherent reference screenshot, no contact sheet or architecture text.",
+      "generatedOriginalFilename": "exec-e79a880a-e88d-4b17-8137-14f4bca41c5a.png"
+    },
+    {
+      "id": "perspective-45-home",
+      "name": "Lower perspective · 45°",
+      "file": "perspective-45-home.png",
+      "elevationTargetDegrees": 45,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 0,
+      "projection": "perspective",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET: the Moles Under the Pitch default match-screen concept. References 2 and 3 are SITE STYLE references only. Create one full landscape screen.\nCHANGE ONLY THE CAMERA/PROJECTION as specified: Lower the end-on camera elevation to about 45 degrees above the pitch. Keep mild perspective and zero yaw, but strongly COMPRESS the vertical spacing between ground rows compared to the reference, show more ground length, and let upright adjacent athletes overlap more. Sidelines still converge toward the far end. The camera must visibly feel lower, with more of each player's back/front vertical torso and less visible ground between front/back rows.\nINVARIANTS: same original pixel-art stadium, turf, chalk grid, mole branding, 11-versus-11 humans/orcs formation and kits, football, selected Alden, half 1 turn 4, score 1-0, team names, and same compact translucent navy/cyan/gold square HUD placement. Preserve crisp pixel character clusters and the SITE styling; no ornate MVP serif/brass UI. Make grass/grid details clearly visible through the HUD backgrounds, keep text/control glyphs fully opaque and readable. Do NOT make cosmetic color changes as a substitute for changing ground-camera geometry. Retain HOME VIEW label.\nOutput is one coherent reference screenshot, no contact sheet or architecture text.",
+      "generatedOriginalFilename": "exec-3a80567a-8f8c-4fab-8da6-5208041ed146.png"
+    },
+    {
+      "id": "parallel-45-home",
+      "name": "Lower parallel · 45°",
+      "file": "parallel-45-home.png",
+      "elevationTargetDegrees": 45,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "parallel-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET; reference image 2 supplies SITE styling. One full landscape frame.\nCAMERA CHANGE: Change only the ELEVATION of this already parallel-projection pitch from 55 degrees to 45 degrees. CRITICAL: keep BOTH touchlines as straight VERTICAL lines at the SAME x positions from top to bottom, a rectangular field with NO near/far taper. Keep ALL grid columns equally wide and ALL ground rows equally tall throughout the screen. ALL players keep identical apparent size, no distance scaling. Compress only the ground-grid row heights, reveal more pitch length. This is a parallel orthographic projection, never perspective. Keep side structures and field boundaries parallel too.\nINVARIANTS: same original pixel-art stadium, green turf, chalk square grid, site mole branding, humans/orcs kits and scene, football, selected Alden, half 1 turn 4, score 1-0, team names and same compact translucent navy/cyan/gold square HUD placement. Crisp SITE pixel art and glyphs, no ornate MVP serif/brass UI. Leave all HUD text and controls UPRIGHT in their original locations. Grass/grid clearly visible through HUD background surfaces; opaque readable text. Keep HOME VIEW in the camera label. Do not replace the requested camera geometry with a cosmetic recolor. One coherent reference image, no contact sheet or architecture labels.",
+      "generatedOriginalFilename": "exec-3090296a-17f0-4f1d-aedc-63ecf713ad2f.png"
+    },
+    {
+      "id": "perspective-65-home",
+      "name": "Higher perspective · 65°",
+      "file": "perspective-65-home.png",
+      "elevationTargetDegrees": 65,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 0,
+      "projection": "perspective",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET: the Moles Under the Pitch default match-screen concept. Reference 2 is a SITE STYLE reference only. Create one full landscape screen.\nCHANGE ONLY THE CAMERA/PROJECTION: Raise the end-on camera elevation to about 65 degrees above the pitch, still mild perspective and ZERO yaw. Visibly expand vertical ground-row spacing relative to the reference, so each square becomes taller and players are more separated vertically, with more top surfaces of helmets/shoulders visible. Show less field length at the same useful pitch width. Sidelines still converge subtly toward the distant end. Avoid turning into exact overhead.\nINVARIANTS: same original pixel-art stadium, turf, chalk grid, mole branding, humans/orcs formation and kits, football, selected Alden, half 1 turn 4, score 1-0, team names, HOME VIEW label, and same compact translucent navy/cyan/gold square HUD placement. Preserve SITE styling, crisp pixel characters, no ornate MVP serif/brass UI. Retain football players upright over their projected foot anchors. Grass/grid must remain clearly visible through HUD backgrounds; text/control glyphs fully opaque and readable. Do NOT substitute a cosmetic recolor for the requested geometry change. Output one coherent reference screenshot, no comparison grid, no architecture text.",
+      "generatedOriginalFilename": "exec-c9db4262-e0af-4a8a-b590-05da298fd079.png"
+    },
+    {
+      "id": "parallel-65-home",
+      "name": "Higher parallel · 65°",
+      "file": "parallel-65-home.png",
+      "elevationTargetDegrees": 65,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET: the Moles Under the Pitch default match-screen concept. Reference 2 is a SITE STYLE reference only. Create one full landscape screen.\nCHANGE ONLY THE CAMERA/PROJECTION: Use end-on ORTHOGRAPHIC parallel projection at 65 degrees elevation and ZERO yaw. Both sidelines remain vertical PARALLEL lines with identical near/far width, all players have the SAME apparent size. Ground row heights are taller than the 55-degree parallel view and nearer to square shapes; show less length, more visible ground between rows, and more top surfaces of helmets. Do not taper or use a diamond.\nINVARIANTS: same original pixel-art stadium, turf, chalk grid, mole branding, humans/orcs formation and kits, football, selected Alden, half 1 turn 4, score 1-0, team names, HOME VIEW label, and same compact translucent navy/cyan/gold square HUD placement. Preserve SITE styling, crisp pixel characters, no ornate MVP serif/brass UI. Retain football players upright over their projected foot anchors. Grass/grid must remain clearly visible through HUD backgrounds; text/control glyphs fully opaque and readable. Do NOT substitute a cosmetic recolor for the requested geometry change. Output one coherent reference screenshot, no comparison grid, no architecture text.",
+      "generatedOriginalFilename": "exec-e792d606-6c67-411b-8fd4-d42a6a016bdf.png"
+    },
+    {
+      "id": "yaw-left-perspective-home",
+      "name": "Left yaw perspective · −15°",
+      "file": "yaw-left-perspective-home.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": -15,
+      "coachRotationDegrees": 0,
+      "projection": "perspective",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET; reference 2 supplies SITE styling. One complete landscape screenshot.\nREQUESTED CHANGE: Yaw the entire ground camera about 15 degrees to the LEFT of the pitch's long axis at 55 degrees elevation. Keep MILD PERSPECTIVE: near grid and players larger than far, parallel world grid lines converge. The long pitch now runs visibly DIAGONALLY from lower-right toward upper-left, with the midfield chalk line tilting upward to the right. Project all feet and rings consistently; sprites and ALL UI remain upright. This is slight three-quarter yaw, NOT a full 45-degree isometric diamond.\nINVARIANTS: crisp pixel-art green stadium, humans navy/cyan/ivory, orcs olive/rust/charcoal, football, mole site branding, score 1-0, half 1 turn 4, team names, same compact translucent navy/cyan/gold square HUD in same screen positions. Text/control glyphs are opaque; turf/grid must show through the backing surfaces. No ornate MVP serif/brass style, no whole-screen rotation, no additional labels. Keep HOME VIEW. Change ground camera geometry, not just color, and keep sprites upright. Output one image, no contact sheet.",
+      "generatedOriginalFilename": "exec-50fc25f6-8952-47bd-9b50-e68501dd19d5.png"
+    },
+    {
+      "id": "yaw-right-perspective-home",
+      "name": "Right yaw perspective · +15°",
+      "file": "yaw-right-perspective-home.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": 15,
+      "coachRotationDegrees": 0,
+      "projection": "perspective",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET; reference 2 supplies SITE styling. One complete landscape screenshot.\nREQUESTED CHANGE: Yaw the entire ground camera about 15 degrees to the RIGHT of the pitch's long axis at 55 degrees elevation. Keep MILD PERSPECTIVE: near grid and players larger than far, parallel world grid lines converge. The long pitch runs visibly DIAGONALLY from lower-left toward upper-right, with the midfield chalk line tilting downward to the right. Project all feet and rings consistently; sprites and ALL UI remain upright. This is slight three-quarter yaw, NOT a full 45-degree isometric diamond.\nINVARIANTS: crisp pixel-art green stadium, humans navy/cyan/ivory, orcs olive/rust/charcoal, football, mole site branding, score 1-0, half 1 turn 4, team names, same compact translucent navy/cyan/gold square HUD in same screen positions. Text/control glyphs are opaque; turf/grid must show through the backing surfaces. No ornate MVP serif/brass style, no whole-screen rotation, no additional labels. Keep HOME VIEW. Change ground camera geometry, not just color, and keep sprites upright. Output one image, no contact sheet.",
+      "generatedOriginalFilename": "exec-1bed8c27-2cdd-467c-93b6-bf77001aeaaa.png"
+    },
+    {
+      "id": "yaw-left-parallel-home",
+      "name": "Left yaw parallel · −15°",
+      "file": "yaw-left-parallel-home.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": -15,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "yaw-left-perspective-home.png",
+      "prompt": "Use case: ui-mockup / precise projection correction. Reference 1 is the EDIT TARGET with the CORRECT desired camera inclination. Reference 2 is the SITE style reference. Keep camera elevation about 55 degrees, slight yaw about 15 degrees.\nPreserve this SAME LEFT inclination: the near/bottom end of the field is shifted to the RIGHT of the distant/top end. Long sidelines run from UPPER LEFT to LOWER RIGHT, while crossfield row lines tilt UPWARD toward the RIGHT. Do NOT reverse this yaw direction.\nChange ONLY PERSPECTIVE into PARALLEL ORTHOGRAPHIC projection. Eliminate near/far taper and vanishing-point convergence, keep the two sidelines exactly parallel and the same pitch width everywhere. All grid cells have the same apparent scale, and player apparent size does NOT depend on distance. Keep the field's long axis MOSTLY VERTICAL with a slight 15-degree slant, NOT a 45-degree diamond, NOT a strong landscape diagonal. Preserve approximate player placement and original camera inclination; do not transform the whole screenshot.\nPreserve upright original pixel athletes and original site-style navy/cyan/gold HUD in EXACT same screen positions, football, mole mark, team identity, selected Alden, HOME VIEW, 1-0 scoreboard, half 1 turn 4. The pitch grid/grass shows through translucent dark navy panel backings; all text/glyphs remain opaque. Original SITE pixel styling and crisp edges, no ornate MVP UI. One full landscape image, no captions or contact sheet.",
+      "generatedOriginalFilename": "exec-5e7baec5-83eb-4993-87da-6830073a56f8.png"
+    },
+    {
+      "id": "yaw-right-parallel-home",
+      "name": "Right yaw parallel · +15°",
+      "file": "yaw-right-parallel-home.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": 15,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "yaw-right-perspective-home.png",
+      "prompt": "Use case: ui-mockup / precise projection correction. Reference 1 is the EDIT TARGET with the CORRECT desired camera inclination. Reference 2 is the SITE style reference. Keep camera elevation about 55 degrees, slight yaw about 15 degrees.\nPreserve this SAME RIGHT inclination: the near/bottom end of the field is shifted to the LEFT of the distant/top end. Long sidelines run from UPPER RIGHT to LOWER LEFT, while crossfield row lines tilt DOWNWARD toward the RIGHT. Do NOT reverse this yaw direction.\nChange ONLY PERSPECTIVE into PARALLEL ORTHOGRAPHIC projection. Eliminate near/far taper and vanishing-point convergence, keep the two sidelines exactly parallel and the same pitch width everywhere. All grid cells have the same apparent scale, and player apparent size does NOT depend on distance. Keep the field's long axis MOSTLY VERTICAL with a slight 15-degree slant, NOT a 45-degree diamond, NOT a strong landscape diagonal. Preserve approximate player placement and original camera inclination; do not transform the whole screenshot.\nPreserve upright original pixel athletes and original site-style navy/cyan/gold HUD in EXACT same screen positions, football, mole mark, team identity, selected Alden, HOME VIEW, 1-0 scoreboard, half 1 turn 4. The pitch grid/grass shows through translucent dark navy panel backings; all text/glyphs remain opaque. Original SITE pixel styling and crisp edges, no ornate MVP UI. One full landscape image, no captions or contact sheet.",
+      "generatedOriginalFilename": "exec-bc65eeed-9566-4974-bbf7-7ed29abf6662.png"
+    },
+    {
+      "id": "isometric-home",
+      "name": "Strict isometric · 35.3°",
+      "file": "isometric-home.png",
+      "elevationTargetDegrees": 35.264,
+      "yawOffsetTargetDegrees": 45,
+      "coachRotationDegrees": 0,
+      "projection": "orthographic",
+      "coach": "home",
+      "editTarget": "perspective-55-home.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET; reference image 2 supplies SITE styling. One full landscape frame.\nCAMERA CHANGE: Use a true classical ISOMETRIC ORTHOGRAPHIC pitch view: elevation approximately 35.3 degrees, 45-degree yaw from the field's length. The pitch has a strong DIAGONAL/DIAMOND ground grid, the two ground axes project with equal foreshortening. Parallel field grid lines stay parallel, with NO perspective vanishing point, NO near/far size taper. Every tile and player remains consistent in apparent size. Long axis runs lower-left toward upper-right. The pitch is elongated and can crop longitudinally in the viewport; don't shrink all athletes into dots merely to show the whole field. Preserve equal diagonal grid spacing, upright sprites and screen-space HUD.\nINVARIANTS: same original pixel-art stadium, green turf, chalk square grid, site mole branding, humans/orcs kits and scene, football, selected Alden, half 1 turn 4, score 1-0, team names and same compact translucent navy/cyan/gold square HUD placement. Crisp SITE pixel art and glyphs, no ornate MVP serif/brass UI. Leave all HUD text and controls UPRIGHT in their original locations. Grass/grid clearly visible through HUD background surfaces; opaque readable text. Keep HOME VIEW in the camera label. Do not replace the requested camera geometry with a cosmetic recolor. One coherent reference image, no contact sheet or architecture labels.",
+      "generatedOriginalFilename": "exec-ff6b150e-680a-47f2-ba28-496df6043f3d.png"
+    },
+    {
+      "id": "perspective-55-away",
+      "name": "Default perspective · away coach",
+      "file": "perspective-55-away.png",
+      "elevationTargetDegrees": 55,
+      "yawOffsetTargetDegrees": 0,
+      "coachRotationDegrees": 180,
+      "projection": "perspective",
+      "coach": "away",
+      "editTarget": "perspective-55-away.png",
+      "prompt": "Use case: ui-mockup / precise camera-view edit. Reference image 1 is the EDIT TARGET; reference 2 supplies SITE styling. One complete landscape screenshot.\nREQUESTED CHANGE: Correct the OPPOSING COACH VIEW character facing. Preserve the AWAY-end camera and near ORCS as they are, seen from BEHIND. Repaint every FAR HUMAN to face the CAMERA: visible helmet fronts, faces and breastplates, NOT helmet backs or rear jersey numbers. This includes the selected red-mohawk dwarf blitzer at far center: show his orange beard/face and chest facing DOWN toward the near orcs and viewer, with cyan selected base kept at the same location. This is the same canonical player seen from the opposite end. Swap the stadium banner sides so RUST away banners are on the LEFT and BLUE home banners are on the RIGHT, because world camera has rotated 180 degrees. Keep all screen-space HUD, scoreboard team order and text upright unchanged; retain AWAY VIEW.\nINVARIANTS: crisp pixel-art green stadium, humans navy/cyan/ivory, orcs olive/rust/charcoal, football, mole site branding, score 1-0, half 1 turn 4, team names, same compact translucent navy/cyan/gold square HUD in same screen positions. Text/control glyphs are opaque; turf/grid must show through the backing surfaces. No ornate MVP serif/brass style, no whole-screen rotation, no additional labels. Do not change player ground positions; only correct human facing and world banner orientation. Output one image, no contact sheet.",
+      "generatedOriginalFilename": "exec-3664b33c-d53a-4a55-a6b2-041ec4352896.png"
+    }
+  ],
+  "retainedIterations": [
+    "iterations/parallel-45-first-draft.png",
+    "iterations/away-before-facing-correction.png",
+    "iterations/yaw-left-parallel-first-draft.png",
+    "iterations/yaw-right-parallel-first-draft.png"
+  ],
+  "limitations": [
+    "Nominal angles are generation targets, not measured camera geometry.",
+    "Illustrative player positions/counts, grid geometry and actions may drift between concepts.",
+    "This batch does not revise team sprite standards or promote production sprites.",
+    "Panel translucency is illustrated in flattened image composites; production opacity and contrast require implementation checks."
+  ]
+}

@@ -32,10 +32,10 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
     const mode = modes[role];
     const name = role === 'home' ? homeName || 'Home' : awayName || 'Away';
     const team = players.filter(player => player.role === role);
-    return <section key={role} className={`live-dugout ${role} ${mode}`} aria-label={`${role} dugout`}>
+    return <section key={role} className={`live-dugout ${role} ${mode}`} aria-label={`${name} dugout`}>
       <header className="live-dugout-heading"><strong>{name} Dugout</strong><div className="live-dugout-controls">
-        {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'compact' ? 'Restore' : 'Expand'} ${role} dugout`} title={mode === 'compact' ? 'Restore dugout' : 'Expand dugout'} onClick={() => setMode(role, mode === 'compact' ? 'normal' : 'expanded')}><DugoutArrow direction="up"/></button>}
-        {mode !== 'compact' && <button type="button" aria-label={`${mode === 'expanded' ? 'Restore' : 'Minimize'} ${role} dugout`} title={mode === 'expanded' ? 'Restore dugout' : 'Minimize dugout'} onClick={() => setMode(role, mode === 'expanded' ? 'normal' : 'compact')}><DugoutArrow direction="down"/></button>}
+        {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'compact' ? 'Restore' : 'Expand'} ${name} dugout`} title={mode === 'compact' ? 'Restore dugout' : 'Expand dugout'} onClick={() => setMode(role, mode === 'compact' ? 'normal' : 'expanded')}><DugoutArrow direction="up"/></button>}
+        {mode !== 'compact' && <button type="button" aria-label={`${mode === 'expanded' ? 'Restore' : 'Minimize'} ${name} dugout`} title={mode === 'expanded' ? 'Restore dugout' : 'Minimize dugout'} onClick={() => setMode(role, mode === 'expanded' ? 'normal' : 'compact')}><DugoutArrow direction="down"/></button>}
       </div></header>
       {mode !== 'compact' && <div className="live-dugout-zones">{zones.map(zone => {
         const members = team.filter(player => player.x === null && (player.offPitch ?? 'reserve') === zone.id);

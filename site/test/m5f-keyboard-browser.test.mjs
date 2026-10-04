@@ -61,7 +61,7 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
       await marker.press('Space');
       assert.equal(calls.length, 0, 'Space on a player selects only');
       if (index) {
-        assert.equal(await page.getByRole('button', { name: 'Commit action' }).count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Confirm Action' }).count(), 0);
         await page.getByRole('button', { name: /Game Menu/ }).click();
         assert.equal(await page.getByRole('button', { name: 'Concede match' }).isDisabled(), true);
         await page.getByRole('button', { name: 'Close Game Menu' }).click();
@@ -73,7 +73,7 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
     await actionScene.click({ position: { x: (12 + 36 + 18) * scale, y: (12 + 36 + 18) * scale } });
 
     assert.equal(calls.length, 0, 'Target assist pins the available move without sending it');
-    await actor.getByLabel('Live match pitch').getByRole('button', { name: '2×' }).click();
+    await actor.getByRole('group', { name: 'Pitch size' }).getByRole('button', { name: '2×' }).click();
     const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus();
     await viewport.press('ArrowRight');
     assert.ok(await viewport.evaluate(element => element.scrollLeft) > 0, 'Arrow key pans a zoomed pitch');
