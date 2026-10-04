@@ -87,14 +87,14 @@ function PlayerMarker({ player, teamName, camera, facing, order, active, selecte
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
-  onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false,
+  onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
-  onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean;
+  onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
   zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean;
   onSelectionPosition?: (position: { x: number; width: number } | null) => void;
@@ -105,13 +105,14 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = controlledZoom ?? internalZoom, setZoom = onZoomChange ?? setInternalZoom;
   const [mode, setMode] = useState<PitchProjectionMode>('perspective');
-  const [spectatorEnd, setSpectatorEnd] = useState<'home' | 'away'>('home');
+  const [viewerEnd, setViewerEnd] = useState<'home' | 'away'>(view.callerRole === 'away' ? 'away' : 'home');
   const [travel, setTravel] = useState({ focus: 13, transverseFocus: 7.5 });
   const [cursor, setCursor] = useState<Point | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
   const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
-  const end = view.callerRole === 'spectator' ? spectatorEnd : view.callerRole;
+  const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
+  const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
   const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom });
   const cameraRef = useRef(camera); cameraRef.current = camera;
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
@@ -182,7 +183,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
-      {view.callerRole === 'spectator' && <button type="button" onClick={() => { setSpectatorEnd(end === 'home' ? 'away' : 'home'); onBlurPlayer?.(); }}>{end === 'home' ? 'Away coach view' : 'Home coach view'}</button>}
+      {canChooseEnd && <button type="button" onClick={() => { setViewerEnd(end === 'home' ? 'away' : 'home'); onBlurPlayer?.(); }}>{end === 'home' ? 'Away coach view' : 'Home coach view'}</button>}
       <button type="button" onClick={() => changeCamera(camera.with({ focus: 13, transverseFocus: 7.5 }))}>Midfield</button>
       <button type="button" disabled={selected?.x == null} onClick={() => selected?.x != null && selected.y != null && reveal(centerOf({ x: selected.x, y: selected.y }))}>Reveal selected</button>
       <button type="button" disabled={!view.ball && activePlayer?.x == null} onClick={() => reveal(view.ball ? centerOf(view.ball) : activePlayer?.x != null && activePlayer.y != null ? centerOf({ x: activePlayer.x, y: activePlayer.y }) : null)}>Reveal ball / active</button>
