@@ -70,15 +70,29 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       const starterMatch = popupBlocked ? pages[1] : await opened;
       await openGrid(starterMatch);
       assert.equal(new URL(starterMatch.url()).pathname, '/play/match');
-      await starterMatch.setViewportSize({ width: 1280, height: 660 });
+      await starterMatch.setViewportSize({ width: 1224, height: 604 });
       await starterMatch.evaluate(() => window.scrollTo(0, 0));
       const setupBounds = await starterMatch.evaluate(() => {
         const side = document.querySelector('.match-side')?.getBoundingClientRect();
-        const confirm = [...document.querySelectorAll('[aria-label="Placement controls"] button')].find(button => button.textContent === 'Confirm legal setup')?.getBoundingClientRect();
-        return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight };
+        const placement = document.querySelector('[aria-label="Placement controls"]');
+        const confirm = placement?.querySelector('button')?.getBoundingClientRect();
+        return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight,
+          confirmText: placement?.querySelector('button')?.textContent?.trim(),
+          placementButtons: placement?.querySelectorAll(':scope > button').length,
+          setupDetailsOpen: placement?.querySelector('details')?.open,
+          toolbarCount: document.querySelectorAll('.live-pitch-toolbar').length };
       });
+      assert.equal(setupBounds.confirmText, 'Confirm Setup');
+      assert.equal(setupBounds.placementButtons, 1);
+      assert.equal(setupBounds.setupDetailsOpen, false);
+      assert.equal(await starterMatch.getByLabel('Setup player').isVisible(), false, 'keyboard placement stays collapsed until requested');
+      assert.equal(setupBounds.toolbarCount, 0);
       assert.ok(setupBounds.confirmBottom <= Math.min(setupBounds.sideBottom, setupBounds.height),
         `Setup confirmation must be visible: ${JSON.stringify(setupBounds)}`);
+      const zoomControls = starterMatch.getByRole('group', { name: 'Pitch size' });
+      await zoomControls.getByRole('button', { name: '2×' }).click();
+      assert.equal(await zoomControls.getByRole('button', { name: '2×' }).getAttribute('aria-pressed'), 'true');
+      await zoomControls.getByRole('button', { name: 'Fit' }).click();
       if (!popupBlocked) {
         assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
         assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
@@ -128,7 +142,7 @@ test('two players and spectator use one board; updates, read-only controls and r
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  const live = new Map(); let revision = 2; const mutations = [];
+  const live = new Map(); const liveSockets = new Map(); let revision = 2; const mutations = [];
   const crowdedPlayers = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/m5c-crowded-players.json', import.meta.url), 'utf8'));
   const visualCrowdedPlayers = crowdedPlayers.map(player => player.role === 'away'
     ? { ...player, art: { rosterId: 'orc', positionId: 'orc-lineman' } } : player);
@@ -152,6 +166,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
       await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({uid:'provider-uid-sentinel',email:'private-email@example.invalid',displayName:'private-display-sentinel',getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
       await page.routeWebSocket('**/browser/v2', socket => {
+        liveSockets.set(index, socket);
         const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
         socket.onMessage(raw => {
           const request = JSON.parse(raw);
@@ -218,13 +233,15 @@ test('two players and spectator use one board; updates, read-only controls and r
       assert.equal(await pages[2].evaluate(() => document.documentElement.scrollHeight <= innerHeight), true,
         `Crowded match must fit a ${width}x${height} viewport`);
     }
-    assert.equal(await pages[2].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
-    assert.equal(await pages[1].getByRole('button', { name: 'Commit action', exact: true }).count(), 0);
+    assert.equal(await pages[2].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
+    assert.equal(await pages[1].getByRole('button', { name: 'Confirm Action', exact: true }).count(), 0);
     await pages[0].getByRole('button', { name: 'End Turn', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
-    await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).click();
-    assert.equal(await pages[2].getByLabel('Live match pitch').count(), 0);
+    assert.equal(await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).count(), 0);
+    assert.equal((await pages[2].locator('.match-side-controls .match-connection-status').textContent()).trim(), 'Connected');
+    liveSockets.get(2).close();
+    await pages[2].getByLabel('Live match pitch').waitFor({ state: 'detached' });
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();
     await openGrid(pages[2]);
     assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 4/);

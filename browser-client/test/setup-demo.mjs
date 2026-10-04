@@ -111,7 +111,7 @@ try {
     for (let team = 0; team < 2; team++) {
       view = await state(pages[0]); const index = indexFor(view.actor), page = pages[index];
       if (team === 0) {
-        await page.getByRole('button', { name: 'Confirm legal setup', exact: true }).click();
+        await page.getByRole('button', { name: 'Confirm Setup', exact: true }).click();
         await page.getByRole('alert').filter({ hasText: 'ILLEGAL_SETUP' }).waitFor();
         assert.equal((await load(page, matchId)).state.revision, 2);
       }
@@ -125,7 +125,7 @@ try {
         await action(page, 'Place on empty own-half square', before + 1);
       }
       const before = (await load(page, matchId)).state.revision;
-      await action(page, 'Confirm legal setup', before + 1);
+      await action(page, 'Confirm Setup', before + 1);
     }
     const final = (await load(pages[0], matchId)).state, other = (await load(pages[1], matchId)).state;
     assert.equal(final.phase, 'READY_FOR_KICKOFF'); assert.equal(final.revision, 26);

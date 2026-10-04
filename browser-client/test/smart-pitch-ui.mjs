@@ -57,7 +57,7 @@ try {
   await page.locator('.live-marker.away').click();
   assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), 0);
   await page.getByText('Plan blitz against away1').waitFor();
-  await page.getByRole('button', { name: 'Commit action', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm Action', exact: true }).click();
   await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId?.endsWith('target-away1')));
   await page.getByRole('button', { name: 'Commit path' }).waitFor();
   await page.getByRole('button', { name: 'Commit path' }).click();
@@ -68,7 +68,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'routePreview')
     .map(request => request.waypoints[0])), [{ x: 10, y: 6 }, { x: 10, y: 7 }]);
   assert.deepEqual(errors, []);
-  console.log('PASS: one Commit declares and targets Blitz; the reviewed server route commits before the offered Block.');
+  console.log('PASS: one confirmation declares and targets Blitz; the reviewed server route commits before the offered Block.');
 } finally {
   await browser.close();
   await server.close();

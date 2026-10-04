@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
+import { clockValues, formatClock } from './match-clock.ts';
+import { matchTeamName } from './match-team-name.ts';
 import type { SetupState, TeamResources } from './setup-protocol.ts';
 
-function Resources({ role, rerolls, resources }: { role: 'home' | 'away'; rerolls: number; resources?: TeamResources }) {
-  return <section className={`live-resources ${role}`} aria-label={`${role} resources`}>
+function Resources({ role, teamName, rerolls, resources }: { role: 'home' | 'away'; teamName: string; rerolls: number; resources?: TeamResources }) {
+  return <section className={`live-resources ${role}`} aria-label={`${teamName} resources`}>
     <div className="live-rerolls"><span>Rerolls</span><strong>{rerolls}</strong></div>
     {resources && <div className="live-resource-counts">
       <span title="Available apothecaries"><MatchArt name="apothecary"/><b>{resources.apothecaries}</b><span className="sr-only">Apothecaries</span></span>
@@ -61,21 +63,43 @@ function TeamName({ name }: { name: string }) {
 
 /** The preview's five-panel scoreboard, bound only to the server projection. */
 export function LiveMatchScoreboard({ view }: { view: SetupState }) {
+  const [elapsedSinceProjection, setElapsedSinceProjection] = useState(0);
+  const paused = view.saveResume?.status === 'SUSPENDED' || view.saveResume?.status === 'RESUME_PENDING';
+  useEffect(() => {
+    const receivedAt = performance.now();
+    setElapsedSinceProjection(0);
+    if (!view.clock?.activeRole || paused) return;
+    const timer = window.setInterval(() => setElapsedSinceProjection(performance.now() - receivedAt), 250);
+    return () => window.clearInterval(timer);
+  }, [view.clock, paused]);
+  const clock = clockValues(view.clock, elapsedSinceProjection, paused);
+  const homeName = matchTeamName(view, 'home');
+  const awayName = matchTeamName(view, 'away');
   const homeArt = view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
   const awayArt = view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
   return <div className="match-scoreboard live-match-scoreboard" aria-label="Match scoreboard">
-    <Resources role="home" rerolls={view.homeRerolls} resources={view.homeResources}/>
+    <Resources role="home" teamName={matchTeamName(view, 'home')} rerolls={view.homeRerolls} resources={view.homeResources}/>
     <div className="live-team-nameplate home">
       {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
-      <TeamName name={view.homeTeamName ?? 'Home'}/>
-      <b aria-label={`Home score ${view.homeScore}`}>{view.homeScore}</b>
+      <TeamName name={matchTeamName(view, 'home')}/>
+      <b aria-label={`${matchTeamName(view, 'home')} score ${view.homeScore}`}>{view.homeScore}</b>
     </div>
-    <div className="live-match-clock"><strong>Turn {view.turn}</strong><span>Half {view.half} · {view.phase.replaceAll('_', ' ')}</span><small>{view.weather === 'Nice' && <MatchArt name="weather"/>}{view.weather}</small></div>
+    <div className="live-match-clock"><strong>Turn {view.turn}</strong><span>Half {view.half}</span>
+      <div className="live-chess-clocks" aria-label="Turn clocks">
+        <div className={`live-chess-clock home${clock.activeRole === 'home' ? ' active' : ''}${clock.activeRole === 'home' && clock.turnMs <= 15_000 ? ' urgent' : ''}`}
+          aria-label={`${homeName}: turn ${formatClock(clock.activeRole === 'home' ? clock.turnMs : 120_000)}, reserve ${formatClock(clock.homeReserveMs)}`}>
+          <span title={homeName}>{homeName.slice(0, 3)}</span><b>{formatClock(clock.activeRole === 'home' ? clock.turnMs : 120_000)}</b><small>{formatClock(clock.homeReserveMs)}</small>
+        </div>
+        <div className={`live-chess-clock away${clock.activeRole === 'away' ? ' active' : ''}${clock.activeRole === 'away' && clock.turnMs <= 15_000 ? ' urgent' : ''}`}
+          aria-label={`${awayName}: turn ${formatClock(clock.activeRole === 'away' ? clock.turnMs : 120_000)}, reserve ${formatClock(clock.awayReserveMs)}`}>
+          <span title={awayName}>{awayName.slice(0, 3)}</span><b>{formatClock(clock.activeRole === 'away' ? clock.turnMs : 120_000)}</b><small>{formatClock(clock.awayReserveMs)}</small>
+        </div>
+      </div></div>
     <div className="live-team-nameplate away">
-      <TeamName name={view.awayTeamName ?? 'Away'}/>
-      <b aria-label={`Away score ${view.awayScore}`}>{view.awayScore}</b>
+      <TeamName name={matchTeamName(view, 'away')}/>
+      <b aria-label={`${matchTeamName(view, 'away')} score ${view.awayScore}`}>{view.awayScore}</b>
       {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
     </div>
-    <Resources role="away" rerolls={view.awayRerolls} resources={view.awayResources}/>
+    <Resources role="away" teamName={matchTeamName(view, 'away')} rerolls={view.awayRerolls} resources={view.awayResources}/>
   </div>;
 }

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUTP · dice review</title>
+  <link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <main>
+    <header class="page-header"><a href="../viewer.html">← Pitch viewer</a><a href="../index.html">Camera gallery</a></header>
+    <div class="intro"><div><h1>MUTP · dice review</h1><p>Three sets of block dice and d6. Roll previews spin briefly in place.</p></div>
+      <div class="review-controls"><label>Preview size <select id="preview-size"><option value="64">64 px</option><option value="96" selected>96 px</option><option value="128">128 px</option></select></label><button id="roll-all" type="button">Roll all three sets</button></div>
+    </div>
+    <div id="sets" class="sets"></div>
+    <section class="pitch-review" aria-labelledby="pitch-review-title">
+      <header><h2 id="pitch-review-title">On the pitch</h2><div class="review-controls"><label>Set <select id="pitch-set"></select></label><button id="roll-pitch" type="button">Preview roll</button></div></header>
+      <div class="pitch-preview"><img src="../perspective-40-home.png" alt="Approved MUTP 40-degree perspective pitch and translucent HUD.">
+        <div id="pitch-dice" aria-label="Dice preview over the pitch"></div>
+      </div>
+    </section>
+    <footer><a href="README.md">Review notes and exports</a> · <a href="roll-preview.png">Short roll recording</a> · <a href="art/provenance.json">Artwork prompts</a><p>Short local previews only. No match actions or random results are generated.</p></footer>
+  </main>
+  <script src="dice.js"></script><script src="review.js"></script>
+</body>
+</html>

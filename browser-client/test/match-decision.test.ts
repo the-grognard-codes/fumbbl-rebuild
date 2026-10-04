@@ -7,10 +7,11 @@ import type { SetupState } from '../src/setup-protocol.ts';
 
 const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
 
-test('real block dice remain a modal while push squares move to the pitch', () => {
+test('real block dice become pitch choices while push squares stay on the pitch', () => {
   const block = frames[6].actor as SetupState;
   const dice = matchDecision(block, block.actions.filter(action => action.actor === block.callerRole));
   assert.equal(dice?.title, 'Choose a block die');
+  assert.equal(dice?.kind, 'blockDie');
   assert.deepEqual(dice?.options.map(option => option.id), block.actions.map(action => action.id));
   assert.equal(dice?.options[0].face, 'PUSHBACK');
   const push = frames[7].actor as SetupState;
@@ -19,6 +20,23 @@ test('real block dice remain a modal while push squares move to the pitch', () =
     [[12, 6, 11, 7], [12, 7, 11, 7], [12, 8, 11, 7]]);
   const spectator = frames[6].spectator as SetupState;
   assert.equal(matchDecision(spectator, []), null);
+});
+
+test('reroll choices retain skill and team options and follow-up uses Yes and No', () => {
+  const frame = frames[6].actor as SetupState;
+  const reroll = { ...frame, revision: 24, actions: [
+    { id: '24:reroll:none', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Do not re-roll Dodge' },
+    { id: '24:reroll:skill', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use Dodge re-roll' },
+    { id: '24:reroll:team', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use team re-roll for Dodge' }
+  ] };
+  assert.equal(matchDecision(reroll, reroll.actions)?.kind, 'reroll');
+  assert.deepEqual(matchDecision(reroll, reroll.actions)?.options.map(option => option.label),
+    ['Do not re-roll Dodge', 'Use Dodge re-roll', 'Use team re-roll for Dodge']);
+  const followUp = { ...reroll, actions: [
+    { id: '24:follow:no', actor: frame.callerRole as 'home', kind: 'followUp', label: 'Do not follow up' },
+    { id: '24:follow:yes', actor: frame.callerRole as 'home', kind: 'followUp', label: 'Follow up' }
+  ] };
+  assert.deepEqual(matchDecision(followUp, followUp.actions)?.options.map(option => option.label), ['No', 'Yes']);
 });
 
 test('a chain push follows the newly pushed player and invalid projections keep the modal', () => {

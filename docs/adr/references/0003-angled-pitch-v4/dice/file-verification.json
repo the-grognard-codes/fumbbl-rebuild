@@ -1,0 +1,104 @@
+{
+  "alpha": [
+    {
+      "file": "gilded-brass-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "corner": 0,
+      "clear": 984649,
+      "paint": 587867
+    },
+    {
+      "file": "ivory-cyan-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "corner": 0,
+      "clear": 942173,
+      "paint": 630343
+    },
+    {
+      "file": "navy-steel-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "corner": 0,
+      "clear": 962081,
+      "paint": 610435
+    },
+    {
+      "file": "gilded-brass-block-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 20763,
+      "paint": 77541
+    },
+    {
+      "file": "gilded-brass-d6-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 20763,
+      "paint": 77541
+    },
+    {
+      "file": "ivory-cyan-block-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 15526,
+      "paint": 82778
+    },
+    {
+      "file": "ivory-cyan-d6-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 15526,
+      "paint": 82778
+    },
+    {
+      "file": "navy-steel-block-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 17978,
+      "paint": 80326
+    },
+    {
+      "file": "navy-steel-d6-atlas.png",
+      "width": 768,
+      "height": 128,
+      "corner": 0,
+      "clear": 17978,
+      "paint": 80326
+    }
+  ],
+  "sourceCopies": [
+    {
+      "asset": "ivory-cyan-v1.png",
+      "unchanged": true
+    },
+    {
+      "asset": "navy-steel-v1.png",
+      "unchanged": true
+    },
+    {
+      "asset": "gilded-brass-v1.png",
+      "unchanged": true
+    }
+  ],
+  "reducedMotionDuringRoll": "cancels cleanly",
+  "viewer": {
+    "notes": "removed",
+    "diceLink": true,
+    "squares": 390,
+    "players": 22
+  },
+  "animation": {
+    "frames": 10,
+    "plays": 1,
+    "milliseconds": 1100,
+    "allCRCsValid": true,
+    "visiblePlayback": "initial, rolling and settled frames verified; remains settled"
+  }
+}

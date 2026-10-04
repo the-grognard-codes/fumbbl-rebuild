@@ -1,0 +1,24 @@
+{
+  "created": "2026-10-04",
+  "tool": "built-in image_gen.imagegen",
+  "useCase": "stylized-concept",
+  "asset": "reroll-v1.png",
+  "original": "C:/Users/jaken/.codex/generated_images/01a1038c-e47c-7431-adb3-b56c2ac1148e/exec-447a85cd-13cb-4e48-a4d7-108d0e1f6f3d.png",
+  "prompt": "Use case: stylized-concept. Asset type: transparent fantasy-football HUD resource sprite, reroll. Primary request: Create one compact reroll icon: two chunky ivory six-sided dice, one slightly behind the other, wrapped by two broad opposing cyan curved arrows forming a clear circular retry symbol. Image 1 is a style reference only: match the existing apothecary satchel, bribe pouch and keg resource sprites' dark fantasy game-art material shading, dark contours and warm highlights. The new icon must also fit the MUTP navy/cyan/gold pixel UI. Crisp connected low-resolution pixel clusters, readable at 48px, simplified pips and clear silhouette. Gold accent edges on the arrows, ivory dice faces, deep navy shadows. One fully visible centered object composition in a square image with 12% transparent padding on every edge. Actual transparent background. No panel, border, labels, words, watermark, scenery, floor, or cast shadow outside the object. Preserve transparency; no checkerboard baked in. Reference input is not an edit target; generate a new standalone asset.",
+  "transparentBackground": true,
+  "sourceDimensions": [
+    1254,
+    1254
+  ],
+  "displayedSize": [
+    46,
+    46
+  ],
+  "references": [
+    {
+      "path": "../../../../../assets/game/ui/mvp-art/match-ui-icon-atlas-v1.png",
+      "role": "style reference; existing inducement sprites are reused from this atlas through SVG crops"
+    }
+  ],
+  "scope": "Documentation reference asset; not promoted to canonical live-client art."
+}

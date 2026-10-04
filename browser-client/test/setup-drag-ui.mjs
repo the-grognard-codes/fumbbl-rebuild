@@ -92,6 +92,47 @@ try {
   assert.deepEqual(errors, []);
   await page.close();
 
+  const keyboard = await open(setup);
+  await keyboard.page.getByText('Place players with keyboard or touch', { exact: true }).focus();
+  await keyboard.page.keyboard.press('Enter');
+  const selected = keyboard.page.getByLabel('Setup player');
+  await selected.focus(); await selected.press('End');
+  assert.equal(await selected.inputValue(), 'reserve');
+  const coordinate = async (label, value) => {
+    const input = keyboard.page.getByLabel(label);
+    await input.focus(); await input.press('ControlOrMeta+A'); await input.pressSequentially(value);
+  };
+  await coordinate('Setup X', '8'); await coordinate('Setup Y', '7');
+  await keyboard.page.getByRole('button', { name: 'Place on empty own-half square' }).focus();
+  await keyboard.page.keyboard.press('Enter');
+  await keyboard.page.waitForFunction(() => window.testSocket.state.revision === 1);
+  assert.deepEqual(await keyboard.page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'place').map(request => request.to)), [{ x: 8, y: 7 }]);
+  await keyboard.page.getByRole('button', { name: 'Return selected player to reserve' }).focus();
+  await keyboard.page.keyboard.press('Enter');
+  await keyboard.page.waitForFunction(() => window.testSocket.state.revision === 2);
+  await coordinate('Setup X', '20');
+  assert.equal(await keyboard.page.getByRole('button', { name: 'Place on empty own-half square' }).isDisabled(), true);
+  assert.equal(await keyboard.page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'place').length), 2);
+  assert.deepEqual(keyboard.errors, []);
+  await keyboard.page.close();
+
+  const choices = await open({ ...frame, actions: [
+    { id: '0:choose-die', label: 'Choose SKULL (die 1)', kind: 'blockDie', actor: 'home', sourcePlayerId: 'home1', target: null },
+    { id: '0:reroll', label: 'Use team reroll', kind: 'reroll', actor: 'home', sourcePlayerId: 'home1', target: null }
+  ] });
+  await choices.page.setViewportSize({ width: 375, height: 660 });
+  const popup = choices.page.getByRole('dialog', { name: 'Choose a block die' });
+  await popup.waitFor();
+  await choices.page.waitForFunction(() => {
+    const box = document.querySelector('.live-dice-overlay.interactive').getBoundingClientRect();
+    return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
+  });
+  const dieButton = popup.getByRole('button', { name: 'Choose SKULL (die 1)' });
+  await dieButton.focus(); await dieButton.press('Enter');
+  assert.equal(await choices.page.evaluate(() => window.testSocket.sent.filter(request => request.actionId === '0:choose-die').length), 1);
+  assert.deepEqual(choices.errors, []);
+  await choices.page.close();
+
   const event = await open(solid);
   const eventScene = event.page.locator('.live-pitch-scene');
   await event.page.locator('.live-marker.home').dragTo(eventScene, { targetPosition: await squarePosition(event.page, 8, 7) });
@@ -100,7 +141,7 @@ try {
     ['0:event-pick:home1', '1:solid-place:home1:8:7']);
   assert.deepEqual(event.errors, []);
   await event.page.close();
-  console.log('PASS: setup reserve and pitch drags obey drop legality; Solid Defence selects and places the server-offered player.');
+  console.log('PASS: setup drag and keyboard placement obey legality; narrow mandatory choices stay reachable; Solid Defence uses offered actions.');
 } finally {
   await browser.close();
   await server.close();
