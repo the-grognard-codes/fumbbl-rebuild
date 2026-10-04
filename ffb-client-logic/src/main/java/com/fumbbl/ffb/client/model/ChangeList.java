@@ -10,6 +10,11 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Match setup keeps Sweltering Heat exhausted and other unavailable players out of placement controls, and the server rejects attempts to restore them to reserves")
+			.addBugfix("Browser coaches can prepare every server-offered action through the Other action text controls")
+			.addBugfix("Browser matches preserve exhausted players during setup, keep completed results accessible to both coaches, and retain save metadata at full time")
+			.addImprovement("Long browser matches use bounded compressed storage and remain playable through full time and replay")
+			.addBugfix("Browser match controls remain accessible in short windows and at enlarged browser zoom")
 			.addImprovement("Browser match dice use the approved ivory and cyan art with short rolls that do not delay required choices, while replay seeks cancel stale playback")
 			.addImprovement("Browser matches use the MUTP overlay HUD with turn tracks, reviewed action confirmation, resource tooltips, opposite-side player cards and adjustable game-log text")
 			.addImprovement("Browser matches use a travelling 40-degree coach perspective with an opposite coach view, centered tactical view and new directional Human and Orc sprites")

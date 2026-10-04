@@ -34,8 +34,14 @@ try {
   await page.getByRole('button', { name: 'Other action', exact: true }).click();
   const disclosure = page.locator('.action-text-companion > summary'); await disclosure.focus(); await disclosure.press('Enter');
   assert.equal(await disclosure.evaluate(element => element.parentElement.open), true);
+  const offered = page.getByLabel('Server action', { exact: true });
+  assert.deepEqual(await offered.locator('option').evaluateAll(options => options.map(option => option.value)), ['', '0:select-human', '0:end']);
+  await offered.selectOption('0:select-human');
+  assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true, 'The hosted text fallback stages a real offered proposal');
+  assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Choosing the fallback proposal does not mutate');
+  await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
   assert.equal(await page.getByLabel('Message the match').count(), 0, 'Enter activates native disclosures without opening chat');
-  await page.getByRole('button', { name: 'Other action', exact: true }).click();
+  // Cancel closes the additional row as well as clearing its proposal.
   assert.equal(await page.locator('.live-resources.home .live-resource').count(), 2);
   assert.equal(await page.locator('.live-resources.away').count(), 0);
   const resource = page.getByRole('button', { name: 'Rerolls: 3 available', exact: true });
@@ -93,13 +99,31 @@ try {
   await page.getByRole('tooltip', { name: 'Missing in action player card' }).waitFor();
   await page.getByRole('button', { name: /Minimize Ironbank/ }).click();
   if (evidence) await mkdir(evidence, { recursive: true });
-  for (const [width, height] of [[1280,660],[1920,1080],[1920,900],[1920,820],[375,660]]) {
+  for (const [width, height] of [[1280,660],[1920,1080],[1920,900],[1920,820],[375,660],[640,330],[375,300]]) {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').clientHeight - innerHeight) < 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight), true);
     assert.equal(await page.locator('.live-team-nameplate strong').evaluateAll(elements => elements.every(element => { const rect = element.getBoundingClientRect(), plate = element.parentElement.getBoundingClientRect(); return element.scrollWidth <= element.clientWidth + 1 && rect.top >= plate.top && rect.bottom <= plate.bottom; })), true, 'Names fit inside their fixed score plates');
     assert.equal(await page.locator('.game-menu-trigger').evaluate(element => element.getBoundingClientRect().width < 130), true, 'Game Menu cannot cover camera and exit controls');
     assert.equal(await page.locator('.live-dugouts').evaluate(element => getComputedStyle(element).display), 'flex');
+    if (height <= 330) {
+      assert.equal(await page.evaluate(() => document.querySelector('.live-dugouts').getBoundingClientRect().bottom <= document.querySelector('.match-history-chat').getBoundingClientRect().top), true, 'At 200% desktop zoom the compact dugouts cannot cover chat or log');
+      await page.locator('.live-marker[data-player-id="human"]').focus();
+      const inspector = page.getByRole('tooltip', { name: 'Human Blitzer player card' });
+      await inspector.waitFor();
+      assert.ok(await inspector.evaluate(element => element.getBoundingClientRect().height) >= 128, 'Short viewport leaves a readable player inspector');
+      await page.getByRole('button', { name: /^Game Menu$/ }).click();
+      await page.getByRole('tab', { name: 'Game Log', exact: true }).click();
+      await page.getByRole('button', { name: 'Close Game Menu', exact: true }).click();
+      await page.getByRole('button', { name: 'Write message', exact: true }).click();
+      await chat.fill('Short viewport chat stays editable'); await chat.press('Escape');
+      await page.getByRole('button', { name: 'Other action', exact: true }).click();
+      const textActions = page.locator('.action-text-companion > summary');
+      if (!await textActions.evaluate(element => element.parentElement.open)) await textActions.click();
+      await offered.selectOption('0:select-human');
+      assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true);
+      await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+    }
     if (evidence) await page.screenshot({ path: `${evidence}/hud-${width}-${height}.png` });
   }
   assert.deepEqual(errors, []);

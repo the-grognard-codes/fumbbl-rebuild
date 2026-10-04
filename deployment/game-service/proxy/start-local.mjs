@@ -8,7 +8,7 @@ import { request } from 'node:http';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const nginx = process.env.NGINX_LOCAL_BINARY || resolve(root, '.tools/nginx-1.30.5/nginx.exe');
 const backendPort = process.env.LOCAL_GAME_BACKEND_PORT || '22231';
-if (!['22231', '22234'].includes(backendPort)) throw Error('Unapproved local game backend port');
+if (!['22231', '22234', '22235'].includes(backendPort)) throw Error('Unapproved local game backend port');
 // Fail on occupied ports; never signal an existing instance or rewrite its files.
 const reservation = createServer();
 await new Promise((done, reject) => { reservation.once('error', reject); reservation.listen(22232, '127.0.0.1', done); });

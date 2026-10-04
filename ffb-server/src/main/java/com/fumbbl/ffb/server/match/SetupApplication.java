@@ -295,8 +295,11 @@ public final class SetupApplication {
 		if (!terminal.isComplete() || terminal.isFailed()
 			|| !terminal.completedMatch().equals(matches.result(owner, document.matchId)))
 			throw new MatchService.Failure("RECOVERY_CORRUPT");
-		JsonObject response = "load".equals(request.getString("operation", null))
-			? terminal.reply(request.getString("requestId", null), "ACCEPTED", false, role) : terminal.apply(role, request);
+		JsonObject response;
+		if ("load".equals(request.getString("operation", null))) {
+			response = terminal.reply(request.getString("requestId", null), "ACCEPTED", false, role);
+		} else response = terminal.apply(role, request);
+		if (response.get("state") != null && !response.get("state").isNull()) terminal.decorateSaveResume(response);
 		boolean publish = sessions.containsKey(document.matchId) && "ACCEPTED".equals(response.getString("code", null));
 		if (publish) {
 			// A resident terminal engine means the earlier result commit was not acknowledged.

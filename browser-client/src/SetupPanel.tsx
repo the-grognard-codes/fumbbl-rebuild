@@ -469,9 +469,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     <p>{pinnedAction ? `Pinned: ${pinnedAction.label}. Commit will send this server action.` : 'Select a server action, then Commit. Hover never sends an action.'}</p>
     {availableActions.length > 12 && <label>Find an action or target <input aria-label="Find an action or target" value={actionFilter} onChange={event => { setActionFilter(event.target.value); setActionId(''); }} placeholder="Player name, pass, or 8, 7" disabled={!connected || !!pending} /></label>}
     {actionFilter && <p>{matchingActions.length} matching actions</p>}
-    {!hosted && <label>Action <select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || availableActions.length === 0}>
+    <label>Action <select aria-label="Server action" value={actionId} onChange={event => setActionId(event.target.value)} disabled={!connected || !!pending || availableActions.length === 0}>
       <option value="">Select</option>{Object.entries(actionsByKind).map(([kind, actions]) => <optgroup key={kind} label={kind}>{actions.map(action => <option key={action.id} value={action.id}>{action.label} · {action.actor} · {action.kind}</option>)}</optgroup>)}
-    </select></label>}
+    </select></label>
     {!hosted && <button type="button" onClick={commit} disabled={!mayAct}>Commit action</button>}
   </section>;
   const rosterTable = <table><caption>Frozen team players</caption><thead><tr><th>Player</th><th>Role</th><th>State</th><th>Square</th></tr></thead><tbody>{view.players.map(player => <tr key={player.id}><td>{player.name} #{player.number ?? player.slot}</td><td>{player.position ?? player.role}</td><td>{player.state}</td><td>{player.x === null ? (player.offPitch ?? 'reserve') : `${player.x}, ${player.y}`}</td></tr>)}</tbody></table>;
@@ -567,7 +567,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm Setup</button>
           <details><summary>Place players with keyboard or touch</summary>
             <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}>
-              <option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}>{player.name} #{player.slot}{player.x === null ? ' reserve' : ''}</option>)}</select></label>
+                <option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}
+                  disabled={!canDragSetupPlayer(view, player, availableActions)}>{player.name} #{player.slot}{player.x === null
+                    ? player.offPitch === 'reserve' ? ' reserve' : ` · ${player.status ?? player.state}` : ''}</option>)}</select></label>
             <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup}/></label>
             <label>Y <input aria-label="Setup Y" type="number" min="0" max="14" value={y} onChange={event => setY(Number(event.target.value))} disabled={!maySetup}/></label>
             <button type="button" onClick={() => dropPlayer(playerId, x, y)} disabled={!maySetup || !canDropSetupPlayer(view, playerId, { x, y })}>Place on empty own-half square</button>

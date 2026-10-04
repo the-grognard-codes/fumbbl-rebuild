@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 class JdbcMatchRepositoryTest {
 	private Connection connection;
@@ -66,5 +69,27 @@ class JdbcMatchRepositoryTest {
 		doThrow(new SQLException("injected close failure")).when(connection).close();
 		assertThrows(MatchRepository.OutcomeUnknown.class, () -> repository.replace(record, 1));
 		verify(connection).commit();
+	}
+
+	@Test void compressesLargeWritesAndFindReturnsTheOriginalLogicalJson() throws Exception {
+		String json = "{\"state\":\"" + repeat("full-native-snapshot-", 500_000) + "\"}";
+		MatchRepository.Record large = new MatchRepository.Record("match", 2, json);
+		when(statement.executeUpdate()).thenReturn(1);
+		assertTrue(repository.replace(large, 1));
+		org.mockito.ArgumentCaptor<String> stored = org.mockito.ArgumentCaptor.forClass(String.class);
+		verify(statement).setString(eq(2), stored.capture());
+		org.junit.jupiter.api.Assertions.assertNotEquals(json, stored.getValue());
+
+		ResultSet rows = mock(ResultSet.class); PreparedStatement query = mock(PreparedStatement.class);
+		when(connection.prepareStatement("SELECT match_id,document_version,document_json FROM ffb_prepared_matches WHERE match_id=?")).thenReturn(query);
+		when(query.executeQuery()).thenReturn(rows); when(rows.next()).thenReturn(true);
+		when(rows.getString(1)).thenReturn("match"); when(rows.getInt(2)).thenReturn(2); when(rows.getString(3)).thenReturn(stored.getValue());
+		assertEquals(json, repository.find("match").json);
+	}
+
+	private String repeat(String value, int count) {
+		StringBuilder result = new StringBuilder(value.length() * count);
+		for (int index = 0; index < count; index++) result.append(value);
+		return result.toString();
 	}
 }

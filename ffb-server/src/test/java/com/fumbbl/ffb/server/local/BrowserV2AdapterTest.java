@@ -159,13 +159,17 @@ class BrowserV2AdapterTest {
 	@Test void completedParticipantResultUsesV2EnvelopeAndSpectatorScopeCannotRead() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		AuthenticatedPrincipal outsider = principal("cccccccc-cccc-cccc-cccc-cccccccccccc", ApplicationScope.PLAYER);
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+		when(access.playerRole(player, MATCH)).thenReturn("home");
+		when(access.require(outsider, ApplicationScope.PLAYER)).thenReturn(outsider);
+		when(access.playerRole(outsider, MATCH)).thenThrow(new MatchService.Failure("NOT_FOUND"));
 		when(access.require(spectator, ApplicationScope.PLAYER)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
 		MatchService matches = mock(MatchService.class);
-		when(matches.result(FIRST, MATCH)).thenReturn(new CompletedMatch(new JsonObject().add("matchId", MATCH)
+		when(matches.result("home", MATCH)).thenReturn(new CompletedMatch(new JsonObject().add("matchId", MATCH)
 			.add("events", new com.eclipsesource.json.JsonArray().add(new JsonObject().add("revision", 0).add("kind", "FULL_TIME"))).toString()));
-		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> "player".equals(bearer) ? player : spectator,
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> "player".equals(bearer) ? player : "outsider".equals(bearer) ? outsider : spectator,
 			access, mock(SetupApplication.class), matches, mock(V2PreparationService.class), mock(BrowserSavedTeamJson.class));
 		Connection participant = new Connection(), viewer = new Connection();
 		adapter.receive(participant, authenticate("auth-1", "player").toString());
@@ -179,7 +183,15 @@ class BrowserV2AdapterTest {
 		assertEquals("FULL_TIME", JsonObject.readFrom(participant.messages.get(2)).get("event").asObject().getString("kind", null));
 		adapter.receive(viewer, request("matchResult", "denied").add("operation", "load").add("matchId", MATCH).toString());
 		assertEquals("AUTHORIZATION", code(viewer, 1));
-		verify(matches, times(2)).result(FIRST, MATCH);
+		Connection unrelated = new Connection();
+		adapter.receive(unrelated, authenticate("auth-3", "outsider").toString());
+		adapter.receive(unrelated, request("matchResult", "outside-load").add("operation", "load").add("matchId", MATCH).toString());
+		adapter.receive(unrelated, request("matchResult", "outside-replay").add("operation", "replay").add("matchId", MATCH).add("index", 0).toString());
+		assertEquals("NOT_FOUND", code(unrelated, 1));
+		assertEquals("NOT_FOUND", code(unrelated, 2));
+		verify(matches, times(2)).result("home", MATCH);
+		verify(matches, never()).result(FIRST, MATCH);
+		verify(matches, never()).result(outsider.accountId(), MATCH);
 	}
 
 	@Test void rejectedAuthenticationDoesNotEchoOrLogProviderOrPrivatePayloads() throws Exception {
