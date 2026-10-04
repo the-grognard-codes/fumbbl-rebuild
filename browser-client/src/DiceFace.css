@@ -1,0 +1,2 @@
+.match-die { transform-box: fill-box; transform-origin: center; }
+.match-die.selected { filter: drop-shadow(0 0 2px #8ac8fb) drop-shadow(0 2px 2px #0009); }
