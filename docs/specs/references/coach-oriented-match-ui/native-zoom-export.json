@@ -1,0 +1,54 @@
+{
+  "kind": "real-server-native-browser-zoom",
+  "protocol": "/browser/v2",
+  "browserExecutable": "chrome.exe",
+  "measurements": [
+    {
+      "zoom": 1,
+      "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "dpr": 2,
+      "innerWidth": 1280,
+      "innerHeight": 660,
+      "visualViewportWidth": 1280,
+      "visualViewportHeight": 660,
+      "visualViewportScale": 1,
+      "cameraReachable": true,
+      "playerFallbackCount": 0,
+      "pixels": {
+        "width": 2560,
+        "height": 1320
+      }
+    },
+    {
+      "zoom": 2,
+      "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "dpr": 4,
+      "innerWidth": 640,
+      "innerHeight": 330,
+      "visualViewportWidth": 640,
+      "visualViewportHeight": 330,
+      "visualViewportScale": 1,
+      "cameraReachable": true,
+      "playerFallbackCount": 0,
+      "pixels": {
+        "width": 2560,
+        "height": 1320
+      }
+    },
+    {
+      "zoom": 1,
+      "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "dpr": 2,
+      "innerWidth": 1280,
+      "innerHeight": 660,
+      "visualViewportWidth": 1280,
+      "visualViewportHeight": 660,
+      "visualViewportScale": 1,
+      "cameraReachable": true,
+      "playerFallbackCount": 0,
+      "restored": true
+    }
+  ],
+  "browserFamily": "Bundled Chromium",
+  "passed": true
+}

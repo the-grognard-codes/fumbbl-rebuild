@@ -9,9 +9,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -108,5 +110,27 @@ class JdbcRecoveryRepositoryTest {
 	void mismatchedRecordGenerationIsRejectedBeforeWriting() throws Exception {
 		assertThrows(SQLException.class, () -> repository.save(record(2), 0));
 		verify(connection, never()).setAutoCommit(false);
+	}
+
+	@Test void compressesLargeCheckpointAndFindReturnsOriginalArtifactJson() throws Exception {
+		String json = "{\"checkpoint\":\"" + repeat("native-recovery-state-", 500_000) + "\"}";
+		RecoveryRepository.Record large = new RecoveryRepository.Record("match", 8, json);
+		when(statement.executeUpdate()).thenReturn(1);
+		assertTrue(repository.save(large, 7));
+		org.mockito.ArgumentCaptor<String> stored = org.mockito.ArgumentCaptor.forClass(String.class);
+		verify(statement).setString(eq(2), stored.capture());
+		org.junit.jupiter.api.Assertions.assertNotEquals(json, stored.getValue());
+
+		ResultSet rows = mock(ResultSet.class); PreparedStatement query = mock(PreparedStatement.class);
+		when(connection.prepareStatement("SELECT matchid,generation,artifact_json FROM ffb_match_recovery WHERE matchid=?")).thenReturn(query);
+		when(query.executeQuery()).thenReturn(rows); when(rows.next()).thenReturn(true);
+		when(rows.getString(1)).thenReturn("match"); when(rows.getLong(2)).thenReturn(8L); when(rows.getString(3)).thenReturn(stored.getValue());
+		assertEquals(json, repository.find("match").json);
+	}
+
+	private String repeat(String value, int count) {
+		StringBuilder result = new StringBuilder(value.length() * count);
+		for (int index = 0; index < count; index++) result.append(value);
+		return result.toString();
 	}
 }

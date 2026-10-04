@@ -15,6 +15,7 @@ public class LocalServerMain {
 	static final String LEGACY_DB_URL = "jdbc:mariadb://database:3306/ffb_local";
 	static final String MARKER6_DB_URL = "jdbc:mariadb://host.docker.internal:23316/ffb_local";
 	static final String REVIEW_DB_URL = "jdbc:mariadb://host.docker.internal:23317/ffb_local";
+	static final String ACCEPTANCE_DB_URL = "jdbc:mariadb://host.docker.internal:23318/ffb_local";
 	static final String MARKER6_DB_USER = "ffb_m6_runtime";
 
 	public static void main(String[] args) throws Exception {
@@ -67,7 +68,8 @@ public class LocalServerMain {
 	static void validateProfile(Properties properties) {
 		boolean marker6 = Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled"));
 		boolean permittedDatabase = marker6
-			? (MARKER6_DB_URL.equals(properties.getProperty("db.url")) || REVIEW_DB_URL.equals(properties.getProperty("db.url")))
+			? (MARKER6_DB_URL.equals(properties.getProperty("db.url")) || REVIEW_DB_URL.equals(properties.getProperty("db.url"))
+				|| ACCEPTANCE_DB_URL.equals(properties.getProperty("db.url")))
 				&& MARKER6_DB_USER.equals(properties.getProperty("db.user"))
 			: LEGACY_DB_URL.equals(properties.getProperty("db.url"));
 		if (!"true".equals(properties.getProperty("server.local")) || !permittedDatabase) {

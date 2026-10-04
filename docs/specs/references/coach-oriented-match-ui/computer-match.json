@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "protocol": "/browser/v2",
+  "browser": "154.0.8037.93",
+  "teams": [
+    {
+      "rosterId": "human",
+      "sourceRevision": 520,
+      "positions": [
+        "Ogre",
+        "Human Blitzer",
+        "Human Catcher",
+        "Human Thrower",
+        "Halfling Hopeful",
+        "Human Lineman"
+      ],
+      "teamId": "5b1fddd9-1536-3e26-9a80-a76efc309900"
+    },
+    {
+      "rosterId": "orc",
+      "sourceRevision": 520,
+      "positions": [
+        "Troll",
+        "Orc Blitzer",
+        "Big Un Blocker",
+        "Orc Thrower",
+        "Goblin Lineman",
+        "Orc Lineman"
+      ],
+      "teamId": "a3cafbb4-abdf-3fd6-873c-7fc06c4b6bdd"
+    }
+  ],
+  "matchId": "f3a0dba4-8683-310a-b6a2-a9cf7fe98ac2",
+  "assertions": [
+    {
+      "name": "Real DEV Firebase authentication and server-validated Human/Orc teams built through the UI"
+    },
+    {
+      "name": "Human coach and independent spectators subscribe to the native computer match",
+      "matchId": "f3a0dba4-8683-310a-b6a2-a9cf7fe98ac2"
+    },
+    {
+      "name": "Durable escaped chat delivered to both coaches and spectator"
+    },
+    {
+      "name": "Real server-bound route preview, Undo/Clear, camera-preserved proposal, reconnect and confirmed native route"
+    },
+    {
+      "name": "Continued retained native match through authenticated production UI",
+      "matchId": "f3a0dba4-8683-310a-b6a2-a9cf7fe98ac2",
+      "priorRevision": 520
+    },
+    {
+      "name": "Human coach and independent spectators subscribe to the native computer match",
+      "matchId": "f3a0dba4-8683-310a-b6a2-a9cf7fe98ac2"
+    },
+    {
+      "name": "Human-versus-Orc computer match reached native full time with browser coach decisions",
+      "revision": 560,
+      "score": [
+        1,
+        0
+      ]
+    },
+    {
+      "name": "Authoritative completed result and backward replay seek preserved"
+    }
+  ],
+  "checkpoints": [
+    {
+      "revision": 275,
+      "half": 2,
+      "drive": 2,
+      "phase": "SETUP",
+      "score": [
+        0,
+        0
+      ]
+    },
+    {
+      "revision": 386,
+      "half": 2,
+      "drive": 3,
+      "phase": "SETUP",
+      "score": [
+        1,
+        0
+      ]
+    },
+    {
+      "revision": 560,
+      "half": 2,
+      "drive": 3,
+      "phase": "FULL_TIME",
+      "score": [
+        1,
+        0
+      ]
+    }
+  ],
+  "result": {
+    "awayScore": 0,
+    "catalogVersion": "bb2025-exhibition-2026-09-25.1",
+    "engineVersion": "ffb-3.4.0-bb2025-m3d.1",
+    "finalRevision": 560,
+    "formatVersion": 3,
+    "homeScore": 1,
+    "matchId": "f3a0dba4-8683-310a-b6a2-a9cf7fe98ac2",
+    "presetId": "exhibition-1150",
+    "presetVersion": "bb2025-exhibition-2026-09-25.1",
+    "ruleset": "BB2025",
+    "eventCount": 561
+  }
+}

@@ -14,7 +14,7 @@ export function canDragSetupPlayer(view: SetupState, player: SetupPlayer, action
 
 export function canDropSetupPlayer(view: SetupState, playerId: string, to: RoutePoint | null): boolean {
   const player = view.players.find(item => item.id === playerId && item.role === view.callerRole);
-  if (!player || view.phase !== 'SETUP' || view.actor !== view.callerRole) return false;
+  if (!player || view.phase !== 'SETUP' || view.actor !== view.callerRole || !canDragSetupPlayer(view, player, view.actions)) return false;
   return to ? canPlaceReserve(view, playerId, to.x, to.y) : player.x !== null;
 }
 

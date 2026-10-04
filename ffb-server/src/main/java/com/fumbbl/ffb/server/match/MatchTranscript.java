@@ -11,7 +11,7 @@ import java.util.HashSet;
 /** Bounded public record of accepted decisions and the native outcomes they caused. */
 final class MatchTranscript {
     static final int FORMAT_VERSION = 2;
-    static final int MAX_BYTES = 16 * 1024 * 1024;
+    static final int MAX_BYTES = 32 * 1024 * 1024;
     private final JsonArray records = new JsonArray();
     private int bytes;
     private int nativeCursor;

@@ -1,9 +1,13 @@
 package com.fumbbl.ffb.server.match;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +15,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -118,6 +124,55 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		assertEquals(0, directory.reauthorizeCalls);
 	}
 
+	@Test void providerDiagnosticsAreOptInAndNeverIncludeBearer() throws Exception {
+		FirebaseAuth auth = mock(FirebaseAuth.class);
+		FirebaseAuthException failure = mock(FirebaseAuthException.class);
+		when(failure.getErrorCode()).thenReturn(com.google.firebase.ErrorCode.INVALID_ARGUMENT);
+		when(auth.verifyIdToken("synthetic-secret-bearer", true)).thenThrow(failure);
+		Directory directory = new Directory();
+		String previous = System.getProperty("ffb.v2.auth.diagnostics");
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		PrintStream originalError = System.err;
+		try (PrintStream captured = new PrintStream(output, true, StandardCharsets.UTF_8.name())) {
+			System.clearProperty("ffb.v2.auth.diagnostics");
+			System.setErr(captured);
+			assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("synthetic-secret-bearer"));
+			assertEquals("", output.toString(StandardCharsets.UTF_8.name()));
+			System.setProperty("ffb.v2.auth.diagnostics", "true");
+			assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("synthetic-secret-bearer"));
+		} finally {
+			System.setErr(originalError);
+			if (previous == null) System.clearProperty("ffb.v2.auth.diagnostics"); else System.setProperty("ffb.v2.auth.diagnostics", previous);
+		}
+		String diagnostic = output.toString(StandardCharsets.UTF_8.name());
+		assertTrue(diagnostic.contains("stage=provider code=INVALID_ARGUMENT"));
+		assertFalse(diagnostic.contains("synthetic-secret-bearer"));
+	}
+
+	@Test void directorySqlDiagnosticsExposeOnlySqlStateAndExceptionType() throws Exception {
+		FirebaseAuth auth = mock(FirebaseAuth.class);
+		FirebaseToken validToken = token("synthetic-subject", 1900000000L);
+		when(auth.verifyIdToken("synthetic-bearer", true)).thenReturn(validToken);
+		Directory directory = new Directory();
+		directory.authenticationFailure = new SQLException("private database detail", "08000");
+		String previous = System.getProperty("ffb.v2.auth.diagnostics");
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		PrintStream originalError = System.err;
+		try (PrintStream captured = new PrintStream(output, true, StandardCharsets.UTF_8.name())) {
+			System.setProperty("ffb.v2.auth.diagnostics", "true");
+			System.setErr(captured);
+			assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("synthetic-bearer"));
+		} finally {
+			System.setErr(originalError);
+			if (previous == null) System.clearProperty("ffb.v2.auth.diagnostics"); else System.setProperty("ffb.v2.auth.diagnostics", previous);
+		}
+		String diagnostic = output.toString(StandardCharsets.UTF_8.name());
+		assertTrue(diagnostic.contains("stage=principal_directory_sql code=state_08000_SQLException"));
+		assertFalse(diagnostic.contains("private database detail"));
+		assertFalse(diagnostic.contains("synthetic-bearer"));
+		assertFalse(diagnostic.contains("synthetic-subject"));
+	}
+
 	private FirebaseToken token(String subject, long expirationSeconds) {
 		FirebaseToken token = mock(FirebaseToken.class);
 		Map<String, Object> claims = new HashMap<>();
@@ -136,9 +191,11 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		private int reauthorizeCalls;
 		private VerifiedIdentity identity;
 		private boolean rejectAuthentication;
+		private SQLException authenticationFailure;
 
-		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity candidate) throws V2PrincipalAuthenticator.Rejected {
+		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity candidate) throws SQLException, V2PrincipalAuthenticator.Rejected {
 			authenticateCalls++; identity = candidate;
+			if (authenticationFailure != null) throw authenticationFailure;
 			if (rejectAuthentication) throw new V2PrincipalAuthenticator.Rejected();
 			return new AuthenticatedPrincipal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", java.util.EnumSet.of(ApplicationScope.SPECTATOR), candidate.expiresAtMillis, candidate.issuer, candidate.subject, candidate.authenticationTimeMillis);
 		}

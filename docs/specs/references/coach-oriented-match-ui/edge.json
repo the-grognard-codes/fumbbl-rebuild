@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "browser": "154.0.4258.53",
+  "channel": "msedge",
+  "protocol": "/browser/v2",
+  "matchId": "1d9a0f2e-df34-3e01-a259-38ac2b4659f9",
+  "viewport": {
+    "width": 1280,
+    "height": 660
+  },
+  "perspectives": [
+    "perspective",
+    "top-down"
+  ],
+  "canonicalCells": 390,
+  "authenticated": true,
+  "nativeSuspendedSnapshot": true,
+  "playerInspector": true,
+  "runtimeErrors": []
+}

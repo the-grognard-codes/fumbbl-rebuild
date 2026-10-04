@@ -3,6 +3,7 @@ package com.fumbbl.ffb.test;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -489,10 +490,15 @@ class SetupSessionTest {
         assertEquals(queued, engine(session).getDiceRoller().getTestRolls().values().stream().mapToInt(java.util.List::size).sum());
     }
 
-    @Test void replayBudgetRejectsBeforeAnyEngineMutation() throws Exception {
-        SetupSession session = session(11);
+    @Test void combinedReplayAndTranscriptBudgetRejectsBeforeAnyEngineMutation() throws Exception {
+        SetupSession session = session(11, true);
         java.lang.reflect.Field bytes = SetupSession.class.getDeclaredField("replayBytes");
-        bytes.setAccessible(true); bytes.setInt(session, 16 * 1024 * 1024 - 128 * 1024 + 1);
+        bytes.setAccessible(true); bytes.setInt(session, 40 * 1024 * 1024);
+        java.lang.reflect.Field transcriptField = SetupSession.class.getDeclaredField("transcript");
+        transcriptField.setAccessible(true);
+        Object transcript = transcriptField.get(session);
+        java.lang.reflect.Field transcriptBytes = transcriptField.getType().getDeclaredField("bytes");
+        transcriptBytes.setAccessible(true); transcriptBytes.setInt(transcript, 24 * 1024 * 1024);
         JsonObject snapshot = view(session), prompt = snapshot.get("prompt").asObject();
         String before = serialized(session);
         JsonObject command = request(snapshot, "choice").add("promptId", prompt.get("id")).add("optionId", "heads");
@@ -577,6 +583,60 @@ class SetupSessionTest {
         assertEquals("READY_FOR_KICKOFF", view(session).getString("phase", null));
     }
 
+    @Test void swelteringHeatExhaustionAfterTouchdownIsNotProjectedAsASetupReserve() throws Exception {
+        SetupSession session = readySession();
+        com.fumbbl.ffb.server.GameState engine = engine(session);
+        TestRolls.on(engine).general(1, 1, 3, 3, 3, 3, 3, 3);
+        submit(session, view(session).get("actions").asArray().get(82).asObject());
+        com.fumbbl.ffb.model.Game game = engine.getGame();
+        com.fumbbl.ffb.model.Player<?> scorer = game.getActingTeam().getPlayers()[0];
+        boolean home = game.isHomePlaying();
+        com.fumbbl.ffb.FieldCoordinate at = new com.fumbbl.ffb.FieldCoordinate(home ? 24 : 1, 7);
+        game.getFieldModel().setPlayerCoordinate(scorer, at);
+        game.getFieldModel().setBallCoordinate(at);
+        game.getFieldModel().setBallInPlay(true);
+        game.getFieldModel().setBallMoving(false);
+        game.getFieldModel().setWeather(Weather.SWELTERING_HEAT);
+        JsonObject select = null;
+        for (JsonValue value : view(session).get("actions").asArray()) {
+            JsonObject option = value.asObject();
+            if ("select".equals(option.getString("kind", null)) && option.getString("id", "").endsWith(scorer.getId())) select = option;
+        }
+        assertTrue(select != null); submit(session, select);
+        JsonObject score = actionEnding(session, ":move-" + (home ? 25 : 0) + "-7");
+        submit(session, score);
+
+        JsonObject snapshot = view(session);
+        assertEquals("SETUP", snapshot.getString("phase", null));
+        String setupActor = snapshot.getString("actor", null);
+        JsonObject exhausted = null;
+        for (JsonValue value : snapshot.get("players").asArray()) {
+            JsonObject player = value.asObject();
+            if (setupActor.equals(player.getString("role", null)) && "Exhausted".equals(player.getString("status", null))) {
+                exhausted = player;
+                break;
+            }
+        }
+        assertTrue(exhausted != null, "Sweltering Heat after touchdown must leave an exhausted player on the setup actor's roster");
+        assertEquals("other", exhausted.getString("offPitch", null));
+        assertTrue(exhausted.get("x").isNull() && exhausted.get("y").isNull());
+
+        JsonObject before = snapshot;
+        JsonObject placeExhausted = request(before, "place").add("playerId", exhausted.get("id")).add("to", JsonValue.NULL);
+        String serializedBefore = serialized(session);
+        String projectionBefore = snapshot.toString();
+        assertEquals("ILLEGAL_PLACEMENT", assertThrows(MatchService.Failure.class,
+            () -> session.apply(setupActor, placeExhausted)).code);
+        assertEquals(serializedBefore, serialized(session), "An exhausted player cannot be restored to reserve by a setup command");
+        assertEquals(projectionBefore, view(session).toString(), "Rejected setup placement leaves the projection and revision unchanged");
+        JsonObject targetPitch = request(before, "place").add("playerId", exhausted.get("id")).add("to",
+            new JsonObject().add("x", "home".equals(setupActor) ? 1 : 24).add("y", 0));
+        assertEquals("ILLEGAL_PLACEMENT", assertThrows(MatchService.Failure.class,
+            () -> session.apply(setupActor, targetPitch)).code);
+        assertEquals(serializedBefore, serialized(session), "An exhausted player cannot be placed on the pitch");
+        assertEquals(projectionBefore, view(session).toString());
+    }
+
     private void arrangeSetup(SetupSession session) {
         JsonObject snapshot = view(session); String role = snapshot.getString("actor", null);
         for (JsonValue value : snapshot.get("players").asArray()) {
@@ -586,7 +646,10 @@ class SetupSessionTest {
         }
         int index = 0;
         for (JsonValue value : view(session).get("players").asArray()) {
-            JsonObject player = value.asObject(); if (!role.equals(player.getString("role", null))) continue;
+            JsonObject player = value.asObject();
+            if (!role.equals(player.getString("role", null))) continue;
+            String offPitch = player.getString("offPitch", "other");
+            if (!"pitch".equals(offPitch) && !"reserve".equals(offPitch)) continue;
             int x = index < 3 ? 12 : 10; if ("away".equals(role)) x = 25 - x;
             int y = index < 3 ? 6 + index : index + 1;
             session.apply(role, request(view(session), "place").add("playerId", player.get("id"))

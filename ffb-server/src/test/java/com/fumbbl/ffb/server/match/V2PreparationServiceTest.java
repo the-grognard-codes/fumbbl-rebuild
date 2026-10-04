@@ -2,15 +2,16 @@ package com.fumbbl.ffb.server.match;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.JsonArray;
 import com.fumbbl.ffb.server.team.SavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 
+import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -81,6 +82,56 @@ class V2PreparationServiceTest {
 		assertEquals("human", document.get("home").asObject().getString("rosterId", null));
 		assertEquals("orc", document.get("away").asObject().getString("rosterId", null));
 		assertEquals("Bugman's Best", document.get("away").asObject().getString("teamName", null));
+	}
+
+	@Test void completedCompressedComputerMatchRemainsAuthorizedAndLeavesActiveJobQueue() throws Exception {
+		RosterCatalog catalog = new RosterCatalog();
+		String matchId = "00000000-0000-0000-0000-000000000021";
+		TeamDraft draft = namedDraft(catalog);
+		FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000, 0, catalog);
+		ComputerOpponentService computers = new ComputerOpponentService(null);
+		FrozenTeam away = home.copyForMatch(computers.cloneTeamId(matchId), "away", ComputerOpponentService.BUGMAN_TEAM_NAME);
+		Map<String, MatchDocument.Request> requests = new LinkedHashMap<>();
+		requests.put("home\ncreate_1", new MatchDocument.Request("create|" + home.sourceTeamId + "|1|away"));
+		requests.put("away\njoin_1", new MatchDocument.Request("join|" + matchId + "|1|" + away.sourceTeamId + "|1"));
+		requests.put("home\nactivate_1", new MatchDocument.Request("activate|" + matchId + "|2"));
+		CompletedMatch completion = new CompletedMatch(new JsonObject().add("formatVersion", 1)
+			.add("engineVersion", CompletedMatch.ENGINE_VERSION).add("ruleset", "BB2025")
+			.add("catalogVersion", RosterCatalog.VERSION).add("presetId", RosterCatalog.PRESET)
+			.add("presetVersion", RosterCatalog.VERSION).add("matchId", matchId).add("homeScore", 1)
+			.add("awayScore", 0).add("finalRevision", 0).add("events", new JsonArray().add(
+				new JsonObject().add("revision", 0).add("kind", "FULL_TIME").add("state", terminalState(matchId))))
+			.toString());
+		MatchDocument completed = new MatchDocument(matchId, 4, "away", MatchDocument.Lifecycle.COMPLETED,
+			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), requests, completion);
+		String rawDocument = new MatchJson().encode(completed).toString();
+		String storedDocument = new BoundedJsonStorageCodec(BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT,
+			BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT).encode(rawDocument);
+		assertTrue(!rawDocument.equals(storedDocument), "completed fixture should exercise the storage envelope");
+
+		Connection connection = mock(Connection.class);
+		AtomicInteger documentReads = new AtomicInteger();
+		when(connection.prepareStatement(anyString())).thenAnswer(call -> {
+			String sql = call.getArgument(0);
+			PreparedStatement query = mock(PreparedStatement.class);
+			ResultSet rows = mock(ResultSet.class);
+			if (sql.startsWith("SELECT 1 FROM ffb_v2_match_members")) {
+				when(rows.next()).thenReturn(true);
+			} else if (sql.startsWith("SELECT document_version,document_json FROM ffb_prepared_matches")) {
+				documentReads.incrementAndGet();
+				when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(4); when(rows.getString(2)).thenReturn(storedDocument);
+			} else when(rows.next()).thenReturn(false);
+			when(query.executeQuery()).thenReturn(rows);
+			return query;
+		});
+		V2PreparationService service = new V2PreparationService(() -> connection, null, catalog, Clock.systemUTC(), computers);
+		assertTrue(service.isComputerMatch(matchId));
+		assertTrue(service.activeComputerMatches().isEmpty(), "a completed match is no longer an active computer job");
+		assertEquals(1, documentReads.get(), "historical completed rows must be filtered before document decode");
+		verify(connection).prepareStatement(eq("SELECT p.match_id FROM ffb_prepared_matches p "
+			+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
+			+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
+			+ "WHERE p.document_version=3 ORDER BY p.match_id"));
 	}
 
 	@Test
@@ -189,6 +240,14 @@ class V2PreparationServiceTest {
 		List<TeamDraft.Player> players = new ArrayList<>(); for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("player" + slot, slot, "lineman", Collections.emptyList()));
 		Map<String, Integer> resources = new LinkedHashMap<>(); for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
 		return new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "player1", players, resources);
+	}
+	private JsonObject terminalState(String id) {
+		return new JsonObject().add("half", 2).add("drive", 1).add("homeScore", 1).add("awayScore", 0)
+			.add("homeTurn", 0).add("awayTurn", 0).add("actions", new JsonArray()).add("turn", 0)
+			.add("turnMode", "END_GAME").add("activePlayerId", JsonValue.NULL).add("ball", JsonValue.NULL)
+			.add("matchId", id).add("revision", 0).add("callerRole", "home").add("phase", "FULL_TIME")
+			.add("actor", "home").add("prompt", JsonValue.NULL).add("players", new JsonArray())
+			.add("weather", "NICE").add("homeRerolls", 0).add("awayRerolls", 0);
 	}
 	@Test
 	void namedFrozenMatchRoundTripsWithoutReadingSourceTeam() {

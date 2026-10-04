@@ -79,7 +79,7 @@ public final class MatchJson {
 	/** Inspect minimal persisted membership before reporting a format incompatibility to a caller. */
 	void authorizePersisted(String owner, String text) {
 		try {
-			JsonObject object = parse(text, 16 * 1024 * 1024 + 65536, 16);
+			JsonObject object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
 			String creator = object.get("homeOwner").asString();
 			String invited = object.get("invitation").asObject().get("intendedOpponent").asString();
 			if (!owner.equals(creator) && !owner.equals(invited)) throw new IllegalArgumentException();
@@ -88,7 +88,7 @@ public final class MatchJson {
 
 	public MatchDocument decode(String text, int persistedVersion) {
 		try {
-			JsonObject object = parse(text, 16 * 1024 * 1024 + 65536, 16);
+			JsonObject object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
 			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4) return decodeCompleted(object, persistedVersion);
 			exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests");
 			int format = object.get("formatVersion").asInt();

@@ -12,7 +12,7 @@ import java.util.List;
 /** Immutable, canonical terminal match artifact. */
 public final class CompletedMatch {
 	public static final String ENGINE_VERSION = "ffb-3.4.0-bb2025-m3d.1";
-	private static final int MAX_BYTES = 16 * 1024 * 1024;
+	public static final int MAX_BYTES = 64 * 1024 * 1024;
 	private final String json;
 
 	public CompletedMatch(String json) { this.json = canonical(json); }
