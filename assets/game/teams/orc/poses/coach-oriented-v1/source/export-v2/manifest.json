@@ -1,0 +1,847 @@
+{
+  "team": "orc",
+  "standardVersion": "1.1",
+  "filter": "nearest-neighbor",
+  "players": [
+    {
+      "id": "orc-lineman-front",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-front.png",
+      "original": "originals/orc-lineman-front.png",
+      "sourceSha256": "01A1159BB4D14D0ABD3796D237A76163D70349AA310141387D71EE48640C80F3",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 3,
+        "height": 59,
+        "width": 51,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-lineman-back",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-back.png",
+      "original": "originals/orc-lineman-back.png",
+      "sourceSha256": "AF03DB5C4F70D8DD5711A84E08FB6B026FF6DE6926A02DB88694956ECEAEB8AB",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 3,
+        "height": 60,
+        "width": 58,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-lineman-front45",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-front45.png",
+      "original": "originals/orc-lineman-front45.png",
+      "sourceSha256": "18D718B3550A528F48EBEA40245DF337FA6BC66EA782D7A9D2B40A6795546A3F",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 7,
+        "height": 60,
+        "width": 47,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-lineman-back45",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-back45.png",
+      "original": "originals/orc-lineman-back45.png",
+      "sourceSha256": "CB738E6D9409AAA5924B002625BF210E03EF1926B2E35C0FF7F82F260436E101",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 16,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-lineman-side",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-side.png",
+      "original": "originals/orc-lineman-side.png",
+      "sourceSha256": "CFF517D07ACF758A27B04C5F509C4CFD743DB3F09053C38BD963E6B23D7F91F9",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 8,
+        "height": 58,
+        "width": 50,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-lineman-prone",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-prone.png",
+      "original": "originals/orc-lineman-prone.png",
+      "sourceSha256": "7B27BA38F0231BF46E19ADBD7F9CDF5AE9F853DECA89949DFAB415A3EC5476D4",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 55,
+        "width": 58,
+        "y": 8
+      }
+    },
+    {
+      "id": "orc-lineman-stunned",
+      "role": "orc-lineman",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-lineman-stunned.png",
+      "original": "originals/orc-lineman-stunned.png",
+      "sourceSha256": "9F49B7AAFD92B6A7A23206CA1095994CAEAB7E90A3E708E98B300F44B9C02836",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 50,
+        "width": 59,
+        "y": 13
+      }
+    },
+    {
+      "id": "orc-blitzer-front",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-front.png",
+      "original": "originals/orc-blitzer-front.png",
+      "sourceSha256": "486B67F1C8D096EADE7B486FADB52DB09FDAD8A8EA4D02A83562AC8B2A78B28F",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 54,
+        "width": 44,
+        "y": 9
+      }
+    },
+    {
+      "id": "orc-blitzer-back",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-back.png",
+      "original": "originals/orc-blitzer-back.png",
+      "sourceSha256": "A62842D982821B4BEA18B8B0C4D32EDFAFD2255D74B374A8F2F106BECB281F92",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 10,
+        "height": 56,
+        "width": 46,
+        "y": 5
+      }
+    },
+    {
+      "id": "orc-blitzer-front45",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-front45.png",
+      "original": "originals/orc-blitzer-front45.png",
+      "sourceSha256": "647458554FB2DDA3E0CE6F930FC5E20B5249A4F152516F75FC1FB67B717F9660",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 57,
+        "width": 46,
+        "y": 6
+      }
+    },
+    {
+      "id": "orc-blitzer-back45",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-back45.png",
+      "original": "originals/orc-blitzer-back45.png",
+      "sourceSha256": "CB3858669A4F3E576068576130E4FAE66187CFFBB8FE13C4AC8856F59EC5514C",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 13,
+        "height": 59,
+        "width": 42,
+        "y": 4
+      }
+    },
+    {
+      "id": "orc-blitzer-side",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-side.png",
+      "original": "originals/orc-blitzer-side.png",
+      "sourceSha256": "5311A27DD8F9A3C8A54E7F9D62228E4055EF0B07910535D250B9EA78CAD0CE55",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 18,
+        "height": 60,
+        "width": 28,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-blitzer-prone",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-prone.png",
+      "original": "originals/orc-blitzer-prone.png",
+      "sourceSha256": "9E404CD82D190C1D67D6470C1A8AA4D000AF54B4FAE6983DF03B9DA68159C1C6",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 56,
+        "width": 45,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-blitzer-stunned",
+      "role": "orc-blitzer",
+      "gender": "man",
+      "sizeClass": "standard",
+      "file": "sprites/orc-blitzer-stunned.png",
+      "original": "originals/orc-blitzer-stunned.png",
+      "sourceSha256": "565769FF362AABB12199D7FA5B3C978A963416464F2A9EF74CCF1796E88144F6",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 11,
+        "height": 49,
+        "width": 43,
+        "y": 9
+      }
+    },
+    {
+      "id": "big-un-blocker-front",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-front.png",
+      "original": "originals/big-un-blocker-front.png",
+      "sourceSha256": "BAC98DEE10250166D6E24BBDB5604D22AA93478E2EB01C39281A57829996FFE0",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 4,
+        "height": 60,
+        "width": 55,
+        "y": 3
+      }
+    },
+    {
+      "id": "big-un-blocker-back",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-back.png",
+      "original": "originals/big-un-blocker-back.png",
+      "sourceSha256": "B79ABE52295DD06C5D758CD29A402F62C8DBA094C016759AD37B7150F8FAFFFD",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 7,
+        "height": 60,
+        "width": 49,
+        "y": 3
+      }
+    },
+    {
+      "id": "big-un-blocker-front45",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-front45.png",
+      "original": "originals/big-un-blocker-front45.png",
+      "sourceSha256": "01B024454F99F438FC559E8514307FEEF0B4E170BB285479DC309E5E35E929AB",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 8,
+        "height": 60,
+        "width": 47,
+        "y": 3
+      }
+    },
+    {
+      "id": "big-un-blocker-back45",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-back45.png",
+      "original": "originals/big-un-blocker-back45.png",
+      "sourceSha256": "D4A768E8E45E11CB9EB1B72ECF6D5F16120B1800CEA8A4FE2CFFA5114862662B",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 60,
+        "width": 46,
+        "y": 3
+      }
+    },
+    {
+      "id": "big-un-blocker-side",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-side.png",
+      "original": "originals/big-un-blocker-side.png",
+      "sourceSha256": "3E35D6556DB2B3FA8F9E8897686664745301834FC3CFDEB39FBCFCFB8EC4B362",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 5,
+        "height": 59,
+        "width": 53,
+        "y": 3
+      }
+    },
+    {
+      "id": "big-un-blocker-prone",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-prone.png",
+      "original": "originals/big-un-blocker-prone.png",
+      "sourceSha256": "5DD424485105F6E8EBD55B91D9BFBB68F4406787219192A0ABC24820D6AF3D67",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 3,
+        "height": 42,
+        "width": 55,
+        "y": 20
+      }
+    },
+    {
+      "id": "big-un-blocker-stunned",
+      "role": "big-un-blocker",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/big-un-blocker-stunned.png",
+      "original": "originals/big-un-blocker-stunned.png",
+      "sourceSha256": "EAE64C3B6348F860697673AD3E32E8955AA7AE072EBC14943A8A4EB9D6CAB068",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 41,
+        "width": 60,
+        "y": 20
+      }
+    },
+    {
+      "id": "orc-thrower-front",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-front.png",
+      "original": "originals/orc-thrower-front.png",
+      "sourceSha256": "2C37D05E0D21623CE79B4C84B6D5110D915E338BEBED26864B18DFBC0EFC6BB9",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 7,
+        "height": 60,
+        "width": 40,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-thrower-back",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-back.png",
+      "original": "originals/orc-thrower-back.png",
+      "sourceSha256": "36631AC43848F90C79551D29870835A6B2098B426E9BAAE9175F297D5C753233",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 5,
+        "height": 60,
+        "width": 49,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-thrower-front45",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-front45.png",
+      "original": "originals/orc-thrower-front45.png",
+      "sourceSha256": "814C2BBABB4514352B44837D414B9F04FE54BE9EB5C1B6D0D7FA851535BC215D",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 5,
+        "height": 60,
+        "width": 44,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-thrower-back45",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-back45.png",
+      "original": "originals/orc-thrower-back45.png",
+      "sourceSha256": "D47BEF970ACA65F07B4342F6DFEB8ECB7716B8E48E844A709B3793C48BA19C47",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 60,
+        "width": 42,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-thrower-side",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-side.png",
+      "original": "originals/orc-thrower-side.png",
+      "sourceSha256": "DB02EA59E93B97AF59A7955BBEC16D1C66F57F346FCBD57E597637CA57DC5AE2",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 12,
+        "height": 60,
+        "width": 33,
+        "y": 3
+      }
+    },
+    {
+      "id": "orc-thrower-prone",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-prone.png",
+      "original": "originals/orc-thrower-prone.png",
+      "sourceSha256": "7E1DDC6494B5DDD664A102343AF91240CE7A5C56A7C2C03D40EAF67945D0FFD4",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 2,
+        "height": 46,
+        "width": 58,
+        "y": 17
+      }
+    },
+    {
+      "id": "orc-thrower-stunned",
+      "role": "orc-thrower",
+      "gender": "woman",
+      "sizeClass": "standard",
+      "file": "sprites/orc-thrower-stunned.png",
+      "original": "originals/orc-thrower-stunned.png",
+      "sourceSha256": "D1583449F81D304D1763B6E4A0A5D7FD7B3698BAE3EDC4204A66A22B86B2DFCD",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 3,
+        "height": 41,
+        "width": 58,
+        "y": 22
+      }
+    },
+    {
+      "id": "troll-front",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-front.png",
+      "original": "originals/troll-front.png",
+      "sourceSha256": "E9908EA11E05F33E879425489CAC8B67D88AF1CAA938A87C6E596F65421EEAA9",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 10,
+        "height": 76,
+        "width": 59,
+        "y": 3
+      }
+    },
+    {
+      "id": "troll-back",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-back.png",
+      "original": "originals/troll-back.png",
+      "sourceSha256": "829337ADC867863ABFE52CF380CB80BC6DE057EEE5387F8C643C18140BD9FF42",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 12,
+        "height": 72,
+        "width": 58,
+        "y": 3
+      }
+    },
+    {
+      "id": "troll-front45",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-front45.png",
+      "original": "originals/troll-front45.png",
+      "sourceSha256": "9389085FBE4732B94F4C00250529E942D4D2DBABAAFB3F2AFC8FF2A92E591852",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 14,
+        "height": 70,
+        "width": 51,
+        "y": 5
+      }
+    },
+    {
+      "id": "troll-back45",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-back45.png",
+      "original": "originals/troll-back45.png",
+      "sourceSha256": "D732D91A1416AB3F41670EC78484C3393E03BF5C911EC9094A13E70D85CFD0EB",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 13,
+        "height": 76,
+        "width": 54,
+        "y": 3
+      }
+    },
+    {
+      "id": "troll-side",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-side.png",
+      "original": "originals/troll-side.png",
+      "sourceSha256": "5136AC29560D412B623FCE1AC27517BAA50892F3E4683378DF057B317147ECF1",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 19,
+        "height": 76,
+        "width": 42,
+        "y": 3
+      }
+    },
+    {
+      "id": "troll-prone",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-prone.png",
+      "original": "originals/troll-prone.png",
+      "sourceSha256": "88544C95227D1201C36C217BC92B9E141B2BC75F3DD98ED81C5F7EEF9DB15E41",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 11,
+        "height": 65,
+        "width": 57,
+        "y": 5
+      }
+    },
+    {
+      "id": "troll-stunned",
+      "role": "troll",
+      "gender": "man",
+      "sizeClass": "big",
+      "file": "sprites/troll-stunned.png",
+      "original": "originals/troll-stunned.png",
+      "sourceSha256": "507F9EF525BF17CB38DC27151AAF1CBC1A6CCF9F2B2AA244625747E0611D250D",
+      "width": 80,
+      "height": 80,
+      "tileSize": 64,
+      "anchorX": 40,
+      "anchorY": 79,
+      "bounds": {
+        "x": 11,
+        "height": 67,
+        "width": 57,
+        "y": 11
+      }
+    },
+    {
+      "id": "goblin-lineman-front",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-front.png",
+      "original": "originals/goblin-lineman-front.png",
+      "sourceSha256": "212B369893D1CF2CD515AA76B4DE54F94270792875310C0D530EEC0589D763A2",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 15,
+        "height": 42,
+        "width": 36,
+        "y": 21
+      }
+    },
+    {
+      "id": "goblin-lineman-back",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-back.png",
+      "original": "originals/goblin-lineman-back.png",
+      "sourceSha256": "B2D88049FFE69EDF436505AA72FA741A074AE0C1A2CB58CC64E437007C4822C0",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 43,
+        "width": 46,
+        "y": 20
+      }
+    },
+    {
+      "id": "goblin-lineman-front45",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-front45.png",
+      "original": "originals/goblin-lineman-front45.png",
+      "sourceSha256": "9CE49B1DC480932689A5016E4DA55C3FE0E578E0523CB73D02298F316F888552",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 16,
+        "height": 43,
+        "width": 39,
+        "y": 20
+      }
+    },
+    {
+      "id": "goblin-lineman-back45",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-back45.png",
+      "original": "originals/goblin-lineman-back45.png",
+      "sourceSha256": "06E7569AB3CC7A835A4E2B13216657027DC2250FEF2D9E3240D4CAA5B28B7DF6",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 46,
+        "width": 42,
+        "y": 17
+      }
+    },
+    {
+      "id": "goblin-lineman-side",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-side.png",
+      "original": "originals/goblin-lineman-side.png",
+      "sourceSha256": "93818248C4E8F394ECDEBEB2384A68E952ADBC0CC2DF17B54E8B0C8F4D1E8CC5",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 16,
+        "height": 46,
+        "width": 32,
+        "y": 17
+      }
+    },
+    {
+      "id": "goblin-lineman-prone",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-prone.png",
+      "original": "originals/goblin-lineman-prone.png",
+      "sourceSha256": "961FA39D07531BB2AC911E9BD0E55408CBDEA2AE07F66278150C49B52C5948D1",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 37,
+        "width": 45,
+        "y": 26
+      }
+    },
+    {
+      "id": "goblin-lineman-stunned",
+      "role": "goblin-lineman",
+      "gender": "man",
+      "sizeClass": "small",
+      "file": "sprites/goblin-lineman-stunned.png",
+      "original": "originals/goblin-lineman-stunned.png",
+      "sourceSha256": "BCE67F9DF8BBE388843BB43C930D4FFB2F390CE09F51DB7423580A2D64E1F8B9",
+      "width": 64,
+      "height": 64,
+      "tileSize": 64,
+      "anchorX": 32,
+      "anchorY": 63,
+      "bounds": {
+        "x": 9,
+        "height": 32,
+        "width": 45,
+        "y": 31
+      }
+    }
+  ]
+}

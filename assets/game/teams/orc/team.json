@@ -1,6 +1,7 @@
 {
   "rosterId": "orc",
   "artVersion": "64px-chibi-v1",
+  "posePack": "coach-oriented-v1",
   "master": "master",
   "positions": {
     "troll": ["01-troll-man.png"],

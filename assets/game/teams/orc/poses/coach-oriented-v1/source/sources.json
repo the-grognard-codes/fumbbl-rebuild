@@ -1,0 +1,30 @@
+{
+  "tool": "built-in image_gen",
+  "standardVersion": "1.1",
+  "selectedSheets": {
+    "orc-lineman": {
+      "file": "sheets/orc-lineman.png",
+      "sha256": "0a661fcd1bf493bf433725584013338314e6bb71c1a94d969056880dc13e127f"
+    },
+    "orc-blitzer": {
+      "file": "sheets/orc-blitzer.png",
+      "sha256": "52f0baaa4dfcbbc63ede9e12d9cc50ac29fd6e31323c0f08f8547fc485389328"
+    },
+    "big-un-blocker": {
+      "file": "sheets/big-un-blocker.png",
+      "sha256": "f353aaf76cc9892a969c4d9c2e2755b49da6fbed38fbb972e0ef564b1fd3bbbe"
+    },
+    "orc-thrower": {
+      "file": "sheets/orc-thrower.png",
+      "sha256": "cfc3f179a4ee04b2f06552a504f3e0e2cec804a55ac24bc970d46792c4699c31"
+    },
+    "troll": {
+      "file": "sheets/troll.png",
+      "sha256": "5980b7e20cec6a80ac57e5a139595f834215c82606cc94c1f0c8266bb8ee97d0"
+    },
+    "goblin-lineman": {
+      "file": "sheets/goblin-lineman.png",
+      "sha256": "2e44b0df20106f11756188699322ff47eef73e2c9b404f7afb53634f06f8a92f"
+    }
+  }
+}

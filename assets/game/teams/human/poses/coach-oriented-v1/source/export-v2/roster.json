@@ -1,0 +1,300 @@
+{
+  "players": [
+    {
+      "source": "cropped/lineman-front.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-front"
+    },
+    {
+      "source": "cropped/lineman-back.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-back"
+    },
+    {
+      "source": "cropped/lineman-front45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-front45"
+    },
+    {
+      "source": "cropped/lineman-back45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-back45"
+    },
+    {
+      "source": "cropped/lineman-side.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-side"
+    },
+    {
+      "source": "cropped/lineman-prone.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-prone"
+    },
+    {
+      "source": "cropped/lineman-stunned.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "lineman",
+      "id": "lineman-stunned"
+    },
+    {
+      "source": "cropped/blitzer-front.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-front"
+    },
+    {
+      "source": "cropped/blitzer-back.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-back"
+    },
+    {
+      "source": "cropped/blitzer-front45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-front45"
+    },
+    {
+      "source": "cropped/blitzer-back45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-back45"
+    },
+    {
+      "source": "isolated/blitzer-side.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-side"
+    },
+    {
+      "source": "cropped/blitzer-prone.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-prone"
+    },
+    {
+      "source": "cropped/blitzer-stunned.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "blitzer",
+      "id": "blitzer-stunned"
+    },
+    {
+      "source": "cropped/catcher-front.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-front"
+    },
+    {
+      "source": "cropped/catcher-back.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-back"
+    },
+    {
+      "source": "cropped/catcher-front45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-front45"
+    },
+    {
+      "source": "cropped/catcher-back45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-back45"
+    },
+    {
+      "source": "cropped/catcher-side.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-side"
+    },
+    {
+      "source": "cropped/catcher-prone.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-prone"
+    },
+    {
+      "source": "cropped/catcher-stunned.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "catcher",
+      "id": "catcher-stunned"
+    },
+    {
+      "source": "cropped/thrower-front.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-front"
+    },
+    {
+      "source": "cropped/thrower-back.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-back"
+    },
+    {
+      "source": "cropped/thrower-front45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-front45"
+    },
+    {
+      "source": "cropped/thrower-back45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-back45"
+    },
+    {
+      "source": "cropped/thrower-side.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-side"
+    },
+    {
+      "source": "cropped/thrower-prone.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-prone"
+    },
+    {
+      "source": "cropped/thrower-stunned.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "thrower",
+      "id": "thrower-stunned"
+    },
+    {
+      "source": "cropped/ogre-front.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-front"
+    },
+    {
+      "source": "cropped/ogre-back.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-back"
+    },
+    {
+      "source": "cropped/ogre-front45.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-front45"
+    },
+    {
+      "source": "cropped/ogre-back45.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-back45"
+    },
+    {
+      "source": "isolated/ogre-side.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-side"
+    },
+    {
+      "source": "cropped/ogre-prone.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-prone"
+    },
+    {
+      "source": "cropped/ogre-stunned.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "ogre",
+      "id": "ogre-stunned"
+    },
+    {
+      "source": "cropped/halfling-front.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-front"
+    },
+    {
+      "source": "cropped/halfling-back.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-back"
+    },
+    {
+      "source": "cropped/halfling-front45.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-front45"
+    },
+    {
+      "source": "cropped/halfling-back45.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-back45"
+    },
+    {
+      "source": "cropped/halfling-side.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-side"
+    },
+    {
+      "source": "cropped/halfling-prone.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-prone"
+    },
+    {
+      "source": "cropped/halfling-stunned.png",
+      "sizeClass": "small",
+      "gender": "woman",
+      "role": "halfling",
+      "id": "halfling-stunned"
+    }
+  ],
+  "team": "human",
+  "standardVersion": "1.1"
+}

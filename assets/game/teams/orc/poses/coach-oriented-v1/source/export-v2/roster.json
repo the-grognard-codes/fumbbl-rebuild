@@ -1,0 +1,300 @@
+{
+  "players": [
+    {
+      "source": "cropped/orc-lineman-front.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-front"
+    },
+    {
+      "source": "cropped/orc-lineman-back.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-back"
+    },
+    {
+      "source": "cropped/orc-lineman-front45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-front45"
+    },
+    {
+      "source": "cropped/orc-lineman-back45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-back45"
+    },
+    {
+      "source": "cropped/orc-lineman-side.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-side"
+    },
+    {
+      "source": "cropped/orc-lineman-prone.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-prone"
+    },
+    {
+      "source": "cropped/orc-lineman-stunned.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-lineman",
+      "id": "orc-lineman-stunned"
+    },
+    {
+      "source": "cropped/orc-blitzer-front.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-front"
+    },
+    {
+      "source": "cropped/orc-blitzer-back.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-back"
+    },
+    {
+      "source": "cropped/orc-blitzer-front45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-front45"
+    },
+    {
+      "source": "cropped/orc-blitzer-back45.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-back45"
+    },
+    {
+      "source": "isolated/orc-blitzer-side.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-side"
+    },
+    {
+      "source": "cropped/orc-blitzer-prone.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-prone"
+    },
+    {
+      "source": "cropped/orc-blitzer-stunned.png",
+      "sizeClass": "standard",
+      "gender": "man",
+      "role": "orc-blitzer",
+      "id": "orc-blitzer-stunned"
+    },
+    {
+      "source": "cropped/big-un-blocker-front.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-front"
+    },
+    {
+      "source": "cropped/big-un-blocker-back.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-back"
+    },
+    {
+      "source": "cropped/big-un-blocker-front45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-front45"
+    },
+    {
+      "source": "cropped/big-un-blocker-back45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-back45"
+    },
+    {
+      "source": "cropped/big-un-blocker-side.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-side"
+    },
+    {
+      "source": "cropped/big-un-blocker-prone.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-prone"
+    },
+    {
+      "source": "cropped/big-un-blocker-stunned.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "big-un-blocker",
+      "id": "big-un-blocker-stunned"
+    },
+    {
+      "source": "cropped/orc-thrower-front.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-front"
+    },
+    {
+      "source": "cropped/orc-thrower-back.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-back"
+    },
+    {
+      "source": "cropped/orc-thrower-front45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-front45"
+    },
+    {
+      "source": "cropped/orc-thrower-back45.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-back45"
+    },
+    {
+      "source": "cropped/orc-thrower-side.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-side"
+    },
+    {
+      "source": "cropped/orc-thrower-prone.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-prone"
+    },
+    {
+      "source": "cropped/orc-thrower-stunned.png",
+      "sizeClass": "standard",
+      "gender": "woman",
+      "role": "orc-thrower",
+      "id": "orc-thrower-stunned"
+    },
+    {
+      "source": "cropped/troll-front.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-front"
+    },
+    {
+      "source": "cropped/troll-back.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-back"
+    },
+    {
+      "source": "cropped/troll-front45.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-front45"
+    },
+    {
+      "source": "cropped/troll-back45.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-back45"
+    },
+    {
+      "source": "isolated/troll-side.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-side"
+    },
+    {
+      "source": "cropped/troll-prone.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-prone"
+    },
+    {
+      "source": "cropped/troll-stunned.png",
+      "sizeClass": "big",
+      "gender": "man",
+      "role": "troll",
+      "id": "troll-stunned"
+    },
+    {
+      "source": "cropped/goblin-lineman-front.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-front"
+    },
+    {
+      "source": "cropped/goblin-lineman-back.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-back"
+    },
+    {
+      "source": "cropped/goblin-lineman-front45.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-front45"
+    },
+    {
+      "source": "cropped/goblin-lineman-back45.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-back45"
+    },
+    {
+      "source": "isolated/goblin-lineman-side.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-side"
+    },
+    {
+      "source": "cropped/goblin-lineman-prone.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-prone"
+    },
+    {
+      "source": "cropped/goblin-lineman-stunned.png",
+      "sizeClass": "small",
+      "gender": "man",
+      "role": "goblin-lineman",
+      "id": "goblin-lineman-stunned"
+    }
+  ],
+  "team": "orc",
+  "standardVersion": "1.1"
+}
