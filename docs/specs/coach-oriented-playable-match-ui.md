@@ -2,6 +2,8 @@
 
 Status: handoff approved by the owner on 2026-10-04. Tracking issue: [#101](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/101). Completed work was reconciled through [PR #100](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/100). The owner authorized branch/implement/review/test/commit/PR/checks/merge cycles for every slice and a final retrospective. [Baseline and affected checks](coach-oriented-match-ui-baseline.md) record the starting integration boundaries.
 
+Implementation completed on 2026-10-04: all eight slices merged through PRs #102–#109 and passed the agreed real-server local gate. See the [outcome](coach-oriented-match-ui-outcome.md), [acceptance evidence](coach-oriented-match-ui-acceptance.md) and [retrospective](coach-oriented-match-ui-retrospective.md). The approved requirements below remain the record of the original plan. Hosted signed-in release acceptance is still separate.
+
 Presentation decision: [ADR 0003](../adr/0003-coach-oriented-angled-pitch.md). Approved visual reference: [v4 travelling-pitch viewer](../adr/references/0003-angled-pitch-v4/viewer.html). This specification replaces the first pitch MVP's presentation requirements while retaining its authoritative gameplay and interaction contracts.
 
 ## Outcome
