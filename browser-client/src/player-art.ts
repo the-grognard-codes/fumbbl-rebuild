@@ -11,7 +11,8 @@ type RosterRecord = { version: string; rosterId: string; positions: Record<strin
 
 const catalog = playerArtCatalog as unknown as Record<string, RosterRecord>;
 const facings: PlayerFacing[] = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
-const standingStates = new Set(['standing', 'is standing', 'moving', 'is moving', 'distracted', 'is distracted', 'is being blocked', 'is exhausted']);
+// A native falling player remains upright until push destinations and follow-up resolve the knockdown.
+const standingStates = new Set(['standing', 'is standing', 'moving', 'is moving', 'distracted', 'is distracted', 'is being blocked', 'is exhausted', 'is about to fall down']);
 const proneStates = new Set(['prone', 'is prone', 'was hit while on the ground']);
 const stunnedStates = new Set(['stunned', 'has been stunned']);
 

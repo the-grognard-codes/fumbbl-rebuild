@@ -47,7 +47,7 @@ The [approved UI specification](https://github.com/the-grognard-codes/fumbbl-reb
 
 ## Add selectable 30 and 50 degree perspective coach views
 
-GitHub: [#112](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/112). Status: open. Observation: 1. Triage: `ready-for-agent`.
+GitHub: [#112](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/112). Status: closed by [PR #119](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/119). Observation: 1. Triage: `ready-for-agent`.
 
 ### Outcome
 

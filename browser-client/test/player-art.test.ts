@@ -49,6 +49,15 @@ test('ground states use unrotated poses while off-pitch cards keep portraits', (
   assert.match(resolvePlayerPortrait(reserve)!, /lineman-portrait\.png$/);
 });
 
+test('native pending knockdown retains standing artwork until push resolution', () => {
+  for (const player of [human, orc]) for (const end of ['home', 'away'] as const) {
+    const pending = resolvePlayerArt({ ...player, state: 'is about to fall down' }, { end });
+    assert.equal(pending?.body.pose, resolvePlayerArt(player, { end })?.body.pose);
+    assert.ok(pending?.body.url);
+    assert.equal(resolvePlayerArt({ ...player, state: 'is prone' }, { end })?.body.pose, 'prone');
+  }
+});
+
 test('authoritative art IDs govern lookup and missing or unknown art falls back', () => {
   assert.equal(resolvePlayerArt({ ...human, name: 'Ogre', number: 99 }, { end: 'home' })?.body.pose, 'back');
   assert.equal(resolvePlayerArt({ ...human, state: 'is unknown' }, { end: 'home' }), null);
