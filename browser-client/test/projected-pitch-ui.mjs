@@ -69,6 +69,10 @@ try {
       assert.equal(await scene.locator('.live-selection-square').getAttribute('data-selection'), 'human');
       assert.equal(await scene.locator('.live-route-line').count(), 1);
       assert.deepEqual(await page.evaluate(() => window.intents), [{ player: 'human' }]);
+      const target = await squarePosition(page, 12, 10);
+      await scene.click({ position: target });
+      assert.deepEqual(await page.evaluate(() => window.intents.at(-1)), { x: 12, y: 10 }, 'Each elevation resolves the same canonical ground target');
+      await page.evaluate(() => { window.intents.pop(); });
       if (evidence && angle !== 40) await page.screenshot({ path: `${evidence}/perspective-${angle}-${role}.png` });
     }
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
