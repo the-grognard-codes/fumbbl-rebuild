@@ -23,6 +23,15 @@ export function assistedTarget(actions: SetupAction[], explicitBlitz: boolean): 
   return preferred.length === 1 ? preferred[0] : undefined;
 }
 
+/** A recipient click reviews the native square target of the already active Pass. */
+export function passTargetForPlayer(view: SetupState, actions: SetupAction[], playerId: string, targetId: string): SetupAction | undefined {
+  if (view.phase !== 'PLAY' || view.actor !== view.callerRole || view.activePlayerId !== playerId || playerId === targetId) return undefined;
+  const target = view.players.find(player => player.id === targetId);
+  if (target?.x == null || target.y == null) return undefined;
+  return actions.find(action => action.kind === 'pass' && action.actor === view.callerRole && action.sourcePlayerId === playerId
+    && action.target && 'x' in action.target && action.target.x === target.x && action.target.y === target.y);
+}
+
 export type SmartAttack = { kind: 'block' | 'blitz' | 'foul'; action: SetupAction; targetId: string };
 
 /** Resolve a clicked opponent only through the actions offered for the selected player. */
