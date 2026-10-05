@@ -60,7 +60,7 @@ function startQueued() {
     const args = [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--match', matchId,
       '--url', url, '--origin', origin];
     if (tokenFile) args.push('--service-token-file', tokenFile);
-    const child = spawn(process.execPath, args, { stdio: 'inherit', env: process.env });
+    const child = spawn(process.execPath, args, { stdio: 'inherit', env: process.env, windowsHide: true });
     children.set(matchId, child);
     log(`Started match ${matchId}; ${children.size} active computer clients.`);
     child.once('error', error => {

@@ -17,7 +17,9 @@ Each computer identity is a dedicated non-login OS user and group, separate from
 
 The hosted daemon runs as `moles-computer-v2-dev.service` or `moles-computer-v2-prod.service`, using the reviewed units in [`deployment/`](deployment/). Node 26.7.0 and the root-owned application files live under `/opt/moles-computer-v2-<environment>/`; Ubuntu's `libatomic1` is required by that Node binary. The units read the token from the matching `/etc` path above and start when their VMs boot. Each currently allows four concurrent game clients on the 2 GB VM; further games wait in the daemon queue. Check `systemctl status moles-computer-v2-<environment>` and `journalctl -u moles-computer-v2-<environment>` for health and registration. A healthy startup logs `Ready for computer matches; capacity 4.`
 
-For local-dev, rebuild and recreate the game server container so it loads the updated INI. The match-review stack routes port `22232` to its server on port `22234` and reads `containers/local/server.match-review.ini`; that profile must carry the same hash as `server.marker6.ini`. Start the separate process for the Hosting emulator:
+For local-dev, `node tools/dev-local.mjs --start` from the repository root rebuilds the game server and starts this daemon automatically, using `C:\secure\coach-bugman-token.key`. Set `FFB_COMPUTER_SERVICE_TOKEN_FILE` to use a different token file. `--stop` and `--restart` also manage the daemon and its game clients. Logs are saved under `.tools/dev-local-computer*.log`.
+
+The match-review stack routes port `22232` to its server on port `22234` and reads `containers/local/server.match-review.ini`; that profile must carry the same hash as `server.marker6.ini`. To start the daemon separately for a manually managed Hosting emulator:
 
 ```powershell
 cd computer-player
