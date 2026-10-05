@@ -737,7 +737,7 @@ public final class SetupSession {
                 .add("sourcePlayerId", sourcePlayerId == null ? JsonValue.NULL : JsonValue.valueOf(sourcePlayerId)));
         }
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
-        return new JsonObject().add("projectionVersion", 4).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
+        JsonObject projected = new JsonObject().add("projectionVersion", 4).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeScore", homeScore()).add("awayScore", awayScore())
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr())
             .add("actions", legal).add("turn", game.getTurnData().getTurnNr()).add("turnMode", game.getTurnMode().name())
@@ -751,6 +751,9 @@ public final class SetupSession {
 			.add("homeTeamName", game.getTeamHome().getName()).add("awayTeamName", game.getTeamAway().getName())
 			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome().getApothecaries()))
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
+		JsonObject passing = new PassingProjection().project(game);
+		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
+		return projected;
 	}
 	private JsonObject resources(Team team, int apothecaries) {
 		return new JsonObject().add("apothecaries", apothecaries)
@@ -797,6 +800,8 @@ public final class SetupSession {
 	}
 	private boolean matchesRecoveredView(JsonObject saved, String role) {
 		JsonObject current = view(role);
+		// Existing checkpoints predate this optional, independently versioned public guidance.
+		if (saved.get("passing") == null) current.remove("passing");
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;
 		JsonArray savedPlayers = saved.get("players").asArray();
