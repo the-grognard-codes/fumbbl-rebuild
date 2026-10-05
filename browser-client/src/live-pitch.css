@@ -484,3 +484,8 @@
 .play-runtime .live-camera-controls select { padding: 3px; color: #e8f4ff; background: #101c2be6; border: 1px solid #497a9c; font: inherit; }
 .play-runtime .live-camera-controls button { margin: 0; padding: 3px 6px; color: #e8f4ff; background: #101c2be6; border: 1px solid #497a9c; font: 12px 'Match Barlow', sans-serif; }
 .play-runtime .live-camera-controls button[aria-pressed=true] { border-color: #36ddff; color: #36ddff; }
+.live-pass-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 12px; padding: 4px 8px; color: #f7ead0; background: #101c2bcc; font: 12px 'Match Barlow', sans-serif; }
+.live-pass-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.live-pass-legend i { display: inline-block; width: 10px; height: 10px; border: 1px solid #ffffff70; }
+.live-pass-target-detail { flex-basis: 100%; }
+.live-target-square.live-pass-move-square { fill: none; stroke: #36ddff; stroke-width: 2; stroke-dasharray: 4 2; }
