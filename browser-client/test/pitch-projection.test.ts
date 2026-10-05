@@ -163,3 +163,30 @@ test('invalid numbers cannot escape as screen geometry', () => {
   }
   assert.equal(camera.with({ mode: 'top-down' }).project({ x: 1e308, y: 1e308 }), null);
 });
+
+test('30 and 50 degree presets retain canonical targeting and fixed travel calibration at either coach end', () => {
+  for (const end of ends) for (const perspectiveElevation of [30, 40, 50] as const) {
+    const origin = new PitchProjection({ width: 1280, height: 660, end, perspectiveElevation });
+    assert.equal(origin.elevation, perspectiveElevation);
+    for (const focus of [0, 5, 13, 21, 26]) {
+      const camera = origin.with({ focus });
+      assert.equal(camera.elevation, perspectiveElevation);
+      assert.equal(camera.scale, origin.scale);
+      assert.deepEqual(camera.vanishingPoint, origin.vanishingPoint);
+      for (let x = 0; x < 26; x++) for (let y = 0; y < 15; y++) {
+        const point = { x: x + .5, y: y + .5 }, screen = camera.project(point);
+        if (!screen) { assert.equal(camera.isVisible(point), false); continue; }
+        const restored = camera.unproject(screen)!;
+        close(restored.x, point.x); close(restored.y, point.y);
+        if (camera.isVisible(point)) assert.deepEqual(camera.cellAt(screen), { x, y });
+      }
+      const tactical = camera.with({ mode: 'top-down' });
+      assert.equal(tactical.elevation, 90);
+      assert.equal(tactical.with({ mode: 'perspective' }).elevation, perspectiveElevation);
+      assert.equal(tactical.focus, focus);
+      assert.equal(tactical.end, end);
+      assert.ok(camera.reveal({ x: .5, y: .5 }).isVisible({ x: .5, y: .5 }, 24));
+      assert.ok(camera.reveal({ x: 25.5, y: 14.5 }).isVisible({ x: 25.5, y: 14.5 }, 24));
+    }
+  }
+});

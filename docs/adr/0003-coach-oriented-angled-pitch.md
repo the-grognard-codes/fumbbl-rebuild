@@ -40,6 +40,8 @@ Do the initial study in DOM/SVG. Reopen the renderer selection only for a demons
 
 ## Camera study
 
+Owner follow-up on 2026-10-05 adds selectable 30- and 50-degree perspective views to the live match through ticket #112. Elevation is measured above the pitch plane; zero yaw and the travelling-camera contract apply to both. The selected default remains 40 degrees and the tactical alternative remains 90-degree top-down. This extends the original MVP restriction that comparison presets were not production controls.
+
 The 40-degree perspective preset is selected as the default for now; 90-degree top-down is the required tactical alternative. Other angles remain comparisons rather than measurements of the supplied reference. Elevation is degrees above the pitch plane: 90 degrees is overhead. Yaw is offset from looking straight along the pitch length; the opposing camera adds 180 degrees.
 
 | Candidate | Elevation | Yaw offset | Projection | What to assess |
