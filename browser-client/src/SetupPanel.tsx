@@ -13,7 +13,7 @@ import { usePitchPlayback } from './use-pitch-playback.ts';
 import { ActionGlyph } from './ActionGlyph.tsx';
 import './coach-match.css';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
-import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, recentActionLabel, smartAttack } from './action-ribbon.ts';
+import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { pitchPushChoices } from './push-choice.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
@@ -282,6 +282,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const selectPlayer = (id: string) => {
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
     const player = view.players.find(item => item.id === id);
+    const pass = passTargetForPlayer(view, availableActions, playerId, id);
+    if (pass && player?.x != null && player.y != null) {
+      setSmartIntent(null); setTargetPlayerId(id); setTargetFocus('square'); setX(player.x); setY(player.y); setActionId(pass.id);
+      return;
+    }
     if (player?.role === view.callerRole) {
       setSmartIntent(null); setPlayerId(id); setTargetPlayerId(''); setTargetFocus('player'); setActionId('');
       return;

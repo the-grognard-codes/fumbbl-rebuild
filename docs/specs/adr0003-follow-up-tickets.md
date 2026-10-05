@@ -77,7 +77,7 @@ This owner request extends the [original UI scope](https://github.com/the-grogna
 
 ## Preserve player sprites during pushback square selection
 
-GitHub: [#113](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/113). Status: open. Observation: 2. Triage: `ready-for-agent`.
+GitHub: [#113](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/113). Status: closed by [PR #120](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/120). Observation: 2. Triage: `ready-for-agent`.
 
 ### Problem
 
