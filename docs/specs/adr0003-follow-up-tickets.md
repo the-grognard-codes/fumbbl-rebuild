@@ -129,7 +129,7 @@ Exercise a stationary pass, move-then-pass and move/pickup/pass against the real
 
 ## Color pass ranges on the pitch and account for weather
 
-GitHub: [#115](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/115). Status: open. Observation: 3.1. Triage: `ready-for-agent`.
+GitHub: [#115](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/115). Status: closed by [PR #122](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/122). Observation: 3.1. Triage: `ready-for-agent`.
 
 ### Outcome
 
@@ -139,13 +139,13 @@ When a Pass action has been declared, color the pitch grid from the active passe
 
 ### Acceptance
 
-- [ ] Use the native BB2025 range classification for each canonical target square. Base colors are green for Quick Pass, yellow for Short Pass, orange for Long Pass and red for Long Bomb. Out-of-range squares are distinctly unavailable.
-- [ ] Derive permitted distances and weather modifiers from authoritative rules/state. Mark distances forbidden by current weather as unavailable and prevent staging a forbidden target.
-- [ ] For an additional weather passing penalty, shift the displayed colors one step: green to yellow, yellow to orange, orange to red, red to darker red. Preserve the actual range category; explain the weather penalty in the legend/target details so a changed color is not mistaken for a changed distance.
-- [ ] Recalculate after each accepted movement of the passer and after a relevant weather/state change. Remove the overlay when the Pass action ends or is cancelled by authoritative state.
-- [ ] Project the colored grid through the same camera in all perspective presets and top-down view, for both coach ends. Keep players, ball, selection, routes and legal target indications readable.
-- [ ] Include a compact legend and a text equivalent for range, restriction and weather penalty. Do not rely on color alone or introduce client-derived success percentages.
-- [ ] Add a user-facing change-list entry.
+- [x] Use the native BB2025 range classification for each canonical target square. Base colors are green for Quick Pass, yellow for Short Pass, orange for Long Pass and red for Long Bomb. Out-of-range squares are distinctly unavailable.
+- [x] Derive permitted distances and weather modifiers from authoritative rules/state. Mark distances forbidden by current weather as unavailable and prevent staging a forbidden target.
+- [x] For an additional weather passing penalty, shift the displayed colors one step: green to yellow, yellow to orange, orange to red, red to darker red. Preserve the actual range category; explain the weather penalty in the legend/target details so a changed color is not mistaken for a changed distance.
+- [x] Recalculate after each accepted movement of the passer and after a relevant weather/state change. Remove the overlay when the Pass action ends or is cancelled by authoritative state.
+- [x] Project the colored grid through the same camera in all perspective presets and top-down view, for both coach ends. Keep players, ball, selection, routes and legal target indications readable.
+- [x] Include a compact legend and a text equivalent for range, restriction and weather penalty. Do not rely on color alone or introduce client-derived success percentages.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 
@@ -171,12 +171,12 @@ Render revealed dice as the dice themselves over the pitch, removing the enclosi
 
 ### Acceptance
 
-- [ ] Remove visible enclosing card backgrounds/borders from roll display and selectable dice. Retain the accepted ivory/cyan dice faces and distinguish individual selectable outcomes.
-- [ ] Keep dice readable against light/dark turf and players through suitable shadows or a subtle per-die treatment. Do not hide the acting player or a required target.
-- [ ] Preserve server-revealed values, roll timing, selected outcome and mapping of each selectable die to its offered choice. Visual styling must not generate or change a result.
-- [ ] Retain keyboard access, accessible roll/result text and a visible focus/selection cue. Reduced motion reveals the final dice immediately.
-- [ ] Place any contextual reroll controls near the roll without reintroducing a box around the dice; availability/choice behavior is covered by the separate reroll-options ticket.
-- [ ] Add a user-facing change-list entry.
+- [x] Remove visible enclosing card backgrounds/borders from roll display and selectable dice. Retain the accepted ivory/cyan dice faces and distinguish individual selectable outcomes.
+- [x] Keep dice readable against light/dark turf and players through suitable shadows or a subtle per-die treatment. Do not hide the acting player or a required target.
+- [x] Preserve server-revealed values, roll timing, selected outcome and mapping of each selectable die to its offered choice. Visual styling must not generate or change a result.
+- [x] Retain keyboard access, accessible roll/result text and a visible focus/selection cue. Reduced motion reveals the final dice immediately.
+- [x] Place any contextual reroll controls near the roll without reintroducing a box around the dice; availability/choice behavior is covered by the separate reroll-options ticket.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 

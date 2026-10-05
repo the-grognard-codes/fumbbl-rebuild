@@ -271,8 +271,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(p.y - from.y, p.x - from.x) * 180 / Math.PI}deg)` }}><path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/></svg>
           </button>;
         })}
-        {decision && <PitchDecisionOverlay key={decision.key} decision={decision} disabled={decisionDisabled} viewport={viewport} scene={scene} x={diceX} y={diceY} onAction={onDecisionAction}/>}
-        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong>{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div></div>}
+        {decision && <PitchDecisionOverlay key={decision.key} decision={decision}
+          diceMoment={decision.kind === 'reroll' || decision.kind === 'skill' ? diceMoment : null}
+          disabled={decisionDisabled} viewport={viewport} scene={scene} x={diceX} y={diceY} onAction={onDecisionAction}/>}
+        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong className="sr-only">{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div></div>}
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>

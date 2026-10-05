@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match dice appear directly over the pitch with individual shadows, accessible choices and no enclosing boxes")
 			.addBugfix("Browser Pass actions retain movement and pickup, then clicking the recipient prepares the native throw for explicit confirmation")
 			.addFeature("Declared browser Pass actions color native passing ranges and show weather penalties and distance restrictions")
 			.addBugfix("Browser player sprites remain visible during knockdown push and chain-push decisions until the native prone state resolves")
