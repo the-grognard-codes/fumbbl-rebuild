@@ -3,10 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { usePitchPlayback } from '../src/use-pitch-playback.ts';
 import { LivePitch } from '../src/LivePitch.tsx';
 import { DiceFace } from '../src/DiceFace.tsx';
+import { matchDecision } from '../src/match-decision.ts';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
 
-type Input = { view: SetupState; records: TranscriptRecord[]; enabled: boolean; mode: 'live' | 'replay' };
+type Input = { view: SetupState; records: TranscriptRecord[]; enabled: boolean; mode: 'live' | 'replay'; interactive?: boolean };
 declare global {
   interface Window {
     playbackInput: Input;
@@ -25,7 +26,9 @@ function Harness() {
     <output id="playback-state" data-revision={pitchView.revision} data-x={pitchView.players[0]?.x}
       data-active={playbackActive} data-roll-key={diceMoment?.rollKey ?? ''}/>
     {!playbackActive && input.view.actions.some(action => action.kind === 'blockDie') && <button id="required-choice">Required block choice</button>}
-    <LivePitch view={pitchView} selectedId="" actions={[]} diceMoment={diceMoment} readOnly onSelectPlayer={() => {}} onSquare={() => {}}/>
+    <LivePitch view={pitchView} selectedId="" actions={[]} diceMoment={diceMoment} readOnly={!input.interactive}
+      decision={input.interactive ? matchDecision(input.view, input.view.actions) : null}
+      onSelectPlayer={() => {}} onSquare={() => {}}/>
     <div id="dice-specimens">{['1','2','3','4','5','6','SKULL','BOTH DOWN','PUSHBACK','PUSHBACK','POW/PUSH','POW','unknown'].map((face,index) => <DiceFace key={index} face={face} selected={index===11}/>)}</div>
   </main>;
 }

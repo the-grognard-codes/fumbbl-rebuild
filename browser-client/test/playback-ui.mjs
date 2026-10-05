@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+const pickupReport = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8'))[0].reports[0];
 const state = (revision, x = 7) => ({ ...initial, revision, players: initial.players.map((player,index) => index ? player : { ...player, x }), actions: [] });
 const change = x => ({ modelChangeId: 'fieldModelSetPlayerCoordinate', modelChangeKey: 'home1', modelChangeValue: { x, y: 7 } });
 const dice = { reportId: 'blockRoll', blockRoll: [1,3,6], defenderId: 'away1' };
@@ -65,6 +66,22 @@ try {
   assert.equal(await page.locator('.live-dice-overlay .match-die').evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0);
   // A mandatory prompt must stay reachable even when its transcript is late.
   await publish({view:{...state(11,22),prompt:{id:'coin',actor:'home',kind:'coin',options:['heads','tails']}},records:[]}); await wait(11,22);
+  // The result remains beside a pending reroll after its decorative animation ends.
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  const pending = { ...state(12,22), actions: [
+    { id:'decline',kind:'reroll',actor:'home',label:'Do not re-roll Pick Up',sourcePlayerId:'home1',target:null },
+    { id:'team',kind:'reroll',actor:'home',label:'Use team re-roll for Pick Up',sourcePlayerId:'home1',target:null }
+  ] };
+  await publish({ view: pending, interactive: true, records: Array.from({length:13},(_,revision)=>record(revision,22,
+    revision===12?[{reportList:{reports:[pickupReport]}}]:[])) });
+  await wait(12,22);
+  const promptDice = page.getByRole('dialog').getByRole('status').locator('.match-die');
+  await promptDice.waitFor(); await page.waitForTimeout(500);
+  assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after 440ms');
+  assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after 440ms');
+  assert.equal(await promptDice.evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0, 'Retaining the result does not extend the animation');
+  await publish({ view:state(13,22),interactive:true,records:[] }); await wait(13,22);
+  assert.equal(await page.locator('.live-dice-overlay .match-die').count(),0, 'Accepted prompt resolution clears the old result');
   if (process.env.DICE_EVIDENCE_DIR) { await mkdir(process.env.DICE_EVIDENCE_DIR,{recursive:true}); await page.locator('#dice-specimens').screenshot({path:`${process.env.DICE_EVIDENCE_DIR}/ivory-cyan.png`}); }
   assert.deepEqual(errors,[]);
   console.log('PASS: exact authoritative dice, short nonblocking animation, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');
