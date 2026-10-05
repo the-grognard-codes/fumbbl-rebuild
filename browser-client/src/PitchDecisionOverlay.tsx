@@ -3,10 +3,12 @@ import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
+import type { DiceMoment } from './dice-presentation.ts';
 
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
-export function PitchDecisionOverlay({ decision, disabled, viewport, scene, x, y, onAction }: {
+export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, viewport, scene, x, y, onAction }: {
   decision: MatchDecision; disabled: boolean; viewport: RefObject<HTMLDivElement | null>;
+  diceMoment?: DiceMoment | null;
   scene: RefObject<HTMLDivElement | null>; x: number; y: number; onAction?: (id: string) => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -47,9 +49,13 @@ export function PitchDecisionOverlay({ decision, disabled, viewport, scene, x, y
   return createPortal(<div ref={panel} className="live-dice-overlay interactive" role="dialog" aria-label={decision.title}
     style={{ position: 'fixed', ...bounds, visibility: ready ? 'visible' : 'hidden' }}
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
-    <strong>{decision.title}</strong><div className="live-dice-choices">{decision.options.map(option => <button key={option.id} type="button"
+    <strong className={diceMoment || decision.options.some(option => option.face) ? 'sr-only' : undefined}>{decision.title}</strong>
+    {diceMoment && <div role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
+      {diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div>}
+    <div className="live-dice-choices">{decision.options.map(option => <button key={option.id} type="button"
+      className={option.face ? 'live-die-choice' : undefined}
       disabled={disabled} aria-label={option.label} onClick={() => onAction?.(option.id)}>
-      {option.face && <DiceFace face={option.face}/>}<span>{option.face ? option.label.replace(/^Choose /, '') : option.label}</span>
+      {option.face && <DiceFace face={option.face}/>}<span className={option.face ? 'sr-only' : undefined}>{option.label}</span>
     </button>)}</div>
   </div>, document.body);
 }

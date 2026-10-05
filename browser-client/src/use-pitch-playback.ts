@@ -54,7 +54,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       diceRevision.current = view.revision;
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
       setDiceMoment(dice ? { ...dice, rollKey: !reduced && dice.selected === null ? `${view.revision}:response` : undefined } : null);
-      if (dice) diceTimer.current = setTimeout(() => { diceTimer.current = null; setDiceMoment(null); }, 440);
+      // A coach may pause before choosing a reroll or skill. Keep the revealed
+      // result with that prompt until an accepted revision resolves it.
+      const pendingRoll = view.actions.some(action => action.kind === 'reroll' || action.kind === 'skill');
+      if (dice && !pendingRoll) diceTimer.current = setTimeout(() => { diceTimer.current = null; setDiceMoment(null); }, 440);
       return;
     }
     if (running.current) return;

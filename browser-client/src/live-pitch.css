@@ -295,16 +295,17 @@
 .hosted-result .match-event-log { margin-top: 14px; border: 1px solid #635d4d; padding: 10px; background: #131c20; }
 .hosted-result .match-event-scroll { max-height: 300px; overflow: auto; }
 .hosted-result .match-event-scroll p { margin: 0; padding: 4px 2px; border-top: 1px solid #ffffff13; }
-.live-dice-overlay { position: absolute; z-index: 70; width: max-content; max-width: 245px; padding: 8px; color: #f7ead0; background: #101d23ed; border: 2px solid #b79a68; border-radius: 4px; box-shadow: 0 8px 22px #000b; pointer-events: none; }
-.live-dice-overlay strong { display: block; margin-bottom: 5px; font: 600 12px 'Match Barlow', sans-serif; text-transform: uppercase; }
-.live-dice-overlay > div { display: flex; gap: 5px; }
-.live-dice-overlay.interactive { box-sizing: border-box; width: min(245px, 80vw); max-width: none; overflow: auto; pointer-events: auto; z-index: 200; }
+.live-dice-overlay { position: absolute; z-index: 70; width: max-content; max-width: 245px; padding: 0; color: #f7ead0; background: transparent; border: 0; box-shadow: none; pointer-events: none; }
+.live-dice-overlay strong { display: block; margin-bottom: 5px; font: 600 12px 'Match Barlow', sans-serif; text-transform: uppercase; text-shadow: 0 1px 3px #000, 0 0 4px #000; }
+.live-dice-overlay > div { display: flex; align-items: center; gap: 5px; }
+.live-dice-overlay.interactive { box-sizing: border-box; width: min(245px, 80vw); max-width: none; overflow: auto; z-index: 200; }
 .live-dice-choices { flex-wrap: wrap; }
-.live-dice-choices button { display: flex; flex: 1 1 68px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 34px; padding: 4px; color: #f7ead0; background: linear-gradient(#355672, #142d42); border: 1px solid #789bb9; border-radius: 2px; font: 600 11px 'Match Barlow', sans-serif; cursor: pointer; }
+.live-dice-overlay [role="status"] + .live-dice-choices { margin-top: 5px; }
+.live-dice-choices button { display: flex; flex: 1 1 68px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 34px; padding: 4px; color: #f7ead0; background: linear-gradient(#355672, #142d42); border: 1px solid #789bb9; border-radius: 2px; font: 600 11px 'Match Barlow', sans-serif; cursor: pointer; pointer-events: auto; }
+.live-dice-choices button.live-die-choice { flex: 0 0 49px; min-height: 49px; padding: 0; background: transparent; border: 0; box-shadow: none; }
 .live-dice-choices button:disabled { opacity: .45; cursor: default; }
 .live-dice-choices button:focus-visible { outline: 2px solid #f7dc9a; outline-offset: 1px; }
-.live-dice-choices .match-die { width: 35px; height: 35px; }
-.match-die { display: block; width: 49px; height: 49px; filter: drop-shadow(0 2px 2px #0009); }
+.match-die { display: block; width: 49px; height: 49px; filter: drop-shadow(0 3px 4px #000b); }
 .replay-seek { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 8px 0 14px; }
 .replay-seek form { display: flex; align-items: end; gap: 5px; margin: 0; }
 .replay-seek label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
@@ -312,7 +313,7 @@
 .replay-seek input[type="number"] { width: 74px; }
 .replay-seek .replay-skip { flex-direction: row; align-items: center; }
 .replay-dice { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
-.replay-dice > div { display: flex; align-items: center; gap: 4px; padding: 5px; border: 1px solid #776b56; background: #152125; }
+.replay-dice > div { display: flex; align-items: center; gap: 4px; padding: 5px; border: 0; background: transparent; }
 .replay-dice span { margin-right: 5px; font-size: 12px; }
 .match-history { display: flex; flex-direction: column; min-height: 210px; min-width: 0; }
 .hosted-match .match-side > .match-history { flex: 1; min-height: 210px; }
@@ -457,7 +458,7 @@
 .game-menu-content .match-event-scroll { max-height: 45dvh; overflow: auto; }
 .game-menu-confirm { border: 1px solid #bb875f; padding: 8px; }
 @media (max-width: 800px) { .hosted-match .match-side { overflow: visible; }.hosted-match .match-side > .match-history { min-height: 440px; } }
-.hosted-match .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.hosted-match .sr-only, .live-dice-overlay .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Shared coach-oriented scene; the camera moves world layers, never the HUD. */
 .projected-pitch { position: relative; }
