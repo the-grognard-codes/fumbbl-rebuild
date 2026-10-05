@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser coaches can choose 30, 40 or 50 degree perspective views while retaining their camera position and planned action")
 			.addBugfix("Match setup keeps Sweltering Heat exhausted and other unavailable players out of placement controls, and the server rejects attempts to restore them to reserves")
 			.addBugfix("Browser coaches can prepare every server-offered action through the Other action text controls")
 			.addBugfix("Browser matches preserve exhausted players during setup, keep completed results accessible to both coaches, and retain save metadata at full time")

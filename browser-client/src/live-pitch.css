@@ -480,5 +480,7 @@
 .projected-pitch .live-marker img { position: absolute; bottom: auto; max-width: none; pointer-events: none; transform-origin: center; image-rendering: pixelated; }
 .projected-pitch .live-number { right: 0; bottom: 0; font-size: 9px; }
 .live-camera-controls { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; flex: none; }
+.play-runtime .live-camera-controls label { display: flex; align-items: center; gap: 4px; color: #e8f4ff; font: 12px 'Match Barlow', sans-serif; }
+.play-runtime .live-camera-controls select { padding: 3px; color: #e8f4ff; background: #101c2be6; border: 1px solid #497a9c; font: inherit; }
 .play-runtime .live-camera-controls button { margin: 0; padding: 3px 6px; color: #e8f4ff; background: #101c2be6; border: 1px solid #497a9c; font: 12px 'Match Barlow', sans-serif; }
 .play-runtime .live-camera-controls button[aria-pressed=true] { border-color: #36ddff; color: #36ddff; }

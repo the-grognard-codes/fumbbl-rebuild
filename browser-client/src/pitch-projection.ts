@@ -1,10 +1,11 @@
 export type PitchEnd = 'home' | 'away';
 export type PitchProjectionMode = 'perspective' | 'top-down';
+export type PerspectiveElevation = 30 | 40 | 50;
 export type Point = { x: number; y: number };
 export type ProjectedPoint = Point & { depth: number; pixelsPerSquare: number };
 export type PitchCameraOptions = {
   width: number; height: number; end?: PitchEnd; mode?: PitchProjectionMode;
-  focus?: number; transverseFocus?: number; zoom?: number;
+  focus?: number; transverseFocus?: number; zoom?: number; perspectiveElevation?: PerspectiveElevation;
 };
 export type PitchDirection = 'up' | 'down' | 'left' | 'right';
 export type PitchViewportRect = { left: number; top: number; width: number; height: number };
@@ -36,6 +37,7 @@ export class PitchProjection {
   readonly scale: number;
   readonly distance = DISTANCE;
   readonly elevation: number;
+  readonly perspectiveElevation: PerspectiveElevation;
   private readonly sine: number;
   private readonly cosine: number;
   private readonly orientation: number;
@@ -55,7 +57,10 @@ export class PitchProjection {
     this.transverseFocus = clamp(transverse, 0, PITCH_WIDTH);
     this.zoom = zoom;
     this.orientation = this.end === 'away' ? -1 : 1;
-    this.elevation = this.mode === 'perspective' ? 40 : 90;
+    this.perspectiveElevation = options.perspectiveElevation ?? 40;
+    if (![30, 40, 50].includes(this.perspectiveElevation))
+      throw new RangeError('Perspective elevation must be 30, 40 or 50 degrees');
+    this.elevation = this.mode === 'perspective' ? this.perspectiveElevation : 90;
     this.sine = Math.sin(this.elevation * Math.PI / 180);
     this.cosine = this.mode === 'top-down' ? 0 : Math.cos(this.elevation * Math.PI / 180);
     this.center = Object.freeze({ x: this.width / 2, y: this.height * 445 / REFERENCE_HEIGHT });
@@ -72,7 +77,8 @@ export class PitchProjection {
 
   with(options: Partial<PitchCameraOptions>): PitchProjection {
     return new PitchProjection({ width: this.width, height: this.height, end: this.end, mode: this.mode,
-      focus: this.focus, transverseFocus: this.transverseFocus, zoom: this.zoom, ...options });
+      focus: this.focus, transverseFocus: this.transverseFocus, zoom: this.zoom,
+      perspectiveElevation: this.perspectiveElevation, ...options });
   }
 
   private depth(point: Point): number {

@@ -7,7 +7,12 @@ declare global {
   interface Window {
     initial: SetupState;
     intents: ({ player: string } | { x: number; y: number })[];
+    selectionReports?: ({ x: number; width: number } | null)[];
   }
+}
+
+function recordSelectionPosition(position: { x: number; width: number } | null) {
+  (window.selectionReports ??= []).push(position);
 }
 
 function App() {
@@ -15,6 +20,7 @@ function App() {
   return <LivePitch view={window.initial} selectedId={selected} actions={[]}
     routePreview={{ from: { x: 12, y: 7 }, steps: [{ x: 11, y: 7 }, { x: 10, y: 8 }] }}
     readOnly={window.initial.callerRole === 'spectator'}
+    onSelectionPosition={recordSelectionPosition}
     onSelectPlayer={id => { window.intents.push({ player: id }); setSelected(id); }}
     onSquare={(x, y) => window.intents.push({ x, y })}/>;
 }

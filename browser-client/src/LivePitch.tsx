@@ -6,7 +6,7 @@ import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
 import { PitchScenery } from './PitchScenery.tsx';
-import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode } from './pitch-projection.ts';
+import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
 import { resolvePlayerArt, resolvePlayerPortrait, type PlayerFacing } from './player-art.ts';
 import { canPlaceReserve } from './setup-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
@@ -105,6 +105,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = controlledZoom ?? internalZoom, setZoom = onZoomChange ?? setInternalZoom;
   const [mode, setMode] = useState<PitchProjectionMode>('perspective');
+  const [perspectiveElevation, setPerspectiveElevation] = useState<PerspectiveElevation>(40);
   const [viewerEnd, setViewerEnd] = useState<'home' | 'away'>(view.callerRole === 'away' ? 'away' : 'home');
   const [travel, setTravel] = useState({ focus: 13, transverseFocus: 7.5 });
   const [cursor, setCursor] = useState<Point | null>(null);
@@ -113,7 +114,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
   const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
   const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
-  const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom });
+  const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation });
   const cameraRef = useRef(camera); cameraRef.current = camera;
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
   const drag = useRef<{ x: number; y: number; camera: PitchProjection; moved: boolean } | null>(null);
@@ -150,7 +151,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   useEffect(() => {
     const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
     onSelectionPosition?.(p ? { x: p.x, width: camera.width } : null);
-  }, [selected?.x, selected?.y, end, mode, travel.focus, travel.transverseFocus, size.width, size.height, zoom, onSelectionPosition]);
+  }, [selected?.x, selected?.y, end, mode, perspectiveElevation, travel.focus, travel.transverseFocus, size.width, size.height, zoom, onSelectionPosition]);
   const reveal = (point: Point | null | undefined) => { if (point) changeCamera(cameraRef.current.reveal(point, 50)); };
   useEffect(() => {
     if (!decision) return;
@@ -183,6 +184,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
+      <label>Perspective angle <select aria-label="Perspective angle" value={perspectiveElevation}
+        onChange={event => { setPerspectiveElevation(Number(event.target.value) as PerspectiveElevation); setMode('perspective'); onBlurPlayer?.(); }}>
+        {[30, 40, 50].map(angle => <option key={angle} value={angle}>{angle}°</option>)}
+      </select></label>
       {canChooseEnd && <button type="button" onClick={() => { setViewerEnd(end === 'home' ? 'away' : 'home'); onBlurPlayer?.(); }}>{end === 'home' ? 'Away coach view' : 'Home coach view'}</button>}
       <button type="button" onClick={() => changeCamera(camera.with({ focus: 13, transverseFocus: 7.5 }))}>Midfield</button>
       <button type="button" disabled={selected?.x == null} onClick={() => selected?.x != null && selected.y != null && reveal(centerOf({ x: selected.x, y: selected.y }))}>Reveal selected</button>
@@ -206,7 +211,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onPointerUp={event => { if (drag.current?.moved) suppressClick.current = true; drag.current = null;
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
       onPointerCancel={() => { drag.current = null; }}>
-      <div ref={scene} className="live-pitch-scene" data-projection={mode} data-end={end} data-focus={camera.focus}
+      <div ref={scene} className="live-pitch-scene" data-projection={mode} data-elevation={camera.elevation} data-end={end} data-focus={camera.focus}
         data-transverse-focus={camera.transverseFocus} data-zoom={zoom} style={{ width: size.width, height: size.height }}
         onDragOver={event => { if (onDropPlayer) event.preventDefault(); }}
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);

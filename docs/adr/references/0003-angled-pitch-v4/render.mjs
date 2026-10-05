@@ -17,6 +17,8 @@ const url = pathToFileURL(path.join(root, 'viewer.html'));
 await page.goto(`${url}?capture=1`);
 await page.evaluate(() => window.pitchReferenceReady);
 const scene = await page.evaluate(() => window.pitchReferenceScene);
+const followUpOnly = process.argv.includes('--follow-up');
+const views = scene.views.filter(view => !followUpOnly || [30, 50].includes(view.elevation));
 assert.equal(scene.length, 26);
 assert.equal(scene.width, 15);
 assert.equal(scene.players.length, 22);
@@ -32,7 +34,7 @@ const cameraChecks = [];
 await mkdir(path.join(root, 'full-pitch'), { recursive: true });
 
 try {
-  for (const view of scene.views) for (const framing of ['play', 'full']) {
+  for (const view of views) for (const framing of ['play', 'full']) {
     await page.goto(`${url}?capture=1&view=${view.id}&framing=${framing}`);
     await page.evaluate(() => window.pitchReferenceReady);
     const checks = await page.evaluate(() => {
@@ -126,7 +128,7 @@ try {
     console.log(`${image}: 390 cells, 22 centered players`);
   }
   await mkdir(path.join(root, 'pan'), { recursive: true });
-  for (const view of scene.views) {
+  for (const view of views) {
     await page.goto(`${url}?capture=1&view=${view.id}`);
     await page.evaluate(() => window.pitchReferenceReady);
     const baseline = await page.evaluate(() => ({ camera: window.pitchReference.export().camera,
@@ -214,6 +216,12 @@ try {
     }
     console.log(`${view.id}: ${view.perspective?'fixed lens/height, shared vanishing point':'square cells, parallel edges, no vanishing point'}, consistent scale, moving stadium, fixed HUD`);
   }
+  if (followUpOnly) {
+    assert.deepEqual(errors, []);
+    await writeFile(path.join(root, 'geometry-follow-up.json'), `${JSON.stringify({
+      pitch: { length: 26, width: 15, squares: 390 }, fixture: scene.players, captures, cameraChecks
+    }, null, 2)}\n`);
+  } else {
   await mkdir(path.join(root, 'hover'), { recursive: true });
   await page.goto(`${url}?capture=1&view=perspective-40-home`);
   await page.evaluate(() => window.pitchReferenceReady);
@@ -249,6 +257,7 @@ try {
     pitch: { length: 26, width: 15, squares: 390, endZoneRows: [0, 25], midfieldBoundary: 13, wideZoneBoundaries: [4, 11] },
     fixture: scene.players, captures, cameraChecks
   }, null, 2)}\n`);
+  }
 } finally {
   await browser.close();
 }

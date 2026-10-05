@@ -1,0 +1,6588 @@
+{
+  "pitch": {
+    "length": 26,
+    "width": 15,
+    "squares": 390
+  },
+  "fixture": [
+    {
+      "id": "home-1",
+      "team": "home",
+      "number": 1,
+      "x": 11,
+      "y": 6
+    },
+    {
+      "id": "home-2",
+      "team": "home",
+      "number": 2,
+      "x": 11,
+      "y": 7
+    },
+    {
+      "id": "home-3",
+      "team": "home",
+      "number": 3,
+      "x": 9,
+      "y": 7,
+      "hero": true
+    },
+    {
+      "id": "home-4",
+      "team": "home",
+      "number": 4,
+      "x": 11,
+      "y": 8
+    },
+    {
+      "id": "home-5",
+      "team": "home",
+      "number": 5,
+      "x": 10,
+      "y": 2
+    },
+    {
+      "id": "home-6",
+      "team": "home",
+      "number": 6,
+      "x": 10,
+      "y": 4
+    },
+    {
+      "id": "home-7",
+      "team": "home",
+      "number": 7,
+      "x": 10,
+      "y": 10
+    },
+    {
+      "id": "home-8",
+      "team": "home",
+      "number": 8,
+      "x": 10,
+      "y": 12
+    },
+    {
+      "id": "home-9",
+      "team": "home",
+      "number": 9,
+      "x": 9,
+      "y": 5
+    },
+    {
+      "id": "home-10",
+      "team": "home",
+      "number": 10,
+      "x": 9,
+      "y": 9
+    },
+    {
+      "id": "home-11",
+      "team": "home",
+      "number": 11,
+      "x": 9,
+      "y": 3
+    },
+    {
+      "id": "away-1",
+      "team": "away",
+      "number": 1,
+      "x": 14,
+      "y": 6
+    },
+    {
+      "id": "away-2",
+      "team": "away",
+      "number": 2,
+      "x": 14,
+      "y": 7
+    },
+    {
+      "id": "away-3",
+      "team": "away",
+      "number": 3,
+      "x": 14,
+      "y": 8
+    },
+    {
+      "id": "away-4",
+      "team": "away",
+      "number": 4,
+      "x": 15,
+      "y": 2
+    },
+    {
+      "id": "away-5",
+      "team": "away",
+      "number": 5,
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "away-6",
+      "team": "away",
+      "number": 6,
+      "x": 15,
+      "y": 10
+    },
+    {
+      "id": "away-7",
+      "team": "away",
+      "number": 7,
+      "x": 15,
+      "y": 12
+    },
+    {
+      "id": "away-8",
+      "team": "away",
+      "number": 8,
+      "x": 16,
+      "y": 5
+    },
+    {
+      "id": "away-9",
+      "team": "away",
+      "number": 9,
+      "x": 16,
+      "y": 9
+    },
+    {
+      "id": "away-10",
+      "team": "away",
+      "number": 10,
+      "x": 16,
+      "y": 7
+    },
+    {
+      "id": "away-11",
+      "team": "away",
+      "number": 11,
+      "x": 16,
+      "y": 11
+    }
+  ],
+  "captures": [
+    {
+      "view": "perspective-30-home",
+      "framing": "play",
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 13,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 810.7779628680217,
+            "y": 313.60603109834017,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 1022.8299046813204,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 997.6078675493421,
+            "y": 313.60603109834017,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 742.5850476593398,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 717.3630105273616,
+            "y": 313.60603109834017,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 929.4149523406602,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 904.1929152086819,
+            "y": 313.60603109834017,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 593.6585615853703,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 567.4856862365903,
+            "y": 332.8867920534319,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 690.5951369512221,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 664.4222616024421,
+            "y": 332.8867920534319,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 981.4048630487779,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 955.2319876999978,
+            "y": 332.8867920534319,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 1078.3414384146297,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 1052.1685630658496,
+            "y": 332.8867920534319,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 785.6329391912417,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 758.4347263545122,
+            "y": 353.6782228711201,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 808.8017871632705,
+            "y": 353.6782228711201,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 886.3670608087583,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 859.1688479720289,
+            "y": 353.6782228711201,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 778.9251145144875,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 748.1046763523108,
+            "y": 428.0915651749169,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 805.1795618378233,
+            "y": 428.0915651749169,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 893.0748854855125,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 862.2544473233357,
+            "y": 428.0915651749169,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 537.3684417996092,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 505.11623351396696,
+            "y": 457.1692359966659,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 656.8210650797655,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 624.5688567941233,
+            "y": 457.1692359966659,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 1015.1789349202345,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 982.9267266345923,
+            "y": 457.1692359966659,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 1134.6315582003908,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 1102.3793499147487,
+            "y": 457.1692359966659,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 961.2721689961045,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 927.4486833671563,
+            "y": 489.0801444655042,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 585.4556620077911,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 551.6321763788429,
+            "y": 489.0801444655042,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 802.1765143710518,
+            "y": 491.19411231731345,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 60,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 710.7278310038955,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 676.9043453749473,
+            "y": 489.0801444655042,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "perspective-30-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00004080690684371016,
+        "maximumRoundTripErrorSquares": 6.050053388380548e-14,
+        "extent": {
+          "left": -38.52098083496094,
+          "right": 1710.52099609375,
+          "top": 219.29742431640625,
+          "bottom": 1202.918212890625
+        }
+      }
+    },
+    {
+      "view": "perspective-30-home",
+      "framing": "full",
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 633.9020900463536,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -68.48540086986497
+        },
+        "focus": 13,
+        "scale": 30.465487284835007,
+        "center": {
+          "x": 836,
+          "y": 297.49814145826366
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 821.6404607877798,
+            "y": 222.69225489089882,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 942.3669571275573,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 928.0074179153371,
+            "y": 222.69225489089882,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 782.8165214362214,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 768.4569822240012,
+            "y": 222.69225489089882,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 889.1834785637786,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 874.8239393515585,
+            "y": 222.69225489089882,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 698.0289324985309,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 683.1280572083723,
+            "y": 233.66927635539656,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 753.2173594991186,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 738.31648420896,
+            "y": 233.66927635539656,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 918.7826405008814,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 903.8817652107227,
+            "y": 233.66927635539656,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 973.9710675014691,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 959.0701922113104,
+            "y": 233.66927635539656,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 807.3247672698625,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 791.8401415955882,
+            "y": 245.50636011443314,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 820.5153743257257,
+            "y": 245.50636011443314,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 864.6752327301375,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 849.1906070558632,
+            "y": 245.50636011443314,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 803.5058342086458,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 785.9589846813144,
+            "y": 287.8717448425749,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 818.4531504726687,
+            "y": 287.8717448425749,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 868.4941657913542,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 850.9473162640229,
+            "y": 287.8717448425749,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 665.9815535301053,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 647.6195613113567,
+            "y": 304.42639315191184,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 733.9889321180632,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 715.6269398993146,
+            "y": 304.42639315191184,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 938.0110678819368,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 919.6490756631882,
+            "y": 304.42639315191184,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 1006.0184464698947,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 987.6564542511461,
+            "y": 304.42639315191184,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 907.3205921269036,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 888.0640322526397,
+            "y": 322.5940748129179,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 693.3588157461926,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 674.1022558719286,
+            "y": 322.5940748129179,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 816.743440125736,
+            "y": 323.7976098050594,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 60,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 764.6794078730964,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 745.4228479988324,
+            "y": 322.5940748129179,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/perspective-30-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000016267188729676915,
+        "maximumRoundTripErrorSquares": 6.050053388380548e-14,
+        "extent": {
+          "left": 338.1132507324219,
+          "right": 1333.88671875,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "perspective-30-away",
+      "framing": "play",
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 13,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 742.5850476593398,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 717.3630105273616,
+            "y": 317.5469744002118,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 1022.8299046813204,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 997.6078675493421,
+            "y": 317.5469744002118,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 810.7779628680217,
+            "y": 316.75878573983744,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 59,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 929.4149523406602,
+            "y": 363.26191670192236
+          },
+          "image": {
+            "x": 904.1929152086819,
+            "y": 317.5469744002118,
+            "scale": 0.7881886603743202,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 1078.3414384146297,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 1052.1685630658496,
+            "y": 336.9763038266788,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 981.4048630487779,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 955.2319876999978,
+            "y": 336.9763038266788,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 690.5951369512221,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 664.4222616024421,
+            "y": 336.9763038266788,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 593.6585615853703,
+            "y": 384.4146403963426
+          },
+          "image": {
+            "x": 567.4856862365903,
+            "y": 336.9763038266788,
+            "scale": 0.8179023546493756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 886.3670608087583,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 859.1688479720289,
+            "y": 357.9279436268591,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 808.8017871632705,
+            "y": 357.9279436268591,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 785.6329391912417,
+            "y": 407.2247043934313
+          },
+          "image": {
+            "x": 758.4347263545122,
+            "y": 357.9279436268591,
+            "scale": 0.8499441511477965,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 893.0748854855125,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 862.2544473233357,
+            "y": 431.944119945189,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 805.1795618378233,
+            "y": 431.944119945189,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 778.9251145144875,
+            "y": 487.80616411413433
+          },
+          "image": {
+            "x": 748.1046763523108,
+            "y": 431.944119945189,
+            "scale": 0.963138692568023,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 1134.6315582003908,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 1102.3793499147487,
+            "y": 461.2007620323712,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 1015.1789349202345,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 982.9267266345923,
+            "y": 461.2007620323712,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 656.8210650797655,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 624.5688567941233,
+            "y": 461.2007620323712,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 537.3684417996092,
+            "y": 519.6578895500977
+          },
+          "image": {
+            "x": 505.11623351396696,
+            "y": 461.2007620323712,
+            "scale": 1.007881508926319,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 802.1765143710518,
+            "y": 493.3080801691227,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 585.4556620077911,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 551.6321763788429,
+            "y": 493.3080801691227,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 961.2721689961045,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 927.4486833671563,
+            "y": 493.3080801691227,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 710.7278310038955,
+            "y": 554.6131478715913
+          },
+          "image": {
+            "x": 676.9043453749473,
+            "y": 493.3080801691227,
+            "scale": 1.0569839259046312,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "perspective-30-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00004080690684371016,
+        "maximumRoundTripErrorSquares": 6.050053388380548e-14,
+        "extent": {
+          "left": -38.52098083496094,
+          "right": 1710.52099609375,
+          "top": 219.29742431640625,
+          "bottom": 1202.918212890625
+        }
+      }
+    },
+    {
+      "view": "perspective-30-away",
+      "framing": "full",
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 633.9020900463536,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -68.48540086986497
+        },
+        "focus": 13,
+        "scale": 30.465487284835007,
+        "center": {
+          "x": 836,
+          "y": 297.49814145826366
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 782.8165214362214,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 768.4569822240012,
+            "y": 224.9359328928082,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 942.3669571275573,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 928.0074179153371,
+            "y": 224.9359328928082,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 821.6404607877798,
+            "y": 224.48719729242634,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 59,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 889.1834785637786,
+            "y": 250.96259771495738
+          },
+          "image": {
+            "x": 874.8239393515585,
+            "y": 224.9359328928082,
+            "scale": 0.4487356003818821,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 973.9710675014691,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 959.0701922113104,
+            "y": 235.99753811948386,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 918.7826405008814,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 903.8817652107227,
+            "y": 235.99753811948386,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 753.2173594991186,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 738.31648420896,
+            "y": 235.99753811948386,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 698.0289324985309,
+            "y": 263.0053745828964
+          },
+          "image": {
+            "x": 683.1280572083723,
+            "y": 235.99753811948386,
+            "scale": 0.4656523528174581,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 864.6752327301375,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 849.1906070558632,
+            "y": 247.9258328760385,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 820.5153743257257,
+            "y": 247.9258328760385,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 807.3247672698625,
+            "y": 275.99171691066056
+          },
+          "image": {
+            "x": 791.8401415955882,
+            "y": 247.9258328760385,
+            "scale": 0.4838945523210701,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 868.4941657913542,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 850.9473162640229,
+            "y": 290.0651010334914,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 818.4531504726687,
+            "y": 290.0651010334914,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 803.5058342086458,
+            "y": 321.8687658017794
+          },
+          "image": {
+            "x": 785.9589846813144,
+            "y": 290.0651010334914,
+            "scale": 0.5483390477291038,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 1006.0184464698947,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 987.6564542511461,
+            "y": 306.7216421792554,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 938.0110678819368,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 919.6490756631882,
+            "y": 306.7216421792554,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 733.9889321180632,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 715.6269398993146,
+            "y": 306.7216421792554,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 665.9815535301053,
+            "y": 340.0027530757373
+          },
+          "image": {
+            "x": 647.6195613113567,
+            "y": 306.7216421792554,
+            "scale": 0.5738122568358944,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 816.743440125736,
+            "y": 325.0011447972009,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 693.3588157461926,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 674.1022558719286,
+            "y": 325.0011447972009,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 907.3205921269036,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 888.0640322526397,
+            "y": 325.0011447972009,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 764.6794078730964,
+            "y": 359.9036595693044
+          },
+          "image": {
+            "x": 745.4228479988324,
+            "y": 325.0011447972009,
+            "scale": 0.6017674960707501,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/perspective-30-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.000016267188729676915,
+        "maximumRoundTripErrorSquares": 6.050053388380548e-14,
+        "extent": {
+          "left": 338.1132507324219,
+          "right": 1333.88671875,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "perspective-50-home",
+      "framing": "play",
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 13,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 799.5503487155868,
+            "y": 192.2634807557145,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 1105.9974169215793,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 1069.547765637166,
+            "y": 192.2634807557145,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 701.0012915392103,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 664.5516402547971,
+            "y": 192.2634807557145,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 970.9987084607897,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 934.5490571763764,
+            "y": 192.2634807557145,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 488.8245942754505,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 451.3296504571992,
+            "y": 238.2059341863838,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 627.6947565652704,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 590.199812747019,
+            "y": 238.2059341863838,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 1044.3052434347296,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 1006.8102996164782,
+            "y": 238.2059341863838,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 1183.1754057245494,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 1145.680461906298,
+            "y": 238.2059341863838,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 764.5148895799224,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 725.9129299530805,
+            "y": 286.86123458008444,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 797.3980403731581,
+            "y": 286.86123458008444,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 907.4851104200776,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 868.8831507932357,
+            "y": 286.86123458008444,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 757.5679076140658,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 715.2145777256613,
+            "y": 453.0641261428752,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 793.6466701115955,
+            "y": 453.0641261428752,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 914.4320923859342,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 872.0787624975297,
+            "y": 453.0641261428752,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 430.71075715133765,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 386.9395189236821,
+            "y": 515.4280121039752,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 592.8264542908025,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 549.055216063147,
+            "y": 515.4280121039752,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 1079.1735457091975,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 1035.402307481542,
+            "y": 515.4280121039752,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 1241.2892428486623,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 1197.5180046210069,
+            "y": 515.4280121039752,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 1003.7310099956312,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 958.4436372968107,
+            "y": 582.1121796513378,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 500.53798000873746,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 455.25060730991703,
+            "y": 582.1121796513378,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 790.7126273011795,
+            "y": 584.942640445014,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 60,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 668.2689900043688,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 622.9816173055483,
+            "y": 582.1121796513378,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "perspective-50-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00003341944800891171,
+        "maximumRoundTripErrorSquares": 1.1916163935586911e-14,
+        "extent": {
+          "left": -101.47494506835938,
+          "right": 1773.4749755859375,
+          "top": -86.44737243652344,
+          "bottom": 1689.7889404296875
+        }
+      }
+    },
+    {
+      "view": "perspective-50-home",
+      "framing": "full",
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 490.66971399145257,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -248.20619453045094
+        },
+        "focus": 13,
+        "scale": 23.58170475753934,
+        "center": {
+          "x": 836,
+          "y": 336.5511998960361
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 824.5083958691793,
+            "y": 256.87010758888266,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 921.122993561635,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 909.6313894308142,
+            "y": 256.87010758888266,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 793.4385032191825,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 781.9468990883618,
+            "y": 256.87010758888266,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 878.5614967808175,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 867.0698926499967,
+            "y": 256.87010758888266,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 726.5448423796129,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 714.7236853566111,
+            "y": 271.3545393740966,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 770.3269054277678,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 758.505748404766,
+            "y": 271.3545393740966,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 901.6730945722322,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 889.8519375492305,
+            "y": 271.3545393740966,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 945.4551576203871,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 933.6340005973854,
+            "y": 271.3545393740966,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 813.4626488526428,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 801.2924792330699,
+            "y": 286.69425954392085,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 823.8298303804271,
+            "y": 286.69425954392085,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 858.5373511473572,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 846.3671815277843,
+            "y": 286.69425954392085,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 63,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 811.2724504874334,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 797.9195737506474,
+            "y": 339.09360406258986,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 822.647123263214,
+            "y": 339.09360406258986,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 860.7275495125666,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 847.3746727757806,
+            "y": 339.09360406258986,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 708.2230975282739,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 694.4231920613275,
+            "y": 358.7552761025381,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 759.3338585169644,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 745.533953050018,
+            "y": 358.7552761025381,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 912.6661414830356,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 898.8662360160893,
+            "y": 358.7552761025381,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 963.7769024717261,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 949.9769970047797,
+            "y": 358.7552761025381,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 888.8811195556424,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 874.6032172756189,
+            "y": 379.7790178461335,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 730.2377608887152,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 715.9598586086918,
+            "y": 379.7790178461335,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 821.7220977199765,
+            "y": 380.67138673863496,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 60,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-back"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 783.1188804443576,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 768.8409781643342,
+            "y": 379.7790178461335,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 62,
+            "anchorMode": "feet"
+          },
+          "asset": "human-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/perspective-50-home.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00002746295086808459,
+        "maximumRoundTripErrorSquares": 1.1916163935586911e-14,
+        "extent": {
+          "left": 540.4391479492188,
+          "right": 1131.5609130859375,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    },
+    {
+      "view": "perspective-50-away",
+      "framing": "play",
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 13,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 701.0012915392103,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 664.5516402547971,
+            "y": 197.95873876890408,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 1105.9974169215793,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 1069.547765637166,
+            "y": 197.95873876890408,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 799.5503487155868,
+            "y": 196.81968716626616,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 59,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 970.9987084607897,
+            "y": 264.023731721903
+          },
+          "image": {
+            "x": 934.5490571763764,
+            "y": 197.95873876890408,
+            "scale": 1.1390516026379125,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 1183.1754057245494,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 1145.680461906298,
+            "y": 244.06451915798556,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 1044.3052434347296,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 1006.8102996164782,
+            "y": 244.06451915798556,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 627.6947565652704,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 590.199812747019,
+            "y": 244.06451915798556,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 488.8245942754505,
+            "y": 312.0241048285661
+          },
+          "image": {
+            "x": 451.3296504571992,
+            "y": 244.06451915798556,
+            "scale": 1.1717169943203545,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 907.4851104200776,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 868.8831507932357,
+            "y": 292.89279077177844,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 797.3980403731581,
+            "y": 292.89279077177844,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 764.5148895799224,
+            "y": 362.85884259542945
+          },
+          "image": {
+            "x": 725.9129299530805,
+            "y": 292.89279077177844,
+            "scale": 1.2063112383388102,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 914.4320923859342,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 872.0787624975297,
+            "y": 458.35829237892574,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 793.6466701115955,
+            "y": 458.35829237892574,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 757.5679076140658,
+            "y": 535.1237028016589
+          },
+          "image": {
+            "x": 715.2145777256613,
+            "y": 458.35829237892574,
+            "scale": 1.3235415590126396,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 1241.2892428486623,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 1197.5180046210069,
+            "y": 520.8994168824322,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 1079.1735457091975,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 1035.402307481542,
+            "y": 520.8994168824322,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 592.8264542908025,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 549.055216063147,
+            "y": 520.8994168824322,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 430.71075715133765,
+            "y": 600.2347861700579
+          },
+          "image": {
+            "x": 386.9395189236821,
+            "y": 520.8994168824322,
+            "scale": 1.3678511946142355,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 790.7126273011795,
+            "y": 587.7731012386903,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 500.53798000873746,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 455.25060730991703,
+            "y": 587.7731012386903,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 1003.7310099956312,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 958.4436372968107,
+            "y": 587.7731012386903,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 668.2689900043688,
+            "y": 669.8564642553024
+          },
+          "image": {
+            "x": 622.9816173055483,
+            "y": 587.7731012386903,
+            "scale": 1.415230396838139,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "perspective-50-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00003341944800891171,
+        "maximumRoundTripErrorSquares": 1.1916163935586911e-14,
+        "extent": {
+          "left": -101.47494506835938,
+          "right": 1773.4749755859375,
+          "top": -86.44737243652344,
+          "bottom": 1689.7889404296875
+        }
+      }
+    },
+    {
+      "view": "perspective-50-away",
+      "framing": "full",
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 490.66971399145257,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -248.20619453045094
+        },
+        "focus": 13,
+        "scale": 23.58170475753934,
+        "center": {
+          "x": 836,
+          "y": 336.5511998960361
+        }
+      },
+      "squares": 390,
+      "players": [
+        {
+          "id": "home-10",
+          "square": {
+            "x": 9,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 793.4385032191825,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 781.9468990883618,
+            "y": 258.6656707343234,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-11",
+          "square": {
+            "x": 9,
+            "y": 3
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 3.5
+          },
+          "screenCenter": {
+            "x": 921.122993561635,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 909.6313894308142,
+            "y": 258.6656707343234,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-3",
+          "square": {
+            "x": 9,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 824.5083958691793,
+            "y": 258.30655810523524,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 59,
+            "anchorMode": "feet"
+          },
+          "asset": "alden-front"
+        },
+        {
+          "id": "home-9",
+          "square": {
+            "x": 9,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 9.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 878.5614967808175,
+            "y": 279.49420322143595
+          },
+          "image": {
+            "x": 867.0698926499967,
+            "y": 258.6656707343234,
+            "scale": 0.35911262908814756,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-5",
+          "square": {
+            "x": 10,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 945.4551576203871,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 933.6340005973854,
+            "y": 273.2015951589406,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-6",
+          "square": {
+            "x": 10,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 901.6730945722322,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 889.8519375492305,
+            "y": 273.2015951589406,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-7",
+          "square": {
+            "x": 10,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 770.3269054277678,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 758.505748404766,
+            "y": 273.2015951589406,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-8",
+          "square": {
+            "x": 10,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 10.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 726.5448423796129,
+            "y": 294.6274422631314
+          },
+          "image": {
+            "x": 714.7236853566111,
+            "y": 273.2015951589406,
+            "scale": 0.36941115696880655,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-1",
+          "square": {
+            "x": 11,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 858.5373511473572,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 846.3671815277843,
+            "y": 288.5958485469791,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-2",
+          "square": {
+            "x": 11,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 823.8298303804271,
+            "y": 288.5958485469791,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "home-4",
+          "square": {
+            "x": 11,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 11.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 813.4626488526428,
+            "y": 310.65428098245496
+          },
+          "image": {
+            "x": 801.2924792330699,
+            "y": 288.5958485469791,
+            "scale": 0.3803178006116527,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "human-front"
+        },
+        {
+          "id": "away-1",
+          "square": {
+            "x": 14,
+            "y": 6
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 6.5
+          },
+          "screenCenter": {
+            "x": 860.7275495125666,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 847.3746727757806,
+            "y": 340.76271365468807,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-2",
+          "square": {
+            "x": 14,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 822.647123263214,
+            "y": 340.76271365468807,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-3",
+          "square": {
+            "x": 14,
+            "y": 8
+          },
+          "worldCenter": {
+            "x": 14.5,
+            "y": 8.5
+          },
+          "screenCenter": {
+            "x": 811.2724504874334,
+            "y": 364.96480274011265
+          },
+          "image": {
+            "x": 797.9195737506474,
+            "y": 340.76271365468807,
+            "scale": 0.41727739802456126,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-4",
+          "square": {
+            "x": 15,
+            "y": 2
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 2.5
+          },
+          "screenCenter": {
+            "x": 963.7769024717261,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 949.9769970047797,
+            "y": 360.4802642859064,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-5",
+          "square": {
+            "x": 15,
+            "y": 4
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 4.5
+          },
+          "screenCenter": {
+            "x": 912.6661414830356,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 898.8662360160893,
+            "y": 360.4802642859064,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-6",
+          "square": {
+            "x": 15,
+            "y": 10
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 10.5
+          },
+          "screenCenter": {
+            "x": 759.3338585169644,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 745.533953050018,
+            "y": 360.4802642859064,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-7",
+          "square": {
+            "x": 15,
+            "y": 12
+          },
+          "worldCenter": {
+            "x": 15.5,
+            "y": 12.5
+          },
+          "screenCenter": {
+            "x": 708.2230975282739,
+            "y": 385.4925929447468
+          },
+          "image": {
+            "x": 694.4231920613275,
+            "y": 360.4802642859064,
+            "scale": 0.43124704584207557,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-10",
+          "square": {
+            "x": 16,
+            "y": 7
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 7.5
+          },
+          "screenCenter": {
+            "x": 836,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 821.7220977199765,
+            "y": 381.5637556311364,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-11",
+          "square": {
+            "x": 16,
+            "y": 11
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 11.5
+          },
+          "screenCenter": {
+            "x": 730.2377608887152,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 715.9598586086918,
+            "y": 381.5637556311364,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-8",
+          "square": {
+            "x": 16,
+            "y": 5
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 5.5
+          },
+          "screenCenter": {
+            "x": 888.8811195556424,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 874.6032172756189,
+            "y": 381.5637556311364,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        },
+        {
+          "id": "away-9",
+          "square": {
+            "x": 16,
+            "y": 9
+          },
+          "worldCenter": {
+            "x": 16.5,
+            "y": 9.5
+          },
+          "screenCenter": {
+            "x": 783.1188804443576,
+            "y": 407.4424535136789
+          },
+          "image": {
+            "x": 768.8409781643342,
+            "y": 381.5637556311364,
+            "scale": 0.4461844462507326,
+            "anchorX": 32,
+            "anchorY": 58,
+            "anchorMode": "feet"
+          },
+          "asset": "orc-back"
+        }
+      ],
+      "ball": {
+        "x": 12,
+        "y": 7
+      },
+      "image": "full-pitch/perspective-50-away.png",
+      "validation": {
+        "cells": 390,
+        "zones": {
+          "end-zone": 30,
+          "wide": 192,
+          "central": 168
+        },
+        "maximumAnchorErrorPixels": 0.00002746295086808459,
+        "maximumRoundTripErrorSquares": 1.1916163935586911e-14,
+        "extent": {
+          "left": 540.4391479492188,
+          "right": 1131.5609130859375,
+          "top": 169,
+          "bottom": 729
+        }
+      }
+    }
+  ],
+  "cameraChecks": [
+    {
+      "view": "perspective-30-home",
+      "focus": 0,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 0,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 25.344197043754498,
+      "vanishingPointErrorPixels": 2.340955266160336e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 262.84475534938156
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 518.0479736328125,
+            "y": 169.53909301757812
+          },
+          "error": 0.00001490798323936511
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.5446166992188,
+            "y": 234.62779235839844
+          },
+          "error": 0.000026226836199104276
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1143.2681884765625,
+            "y": 211.17190551757812
+          },
+          "error": 0.000022405611357109715
+        }
+      ],
+      "anchorErrorPixels": 2.842170943040401e-14,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-home",
+      "focus": 6.5,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 6.5,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 26,
+      "vanishingPointErrorPixels": 2.8421709430404007e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 373.6426092006767
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 459.8985900878906,
+            "y": 236.7276153564453
+          },
+          "error": 0.000007509961673463608
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.4432983398438,
+            "y": 330.85101318359375
+          },
+          "error": 0.00002785792893867565
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1207.156005859375,
+            "y": 296.2140808105469
+          },
+          "error": 0.00006001003692634992
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-home",
+      "focus": 13,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 13,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 20.7312438027173,
+      "vanishingPointErrorPixels": 2.2737367544323206e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 554.6131478715913
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 375.71905517578125,
+            "y": 333.9925842285156
+          },
+          "error": 0.000014773784163933058
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.2839965820312,
+            "y": 482.1471252441406
+          },
+          "error": 0.000028302556636755438
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1304.58544921875,
+            "y": 425.90380859375
+          },
+          "error": 0.00003583787400582357
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-home",
+      "focus": 19.5,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 19.5,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 14.2312438027173,
+      "vanishingPointErrorPixels": 3.410605131648481e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 903.3149645213585
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 242.99090576171875,
+            "y": 487.3528747558594
+          },
+          "error": 0.000011881607317652567
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 834.9970092773438,
+            "y": 754.751953125
+          },
+          "error": 0.000030372818496860027
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1471.3720703125,
+            "y": 647.9161376953125
+          },
+          "error": 0.000028379267699625793
+        }
+      ],
+      "anchorErrorPixels": 1.1368683772161603e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-home",
+      "focus": 26,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 26,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 7.731243802717302,
+      "vanishingPointErrorPixels": 1.9326762412674725e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 1854.336556301514
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 2.6968724727630615,
+            "y": 764.9998168945312
+          },
+          "error": 0.000025980983488220847
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 834.3258056640625,
+            "y": 1392.19287109375
+          },
+          "error": 0.000008064725950120385
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1822.5054931640625,
+            "y": 1115.315185546875
+          },
+          "error": 0.00004787036938471433
+        }
+      ],
+      "anchorErrorPixels": 2.2737367544323206e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-away",
+      "focus": 0,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 0,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 7.7312438027173,
+      "vanishingPointErrorPixels": 4.687428401686771e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 865.4124345858784
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 2.6968724727630615,
+            "y": 764.9998168945312
+          },
+          "error": 0.000025980983488220847
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 834.3258056640625,
+            "y": 1392.19287109375
+          },
+          "error": 0.000008064725950120385
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1822.5054931640625,
+            "y": 1115.315185546875
+          },
+          "error": 0.00004787036938471433
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-away",
+      "focus": 6.5,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 6.5,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 14.2312438027173,
+      "vanishingPointErrorPixels": 2.3745313426622286e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 536.7199013924629
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 242.99090576171875,
+            "y": 487.3528747558594
+          },
+          "error": 0.00001188160727380152
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 834.9970092773438,
+            "y": 754.751953125
+          },
+          "error": 0.000030372818496860027
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1471.3720703125,
+            "y": 647.9161376953125
+          },
+          "error": 0.000028379267699625793
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-away",
+      "focus": 13,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 13,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 20.7312438027173,
+      "vanishingPointErrorPixels": 8.879225874701042e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 363.26191670192236
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 375.71905517578125,
+            "y": 333.9925842285156
+          },
+          "error": 0.000014773784086866944
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.2839965820312,
+            "y": 482.1471252441406
+          },
+          "error": 0.000028302556636755438
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1304.58544921875,
+            "y": 425.90380859375
+          },
+          "error": 0.00003583787400582357
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-away",
+      "focus": 19.5,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 19.5,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 26,
+      "vanishingPointErrorPixels": 1.7941731700928617e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 256.07521427992344
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 459.8985900878906,
+            "y": 236.7276153564453
+          },
+          "error": 0.000007509961673463608
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.4432983398438,
+            "y": 330.85101318359375
+          },
+          "error": 0.00002785792893867565
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1207.156005859375,
+            "y": 296.2140808105469
+          },
+          "error": 0.00006001003692634992
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-30-away",
+      "focus": 26,
+      "camera": {
+        "elevation": 30,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 10.403609896663212,
+        "focalPixels": 1113.427235853182,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -197.8375143428956
+        },
+        "focus": 26,
+        "scale": 53.51158140840592,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        61.146600928308544,
+        53.511581408405846,
+        47.57159386621561,
+        42.81857086084665
+      ],
+      "canonicalVisibleLength": 25.344197043754498,
+      "vanishingPointErrorPixels": 2.340955266160336e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 183.2719551189768
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 518.0479736328125,
+            "y": 169.53909301757812
+          },
+          "error": 0.00001490798323936511
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.5446166992188,
+            "y": 234.62779235839844
+          },
+          "error": 0.000026226836199104276
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1143.2681884765625,
+            "y": 211.17190551757812
+          },
+          "error": 0.000022405611357109715
+        }
+      ],
+      "anchorErrorPixels": 2.842170943040401e-14,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-home",
+      "focus": 0,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 0,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 7.005806360458871,
+      "vanishingPointErrorPixels": 3.1913416131870237e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 24.170569333452136
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 336.38543701171875,
+            "y": -218.15866088867188
+          },
+          "error": 0.000004250896148487178
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.3048706054688,
+            "y": -47.02429962158203
+          },
+          "error": 0.0000025976908170458996
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1309.9320068359375,
+            "y": -107.55955505371094
+          },
+          "error": 0.00001806490340203598
+        }
+      ],
+      "anchorErrorPixels": 7.105427357601002e-15,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-home",
+      "focus": 6.5,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 6.5,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.577112256966721,
+      "vanishingPointErrorPixels": 2.0463630789890885e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 287.6846478284888
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 262.3856506347656,
+            "y": -41.66566467285156
+          },
+          "error": 0.0000017920617379460695
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.1845703125,
+            "y": 188.8205108642578
+          },
+          "error": 0.000006669892004870565
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1387.71240234375,
+            "y": 106.15435028076172
+          },
+          "error": 0.00005776434953746257
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-home",
+      "focus": 13,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 13,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.57711225696672,
+      "vanishingPointErrorPixels": 3.9250782041635985e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 669.8564642553024
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 162.65382385253906,
+            "y": 196.19947814941406
+          },
+          "error": 0.000006872529783936497
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 835.013916015625,
+            "y": 523.384033203125
+          },
+          "error": 0.000023210987211447955
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1496.0355224609375,
+            "y": 403.78936767578125
+          },
+          "error": 0.000054188561405242536
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-home",
+      "focus": 19.5,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 19.5,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.07130589650785,
+      "vanishingPointErrorPixels": 8.125229389955e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 1274.1190155745007
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": 20.943504333496094,
+            "y": 534.185302734375
+          },
+          "error": 0.0000051474721534141495
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 834.7529296875,
+            "y": 1035.0535888671875
+          },
+          "error": 0.0000286866855134327
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1657.2867431640625,
+            "y": 846.85302734375
+          },
+          "error": 0.00006730544639798746
+        }
+      ],
+      "anchorErrorPixels": 1.1368683772161603e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-home",
+      "focus": 26,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "home",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 26,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 4.571305896507852,
+      "vanishingPointErrorPixels": 2.2737367544323206e-13,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 2373.35767341151
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 18.014901899599273,
+            "y": -2.8968913872872157
+          },
+          "screen": {
+            "x": -196.31407165527344,
+            "y": 1052.35498046875
+          },
+          "error": 0.000046031400774276606
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 11.687469625700643,
+            "y": 7.48735103600825
+          },
+          "screen": {
+            "x": 834.3040161132812,
+            "y": 1915.080322265625
+          },
+          "error": 0.000036339376446527696
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 13.735572995742128,
+            "y": 16.524801933940562
+          },
+          "screen": {
+            "x": 1922.7996826171875,
+            "y": 1576.391845703125
+          },
+          "error": 0.000037787463010580386
+        }
+      ],
+      "anchorErrorPixels": 2.5421149729252077e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-away",
+      "focus": 0,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 0,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 4.57130589650785,
+      "vanishingPointErrorPixels": 1.3830600733622801e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 1215.4428383066784
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": -196.31407165527344,
+            "y": 1052.35498046875
+          },
+          "error": 0.000046031401000925086
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 834.3040161132812,
+            "y": 1915.080322265625
+          },
+          "error": 0.000036339376446527696
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1922.7996826171875,
+            "y": 1576.391845703125
+          },
+          "error": 0.000037787463010580386
+        }
+      ],
+      "anchorErrorPixels": 1.1368683772161603e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-away",
+      "focus": 6.5,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 6.5,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.07130589650785,
+      "vanishingPointErrorPixels": 3.846918006203994e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 634.4530052235108
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 20.943504333496094,
+            "y": 534.185302734375
+          },
+          "error": 0.000005147472041654926
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 834.7529296875,
+            "y": 1035.0535888671875
+          },
+          "error": 0.0000286866855134327
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1657.2867431640625,
+            "y": 846.85302734375
+          },
+          "error": 0.00006730544639798746
+        }
+      ],
+      "anchorErrorPixels": 1.1368683772161603e-13,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-away",
+      "focus": 13,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 13,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.577112256966723,
+      "vanishingPointErrorPixels": 5.194878967265987e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 264.023731721903
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 162.65382385253906,
+            "y": 196.19947814941406
+          },
+          "error": 0.000006872529858988188
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.013916015625,
+            "y": 523.384033203125
+          },
+          "error": 0.000023210987211447955
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1496.0355224609375,
+            "y": 403.78936767578125
+          },
+          "error": 0.000054188561405242536
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-away",
+      "focus": 19.5,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 19.5,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 11.577112256966723,
+      "vanishingPointErrorPixels": 8.38512683666785e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": 7.249116423683574
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 262.3856506347656,
+            "y": -41.66566467285156
+          },
+          "error": 0.0000017920617379460695
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.1845703125,
+            "y": 188.8205108642578
+          },
+          "error": 0.000006669892004870565
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1387.71240234375,
+            "y": 106.15435028076172
+          },
+          "error": 0.00005776434953746257
+        }
+      ],
+      "anchorErrorPixels": 0,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    },
+    {
+      "view": "perspective-50-away",
+      "focus": 26,
+      "camera": {
+        "elevation": 50,
+        "yaw": 0,
+        "end": "away",
+        "perspective": true,
+        "distance": 20.80721979332643,
+        "height": 15.93925509943292,
+        "focalPixels": 1556.3310193434145,
+        "vanishingPoint": {
+          "x": 836,
+          "y": -1409.763083568323
+        },
+        "focus": 26,
+        "scale": 74.79764402943357,
+        "center": {
+          "x": 836,
+          "y": 445
+        }
+      },
+      "relativeWidths": [
+        82.43777800155908,
+        74.79764402943351,
+        68.45353581618838,
+        63.101462108212445
+      ],
+      "canonicalVisibleLength": 7.00580636045887,
+      "vanishingPointErrorPixels": 7.42454261274165e-12,
+      "parallelEdgeError": 0,
+      "squareShapeErrorPixels": 0,
+      "trackedPlayerCenter": {
+        "x": 836,
+        "y": -181.22080572478023
+      },
+      "sceneryRegistration": [
+        {
+          "source": {
+            "x": 140,
+            "y": 170,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 7.985098100400725,
+            "y": 17.896891387287216
+          },
+          "screen": {
+            "x": 336.38543701171875,
+            "y": -218.15866088867188
+          },
+          "error": 0.000004250896148487178
+        },
+        {
+          "source": {
+            "x": 835,
+            "y": 530,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 14.312530374299357,
+            "y": 7.51264896399175
+          },
+          "screen": {
+            "x": 835.3048706054688,
+            "y": -47.02429962158203
+          },
+          "error": 0.0000025976908170458996
+        },
+        {
+          "source": {
+            "x": 1510,
+            "y": 400,
+            "plateOffset": 0
+          },
+          "world": {
+            "x": 12.264427004257872,
+            "y": -1.5248019339405623
+          },
+          "screen": {
+            "x": 1309.9320068359375,
+            "y": -107.55955505371094
+          },
+          "error": 0.00001806490340203598
+        }
+      ],
+      "anchorErrorPixels": 7.105427357601002e-15,
+      "hudFixed": true,
+      "cells": 390,
+      "players": 22
+    }
+  ]
+}
