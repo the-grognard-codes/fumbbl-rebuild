@@ -60,6 +60,21 @@ try {
     await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.focus) !== 13);
     assert.notEqual(await scene.locator('.pitch-stadium-plate').first().getAttribute('style'), before);
     const focus = await scene.getAttribute('data-focus');
+    for (const angle of [30, 50, 40]) {
+      const reportsBefore = await page.evaluate(() => window.selectionReports.length);
+      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await page.waitForFunction(before => window.selectionReports.length > before, reportsBefore, { timeout: 1500 });
+      assert.equal(await scene.getAttribute('data-elevation'), String(angle));
+      assert.equal(await scene.getAttribute('data-focus'), focus);
+      assert.equal(await scene.locator('.live-selection-square').getAttribute('data-selection'), 'human');
+      assert.equal(await scene.locator('.live-route-line').count(), 1);
+      assert.deepEqual(await page.evaluate(() => window.intents), [{ player: 'human' }]);
+      const target = await squarePosition(page, 12, 10);
+      await scene.click({ position: target });
+      assert.deepEqual(await page.evaluate(() => window.intents.at(-1)), { x: 12, y: 10 }, 'Each elevation resolves the same canonical ground target');
+      await page.evaluate(() => { window.intents.pop(); });
+      if (evidence && angle !== 40) await page.screenshot({ path: `${evidence}/perspective-${angle}-${role}.png` });
+    }
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
     assert.equal(await scene.getAttribute('data-focus'), focus);
     assert.equal(await scene.getAttribute('data-projection'), 'top-down');

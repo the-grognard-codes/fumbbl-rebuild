@@ -53,6 +53,14 @@ try {
   const arrows = pitch.locator('.live-push-choice');
   await arrows.first().waitFor();
   assert.equal(await arrows.count(), 3);
+  for (const angle of [30, 50, 40]) {
+    await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+    assert.equal(await arrows.count(), 3, 'Camera changes retain the pending push decision');
+    assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Camera changes never answer the decision');
+  }
+  await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  assert.equal(await arrows.count(), 3);
+  await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
   await page.evaluate(() => document.fonts.ready);
   assert.equal(await page.locator('.live-team-nameplate strong').evaluateAll(elements => elements.every(element =>
     element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.parentElement.clientHeight)), true, 'Both frozen team names fit their plates');
