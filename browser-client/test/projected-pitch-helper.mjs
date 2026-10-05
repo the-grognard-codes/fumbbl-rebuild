@@ -5,7 +5,8 @@ export async function squarePosition(page, x, y) {
   const scene = page.locator('.live-pitch-scene').first();
   let options = await scene.evaluate(element => ({ width: parseFloat(element.style.width), height: parseFloat(element.style.height),
     focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
-    mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom) }));
+    mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
+    perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
   let camera = new PitchProjection(options);
   const point = { x: x + .5, y: y + .5 };
   const screen = camera.project(point);
