@@ -11,6 +11,7 @@ import { resolvePlayerArt, resolvePlayerPortrait, type PlayerFacing } from './pl
 import { canPlaceReserve } from './setup-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import type { PushChoice } from './push-choice.ts';
+import { passingLegend, passingSquare } from './passing-presentation.ts';
 import './live-pitch.css';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
@@ -148,6 +149,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     prior.current = { matchId: view.matchId, revision: view.revision, players: view.players };
   }, [view.matchId, view.revision, view.players]);
   const activePlayer = view.players.find(player => player.id === view.activePlayerId), selected = view.players.find(player => player.id === selectedId);
+  const passing = view.passing;
   useEffect(() => {
     const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
     onSelectionPosition?.(p ? { x: p.x, width: camera.width } : null);
@@ -161,10 +163,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.();
     }
   }, [decision?.key]);
-  const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
+  const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>(), moveSquares = new Set<string>();
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target && action.kind !== 'push' && !(routePreview && action.kind === 'move')) targetSquares.set(`${action.target.x},${action.target.y}`, action.target);
+    else if (action.target && 'x' in action.target && action.kind !== 'push' && !(routePreview && action.kind === 'move')
+      && !(passing && action.kind === 'pass')) {
+      const key = `${action.target.x},${action.target.y}`;
+      targetSquares.set(key, action.target);
+      if (action.kind === 'move') moveSquares.add(key);
+    }
   }
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
@@ -198,6 +205,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       <button type="button" disabled={!view.ball && activePlayer?.x == null} onClick={() => reveal(view.ball ? centerOf(view.ball) : activePlayer?.x != null && activePlayer.y != null ? centerOf({ x: activePlayer.x, y: activePlayer.y }) : null)}>Reveal ball / active</button>
       {showToolbar && <>{[1, 1.5, 2].map(value => <button key={value} type="button" aria-pressed={zoom === value} onClick={() => { setZoom(value); onBlurPlayer?.(); }}>{value === 1 ? 'Fit' : `${value}×`}</button>)}</>}
     </div>
+    {passing && <div className="live-pass-legend" role="note" aria-label="Passing distances">
+      {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}
+      <span>Shaded: unavailable{passing.rangeLimited ? '; weather limits passes to Quick or Short' : ''}</span>
+      <span>Cyan outline: legal move</span>
+      {passing.weatherPenalty > 0 && <span>weather +{passing.weatherPenalty} passing penalty; range names stay the same</span>}
+      {(pinnedTarget?.x != null && pinnedTarget.y != null || cursor) && <output className="live-pass-target-detail" aria-live="polite">
+        {passingSquare(passing, pinnedTarget?.x ?? cursor!.x, pinnedTarget?.y ?? cursor!.y).description}
+      </output>}
+    </div>}
     <div ref={viewport} className="live-pitch-viewport" tabIndex={0} aria-label={playback ? 'Pitch playback' : readOnly ? 'Replay pitch' : 'Pitch action preview'}
       onKeyDown={event => {
         if (event.target !== event.currentTarget) return;
@@ -224,12 +240,16 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         {!backgroundFailed && <PitchScenery camera={camera} onError={() => setBackgroundFailed(true)}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
-          {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => <polygon key={`${square.x},${square.y}`}
+          {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => {
+            const guidance = passing && passingSquare(passing, square.x, square.y);
+            return <polygon key={`${square.x},${square.y}`}
             data-cell-x={square.x} data-cell-y={square.y} points={points(camera.square(square, 0, true))}
-            fill={square.x === 0 ? '#37669166' : square.x === 25 ? '#874a2d66' : (square.x + square.y) % 2 ? '#18392222' : '#b1c46a0b'} stroke="#21371e" strokeOpacity=".5"/>) }
+            data-pass-range={guidance?.code} fill={guidance?.color ?? (square.x === 0 ? '#37669166' : square.x === 25 ? '#874a2d66' : (square.x + square.y) % 2 ? '#18392222' : '#b1c46a0b')}
+            stroke="#21371e" strokeOpacity=".5">{guidance && <title>{guidance.description}</title>}</polygon>;
+          }) }
           <path className="pitch-chalk" d={[chalk({ x: 0, y: 0 }, { x: 26, y: 0 }), chalk({ x: 0, y: 15 }, { x: 26, y: 15 }), ...[0, 1, 13, 25, 26].map(x => chalk({ x, y: 0 }, { x, y: 15 }))].join(' ')}/>
           {[4, 11].map(y => <path key={y} className="pitch-chalk wide" d={chalk({ x: 0, y }, { x: 26, y })}/>) }
-          {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`} className="live-target-square" points={points(camera.square(square, .06, true))}/>) }
+          {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`} className={`live-target-square${passing && moveSquares.has(`${square.x},${square.y}`) ? ' live-pass-move-square' : ''}`} points={points(camera.square(square, .06, true))}/>) }
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}

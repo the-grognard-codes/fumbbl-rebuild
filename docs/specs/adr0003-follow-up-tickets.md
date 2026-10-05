@@ -100,7 +100,7 @@ Cover ordinary push and chain push with both coach views, top-down view and spec
 
 ## Make pass declaration movement and target confirmation work together
 
-GitHub: [#114](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/114). Status: open. Observation: 3. Triage: `ready-for-agent`.
+GitHub: [#114](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/114). Status: closed by PR #121. Observation: 3. Triage: `ready-for-agent`.
 
 ### Outcome
 
