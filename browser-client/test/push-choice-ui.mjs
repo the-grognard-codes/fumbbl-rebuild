@@ -53,6 +53,7 @@ try {
   const arrows = pitch.locator('.live-push-choice');
   await arrows.first().waitFor();
   assert.equal(await arrows.count(), 3);
+  assert.equal(await pitch.locator('.live-token').count(), 2, 'Native fixtures without artwork retain the explicit number-token fallback');
   for (const angle of [30, 50, 40]) {
     await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
     assert.equal(await arrows.count(), 3, 'Camera changes retain the pending push decision');
