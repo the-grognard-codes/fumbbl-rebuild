@@ -169,6 +169,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
+  if (pinnedAction?.kind === 'pass' && pinnedTarget?.x != null && pinnedTarget.y != null) {
+    const recipient = view.players.find(player => player.x === pinnedTarget.x && player.y === pinnedTarget.y);
+    if (recipient) targetPlayers.add(recipient.id);
+  }
   const point = (clientX: number, clientY: number) => {
     const local = camera.fromClient({ x: clientX, y: clientY }, scene.current!.getBoundingClientRect()); return local && camera.cellAt(local);
   };
