@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { test } from 'node:test';
 
@@ -15,6 +15,21 @@ const state = {
   turnMode: 'REGULAR', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0,
   homeScore: 0, awayScore: 0, drive: 1
 };
+
+async function stopChild(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const stopped = once(child, 'exit');
+  try {
+    if (process.platform === 'win32') {
+      execFileSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+    } else child.kill();
+  } catch (error) {
+    try { process.kill(child.pid, 0); }
+    catch (probeError) { if (probeError.code === 'ESRCH') { await stopped; return; } }
+    throw error;
+  }
+  await stopped;
+}
 
 function send(socket, object) {
   const body = Buffer.from(JSON.stringify(object));
@@ -74,7 +89,8 @@ test('authenticates over the browser route and acts from received state', { time
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId, '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
-    cwd: new URL('..', import.meta.url), env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   });
   let errors = '';
   let output = '';
@@ -95,14 +111,14 @@ test('authenticates over the browser route and acts from received state', { time
     assert.equal(seen[5].expectedRevision, 1);
   } finally {
     clearTimeout(timer);
-    child.kill();
-    server.closeAllConnections();
-    server.close();
+    try { await stopChild(child); }
+    finally { server.closeAllConnections(); server.close(); }
   }
 });
 
-test('daemon starts concurrent service clients for two computer matches', { timeout: 15000 }, async () => {
+test('detached daemon starts concurrent computer clients without visible Windows consoles', { timeout: 15000 }, async () => {
   const seen = [];
+  const pendingLoads = [];
   const server = createServer();
   let resolveLoads;
   const bothLoaded = new Promise(resolve => { resolveLoads = resolve; });
@@ -122,8 +138,7 @@ test('daemon starts concurrent service clients for two computer matches', { time
         send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE',
           matches: [matchId, secondMatchId] });
       } else if (requestBody.operation === 'load') {
-        send(socket, response(requestBody.requestId, { ...state, matchId: requestBody.matchId, callerRole: 'away',
-          actor: 'away', phase: 'FULL_TIME', prompt: null }));
+        pendingLoads.push({ socket, requestBody });
         if (seen.filter(item => item.operation === 'load').length === 2) resolveLoads();
       }
     });
@@ -132,7 +147,7 @@ test('daemon starts concurrent service clients for two computer matches', { time
   await once(server, 'listening');
   const child = spawn(process.execPath, ['src/daemon.mjs', '--url',
     `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
-    cwd: new URL('..', import.meta.url),
+    cwd: new URL('..', import.meta.url), detached: true, windowsHide: true,
     env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   });
   let output = '';
@@ -143,15 +158,47 @@ test('daemon starts concurrent service clients for two computer matches', { time
     await Promise.race([bothLoaded, new Promise((_, reject) => {
       timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 9000);
     })]);
+    if (process.platform === 'win32') {
+      const script = `
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class ComputerConsoleProbe {
+  [DllImport("kernel32.dll", SetLastError = true)] public static extern bool AttachConsole(uint processId);
+  [DllImport("kernel32.dll")] public static extern bool FreeConsole();
+  [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
+}
+'@
+$clients = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = ${child.pid} AND Name = 'node.exe'")
+$visible = 0
+foreach ($client in $clients) {
+  [void][ComputerConsoleProbe]::FreeConsole()
+  if ([ComputerConsoleProbe]::AttachConsole($client.ProcessId)) {
+    if ([ComputerConsoleProbe]::IsWindowVisible([ComputerConsoleProbe]::GetConsoleWindow())) { $visible++ }
+    [void][ComputerConsoleProbe]::FreeConsole()
+  } elseif ([Runtime.InteropServices.Marshal]::GetLastWin32Error() -ne 6) {
+    throw 'Unable to inspect computer client console'
+  }
+}
+@{ clients = $clients.Count; visible = $visible } | ConvertTo-Json -Compress`;
+      const counts = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+        `$ErrorActionPreference = 'Stop'; ${script}`], { encoding: 'utf8', windowsHide: true }));
+      assert.equal(counts.clients, 2, 'both match clients must still be running during the console check');
+      assert.equal(counts.visible, 0, 'computer match clients must not open visible console windows');
+    }
+    for (const { socket, requestBody } of pendingLoads) {
+      send(socket, response(requestBody.requestId, { ...state, matchId: requestBody.matchId, callerRole: 'away',
+        actor: 'away', phase: 'FULL_TIME', prompt: null }));
+    }
     assert.deepEqual(seen.filter(item => item.operation === 'load').map(item => item.matchId).sort(),
       [matchId, secondMatchId].sort());
     assert.equal(seen.filter(item => item.type === 'authenticateComputer').length, 3);
     assert.equal(seen.filter(item => item.operation === 'register').length, 1);
   } finally {
     clearTimeout(timer);
-    child.kill();
-    server.closeAllConnections();
-    server.close();
+    try { await stopChild(child); }
+    finally { server.closeAllConnections(); server.close(); }
   }
 });
 
@@ -196,7 +243,7 @@ test('daemon rediscovers an active match and retries after its client exits befo
   await once(server, 'listening');
   const child = spawn(process.execPath, ['src/daemon.mjs', '--url',
     `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin, '--refresh-ms', '1000'], {
-    cwd: new URL('..', import.meta.url),
+    cwd: new URL('..', import.meta.url), windowsHide: true,
     env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
   });
   let output = '';
@@ -213,8 +260,7 @@ test('daemon rediscovers an active match and retries after its client exits befo
     assert.ok(registrations >= 3);
   } finally {
     clearTimeout(timer);
-    child.kill();
-    server.closeAllConnections();
-    server.close();
+    try { await stopChild(child); }
+    finally { server.closeAllConnections(); server.close(); }
   }
 });
