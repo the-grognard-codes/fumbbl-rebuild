@@ -184,7 +184,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
-      <label>Perspective angle <select aria-label="Perspective angle" value={perspectiveElevation}
+      <label><span>Perspective angle</span> <select aria-label="Perspective angle" title="Perspective angle" value={perspectiveElevation}
         onChange={event => { setPerspectiveElevation(Number(event.target.value) as PerspectiveElevation); setMode('perspective'); onBlurPlayer?.(); }}>
         {[30, 40, 50].map(angle => <option key={angle} value={angle}>{angle}°</option>)}
       </select></label>
