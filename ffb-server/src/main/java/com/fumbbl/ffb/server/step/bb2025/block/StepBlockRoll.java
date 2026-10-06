@@ -239,10 +239,12 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 
 		Skill reRollSkill = getReRollSource() != null ? getReRollSource().getSkill(game) : null;
 
-		if (getReRollSource() == ReRollSources.PRO ||
+		boolean pro = Arrays.asList(ReRollSources.PRO, ReRollSources.PRO_TRR, ReRollSources.PRO_MASCOT,
+			ReRollSources.PRO_MASCOT_TRR).contains(getReRollSource());
+		if (pro ||
 			(reRollSkill != null &&
 				reRollSkill.hasSkillProperty(NamedProperties.canRerollSingleDieOncePerPeriod))) {
-			if (getReRollSource() == ReRollSources.PRO) {
+			if (pro) {
 				actingPlayer.markSkillUsed(NamedProperties.canRerollOncePerTurn);
 			}
 			int[] reRolledWithPro = getGameState().getDiceRoller().rollBlockDice(1);

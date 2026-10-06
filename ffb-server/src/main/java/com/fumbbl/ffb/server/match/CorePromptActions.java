@@ -2,15 +2,10 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.ApothecaryType;
 import com.fumbbl.ffb.Direction;
-import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
-import com.fumbbl.ffb.ReRollProperty;
-import com.fumbbl.ffb.ReRollSources;
-import com.fumbbl.ffb.ReRolledAction;
-import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
@@ -20,21 +15,17 @@ import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
-import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandApothecaryChoice;
-import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
 import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
-import com.fumbbl.ffb.net.commands.ClientCommandUseProReRollForBlock;
-import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.util.UtilPassing;
@@ -120,48 +111,13 @@ public final class CorePromptActions {
 
 	private void blockRoll(List<CoreTurnActions.Action> result, Game game, DialogBlockRollPropertiesParameter dialog) {
 		String role = roleForTeam(game, dialog.getChoosingTeamId());
-		if (role == null || dialog.getBlockRoll() == null) return;
-		for (int index = 0; index < dialog.getBlockRoll().length; index++) {
-			add(result, "block-die:" + index, "blockDie", "Choose " + ((BlockResultFactory) game.getFactory(FactoryType.Factory.BLOCK_RESULT)).forRoll(dialog.getBlockRoll()[index]).getName() + " (die " + (index + 1) + ")", role,
-				new ClientCommandBlockChoice(index));
-		}
-		if (dialog.hasProperty(ReRollProperty.TRR)) {
-			add(result, "block-reroll:team", "reroll", "Use team re-roll", role,
-				new ClientCommandUseReRoll(ReRolledActions.BLOCK, ReRollSources.TEAM_RE_ROLL));
-		}
-		if (dialog.hasProperty(ReRollProperty.PRO) || ReRollSources.PRO.getName(game).equals(
-            dialog.getRrActionToSource().get(ReRolledActions.SINGLE_DIE_PER_ACTIVATION.getName(game.getRules().getSkillFactory())))) {
-			for (int index = 0; index < dialog.getBlockRoll().length; index++) add(result, "block-reroll:pro:" + index, "reroll", "Use Pro on die " + (index + 1), role,
-				new ClientCommandUseProReRollForBlock(index));
-		}
+		if (role != null && dialog.getBlockRoll() != null) result.addAll(new RerollPromptActions(game, role).blockRoll(dialog));
 	}
 
 	private void reroll(List<CoreTurnActions.Action> result, Game game, DialogReRollPropertiesParameter dialog) {
-		Player<?> player = game.getPlayerById(dialog.getPlayerId());
-		String role = roleForPlayer(game, player);
-		ReRolledAction action = dialog.getReRolledAction();
-		if (role == null || action == null) return;
-		String actionName = action.getName(game.getRules().getSkillFactory());
-		add(result, "reroll:none", "reroll", "Do not re-roll " + actionName, role,
-			new ClientCommandUseReRoll(action, null));
-		if (dialog.hasProperty(ReRollProperty.TRR)) {
-			add(result, "reroll:team", "reroll", "Use team re-roll for " + actionName, role,
-				new ClientCommandUseReRoll(action, ReRollSources.TEAM_RE_ROLL));
-		}
-		if (dialog.hasProperty(ReRollProperty.PRO)) {
-			add(result, "reroll:pro", "reroll", "Use Pro re-roll for " + actionName, role,
-				new ClientCommandUseReRoll(action, ReRollSources.PRO));
-		}
-		if (dialog.getReRollSkill() != null) {
-			add(result, "reroll:skill", "reroll", "Use " + dialog.getReRollSkill().getName(), role,
-				new ClientCommandUseSkill(dialog.getReRollSkill(), true, player.getId(), action, false));
-		}
-		if (dialog.getModifyingSkill() != null) {
-			add(result, "reroll:modify", "reroll", "Use " + dialog.getModifyingSkill().getName(), role,
-				new ClientCommandUseSkill(dialog.getModifyingSkill(), true, player.getId(), action, false));
-		}
+		String role = roleForPlayer(game, game.getPlayerById(dialog.getPlayerId()));
+		if (role != null && dialog.getReRolledAction() != null) result.addAll(new RerollPromptActions(game, role).reroll(dialog));
 	}
-
 	private void followUp(List<CoreTurnActions.Action> result, Game game) {
 		ActingPlayer acting = game.getActingPlayer();
 		String role = acting == null ? null : roleForPlayer(game, acting.getPlayer());
