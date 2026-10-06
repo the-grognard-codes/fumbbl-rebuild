@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { checkAdc } from './match-review-adc-check.mjs';
+import { reviewMountSource } from './review-mount-source.mjs';
 
 const serverName = 'ffb-match-review-server-1';
 const databaseName = 'ffb-match-review-database-1';
@@ -21,12 +22,6 @@ function container(name, service) {
   if (value?.Name !== `/${name}` || value.Config?.Labels?.['com.docker.compose.project'] !== 'ffb-match-review'
     || value.Config.Labels['com.docker.compose.service'] !== service) throw Error('REVIEW_CONTAINER_MISMATCH');
   return value;
-}
-
-function mountFile(server) {
-  const mounts = server.Mounts.filter(mount => mount.Destination === adcDestination);
-  if (mounts.length !== 1 || mounts[0].Type !== 'bind' || mounts[0].RW !== false) throw Error('ADC_MOUNT_UNAVAILABLE');
-  return mounts[0].Source;
 }
 
 async function checkedCredential(text) {
@@ -86,7 +81,7 @@ async function waitHealthy(name) {
 export async function startReview() {
   const server = container(serverName, 'server');
   const database = container(databaseName, 'database');
-  const target = mountFile(server);
+  const target = reviewMountSource(server, adcDestination, 'ADC_MOUNT_UNAVAILABLE');
   const updated = await recoverCredential(target);
   if (!database.State?.Running) docker('start', databaseName);
   await waitHealthy(databaseName);
