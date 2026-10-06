@@ -28,7 +28,7 @@ export function startPlay({ auth, config }, status, host) {
     dispose?.(); dispose = null; host.replaceChildren();
     if (!user) {
       if (matchReturn) sessionStorage.setItem('moles.play.return-match', matchReturn);
-      location.assign('/login?returnTo=%2Fplay'); return;
+      location.assign(location.pathname === '/spectate' ? '/login?returnTo=%2Fspectate' : '/login?returnTo=%2Fplay'); return;
     }
     if (location.pathname === '/play') {
       const saved = sessionStorage.getItem('moles.play.return-match');
@@ -39,10 +39,10 @@ export function startPlay({ auth, config }, status, host) {
     }
     try {
       const url = gameEndpoint(config.gameWebSocketUrl, location, config);
-      const { mountPlay } = await import('/assets/game/game.js');
+      const { mountPlay, mountSpectate } = await import('/assets/game/game.js');
       if (generation !== current) return;
       status.textContent = '';
-      dispose = mountPlay(host, { url, getToken: () => user.getIdToken(true) });
+      dispose = (location.pathname === '/spectate' ? mountSpectate : mountPlay)(host, { url, getToken: () => user.getIdToken(true) });
     } catch { if (generation === current) status.textContent = 'The game connection is not configured. Please try again later.'; }
   });
   return () => { generation++; unsubscribe(); dispose?.(); host.replaceChildren(); };

@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Moles Under the Pitch Spectate page lists live team matchups, scores and game details, with replay search fields ready for the future archive")
+			.addImprovement("Moles Under the Pitch Updates now covers the merged PR history with concise summaries, search, categories and ten entries per page")
 			.addBehaviorChange("BB2025 team rerolls consume Brilliant Coaching before conditional Mascot, then Leader and ordinary team sources, retaining native limits and fallback checks")
 			.addBugfix("Browser roll prompts expose native team, Mascot, Pro and skill choices and preserve their dice through reconnect")
 			.addImprovement("Browser match dice appear directly over the pitch with individual shadows, accessible choices and no enclosing boxes")

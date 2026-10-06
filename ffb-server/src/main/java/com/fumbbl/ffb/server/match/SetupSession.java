@@ -689,6 +689,21 @@ public final class SetupSession {
 		return view("spectator");
 	}
 
+	/** Small read-only scoreboard for browse; avoids building the full player and action view. */
+	public JsonObject browseSummary() {
+		if (failed) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		Game game = state.getGame();
+		return new JsonObject().add("phase", browsePhase())
+			.add("half", Math.max(1, Math.min(2, game.getHalf())))
+			.add("turn", game.getTurnData().getTurnNr())
+			.add("homeScore", homeScore()).add("awayScore", awayScore());
+	}
+
+	private String browsePhase() {
+		return isComplete() ? "FULL_TIME" : step() == StepId.KICKOFF ? "READY_FOR_KICKOFF"
+			: step() == StepId.SETUP ? "SETUP" : step() == StepId.COIN_CHOICE || step() == StepId.RECEIVE_CHOICE ? "PRE_MATCH" : "PLAY";
+	}
+
 	private JsonObject view(String role) {
 		Game game = state.getGame();
 		JsonArray players = new JsonArray();
@@ -744,7 +759,7 @@ public final class SetupSession {
             .add("activePlayerId", game.getActingPlayer().getPlayerId())
             .add("ball", FieldCoordinateBounds.FIELD.isInBounds(ball) ? new JsonObject().add("x", ball.getX()).add("y", ball.getY()) : JsonValue.NULL)
             .add("matchId", matchId).add("revision", revision).add("callerRole", role)
-			.add("phase", isComplete() ? "FULL_TIME" : step() == StepId.KICKOFF ? "READY_FOR_KICKOFF" : step() == StepId.SETUP ? "SETUP" : step() == StepId.COIN_CHOICE || step() == StepId.RECEIVE_CHOICE ? "PRE_MATCH" : "PLAY")
+			.add("phase", browsePhase())
 			.add("actor", actor()).add("prompt", prompt).add("players", players)
 			.add("weather", game.getFieldModel().getWeather().name())
 			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls())

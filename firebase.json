@@ -26,6 +26,7 @@
       }
     ],
     "rewrites": [
+      { "source": "/spectate", "destination": "/spectate/index.html" },
       { "source": "/play", "destination": "/play/index.html" },
       { "source": "/play/**", "destination": "/play/index.html" },
       { "source": "/login/complete", "destination": "/login/complete/index.html" }
