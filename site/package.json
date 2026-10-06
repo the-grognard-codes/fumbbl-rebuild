@@ -5,9 +5,11 @@
   "type": "module",
   "description": "Static public site for the Moles Under the Pitch educational project.",
   "scripts": {
-    "build": "npm --prefix ../browser-client run build:play && node scripts/build.mjs",
+    "build": "node scripts/render-updates.mjs && npm --prefix ../browser-client run build:play && node scripts/build.mjs",
+    "updates:render": "node scripts/render-updates.mjs",
     "check": "node scripts/check.mjs",
-    "test": "node --test test/play-client.test.mjs",
-    "test:browser": "npm run build && node --test test/play-browser.test.mjs test/builder-browser.test.mjs test/m5d-blitz-browser.test.mjs test/m5e-result-browser.test.mjs test/m5f-keyboard-browser.test.mjs && npm --prefix ../browser-client run test:interaction"
+    "test": "node --test test/play-client.test.mjs test/updates.test.mjs",
+    "test:updates": "npm run build && node --test test/updates-browser.test.mjs",
+    "test:browser": "npm run build && node --test test/play-browser.test.mjs test/updates-browser.test.mjs test/builder-browser.test.mjs test/m5d-blitz-browser.test.mjs test/m5e-result-browser.test.mjs test/m5f-keyboard-browser.test.mjs && npm --prefix ../browser-client run test:interaction"
   }
 }
