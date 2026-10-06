@@ -57,12 +57,12 @@ Add 30-degree and 50-degree perspective views to the live match and reference co
 
 ### Acceptance
 
-- [ ] Provide clearly labelled 30, 40 and 50 degree choices through the existing match camera controls. Both new views retain zero yaw, width-fit framing and the travelling camera contract.
-- [ ] Pitch, scenery, players, ball, routes, selection and decision overlays share the chosen camera. Home and away remain opposing coach views; input resolves to the same canonical squares.
-- [ ] Switching elevation retains coach end, longitudinal position, zoom, selected player, prepared target/route and pending decision. Camera choices remain local presentation state and never submit a match command.
-- [ ] Keep height/elevation/lens fixed during travel within each preset; only an explicit preset, resize or zoom change can recalibrate framing. Expose both end zones and their players at each elevation.
-- [ ] Add home/away reference captures for 30 and 50 degrees and record any framing/readability trade-offs. Update the camera documentation to explain the new production choices.
-- [ ] Add a user-facing change-list entry.
+- [x] Provide clearly labelled 30, 40 and 50 degree choices through the existing match camera controls. Both new views retain zero yaw, width-fit framing and the travelling camera contract.
+- [x] Pitch, scenery, players, ball, routes, selection and decision overlays share the chosen camera. Home and away remain opposing coach views; input resolves to the same canonical squares.
+- [x] Switching elevation retains coach end, longitudinal position, zoom, selected player, prepared target/route and pending decision. Camera choices remain local presentation state and never submit a match command.
+- [x] Keep height/elevation/lens fixed during travel within each preset; only an explicit preset, resize or zoom change can recalibrate framing. Expose both end zones and their players at each elevation.
+- [x] Add home/away reference captures for 30 and 50 degrees and record any framing/readability trade-offs. Update the camera documentation to explain the new production choices.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 
@@ -87,12 +87,12 @@ While choosing a pushback square, a home/away placeholder token such as A3 appea
 
 ### Acceptance
 
-- [ ] Reproduce and capture the reported placeholder during a real pushback decision, identifying the affected player and authoritative state/asset lookup.
-- [ ] Render the pushed player and other affected players with their existing team/position artwork and correct facing/pose while legal push destinations are shown. Do not substitute H/A-number tokens for players with available art.
-- [ ] Preserve player identity, jersey number, canonical square and ground anchor through the push prompt, each chain-push prompt and the accepted resulting movement.
-- [ ] Retain legal push arrows and direct server-offered choice submission from [#94](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/94). Player graphics must not obscure or intercept a valid destination choice.
-- [ ] Retain an explicit fallback only for genuinely missing/unsupported artwork, with a regression check that distinguishes that case from normal Human/Orc push decisions.
-- [ ] Add a user-facing change-list entry.
+- [x] Reproduce and capture the reported placeholder during a real pushback decision, identifying the affected player and authoritative state/asset lookup.
+- [x] Render the pushed player and other affected players with their existing team/position artwork and correct facing/pose while legal push destinations are shown. Do not substitute H/A-number tokens for players with available art.
+- [x] Preserve player identity, jersey number, canonical square and ground anchor through the push prompt, each chain-push prompt and the accepted resulting movement.
+- [x] Retain legal push arrows and direct server-offered choice submission from [#94](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/94). Player graphics must not obscure or intercept a valid destination choice.
+- [x] Retain an explicit fallback only for genuinely missing/unsupported artwork, with a regression check that distinguishes that case from normal Human/Orc push decisions.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 
@@ -100,7 +100,7 @@ Cover ordinary push and chain push with both coach views, top-down view and spec
 
 ## Make pass declaration movement and target confirmation work together
 
-GitHub: [#114](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/114). Status: closed by PR #121. Observation: 3. Triage: `ready-for-agent`.
+GitHub: [#114](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/114). Status: closed by [PR #121](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/121). Observation: 3. Triage: `ready-for-agent`.
 
 ### Outcome
 
@@ -110,13 +110,13 @@ The pass interaction feels unclear. Support the owner's intended sequence: selec
 
 ### Acceptance
 
-- [ ] Selecting Pass stages the server-offered declaration; Confirmed! declares it. The active player remains in the Pass action while moving through the existing route preview/confirmation flow.
-- [ ] Movement and a legal ball pickup can occur before the throw. Movement does not silently replace Pass with a Move declaration or prematurely finish the player's action.
-- [ ] Clicking a legal target player stages the matching server-offered pass target. Show the selected target clearly; Confirmed! submits the throw only after this explicit target review.
-- [ ] Preserve native support for any other legal pass targets, including empty squares when offered. Do not fabricate legal targets when the active player lacks the ball or the native rules prohibit the throw.
-- [ ] Required pickup/movement/reroll/reaction decisions interrupt and resume through the existing prompt path. Refresh targets after accepted movement or a changed authoritative revision.
-- [ ] Stale proposals, double confirmation, wrong actor, disconnect and spectator/replay mode cannot submit a pass. Camera changes preserve a still-valid selection.
-- [ ] Add a user-facing change-list entry.
+- [x] Selecting Pass stages the server-offered declaration; Confirmed! declares it. The active player remains in the Pass action while moving through the existing route preview/confirmation flow.
+- [x] Movement and a legal ball pickup can occur before the throw. Movement does not silently replace Pass with a Move declaration or prematurely finish the player's action.
+- [x] Clicking a legal target player stages the matching server-offered pass target. Show the selected target clearly; Confirmed! submits the throw only after this explicit target review.
+- [x] Preserve native support for any other legal pass targets, including empty squares when offered. Do not fabricate legal targets when the active player lacks the ball or the native rules prohibit the throw.
+- [x] Required pickup/movement/reroll/reaction decisions interrupt and resume through the existing prompt path. Refresh targets after accepted movement or a changed authoritative revision.
+- [x] Stale proposals, double confirmation, wrong actor, disconnect and spectator/replay mode cannot submit a pass. Camera changes preserve a still-valid selection.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 
@@ -221,7 +221,7 @@ Coordinate with the source-accounting ticket for authoritative availability; ski
 
 ## Verify reroll totals and consume sources in the requested priority
 
-GitHub: [#118](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/118). Status: open. Observation: 5. Triage: `ready-for-agent`.
+GitHub: [#118](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/118). Status: closed by [PR #125](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/125). Observation: 5. Triage: `ready-for-agent`.
 
 ### Outcome
 
