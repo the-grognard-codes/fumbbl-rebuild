@@ -23,7 +23,8 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate)
     && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;
-  const choices = ownActions.filter(action => action.kind === kind || kind === 'blockDie' && action.kind === 'reroll');
+  const rollKinds = ['blockDie', 'reroll', 'skill'];
+  const choices = ownActions.filter(action => action.kind === kind || rollKinds.includes(kind) && rollKinds.includes(action.kind));
   return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind,
     options: choices.map(action => {
       const face = action.kind === 'blockDie' ? /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;

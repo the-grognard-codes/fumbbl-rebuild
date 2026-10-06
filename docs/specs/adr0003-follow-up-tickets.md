@@ -2,7 +2,7 @@
 
 Owner observations from 2026-10-05 are split into eight focused GitHub tickets. These extend or correct the completed coach-oriented match UI from [ADR 0003](../adr/0003-coach-oriented-angled-pitch.md) and [#101](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/101). GitHub owns ticket state; this file mirrors the agreed scope and acceptance criteria.
 
-No implementation or gameplay verification is included in this ticket-scoping work. Acceptance checkboxes below are requirements for future work, not evidence of completion.
+Delivery evidence and merged PRs are recorded in adr0003-follow-up-delivery.md. Checked acceptance items refer to the completed implementation and its recorded verification.
 
 The final reroll consumption order is **Brilliant Coaching > Mascot > Leader Reroll > Team Reroll**. Pass declaration retains movement and possible pickup before explicit target confirmation. New 30 and 50 degree views extend the earlier production camera scope while keeping 40 degrees as the default.
 
@@ -161,7 +161,7 @@ Coordinate with the pass-flow ticket; the authoritative classification and overl
 
 ## Show dice directly over the pitch without enclosing boxes
 
-GitHub: [#116](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/116). Status: open. Observation: 4. Triage: `ready-for-agent`.
+GitHub: [#116](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/116). Status: closed in [PR #123](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/123). Observation: 4. Triage: `ready-for-agent`.
 
 ### Outcome
 
@@ -199,13 +199,13 @@ When a roll can be rerolled, show the available source choices, including team r
 
 ### Acceptance
 
-- [ ] Display every concurrently eligible server-offered reroll/skill choice for the current roll, with a clear source label and a decline/keep-result choice where offered. Do not collapse multiple sources into one generic button or hide one prompt family behind another.
-- [ ] Allow an explicit choice between Pro and a team reroll when both are offered, and support other reachable skill/resource rerolls through the same authoritative choice path.
-- [ ] Each control submits its exact offered action ID. Selecting one source updates/clears the other choices from the accepted server revision and prevents double expenditure or a second reroll of the same roll where prohibited.
-- [ ] Show options whenever the native rules permit them, including successful rolls where rerolling is allowed. Never offer an exhausted, ineligible or already-used source based solely on a HUD count.
-- [ ] Required prompts remain keyboard accessible and visible beside unboxed dice. Other coaches, spectators and replay viewers can inspect revealed results but cannot answer the acting coach's prompt.
-- [ ] Preserve pending choices through camera/view changes and reconnect reconciliation; invalidate stale choices after changed legality.
-- [ ] Add a user-facing change-list entry.
+- [x] Display every concurrently eligible server-offered reroll/skill choice for the current roll, with a clear source label and a decline/keep-result choice where offered. Do not collapse multiple sources into one generic button or hide one prompt family behind another.
+- [x] Allow an explicit choice between Pro and a team reroll when both are offered, and support other reachable skill/resource rerolls through the same authoritative choice path.
+- [x] Each control submits its exact offered action ID. Selecting one source updates/clears the other choices from the accepted server revision and prevents double expenditure or a second reroll of the same roll where prohibited.
+- [x] Show options whenever the native rules permit them, including successful rolls where rerolling is allowed. Never offer an exhausted, ineligible or already-used source based solely on a HUD count.
+- [x] Required prompts remain keyboard accessible and visible beside unboxed dice. Other coaches, spectators and replay viewers can inspect revealed results but cannot answer the acting coach's prompt.
+- [x] Preserve pending choices through camera/view changes and reconnect reconciliation; invalidate stale choices after changed legality.
+- [x] Add a user-facing change-list entry.
 
 ### Verification and handoff
 
