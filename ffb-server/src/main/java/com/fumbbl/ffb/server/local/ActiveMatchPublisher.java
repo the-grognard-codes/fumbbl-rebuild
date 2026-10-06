@@ -45,6 +45,12 @@ final class ActiveMatchPublisher {
 
 	void remove(BrowserMatchAdapter.Connection connection) { viewers.remove(connection); }
 
+	int spectatorCount(String matchId) {
+		int count = 0;
+		for (Viewer viewer : viewers.values()) if (viewer.spectator && matchId.equals(viewer.matchId)) count++;
+		return count;
+	}
+
 	void publishChat(String matchId, BrowserMatchAdapter.Connection source, JsonObject page) {
 		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
 			Viewer viewer = viewers.get(connection);

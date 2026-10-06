@@ -5,6 +5,11 @@ updates, privacy policy, support contact, non-affiliation statement, and Firebas
 Authentication sign-in/completion routes. Their public configuration is generated
 only by the explicitly selected Firebase assembly environment.
 
+`/spectate` lists authenticated live matchups with public team and score details.
+Its replay archive is an empty search scaffold for game IDs, players/coaches,
+team names and team types. Play setup retains a link to this game browser.
+Run `npm run test:spectate --prefix site` for the focused browser checks.
+
 Run `npm run check --prefix site` to validate its required pages, or
 `npm run build --prefix site` to create `site/dist/`.
 

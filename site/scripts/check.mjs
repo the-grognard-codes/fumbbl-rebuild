@@ -11,6 +11,7 @@ const required = [
   'src/login/index.html',
   'src/login/complete/index.html',
   'src/play/index.html',
+  'src/spectate/index.html',
   'src/teambuilder/index.html',
   'src/assets/site.css',
   'src/assets/updates.css',

@@ -13,7 +13,8 @@ try {
       try {
         await signInWithEmailLink(auth, email, window.location.href);
         localStorage.removeItem('moles-email-link-address');
-        const returnTo = sessionStorage.getItem('moles-login-return-to') === '/teambuilder' ? '/teambuilder' : '/play';
+        const requestedReturn = sessionStorage.getItem('moles-login-return-to');
+        const returnTo = ['/teambuilder', '/spectate'].includes(requestedReturn) ? requestedReturn : '/play';
         sessionStorage.removeItem('moles-login-return-to');
         window.location.assign(returnTo);
       } catch {
