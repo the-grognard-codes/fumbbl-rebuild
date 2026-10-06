@@ -285,35 +285,15 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 		TurnData turnData = game.getTurnData();
 		if (reRollSource != null) {
 
-			boolean teamReRoll = ReRollSources.TEAM_RE_ROLL == reRollSource;
 			InducementType mascotType = turnData.getInducementSet().forUsage(Usage.CONDITIONAL_REROLL);
-			boolean mascotAvailable = mascotType != null && turnData.getInducementSet().hasUsesLeft(mascotType);
-
-			boolean mascot =
-				Arrays.asList(ReRollSources.MASCOT, ReRollSources.MASCOT_TRR).contains(reRollSource) && mascotAvailable;
-
-			if (mascot) {
-				int mascotRoll = gameState.getDiceRoller().rollDice(6);
-				successful = mascotRoll >= MASCOT_MINIMUM_ROLL;
-				boolean fallback = !successful && reRollSource == ReRollSources.MASCOT_TRR && turnData.getReRolls() > 0;
-
-				useMascot(stepResult, gameState, mascotRoll, successful, fallback, mascotType, turnData);
-
-				if (successful) {
-					return checkForLoner(pPlayer, gameState, stepResult);
-				} else if (!fallback) {
-					return false;
-				} else {
-					teamReRoll = true;
-				}
-			}
+			boolean mascotAvailable = isMascotAvailable(gameState, pPlayer);
+			boolean teamSource = Arrays.asList(ReRollSources.TEAM_RE_ROLL, ReRollSources.BRILLIANT_COACHING,
+				ReRollSources.LEADER, ReRollSources.PUMP_UP_THE_CROWD, ReRollSources.SHOW_STAR).contains(reRollSource);
+			if (teamSource || reRollSource == ReRollSources.MASCOT || reRollSource == ReRollSources.MASCOT_TRR)
+				return useTeamSources(pStep, pPlayer, turnData, teamSource || reRollSource == ReRollSources.MASCOT_TRR);
 
 			Skill reRollSourceSkill = reRollSource.getSkill(game);
-			if (teamReRoll) {
-
-				successful = useTeamReRoll(reRollSource, pPlayer, turnData, stepResult, successful, gameState);
-
-			} else if (reRollSourceSkill != null) {
+			if (reRollSourceSkill != null) {
 				if (reRollSourceSkill.hasSkillProperty(NamedProperties.canRerollOncePerTurn)) {
 					PlayerState playerState = game.getFieldModel().getPlayerState(pPlayer);
 					successful = (pPlayer.hasSkillProperty(NamedProperties.canRerollOncePerTurn)
@@ -352,7 +332,7 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 							}
 
 							if (Arrays.asList(ReRollSources.PRO_TRR, ReRollSources.PRO_MASCOT_TRR).contains(reRollSource)) {
-								if (useTeamReRoll(ReRollSources.TEAM_RE_ROLL, pPlayer, turnData, stepResult, successful, gameState)) {
+								if (useTeamSources(pStep, pPlayer, turnData, true)) {
 									proRoll = gameState.getDiceRoller().rollSkill();
 									successful = DiceInterpreter.getInstance().isSkillRollSuccessful(proRoll, minimumProRoll());
 									stepResult.addReport(new ReportReRoll(pPlayer.getId(), ReRollSources.PRO, successful, proRoll));
@@ -411,20 +391,36 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 		return rrSaved;
 	}
 
-	private boolean useTeamReRoll(ReRollSource reRollSource, Player<?> pPlayer, TurnData turnData, StepResult stepResult,
-		boolean successful, GameState gameState) {
+	private boolean useTeamSources(IStep step, Player<?> player, TurnData turnData, boolean allowFallback) {
+		GameState state = step.getGameState();
+		StepResult result = step.getResult();
+		// Expiring native drive sources precede conditional Mascot, then Leader/team.
+		if (firstAvailableSpecialReRollSource(turnData) != null && isTeamReRollAvailable(state, player))
+			return useGuaranteedTeamReRoll(player, turnData, result, state);
+		if (isMascotAvailable(state, player)) {
+			InducementType type = turnData.getInducementSet().forUsage(Usage.CONDITIONAL_REROLL);
+			int roll = state.getDiceRoller().rollDice(6);
+			boolean successful = roll >= MASCOT_MINIMUM_ROLL;
+			boolean fallback = !successful && allowFallback && isTeamReRollAvailable(state, player);
+			useMascot(result, state, roll, successful, fallback, type, turnData);
+			if (successful) return checkForLoner(player, state, result);
+			if (!fallback) return false;
+		} else if (!allowFallback) return false;
+		return isTeamReRollAvailable(state, player) && useGuaranteedTeamReRoll(player, turnData, result, state);
+	}
+
+	private boolean useGuaranteedTeamReRoll(Player<?> pPlayer, TurnData turnData, StepResult stepResult,
+		GameState gameState) {
 
 		boolean rrSaved = checkTeamCaptain(stepResult, gameState);
-		ReRollSource usedReRollSource = findUsedTeamReRollSource(turnData, reRollSource);
+		ReRollSource usedReRollSource = findUsedTeamReRollSource(turnData);
 
 		if (!rrSaved) {
 			updateTurnDataAfterReRollUsage(turnData, usedReRollSource);
 		}
 
-		stepResult.addReport(new ReportReRoll(pPlayer.getId(), usedReRollSource, successful, 0));
-
-		successful = checkForLoner(pPlayer, gameState, stepResult);
-		return successful;
+		stepResult.addReport(new ReportReRoll(pPlayer.getId(), usedReRollSource, true, 0));
+		return checkForLoner(pPlayer, gameState, stepResult);
 	}
 
 	private boolean checkForLoner(Player<?> pPlayer, GameState gameState, StepResult stepResult) {
@@ -439,14 +435,7 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 		}
 	}
 
-	private ReRollSource findUsedTeamReRollSource(TurnData turnData, ReRollSource selectedSource) {
-		if (isSpecialReRollSourceAvailable(turnData, selectedSource)) {
-			return selectedSource;
-		}
-		if (ReRollSources.LEADER == selectedSource && LeaderState.AVAILABLE.equals(turnData.getLeaderState())) {
-			return ReRollSources.LEADER;
-		}
-
+	private ReRollSource findUsedTeamReRollSource(TurnData turnData) {
 		ReRollSource fallbackSpecialSource = firstAvailableSpecialReRollSource(turnData);
 		if (fallbackSpecialSource != null) {
 			return fallbackSpecialSource;
@@ -521,6 +510,7 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 
 		return Arrays.stream(inducementSet.getInducements())
 			.anyMatch(ind -> ind.getType().hasUsage(Usage.CONDITIONAL_REROLL) && ind.getUsesLeft() > 0)
+			&& firstAvailableSpecialReRollSource(game.getTurnData()) == null
 			&& isTeamReRollAvailable(pGameState, pPlayer, 1);
 
 	}
