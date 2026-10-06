@@ -189,7 +189,7 @@ Capture d6 and one/two/three block-die rolls, selectable outcomes and reduced-mo
 
 ## Show every eligible reroll option beside the current roll
 
-GitHub: [#117](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/117). Status: open. Observation: 4. Triage: `ready-for-agent`.
+GitHub: [#117](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/117). Status: closed by [PR #124](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/124). Observation: 4. Triage: `ready-for-agent`.
 
 ### Outcome
 
@@ -235,13 +235,13 @@ This final sequence resolves the earlier conflicting order in the observation.
 
 ### Acceptance
 
-- [ ] Audit native BB2025 availability, consumption and browser totals for Brilliant Coaching, team mascot, Leader and ordinary team rerolls. Record current behavior and any divergence before making corrections.
-- [ ] Apply the requested priority among sources currently eligible for the decision. Skip exhausted/ineligible sources and preserve each source's native conditions, limits and expiry. A conditional Mascot attempt must not become an unconditional guaranteed reroll through aggregation.
-- [ ] Decrement only the source actually consumed and derive the combined visible total from authoritative availability. Declining a reroll, rejecting a stale action or reconciling an exact retry must not spend another resource.
-- [ ] Verify Brilliant Coaching expiry, Leader availability when the qualifying player is unavailable, Mascot success/failure and any permitted follow-on team reroll, turn/half/drive resets, and ordinary reroll exhaustion against the active rules.
-- [ ] Keep explicit skill-vs-team decisions, such as Pro versus team reroll, separate from this automatic ordering of team sources. Preserve ruleset-specific behavior outside BB2025 unless the same correction is explicitly applicable there.
-- [ ] Make the consumed source identifiable in the authoritative outcome/log and ensure both coaches/spectators receive correct revealed counts after use and reconnect.
-- [ ] Add a user-facing change-list entry for any visible correction.
+- [x] Audit native BB2025 availability, consumption and browser totals for Brilliant Coaching, team mascot, Leader and ordinary team rerolls. Record current behavior and any divergence before making corrections.
+- [x] Apply the requested priority among sources currently eligible for the decision. Skip exhausted/ineligible sources and preserve each source's native conditions, limits and expiry. A conditional Mascot attempt must not become an unconditional guaranteed reroll through aggregation.
+- [x] Decrement only the source actually consumed and derive the combined visible total from authoritative availability. Declining a reroll, rejecting a stale action or reconciling an exact retry must not spend another resource.
+- [x] Verify Brilliant Coaching expiry, Leader availability when the qualifying player is unavailable, Mascot success/failure and any permitted follow-on team reroll, turn/half/drive resets, and ordinary reroll exhaustion against the active rules.
+- [x] Keep explicit skill-vs-team decisions, such as Pro versus team reroll, separate from this automatic ordering of team sources. Preserve ruleset-specific behavior outside BB2025 unless the same correction is explicitly applicable there.
+- [x] Make the consumed source identifiable in the authoritative outcome/log and ensure both coaches/spectators receive correct revealed counts after use and reconnect.
+- [x] Add a user-facing change-list entry for any visible correction.
 
 ### Verification and handoff
 

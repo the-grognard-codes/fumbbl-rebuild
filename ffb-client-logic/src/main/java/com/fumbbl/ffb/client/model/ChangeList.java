@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBehaviorChange("BB2025 team rerolls consume Brilliant Coaching before conditional Mascot, then Leader and ordinary team sources, retaining native limits and fallback checks")
 			.addBugfix("Browser roll prompts expose native team, Mascot, Pro and skill choices and preserve their dice through reconnect")
 			.addImprovement("Browser match dice appear directly over the pitch with individual shadows, accessible choices and no enclosing boxes")
 			.addBugfix("Browser Pass actions retain movement and pickup, then clicking the recipient prepares the native throw for explicit confirmation")

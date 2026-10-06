@@ -18,7 +18,7 @@ function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName:
             : <span aria-hidden="true" className="live-resource-glyph">{item.kind === 'assistantCoach' ? 'AC' : 'CL'}</span>}
         <b>{item.count}</b>
       </button>
-      <span className="live-resource-tooltip" role="tooltip" id={`${id}-${item.kind}`}>{item.label} · {item.count} available</span>
+      <span className="live-resource-tooltip" role="tooltip" id={`${id}-${item.kind}`}>{item.label} · {item.count} available{item.kind === 'reroll' ? ' · Guaranteed sources; conditional Mascot choices appear with the roll' : ''}</span>
     </div>)}</div>
   </section>;
 }
