@@ -60,7 +60,7 @@ test('start opens a separate match window, with same-tab fallback when blocked',
           });
         });
         await page.goto(`http://127.0.0.1:${server.address().port}/play`);
-        await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+        await page.getByLabel('Match ID', { exact: true }).waitFor();
         await page.getByLabel('Match ID', { exact: true }).fill(matchId);
         await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
       }
@@ -123,7 +123,7 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       }
       if (popupBlocked) {
         await starterMatch.getByRole('button', { name: 'Exit match' }).click();
-        await starterMatch.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+        await starterMatch.getByLabel('Match ID', { exact: true }).waitFor();
       } else {
         const closed = starterMatch.waitForEvent('close');
         await starterMatch.getByRole('button', { name: 'Exit match' }).click().catch(error => {
@@ -142,7 +142,7 @@ test('two players and spectator use one board; updates, read-only controls and r
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
-    const file = resolve(root, `.${path === '/play' || path === '/play/match' ? '/play/index.html' : path}`);
+    const file = resolve(root, `.${path === '/spectate' ? '/spectate/index.html' : path === '/play' || path === '/play/match' ? '/play/index.html' : path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
     try { const content = await readFile(file); response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(content); }
     catch { response.writeHead(404).end(); }
@@ -189,8 +189,8 @@ test('two players and spectator use one board; updates, read-only controls and r
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play`);
-      await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
-      if (index === 2) await page.getByRole('button', { name: /Watch Home vs Away/ }).click();
+      await page.getByLabel('Match ID', { exact: true }).waitFor();
+      if (index === 2) { await page.getByRole('link', { name: 'Spectate', exact: true }).click(); await page.getByRole('link', { name: /Watch Home vs Away/ }).click(); }
       else { await page.getByLabel('Match ID', { exact: true }).fill(matchId); await page.getByRole('button', { name: 'Resume play', exact: true }).click(); }
       await openGrid(page);
       assert.equal(new URL(page.url()).pathname, '/play/match');
@@ -260,5 +260,8 @@ test('two players and spectator use one board; updates, read-only controls and r
     assert.ok(consoleSummary.messages <= 100, 'Bounded console inspection must not overflow');
     console.info('R3-E synthetic console summary:', JSON.stringify(consoleSummary));
     if (process.env.PLAY_SCREENSHOT_PATH) await pages[2].screenshot({ path: process.env.PLAY_SCREENSHOT_PATH, fullPage: true });
+    await pages[2].getByRole('button', { name: 'Exit match', exact: true }).click();
+    await pages[2].waitForURL(`http://127.0.0.1:${server.address().port}/spectate`);
+    await pages[2].getByRole('link', { name: 'Watch Home vs Away' }).waitFor();
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 });

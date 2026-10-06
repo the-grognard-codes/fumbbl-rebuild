@@ -1,3 +1,5 @@
+import { decodeBrowseGames } from './browse-protocol.ts';
+
 /** New response fields/families require a recipient projection test before rendering. */
 const fields: Record<string, string[]> = {
   authentication: ['code', 'accountId'], error: ['code'], browse: ['code', 'matches'],
@@ -23,9 +25,7 @@ export function assertV2Projection(message: Record<string, unknown>) {
     throw Error('Unexpected recipient fields');
   if (message.requestId !== null && (typeof message.requestId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(message.requestId)))
     throw Error('Invalid response correlation');
-  if (message.type === 'browse' && (!Array.isArray(message.matches) || message.matches.some(entry => !entry || typeof entry !== 'object'
-    || Object.keys(entry).length !== 2 || !Object.hasOwn(entry, 'matchId') || !Object.hasOwn(entry, 'label'))))
-    throw Error('Unexpected browse fields');
+  if (message.type === 'browse') decodeBrowseGames(message.matches);
   if (message.type === 'computerJobs' && (!Array.isArray(message.matches) || message.matches.length > 1024
     || message.matches.some(id => typeof id !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))))
     throw Error('Invalid computer jobs');

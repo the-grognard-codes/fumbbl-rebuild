@@ -5,8 +5,10 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
-import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
+import com.fumbbl.ffb.server.match.FrozenTeam;
+import com.fumbbl.ffb.server.match.MatchChat;
+import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -102,9 +104,30 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
 			if ("browse".equals(type)) {
-				fields(request, "version", "type", "requestId");
+				JsonValue requestedDetails = request.get("includeDetails");
+				if (requestedDetails == null) fields(request, "version", "type", "requestId");
+				else fields(request, "version", "type", "requestId", "includeDetails");
+				if (requestedDetails != null && !requestedDetails.isBoolean()) throw new IllegalArgumentException();
+				boolean includeDetails = requestedDetails != null && requestedDetails.asBoolean();
 				JsonArray list = new JsonArray();
-				for (String id : access.browse(principal)) list.add(new JsonObject().add("matchId", id).add("label", "Home vs Away"));
+				for (String id : access.browse(principal)) {
+					if (list.size() >= 100) break;
+					JsonObject entry = new JsonObject().add("matchId", id).add("label", "Home vs Away");
+					if (includeDetails) {
+						try {
+							MatchDocument document = setup.browseDocument(id);
+							if (document.lifecycle == MatchDocument.Lifecycle.ACTIVATED && document.away != null) {
+								JsonObject state;
+								try { state = setup.browseState(id); }
+								catch (SQLException | RuntimeException unavailable) { state = null; }
+								entry.add("details", browseDetails(document, state, publisher.spectatorCount(id)));
+							}
+						} catch (SQLException | RuntimeException unavailable) {
+							// A changing or unavailable snapshot still has its authorized legacy entry.
+						}
+					}
+					list.add(entry);
+				}
 				send(connection, new JsonObject().add("type", "browse").add("requestId", requestId).add("code", "ACCEPTED").add("matches", list));
 				return;
 			}
@@ -278,6 +301,31 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 	private void computerResponse(BrowserMatchAdapter.Connection connection, String requestId, String code) {
 		send(connection, new JsonObject().add("type", "computer").add("requestId", requestId).add("code", code));
+	}
+
+	private JsonObject browseDetails(MatchDocument document, JsonObject state, int spectators) {
+		JsonObject details = new JsonObject().add("home", browseTeam(document.home.team, "Home", null))
+			.add("away", browseTeam(document.away.team, "Away", computerCoach(document)))
+			.add("ruleset", document.home.team.ruleset).add("competition", JsonValue.NULL)
+			.add("spectators", spectators);
+		for (String field : Arrays.asList("phase", "half", "turn", "homeScore", "awayScore"))
+			details.add(field, state == null || state.get(field) == null ? JsonValue.NULL : state.get(field));
+		return details;
+	}
+
+	private JsonObject browseTeam(FrozenTeam team, String fallback, String coach) {
+		String type = team.rosterId;
+		try { type = JsonObject.readFrom(team.resolvedCatalogJson).getString("name", team.rosterId); }
+		catch (RuntimeException unavailable) { /* Historic frozen catalog may omit a display name. */ }
+		return new JsonObject().add("name", team.teamName == null || team.teamName.isEmpty() ? fallback : team.teamName)
+			.add("type", type).add("teamValue", team.total)
+			.add("coach", coach == null ? JsonValue.NULL : JsonValue.valueOf(coach));
+	}
+
+	private String computerCoach(MatchDocument document) {
+		return ComputerOpponentService.BUGMAN_TEAM_NAME.equals(document.away.team.teamName)
+			&& computers.cloneTeamId(document.matchId).equals(document.away.team.sourceTeamId)
+			? ComputerOpponentService.BUGMAN_NAME : null;
 	}
 
 	private void preparationChanged(String matchId, BrowserMatchAdapter.Connection source) {

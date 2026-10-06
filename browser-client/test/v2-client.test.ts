@@ -214,17 +214,44 @@ class Socket {
   close() { this.closed = true; }
   reply(message: any) { this.onmessage?.({ data: JSON.stringify({ version: 2, ...message }) }); }
 }
-function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }) {
+function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }, browseOnly = false) {
   const sockets: Socket[] = []; const events: any[] = [];
   const storage = { getItem: (key: string) => storageData.get(key) ?? null, setItem: (key: string, value: string) => { storageData.set(key, value); }, removeItem: (key: string) => storageData.delete(key) } as Storage;
   const client = new V2Client({ url: 'ws://127.0.0.1/browser/v2', getToken: async () => 'secret-bearer',
-    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch });
+    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch, browseOnly });
   async function connect() {
     client.connect(); const socket = sockets.at(-1)!; await socket.onopen!();
     socket.reply({ type: 'authentication', code: 'ACCEPTED', requestId: socket.sent[0].requestId, accountId: account }); return socket;
   }
   return { client, connect, sockets, events, storageData };
 }
+
+test('the directory requests public details without restoring player intents or reading private teams', async () => {
+  const retained = JSON.stringify({ accountId: account, request: { version: 2, type: 'setup', requestId: 'retained', matchId: match, operation: 'action' } });
+  const storage = new Map([[v2PendingKey, retained]]);
+  const directory = fixture(storage, { matchId: match, watch: false }, true);
+  const socket = await directory.connect();
+  assert.deepEqual(socket.sent.map(request => request.type), ['authenticate', 'browse']);
+  assert.equal(socket.sent[1].includeDetails, true);
+  assert.equal(directory.client.pending, null);
+  assert.equal(storage.get(v2PendingKey), retained);
+});
+
+test('the directory retries legacy browse once and preserves the fallback on refresh and reconnect', async () => {
+  const directory = fixture(new Map(), undefined, true);
+  let socket = await directory.connect();
+  socket.reply({ type: 'error', requestId: socket.sent[1].requestId, code: 'MALFORMED_MESSAGE' });
+  assert.deepEqual(socket.sent.map(request => request.type), ['authenticate', 'browse', 'browse']);
+  assert.equal(Object.hasOwn(socket.sent[2], 'includeDetails'), false);
+  socket.reply({ type: 'browse', requestId: socket.sent[2].requestId, code: 'ACCEPTED', matches: [{ matchId: match, label: 'Home vs Away' }] });
+  assert.equal(socket.closed, false);
+  assert.equal(directory.events.at(-1).type, 'browse');
+  directory.client.request('browse');
+  assert.equal(Object.hasOwn(socket.sent.at(-1), 'includeDetails'), false);
+  socket = await directory.connect();
+  assert.deepEqual(socket.sent.map(request => request.type), ['authenticate', 'browse']);
+  assert.equal(Object.hasOwn(socket.sent[1], 'includeDetails'), false);
+});
 
 test('a direct spectator match link loads and reconnects through one v2 selection', async () => {
   const { client, connect } = fixture(new Map(), { matchId: match, watch: true });

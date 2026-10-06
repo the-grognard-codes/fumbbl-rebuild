@@ -1,0 +1,84 @@
+@font-face { font-family: 'Spectate Chakra'; src: url('/assets/game/ui/fonts/ChakraPetch-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+.spectate-shell { width: min(72rem, calc(100% - 2rem)); padding: 0 0 1rem; }
+.spectate-shell :focus-visible { outline: 3px solid #ffe17b; outline-offset: 4px; }
+.spectate-shell h1, .spectate-shell h2, .spectate-shell h3 { font-family: 'Spectate Chakra', 'Chakra Petch', sans-serif; }
+.spectate-intro { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 3rem 0 2rem; }
+.spectate-intro h1 { max-width: none; font-size: clamp(2rem, 4.8vw, 3.3rem); margin: .6rem 0 1rem; }
+.spectate-intro p:not(.kicker) { margin: 0; color: #a9c8da; }
+.spectate-jump { display: flex; gap: .75rem; flex-shrink: 0; }
+.spectate-jump a { padding: .55rem .8rem; background: #101c2b; border: 1px solid #40637e; text-decoration: none; font-size: .9rem; }
+.spectate-section { margin: 0 0 2rem; border: 2px solid #40637e; background: #101c2b; box-shadow: 6px 6px 0 #03070c; padding: clamp(1rem, 3vw, 1.75rem); scroll-margin-top: 1rem; }
+.spectate-section:first-of-type { border-top: 3px solid #77d8ff; }
+.spectate-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.spectate-section-heading h2 { margin: .5rem 0 .8rem; font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+.spectate-count { display: inline-block; margin-left: .45rem; padding: .1rem .6rem; color: #77d8ff; background: #07111d; border: 1px solid #40637e; font-size: 1rem; vertical-align: middle; }
+.spectate-connection { display: flex; align-items: center; gap: .75rem; color: #a9c8da; font-size: .8rem; }
+.spectate-shell button, .spectate-shell .button { font-family: 'Spectate Chakra', sans-serif; font-size: .9rem; padding: .6rem 1rem; line-height: 1.4; border-width: 2px; white-space: nowrap; }
+.spectate-shell button:disabled { opacity: .5; cursor: default; transform: none; }
+.spectate-connection button, .spectate-shell .spectate-secondary { background: #172b3e; border-color: #40637e; color: #bdeaff; box-shadow: 3px 3px 0 #03070c; }
+.spectate-shell label { display: flex; font-size: .85rem; gap: .4rem; }
+.spectate-shell input { width: 100%; min-width: 0; border-width: 2px; font-weight: 400; min-height: 2.8rem; padding: .6rem .8rem; }
+.spectate-shell input::placeholder { color: #829db3; opacity: 1; }
+.spectate-live-search { margin: .5rem 0 0; max-width: 33rem; }
+.spectate-list-status { margin: .7rem 0 1rem; font-size: .8rem; color: #a9c8da; }
+.spectate-games { display: grid; list-style: none; padding: 0; margin: 0; gap: 1rem; }
+.spectate-game { background: #132538; border: 1px solid #40637e; border-left: 3px solid #77d8ff; }
+.spectate-game-top { display: flex; align-items: center; gap: .75rem; padding: .65rem 1.1rem; border-bottom: 1px solid #29465e; font-size: .75rem; color: #a9c8da; }
+.spectate-live { display: inline-flex; align-items: center; gap: .4rem; color: #a8e9c8; font-weight: 700; text-transform: uppercase; font-size: .65rem; letter-spacing: .08em; }
+.spectate-live::before { content: ''; width: .4rem; height: .4rem; background: #a8e9c8; box-shadow: 0 0 8px #a8e9c84d; }
+.spectate-matchup { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem minmax(0, 1fr); align-items: center; gap: .7rem; padding: 1.25rem 1.1rem; }
+.spectate-team { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+.spectate-team > div { min-width: 0; }
+.spectate-team h3 { margin: 0 0 .3rem; font-size: clamp(1.15rem, 1.7vw, 1.5rem); line-height: 1.25; overflow-wrap: anywhere; }
+.spectate-team p { margin: 0; font-size: .8rem; color: #b5ccdf; overflow-wrap: anywhere; }
+.spectate-team .spectate-coach { color: #8daac0; font-size: .75rem; margin-top: .3rem; }
+.spectate-divider { padding: 0 .4rem; }
+.spectate-team-away { flex-direction: row-reverse; text-align: right; }
+.spectate-team-mark { --mark-outline: #77d8ff; --mark-fill: #1c3a51; position: relative; display: grid; place-items: center; width: 2.8rem; height: 3.3rem; flex-shrink: 0; color: #bdeaff; font: 700 1.45rem 'Spectate Chakra', sans-serif; }
+.spectate-team-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--mark-fill); stroke: var(--mark-outline); stroke-width: 2; stroke-linejoin: round; }
+.spectate-team-mark > span { position: relative; }
+.spectate-team-away .spectate-team-mark { --mark-outline: #ffe17b; --mark-fill: #3c3326; color: #ffe17b; }
+.spectate-score { display: flex; flex-direction: column; align-items: center; gap: .1rem; text-align: center; }
+.spectate-versus { font-size: .7rem; color: #8daac0; text-transform: uppercase; }
+.spectate-score strong { display: flex; gap: .65rem; align-items: center; color: #f3f8ff; font: 700 2.4rem/1.1 'Spectate Chakra', sans-serif; }
+.spectate-score strong > span { color: #57758b; font-size: 1.4rem; }
+.spectate-score > span:last-child { font-size: .7rem; color: #a9c8da; margin-top: .4rem; }
+.spectate-game-bottom { display: flex; gap: 1rem; justify-content: space-between; align-items: center; padding: .75rem 1.1rem; background: #0d1b2a; border-top: 1px solid #29465e; }
+.spectate-game-meta { display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; color: #a9c8da; font-size: .75rem; min-width: 0; }
+.spectate-game-meta summary { cursor: pointer; color: #77d8ff; }
+.spectate-game-meta code { display: block; overflow-wrap: anywhere; margin-top: .5rem; }
+.spectate-game-bottom .button { flex-shrink: 0; }
+.spectate-legacy { padding: 1rem 1.1rem; }
+.spectate-legacy h3 { margin: 0; }
+.spectate-legacy p { color: #a9c8da; font-size: .8rem; margin: .4rem 0 0; }
+.spectate-replays { border-top: 3px solid #e6a83f; }
+.spectate-soon { color: #ffe17b; background: #302d24; border: 1px solid #77663f; padding: .25rem .6rem; font-size: .75rem; white-space: nowrap; }
+.spectate-replay-description { color: #a9c8da; font-size: .9rem; margin: .1rem 0 1.25rem; }
+.spectate-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
+.spectate-search-actions { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; margin: 1rem 0 1.5rem; }
+.spectate-search-actions > span { color: #8daac0; font-size: .75rem; }
+.spectate-empty { text-align: center; border: 1px dashed #40637e; background: #0b1725; padding: 2rem 1rem; }
+.spectate-empty h3 { font-size: 1.25rem; margin: .25rem 0 .5rem; }
+.spectate-empty p { margin: 0 auto .8rem; color: #a9c8da; max-width: 50ch; font-size: .85rem; }
+.spectate-empty-symbol { display: block; font-size: 2rem; line-height: 1.3; color: #77d8ff; }
+.spectate-archive-empty .spectate-empty-symbol { color: #ffe17b; }
+.spectate-error { padding: .8rem; border: 1px solid #b8735b; background: #30212a; color: #ffd1bb; }
+body.spectate-page .site-header .brand img { width: min(100%, 18rem); height: auto; }
+body.spectate-page #play-status { width: min(72rem, calc(100% - 2rem)); margin: 1rem auto; color: #a9c8da; }
+body.spectate-page #play-status:empty { display: none; }
+@media (max-width: 900px) { .spectate-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .spectate-team-mark { display: none; } }
+@media (max-width: 640px) {
+  .spectate-intro { align-items: flex-start; flex-direction: column; gap: 1rem; padding: 2rem 0; }
+  .spectate-section-heading { align-items: flex-start; flex-wrap: wrap; }
+  .spectate-connection { margin-bottom: .5rem; }
+  .spectate-matchup { grid-template-columns: minmax(0, 1fr) 4.5rem; padding: 1rem .75rem; gap: 1rem .5rem; }
+  .spectate-team-home { grid-column: 1; grid-row: 1; }
+  .spectate-team-away { grid-column: 1; grid-row: 2; flex-direction: row; text-align: left; }
+  .spectate-score { grid-column: 2; grid-row: 1 / 3; }
+  .spectate-team h3 { font-size: 1.05rem; } .spectate-team p { font-size: .7rem; }
+  .spectate-team .spectate-coach { font-size: .65rem; } .spectate-score strong { font-size: 1.9rem; gap: .35rem; }
+  .spectate-score > span:last-child { font-size: .65rem; }
+  .spectate-game-bottom, .spectate-game-top { padding: .7rem .75rem; }
+  .spectate-game-meta { flex-direction: column; align-items: flex-start; gap: .3rem; }
+  .spectate-filters { grid-template-columns: 1fr; }
+}

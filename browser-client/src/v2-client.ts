@@ -14,6 +14,7 @@ type ClientOptions = {
   url: string; getToken: () => Promise<string>; onChange: (message: V2Message) => void;
   makeSocket?: (url: string) => WebSocket; storage?: Storage;
   initialMatch?: { matchId: string; watch: boolean };
+  browseOnly?: boolean;
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -27,6 +28,7 @@ export class V2Client {
   private preparationMatchId: string | null = null;
   private authenticationId = '';
   private lastAutomaticRefresh = 0;
+  private includeBrowseDetails = true;
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
@@ -39,6 +41,7 @@ export class V2Client {
   private options: ClientOptions;
   constructor(options: ClientOptions) {
     this.options = options;
+    if (options.browseOnly) return;
     if (options.initialMatch) {
       if (!uuid.test(options.initialMatch.matchId)) throw Error('Enter a valid match ID.');
       this.selection = options.initialMatch;
@@ -104,7 +107,8 @@ export class V2Client {
     if (!this.accountId || this.socket?.readyState !== 1) throw Error('Reconnect before continuing.');
     if (this.requests.size >= 128) throw Error('Too many unanswered requests. Reconnect before continuing.');
     if (type === 'routePreview' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
-    const request = { ...fields, version: 2, type, requestId: crypto.randomUUID() };
+    const browseFields = type === 'browse' && this.options.browseOnly && this.includeBrowseDetails ? { includeDetails: true } : {};
+    const request = { ...fields, ...browseFields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
       if (this.pending) throw Error('Resolve the retained request before submitting another change.');
       if (type === 'setup' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
@@ -143,7 +147,8 @@ export class V2Client {
     if (message.type === 'authentication') {
       if (message.requestId !== this.authenticationId || message.code !== 'ACCEPTED' || !uuid.test(message.accountId)) throw Error('Invalid authentication');
       this.accountId = message.accountId; this.options.onChange(message);
-      this.request('browse'); this.request('savedTeam', { operation: 'list' }); this.request('catalog');
+      this.request('browse');
+      if (!this.options.browseOnly) { this.request('savedTeam', { operation: 'list' }); this.request('catalog'); }
       if (this.selection) this.open(this.selection.matchId, this.selection.watch);
       else if (this.preparationMatchId) this.request('preparedMatch', { operation: 'load', matchId: this.preparationMatchId });
       return;
@@ -162,6 +167,13 @@ export class V2Client {
       return;
     }
     if (message.requestId !== null && !request) return;
+    if (message.type === 'error' && request?.type === 'browse' && request.includeDetails === true
+      && ['MALFORMED_MESSAGE', 'UNSUPPORTED_MESSAGE'].includes(message.code)) {
+      this.requests.delete(message.requestId);
+      this.includeBrowseDetails = false;
+      this.request('browse');
+      return;
+    }
     if (message.type === 'error' && message.code === 'AUTHENTICATION_REQUIRED' && this.accountId
       && Date.now() - this.lastAutomaticRefresh > 30_000) {
       // A match can outlive its socket credential. Fetch a fresh token and reload the
@@ -228,9 +240,6 @@ export class V2Client {
         || (request?.teamId && request.teamId !== document.teamId))) throw Error('Foreign team');
       decodeSavedTeam(JSON.stringify({ ...message, version: 1 }));
     }
-    if (message.type === 'browse' && message.code === 'ACCEPTED'
-      && (!Array.isArray(message.matches) || message.matches.length > 100
-        || message.matches.some((entry: V2Message) => !uuid.test(entry.matchId) || entry.label !== 'Home vs Away'))) throw Error('Invalid browse list');
     if (message.type === 'setupState' && message.code === 'ACCEPTED' && !message.state) throw Error('Missing state');
     if (message.type === 'setupState' && message.state) {
       const state = decodeSetupStateValue(message.state, true);

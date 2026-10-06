@@ -1,21 +1,26 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
+import com.fumbbl.ffb.server.match.FrozenTeam;
+import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -224,6 +229,103 @@ class BrowserV2AdapterTest {
 		assertEquals("AUTHENTICATION_REQUIRED", code(connection, 0));
 		assertEquals("AUTHENTICATION_REQUIRED", code(connection, 1));
 		verify(setup, never()).spectatorView(any(String.class));
+		verify(setup, never()).browseDocument(any(String.class));
+	}
+
+	@Test void plainBrowseAndExplicitlyDisabledDetailsKeepTheExactLegacyEntry() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(spectator)).thenReturn(Collections.singletonList(MATCH));
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserV2Adapter adapter = adapter(bearer -> spectator, access, setup);
+		Connection browser = new Connection();
+		adapter.receive(browser, authenticate("auth", "viewer").toString());
+		adapter.receive(browser, request("browse", "plain").toString());
+		adapter.receive(browser, request("browse", "disabled").add("includeDetails", false).toString());
+		JsonObject legacy = new JsonObject().add("matchId", MATCH).add("label", "Home vs Away");
+		for (int index = 1; index <= 2; index++) {
+			assertEquals("ACCEPTED", code(browser, index));
+			assertEquals(legacy, JsonObject.readFrom(browser.messages.get(index)).get("matches").asArray().get(0));
+		}
+		verify(setup, never()).browseDocument(any(String.class));
+	}
+
+	@Test void browseRejectsNonBooleanDetailsFlagBeforeReadingMatches() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserV2Adapter adapter = adapter(bearer -> spectator, access, setup);
+		Connection browser = new Connection();
+		adapter.receive(browser, authenticate("auth", "viewer").toString());
+		adapter.receive(browser, request("browse", "null").add("includeDetails", JsonValue.NULL).toString());
+		adapter.receive(browser, request("browse", "text").add("includeDetails", "true").toString());
+		adapter.receive(browser, request("browse", "number").add("includeDetails", 1).toString());
+		for (int index = 1; index <= 3; index++) assertEquals("MALFORMED_MESSAGE", code(browser, index));
+		verify(access, never()).browse(spectator);
+		verify(setup, never()).browseDocument(any(String.class));
+	}
+
+	@Test void browseProjectsOnlyPublicMatchFactsAndCountsLiveSpectators() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(spectator)).thenReturn(Collections.singletonList(MATCH));
+		SetupApplication setup = mock(SetupApplication.class);
+		FrozenTeam home = frozenTeam("The Reavers", "human", 1000000);
+		FrozenTeam away = frozenTeam("The Raiders", "orc", 1050000);
+		MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
+		when(setup.browseDocument(MATCH)).thenReturn(document);
+		when(setup.browseState(MATCH)).thenReturn(new JsonObject().add("phase", "PLAY").add("half", 2)
+			.add("turn", 5).add("homeScore", 1).add("awayScore", 2).add("private-token", "never-send"));
+		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH));
+		AuthenticatedPrincipal watcherPrincipal = principal(FIRST, ApplicationScope.SPECTATOR);
+		BrowserV2Adapter adapter = adapter(bearer -> "watcher".equals(bearer) ? watcherPrincipal : spectator, access, setup);
+		Connection watcher = new Connection(), browser = new Connection();
+		adapter.receive(watcher, authenticate("watcher-auth", "watcher").toString());
+		adapter.receive(watcher, request("watch", "watch").add("matchId", MATCH).toString());
+		adapter.receive(browser, authenticate("browse-auth", "viewer").toString());
+		adapter.receive(browser, request("browse", "browse").add("includeDetails", true).toString());
+		JsonObject entry = JsonObject.readFrom(browser.messages.get(1)).get("matches").asArray().get(0).asObject();
+		JsonObject details = entry.get("details").asObject();
+		assertEquals("Home vs Away", entry.getString("label", null));
+		assertEquals("The Reavers", details.get("home").asObject().getString("name", null));
+		assertEquals("Human", details.get("home").asObject().getString("type", null));
+		assertEquals(1000000, details.get("home").asObject().getInt("teamValue", -1));
+		assertTrue(details.get("home").asObject().get("coach").isNull());
+		assertEquals("Orc", details.get("away").asObject().getString("type", null));
+		assertEquals(1, details.getInt("spectators", -1));
+		assertEquals(2, details.getInt("awayScore", -1));
+		assertTrue(details.get("competition").isNull());
+		assertFalse(entry.toString().contains("private-token"));
+		assertFalse(entry.toString().contains("never-send"));
+		assertFalse(entry.toString().contains(FIRST));
+		when(setup.browseState(MATCH)).thenThrow(new SQLException("checkpoint unavailable"));
+		adapter.receive(browser, request("browse", "retry").add("includeDetails", true).toString());
+		JsonObject fallback = JsonObject.readFrom(browser.messages.get(2)).get("matches").asArray().get(0).asObject().get("details").asObject();
+		assertEquals("The Reavers", fallback.get("home").asObject().getString("name", null));
+		assertTrue(fallback.get("homeScore").isNull());
+	}
+
+	@Test void browseLimitsEntriesAndKeepsUnavailableSummariesOptional() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(spectator)).thenReturn(Collections.nCopies(101, MATCH));
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.browseDocument(MATCH)).thenThrow(new MatchService.Failure("NOT_FOUND"));
+		BrowserV2Adapter adapter = adapter(bearer -> spectator, access, setup);
+		Connection browser = new Connection();
+		adapter.receive(browser, authenticate("auth", "viewer").toString());
+		adapter.receive(browser, request("browse", "browse").add("includeDetails", true).toString());
+		JsonArray entries = JsonObject.readFrom(browser.messages.get(1)).get("matches").asArray();
+		assertEquals(100, entries.size());
+		assertEquals(2, entries.get(0).asObject().size());
+		verify(setup, times(100)).browseDocument(MATCH);
+	}
+
+	private FrozenTeam frozenTeam(String name, String roster, int value) {
+		return new FrozenTeam(MATCH, 1, "home", "BB2025", "catalog", roster, "exhibition-1150", "catalog", null,
+			name, value, 1150000, 0, Collections.emptyList(), Collections.emptyMap(),
+			new JsonObject().add("name", "orc".equals(roster) ? "Orc" : "Human").toString());
 	}
 
 	@Test void scopedPrincipalWithoutPersistedMembershipCannotReachSetupEvenOnRetry() throws Exception {

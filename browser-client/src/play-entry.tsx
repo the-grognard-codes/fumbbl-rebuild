@@ -10,6 +10,7 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
+import { Spectate } from './Spectate.tsx';
 import './play-brand.css';
 
 const transferredMatchKey = 'moles.play.open-match';
@@ -26,6 +27,12 @@ export function mountBuilder(element: HTMLElement, options: { url: string; getTo
   return () => root.unmount();
 }
 
+export function mountSpectate(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
+  const root = createRoot(element);
+  root.render(<Spectate options={options} />);
+  return () => root.unmount();
+}
+
 function Play({ options }: { options: { url: string; getToken: () => Promise<string> } }) {
   const matchRoute = location.pathname === '/play/match';
   const resultRoute = location.pathname === '/play/result';
@@ -33,7 +40,6 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [, redraw] = useState(0);
   const [status, setStatus] = useState('Connecting');
   const [error, setError] = useState('');
-  const [games, setGames] = useState<{ matchId: string; label: string }[]>([]);
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const [playMode, setPlayMode] = useState<'human' | 'computer'>('human');
   const [computerAvailable, setComputerAvailable] = useState(false);
@@ -109,7 +115,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         routeRequestRef.current = null; setRoutePreview(null); setRouteError('');
         if (message.code === 'DISCONNECTED') { activationWindow.current?.popup?.close(); activationWindow.current = null; }
         setComputerAvailable(false);
-        setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setGames([]); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
+        setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
       if (message.type === 'authentication') { setStatus('Connected'); setError(''); logUnavailableRef.current = false; setLogUnavailable(false);
         if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); }
@@ -181,7 +187,6 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         }
       }
       if (message.code === 'VIEW_UNAVAILABLE' || message.code === 'NOT_FOUND') { setPrepared(null); setInvite(''); }
-      if (message.type === 'browse' && Array.isArray(message.matches)) setGames(message.matches);
       if (message.type === 'savedTeam' && message.code === 'OK') {
         if (message.document) connection.request('savedTeam', { operation: 'list' });
         else if (Array.isArray(message.teams)) {
@@ -293,7 +298,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       window.close();
       if (window.closed) return;
     }
-    location.assign('/play');
+    location.assign(watchRoute ? '/spectate' : '/play');
   }
   function toggleFullscreen() {
     const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
@@ -343,8 +348,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       {prepared?.document.lifecycle === 'AWAITING_SETUP' && <button disabled={busy} onClick={startGame}>Start game</button>}
       {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a> · <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a></p>}
     </section>
-    {playMode === 'human' && <section aria-label="Watch games"><h2>Games in progress</h2><button disabled={!connected} onClick={() => run(() => connection?.request('browse'))}>Refresh games</button>{connected && games.length === 0 && <p>No games in progress.</p>}
-      {games.map(game => <button key={game.matchId} disabled={busy} onClick={() => run(() => location.assign(matchUrl(game.matchId, true)))}>Watch Home vs Away · {game.matchId.slice(0, 8)}</button>)}
+    {playMode === 'human' && <section aria-label="Watch games"><h2>Games in progress</h2>
+      <p>The game browser has moved to <a href="/spectate">Spectate</a>. Find live match details and replay search there.</p>
     </section>}
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}

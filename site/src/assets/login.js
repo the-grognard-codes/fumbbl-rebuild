@@ -5,7 +5,7 @@ const message = document.querySelector('#auth-message');
 const environment = document.querySelector('#auth-environment');
 const show = value => { message.textContent = value; };
 const requestedReturn = new URLSearchParams(window.location.search).get('returnTo');
-const returnTo = requestedReturn === '/teambuilder' ? '/teambuilder' : '/play';
+const returnTo = ['/teambuilder', '/spectate'].includes(requestedReturn) ? requestedReturn : '/play';
 const finishSignIn = () => { window.location.assign(returnTo); };
 try {
   const { auth, config, GoogleAuthProvider } = authentication();

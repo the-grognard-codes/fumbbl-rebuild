@@ -326,6 +326,36 @@ public final class SetupApplication {
 		return session.decorateSaveResumeState(session.spectatorView());
 	}
 
+	/** Durable frozen facts for an already authorized browse entry. */
+	public MatchDocument browseDocument(String matchId) throws SQLException {
+		return matches.load("home", matchId).document;
+	}
+
+	/** Scalar public state for an already authorized browse entry; never restores an engine. */
+	public JsonObject browseState(String matchId) throws SQLException {
+		SetupSession resident = sessions.get(matchId);
+		if (resident != null && !resident.isFailed()) return resident.browseSummary();
+		if (recovery == null) return null;
+		RecoveryRepository.Record record = recovery.find(matchId);
+		if (record == null) return null;
+		try {
+			JsonObject payload = JsonObject.readFrom(record.json).get("payload").asObject();
+			if (!matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", false)) return null;
+			JsonObject view = payload.get("homeView").asObject();
+			if (!matchId.equals(view.getString("matchId", null)) || !"home".equals(view.getString("callerRole", null))) return null;
+			return browseScalars(view);
+		} catch (RuntimeException invalid) { return null; }
+	}
+
+	private JsonObject browseScalars(JsonObject view) {
+		JsonObject result = new JsonObject();
+		for (String field : Arrays.asList("phase", "half", "turn", "homeScore", "awayScore")) {
+			JsonValue value = view.get(field);
+			if (value != null && ("phase".equals(field) ? value.isString() : value.isNumber())) result.add(field, value);
+		}
+		return result;
+	}
+
 	/** Bounded public history; the caller must authorize the viewer for this active match first. */
 	public JsonObject transcriptPage(String matchId, int from, int limit) throws SQLException {
 		MatchDocument document = matches.load("home", matchId).document;
