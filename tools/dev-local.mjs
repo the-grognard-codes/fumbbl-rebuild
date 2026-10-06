@@ -6,6 +6,7 @@ import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { startReview } from './match-review-start.mjs';
+import { reviewMountSource } from './review-mount-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const toolsDirectory = join(root, '.tools');
@@ -42,20 +43,13 @@ function inspect(name, service) {
   return container;
 }
 
-function mountSource(container, destination) {
-  const mounts = container.Mounts.filter(mount => mount.Destination === destination);
-  if (mounts.length !== 1 || mounts[0].Type !== 'bind' || mounts[0].RW !== false || !existsSync(mounts[0].Source))
-    throw Error('REVIEW_MOUNT_UNAVAILABLE');
-  return mounts[0].Source;
-}
-
 export function composeEnvironment(server, database) {
   return {
-    M6_ADC_FILE: mountSource(server, '/run/adc/application_default_credentials.json'),
-    M6_DB_PASSWORD_FILE: mountSource(server, '/run/secrets/db_password'),
-    M6_DB_ROOT_PASSWORD_FILE: mountSource(database, '/run/secrets/db_root_password'),
-    M6_ADMIN_PASSWORD_FILE: mountSource(server, '/run/secrets/admin_password'),
-    M6_COACH_PASSWORD_FILE: mountSource(server, '/run/secrets/coach_password'),
+    M6_ADC_FILE: reviewMountSource(server, '/run/adc/application_default_credentials.json'),
+    M6_DB_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/db_password'),
+    M6_DB_ROOT_PASSWORD_FILE: reviewMountSource(database, '/run/secrets/db_root_password'),
+    M6_ADMIN_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/admin_password'),
+    M6_COACH_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/coach_password'),
   };
 }
 

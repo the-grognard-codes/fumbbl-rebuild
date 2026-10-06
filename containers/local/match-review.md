@@ -33,6 +33,12 @@ Hosting output is saved under `.tools/dev-local-hosting*.log`. If startup fails,
 fix the reported condition and rerun `--start`; the next run stops any browser
 processes recorded by the interrupted run before starting them again.
 
+On Windows, the startup helpers translate Docker Desktop mount sources such as
+`/run/desktop/mnt/host/c/Users/...` to their host paths, `C:\Users\...`, before
+checking or reusing them. `REVIEW_MOUNT_UNAVAILABLE` means a required mount is
+missing, is not a read-only bind mount, or its translated host file is unavailable.
+This check runs before Google or Firebase authentication.
+
 The review stack uses `compose.match-review.yaml`, MariaDB port 23317, game-server
 port 22234, and separate Docker volumes. The retained `ffb-current-dev` game
 container, its four activated matches, and its database/backup volumes stay

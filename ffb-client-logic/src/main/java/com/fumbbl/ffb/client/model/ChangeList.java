@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Public site navigation uses wider link spacing and keeps Privacy and Support in the homepage footer")
+			.addImprovement("Moles Under the Pitch homepage shows a responsive screenshot of a browser match")
+			.addBugfix("Local review startup resolves Docker Desktop mount paths to Windows credential and secret files")
 			.addBugfix("Moles Under the Pitch Spectate loads fresh page assets when older Play bundles are cached")
 			.addFeature("Moles Under the Pitch Spectate page lists live team matchups, scores and game details, with replay search fields ready for the future archive")
 			.addImprovement("Moles Under the Pitch Updates now covers the merged PR history with concise summaries, search, categories and ten entries per page")
