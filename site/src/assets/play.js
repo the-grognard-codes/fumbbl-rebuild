@@ -39,7 +39,8 @@ export function startPlay({ auth, config }, status, host) {
     }
     try {
       const url = gameEndpoint(config.gameWebSocketUrl, location, config);
-      const { mountPlay, mountSpectate } = await import('/assets/game/game.js');
+      const moduleUrl = location.pathname === '/spectate' ? '/assets/game/game.js?v=spectate-v1' : '/assets/game/game.js';
+      const { mountPlay, mountSpectate } = await import(moduleUrl);
       if (generation !== current) return;
       status.textContent = '';
       dispose = (location.pathname === '/spectate' ? mountSpectate : mountPlay)(host, { url, getToken: () => user.getIdToken(true) });
