@@ -36,6 +36,9 @@ test('spectate browses live details, filters matches, prepares replay searches a
     const page = await context.newPage(); const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await context.route('https://fonts.googleapis.com/**', route => route.abort());
+    // Simulate the unversioned bundles still cached from an older Hosting release.
+    await context.route('**/assets/play.js', route => route.fulfill({ contentType: 'text/javascript', body: 'throw Error("Old cached Play bootstrap");' }));
+    await context.route('**/assets/game/game.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function mountPlay(){} export function mountBuilder(){}' }));
     await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
     await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
     await context.routeWebSocket('**/browser/v2', socket => {
@@ -98,6 +101,8 @@ test('spectate browses live details, filters matches, prepares replay searches a
     await page.getByText('The pitch is quiet for now.', { exact: true }).waitFor();
     assert.equal(await live.getByRole('article').count(), 0);
     assert.equal(await page.getByRole('link', { name: 'Set up a game' }).getAttribute('href'), '/play');
+    await context.unroute('**/assets/play.js');
+    await context.unroute('**/assets/game/game.js');
     await page.goto(`${origin}/play`);
     const setup = page.getByRole('region', { name: 'Watch games' });
     await setup.getByRole('link', { name: 'Spectate', exact: true }).waitFor();
