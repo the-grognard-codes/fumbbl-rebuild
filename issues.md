@@ -25,6 +25,6 @@ Owner observations from 2026-10-05. Detailed scope and acceptance criteria are i
 - [x] [#115 Color pass ranges on the pitch and account for weather](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/115) — `ready-for-agent`.
 - [x] [#116 Show dice directly over the pitch without enclosing boxes](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/116) — `ready-for-agent`.
 - [x] [#117 Show every eligible reroll option beside the current roll](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/117) — `ready-for-agent`.
-- [ ] [#118 Verify reroll totals and consume sources in the requested priority](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/118) — `ready-for-agent`.
+- [x] [#118 Verify reroll totals and consume sources in the requested priority](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/118) — `ready-for-agent`.
 
 Reroll consumption priority: **Brilliant Coaching > Mascot > Leader Reroll > Team Reroll**.
