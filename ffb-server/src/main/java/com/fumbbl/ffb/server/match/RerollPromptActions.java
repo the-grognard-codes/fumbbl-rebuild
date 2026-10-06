@@ -75,7 +75,11 @@ final class RerollPromptActions {
 
 	private void teamChoices(List<CoreTurnActions.Action> result, HasReRollProperties dialog, String prefix, ReRolledAction action) {
 		String suffix = action == ReRolledActions.BLOCK ? "" : " for " + action.getName(game.getRules().getSkillFactory());
-		if (dialog.hasProperty(ReRollProperty.TRR)) add(result, prefix + ":team", "reroll", "Use team re-roll" + suffix, new ClientCommandUseReRoll(action, ReRollSources.TEAM_RE_ROLL));
+		String teamLabel = dialog.hasProperty(ReRollProperty.BRILLIANT_COACHING) ? "Use Brilliant Coaching re-roll"
+			: dialog.hasProperty(ReRollProperty.PUMP_UP_THE_CROWD) ? "Use Pump up the Crowd re-roll"
+			: dialog.hasProperty(ReRollProperty.SHOW_STAR) ? "Use Star of the Show re-roll"
+			: dialog.hasProperty(ReRollProperty.MASCOT) ? "Use team sources (Mascot first; fallback if needed)" : "Use team re-roll";
+		if (dialog.hasProperty(ReRollProperty.TRR)) add(result, prefix + ":team", "reroll", teamLabel + suffix, new ClientCommandUseReRoll(action, ReRollSources.TEAM_RE_ROLL));
 		if (dialog.hasProperty(ReRollProperty.MASCOT)) {
 			add(result, prefix + ":mascot", "reroll", "Try Team Mascot (conditional re-roll)" + suffix, new ClientCommandUseReRoll(action, ReRollSources.MASCOT));
 			if (dialog.hasProperty(ReRollProperty.TRR)) add(result, prefix + ":mascot-team", "reroll", "Try Mascot; team re-roll if Mascot fails" + suffix, new ClientCommandUseReRoll(action, ReRollSources.MASCOT_TRR));

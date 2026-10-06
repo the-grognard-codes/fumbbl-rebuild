@@ -38,6 +38,8 @@ function reportLine(report: Record<string, unknown>, state: SetupState): string 
     return `${title}: rerolled ${valueText(report.blockRoll)} · source ${sourceName(report.reRollSource)}`;
   if (id === 'reRoll')
     return `${title}: source ${sourceName(report.reRollSource)}${typeof report.roll === 'number' && report.roll > 0 ? ` · roll ${report.roll}` : ''}${typeof report.successful === 'boolean' ? ` · ${report.successful ? 'success' : 'failure'}` : ''}`;
+  if (id === 'mascotUsed')
+    return `${title}: conditional Mascot attempt ${report.roll} vs ${report.minimumRoll}+ · ${report.successful ? 'success' : 'failure'}${report.reRollUsed ? ' · continued with a guaranteed team source' : ''}`;
   if (id === 'bribesRoll' && typeof report.roll === 'number')
     return `${title}: ${report.roll} vs 2+ · ${report.successful ? 'success' : 'failure'}`;
   if (id === 'argueTheCall' && typeof report.roll === 'number') {

@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
-const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-reroll-choices.json', import.meta.url), 'utf8'));
-const cases = [...journeys, ...journeys.filter(journey => ['pro', 'block-pro'].includes(journey.mode))
+const accounting = Boolean(process.env.REROLL_FIXTURE);
+const journeys = JSON.parse(readFileSync(new URL(process.env.REROLL_FIXTURE ?? './fixtures/adr0003-reroll-choices.json', import.meta.url), 'utf8'));
+const cases = [...journeys, ...journeys.filter(journey => !accounting && ['pro', 'block-pro'].includes(journey.mode))
   .flatMap(journey => ['otherCoach', 'spectator'].map(viewer => ({ ...journey, viewer })))];
 const evidence = process.env.REROLL_EVIDENCE;
 if (evidence) mkdirSync(evidence, { recursive: true });
@@ -80,6 +81,11 @@ try {
     const selected = options.find(action => action.id === journey.selectedId);
     const button = page.getByRole('button', { name: selected.label, exact: true });
     await button.waitFor({ state: 'visible' });
+    if (accounting) {
+      const resource = page.locator(`.live-resources.${journey.role} .live-resource.reroll`);
+      assert.equal(await resource.count(), journey.before > 0 ? 1 : 0);
+      if (journey.before > 0) assert.equal(await resource.getAttribute('aria-label'), `Rerolls: ${journey.before} available`);
+    }
     for (const option of options) assert.equal(await page.getByRole('button', { name: option.label, exact: true }).count(), 1, option.id);
     if (!journey.mode.startsWith('block-')) {
       await page.locator('.live-dice-overlay .match-die').first().waitFor({ state: 'visible', timeout: 5000 });
@@ -97,6 +103,9 @@ try {
       await button.waitFor({ state: 'visible' });
       if (journey.mode === 'pro') await page.locator('.live-dice-overlay .match-die').first().waitFor({ state: 'visible' });
     }
+    const accountingCapture = accounting && ['all', 'mascot-success', 'mascot-fallback', 'leader', 'team'].includes(journey.mode);
+    if (evidence && accountingCapture)
+      await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-before.jpg`), type: 'jpeg', quality: 80 });
     await page.setViewportSize({ width: 560, height: 500 });
     await button.scrollIntoViewIfNeeded();
     await page.keyboard.press('Tab');
@@ -113,6 +122,15 @@ try {
     }
     await page.getByTestId('setup-status').filter({ hasText: `Revision ${journey.accepted.revision} ` }).waitFor({ state: 'attached' });
     await page.waitForTimeout(250);
+    if (accounting) {
+      const resource = page.locator(`.live-resources.${journey.role} .live-resource.reroll`);
+      assert.equal(await resource.count(), journey.after > 0 ? 1 : 0);
+      if (journey.after > 0) assert.equal(await resource.getAttribute('aria-label'), `Rerolls: ${journey.after} available`);
+    }
+    if (evidence && accountingCapture) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-after.jpg`), type: 'jpeg', quality: 80 });
+    }
     const transport = await page.evaluate(() => ({ sent: window.testTransport.sent, consumptions: window.testTransport.consumptions }));
     assert.equal(transport.consumptions, 1, 'Pending keyboard clicks and an exact retry spend only once');
     assert.equal(transport.sent.length, loseReply ? 2 : 1);
@@ -121,5 +139,5 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log('PASS: 48 native choices and 8 other-coach/spectator views in production play, late dice, cameras, keyboard, narrow views, reconnect and exact retries.');
+  console.log(`PASS: ${cases.length} native fixture cases in production play, late dice, cameras, keyboard, narrow views, reconnect and exact retries.`);
 } finally { await browser.close(); await server.close(); }
