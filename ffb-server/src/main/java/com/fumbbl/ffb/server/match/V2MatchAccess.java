@@ -44,6 +44,12 @@ public final class V2MatchAccess {
 		return memberships.activeMatches();
 	}
 
+	/** Account-scoped, keyset-paged inventory, including preparations that are not activated yet. */
+	public List<MatchMembership> currentMatches(AuthenticatedPrincipal principal, String afterMatchId) throws SQLException {
+		principal = require(principal, ApplicationScope.PLAYER);
+		return memberships.unfinishedMatches(principal.accountId(), afterMatchId);
+	}
+
 	public AuthenticatedPrincipal require(AuthenticatedPrincipal principal, ApplicationScope scope) throws SQLException {
 		if (principal == null || principal.expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
 		try { principal = directory.reauthorize(principal); }
