@@ -65,6 +65,8 @@ try {
       }
     };
     const end = role === 'away' ? 'away' : 'home';
+    const debug = page.getByRole('button', { name: 'Debug', exact: true });
+    if (await debug.count()) await debug.click();
     for (const angle of [30, 40, 50]) {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       await checkArtwork(states[0], end);

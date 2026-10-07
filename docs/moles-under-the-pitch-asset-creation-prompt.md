@@ -120,3 +120,9 @@ Moles Under the Pitch
 | Standalone mark | “Use no text. Create a centered square icon with a strong mole silhouette and the simplified pitch beneath. Leave generous transparent padding. It must remain recognisable at 32 px and usable at 120 px for OAuth.” |
 | Auth illustration | “Do not show a game score or sports action. Depict the mole checking or delivering an email link while retaining the same pitch geometry and palette.” |
 | Social card | “Keep the name and project claim inside a central safe area. Use the mole/pitch motif as supporting art, never as a busy background behind text.” |
+
+## Future per-team stadium crowds
+
+Create spectator sprites as separate transparent crowd assets, keyed to each team's approved palette and identity. Do not paint spectators into the reusable stand structure. Supply at least four depth rows for both long sidelines and both end stands, with corner transitions and repeatable edges so the crowd can scroll with the pitch in either coach view. Keep the first row behind the touchline rail, reserving the walkway between the rail and stands for future cheerleaders. Provide neutral fallback spectators for missing team art. Check home and away perspective and tactical top-down views before replacing the current crowd placeholders.
+
+The current `stadium-v1.png` source contains baked spectator figures, so the runtime clips it to turf. Supply a turf-only source plate in a replacement set, keeping spectator figures exclusively in the crowd layer so hiding a team's crowd art leaves the stand structure intact.

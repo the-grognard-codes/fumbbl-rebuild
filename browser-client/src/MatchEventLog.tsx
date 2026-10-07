@@ -51,7 +51,7 @@ export function MatchEventLog({ records, loading, unavailable }: {
         aria-label={`${size[0].toUpperCase()}${size.slice(1)} log text`} aria-pressed={fontSize === size}
         onClick={() => chooseFontSize(size)}>A</button>)}
     </div></header>
-    <p className="match-log-count">{lines.length ? `Entries ${first + 1}–${last} of ${lines.length}` : loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>
+    {!lines.length && <p>{loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>}
     <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll" style={{ fontSize: `${fontPixels[fontSize]}px` }}
       onScroll={event => { if (windowRange !== null) return; const element = event.currentTarget;
         if (element.scrollHeight - element.scrollTop - element.clientHeight > 36)

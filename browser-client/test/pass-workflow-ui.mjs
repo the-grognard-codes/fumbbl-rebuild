@@ -93,6 +93,8 @@ try {
     assert.equal(await pitch.locator('.live-target-line').count(), 1, 'The recipient has a visible target path');
     assert.equal(await pitch.locator('[data-player-id="mate"]').evaluate(element => element.classList.contains('target')), true);
     assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount, 'Target selection does not throw');
+    const debug = page.getByRole('button', { name: 'Debug', exact: true });
+    if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       assert.equal(await confirmed.isEnabled(), true, 'Camera changes preserve the reviewed recipient');

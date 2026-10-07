@@ -5,6 +5,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
+import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
 import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
 import { resolvePlayerArt, resolvePlayerPortrait, type PlayerFacing } from './player-art.ts';
@@ -30,14 +31,14 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
   }).join(' ');
 }
 
-function PlayerMarker({ player, teamName, camera, facing, order, active, selected, target, onSelect, onGround,
+function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
   onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag }: {
-  player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; order: number;
+  player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; setupPerspective: boolean; order: number;
   active: boolean; selected: boolean; target: boolean; onSelect: () => void; onGround: (x: number, y: number) => void;
   onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
 }) {
-  const art = resolvePlayerArt(player, { end: camera.end, facing });
+  const art = resolvePlayerArt(player, { end: camera.end, facing, setupPerspective, topDown: camera.mode === 'top-down' });
   const [failedUrl, setFailedUrl] = useState('');
   const position = camera.project(centerOf({ x: player.x!, y: player.y! }));
   const visible = !!position && camera.square({ x: player.x!, y: player.y! }, 0, true).length >= 3;
@@ -105,6 +106,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [size, setSize] = useState({ width: 1280, height: 720 });
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = controlledZoom ?? internalZoom, setZoom = onZoomChange ?? setInternalZoom;
+  const zoomRef = useRef(zoom); zoomRef.current = zoom;
   const [mode, setMode] = useState<PitchProjectionMode>('perspective');
   const [perspectiveElevation, setPerspectiveElevation] = useState<PerspectiveElevation>(40);
   const [viewerEnd, setViewerEnd] = useState<'home' | 'away'>(view.callerRole === 'away' ? 'away' : 'home');
@@ -119,7 +121,6 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const cameraRef = useRef(camera); cameraRef.current = camera;
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
   const drag = useRef<{ x: number; y: number; camera: PitchProjection; moved: boolean } | null>(null);
-  const suppressClick = useRef(false);
   useEffect(() => {
     const element = viewport.current!;
     const observer = new ResizeObserver(([entry]) => setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) }));
@@ -127,12 +128,12 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     const wheel = (event: WheelEvent) => {
       if (event.ctrlKey || !event.deltaY) return;
       event.preventDefault(); onBlurPlayer?.();
-      const next = cameraRef.current.travel(event.deltaY * -.012 * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? cameraRef.current.height : 1));
-      setTravel({ focus: next.focus, transverseFocus: next.transverseFocus });
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? cameraRef.current.height : 1);
+      setZoom(Math.max(.75, Math.min(3, zoomRef.current * Math.exp(-delta * .0015))));
     };
     element.addEventListener('wheel', wheel, { passive: false });
     return () => { observer.disconnect(); element.removeEventListener('wheel', wheel); };
-  }, [onBlurPlayer]);
+  }, [onBlurPlayer, setZoom]);
   useEffect(() => {
     if (!prior.current || prior.current.matchId !== view.matchId || view.revision < prior.current.revision) setFacings({});
     else {
@@ -187,13 +188,11 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const depthOrder = new Map([...occupants].sort((a, b) =>
     (camera.project(centerOf({ x: b.x!, y: b.y! }))?.depth ?? 0) - (camera.project(centerOf({ x: a.x!, y: a.y! }))?.depth ?? 0) || a.id.localeCompare(b.id))
     .map((player, index) => [player.id, index]));
-  const diceSubject = view.players.find(player => player.id === diceMoment?.subjectId) ?? activePlayer;
-  const dicePosition = diceSubject?.x != null && diceSubject.y != null ? camera.project(centerOf({ x: diceSubject.x, y: diceSubject.y })) : null;
-  const diceX = dicePosition && dicePosition.x > camera.width / 2 ? camera.width * .08 : camera.width * .68;
+  const diceX = camera.width * .25;
   const diceY = Math.min(camera.height - 130, Math.max(20, camera.height * .38));
   const chalk = (from: Point, to: Point) => routePath([{ x: from.x - .5, y: from.y - .5 }, { x: to.x - .5, y: to.y - .5 }], camera);
   return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
-    <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
+    <div hidden={!showToolbar} className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
       <label><span>Perspective angle</span> <select aria-label="Perspective angle" title="Perspective angle" value={perspectiveElevation}
         onChange={event => { setPerspectiveElevation(Number(event.target.value) as PerspectiveElevation); setMode('perspective'); onBlurPlayer?.(); }}>
@@ -223,12 +222,12 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           const next = camera.neighbor(origin, direction); setCursor(next); reveal(centerOf(next));
         } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); onSquare(cursor.x, cursor.y); }
       }}
-      onClickCapture={event => { if (suppressClick.current) { suppressClick.current = false; event.preventDefault(); event.stopPropagation(); } }}
-      onPointerDown={event => { if (event.button !== 0 || draggingPlayerId) return; drag.current = { x: event.clientX, y: event.clientY, camera, moved: false }; }}
+      onContextMenu={event => event.preventDefault()}
+      onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault(); drag.current = { x: event.clientX, y: event.clientY, camera, moved: false }; }}
       onPointerMove={event => { const start = drag.current; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
         if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
-      onPointerUp={event => { if (drag.current?.moved) suppressClick.current = true; drag.current = null;
+      onPointerUp={event => { drag.current = null;
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
       onPointerCancel={() => { drag.current = null; }}>
       <div ref={scene} className="live-pitch-scene" data-projection={mode} data-elevation={camera.elevation} data-end={end} data-focus={camera.focus}
@@ -256,9 +255,26 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
           {waypoints.map((square, index) => { const p = camera.project(centerOf(square)); return p && <g key={index} className="live-route-waypoint"><circle cx={p.x} cy={p.y} r="8"/><text x={p.x} y={p.y + 3} textAnchor="middle">{index + 1}</text></g>; })}
           {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
-          {view.ball && (() => { const p = camera.project(centerOf(view.ball!)); return p && <ellipse className="live-ball" cx={p.x} cy={p.y - p.pixelsPerSquare * .07} rx={p.pixelsPerSquare * .08} ry={p.pixelsPerSquare * .12}/>; })()}
+          {view.ball && (() => {
+            const p = camera.project(centerOf(view.ball!));
+            if (!p) return null;
+            const radius = Math.max(12, p.pixelsPerSquare * .38);
+            return <g className="live-ball-marker" data-ball-x={view.ball.x} data-ball-y={view.ball.y}
+              transform={`translate(${p.x} ${p.y})`}>
+              <circle className="live-ball-pulse" r={radius}/>
+              <circle className="live-ball-ring" r={radius * .62}/>
+              {[0, 90, 180, 270].map(degrees => <path key={degrees} className="live-ball-arrow"
+                d={`M0 ${-radius * .86} L${-radius * .17} ${-radius * 1.16} L${radius * .17} ${-radius * 1.16}Z`}
+                transform={`rotate(${degrees})`}/>)}
+              <g className="live-ball-football" transform={`rotate(-32) scale(${Math.max(.55, Math.min(1, p.pixelsPerSquare / 50))})`}>
+                <ellipse rx="7" ry="11"/>
+                <path d="M-3 -3h6M-3 0h6M-3 3h6"/>
+              </g>
+            </g>;
+          })()}
         </svg>
-        {occupants.map(player => <PlayerMarker key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]} order={depthOrder.get(player.id)!}
+        {occupants.map(player => <PlayerMarker key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
+          setupPerspective={mode === 'perspective' && (view.phase === 'SETUP' || view.phase === 'READY_FOR_KICKOFF')} order={depthOrder.get(player.id)!}
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
           onSelect={() => onSelectPlayer(player.id)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }

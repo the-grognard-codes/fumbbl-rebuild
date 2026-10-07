@@ -8,6 +8,7 @@ declare global {
     initial: SetupState;
     intents: ({ player: string } | { x: number; y: number })[];
     selectionReports?: ({ x: number; width: number } | null)[];
+    updatePitchView?: (view: SetupState) => void;
   }
 }
 
@@ -17,9 +18,11 @@ function recordSelectionPosition(position: { x: number; width: number } | null) 
 
 function App() {
   const [selected, setSelected] = useState('human');
-  return <LivePitch view={window.initial} selectedId={selected} actions={[]}
+  const [view, setView] = useState(window.initial);
+  window.updatePitchView = setView;
+  return <LivePitch view={view} selectedId={selected} actions={[]}
     routePreview={{ from: { x: 12, y: 7 }, steps: [{ x: 11, y: 7 }, { x: 10, y: 8 }] }}
-    readOnly={window.initial.callerRole === 'spectator'}
+    readOnly={view.callerRole === 'spectator'}
     onSelectionPosition={recordSelectionPosition}
     onSelectPlayer={id => { window.intents.push({ player: id }); setSelected(id); }}
     onSquare={(x, y) => window.intents.push({ x, y })}/>;

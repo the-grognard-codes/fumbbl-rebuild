@@ -6,6 +6,13 @@ import { canPlaceReserve, decodeSetupState, decodeSetupStateValue } from '../src
 const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, callerRole: 'home', phase: 'SETUP', actor: 'home', prompt: null, players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: 3, y: 4, state: 'standing' }, { id: 'p2', name: 'Reserve', slot: 2, role: 'home', x: null, y: null, state: 'reserve' }], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
 test('decodes a complete authoritative setup snapshot', () => assert.equal(decodeSetupState(JSON.stringify(response)).state?.players[1].x, null));
+test('legacy setup decoder accepts native illegal-setup diagnostics without admitting private fields', () => {
+  const illegal = {...response,code:'ILLEGAL_SETUP',setupErrors:['Too many players in a wide zone.']};
+  assert.doesNotThrow(() => decodeSetupState(JSON.stringify(illegal)));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,setupErrors:[null]})));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,code:'ACCEPTED'})));
+  assert.throws(() => decodeSetupState(JSON.stringify({...illegal,privateDice:['hidden']})));
+});
 test('versioned public art identity accepts known values and null fallback, but rejects malformed fields', () => {
   const versioned = { ...state, projectionVersion: 2, players: state.players.map((player, index) => ({ ...player, art: index === 0 ? { rosterId: 'human', positionId: 'lineman' } : null })) };
   assert.deepEqual(decodeSetupStateValue(versioned).players[0].art, { rosterId: 'human', positionId: 'lineman' });

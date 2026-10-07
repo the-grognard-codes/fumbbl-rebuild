@@ -92,6 +92,8 @@ try {
       await page.waitForTimeout(500);
       assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 1, 'Late native reports restore and retain the pending result');
     }
+    const debug = page.getByRole('button', { name: 'Debug', exact: true });
+    if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       assert.equal(await button.isEnabled(), true);
