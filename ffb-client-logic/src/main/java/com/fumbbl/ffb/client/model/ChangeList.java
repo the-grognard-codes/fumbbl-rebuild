@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser dugouts use three vertical expansion states, and the expanded container accepts setup players returning from the pitch to reserves")
 			.addImprovement("Public site navigation uses wider link spacing and keeps Privacy and Support in the homepage footer")
 			.addImprovement("Moles Under the Pitch homepage shows a responsive screenshot of a browser match")
 			.addBugfix("Local review startup resolves Docker Desktop mount paths to Windows credential and secret files")
