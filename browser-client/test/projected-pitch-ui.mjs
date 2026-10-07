@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
-import { squarePosition } from './projected-pitch-helper.mjs';
+import { squarePosition, travelToFocus } from './projected-pitch-helper.mjs';
 import { resolvePlayerArt } from '../src/player-art.ts';
 import { PitchProjection } from '../src/pitch-projection.ts';
 
@@ -24,11 +24,14 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 const errors = [];
 const evidence = process.env.PITCH_SCENE_EVIDENCE_DIR;
 if (evidence) await mkdir(evidence, { recursive: true });
-async function open(role, failArt = false, phase = initial.phase) {
+async function open(role, failArt = false, diceMoment = null, pitchOptions = {}) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
   page.on('pageerror', error => errors.push(error.message));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
-  await page.addInitScript(state => { window.initial = state; window.intents = []; }, { ...initial, players, phase, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 } });
+  await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
+    window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
+    { state: { ...initial, players, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 },
+      phase: typeof diceMoment === 'string' ? diceMoment : pitchOptions.phase ?? initial.phase }, dice: typeof diceMoment === 'string' ? null : diceMoment, actions: pitchOptions.actions, pinnedAction: pitchOptions.pinnedAction });
   await page.route('**/scene-test', route => route.fulfill({ contentType: 'text/html', body: `
     <style>html,body{margin:0;height:100%;background:#101c2b}.play-runtime{height:100%}#app .live-pitch{height:100%;display:flex;flex-direction:column;margin:0;padding:0;box-sizing:border-box}#app .live-pitch-viewport{flex:1;max-height:none;min-height:0;aspect-ratio:auto}</style>
     <div id="app" class="play-runtime"></div><script type="module" src="/test/projected-pitch-harness.tsx"></script>` }));
@@ -96,7 +99,10 @@ try {
     const before = await scene.locator('.pitch-stadium-plate').first().getAttribute('style');
     await frame.dispatchEvent('wheel', { deltaY: 120 });
     await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.zoom) < 1);
-    assert.equal(await scene.getAttribute('data-focus'), '13');
+    assert.equal(await scene.getAttribute('data-focus'), '13', 'wheel zoom leaves travel unchanged');
+    const wheelZoom = await scene.getAttribute('data-zoom');
+    await frame.dispatchEvent('wheel', { deltaY: 120, ctrlKey: true });
+    assert.equal(await scene.getAttribute('data-zoom'), wheelZoom, 'control-wheel leaves browser zoom gesture to the browser');
     assert.notEqual(await scene.locator('.pitch-stadium-plate').first().getAttribute('style'), before);
     const focus = await scene.getAttribute('data-focus');
     for (const angle of [30, 50, 40]) {
@@ -104,6 +110,27 @@ try {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       await page.waitForFunction(before => window.selectionReports.length > before, reportsBefore, { timeout: 1500 });
       assert.equal(await scene.getAttribute('data-elevation'), String(angle));
+      assert.equal(await scene.locator('[data-shadow-player]').count(), players.length);
+      assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'feet');
+      assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-anchor-mode'), 'ground');
+      for (const player of players) {
+        const body = resolvePlayerArt(player, { end: role }).body;
+        const anchor = body.pose === 'prone' || body.pose === 'stunned' ? body.groundAnchor : body.footAnchor;
+        const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, anchor) => {
+          const image = marker.querySelector('img'), surface = marker.closest('.live-pitch-scene').getBoundingClientRect();
+          const rect = image.getBoundingClientRect(), scale = rect.width / image.naturalWidth;
+          return { x: rect.left - surface.left + anchor.x * scale - Number(marker.dataset.centerX),
+            y: rect.top - surface.top + anchor.y * scale - Number(marker.dataset.centerY) };
+        }, anchor);
+        assert.ok(Math.abs(offset.x) < .1 && Math.abs(offset.y) < .1, `${role} ${angle}° ${player.id} anchor follows square`);
+        const shadowOffset = await scene.locator(`[data-shadow-player="${player.id}"]`).evaluate((shadow, center) => {
+          const coordinates = shadow.getAttribute('points').trim().split(' ').map(pair => pair.split(',').map(Number));
+          const xs = coordinates.map(pair => pair[0]), ys = coordinates.map(pair => pair[1]);
+          return { x: (Math.min(...xs) + Math.max(...xs)) / 2 - center.x,
+            y: (Math.min(...ys) + Math.max(...ys)) / 2 - center.y };
+        }, await scene.locator(`[data-player-id="${player.id}"]`).evaluate(marker => ({ x: Number(marker.dataset.centerX), y: Number(marker.dataset.centerY) })));
+        assert.ok(Math.abs(shadowOffset.x) < 2 && Math.abs(shadowOffset.y) < 2, `${role} ${angle}° ${player.id} shadow follows square`);
+      }
       assert.equal(await scene.getAttribute('data-focus'), focus);
       assert.equal(await scene.locator('.live-selection-square').getAttribute('data-selection'), 'human');
       assert.equal(await scene.locator('.live-route-line').count(), 1);
@@ -114,9 +141,32 @@ try {
       await page.evaluate(() => { window.intents.pop(); });
       if (evidence && angle !== 40) await page.screenshot({ path: `${evidence}/perspective-${angle}-${role}.png` });
     }
+    await page.getByLabel('Perspective angle', { exact: true }).selectOption('30');
+    await page.getByRole('button', { name: '2×', exact: true }).click();
+    await frame.dispatchEvent('wheel', { deltaY: -1000 });
+    await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.zoom) === 3);
+    for (const [label, destinationFocus] of [['near', role === 'home' ? 26 : 0], ['far', role === 'home' ? 0 : 26]]) {
+      await travelToFocus(page, destinationFocus);
+        const crossing = await scene.locator('.pitch-stadium-plate').evaluateAll(plates => plates.map(plate => {
+          const values = plate.style.transform.slice(9, -1).split(',').map(Number);
+          const depths = [0, 941].map(y => values[3] * 0 + values[7] * y + values[15]);
+          return { offset: plate.dataset.worldOffset, depths, rect: plate.getBoundingClientRect().toJSON() };
+        }).filter(plate => plate.depths.some(depth => depth <= 0)));
+        assert.deepEqual(crossing, [], `30 degree ${role} ${label} plate must not cross the browser perspective plane`);
+        const widestSurface = await scene.locator('.pitch-stadium-world').evaluate(world => Math.max(
+          ...[...world.querySelectorAll('.pitch-stadium-plate, .pitch-stadium-strip')].map(surface => surface.getBoundingClientRect().width)));
+        assert.ok(widestSurface < 16384, `30 degree ${role} ${label} scenery surface exceeds compositor texture limit: ${widestSurface}`);
+      if (evidence) await page.screenshot({ path: `${evidence}/perspective-30-${role}-${label}.png` });
+    }
+    await page.getByRole('button', { name: 'Midfield', exact: true }).click();
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
+    await frame.dispatchEvent('wheel', { deltaY: 120 });
+    await page.getByLabel('Perspective angle', { exact: true }).selectOption('40');
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
     assert.equal(await scene.getAttribute('data-focus'), focus);
     assert.equal(await scene.getAttribute('data-projection'), 'top-down');
+    assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'visual-center');
+    assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-anchor-mode'), 'visual-center');
     const centered = await scene.locator('.live-marker').evaluateAll(markers => markers.every(marker => {
       const x = parseFloat(marker.style.left) + parseFloat(marker.style.width) / 2;
       const y = parseFloat(marker.style.top) + parseFloat(marker.style.height) / 2;
@@ -124,7 +174,7 @@ try {
     }));
     assert.equal(centered, true, 'tactical visible bounds and ground poses center within their canonical cells');
     for (const player of players) {
-      const art = resolvePlayerArt(player, { end: role });
+      const art = resolvePlayerArt(player, { end: role, topDown: true });
       const bounds = art.body.bounds;
       const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, bounds) => {
         const image = marker.querySelector('img');
@@ -164,6 +214,13 @@ try {
       y: empty.projected.y * pannedBounds.height / afterPan.height } });
     assert.deepEqual(await page.evaluate(() => window.intents.at(-1)), empty.cell, 'first left click after right pan is delivered');
     assert.equal(await page.evaluate(() => window.intents.length), 3, 'first left click after right pan produces one intent');
+    assert.equal(await frame.evaluate(element => element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }))), false);
+    const cancelledFocus = await scene.getAttribute('data-focus');
+    await page.mouse.down({ button: 'right' });
+    await frame.dispatchEvent('pointercancel', { pointerId: 1, button: 2 });
+    await page.mouse.move(box.x + box.width * .35, box.y + box.height * .7 - 160);
+    await page.mouse.up({ button: 'right' });
+    assert.equal(await scene.getAttribute('data-focus'), cancelledFocus, 'pointer cancellation ends camera travel');
     await frame.focus(); await frame.press('ArrowUp'); await frame.press('ArrowRight');
     assert.equal(await scene.locator('.live-keyboard-square').count(), 1);
     assert.equal(await page.evaluate(() => window.intents.length), 3, 'keyboard navigation never mutates');
@@ -226,6 +283,59 @@ try {
   await readonly.getByRole('button', { name: 'Away coach view', exact: true }).click();
   assert.deepEqual(await readonly.evaluate(() => window.intents), []);
   await readonly.close();
+  const kickAction = { id: 'kick:10:9', label: 'Kick to 10,9', kind: 'kickoff', actor: 'home', target: { x: 10, y: 9 } };
+  const kickoff = await open('home', false, null, { phase: 'READY_FOR_KICKOFF', actions: [kickAction], pinnedAction: kickAction });
+  assert.equal(await kickoff.locator('[data-kick-target]').getAttribute('data-kick-target'), '10,9');
+  const kickPoint = await squarePosition(kickoff, 10, 9);
+  await kickoff.locator('.live-pitch-scene').click({ position: kickPoint });
+  assert.deepEqual(await kickoff.evaluate(() => window.intents.at(-1)), { x: 10, y: 9 });
+  await kickoff.close();
+  for (const role of ['home', 'away']) for (const faces of [['SKULL', 'PUSHBACK', 'POW'], ['2', '4', '5', '6', '3']]) {
+    const dice = await open(role, false, { label: 'Revealed rolls', faces, subjectId: 'human', selected: null });
+    const area = dice.locator('.live-pitch-viewport'), overlay = dice.locator('.live-dice-overlay');
+    for (const angle of [30, 40, 50, 90]) {
+      if (angle === 90) await dice.getByRole('button', { name: 'Top-down view', exact: true }).click();
+      else await dice.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      const viewportRect = await area.boundingBox(), diceRect = await overlay.boundingBox();
+      assert.ok(diceRect.x >= viewportRect.x && diceRect.x + diceRect.width <= viewportRect.x + viewportRect.width,
+        `${role} ${angle}° ${faces.length} dice fit horizontally`);
+      assert.ok(diceRect.y >= viewportRect.y && diceRect.y + diceRect.height <= viewportRect.y + viewportRect.height,
+        `${role} ${angle}° ${faces.length} dice fit vertically`);
+      assert.ok(Math.abs(diceRect.x + diceRect.width / 2 - (viewportRect.x + viewportRect.width / 2)) < viewportRect.width * .25,
+        `${role} ${angle}° ${faces.length} dice remain near viewport center`);
+    }
+    await dice.close();
+  }
+  if (evidence) {
+    const comparison = await open('home');
+    await comparison.getByLabel('Perspective angle', { exact: true }).selectOption('30');
+    await travelToFocus(comparison, 11.56);
+    await comparison.screenshot({ path: `${evidence}/perspective-30-home-original-camera-tiled.png` });
+    await comparison.getByRole('button', { name: '2×', exact: true }).click();
+    await travelToFocus(comparison, 26);
+    await comparison.screenshot({ path: `${evidence}/perspective-30-home-near-2x-tiled.png` });
+    const legacyWidth = await comparison.locator('.pitch-stadium-world').evaluate(world => {
+      const plates = [...world.querySelectorAll('.pitch-stadium-plate')];
+      for (const center of plates.filter(plate => plate.dataset.side === '0')) {
+        const members = plates.filter(plate => plate.dataset.worldOffset === center.dataset.worldOffset);
+        const strip = document.createElement('div');
+        Object.assign(strip.style, { position: 'absolute', left: '-1672px', top: '0', width: '5016px', height: '941px',
+          maskImage: 'linear-gradient(transparent, black 12%, black 85%, transparent)' });
+        for (const member of members) {
+          const child = member.firstElementChild.cloneNode(true);
+          Object.assign(child.style, { position: 'absolute', left: `${(Number(member.dataset.side) + 1) * 1672}px`, top: '0' });
+          strip.append(child);
+          if (member !== center) member.remove();
+        }
+        center.style.maskImage = 'none';
+        center.replaceChildren(strip);
+      }
+      return Math.max(...[...world.querySelectorAll('.pitch-stadium-plate > div')].map(strip => strip.getBoundingClientRect().width));
+    });
+    assert.ok(legacyWidth > 16384, `legacy strip reproduces oversized 30° layer: ${legacyWidth}`);
+    await comparison.screenshot({ path: `${evidence}/perspective-30-home-near-2x-legacy-strip.png` });
+    await comparison.close();
+  }
   const missing = await open('home', true);
   await missing.locator('.live-token').first().waitFor();
   const tokenOffsets = await missing.locator('.live-token').evaluateAll(tokens => tokens.map(token => {
@@ -239,5 +349,5 @@ try {
   assert.deepEqual(await missing.evaluate(() => window.intents), [{ player: 'human' }]);
   await missing.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: both projected views preserve canonical intents, moving scenery, pose anchors, camera-only gestures, read-only inspection and unavailable-art fallback.');
+  console.log('PASS: both coach ends preserve canonical intents, bounded 30° scenery, player anchors/shadows, right-pan and wheel zoom, centered dice, kickoff targeting, and unavailable-art fallback.');
 } finally { if (errors.length) console.error(errors); await browser.close(); await server.close(); }

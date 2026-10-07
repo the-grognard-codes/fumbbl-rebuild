@@ -1,5 +1,7 @@
 # TODO
 
+- [#161 Fully fleshed-out weather icons](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/161): create cohesive MUTP artwork for Nice, Blizzard, Rain, Heat and Sunny, with transparent exports, canonical provenance and synced runtime assets. Existing desktop sprites are interim artwork; this is deferred to a future art task.
+
 The popup on pretty much any UI selection.
 
 Player facing and sprites

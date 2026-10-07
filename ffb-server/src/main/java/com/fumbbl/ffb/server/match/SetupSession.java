@@ -820,6 +820,8 @@ public final class SetupSession {
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
 		JsonObject passing = new PassingProjection().project(game);
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
+		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
+		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
 		return projected;
 	}
 	private JsonObject resources(Team team, int apothecaries) {
@@ -869,6 +871,15 @@ public final class SetupSession {
 		JsonObject current = view(role);
 		// Existing checkpoints predate this optional, independently versioned public guidance.
 		if (saved.get("passing") == null) current.remove("passing");
+		if (saved.get("kickoff") == null) current.remove("kickoff");
+		JsonArray savedActions = saved.get("actions").asArray();
+		JsonArray currentActions = current.get("actions").asArray();
+		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
+			JsonObject previous = savedActions.get(index).asObject(), now = currentActions.get(index).asObject();
+			// Old kickoff checkpoints omitted the moved player's source, but retained its exact target and action ID.
+			if ("kickoffMove".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("sourcePlayerId")))
+				now.set("sourcePlayerId", JsonValue.NULL);
+		}
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;
 		JsonArray savedPlayers = saved.get("players").asArray();

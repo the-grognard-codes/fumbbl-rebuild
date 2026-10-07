@@ -8,6 +8,7 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.MatchDocument;
+import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupSession;
 
 import java.lang.reflect.Field;
@@ -15,12 +16,97 @@ import java.lang.reflect.Field;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Recovery checkpoints at transitions that retain native step-local state. */
 class RecoveryScenariosTest {
 	@Test void prematchCheckpointRestoresInAnotherJvm() throws Exception { restore(recoverable()); }
 	private int requestNumber;
+	@Test
+	void quickSnapCountsAcceptedPlayersAndRestoresLimitsAndEarlyFinish() throws Exception {
+		SetupSession session = ready(recoverable());
+		engine(session).getDiceRoller().clearTestRolls();
+		TestRolls.on(engine(session)).general(1, 1, 4, 5, 1, 6, 6, 6, 6, 6, 6, 6);
+		submit(session, view(session, "home").get("actions").asArray().get(82).asObject(), unique("quick-kick"));
+		JsonObject initial = view(session, "home");
+		assertEquals("QUICK_SNAP", initial.getString("turnMode", null));
+		assertEquals(4, initial.get("kickoff").asObject().getInt("allowed", -1));
+		assertEquals(0, initial.get("kickoff").asObject().getInt("completed", -1));
+		JsonObject move = action(session, "kickoffMove");
+		String role = move.getString("actor", null), movedPlayer = move.getString("sourcePlayerId", null);
+		assertTrue(movedPlayer != null);
+		Game game = engine(session).getGame();
+		FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(game.getPlayerById(movedPlayer));
+		JsonObject target = move.get("target").asObject();
+		assertEquals(1, Math.max(Math.abs(from.getX() - target.getInt("x", -1)), Math.abs(from.getY() - target.getInt("y", -1))));
+		JsonObject command = request(initial, "action", unique("quick-move")).add("actionId", move.get("id"));
+		assertEquals("WRONG_ACTOR", assertThrows(MatchService.Failure.class,
+			() -> session.apply("home".equals(role) ? "away" : "home", command)).code);
+		assertEquals("ACCEPTED", session.apply(role, command).getString("code", null));
+		JsonObject after = view(session, role);
+		assertEquals(1, after.get("kickoff").asObject().getInt("completed", -1));
+		for (JsonValue offered : after.get("actions").asArray())
+			assertTrue(!JsonValue.valueOf(movedPlayer).equals(offered.asObject().get("sourcePlayerId")), "A moved player cannot move again");
+		assertEquals(after.get("kickoff"), session.spectatorView().get("kickoff"));
+		assertEquals(after.get("kickoff"), view(session, "home".equals(role) ? "away" : "home").get("kickoff"));
+		SetupSession restored = restore(session);
+		JsonObject legacy = JsonObject.readFrom(session.recoveryArtifact()), payload = legacy.get("payload").asObject();
+		for (String key : new String[] { "homeView", "awayView" }) {
+			JsonObject saved = payload.get(key).asObject(); saved.remove("kickoff");
+			for (JsonValue offered : saved.get("actions").asArray()) if ("kickoffMove".equals(offered.asObject().getString("kind", null)))
+				offered.asObject().set("sourcePlayerId", JsonValue.NULL);
+		}
+		byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(payload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		StringBuilder checksum = new StringBuilder();
+		for (byte value : hash) checksum.append(String.format("%02x", value & 0xff));
+		legacy.set("sha256", checksum.toString());
+		SetupSession upgraded = new SetupSession(new TestServer().getServer(), document(session), legacy.toString());
+		assertEquals(after, view(upgraded, role), "Old kickoff checkpoint views remain recoverable");
+		assertTrue(restored.apply(role, command).getBoolean("duplicate", false));
+		assertEquals(1, view(restored, role).get("kickoff").asObject().getInt("completed", -1));
+		JsonObject stale = request(initial, "action", unique("stale-quick")).add("actionId", move.get("id"));
+		assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class, () -> restored.apply(role, stale)).code);
+		assertEquals(1, view(restored, role).get("kickoff").asObject().getInt("completed", -1));
+		// An early finish remains offered; the same checkpoint can instead use its complete native allowance.
+		submit(restored, action(restored, "kickoffChoice"), unique("finish-quick"));
+		assertTrue(!"QUICK_SNAP".equals(view(restored, role).getString("turnMode", null)));
+		for (int completed = 1; completed < 4; completed++) {
+			submit(session, action(session, "kickoffMove"), unique("limit-move"));
+			if (completed < 3) assertEquals(completed + 1, view(session, role).get("kickoff").asObject().getInt("completed", -1));
+		}
+		assertTrue(!"QUICK_SNAP".equals(view(session, role).getString("turnMode", null)));
+		assertTrue(!hasAction(session, "kickoffMove"));
+	}
+	@Test
+	void highKickAndTouchbackUseNativeReceivingPlayerTargets() throws Exception {
+		SetupSession highKick = ready(recoverable());
+		engine(highKick).getDiceRoller().clearTestRolls();
+		TestRolls.on(engine(highKick)).general(1, 1, 2, 3, 6, 6, 6);
+		submit(highKick, view(highKick, "home").get("actions").asArray().get(82).asObject(), unique("high-kick"));
+		JsonObject highView = view(highKick, "home");
+		assertEquals("HIGH_KICK", highView.getString("turnMode", null));
+		assertEquals(1, highView.get("kickoff").asObject().getInt("allowed", -1));
+		JsonObject redeploy = action(highKick, "kickoffMove");
+		assertEquals(highView.get("ball"), redeploy.get("target"));
+		String playerId = redeploy.get("sourcePlayerId").asString();
+		submit(highKick, redeploy, unique("redeploy"));
+		FieldCoordinate moved = engine(highKick).getGame().getFieldModel().getPlayerCoordinate(engine(highKick).getGame().getPlayerById(playerId));
+		assertEquals(redeploy.get("target").asObject().getInt("x", -1), moved.getX());
+		assertEquals(redeploy.get("target").asObject().getInt("y", -1), moved.getY());
+		SetupSession touchback = ready(recoverable());
+		engine(touchback).getDiceRoller().clearTestRolls();
+		TestRolls.on(engine(touchback)).general(1, 6, 1, 1, 6, 6, 6);
+		submit(touchback, view(touchback, "home").get("actions").asArray().get(0).asObject(), unique("out-kick"));
+		assertEquals("TOUCHBACK", view(touchback, "home").getString("turnMode", null));
+		JsonObject recipient = action(touchback, "touchback");
+		String receiver = recipient.getString("actor", null);
+		assertEquals(engine(touchback).getGame().isHomePlaying() ? "away" : "home", receiver);
+		String recipientId = recipient.get("target").asObject().get("playerId").asString();
+		submit(touchback, recipient, unique("assign-touchback"));
+		Game game = engine(touchback).getGame();
+		assertEquals(game.getFieldModel().getPlayerCoordinate(game.getPlayerById(recipientId)), game.getFieldModel().getBallCoordinate());
+	}
 	@Test
 	void placementCheckpointRestoresBothViewsAndRetry() throws Exception {
 		SetupSession session = recoverable(); choosePrematch(session);

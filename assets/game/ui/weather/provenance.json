@@ -1,0 +1,32 @@
+{
+  "transformation": "None; source PNG bytes preserved",
+  "assets": [
+    {
+      "file": "weather_blizzard.png",
+      "sha256": "e9836a256711221bed457ec0bdac7fcf07b77161fb874ca7e3f7d7446b0dfef4",
+      "source": "ffb-resources/src/main/resources/icons/scorebar/weather/weather_blizzard.png"
+    },
+    {
+      "file": "weather_heat.png",
+      "sha256": "d61cd0008ac74387515daf2cde8f6b5aa6c00038cf8111eb651fe06abffbe5d4",
+      "source": "ffb-resources/src/main/resources/icons/scorebar/weather/weather_heat.png"
+    },
+    {
+      "file": "weather_nice.png",
+      "sha256": "e14cb813c6e8b28758b2b336486ec887963c971f5e360dedf6c02b9c87482f15",
+      "source": "ffb-resources/src/main/resources/icons/scorebar/weather/weather_nice.png"
+    },
+    {
+      "file": "weather_rain.png",
+      "sha256": "dbd030635f1ffd411962a18f794caef12468fb97b52f728d591b8ee00e188999",
+      "source": "ffb-resources/src/main/resources/icons/scorebar/weather/weather_rain.png"
+    },
+    {
+      "file": "weather_sunny.png",
+      "sha256": "df5c6b4423132571e3a1c36eed1e55f82b62a2f90b9c1e0cf1a31a2a44ce74a8",
+      "source": "ffb-resources/src/main/resources/icons/scorebar/weather/weather_sunny.png"
+    }
+  ],
+  "kind": "Existing repository artwork promoted to canonical browser assets",
+  "issue": "https://github.com/the-grognard-codes/fumbbl-rebuild/issues/150"
+}
