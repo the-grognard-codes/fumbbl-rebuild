@@ -13,7 +13,7 @@ All seven original worktrees were preserved before reconciliation: 197 dirty tra
 | Older flat endstand prototype | Archived; superseded by PR #182. Its geometry and test harness are excluded. |
 | Website, Spectate, development tooling | Already merged; latest source retained. Dirty distribution outputs and screenshots archived as artifacts. |
 | m6 investigation note | Copied to canonical TODO under #49; the long stress-run investigation remains open. |
-| Older stashes | Preserved separately. Computer-opponent work already exists in merged #90; older acceptance/deployment and M43 drafts remain historical snapshots, not new deliverables. |
+| Older stashes | Preserved separately. Computer-opponent work already exists in merged #90. The Candidate 03 owner acceptance note is recovered into its team-builder document. Unverified legacy VM startup experiments and M43 branding drafts remain archived; they are not claimed as completed deliverables. |
 
 The older ticket mirrors and verification documents are recovered as historical evidence. Current fourth-round tickets #166–#179 are closed. #161's original weather artwork remains deferred; the restored display uses provenance-recorded desktop sprites. #129's reported black pixels still need owner-display confirmation. No new live-server gameplay or deployment acceptance is claimed by this recovery.
 
@@ -35,3 +35,5 @@ Browser checks exercise recorded fixtures and intent contracts. They do not esta
 **Spec:** two findings corrected: maintain timer/team/resource alignment at narrow viewports, and limit kickoff movement selection to players with an offered move. The latest three-state dugout and quarter-field dice contracts take precedence over older local prototypes.
 
 Additional interaction checks passed for smart actions, setup drag/drop and friendly swaps, push chains/artwork, pass workflow/ranges, 56 reroll-choice cases, 22 reroll-accounting cases and immediate end-player-action. Rich resource/button bounds and nested clock text fit at 900, 800, 640 and 375px widths.
+
+Static-delivery CI caught the older hosted Blitz test expecting the removed Cancel button. The test now exercises Escape cancellation, asserts the proposal clears and reselects the player before the next action; its full actor/other-coach/spectator journey passes locally.

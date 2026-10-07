@@ -102,7 +102,9 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     assert.equal(await commit.isEnabled(), true);
     assert.match(await actor.locator('.command-preview').textContent(), /Unactivated players remain/);
     assert.equal(calls.length, 0, 'End Turn pauses while unactivated players remain');
-    await actor.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+    await actor.getByLabel('Pitch action preview').focus();
+    await actor.keyboard.press('Escape');
+    assert.equal(await commit.isDisabled(), true, 'Escape cancels the pending End Turn proposal');
     assert.equal(await pages[2].getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
     await revealPlayer(actor, actor.getByLabel('Live match pitch').locator('.live-marker').first());
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().hover();
@@ -176,7 +178,10 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation' }).click();
     assert.equal(await commit.isEnabled(), true, 'More actions pins a commit-ready server choice');
     assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
-    await actor.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+    await actor.getByLabel('Pitch action preview').focus();
+    await actor.keyboard.press('Escape');
+    assert.equal(await commit.isDisabled(), true, 'Escape cancels the pending proposal');
+    await pinPlayer(0);
     await actor.getByRole('button', { name: 'Blitz', exact: true }).click();
     if (process.env.M5D_SCREENSHOT_DIR) {
       await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
