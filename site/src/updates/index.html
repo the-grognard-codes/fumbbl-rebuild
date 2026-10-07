@@ -13,16 +13,36 @@
   <main class="updates-page">
     <div class="updates-intro"><p class="kicker">Project updates</p><h1>What's new under the pitch.</h1>
       <p>A brief look at the work behind MUTP, from game-day improvements to the tools that keep the project moving. Each entry links to its merged pull request for the full details.</p>
-      <p class="updates-coverage">100 merged pull requests · Latest merge October 5, 2026 · Newest first</p></div>
+      <p class="updates-coverage">105 merged pull requests · Latest merge October 6, 2026 · Newest first</p></div>
     <form id="updates-search" class="updates-tools" action="/updates" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">100 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">105 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-182" data-pr="182" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-07T03:58:42Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/182" target="_blank" rel="noreferrer">PR #182<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Improve match setup, movement and pitch controls</h2><p>Board clicks now plan moves for confirmation, while setup supports friendly-player swaps and explains invalid formations. Match panels gain adjustable backgrounds, compact dice and revised kickoff prompts; camera controls, ball highlighting and stadium stands are clearer. The accompanying retrospective records remaining review work.</p>
+    </article>
+    <article class="panel update-entry" id="pr-181" data-pr="181" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-07T02:26:26Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/181" target="_blank" rel="noreferrer">PR #181<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Place setup players through expanded dugouts</h2><p>Expanded dugouts now act as setup drop targets: drag reserves onto legal pitch squares or return eligible players by dropping them anywhere in their team&#39;s expanded dugout. Up/down controls switch among the team name, state counts and vertical player list; opponent and invalid drops remain blocked.</p>
+    </article>
+    <article class="panel update-entry" id="pr-180" data-pr="180" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-06T22:09:59Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/180" target="_blank" rel="noreferrer">PR #180<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Fix Windows startup and refresh the homepage</h2><p>Windows review startup now resolves Docker Desktop mount paths correctly before checking local credential files. The homepage replaces its character portrait with a responsive match screenshot, removes Privacy and Support from the top navigation and adds more space between links; both pages remain available from the footer.</p>
+    </article>
+    <article class="panel update-entry" id="pr-165" data-pr="165" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-06T15:26:26Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/165" target="_blank" rel="noreferrer">PR #165<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Load current Spectate assets for returning players</h2><p>Spectate now requests versioned page and game assets so returning players receive the current directory even when older Play files are cached. The fix keeps existing Play URLs and sign-in return behavior intact.</p>
+    </article>
+    <article class="panel update-entry" id="pr-164" data-pr="164" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-06T15:07:35Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/164" target="_blank" rel="noreferrer">PR #164<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Browse live matches and search the Updates history</h2><p>The new Spectate page lists live matchups, public game details and Watch links, with an initial replay-search scaffold. Updates now covers the merged PR history with topic and PR-number search, category filters and ten entries per page; full history remains readable without JavaScript.</p>
+    </article>
     <article class="panel update-entry" id="pr-126" data-pr="126" data-category="Project notes">
       <div class="update-meta"><span class="update-category">Project notes</span><time datetime="2026-10-06T01:06:21Z">October 5, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/126" target="_blank" rel="noreferrer">PR #126<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h2>Record the pitch follow-up retrospective</h2><p>Documented the outcome of seven pitch follow-up changes, linking completed tickets to their checks. The report also records the remaining signed-in match review and visual comparison work.</p>
