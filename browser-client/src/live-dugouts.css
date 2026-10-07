@@ -1,0 +1,6 @@
+.live-dugout.condensed { gap: 0; }
+.live-dugout.condensed .live-dugout-heading { min-height: 20px; }
+.live-dugout.condensed .live-dugout-zones { display: none; }
+.live-dugout.expanded .live-dugout-zones { grid-template-columns: minmax(0,1fr); }
+.live-dugout.expanded .live-dugout-zone { align-items: stretch; }
+.live-dugout.expanded.drop-ready { outline: 2px dashed #49e6ff; outline-offset: -3px; }
