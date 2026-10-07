@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-07",
+  "profiles": [
+    "old-world-classic/v2",
+    "badlands-brawl/v2"
+  ],
+  "sharedScene": [
+    {
+      "host": "human",
+      "durationMs": 5000,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 638,
+        "meanMs": 7.840595611285266,
+        "p95Ms": 8.300000000000182,
+        "maxMs": 15.600000000000136
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "human",
+      "view": 90,
+      "durationMs": 2400,
+      "crowdGroups": 191,
+      "animatedCrowdGroups": 27,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.12860107421875,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 316,
+        "meanMs": 7.617835443037977,
+        "p95Ms": 8.199999999999818,
+        "maxMs": 8.699999999999818
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 5000,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 609,
+        "meanMs": 8.210673234811166,
+        "p95Ms": 14.700000000000273,
+        "maxMs": 22.300000000000182
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "view": 90,
+      "durationMs": 2400,
+      "crowdGroups": 191,
+      "animatedCrowdGroups": 27,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.12860107421875,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 308,
+        "meanMs": 7.812987012987015,
+        "p95Ms": 8.299999999999272,
+        "maxMs": 16
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "native": [
+    {
+      "host": "human",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 267,
+        "meanMs": 9.004868913857662,
+        "p95Ms": 8.30000000000291,
+        "maxMs": 125
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 281,
+        "meanMs": 8.56975088967971,
+        "p95Ms": 8.30000000000291,
+        "maxMs": 151.5
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "limits": "Instrumented foreground headless desktop Chrome; probe overhead and concurrent local tests included. No sustained/hardware-wide GPU certification.",
+  "manualReview": "Both encoded 1280x660 clips inspected at 2s/4s perspective and 7s overhead; small staggered movement remains subordinate to pitch."
+}

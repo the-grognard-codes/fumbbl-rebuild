@@ -55,7 +55,7 @@ try {
   for (const [kind,options] of [['coin',['heads','tails']],['receive',['receive','kick']]]) {
     await page.evaluate(({state,kind,options}) => window.publishHud({...state,prompt:{id:`prompt-${kind}`,kind,actor:'home',options}}),{state,kind,options});
     const dialog = page.getByRole('dialog',{name:'Match decision'});
-    await dialog.waitFor();
+    await dialog.getByRole('heading',{name:kind==='coin'?'Call the coin toss':'Choose to receive or kick',exact:true}).waitFor();
     assert.match(await dialog.locator('h2').evaluate(el => getComputedStyle(el).fontFamily),/MUTP/);
     assert.match(await dialog.getByRole('button').first().evaluate(el => getComputedStyle(el).fontFamily),/MUTP/);
     await dialog.getByRole('button').first().press('Enter');

@@ -414,7 +414,9 @@
     "Dedicated overhead crowd, bench, pavilion, torch and gate art is distinct from front art.",
     "Self-review: pavilion moved into a three-row recess; full-ground-footprint clearance is protected by a geometry regression.",
     "v2 gutter fix: full 48-frame contact sheet and native mixed perspective/replay re-reviewed; accepted roles are isolated.",
-    "Intentional missing-browser launch closes port5173; acceptance reads generated DEV config from disk."
+    "Intentional missing-browser launch closes port5173; acceptance reads generated DEV config from disk.",
+    "Final motion scene includes team pennants, sparse world-phased crowd motion, fire flicker and fully static reduced motion; see motion-review.json and both ambient-motion.webm files.",
+    "Actual native UI: ambient observation leaves authoritative revision and outgoing setup command count unchanged; same-tab start, all48views and10restorations pass."
   ],
   "limits": "Headless desktop Chrome captures; no hardware-wide or sustained GPU certification.",
   "cameraMatrix": [
@@ -423,7 +425,7 @@
       "end": "home",
       "angle": 30,
       "position": "near",
-      "focus": 1.0000001676247656
+      "focus": 0.9999995864533666
     },
     {
       "host": "human",
@@ -437,14 +439,14 @@
       "end": "home",
       "angle": 30,
       "position": "far",
-      "focus": 24.99999990620938
+      "focus": 25.0000006563789
     },
     {
       "host": "human",
       "end": "home",
       "angle": 40,
       "position": "near",
-      "focus": 1.0000000044101505
+      "focus": 1.000000512463565
     },
     {
       "host": "human",
@@ -458,14 +460,14 @@
       "end": "home",
       "angle": 40,
       "position": "far",
-      "focus": 25.00000041078246
+      "focus": 25.000000127784652
     },
     {
       "host": "human",
       "end": "home",
       "angle": 50,
       "position": "near",
-      "focus": 1.0000005019249443
+      "focus": 1.0000001651399302
     },
     {
       "host": "human",
@@ -479,14 +481,14 @@
       "end": "home",
       "angle": 50,
       "position": "far",
-      "focus": 24.999999767326358
+      "focus": 25.000000262116853
     },
     {
       "host": "human",
       "end": "home",
       "angle": 90,
       "position": "near",
-      "focus": 1.0000000293568476
+      "focus": 1.00000035289208
     },
     {
       "host": "human",
@@ -500,7 +502,7 @@
       "end": "home",
       "angle": 90,
       "position": "far",
-      "focus": 25.000000211495294
+      "focus": 24.999999907041477
     },
     {
       "host": "human",
@@ -591,7 +593,7 @@
       "end": "home",
       "angle": 30,
       "position": "near",
-      "focus": 1.0000001676247656
+      "focus": 0.9999995864533666
     },
     {
       "host": "orc",
@@ -605,14 +607,14 @@
       "end": "home",
       "angle": 30,
       "position": "far",
-      "focus": 24.99999990620938
+      "focus": 25.0000006563789
     },
     {
       "host": "orc",
       "end": "home",
       "angle": 40,
       "position": "near",
-      "focus": 1.0000000044101505
+      "focus": 1.000000512463565
     },
     {
       "host": "orc",
@@ -626,14 +628,14 @@
       "end": "home",
       "angle": 40,
       "position": "far",
-      "focus": 25.00000041078246
+      "focus": 25.000000127784652
     },
     {
       "host": "orc",
       "end": "home",
       "angle": 50,
       "position": "near",
-      "focus": 1.0000005019249443
+      "focus": 1.0000001651399302
     },
     {
       "host": "orc",
@@ -647,14 +649,14 @@
       "end": "home",
       "angle": 50,
       "position": "far",
-      "focus": 24.999999767326358
+      "focus": 25.000000262116853
     },
     {
       "host": "orc",
       "end": "home",
       "angle": 90,
       "position": "near",
-      "focus": 1.0000000293568476
+      "focus": 1.00000035289208
     },
     {
       "host": "orc",
@@ -668,7 +670,7 @@
       "end": "home",
       "angle": 90,
       "position": "far",
-      "focus": 25.000000211495294
+      "focus": 24.999999907041477
     },
     {
       "host": "orc",
