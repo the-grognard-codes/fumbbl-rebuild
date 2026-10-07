@@ -166,7 +166,7 @@ try {
     assert.equal(await scene.getAttribute('data-focus'), focus);
     assert.equal(await scene.getAttribute('data-projection'), 'top-down');
     assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'visual-center');
-    assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-anchor-mode'), 'visual-center');
+    assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-anchor-mode'), 'ground');
     const centered = await scene.locator('.live-marker').evaluateAll(markers => markers.every(marker => {
       const x = parseFloat(marker.style.left) + parseFloat(marker.style.width) / 2;
       const y = parseFloat(marker.style.top) + parseFloat(marker.style.height) / 2;
@@ -176,16 +176,18 @@ try {
     for (const player of players) {
       const art = resolvePlayerArt(player, { end: role, topDown: true });
       const bounds = art.body.bounds;
-      const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, bounds) => {
+      const anchor = ['prone', 'stunned'].includes(art.body.pose) ? art.body.groundAnchor
+        : { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+      const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, anchor) => {
         const image = marker.querySelector('img');
         const scale = parseFloat(image.style.width) / image.naturalWidth;
         const scene = marker.closest('.live-pitch-scene').getBoundingClientRect();
         const imageRect = image.getBoundingClientRect();
         const left = imageRect.left - scene.left;
         const top = imageRect.top - scene.top;
-        return { dx: left + (bounds.x + bounds.width / 2) * scale - Number(marker.dataset.centerX),
-          dy: top + (bounds.y + bounds.height / 2) * scale - Number(marker.dataset.centerY) };
-      }, bounds);
+        return { dx: left + anchor.x * scale - Number(marker.dataset.centerX),
+          dy: top + anchor.y * scale - Number(marker.dataset.centerY) };
+      }, anchor);
       assert.ok(Math.abs(offset.dx) < .04 && Math.abs(offset.dy) < .04, `visible ${player.id} artwork is centered`);
     }
     const destination = await squarePosition(page, 10, 9);

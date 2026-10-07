@@ -1,5 +1,7 @@
 # TODO
 
+- [#49 Recovery stress-run investigation](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/49): the local Windows/Java 21 run reported an empty-action state after 4,222 seconds; CI passed. Determine whether the stress helper or native engine caused it. Preserved from the m6 worktree note.
+
 - [#161 Fully fleshed-out weather icons](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/161): create cohesive MUTP artwork for Nice, Blizzard, Rain, Heat and Sunny, with transparent exports, canonical provenance and synced runtime assets. Existing desktop sprites are interim artwork; this is deferred to a future art task.
 
 The popup on pretty much any UI selection.

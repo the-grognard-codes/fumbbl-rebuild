@@ -124,7 +124,7 @@ try {
       const rect = choice.getBoundingClientRect();
       return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight;
     })), 'All offered choices fit the compact viewport');
-    assert.equal(await page.getByRole('dialog').evaluate(dialog => getComputedStyle(dialog).overflowY), 'visible',
+    assert.equal(await page.getByRole('dialog').evaluate(dialog => dialog.scrollHeight <= dialog.clientHeight + 1), true,
       'The roll overlay has no vertical display scrollbar');
     await page.keyboard.press('Tab');
     await button.focus();

@@ -63,3 +63,21 @@ test('drive setup and kick placement broadcast while pre-match choices use their
       assert.equal(currentGameStep({ ...state, phase: 'PRE_MATCH', prompt: { id: 'pre-match', actor: 'home', kind, options: [] } }), null);
   }
 });
+
+test('touchback guidance waits for the receiving coach even while the kicker is active', () => {
+  for (const actor of ['home', 'away'] as const) {
+    const receiver = actor === 'home' ? 'away' : 'home';
+    for (const callerRole of ['home', 'away', 'spectator'] as const) {
+      const state = decodeSetupStateValue({ ...live, actor, callerRole, turnMode: 'TOUCHBACK', actions: [] }, callerRole === 'spectator');
+      const instruction = currentGameStep(state)!.instruction;
+      if (callerRole === receiver) assert.doesNotMatch(instruction, /Waiting/);
+      else assert.match(instruction, new RegExp('Waiting for the ' + receiver + ' coach'));
+    }
+  }
+});
+
+test('touchback guidance follows the offered choice actor', () => {
+  const state = decodeSetupStateValue({ ...live, actor: 'home', callerRole: 'home', turnMode: 'TOUCHBACK',
+    actions: [{ id: 'touchback', kind: 'touchback', actor: 'home', label: 'Assign ball', sourcePlayerId: null, target: null }] });
+  assert.doesNotMatch(currentGameStep(state)!.instruction, /Waiting/);
+});

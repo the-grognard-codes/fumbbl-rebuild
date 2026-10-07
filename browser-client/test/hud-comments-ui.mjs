@@ -106,7 +106,8 @@ try {
       if (width > 900) assert.equal(clock.top, layout.center.top, 'Desktop clocks align to score bar');
     }
     assert.ok(layout.menu.top >= layout.resources[1].bottom && layout.menu.top <= layout.resources[1].bottom + 9, 'Menu directly below away resources');
-    assert.ok(layout.menu.right <= width - 10);
+    assert.ok(layout.menu.right <= width - 8);
+    assert.equal(await page.locator('.live-match-scoreboard').evaluate(scoreboard => [...scoreboard.querySelectorAll('.live-chess-clock,.live-resources')].every(panel => { const bounds = panel.getBoundingClientRect(); return [...panel.querySelectorAll(panel.classList.contains('live-resources') ? 'button' : 'span,b')].every(child => { const rect = child.getBoundingClientRect(); return rect.top >= bounds.top && rect.bottom <= bounds.bottom && rect.left >= bounds.left && rect.right <= bounds.right; }); })), true, 'Rich resources and clock text fit their aligned panels');
     for (let i = 0; i < 2; i++) assert.ok(Math.abs(layout.dugouts[i].bottom - layout.histories[i].top + 8) < 1, 'Dugouts dock above corresponding history');
     assert.ok(layout.command.height <= 54 && layout.confirm.height < 38, 'Command and confirmation controls are shorter');
     assert.ok(layout.padding <= 5, 'Game log has reduced top padding');

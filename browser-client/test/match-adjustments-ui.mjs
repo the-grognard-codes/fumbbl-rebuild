@@ -72,6 +72,9 @@ try {
       actions: [move, action('event-p2-15-8', 'kickoffMove', 'p2', { x: 15, y: 8 }), action('end-event', 'kickoffChoice', null, null, 'Finish QUICK_SNAP')] });
     await page.locator('[data-player-id="p1"]').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.live-target-square').count(), 1, 'Only the selected player has move highlights');
+    await page.locator('[data-player-id="p3"]').focus(); await page.keyboard.press('Enter');
+    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'p1', 'An opponent without an offered kickoff move cannot replace the selected player');
+    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), []);
     const square = await squarePosition(page, 13, 5), rect = await page.locator('.live-pitch-scene').boundingBox();
     await page.mouse.click(rect.x + square.x, rect.y + square.y);
     assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), [{ operation: 'action', fields: { actionId: move.id } }],

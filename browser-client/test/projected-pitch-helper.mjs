@@ -10,8 +10,9 @@ export async function travelToFocus(page, focus) {
       perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
     if (Math.abs(options.focus - focus) < .05) return;
     const camera = new PitchProjection(options);
-    const delta = Math.max(-180, Math.min(180, (focus - camera.focus) * camera.scale
+    const requestedDelta = Math.max(-180, Math.min(180, (focus - camera.focus) * camera.scale
       * Math.sin(camera.elevation * Math.PI / 180) * (camera.end === 'home' ? 1 : -1)));
+    const delta = Math.sign(requestedDelta) * Math.max(8, Math.abs(requestedDelta));
     const box = await frame.boundingBox();
     const x = box.x + box.width / 2, y = box.y + box.height / 2;
     await page.mouse.move(x, y);

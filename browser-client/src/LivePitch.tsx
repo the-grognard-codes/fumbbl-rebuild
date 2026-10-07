@@ -46,9 +46,8 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const body = art?.body;
   const scale = (position?.pixelsPerSquare ?? camera.scale) * 1.08 / 64;
   const groundPose = body?.pose === 'prone' || body?.pose === 'stunned';
-  const anchor = body ? camera.mode === 'top-down'
-    ? { x: body.bounds.x + body.bounds.width / 2, y: body.bounds.y + body.bounds.height / 2 }
-    : groundPose ? body.groundAnchor : body.footAnchor : { x: 0, y: 0 };
+  const anchor = body ? groundPose ? body.groundAnchor : camera.mode === 'top-down'
+    ? { x: body.bounds.x + body.bounds.width / 2, y: body.bounds.y + body.bounds.height / 2 } : body.footAnchor : { x: 0, y: 0 };
   const corners = camera.square({ x: player.x!, y: player.y! });
   const width = position?.pixelsPerSquare ?? camera.scale;
   const height = corners.length ? Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y)) : width;
@@ -56,7 +55,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const number = player.number ?? player.slot;
   return <button type="button" data-player-id={player.id} data-x={player.x} data-y={player.y}
     data-center-x={position?.x} data-center-y={position?.y} data-pose={body?.pose ?? 'token'}
-    data-anchor-mode={camera.mode === 'top-down' ? 'visual-center' : groundPose ? 'ground' : 'feet'}
+    data-anchor-mode={groundPose ? 'ground' : camera.mode === 'top-down' ? 'visual-center' : 'feet'}
     className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}`}
     aria-label={`${teamName} ${player.name}, number ${number}, ${player.state}, square ${player.x}, ${player.y}`}
     tabIndex={visible ? 0 : -1} title={`${player.name} #${number} · ${player.state}`} draggable={canDrag && visible}
