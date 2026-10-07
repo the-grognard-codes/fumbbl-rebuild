@@ -29,6 +29,32 @@ import static org.mockito.Mockito.when;
 
 class SetupSessionPlacementTest {
     @Test
+    void projectsFrozenTeamArtAndRestoresLegacyCheckpointsWithoutPresentationFields() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject view = fixture.setup();
+        assertEquals("Old World Classic", view.get("homeTeamArt").asObject().getString("league", null));
+        assertEquals("human", view.get("awayTeamArt").asObject().getString("rosterId", null));
+        JsonObject legacy = JsonObject.readFrom(fixture.session.recoveryArtifact());
+        removeTeamArt(legacy);
+        StringBuilder checksum = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(legacy.get("payload").toString()
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8))) checksum.append(String.format("%02x", value & 255));
+        legacy.set("sha256", checksum.toString());
+        SetupSession restored = new SetupSession(fixture.server, fixture.document, legacy.toString());
+        JsonObject restoredView = restored.reply("load", "ACCEPTED", false, "away").get("state").asObject();
+        assertEquals(view.get("homeTeamArt"), restoredView.get("homeTeamArt"));
+        assertEquals(view.get("awayTeamArt"), restoredView.get("awayTeamArt"));
+    }
+
+    private void removeTeamArt(JsonValue value) {
+        if (value.isObject()) {
+            JsonObject object = value.asObject();
+            object.remove("homeTeamArt"); object.remove("awayTeamArt");
+            for (JsonObject.Member member : object) removeTeamArt(member.getValue());
+        } else if (value.isArray()) for (JsonValue child : value.asArray()) removeTeamArt(child);
+    }
+
+    @Test
     void swapsOnlyTwoOwnOnPitchPlayersInOneRecoverableDecision() {
         Fixture fixture = new Fixture();
         JsonObject before = fixture.setup();

@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "profile": "old-world-classic",
+  "generator": "Built-in image_gen",
+  "generationCalls": "generation-calls.json",
+  "acceptedFile": "../old-world-classic-v1.png",
+  "sha256": "234c98c042e06d1be39fe0cec657dc1c4c43568d0646ad4447b3f24e6668242b",
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "export": "Original transparent RGBA output, unchanged. Bounds are decoded into generated-stadium-art.ts; runtime clips original pixels.",
+  "referenceRoles": {
+    "stadium": "docs/adr/references/0003-angled-pitch-v2/art/stadium.png: approved stone/timber Human enclosure",
+    "crowdAndPalette": "assets/game/teams/human/qa/team-preview.png: blue/ivory participant identity"
+  },
+  "views": {
+    "front": [
+      "gate",
+      "crowd",
+      "banner",
+      "bench",
+      "pavilion",
+      "mugs",
+      "torch",
+      "pennant"
+    ],
+    "side": [
+      "crowdSide"
+    ],
+    "overhead": [
+      "gateTop",
+      "crowdTop",
+      "benchTop",
+      "pavilionTop",
+      "torchTop"
+    ],
+    "ground": [
+      "stone",
+      "timber"
+    ]
+  },
+  "qa": "../../../references/stadiums/human-v1/"
+}

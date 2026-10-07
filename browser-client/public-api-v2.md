@@ -286,3 +286,7 @@ two fresh agreements. A suspended game returns `MATCH_SUSPENDED` for gameplay;
 after 30 days without a successful player action/save-control operation/resume it
 becomes retained `MATCH_ABANDONED`. See the lifecycle contract for checkpoint,
 restart, backup, expiry and deletion limits.
+
+### Frozen stadium presentation identity
+
+Projection version 4 optionally carries the paired public fields `homeTeamArt` and `awayTeamArt`, each exactly `{ rosterId: string, league: string | null }`. Both appear or both are absent. The native projection reads League from the Match’s frozen resolved team catalog, even when no player has coordinates. Home League selects venue art; each roster selects its independent supporter and bench art. Viewer role, active player and halftime do not select themes. Older retained v4 views without these fields remain loadable; replay validates present identity against the frozen Match teams. Strict older browser bundles require coordinated rollout with the new server.
