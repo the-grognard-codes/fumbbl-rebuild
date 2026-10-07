@@ -16,7 +16,64 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor(); }
 
-test('start opens a separate match window, with same-tab fallback when blocked', async () => {
+test('fresh signed-in direct links resume the same account and show genuine membership denials', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
+  const requests = [], live = new Map(), contexts = [];
+  try {
+    for (const [index, account] of [accounts[0], accounts[0], accounts[2], accounts[0]].entries()) {
+      const context = await browser.newContext(); contexts.push(context);
+      await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+      await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>"synthetic-direct-resume"}));return()=>{};}' }));
+      await context.routeWebSocket('**/browser/v2', socket => {
+        const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+        socket.onMessage(raw => {
+          const request = JSON.parse(raw); requests.push({ ...request, index });
+          if (request.type === 'authenticate') {
+            live.get(account)?.({ type: 'error', requestId: null, code: 'CONNECTION_REPLACED' });
+            live.set(account, send);
+            send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: account });
+          }
+          if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
+          if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
+          if (request.type === 'setup') {
+            assert.equal(request.operation, 'load', 'A fresh direct link never replays a mutation');
+            if (account !== accounts[0] || request.matchId !== matchId) send({ type: 'error', requestId: request.requestId, code: 'NOT_FOUND' });
+            else send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false,
+              state: { ...base, revision: 42, callerRole: 'home' } });
+          }
+        });
+      });
+      const page = await context.newPage();
+      await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${index === 3 ? accounts[1] : matchId}`);
+      if (index < 2) {
+        await openGrid(page);
+        assert.match(await page.getByTestId('setup-status').textContent(), /Revision 42/);
+        assert.equal(context.pages().length, 1);
+      } else {
+        await page.getByRole('alert').filter({ hasText: 'This match is unavailable for this account.' }).waitFor();
+        assert.equal(await page.getByLabel('Live match pitch').count(), 0);
+      }
+      if (index === 1) {
+        const original = contexts[0].pages()[0];
+        await original.getByRole('alert').filter({ hasText: 'CONNECTION REPLACED' }).waitFor();
+        assert.equal(await original.getByLabel('Live match pitch').count(), 0);
+      }
+    }
+    assert.equal(requests.filter(request => request.type === 'setup').length, 4);
+    assert.ok(requests.filter(request => request.type === 'setup').every(request => !('role' in request) && !('accountId' in request)));
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
+test('start defaults to the current tab and supports explicit windows with blocked-popup fallback', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
@@ -30,7 +87,8 @@ test('start opens a separate match window, with same-tab fallback when blocked',
   const recipients = new Map(); const reads = []; const authentications = [0, 0]; let revision = 1;
   const member = role => ({ role, sourceTeamId: matchId, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'fixture', rosterId: 'human', presetId: 'fixture', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: {}, players: [] } });
   try {
-    for (const popupBlocked of [false, true]) {
+    for (const mode of ['same-tab', 'new-window', 'blocked-window']) {
+      const sameTab = mode === 'same-tab', popupBlocked = mode === 'blocked-window';
       revision = 1; recipients.clear(); reads.length = 0; authentications.fill(0);
       const pages = []; const contexts = [];
       for (let index = 0; index < 2; index++) {
@@ -65,9 +123,9 @@ test('start opens a separate match window, with same-tab fallback when blocked',
         await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
       }
       await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
-      const opened = popupBlocked ? null : pages[1].waitForEvent('popup');
-      await pages[1].getByRole('button', { name: 'Start game', exact: true }).click();
-      const starterMatch = popupBlocked ? pages[1] : await opened;
+      const opened = sameTab || popupBlocked ? null : pages[1].waitForEvent('popup');
+      await pages[1].getByRole('button', { name: sameTab ? 'Start game' : 'Start game in a new window', exact: true }).click();
+      const starterMatch = sameTab || popupBlocked ? pages[1] : await opened;
       await openGrid(starterMatch);
       assert.equal(new URL(starterMatch.url()).pathname, '/play/match');
       await starterMatch.setViewportSize({ width: 1224, height: 604 });
@@ -97,7 +155,7 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       assert.equal(await zoomControls.getByRole('button', { name: '2×' }).getAttribute('aria-pressed'), 'true');
       await zoomControls.getByRole('button', { name: 'Fit' }).click();
       await starterMatch.getByRole('button', { name: 'Close Game Menu' }).click();
-      if (!popupBlocked) {
+      if (!sameTab && !popupBlocked) {
         assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
         assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
         assert.equal(await starterMatch.evaluate(() => window.name), 'moles.play.launched-window');
@@ -105,7 +163,7 @@ test('start opens a separate match window, with same-tab fallback when blocked',
         await pages[1].reload();
         await pages[1].getByLabel('Match opened elsewhere').waitFor();
         assert.equal(authentications[1], 2, 'Reloaded preparation must not replace its match connection');
-      }
+      } else assert.equal(contexts[1].pages().length, 1, 'Default and blocked-window launch remain in the current tab');
       await pages[0].getByRole('link', { name: 'Open match in a new tab or window' }).waitFor();
       const opponentWindow = pages[0].waitForEvent('popup');
       await pages[0].getByRole('link', { name: 'Open match in a new tab or window' }).click();
@@ -124,7 +182,7 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       }
       await starterMatch.getByRole('button', { name: 'Game Menu', exact: true }).click();
       await starterMatch.getByRole('tab', { name: 'Interface', exact: true }).click();
-      if (popupBlocked) {
+      if (sameTab || popupBlocked) {
         await starterMatch.getByRole('button', { name: 'Exit match' }).click();
         await starterMatch.getByLabel('Match ID', { exact: true }).waitFor();
       } else {

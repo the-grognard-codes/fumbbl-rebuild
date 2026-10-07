@@ -269,7 +269,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         && !currentMatchesFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
-        && !['READY', 'INVITED', 'UNAVAILABLE', 'ILLEGAL_SETUP'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
+        && !['READY', 'INVITED', 'UNAVAILABLE', 'ILLEGAL_SETUP'].includes(message.code)) setError(message.code === 'NOT_FOUND' && matchRoute
+          ? 'This match is unavailable for this account. Return to game setup and choose one of your current games.'
+          : message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
     const refresh = () => { if (connection.accountId) { connection.request('savedTeam', { operation: 'list' }); requestCurrentMatches(); } };
@@ -319,16 +321,18 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         throw Error('Reconnect before creating a game.');
     });
   }
-  function startGame() {
-    // Reserve the browsing context in the click handler; the server response arrives too late for popup permission.
+  function startGame(newWindow = false) {
+    // Explicit new windows must reserve their context before the activation reply.
     let popup: Window | null = null;
     try {
-      popup = window.open('', '_blank', 'popup=yes,width=1440,height=900,menubar=no,toolbar=no,location=no,status=no');
-      if (popup) {
-        popup.opener = null;
-        popup.name = 'moles.play.launched-window';
-        popup.document.title = 'Starting game';
-        popup.document.body.textContent = 'Waiting for the game server to confirm activation…';
+      if (newWindow) {
+        popup = window.open('', '_blank', 'popup=yes,width=1440,height=900,menubar=no,toolbar=no,location=no,status=no');
+        if (popup) {
+          popup.opener = null;
+          popup.name = 'moles.play.launched-window';
+          popup.document.title = 'Starting game';
+          popup.document.body.textContent = 'Waiting for the game server to confirm activation…';
+        }
       }
     } catch { popup?.close(); popup = null; }
     try {
@@ -422,8 +426,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       <label>Match ID <input value={matchId} onChange={event => setMatchId(event.target.value)} /></label>
       <button disabled={!connected || !matchId} onClick={() => prepare('load')}>Reload game setup</button>
       <button disabled={busy || !matchId} onClick={() => run(() => location.assign(matchUrl(matchId, false)))}>Resume play</button>
-      {prepared?.document.lifecycle === 'AWAITING_SETUP' && <button disabled={busy} onClick={startGame}>Start game</button>}
-      {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a> · <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a></p>}
+      {prepared?.document.lifecycle === 'AWAITING_SETUP' && <>
+        <button disabled={busy} onClick={() => startGame()}>Start game</button>
+        <button disabled={busy} onClick={() => startGame(true)}>Start game in a new window</button>
+      </>}
+      {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a> · <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a></p>}
     </section>
     {playMode === 'human' && <section aria-label="Watch games"><h2>Games in progress</h2>
       <p>The game browser has moved to <a href="/spectate">Spectate</a>. Find live match details and replay search there.</p>

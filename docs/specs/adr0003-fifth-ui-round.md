@@ -7,8 +7,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | Slice | GitHub issue | Blocked by | Delivery |
 | --- | --- | --- | --- |
 | T01 | [#185](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/185) | None | Merged in [#199](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/199) |
-| T02 | [#186](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) | #185 | Implemented; PR validation pending |
-| T03 | [#187](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/187) | None | Planned |
+| T02 | [#186](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) | #185 | Merged in [#201](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/201) |
+| T03 | [#187](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/187) | None | Implemented; review and validation in progress |
 | T04 | [#188](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188) | None | Planned |
 | T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Planned |
 | T06 | [#190](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190) | None | Planned |
