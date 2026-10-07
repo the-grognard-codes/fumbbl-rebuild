@@ -440,7 +440,14 @@ class SetupSessionTest {
         assertEquals("SOLID_DEFENCE", view(session).getString("turnMode", null));
         JsonObject invalid = request(view(session), "action").add("actionId", actionEnding(session, ":confirm-solid-defence").get("id"));
         String before = serialized(session), role = view(session).getString("actor", null);
-        assertEquals("ILLEGAL_SETUP", assertThrows(MatchService.Failure.class, () -> session.apply(role, invalid)).code);
+        int revision = view(session).getInt("revision", -1);
+        JsonObject rejected = session.apply(role, invalid);
+        assertEquals("ILLEGAL_SETUP", rejected.getString("code", null));
+        assertTrue(rejected.get("setupErrors").asArray().size() > 0);
+        assertEquals(revision, rejected.get("state").asObject().getInt("revision", -1));
+        JsonObject retry = session.apply(role, invalid);
+        assertTrue(retry.getBoolean("duplicate", false));
+        assertEquals(rejected.get("setupErrors"), retry.get("setupErrors"));
         assertEquals(before, serialized(session));
         submit(session, actionEnding(session, ":" + original.getX() + ":" + original.getY()));
         submit(session, actionEnding(session, ":confirm-solid-defence"));
