@@ -79,6 +79,7 @@ try {
       assert.notEqual(await cell(14, 7).getAttribute('points'), '');
     }
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     if (journey.weather === 'BLIZZARD') {
       await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 17, 7) });
       assert.equal(await page.evaluate(() => window.testSocket.state.actions.some(action => action.kind === 'pass' && action.target?.x === 17 && action.target?.y === 7)), false, 'Native weather-forbidden pass is never offered');
@@ -89,7 +90,9 @@ try {
     await pitch.locator('[data-player-id="mate"]').click();
     assert.match(await page.locator('.live-pass-target-detail').innerText(), /Short Pass/);
     assert.equal(await confirm.isEnabled(), true);
-    await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+    await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
+    await squarePosition(page, 10, 7);
+    await pitch.locator('[data-player-id="actor"]').click();
     await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 11, 7) }); await confirm.click();
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 2 ' }).waitFor({ state: 'attached', timeout: 5000 });
     assert.equal(await cell(17, 7).getAttribute('data-pass-range'), 'S');

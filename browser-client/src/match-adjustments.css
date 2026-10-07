@@ -1,0 +1,25 @@
+
+/* Game-step instructions stay below both turn tracks, independent of the camera. */
+.play-runtime .coach-match.hosted-match .match-game-step { position: absolute; z-index: 52; top: 104px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(420px,52%); box-sizing: border-box; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px; color: #d9e9f7; background: rgb(9 23 38 / 75%); border: 1px solid #426c9b; border-radius: 4px; text-align: center; pointer-events: none; font: 13px/1.35 system-ui,sans-serif; }
+.play-runtime .coach-match.hosted-match .match-game-step strong { color: #ffe17b; font: 700 18px/1.2 MUTP,sans-serif; }
+.play-runtime .coach-match.hosted-match .match-game-step small { color: #49dfff; font: inherit; }
+.play-runtime .coach-match.hosted-match .kickoff-movement-command { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.play-runtime .coach-match.hosted-match .match-debug-toggle { position: absolute; z-index: 80; left: 112px; top: 108px; padding: 3px 8px; margin: 0; font: 12px MUTP,sans-serif; }
+.play-runtime .coach-match.hosted-match .match-debug-panel { position: absolute; z-index: 80; top: 181px; left: 12px; width: min(460px,calc(100% - 24px)); max-height: calc(100% - 205px); overflow: auto; box-sizing: border-box; margin: 0; padding: 10px; border: 2px solid #426c9b; border-radius: 4px; background: #091726f0; color: #d9e9f7; font: 13px/1.35 system-ui,sans-serif; }
+.play-runtime .coach-match.hosted-match .match-debug-panel header { display: flex; justify-content: space-between; align-items: center; }
+.play-runtime .coach-match.hosted-match .match-debug-panel section { margin: 7px 0; padding: 7px 0; border: 0; background: none; }
+.play-runtime .coach-match.hosted-match .match-debug-panel .live-camera-controls { position: static; transform: none; max-width: 100%; justify-content: flex-start; }
+.play-runtime .coach-match.hosted-match .match-debug-panel p { font: inherit; margin: 6px 0; }
+.play-runtime .coach-match.hosted-match .match-debug-panel h3 { font-size: 14px; margin: 0 0 6px; }
+.play-runtime .coach-match.hosted-match .match-debug-panel button { margin: 2px; padding: 3px 6px; min-height: 28px; font: inherit; }
+.play-runtime .coach-match.hosted-match .match-debug-panel select { width: 100%; font: inherit; }
+@media (max-width: 700px) {
+  .play-runtime .coach-match.hosted-match .match-game-step { top: 96px; max-width: 72%; font-size: 11px; padding: 4px 7px; }
+  .play-runtime .coach-match.hosted-match .match-game-step strong { font-size: 14px; }
+  .play-runtime .coach-match.hosted-match .match-debug-toggle { top: 104px; left: 100px; }
+  .play-runtime .coach-match.hosted-match .match-debug-panel { top: 165px; max-height: calc(100% - 185px); }
+}
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .match-game-step { max-width: 56%; }
+  .play-runtime .coach-match.hosted-match .match-debug-toggle { left: 12px; top: 73px; max-width: 16%; font-size: 9px; padding: 2px 3px; }
+}

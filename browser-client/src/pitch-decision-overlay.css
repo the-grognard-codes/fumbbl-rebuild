@@ -1,0 +1,72 @@
+.live-dice-overlay.interactive.pitch-decision-overlay {
+  width: min(420px, calc(100vw - 16px));
+  max-width: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.live-dice-overlay.pitch-decision-overlay .pitch-decision-roll {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: start;
+  width: 100%;
+  gap: 4px;
+}
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button {
+  flex: 0 1 auto;
+  min-width: 84px;
+  min-height: 32px;
+  max-width: 160px;
+  padding: 3px 5px;
+  line-height: 1.15;
+}
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button.live-die-choice,
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice {
+  flex: 0 0 46px;
+  min-width: 46px;
+  max-width: 46px;
+  min-height: 46px;
+  padding: 1px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button:is(.live-die-choice, .pitch-dice-icon-choice):hover,
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button:is(.live-die-choice, .pitch-dice-icon-choice):focus-visible {
+  background: transparent;
+  outline: 2px solid #f7dc9a;
+  outline-offset: 1px;
+}
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice img,
+.live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice svg {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px #000a);
+}
+.live-dice-overlay.pitch-decision-overlay .pitch-dice-custom-icon text {
+  fill: #f4e6bd;
+  font: 700 17px sans-serif;
+  text-anchor: middle;
+}
+.live-dice-overlay.pitch-decision-overlay .match-die { width: 44px; height: 44px; }
+@media (max-width: 600px) {
+  .live-dice-overlay.interactive.pitch-decision-overlay { width: min(360px, calc(100vw - 16px)); gap: 3px; }
+  .live-dice-overlay.pitch-decision-overlay .live-dice-choices { gap: 2px; }
+  .live-dice-overlay.pitch-decision-overlay .match-die { width: 39px; height: 39px; }
+  .live-dice-overlay.pitch-decision-overlay .live-dice-choices button:is(.live-die-choice, .pitch-dice-icon-choice) {
+    flex-basis: 40px; min-width: 40px; max-width: 40px; min-height: 40px;
+  }
+  .live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice img,
+  .live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice svg { width: 38px; height: 38px; }
+}

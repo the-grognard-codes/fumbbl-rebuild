@@ -12,6 +12,7 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,6 +51,7 @@ class SetupSessionConcessionTest {
         when(server.getGameCache()).thenReturn(mock(GameCache.class));
         when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
         SetupSession session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+        assertBrowseSummaryMatchesView(session);
         JsonObject initialClock = session.decorateSaveResume(session.reply("load", "ACCEPTED", false, "home"))
             .get("state").asObject().get("clock").asObject();
         JsonObject playerCard = session.reply("load", "ACCEPTED", false, "home")
@@ -73,6 +75,7 @@ class SetupSessionConcessionTest {
 
         assertEquals("ACCEPTED", response.getString("code", null));
         assertEquals("FULL_TIME", response.get("state").asObject().getString("phase", null));
+        assertBrowseSummaryMatchesView(session);
         assertTrue(session.isComplete());
         int homeScore = response.get("state").asObject().getInt("homeScore", -1);
         int awayScore = response.get("state").asObject().getInt("awayScore", -1);
@@ -82,4 +85,11 @@ class SetupSessionConcessionTest {
         assertEquals("ACCEPTED", session.apply(nonActor, request).getString("code", null));
         assertTrue(session.apply(nonActor, request).getBoolean("duplicate", false));
     }
+
+	private void assertBrowseSummaryMatchesView(SetupSession session) {
+		JsonObject summary = session.browseSummary(), view = session.spectatorView();
+		assertEquals(5, summary.size());
+		for (String field : Arrays.asList("phase", "half", "turn", "homeScore", "awayScore"))
+			assertEquals(view.get(field), summary.get(field));
+	}
 }

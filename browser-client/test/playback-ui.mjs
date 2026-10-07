@@ -82,6 +82,30 @@ try {
   assert.equal(await promptDice.evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0, 'Retaining the result does not extend the animation');
   await publish({ view:state(13,22),interactive:true,records:[] }); await wait(13,22);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(),0, 'Accepted prompt resolution clears the old result');
+  const success = record(14,24,[5,4,6,2].map((roll,index) => ({
+    reportList:{reports:[{reportId:index===3?'goForItRoll':'dodgeRoll',roll,successful:true,playerId:'home1'}]},
+    modelChangeList:{modelChangeArray:[change([23,24,25,24][index])]}
+  })));
+  await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
+    revision===14?success:record(revision,22)) });
+  const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');
+  await page.waitForFunction(() => document.querySelector('#playback-state')?.dataset.active === 'true'
+    && document.querySelectorAll('.live-dice-overlay[role="status"] .match-die').length === 4);
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2'],
+    'Three dodges and one rush accumulate across movement playback');
+  const continuation = record(15,25,[{reportList:{reports:[{reportId:'goForItRoll',roll:3,successful:true,playerId:'home1'}]},
+    modelChangeList:{modelChangeArray:[change(25)]}}]);
+  await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
+    revision===15?continuation:revision===14?success:record(revision,22)) });
+  await wait(15,25);
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2','3'],
+    'A later authoritative revision extends the same active-player sequence');
+  await page.waitForTimeout(700);
+  assert.equal(await successfulDice.count(),5, 'Retention starts after the final roll and movement');
+  await successfulDice.first().waitFor({state:'detached',timeout:1000});
+  await publish({view:state(15,25),records:[],enabled:false}); await wait(15,25);
+  await publish({view:state(15,25),records:[]}); await wait(15,25);
+  assert.equal(await successfulDice.count(),0, 'Reconnect does not replay stale retained dice');
   if (process.env.DICE_EVIDENCE_DIR) { await mkdir(process.env.DICE_EVIDENCE_DIR,{recursive:true}); await page.locator('#dice-specimens').screenshot({path:`${process.env.DICE_EVIDENCE_DIR}/ivory-cyan.png`}); }
   assert.deepEqual(errors,[]);
   console.log('PASS: exact authoritative dice, short nonblocking animation, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');

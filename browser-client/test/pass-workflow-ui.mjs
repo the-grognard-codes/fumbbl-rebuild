@@ -79,12 +79,13 @@ try {
     if (journey.mode === 'stationary') {
       const empty = beforeThrow.actions.find(action => action.kind === 'pass' && !beforeThrow.players.some(player =>
         player.x === action.target.x && player.y === action.target.y));
-      await page.getByRole('button', { name: 'Other action', exact: true }).click();
-      await page.locator('.action-text-companion > summary').click();
+      await page.getByRole('button', { name: 'Debug', exact: true }).click();
       await page.getByLabel('Server action', { exact: true }).selectOption(empty.id);
       assert.equal(await confirmed.isEnabled(), true, 'Native empty-square targets remain available through the offered controls');
       assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount);
-      await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+      await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
+      await pitch.locator('[data-player-id="actor"]').click();
     }
     await pitch.locator('[data-player-id="mate"]').click();
     if (evidence) await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-target.png`) });
@@ -99,6 +100,7 @@ try {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       assert.equal(await confirmed.isEnabled(), true, 'Camera changes preserve the reviewed recipient');
     }
+    await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     await confirmed.click();
     await waitRevision(journey.frames.at(-1).actor.revision);
     const sent = await page.evaluate(() => window.testSocket.sent);

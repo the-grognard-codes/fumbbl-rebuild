@@ -2,8 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { MatchEventLog } from './MatchEventLog.tsx';
+import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTextSize } from './MatchTextSizeControls.tsx';
+import type { MatchTextSize } from './MatchTextSizeControls.tsx';
 import type { ChatMessage } from './chat-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import './match-chat.css';
 
 type Props = {
   stacked?: boolean;
@@ -52,10 +55,12 @@ export function MatchHistory(props: Props) {
 
 function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, connected, sending, canSend, onSend, sendError, sent, active,
   homeTeamName, awayTeamName, overlay }: Props & { active: boolean; overlay: boolean }) {
+  const fontKey = 'ffb.match.chat.font-size';
   const draftKey = `ffb.match.chat.draft.${matchId}`;
   const scrollKey = `ffb.match.chat.scroll.${matchId}`;
   const [draft, setDraft] = useState(() => { try { return sessionStorage.getItem(draftKey) ?? ''; } catch { return ''; } });
   const [entryOpen, setEntryOpen] = useState(false);
+  const [fontSize, setFontSize] = useState<MatchTextSize>(() => readMatchTextSize(fontKey));
   const pane = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const entry = useRef<HTMLInputElement>(null);
@@ -79,6 +84,13 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
     setDraft(value);
     try { sessionStorage.setItem(draftKey, value); } catch { /* Draft remains in memory. */ }
   };
+  const chooseFontSize = (size: MatchTextSize) => { setFontSize(size); saveMatchTextSize(fontKey, size); };
+  const openEntry = () => {
+    if (!overlay || !canSend || chatUnavailable || entryOpen) return;
+    previousFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    setEntryOpen(true);
+    requestAnimationFrame(() => entry.current?.focus());
+  };
   useEffect(() => { if (sent && draft.trim() === sent.text) setText(''); }, [sent]);
   useEffect(() => {
     if (!overlay || !active || !canSend || chatUnavailable) return;
@@ -94,9 +106,7 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
       }
       if (event.key !== 'Enter' || target?.closest('input, textarea, select, button, a[href], summary, [contenteditable], [role="button"], [role="link"], [role="textbox"]')) return;
       event.preventDefault();
-      if (!entryOpen) previousFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-      setEntryOpen(true);
-      requestAnimationFrame(() => entry.current?.focus());
+      openEntry();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -107,20 +117,20 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
     if (!text || !canSend || !connected || sending) return;
     onSend(text);
   };
-  return <div ref={root} className={`match-chat${overlay && entryOpen ? ' composing' : ''}`} tabIndex={overlay ? -1 : undefined}>
-    <header><h3>Match chat</h3>{overlay && canSend && !chatUnavailable && !entryOpen && <button type="button" className="match-chat-compose" onClick={() => {
-      previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      setEntryOpen(true); requestAnimationFrame(() => entry.current?.focus());
-    }}>Write message</button>}</header>
-    <p className="match-chat-count">{chatUnavailable ? 'Chat is unavailable for this match.' : chatLoading ? 'Loading conversation…' : `${messages.length} messages`}</p>
+  return <div ref={root} className={`match-chat${overlay && entryOpen ? ' composing' : ''}`} data-font-size={fontSize} tabIndex={overlay ? -1 : undefined}>
+    <header><h3>Match chat</h3><MatchTextSizeControls subject="chat" size={fontSize} onChange={chooseFontSize}/></header>
     <div ref={pane} role="log" aria-label="Match chat messages" aria-live="polite" className="match-chat-scroll"
+      style={{ fontSize: `${matchTextPixels[fontSize]}px` }} onClick={openEntry}
       onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
         try { sessionStorage.setItem(scrollKey, String(element.scrollTop)); } catch { /* Scroll position remains in memory. */ } }}>
+      {(chatUnavailable || chatLoading) && <p role="status">{chatUnavailable ? 'Chat is unavailable for this match.' : 'Loading conversation…'}</p>}
       {messages.map(message => <p key={message.index}><time dateTime={new Date(message.at).toISOString()}>{new Date(message.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
         <strong>{message.role === 'spectator' ? 'Spectator' : `${message.role === 'home' ? homeTeamName || 'Home' : awayTeamName || 'Away'} coach`} · {message.authorId.slice(0, 8)}</strong>
         <span>{message.text}</span></p>)}
     </div>
-    {overlay && canSend && !chatUnavailable && !entryOpen && <p className="match-chat-hint">Press Enter to write a message.</p>}
+    {overlay && canSend && !chatUnavailable && !entryOpen && <button type="button" className="match-chat-hint" onClick={openEntry}>
+      Click chat or press Enter to write
+    </button>}
     {canSend && !chatUnavailable && (!overlay || entryOpen) && <form onSubmit={submit}><label htmlFor="match-chat-draft">Message the match</label>
       <div><input ref={entry} id="match-chat-draft" value={draft} onChange={event => setText(event.target.value)} maxLength={300} autoComplete="off" disabled={!connected || sending}/>
         <button type="submit" disabled={!connected || sending || !draft.trim()}>{sending ? 'Sending…' : 'Send'}</button></div>

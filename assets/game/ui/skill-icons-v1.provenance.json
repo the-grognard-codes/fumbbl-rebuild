@@ -1,0 +1,8 @@
+{
+  "created": "2026-10-05",
+  "asset": "skill-icons-v1.svg",
+  "source": "Original repo-native SVG drawn for the ADR0003 match decision controls",
+  "style": "MUTP navy, cyan, ivory and gold HUD palette; distinctive pictograms for Pro, Brawler and Dodge; named badges for other currently projected skill sources",
+  "scope": "Presentation only; each symbol appears only when the server offers its exact corresponding action",
+  "runtimeCopy": "browser-client/public/assets/game/ui/skill-icons-v1.svg"
+}

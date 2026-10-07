@@ -5,11 +5,24 @@ import type { HudResource } from './hud-model.ts';
 import { clockValues, formatClock } from './match-clock.ts';
 import { matchTeamName } from './match-team-name.ts';
 import type { SetupState } from './setup-protocol.ts';
+import { weatherPresentation } from './weather-presentation.ts';
 
 function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName: string; items: HudResource[] }) {
   const id = useId();
+  const resourceElement = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const element = resourceElement.current;
+    const host = element?.closest<HTMLElement>('.coach-match');
+    if (role !== 'away' || !element || !host) return;
+    const alignMenu = () => host.style.setProperty('--away-resource-bottom',
+      `${element.getBoundingClientRect().bottom - host.getBoundingClientRect().top}px`);
+    const observer = new ResizeObserver(alignMenu);
+    observer.observe(element);
+    alignMenu();
+    return () => { observer.disconnect(); host.style.removeProperty('--away-resource-bottom'); };
+  }, [role, items.length]);
   if (!items.length) return null;
-  return <section className={`live-resources ${role}`} aria-label={`${teamName} resources`}>
+  return <section ref={resourceElement} className={`live-resources ${role}`} aria-label={`${teamName} resources`}>
     <div className="live-resource-counts">{items.map(item => <div key={item.kind} className="live-resource-item">
       <button type="button" className={`live-resource ${item.kind}`} title={`${item.label}: ${item.count} available`}
         aria-label={`${item.label}: ${item.count} available`} aria-describedby={`${id}-${item.kind}`} style={{ cursor: 'help' }}>
@@ -105,6 +118,7 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
   const awayName = matchTeamName(view, 'away');
   const homeArt = view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
   const awayArt = view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
+  const weather = weatherPresentation(view.weather);
   return <div className="match-scoreboard live-match-scoreboard" aria-label="Match scoreboard">
     <Resources role="home" teamName={homeName} items={hudResources(view, 'home')}/>
     {clock && <ClockPanel role="home" teamName={homeName} clock={clock}/>}
@@ -125,7 +139,10 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
     {clock && <ClockPanel role="away" teamName={awayName} clock={clock}/>}
     <Resources role="away" teamName={awayName} items={hudResources(view, 'away')}/>
     <TurnTrack role="home" teamName={homeName} half={view.half} teamTurn={view.homeTurn} phase={view.phase}/>
-    <div className="coach-weather-slot" aria-hidden="true"/>
+    <div className="coach-weather-slot" role="status" aria-label={`Weather: ${weather.label}`}>
+      {weather.sprite && <img src={`${import.meta.env.BASE_URL}assets/game/ui/weather/weather_${weather.sprite}.png`} alt=""/>}
+      <span>{weather.label}</span>
+    </div>
     <TurnTrack role="away" teamName={awayName} half={view.half} teamTurn={view.awayTurn} phase={view.phase}/>
   </div>;
 }

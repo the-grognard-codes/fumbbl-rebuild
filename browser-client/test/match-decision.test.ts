@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { matchDecision } from '../src/match-decision.ts';
+import { decisionIcon, matchDecision } from '../src/match-decision.ts';
 import { pitchPushChoices } from '../src/push-choice.ts';
 import type { SetupState } from '../src/setup-protocol.ts';
 
@@ -37,6 +37,36 @@ test('reroll choices retain skill and team options and follow-up uses Yes and No
     { id: '24:follow:yes', actor: frame.callerRole as 'home', kind: 'followUp', label: 'Follow up' }
   ] };
   assert.deepEqual(matchDecision(followUp, followUp.actions)?.options.map(option => option.label), ['No', 'Yes']);
+});
+
+test('only offered reroll actions receive distinct resource and skill icons', () => {
+  const frame = frames[6].actor as SetupState;
+  const actions = [
+    { id: 'keep', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Do not re-roll Dodge' },
+    { id: 'team', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use team re-roll for Dodge' },
+    { id: 'pro', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use Pro re-roll for Dodge' },
+    { id: 'brawler', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use Brawler on a Both Down die' },
+    { id: 'dodge', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use Dodge' }
+  ];
+  const decision = matchDecision({ ...frame, actions }, actions);
+  assert.deepEqual(decision?.options.map(option => [option.id, option.icon]), [
+    ['keep', undefined], ['team', 'resource'], ['pro', 'pro'], ['brawler', 'brawler'], ['dodge', 'dodge']
+  ]);
+  assert.equal(decisionIcon('Use Sure Feet'), 'sure-feet');
+  assert.equal(matchDecision({ ...frame, actions: [] }, []), null, 'automatic skill rerolls do not create choices');
+});
+
+test('every native skill reroll source has a named icon in the synced SVG catalog', () => {
+  const source = readFileSync(new URL('../../ffb-common/src/main/java/com/fumbbl/ffb/ReRollSources.java', import.meta.url), 'utf8');
+  const art = readFileSync(new URL('../../assets/game/ui/skill-icons-v1.svg', import.meta.url), 'utf8');
+  const resourceNames = new Set(['Team ReRoll', 'Brilliant Coaching ReRoll', 'Winnings', 'Leader',
+    'Team Mascot', 'Mascot TRR', 'Pro Mascot', 'Pro Mascot TRR', 'Pro TRR', 'Pump up the Crowd', 'Star of the Show']);
+  const names = [...source.matchAll(/new ReRollSource\("([^"]+)"/g)].map(match => match[1]).filter(name => !resourceNames.has(name));
+  const icons = names.map(name => decisionIcon(`Use ${name}`));
+  assert.ok(icons.every(icon => icon && !icon.startsWith('custom:')),
+    `A native source needs a specific icon: ${names.filter((_, index) => icons[index]?.startsWith('custom:')).join(', ')}`);
+  for (const icon of icons) assert.match(art, new RegExp(`<symbol id="${icon}"`));
+  assert.equal(new Set(icons).size, names.length, 'different native sources use different images');
 });
 
 test('a chain push follows the newly pushed player and invalid projections keep the modal', () => {

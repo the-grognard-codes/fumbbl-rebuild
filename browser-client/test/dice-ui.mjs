@@ -78,5 +78,32 @@ try {
     }
     assert.deepEqual(errors, []); await page.close();
   }
+  const followUp = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[8].actor;
+  for (const projection of ['perspective', 'top-down']) {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    await page.addInitScript(input => { window.diceInput = input; window.diceActions = []; }, { view: { ...followUp, actions: [] } });
+    await page.route('**/dice-test', route => route.fulfill({ contentType: 'text/html', body:
+      '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module" src="/test/dice-ui-harness.tsx"></script>' }));
+    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/dice-test`);
+    if (projection === 'top-down') await page.getByRole('button', { name: 'Top-down view' }).click();
+    await page.evaluate(view => window.publishDice({ view }), followUp);
+    const dialog = page.getByRole('dialog', { name: 'Match decision' }); await dialog.waitFor();
+    assert.equal(await dialog.evaluate(element => getComputedStyle(element, '::backdrop').backgroundColor), 'rgba(0, 0, 0, 0)',
+      'Follow-up leaves the pitch at normal brightness');
+    assert.ok((await dialog.boundingBox()).width <= 202, 'Follow-up prompt is compact');
+    assert.ok(await dialog.evaluate(element => {
+      const player = document.querySelector('.live-marker.active');
+      if (!player) return false;
+      const prompt = element.getBoundingClientRect(), actor = player.getBoundingClientRect();
+      return prompt.right <= actor.left || prompt.left >= actor.right || prompt.bottom <= actor.top || prompt.top >= actor.bottom;
+    }), 'Follow-up prompt does not cover the active player');
+    const chosen = followUp.actions.find(action => /Follow up$/.test(action.label));
+    const choice = dialog.getByRole('button', { name: 'Yes' });
+    await choice.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
+    assert.deepEqual(await page.evaluate(() => window.diceActions), [chosen.id], 'Follow-up submits only the exact offered action');
+    assert.equal(await choice.isDisabled(), true);
+    assert.deepEqual(errors, []); await page.close();
+  }
   console.log('PASS: native d6 and 1/2/3 block faces, boxed rolls and unboxed choice faces, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
 } finally { await browser.close(); await server.close(); }
