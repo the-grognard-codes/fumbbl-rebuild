@@ -1,0 +1,51 @@
+/* Match interaction chrome never creates native blue selection. Text remains editable. */
+.coach-match, .coach-match *, .match-decision-dialog[aria-label], .live-dice-overlay[role] { user-select: none; }
+.coach-match input, .coach-match textarea, .coach-match [contenteditable],
+.coach-match .match-chat-scroll, .coach-match .match-chat-scroll *,
+.coach-match .match-event-scroll, .coach-match .match-event-scroll * { user-select: text; }
+.coach-match img, .match-decision-dialog[aria-label] img { -webkit-user-drag: none; }
+.play-runtime.live-match-page .coach-match.hosted-match .live-dugout,
+.play-runtime.live-match-page .coach-match.hosted-match .live-resources,
+.play-runtime.live-match-page .coach-match.hosted-match .live-chess-clock,
+.play-runtime.live-match-page .coach-match.hosted-match .match-history > section,
+.live-dice-overlay[role] { background: rgb(9 23 38 / var(--support-panel-opacity,30%)); }
+.play-runtime.live-match-page .coach-match.hosted-match .live-dugout-heading,
+.play-runtime.live-match-page .coach-match.hosted-match .live-dugout-zone { background: transparent; }
+.match-decision-dialog[aria-label] { color: #d9e9f7; background: #091726f2; border: 2px solid #426c9b; box-shadow: inset 0 0 0 1px #142e4b,0 12px 30px #0008; padding: 12px; }
+.match-decision-dialog[aria-label]::backdrop { background: transparent; }
+.match-decision-dialog[aria-label] h2 { color: #a4bfd5; font: 700 20px MUTP,sans-serif; }
+.match-decision-dialog[aria-label] .match-decision-options button { color: #d9e9f7; background: #142e4b; border: 2px solid #426c9b; font: 700 15px MUTP,sans-serif; }
+.match-decision-dialog[aria-label] .match-decision-options button:hover, .match-decision-dialog[aria-label] .match-decision-options button:focus-visible { outline-color: #49e6ff; background: #203e58; }
+.game-menu-dialog[role], .game-menu-dialog[role] h2, .game-menu-dialog[role] h3, .game-menu-dialog[role] button { font-family: MUTP,sans-serif; }
+.game-menu-dialog[role] { color: #d9e9f7; background: #091726f2; border-color: #426c9b; }
+.game-menu-dialog[role] h2, .game-menu-dialog[role] h3 { color: #a4bfd5; }
+.game-menu-dialog[role] button { color: #d9e9f7; background: #142e4b; border-color: #426c9b; }
+.game-menu-dialog[role] [aria-selected="true"] { color: #ffcf45; border-color: #ffcf45; }
+.hud-opacity-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.hud-opacity-control input { flex: 1; min-width: 100px; }
+.play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers { position: absolute; top: 108px; right: 12px; z-index: 70; display: flex; gap: 6px; }
+.play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers button { position: static; margin: 0; padding: 3px 8px; width: auto; font: 12px MUTP,sans-serif; }
+.match-debug-drawer { position: absolute; right: 12px; top: 142px; z-index: 65; width: min(340px,calc(100% - 24px)); max-height: calc(100% - 158px); overflow: auto; padding: 8px; background: #091726f2; border: 2px solid #426c9b; box-sizing: border-box; }
+.match-debug-drawer h3 { margin: 0 0 6px; font: 14px MUTP,sans-serif; }
+.match-debug-drawer section { margin: 6px 0; }
+.play-runtime.live-match-page .coach-match.hosted-match .live-camera-controls[hidden] { display: none; }
+.play-runtime.live-match-page .coach-match.hosted-match .live-camera-controls { top: 170px; left: auto; right: 20px; transform: none; width: min(320px,calc(100% - 40px)); z-index: 66; }
+.match-debug-drawer .debug-server-options { margin-top: 110px; }
+.live-dice-overlay[role] { border: 1px solid #426c9b; padding: 5px; border-radius: 3px; box-sizing: border-box; }
+.live-dice-overlay[role]:not(.interactive) { transform: translateX(-50%); max-width: min(245px,calc(100vw - 16px)); }
+.live-dice-overlay[role] > div { flex-wrap: wrap; }
+.live-dice-overlay[role].interactive { width: max-content; overflow-x: hidden; }
+.live-dice-overlay[role] button { font-family: MUTP,sans-serif; }
+.setup-state-message { position: absolute; top: 108px; left: 50%; transform: translateX(-50%); width: min(460px,70%); z-index: 55; background: rgb(9 23 38 / var(--support-panel-opacity,30%)); border: 1px solid #426c9b; padding: 6px; text-align: center; box-sizing: border-box; }
+.setup-state-message strong { display: block; color: #ffcf45; }
+.setup-feedback { position: absolute; top: 162px; left: 50%; transform: translateX(-50%); width: min(460px,70%); z-index: 55; margin: 0; padding: 5px; color: #ffcf45; text-align: center; background: rgb(9 23 38 / var(--support-panel-opacity,30%)); }
+.play-runtime.live-match-page .coach-match.hosted-match .setup-confirmation { display: flex; justify-content: center; }
+.play-runtime.live-match-page .coach-match.hosted-match .setup-confirmation .confirmation-row { position: static; }
+@media(max-width:600px) {
+  .play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers { top: 134px; right: 8px; gap: 3px; }
+  .play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers button { font-size: 10px; padding: 3px; }
+  .setup-state-message { top: 173px; width: 80%; }
+  .setup-feedback { top: 228px; width: 80%; }
+  .match-debug-drawer { top: 164px; max-height: calc(100% - 176px); }
+  .play-runtime.live-match-page .coach-match.hosted-match .live-camera-controls { top: 191px; }
+}

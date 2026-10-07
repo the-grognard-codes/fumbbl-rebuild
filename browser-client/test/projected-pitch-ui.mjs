@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { resolvePlayerArt } from '../src/player-art.ts';
+import { PitchProjection } from '../src/pitch-projection.ts';
 
 // Rendering/input regression evidence only; full live acceptance uses real v2.
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
@@ -23,11 +24,11 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 const errors = [];
 const evidence = process.env.PITCH_SCENE_EVIDENCE_DIR;
 if (evidence) await mkdir(evidence, { recursive: true });
-async function open(role, failArt = false) {
+async function open(role, failArt = false, phase = initial.phase) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
   page.on('pageerror', error => errors.push(error.message));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
-  await page.addInitScript(state => { window.initial = state; window.intents = []; }, { ...initial, players, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 } });
+  await page.addInitScript(state => { window.initial = state; window.intents = []; }, { ...initial, players, phase, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 } });
   await page.route('**/scene-test', route => route.fulfill({ contentType: 'text/html', body: `
     <style>html,body{margin:0;height:100%;background:#101c2b}.play-runtime{height:100%}#app .live-pitch{height:100%;display:flex;flex-direction:column;margin:0;padding:0;box-sizing:border-box}#app .live-pitch-viewport{flex:1;max-height:none;min-height:0;aspect-ratio:auto}</style>
     <div id="app" class="play-runtime"></div><script type="module" src="/test/projected-pitch-harness.tsx"></script>` }));
@@ -36,12 +37,49 @@ async function open(role, failArt = false) {
   await page.waitForFunction(() => [...document.querySelectorAll('.live-marker img')].every(image => image.complete));
   return page;
 }
+async function assertProjectedBallAndStands(page, role, mode, angle) {
+  const scene = page.locator('.live-pitch-scene');
+  const rendered = await scene.evaluate(element => {
+    const ball = element.querySelector('.live-ball-marker');
+    const pulse = element.querySelector('.live-ball-pulse');
+    const structure = element.querySelector('.pitch-stadium-structure');
+    return { width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height),
+      focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
+      zoom: Number(element.dataset.zoom), transform: ball.getAttribute('transform'),
+      pointerEvents: getComputedStyle(ball).pointerEvents, animation: getComputedStyle(pulse).animationName,
+      pulseFrames: pulse.getAnimations()[0]?.effect?.getKeyframes().map(frame => frame.transform),
+      arrowFill: getComputedStyle(element.querySelector('.live-ball-arrow')).fill,
+      structureDisplay: getComputedStyle(structure).display };
+  });
+  const expected = new PitchProjection({ width: rendered.width, height: rendered.height, focus: rendered.focus,
+    transverseFocus: rendered.transverseFocus, zoom: rendered.zoom, end: role, mode,
+    perspectiveElevation: angle }).project({ x: 12.5, y: 8.5 });
+  const actual = /^translate\(([-\d.]+) ([-\d.]+)\)$/.exec(rendered.transform);
+  assert.ok(actual && expected, 'ball marker has a projected transform');
+  assert.ok(Math.abs(Number(actual[1]) - expected.x) < .02 && Math.abs(Number(actual[2]) - expected.y) < .02,
+    'ball marker uses canonical square center');
+  assert.equal(rendered.pointerEvents, 'none');
+  assert.equal(rendered.animation, 'live-ball-inward');
+  assert.deepEqual(rendered.pulseFrames, ['scale(1.55)', 'scale(0.75)']);
+  assert.notEqual(rendered.arrowFill, 'none');
+  assert.equal(rendered.structureDisplay, 'block');
+  assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
+  for (const edge of ['north', 'south', 'home', 'away']) {
+    assert.equal(await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).count(), 4);
+    assert.ok((await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).first().getAttribute('points')).length > 8);
+  }
+}
 try {
   for (const role of ['home', 'away']) {
     const page = await open(role);
     const scene = page.locator('.live-pitch-scene'), frame = page.locator('.live-pitch-viewport');
     assert.equal(await scene.getAttribute('data-end'), role);
     assert.equal(await scene.locator('[data-cell-x]').count(), 390);
+    assert.equal(await scene.locator('.live-ball-marker[data-ball-x="12"][data-ball-y="8"]').count(), 1);
+    assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
+    assert.equal(await scene.locator('.pitch-stadium-structure [data-stand-row]').count(), 4);
+    assert.ok(await scene.locator('.pitch-stadium-crowd [data-crowd-team="home"]').count() > 0);
+    assert.ok(await scene.locator('.pitch-stadium-crowd [data-crowd-team="away"]').count() > 0);
     assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
     assert.equal(await scene.locator('[data-player-id="stunned"]').getAttribute('data-pose'), 'stunned');
     assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-pose'), role === 'home' ? 'back' : 'front');
@@ -57,7 +95,8 @@ try {
     assert.equal(await scene.locator('.live-marker.selected').evaluate(element => getComputedStyle(element).outlineStyle), 'none');
     const before = await scene.locator('.pitch-stadium-plate').first().getAttribute('style');
     await frame.dispatchEvent('wheel', { deltaY: 120 });
-    await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.focus) !== 13);
+    await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.zoom) < 1);
+    assert.equal(await scene.getAttribute('data-focus'), '13');
     assert.notEqual(await scene.locator('.pitch-stadium-plate').first().getAttribute('style'), before);
     const focus = await scene.getAttribute('data-focus');
     for (const angle of [30, 50, 40]) {
@@ -103,12 +142,31 @@ try {
     await scene.click({ position: destination });
     assert.deepEqual(await page.evaluate(() => window.intents), [{ player: 'human' }, { x: 10, y: 9 }]);
     const box = await frame.boundingBox();
+    const panFocus = await scene.getAttribute('data-focus');
+    const turfPlate = await scene.locator('.pitch-stadium-plate').first().getAttribute('style');
     await page.mouse.move(box.x + box.width * .35, box.y + box.height * .7);
-    await page.mouse.down(); await page.mouse.move(box.x + box.width * .35, box.y + box.height * .7 - 90, { steps: 8 }); await page.mouse.up();
+    await page.mouse.down({ button: 'right' }); await page.mouse.move(box.x + box.width * .35, box.y + box.height * .7 - 90, { steps: 8 }); await page.mouse.up({ button: 'right' });
+    await page.waitForFunction(before => document.querySelector('.live-pitch-scene').dataset.focus !== before, panFocus);
+    assert.notEqual(await scene.locator('.pitch-stadium-plate').first().getAttribute('style'), turfPlate, 'turf tiles travel with the camera');
     assert.equal(await page.evaluate(() => window.intents.length), 2, 'drag to pan does not select or commit');
+    const afterPan = await scene.evaluate(element => ({ width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height),
+      focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
+      zoom: Number(element.dataset.zoom), end: element.dataset.end, mode: element.dataset.projection,
+      perspectiveElevation: 40 }));
+    const panCamera = new PitchProjection(afterPan);
+    const empty = panCamera.visibleCells().map(cell => ({ cell, projected: panCamera.project({ x: cell.x + .5, y: cell.y + .5 }) }))
+      .find(({ cell, projected }) => !players.some(player => player.x === cell.x && player.y === cell.y)
+        && projected.x > afterPan.width * .3 && projected.x < afterPan.width * .7
+        && projected.y > afterPan.height * .35 && projected.y < afterPan.height * .65);
+    assert.ok(empty, 'an unobstructed cell is visible after panning');
+    const pannedBounds = await scene.boundingBox();
+    await scene.click({ position: { x: empty.projected.x * pannedBounds.width / afterPan.width,
+      y: empty.projected.y * pannedBounds.height / afterPan.height } });
+    assert.deepEqual(await page.evaluate(() => window.intents.at(-1)), empty.cell, 'first left click after right pan is delivered');
+    assert.equal(await page.evaluate(() => window.intents.length), 3, 'first left click after right pan produces one intent');
     await frame.focus(); await frame.press('ArrowUp'); await frame.press('ArrowRight');
     assert.equal(await scene.locator('.live-keyboard-square').count(), 1);
-    assert.equal(await page.evaluate(() => window.intents.length), 2, 'keyboard navigation never mutates');
+    assert.equal(await page.evaluate(() => window.intents.length), 3, 'keyboard navigation never mutates');
     await page.getByRole('button', { name: 'Midfield', exact: true }).click();
     for (const [width, height] of [[1920,1080],[1920,900],[1920,820],[1280,660],[375,660]]) {
       await page.setViewportSize({ width, height });
@@ -121,6 +179,46 @@ try {
     await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
     if (evidence) await page.screenshot({ path: `${evidence}/perspective-${role}.png` });
     await page.close();
+  }
+  for (const role of ['home', 'away']) {
+    const setup = await open(role, false, 'SETUP');
+    const marker = setup.locator('[data-player-id="human"]');
+    const opponent = setup.locator('[data-player-id="orc"]');
+    await setup.evaluate(() => window.updatePitchView({ ...window.initial, revision: window.initial.revision + 1,
+      players: window.initial.players.map(player => player.id === 'human' ? { ...player, x: 11 }
+        : player.id === 'orc' ? { ...player, x: 14 } : player) }));
+    await setup.waitForFunction(() => document.querySelector('[data-player-id="human"]').dataset.x === '11');
+    for (const angle of [30, 40, 50]) {
+      await setup.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      assert.equal(await marker.getAttribute('data-pose'), role === 'home' ? 'back' : 'front', 'setup facing ignores movement direction in perspective');
+      assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'opposing team faces the other end zone');
+      assert.equal(await setup.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
+      assert.equal(await setup.locator('[data-player-id="stunned"]').getAttribute('data-pose'), 'stunned');
+      await assertProjectedBallAndStands(setup, role, 'perspective', angle);
+      if (evidence) await setup.screenshot({ path: `${evidence}/setup-perspective-${angle}-${role}.png` });
+    }
+    if (role === 'home') {
+      const hiddenCrowd = await setup.addStyleTag({ content: '.pitch-stadium-crowd { display: none !important; }' });
+      assert.equal(await setup.locator('.pitch-stadium-crowd').evaluate(element => getComputedStyle(element).display), 'none');
+      assert.equal(await setup.locator('.pitch-stadium-structure').evaluate(element => getComputedStyle(element).display), 'block');
+      assert.equal(await setup.locator('.pitch-stadium-structure [data-stand-row]').count(), 4);
+      assert.equal(await setup.locator('.pitch-stadium-world image').count(), 0, 'no unmasked spectator-bearing side-tile images remain');
+      assert.ok(await setup.locator('.pitch-stadium-world img').evaluateAll(images => images.length > 0 && images.every(image =>
+        image.classList.contains('pitch-stadium-turf') && getComputedStyle(image).clipPath.startsWith('polygon('))),
+      'every source painting is clipped to its turf region');
+      if (evidence) await setup.screenshot({ path: `${evidence}/stadium-crowd-hidden-50-home.png` });
+      await hiddenCrowd.evaluate(element => element.remove());
+    }
+    await setup.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setup.waitForFunction(expected => document.querySelector('[data-player-id="human"]').dataset.pose === expected,
+      role === 'home' ? 'back' : 'front');
+    assert.equal(await marker.getAttribute('data-pose'), role === 'home' ? 'back' : 'front', 'top-down standing art ignores movement facing');
+    assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'top-down opposing art ignores movement facing');
+    await assertProjectedBallAndStands(setup, role, 'top-down', 50);
+    await setup.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(await setup.locator('.live-ball-pulse').evaluate(element => getComputedStyle(element).animationName), 'none');
+    if (evidence) await setup.screenshot({ path: `${evidence}/setup-top-down-${role}.png` });
+    await setup.close();
   }
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();

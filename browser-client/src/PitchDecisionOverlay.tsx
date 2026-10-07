@@ -25,10 +25,14 @@ export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, vi
       if (right - left < 120 || bottom - top < 120) {
         left = 8; top = 8; right = window.innerWidth - 8; bottom = window.innerHeight - 8;
       }
-      const width = Math.max(1, Math.min(245, right - left));
+      const priorWidth = element.style.width;
+      element.style.width = 'max-content';
+      const naturalWidth = Math.max(element.getBoundingClientRect().width, element.scrollWidth + 2);
+      element.style.width = priorWidth;
+      const width = Math.max(1, Math.min(naturalWidth, 245, right - left));
       const maxHeight = Math.max(1, bottom - top);
       const height = Math.min(element.getBoundingClientRect().height, maxHeight);
-      const next = { left: Math.max(left, Math.min(ground.left + x, right - width)),
+      const next = { left: Math.max(left, Math.min(ground.left + x - width / 2, right - width)),
         top: Math.max(top, Math.min(ground.top + y, bottom - height)), width, maxHeight };
       setBounds(prior => prior && Object.keys(next).every(key => prior[key as keyof typeof next] === next[key as keyof typeof next]) ? prior : next);
     };

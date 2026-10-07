@@ -37,6 +37,30 @@ test('away end reverses both ground axes and default facing points toward the op
   assert.equal(resolvePlayerArt(human, { end: 'away', facing: 'north-east' })?.body.mirror, true);
 });
 
+test('setup perspective faces each standing team toward its opposing end zone after movement', () => {
+  for (const end of ['home', 'away'] as const) {
+    const home = resolvePlayerArt(human, { end, facing: 'west', setupPerspective: true });
+    const away = resolvePlayerArt(orc, { end, facing: 'east', setupPerspective: true });
+    assert.equal(home?.body.pose, end === 'home' ? 'back' : 'front');
+    assert.equal(away?.body.pose, end === 'home' ? 'front' : 'back');
+    assert.equal(resolvePlayerArt(human, { end, facing: 'west' })?.body.pose, 'side');
+    assert.equal(resolvePlayerArt({ ...human, state: 'is prone' }, { end, facing: 'west', setupPerspective: true })?.body.pose, 'prone');
+  }
+});
+
+test('top-down standing pose is independent of movement facing', () => {
+  for (const end of ['home', 'away'] as const) {
+    for (const player of [human, orc]) {
+      const fixed = resolvePlayerArt(player, { end, topDown: true });
+      for (const facing of ['north', 'south', 'east', 'west'] as const) {
+        assert.equal(resolvePlayerArt(player, { end, facing, topDown: true })?.body.pose, fixed?.body.pose);
+      }
+      assert.equal(resolvePlayerArt({ ...player, state: 'is prone' }, { end, facing: 'west', topDown: true })?.body.pose, 'prone');
+      assert.equal(resolvePlayerArt({ ...player, state: 'stunned' }, { end, facing: 'east', topDown: true })?.body.pose, 'stunned');
+    }
+  }
+});
+
 test('ground states use unrotated poses while off-pitch cards keep portraits', () => {
   for (const state of ['prone', 'is prone']) {
     assert.equal(resolvePlayerArt({ ...human, state }, { end: 'away', facing: 'west' })?.body.pose, 'prone');

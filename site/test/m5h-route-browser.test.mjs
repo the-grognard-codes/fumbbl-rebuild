@@ -70,9 +70,8 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().hover();
     assert.equal(mutations.length, 0);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().click();
-    await actor.getByRole('button', { name: 'Other action' }).click();
-    await actor.getByRole('button', { name: 'Plan path' }).click();
-    const pathControls = actor.getByLabel('Movement path');
+    assert.equal(await actor.getByLabel('Movement path',{exact:true}).count(),0,'No movement planning dialog');
+    const pitchKeys = actor.locator('.live-pitch-viewport');
     const commit = actor.getByRole('button', { name: 'Confirmed!' });
     assert.equal(await commit.isDisabled(), true);
     const square = async (x, y) => {
@@ -85,30 +84,25 @@ test('coach constructs, revises and commits a server-previewed multi-waypoint ro
     assert.equal(await actor.getByRole('button', { name: 'Reconnect' }).count(), 0, 'The expired preview must restore the match without manual input');
     assert.equal(await actor.getByLabel('Live match pitch').count(), 1);
     await actor.getByLabel('Live match pitch').locator('.live-marker').first().click();
-    await actor.getByRole('button', { name: 'Other action' }).click();
-    await actor.getByRole('button', { name: 'Plan path' }).click();
     await square(8, 7);
-    await pathControls.getByRole('button', { name: 'Undo' }).click();
+    await pitchKeys.focus(); await pitchKeys.press('Backspace');
     assert.equal(await commit.isDisabled(), true);
     await square(8, 7);
-    await pathControls.getByRole('button', { name: 'Clear' }).click();
+    await pitchKeys.focus(); await pitchKeys.press('Escape');
     assert.equal(await commit.isDisabled(), true);
     for (const [x, y] of [[8, 7], [8, 6], [12, 6]]) await square(x, y);
-    await actor.getByText('Server path ready. Commit moves until the next required decision.').waitFor();
+    await actor.waitForFunction(() => document.querySelector('.commit-action')?.disabled === false);
     assert.equal(await commit.isEnabled(), true);
     assert.deepEqual(previews.at(-1).request.waypoints, [{ x: 8, y: 7 }, { x: 8, y: 6 }, { x: 12, y: 6 }]);
-    assert.equal(await pathControls.getByLabel('Waypoints').getByRole('button').count(), 3);
-    await pathControls.getByText('Square checks').click();
-    assert.match(await pathControls.getByLabel('Route square checks').innerText(), /8, 6: dodge 4\+.*possible Diving Tackle/);
-    assert.match(await pathControls.getByLabel('Route square checks').innerText(), /12, 6: no dodge.*no rush/);
+    assert.equal(await actor.getByLabel('Movement path',{exact:true}).count(),0);
     if (process.env.M5H_SCREENSHOT_DIR) {
       await mkdir(process.env.M5H_SCREENSHOT_DIR, { recursive: true });
       await actor.screenshot({ path: resolve(process.env.M5H_SCREENSHOT_DIR, 'route-waypoints.png') });
     }
-    await pathControls.getByRole('button', { name: '1: 8, 7' }).click();
-    assert.equal(await pathControls.getByLabel('Waypoints').getByRole('button').count(), 1);
+    await square(8,7);
+    assert.deepEqual(previews.at(-1).request.waypoints,[{x:8,y:7}],'Clicking an earlier waypoint truncates the path');
     await square(8, 6); await square(12, 6);
-    await actor.getByText('Server path ready. Commit moves until the next required decision.').waitFor();
+    await actor.waitForFunction(() => document.querySelector('.commit-action')?.disabled === false);
     assert.equal(mutations.length, 0, 'Hover and preview never commit movement');
     await commit.click();
     assert.equal(mutations.length, 1);

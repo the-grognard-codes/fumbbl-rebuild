@@ -7,6 +7,7 @@ import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
+import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
@@ -251,11 +252,17 @@ public final class SetupSession {
 			}
 			for (JsonValue item : payload.get("history").asArray()) {
 				JsonObject entry = item.asObject();
-				exactRecovery(entry, "key", "fingerprint", "code");
+				if (entry.get("setupErrors") == null) exactRecovery(entry, "key", "fingerprint", "code");
+				else exactRecovery(entry, "key", "fingerprint", "code", "setupErrors");
 				if (!entry.get("key").asString().matches("(home|away)\\n[A-Za-z0-9_-]{1,100}")
 					|| !("ACCEPTED".equals(entry.getString("code", null)) || "ILLEGAL_SETUP".equals(entry.getString("code", null))))
 					throw new IllegalArgumentException("Invalid recovery request history");
-				if (history.put(entry.get("key").asString(), new Record(entry.get("fingerprint").asString(), entry.get("code").asString())) != null)
+				JsonArray setupErrors = entry.get("setupErrors") == null ? null : entry.get("setupErrors").asArray();
+				if (setupErrors != null && (!"ILLEGAL_SETUP".equals(entry.getString("code", null)) || setupErrors.size() > 16))
+					throw new IllegalArgumentException("Invalid setup diagnostics");
+				if (setupErrors != null) for (JsonValue error : setupErrors) if (!error.isString() || error.asString().length() > 500)
+					throw new IllegalArgumentException("Invalid setup diagnostic");
+				if (history.put(entry.get("key").asString(), new Record(entry.get("fingerprint").asString(), entry.get("code").asString(), setupErrors)) != null)
 					throw new IllegalArgumentException("Duplicate recovery history");
 			}
 			if (history.size() > 8192) throw new IllegalArgumentException("Recovery history limit");
@@ -296,7 +303,11 @@ public final class SetupSession {
 	public String recoveryArtifact() {
 		if (recoveryDice == null) throw new IllegalStateException("Legacy lifetime cannot be upgraded");
 		JsonArray requests = new JsonArray(), selections = new JsonArray();
-		history.forEach((key, entry) -> requests.add(new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code)));
+		history.forEach((key, entry) -> {
+			JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
+			if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
+			requests.add(saved);
+		});
 		kickoffSelection.forEach(selections::add);
 		JsonObject rolls = new JsonObject();
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
@@ -510,7 +521,7 @@ public final class SetupSession {
 		Record prior = history.get(key);
 		if (prior != null) {
 			if (!prior.fingerprint.equals(fingerprint)) throw new MatchService.Failure("REQUEST_ID_REUSED");
-			return reply(id, prior.code, true, role);
+			return reply(id, prior.code, true, role, prior.setupErrors);
 		}
 		if (failed) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 		if (isComplete()) throw new MatchService.Failure("MATCH_COMPLETED");
@@ -524,6 +535,9 @@ public final class SetupSession {
 		if (!"action".equals(request.getString("operation", null)) && !"concede".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
 		String operation = request.getString("operation", null);
 		ClientCommand command;
+		Player<?> swapTarget = null;
+		FieldCoordinate swapOrigin = null;
+		FieldCoordinate swapBuffer = null;
 		Game game = state.getGame();
 		if ("concede".equals(operation)) {
 			command = null;
@@ -551,8 +565,10 @@ public final class SetupSession {
             if ("confirm-solid-defence".equals(selected.id)) {
                 IDialogParameter previous = game.getDialogParameter();
                 if (!mechanic().checkSetup(state, game.isHomePlaying(), state.getKickingSwarmers())) {
+                    JsonArray setupErrors = setupErrors(game.getDialogParameter());
                     game.setDialogParameter(previous);
-                    throw new MatchService.Failure("ILLEGAL_SETUP");
+                    history.put(key, new Record(fingerprint, "ILLEGAL_SETUP", setupErrors));
+                    return reply(id, "ILLEGAL_SETUP", false, role, setupErrors);
                 }
             }
         } else if ("choice".equals(operation)) {
@@ -581,8 +597,21 @@ public final class SetupSession {
 			else {
 				coordinate = new FieldCoordinate(to.asObject().get("x").asInt(), to.asObject().get("y").asInt());
 				FieldCoordinateBounds half = "home".equals(role) ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY;
-				if (!half.isInBounds(coordinate) || game.getFieldModel().getPlayer(coordinate) != null)
+				if (!half.isInBounds(coordinate))
 					throw new MatchService.Failure("ILLEGAL_PLACEMENT");
+				Player<?> occupant = game.getFieldModel().getPlayer(coordinate);
+				if (occupant != null) {
+					FieldCoordinate origin = game.getFieldModel().getPlayerCoordinate(player);
+					if (!team.hasPlayer(occupant) || !half.isInBounds(origin) || occupant == player
+						|| !game.getFieldModel().getPlayerState(occupant).canBeMovedDuringSetup())
+						throw new MatchService.Failure("ILLEGAL_PLACEMENT");
+					swapTarget = occupant;
+					swapOrigin = origin;
+					int box = "home".equals(role) ? FieldCoordinate.RSV_HOME_X : FieldCoordinate.RSV_AWAY_X;
+					int row = 0;
+					while (game.getFieldModel().getPlayer(new FieldCoordinate(box, row)) != null) row++;
+					swapBuffer = new FieldCoordinate(box, row);
+				}
 			}
 			command = new ClientCommandSetupPlayer(player.getId(), "home".equals(role) ? coordinate : coordinate.transform());
 		} else if ("confirm".equals(operation)) {
@@ -590,9 +619,10 @@ public final class SetupSession {
 			// The retained engine checks the exact current formation. Restore its temporary error dialog on rejection.
 			IDialogParameter previous = game.getDialogParameter();
 			if (!mechanic().checkSetup(state, game.isHomePlaying())) {
+				JsonArray setupErrors = setupErrors(game.getDialogParameter());
 				game.setDialogParameter(previous);
-				history.put(key, new Record(fingerprint, "ILLEGAL_SETUP"));
-				return reply(id, "ILLEGAL_SETUP", false, role);
+				history.put(key, new Record(fingerprint, "ILLEGAL_SETUP", setupErrors));
+				return reply(id, "ILLEGAL_SETUP", false, role, setupErrors);
 			}
 			command = new ClientCommandEndTurn(TurnMode.SETUP, null);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
@@ -621,7 +651,16 @@ public final class SetupSession {
 				state.startNextStep();
 				if (!isComplete()) throw new IllegalStateException("Concession stopped at " + step()
 					+ " with dialog " + game.getDialogParameter());
-			} else if (command != null) state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+			} else if (command != null) {
+				if (swapTarget != null) {
+					boolean home = "home".equals(role);
+					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
+						request.getString("playerId", null), home ? swapBuffer : swapBuffer.transform()), home));
+					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
+						swapTarget.getId(), home ? swapOrigin : swapOrigin.transform()), home));
+				}
+				state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+			}
 			if (pendingRoute != null) continueRoute();
 			if (chatV1 && oldTurnStarted > 0 && (oldTurnStarted != state.getTurnTimeStarted()
 				|| oldHomePlaying != game.isHomePlaying() || oldHalf != game.getHalf() || oldTurn != game.getTurnData().getTurnNr())) {
@@ -678,9 +717,22 @@ public final class SetupSession {
 	}
 
 	public JsonObject reply(String requestId, String code, boolean duplicate, String role) {
-		return new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
+		return reply(requestId, code, duplicate, role, null);
+	}
+
+	private JsonObject reply(String requestId, String code, boolean duplicate, String role, JsonArray setupErrors) {
+		JsonObject response = new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
 			.add("code", failed ? "SESSION_UNAVAILABLE" : code).add("duplicate", !failed && duplicate)
 			.add("state", failed ? JsonValue.NULL : view(role));
+		if (!failed && "ILLEGAL_SETUP".equals(code) && setupErrors != null) response.add("setupErrors", setupErrors);
+		return response;
+	}
+
+	private JsonArray setupErrors(IDialogParameter dialog) {
+		JsonArray errors = new JsonArray();
+		if (dialog instanceof DialogSetupErrorParameter)
+			for (String error : ((DialogSetupErrorParameter) dialog).getSetupErrors()) errors.add(error);
+		return errors;
 	}
 
 	/** The same public game state as a player, with no player seat assigned. */
@@ -963,7 +1015,11 @@ public final class SetupSession {
 	}
 	private static final class Record {
 		final String fingerprint, code;
-		Record(String fingerprint, String code) { this.fingerprint = fingerprint; this.code = code; }
+		final JsonArray setupErrors;
+		Record(String fingerprint, String code) { this(fingerprint, code, null); }
+		Record(String fingerprint, String code, JsonArray setupErrors) {
+			this.fingerprint = fingerprint; this.code = code; this.setupErrors = setupErrors;
+		}
 	}
 
 	/** Remaining canonical squares after a route commit, retained through native prompts and recovery. */

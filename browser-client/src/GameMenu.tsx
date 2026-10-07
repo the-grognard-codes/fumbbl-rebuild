@@ -31,7 +31,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
       <div ref={dialog} className="game-menu-dialog" role="dialog" aria-modal="true" aria-label="Game Menu" onKeyDown={event => {
         if (event.key === 'Escape') { close(); return; }
         if (event.key !== 'Tab') return;
-        const buttons = [...(dialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])];
+        const buttons = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]') ?? [])];
         if (!buttons.length) return;
         const first = buttons[0], last = buttons[buttons.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -64,7 +64,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             </section>
           </>}
           {tab === 'Game Log' && <MatchEventLog records={records} loading={logLoading} unavailable={logUnavailable}/>}
-          {tab === 'Interface' && <section><h3>Pitch and interface</h3>{interfaceControls}<p>Supporting panels use 30% background opacity. Event log text has three size controls.</p></section>}
+          {tab === 'Interface' && <section><h3>Pitch and interface</h3>{interfaceControls}<p>Background opacity preserves readable text, icons and borders. Event log text has three size controls.</p></section>}
           {tab === 'Key Bindings' && <section><h3>Keyboard controls</h3><p>Arrow keys: navigate the pitch. Enter on the pitch: choose a square. Space on the pitch: confirm a valid proposal. Enter outside controls: chat. Escape: close chat or this menu.</p><p>Tab navigates players and commands. Setup also offers numeric placement controls.</p></section>}
         </div>
       </div>

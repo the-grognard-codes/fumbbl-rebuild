@@ -4,6 +4,9 @@ The popup on pretty much any UI selection.
 
 Player facing and sprites
 
+Future stadium art: replace the current generic crowd marks with per-team crowd palettes and character sprites. Keep structural stands, railings, and walkways as a separate reusable layer; team-specific crowd art should be selected from authoritative match team identity, wrap all four sides and corners at both camera ends, and leave space at the sideline for cheerleaders. Preserve world-space scrolling and top-down visibility.
+The approved `stadium-v1.png` source contains painted spectators. Runtime now clips that source to turf and draws structural stands and crowds separately; a future replacement should supply a turf-only source file to simplify maintenance.
+
 Kick button doesn't pop up on screen.
 
 Move the ribbon directly below the pitch, move the dugout below it.
