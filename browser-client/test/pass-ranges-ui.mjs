@@ -30,6 +30,16 @@ try {
           if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication', requestId: request.requestId,
             code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
           if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({ version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
+          if (request.type === 'routePreview') {
+            const player = this.state.players.find(player => player.id === this.state.activePlayerId);
+            const from = { x: player.x, y: player.y }; const steps = []; let cursor = from;
+            for (const target of request.waypoints) while (cursor.x !== target.x || cursor.y !== target.y) {
+              cursor = { x: cursor.x + Math.sign(target.x-cursor.x), y: cursor.y + Math.sign(target.y-cursor.y) };
+              steps.push({ ...cursor, dodge: 0, rush: 0, reactions: [] });
+            }
+            queueMicrotask(() => this.emit({ version: 2, type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId: this.state.matchId,
+              route: { routeVersion: 1, playerId: player.id, from, remaining: 8, steps, revision: this.state.revision, actor: this.state.actor } }));
+          }
           if (request.type === 'setup' && request.operation !== 'load') { this.sent.push(request); this.state = journey.frames[++this.index].actor; }
           if (request.type === 'setup') queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
             code: 'ACCEPTED', duplicate: false, state: this.state }));
@@ -61,6 +71,8 @@ try {
     assert.equal(await pitch.locator('.live-pass-move-square').count(), nativeMoves, 'Every offered move remains indicated over the pass ranges');
     assert.equal(await pitch.locator('.live-target-square').count(), nativeMoves, 'Only move outlines accompany the pass grid');
     assert.equal(await pitch.locator('.live-pass-move-square').first().evaluate(element => getComputedStyle(element).fill), 'none', 'Move outlines preserve native range fills');
+    const debug = page.getByRole('button', { name: 'Debug', exact: true });
+    if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
       await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       assert.equal(await cell(14, 7).getAttribute('data-pass-range'), 'S');
@@ -69,7 +81,8 @@ try {
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
     if (journey.weather === 'BLIZZARD') {
       await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 17, 7) });
-      assert.equal(await confirm.isDisabled(), true, 'Weather-forbidden pass cannot be staged');
+      assert.equal(await page.evaluate(() => window.testSocket.state.actions.some(action => action.kind === 'pass' && action.target?.x === 17 && action.target?.y === 7)), false, 'Native weather-forbidden pass is never offered');
+      await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
       assert.match(await page.locator('.live-pass-legend').innerText(), /weather.*Quick.*Short/);
     }
     if (journey.weather === 'VERY_SUNNY') assert.match(await page.locator('.live-pass-legend').innerText(), /weather \+1 passing penalty/);

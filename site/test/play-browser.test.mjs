@@ -75,19 +75,20 @@ test('start opens a separate match window, with same-tab fallback when blocked',
       const setupBounds = await starterMatch.evaluate(() => {
         const side = document.querySelector('.match-side')?.getBoundingClientRect();
         const placement = document.querySelector('[aria-label="Placement controls"]');
-        const confirm = placement?.querySelector('button')?.getBoundingClientRect();
+        const confirmation = document.querySelector('.match-command-bar .commit-action');
+        const confirm = confirmation?.getBoundingClientRect();
         return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight,
-          confirmText: placement?.querySelector('button')?.textContent?.trim(),
+          confirmText: confirmation?.textContent?.trim(),
           placementButtons: placement?.querySelectorAll(':scope > button').length,
           setupDetailsOpen: placement?.querySelector('details')?.open,
           toolbarCount: document.querySelectorAll('.live-pitch-toolbar').length };
       });
-      assert.equal(setupBounds.confirmText, 'Confirm Setup');
-      assert.equal(setupBounds.placementButtons, 1);
+      assert.equal(setupBounds.confirmText, undefined, 'Passive setup coach has no confirmation control');
+      assert.equal(setupBounds.placementButtons, 0);
       assert.equal(setupBounds.setupDetailsOpen, false);
       assert.equal(await starterMatch.getByLabel('Setup player').isVisible(), false, 'keyboard placement stays collapsed until requested');
       assert.equal(setupBounds.toolbarCount, 0);
-      assert.ok(setupBounds.confirmBottom > 0 && setupBounds.confirmBottom <= setupBounds.height,
+      assert.ok(setupBounds.confirmBottom === undefined,
         `Setup confirmation must be visible: ${JSON.stringify(setupBounds)}`);
       const zoomControls = starterMatch.getByRole('group', { name: 'Pitch size' });
       await starterMatch.getByRole('button', { name: /Game Menu/ }).click();
@@ -121,6 +122,8 @@ test('start opens a separate match window, with same-tab fallback when blocked',
         await page.reload();
         await openGrid(page);
       }
+      await starterMatch.getByRole('button', { name: 'Game Menu', exact: true }).click();
+      await starterMatch.getByRole('tab', { name: 'Interface', exact: true }).click();
       if (popupBlocked) {
         await starterMatch.getByRole('button', { name: 'Exit match' }).click();
         await starterMatch.getByLabel('Match ID', { exact: true }).waitFor();
@@ -157,7 +160,7 @@ test('two players and spectator use one board; updates, read-only controls and r
   const hostileName = '<img src=x onerror="window.__projectionExecuted=true">';
   const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
   const consoleSummary = { messages: 0, errors: 0, leaked: false };
-  const state = index => ({ ...base, revision, callerRole: ['home', 'away', 'spectator'][index],
+  const state = index => ({ ...base, phase: 'PLAY', turnMode: 'regular', revision, callerRole: ['home', 'away', 'spectator'][index],
     players: crowded ? visualCrowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
   try {
     const pages = [];
@@ -248,7 +251,7 @@ test('two players and spectator use one board; updates, read-only controls and r
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
     assert.equal(mutations.length, 1);
     assert.equal(await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).count(), 0);
-    assert.equal((await pages[2].locator('.match-side-controls .match-connection-status').textContent()).trim(), 'Connected');
+    assert.equal(await pages[2].getByLabel('Match window controls').count(), 0, 'Window controls live in Game Menu');
     liveSockets.get(2).close();
     await pages[2].getByLabel('Live match pitch').waitFor({ state: 'detached' });
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();

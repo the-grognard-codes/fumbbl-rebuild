@@ -45,11 +45,16 @@ async function open(initial) {
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
         if (request.type === 'setup' && request.operation === 'load') this.reply(request.requestId);
         if (request.type === 'setup' && request.operation === 'place') {
+          const moving = this.state.players.find(player => player.id === request.playerId);
+          const displaced = request.to && this.state.players.find(player => player.id !== request.playerId && player.x === request.to.x && player.y === request.to.y);
           this.state = { ...this.state, revision: this.state.revision + 1,
             players: this.state.players.map(player => player.id === request.playerId ? { ...player,
-              x: request.to?.x ?? null, y: request.to?.y ?? null, offPitch: request.to ? 'pitch' : 'reserve' } : player) };
+              x: request.to?.x ?? null, y: request.to?.y ?? null, offPitch: request.to ? 'pitch' : 'reserve' }
+              : player.id === displaced?.id ? {...player,x:moving.x,y:moving.y} : player) };
           this.reply(request.requestId);
         }
+        if (request.type === 'setup' && request.operation === 'confirm') queueMicrotask(() => this.emit({version:2,type:'setupState',requestId:request.requestId,code:'ILLEGAL_SETUP',duplicate:false,state:this.state,
+          setupErrors:['Too many players in a wide zone.','Minimum of 3 players on the Line of Scrimmage.']}));
         if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':event-pick:home1')) {
           this.state = { ...this.state, revision: this.state.revision + 1, actions: [
             { id: `${this.state.revision + 1}:solid-place:home1:8:7`, label: 'Place home1 at 8, 7',
@@ -83,10 +88,20 @@ try {
   await page.waitForFunction(() => window.testSocket.state.revision === 2);
   assert.deepEqual((await sent())[1].to, { x: 9, y: 7 });
   await home.dragTo(scene, { targetPosition: await squarePosition(page, 8, 7) });
-  assert.equal((await sent()).length, 2, 'occupied setup drop must not mutate');
+  await page.waitForFunction(() => window.testSocket.state.revision === 3);
+  assert.equal((await sent()).length, 3, 'two friendly pitch players swap in one placement intent');
+  assert.deepEqual(await page.evaluate(() => window.testSocket.state.players.filter(p=>p.role==='home').map(p=>p.x).sort()),[8,9]);
   await home.dragTo(page.locator('.live-dugout.home .live-dugout-heading'));
-  await page.waitForFunction(() => window.testSocket.state.revision === 3, null, { timeout: 3000 });
-  assert.equal((await sent())[2].to, null);
+  await page.waitForFunction(() => window.testSocket.state.revision === 4, null, { timeout: 3000 });
+  assert.equal((await sent())[3].to, null);
+  await page.getByRole('button',{name:'Confirmed!',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'Too many players in a wide zone.'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Confirm Setup',exact:true}).count(),0,'Only the main confirmation button is used');
+  assert.equal(await page.getByRole('button',{name:'Confirmed!',exact:true}).isEnabled(),true,'Illegal setup remains editable');
+  assert.equal(await page.evaluate(() => window.testSocket.state.revision),4,'Illegal setup does not advance');
+  await page.locator('.live-marker.home').first().dragTo(scene,{targetPosition:await squarePosition(page,10,7)});
+  await page.waitForFunction(() => window.testSocket.state.revision === 5);
+  assert.equal(await page.locator('.setup-feedback').count(),0,'Correcting setup clears the native rejection');
   assert.deepEqual(errors, []);
   await page.close();
 

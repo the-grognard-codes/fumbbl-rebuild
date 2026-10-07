@@ -16,7 +16,13 @@
 .live-pitch-center { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .live-pitch-scene { position: relative; flex: none; }
 .live-pitch-scene > svg { display: block; width: 100%; height: 100%; }
-.live-ball { fill: #db9362; stroke: #fff2d1; stroke-width: 2; filter: drop-shadow(0 1px 2px #000); }
+.live-ball-marker { pointer-events: none; filter: drop-shadow(0 1px 2px #000); }
+.live-ball-pulse { fill: none; stroke: #ffe17b; stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: live-ball-inward 1.5s ease-out infinite; }
+.live-ball-ring { fill: #070d1688; stroke: #edf5ff; stroke-width: 1.5; }
+.live-ball-arrow { fill: #ffe17b; stroke: #070d16; stroke-width: 1; }
+.live-ball-football ellipse { fill: #874a2d; stroke: #edf5ff; stroke-width: 1.5; }
+.live-ball-football path { fill: none; stroke: #edf5ff; stroke-width: 1; }
+@keyframes live-ball-inward { from { transform: scale(1.55); opacity: .9; } to { transform: scale(.75); opacity: .2; } }
 .live-target-square { fill: #74d6e126; stroke: #b4e7e9; stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
 .live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
 .play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; cursor: pointer; }
@@ -91,7 +97,7 @@
 @media (max-width: 620px) { .match-scoreboard { gap: .25rem; padding: .4rem; } .match-scoreboard > div { display: block; } .match-scoreboard strong { display: block; } .match-side { display: block; } }
 @media (max-width: 760px) { .match-command-bar { grid-template-columns: 1fr; } .match-command-bar span { grid-column: 1; } }
 @media (max-height: 700px) and (min-width: 981px) { .live-match-page .live-pitch-viewport { min-height: 260px; max-height: calc(100dvh - 350px); } }
-@media (prefers-reduced-motion: reduce) { .live-target-line, .live-route-line, .live-push-shaft { animation: none; } .play-runtime .live-marker { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .live-target-line, .live-route-line, .live-push-shaft, .live-ball-pulse { animation: none; } .play-runtime .live-marker { transition: none; } }
 
 /* The live match uses the content viewport; supporting controls follow below it. */
 @font-face { font-family: 'Match Alegreya'; src: url('/assets/game/ui/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
@@ -462,13 +468,11 @@
 
 /* Shared coach-oriented scene; the camera moves world layers, never the HUD. */
 .projected-pitch { position: relative; }
-.projected-pitch .live-pitch-viewport { position: relative; overflow: hidden; touch-action: none; background: #40572a; cursor: grab; }
+.projected-pitch .live-pitch-viewport { position: relative; overflow: hidden; touch-action: none; background: #101719; cursor: grab; }
 .projected-pitch .live-pitch-scene { position: absolute; inset: 0; overflow: clip; }
 .projected-pitch .live-pitch-scene > svg { position: absolute; inset: 0; pointer-events: none; }
 .pitch-stadium-world { position: absolute; inset: 0; pointer-events: none; }
 .pitch-stadium-plate { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-.pitch-stadium-strip { position: absolute; left: -1672px; top: 0; width: 5016px; height: 941px; mask-image: linear-gradient(transparent,black 12%,black 85%,transparent); }
-.pitch-stadium-strip > img, .pitch-stadium-strip > svg { position: absolute; top: 0; width: 1672px; height: 941px; image-rendering: pixelated; }
 .pitch-chalk { fill: none; stroke: #f0eed2; stroke-width: 2; stroke-opacity: .84; }
 .pitch-chalk.wide { stroke-dasharray: 12 10; }
 .live-selection-square { fill: #36ddff18; stroke: #36ddff; stroke-width: 3; }

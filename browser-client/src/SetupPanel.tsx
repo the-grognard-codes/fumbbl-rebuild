@@ -12,6 +12,8 @@ import type { ChatMessage } from './chat-protocol.ts';
 import { usePitchPlayback } from './use-pitch-playback.ts';
 import { ActionGlyph } from './ActionGlyph.tsx';
 import './coach-match.css';
+import './ui-round-four.css';
+import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
@@ -179,7 +181,7 @@ export function SetupPanel() {
 export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
-  routePreview = null, routeError = '', requestRoutePreview, matchControls }: {
+  routePreview = null, routeError = '', requestRoutePreview, matchControls, setupErrors = [] }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
   logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
@@ -187,11 +189,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   chatSent?: { text: string; id: string } | null; chatSending?: boolean; sendChat?: (text: string) => void;
   routePreview?: RoutePreview | null; routeError?: string;
   requestRoutePreview?: (points: RoutePoint[]) => void;
+  setupErrors?: string[];
   matchControls?: { fullscreen: boolean; toggleFullscreen: () => void; exitMatch: () => void; reconnect: () => void; error: string };
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
   const [pitchZoom, setPitchZoom] = useState(1);
+  const { opacity, changeOpacity } = useHudOpacity();
+  const [debugOpen, setDebugOpen] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<{ x: number; width: number } | null>(null);
   const [actionId, setActionId] = useState('');
   const [actionFilter, setActionFilter] = useState('');
@@ -318,7 +323,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       && !view.players.some(player => player.x === column && player.y === row)) {
       const singleStep = availableActions.find(action => action.kind === 'move' && (action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId)
         && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
-      if (singleStep) { setActionId(singleStep.id); return; }
+      if (singleStep && !canRoute) { setActionId(singleStep.id); return; }
       if (canRoute && view.activePlayerId === playerId) {
         setRouteMode(true); updateWaypoints([{ x: column, y: row }]); setActionId('');
         return;
@@ -359,6 +364,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (choice && !choice.selecting) mutate('action', { actionId: choice.action.id });
   });
   const commit = () => {
+    if (view.phase === 'SETUP') { if (maySetup) mutate('confirm'); return; }
     if (routeMode) {
       if (canRoute && routeReady && routePreview) {
         if (smartIntent?.stage === 'routing') setSmartIntent(smartIntent.kind === 'move'
@@ -425,7 +431,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   });
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.target instanceof Element)) return;
+      if (event.defaultPrevented || !(event.target instanceof Element)) return;
       if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport')) {
         setPlayerId(''); setTargetPlayerId(''); setSmartIntent(null); setActionId(''); setTargetFocus(null); blurPlayer();
         return;
@@ -494,16 +500,22 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     {saved.status === 'ABANDONED' && <p role="alert">This match is retained as abandoned after 30 days without a completed save/resume or play action.</p>}
     </>}
   </section>;
-  return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined}>
+  return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined} style={{ ['--support-panel-opacity' as string]: `${opacity}%` }} onKeyDown={event => {
+    if (!routeMode || !canRoute || !(event.target instanceof HTMLElement) || !event.target.closest('.live-pitch') || event.target.closest('input,textarea,select,[contenteditable]')) return;
+    if (event.key === 'Backspace') { event.preventDefault(); updateWaypoints(waypoints.slice(0,-1)); }
+    if (event.key === 'Escape') { event.preventDefault(); setRouteMode(false); updateWaypoints([]); setSmartIntent(null); }
+  }}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? `${matchTeamName(view, 'home')} / ${matchTeamName(view, 'away')}` : view.callerRole === 'home' ? `${matchTeamName(view, 'home')}: You / ${matchTeamName(view, 'away')}: Opponent` : `${matchTeamName(view, 'home')}: Opponent / ${matchTeamName(view, 'away')}: You`}</p>
       {hosted && <LiveMatchScoreboard view={view}/>}
+      {hosted && view.phase === 'SETUP' && <div className="setup-state-message" aria-label="Game state"><strong>Set up for the next drive</strong>Place your players, then confirm the formation.</div>}
+      {hosted && setupErrors.length > 0 && <p className="setup-feedback" role="alert">{setupErrors.join(' · ')}</p>}
       {!playbackActive && decision && !['blockDie', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
-        {kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
+        {view.phase === 'SETUP' ? view.actor === view.callerRole ? <div className="setup-confirmation"><div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={!maySetup}><ActionGlyph kind="confirm"/>Confirmed!</button></div></div> : null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
           <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
           <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
             aria-pressed={selected} disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}</div>
@@ -530,18 +542,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !additionalActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = additionalActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
           <details className="action-text-companion"><summary>All offered actions</summary>{serverActionPanel}</details>
         </div>}
-        {routeMode && <div className="route-controls" aria-label="Movement path">
-          <span title="Adjacent clicks preserve exact squares; distant clicks use the safest server route.">Click squares · adjacent exact · distant safest</span>
-          <ol aria-label="Waypoints">{waypoints.map((point, index) => <li key={`${index}-${point.x}-${point.y}`}><button type="button" disabled={!canRoute}
-            onClick={() => updateWaypoints(waypoints.slice(0, index + 1))}>{index + 1}: {point.x}, {point.y}</button></li>)}</ol>
-          <button type="button" disabled={!canRoute || !waypoints.length} onClick={() => updateWaypoints(waypoints.slice(0, -1))}>Undo</button>
-          <button type="button" disabled={!canRoute || !waypoints.length} onClick={() => updateWaypoints([])}>Clear</button>
-          {routeReady && routePreview && <span>{routePreview.steps.length} squares · {routePreview.remaining} remaining before move · {routePreview.remaining - routePreview.steps.length} after</span>}
-          {routeReady && routePreview && <details><summary>Square checks</summary><ol aria-label="Route square checks">{routePreview.steps.map((step, index) => <li key={`${index}-${step.x}-${step.y}`}>
-            {step.x}, {step.y}: {step.dodge ? `dodge ${step.dodge}+` : 'no dodge'} · {step.rush ? `rush ${step.rush}+` : 'no rush'}{step.reactions.length ? ` · possible ${step.reactions.join(', ')}` : ''}
-          </li>)}</ol></details>}
-          {routeError && <span role="alert">{routeError}</span>}
-        </div>}
+        {routeMode && <p className="sr-only" aria-live="polite">Click squares to add waypoints. Backspace undoes; Escape clears; Confirm commits.</p>}
         <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? routeReady ? 'Server path ready. Commit moves until the next required decision.' : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
           </div></> :
         <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.phase === 'PLAY' && view.actions.length === 0 ? 'Waiting for an engine decision. Reconnect if the match appears stuck.' : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
@@ -552,7 +553,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : view.actions} pinnedAction={playbackActive ? undefined : pinnedAction}
-        zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={!matchControls} onSelectionPosition={setSelectedScreen}
+        zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
         decision={!playbackActive && decision && ['blockDie', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
         decisionDisabled={!connected || !!pending || suspended}
@@ -563,14 +564,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         onDropPlayer={dropPlayer} onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} reserveDropIds={reserveDropIds} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
-        {matchControls && <div className="match-side-controls" aria-label="Match window controls">
-          <span role="status" className={`match-connection-status ${connected ? 'connected' : 'disconnected'}`}><span className="match-connection-dot" aria-hidden="true"/>{connected ? 'Connected' : 'Disconnected'}</span>
-          {!connected && <button type="button" onClick={matchControls.reconnect}>Reconnect</button>}
-          <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
-          <button type="button" onClick={matchControls.exitMatch}>Exit match</button>
-          {matchControls.error && <p role="alert">{matchControls.error}</p>}</div>}
+        {matchControls?.error && <p role="alert">{matchControls.error}</p>}
         {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Placement controls">
-          <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm Setup</button>
           <details><summary>Place players with keyboard or touch</summary>
             <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}>
                 <option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}
@@ -588,14 +583,18 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
-        <GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
-          interfaceControls={<><button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setSmartIntent(null); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
+        <div className="match-menu-triggers"><button type="button" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button><GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+          interfaceControls={<>{matchControls && <div className="interface-window-controls">
+            <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
+            <button type="button" onClick={matchControls.exitMatch}>Exit match</button></div>}<button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setSmartIntent(null); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
             <div className="interface-pitch-zoom" role="group" aria-label="Pitch size">
               <button type="button" aria-pressed={pitchZoom === 1} onClick={() => setPitchZoom(1)}>Fit</button>
               <button type="button" aria-pressed={pitchZoom === 1.5} onClick={() => setPitchZoom(1.5)}>1.5×</button>
               <button type="button" aria-pressed={pitchZoom === 2} onClick={() => setPitchZoom(2)}>2×</button>
             </div>
-            <p>Wheel or drag to travel along the field. Arrow keys traverse squares; Enter chooses a square. Top-down preserves the camera position.</p></>}/>
+            <label className="hud-opacity-control">Panel background opacity <input type="range" min="0" max="100" step="1" value={opacity} onChange={event => changeOpacity(Number(event.target.value))}/><output>{opacity}%</output></label>
+            <p>Right-button drag travels along the field; the wheel zooms. Click pitch squares to add movement waypoints; Confirm commits. Backspace undoes a waypoint; Escape clears the route. Top-down preserves the camera position.</p></>}/></div>
+        {debugOpen && <div id="match-debug" className="match-debug-drawer" aria-label="Match debug"><h3>Match debug</h3><section className="debug-server-options"><h3>Valid server options</h3>{serverActionPanel}</section><section><h3>Movement plan</h3>{waypoints.length ? <ol>{waypoints.map((point,index) => <li key={index}>{point.x}, {point.y}</li>)}</ol> : <p>No route planned.</p>}{routeReady && routePreview && <p>{routePreview.steps.length} squares · {routePreview.remaining - routePreview.steps.length} movement remaining</p>}{routeError && <p role="alert">{routeError}</p>}</section></div>}
       </aside></div></>}
       {hosted && hoverPlayer && (() => { const player = view.players.find(item => item.id === hoverPlayer.id);
         return player ? <PlayerHoverCard player={player} anchor={hoverPlayer.anchor} dock={selectedScreen && selectedScreen.x < selectedScreen.width / 2 - 1 ? 'right' : 'left'} teamName={matchTeamName(view, player.role)}/> : null; })()}

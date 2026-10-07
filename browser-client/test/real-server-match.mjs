@@ -136,7 +136,7 @@ async function arrange(view) {
     await page.getByLabel('Setup Y', { exact: true }).fill(String(y));
     view = await advanced(view, () => page.getByRole('button', { name: 'Place on empty own-half square', exact: true }).click());
   }
-  return advanced(view, () => page.getByRole('button', { name: 'Confirm Setup', exact: true }).click());
+  return advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
 }
 const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 const attempts = new Set();
@@ -211,7 +211,9 @@ async function routeUI(view, action) {
   assert.equal(await page.getByRole('list', { name: 'Waypoints' }).locator('li').count(), 0);
   await waypoint();
   const focus = await page.locator('.live-pitch-scene').getAttribute('data-focus');
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
   assert.equal(await page.locator('.live-pitch-scene').getAttribute('data-focus'), focus);
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true);
   await page.getByRole('button', { name: 'Perspective view', exact: true }).click();

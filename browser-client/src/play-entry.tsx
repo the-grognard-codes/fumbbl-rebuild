@@ -40,6 +40,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [, redraw] = useState(0);
   const [status, setStatus] = useState('Connecting');
   const [error, setError] = useState('');
+  const [setupErrors, setSetupErrors] = useState<string[]>([]);
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const [playMode, setPlayMode] = useState<'human' | 'computer'>('human');
   const [computerAvailable, setComputerAvailable] = useState(false);
@@ -126,6 +127,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
         && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
       if (message.type === 'setupState' && message.state?.matchId === matchId && !chatInitializedRef.current) requestChat();
+      if (message.type === 'setupState') setSetupErrors(message.code === 'ILLEGAL_SETUP'
+        ? message.setupErrors?.length ? message.setupErrors : ['This setup is not legal. Adjust the formation and confirm again.'] : []);
       const chatFailure = message.type === 'error' && (chatRequestRef.current !== null && message.requestId === chatRequestRef.current
         || chatSendRef.current !== null && message.requestId === chatSendRef.current);
       if (message.type === 'matchChat' && message.matchId === matchId) {
@@ -222,7 +225,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         && !routeFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
-        && !['READY', 'INVITED', 'UNAVAILABLE'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
+        && !['READY', 'INVITED', 'UNAVAILABLE', 'ILLEGAL_SETUP'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
     const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
@@ -360,7 +363,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       chatSending={connection.pending?.request.type === 'matchChat'} sendChat={text => run(() => {
         setChatSendError(''); chatSendRef.current = connection.request('matchChat', { operation: 'send', matchId, text }, true);
       })}
-      routePreview={routePreview} routeError={routeError}
+      routePreview={routePreview} routeError={routeError} setupErrors={setupErrors}
       requestRoutePreview={points => run(() => {
         setRoutePreview(null); setRouteError(''); routeRequestRef.current = null;
         if (points.length) routeRequestRef.current = connection.request('routePreview', {

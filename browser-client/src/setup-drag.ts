@@ -15,7 +15,13 @@ export function canDragSetupPlayer(view: SetupState, player: SetupPlayer, action
 export function canDropSetupPlayer(view: SetupState, playerId: string, to: RoutePoint | null): boolean {
   const player = view.players.find(item => item.id === playerId && item.role === view.callerRole);
   if (!player || view.phase !== 'SETUP' || view.actor !== view.callerRole || !canDragSetupPlayer(view, player, view.actions)) return false;
-  return to ? canPlaceReserve(view, playerId, to.x, to.y) : player.x !== null;
+  if (!to) return player.x !== null;
+  const occupant = view.players.find(item => item.x === to.x && item.y === to.y && item.id !== playerId);
+  if (!occupant) return canPlaceReserve(view, playerId, to.x, to.y);
+  // Reserve displacement is deliberately unsupported: only two eligible pitch players swap.
+  return player.x !== null && occupant.role === player.role && canDragSetupPlayer(view, occupant, view.actions)
+    && canPlaceReserve({ ...view, players: view.players.filter(item => item.id !== occupant.id) }, playerId, to.x, to.y)
+    && canPlaceReserve({ ...view, players: view.players.filter(item => item.id !== playerId) }, occupant.id, player.x, player.y!);
 }
 
 /** The Solid Defence target and selection must both be offered by this revision. */

@@ -27,7 +27,9 @@ try {
     const assertUnboxed = async element => assert.deepEqual(await element.evaluate(element => ({
       background: getComputedStyle(element).backgroundColor, border: getComputedStyle(element).borderTopWidth,
       shadow: getComputedStyle(element).boxShadow })), { background: 'rgba(0, 0, 0, 0)', border: '0px', shadow: 'none' });
-    await assertUnboxed(dialog);
+    assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor),'rgba(9, 23, 38, 0.3)');
+    assert.equal(await dialog.evaluate(el => getComputedStyle(el).borderTopWidth),'1px');
+    assert.equal(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth),true,'Tight dice box has no horizontal scrollbar');
     assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'none', 'Empty overlay space does not intercept pitch input');
     const offered = journey.offered.actions.filter(action => action.kind === 'blockDie');
     assert.equal(await dialog.locator('.live-dice-choices .match-die').count(), journey.count);
@@ -63,7 +65,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const report of journey.reports) for (const mode of ['coach', 'spectator', 'replay']) {
       await publish({ view: mode === 'coach' ? journey.chosen : journey.spectator, report, readOnly: true, replay: mode === 'replay' });
-      const roll = page.locator('.live-dice-overlay[role="status"]'); await roll.waitFor(); await assertUnboxed(roll);
+      const roll = page.locator('.live-dice-overlay[role="status"]'); await roll.waitFor(); assert.equal(await roll.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(9, 23, 38, 0.3)'); assert.equal(await roll.evaluate(el => getComputedStyle(el).borderTopWidth), '1px');
       const expected = report.blockRoll ? report.blockRoll.map(value => ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'][value - 1]) : [String(report.roll)];
       assert.deepEqual(await roll.locator('.match-die').evaluateAll(elements => elements.map(element => element.dataset.face)), expected);
       assert.equal(await roll.locator('.match-die.selected').count(), report.reportId === 'blockChoice' ? 1 : 0);
@@ -76,5 +78,5 @@ try {
     }
     assert.deepEqual(errors, []); await page.close();
   }
-  console.log('PASS: native d6 and 1/2/3 block faces, unboxed selectable/revealed dice, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
+  console.log('PASS: native d6 and 1/2/3 block faces, boxed rolls and unboxed choice faces, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
 } finally { await browser.close(); await server.close(); }
