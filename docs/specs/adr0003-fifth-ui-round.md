@@ -6,8 +6,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 
 | Slice | GitHub issue | Blocked by | Delivery |
 | --- | --- | --- | --- |
-| T01 | [#185](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/185) | None | Implemented; PR validation pending |
-| T02 | [#186](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) | #185 | Planned |
+| T01 | [#185](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/185) | None | Merged in [#199](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/199) |
+| T02 | [#186](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) | #185 | Implemented; PR validation pending |
 | T03 | [#187](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/187) | None | Planned |
 | T04 | [#188](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188) | None | Planned |
 | T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Planned |
@@ -67,6 +67,8 @@ A coach can concede one of their activated current matches from its setup-page e
 ### Blocked by
 
 T01: List my unfinished matches on the game setup page.
+
+T02 evidence: 32 focused client checks, six native concession checks (both coaches before kickoff and all four coach/acting-team combinations during regular play), TypeScript/site build, and the controlled Playwright current-games journey pass. Cancellation sends no native request; uncertain retry retains the same request ID/revision, remains on setup, and refreshes the list after completion. The displayed preparation's subscription and reconnect selection are restored after concession replies; superseded preparation reads cannot clear the native match selection. Both independent review axes approve.
 
 ## T03: Open matches in the current tab and verify authenticated direct resume
 

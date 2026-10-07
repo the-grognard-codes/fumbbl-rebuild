@@ -124,9 +124,17 @@ export class V2Client {
 
   open(matchId: string, watch: boolean) {
     if (!uuid.test(matchId)) throw Error('Enter a valid match ID.');
+    for (const [id, request] of this.requests)
+      if (request.type === 'preparedMatch' && request.operation === 'load') this.requests.delete(id);
     this.selection = { matchId, watch }; this.state = null;
     this.preparationMatchId = null;
     return this.request(watch ? 'watch' : 'setup', watch ? { matchId } : { matchId, operation: 'load' });
+  }
+
+  restorePreparation(matchId: string) {
+    if (!uuid.test(matchId)) throw Error('Enter a valid match ID.');
+    this.selection = null; this.state = null; this.preparationMatchId = matchId;
+    return this.request('preparedMatch', { operation: 'load', matchId });
   }
 
   retry() {

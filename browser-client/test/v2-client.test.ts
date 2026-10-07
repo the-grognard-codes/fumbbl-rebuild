@@ -59,6 +59,35 @@ test('preparation selection reloads on reconnect but is removed when opening ano
   assert.equal(reconnected.sent.length, count);
 });
 
+test('restoring setup after a lobby concession keeps notifications and reconnect on that setup', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  socket.reply({ ...prepared, requestId: client.request('preparedMatch', { operation: 'load', matchId: match }) });
+  client.open(account, false);
+  const pending = client.request('setup', { operation: 'concede', matchId: account, expectedRevision: 1 }, true);
+  const restore = client.restorePreparation(match);
+  socket.reply({ ...prepared, requestId: restore });
+  socket.reply({ type: 'preparationChanged', requestId: null, code: 'ACCEPTED', matchId: match });
+  assert.equal(socket.sent.at(-1).matchId, match);
+  assert.equal(socket.sent.at(-1).type, 'preparedMatch');
+  assert.equal(client.pending?.request.requestId, pending);
+  const latest = await connect();
+  assert.equal(latest.sent.at(-1).matchId, match);
+  assert.equal(latest.sent.at(-1).type, 'preparedMatch');
+  client.retry();
+  assert.equal(latest.sent.at(-1).requestId, pending);
+});
+
+test('a superseded preparation read cannot clear the match selected for concession', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const preparation = client.request('preparedMatch', { operation: 'load', matchId: match });
+  const native = client.open(account, false);
+  socket.reply({ ...prepared, requestId: preparation });
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId: native, duplicate: false,
+    state: { ...state, matchId: account, callerRole: 'home' } });
+  assert.equal(socket.closed, false);
+  assert.equal(client.state?.matchId, account);
+});
+
 test('private response fields fail closed without rendering, logging or erasing uncertain intent', async () => {
   const { client, connect, events, storageData } = fixture(); const socket = await connect();
   const requestId = client.request('preparedMatch', { operation: 'create' }, true);

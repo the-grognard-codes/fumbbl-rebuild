@@ -16,6 +16,9 @@ const member = { role: 'home', sourceTeamId: id(1), sourceDocumentVersion: 1, ru
   catalogVersion: 'fixture', rosterId: 'human', presetId: 'fixture', presetVersion: '1',
   validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] },
   roster: { captainId: null, resources: {}, players: [] } };
+const matchState = { matchId: id(3), revision: 41, callerRole: 'home', phase: 'PRE_MATCH', actor: 'away',
+  prompt: null, players: [], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0,
+  turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 
 test('current games page assembles owned pages, resumes setup, and links activated games', async () => {
   const server = createServer(async (request, response) => {
@@ -36,6 +39,7 @@ test('current games page assembles owned pages, resumes setup, and links activat
     || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const requests = [];
   let empty = false, unavailable = false;
+  let conceded = false, uncertainConcession = true;
   let holdRefresh = false, releasePage, signalHeld;
   try {
     for (let account = 0; account < 2; account++) {
@@ -57,7 +61,7 @@ test('current games page assembles owned pages, resumes setup, and links activat
             if (unavailable) { send({ type: 'error', requestId: request.requestId, code: 'PERSISTENCE_FAILED' }); return; }
             const matches = empty || account === 1 ? [] : request.after === null
               ? [entry(1, 'WAITING_FOR_OPPONENT', 'Orcs 4 Hire', null), entry(2, 'AWAITING_SETUP', 'Reavers', 'Raiders')]
-              : [entry(3, 'ACTIVATED', 'Active Orcs', "Bugman's Best"), entry(4, 'UNAVAILABLE', null, null)];
+              : [...(conceded ? [] : [entry(3, 'ACTIVATED', 'Active Orcs', "Bugman's Best")]), entry(4, 'UNAVAILABLE', null, null)];
             const reply = () => send({ type: 'currentMatches', requestId: request.requestId, code: 'ACCEPTED', matches,
               next: matches.length && request.after === null ? id(2) : null });
             if (holdRefresh) { holdRefresh = false; releasePage = reply; signalHeld(); }
@@ -67,12 +71,21 @@ test('current games page assembles owned pages, resumes setup, and links activat
             code: 'ACCEPTED', duplicate: false, callerRole: 'home', recoveryMatchId: null,
             document: { formatVersion: 1, matchId: request.matchId, documentVersion: 1,
               lifecycle: 'WAITING_FOR_OPPONENT', invitation: { intendedOpponent: 'away' }, home: member, away: null } });
+          if (request.type === 'setup') {
+            if (request.operation === 'load') send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: matchState });
+            else if (request.operation === 'concede') {
+              if (uncertainConcession) { uncertainConcession = false; send({ type: 'setupState', requestId: request.requestId, code: 'MATCH_OUTCOME_UNKNOWN', duplicate: false, state: null }); }
+              else { conceded = true; send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: true,
+                state: { ...matchState, phase: 'FULL_TIME', revision: 42, awayScore: 1 } }); }
+            }
+          }
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play`);
       const games = page.getByRole('region', { name: 'Your current games' });
       if (account === 1) {
         await games.getByText('You have no unfinished games.').waitFor();
+
         assert.equal(await games.getByRole('listitem').count(), 0);
       } else {
         await games.getByRole('link', { name: 'Resume', exact: true }).waitFor();
@@ -107,6 +120,31 @@ test('current games page assembles owned pages, resumes setup, and links activat
         unavailable = false; empty = true;
         await games.getByRole('button', { name: 'Refresh games', exact: true }).click();
         await games.getByText('You have no unfinished games.').waitFor();
+        empty = false;
+        await games.getByRole('button', { name: 'Refresh games', exact: true }).click();
+        await games.getByRole('button', { name: 'Concede', exact: true }).click();
+        await games.getByRole('button', { name: 'Keep playing', exact: true }).click();
+        assert.equal(requests.filter(request => request.type === 'setup').length, 0, 'Cancelling confirmation makes no native request');
+        await games.getByRole('button', { name: 'Concede', exact: true }).click();
+        await games.getByRole('button', { name: 'Confirm concession', exact: true }).click();
+        await games.getByText('Concession outcome is unconfirmed.', { exact: false }).waitFor();
+        await page.waitForFunction(() => !document.querySelector('section[aria-label="Your current games"] button').disabled);
+        assert.equal(requests.filter(request => request.type === 'preparedMatch').length, 2, 'Restore the displayed preparation subscription after the native concession reply');
+        assert.equal(requests.filter(request => request.type === 'preparedMatch').at(-1).matchId, id(1));
+        assert.equal(new URL(page.url()).pathname, '/play');
+        assert.equal(await page.locator('.live-pitch-scene').count(), 0);
+        await page.reload();
+        await page.getByRole('button', { name: 'Repeat retained request', exact: true }).waitFor();
+        assert.equal(new URL(page.url()).pathname, '/play', 'A retained lobby concession does not open the pitch on reload');
+        assert.equal(requests.filter(request => request.operation === 'concede').length, 1, 'Reconnect never automatically repeats concession');
+        await page.getByRole('button', { name: 'Repeat retained request', exact: true }).click();
+        await games.getByText('Concession accepted. The match has ended.').waitFor();
+        await page.waitForFunction(() => document.querySelectorAll('section[aria-label="Your current games"] li').length === 3);
+        const attempts = requests.filter(request => request.operation === 'concede');
+        assert.equal(attempts.length, 2); assert.equal(attempts[0].requestId, attempts[1].requestId);
+        assert.equal(attempts[0].expectedRevision, 41); assert.equal(attempts[1].expectedRevision, 41);
+        assert.equal(await games.getByRole('link', { name: 'Resume', exact: true }).count(), 0);
+        assert.equal(context.pages().length, 1);
       }
       await context.close();
     }

@@ -96,6 +96,14 @@ The caller supplies no account or role. The server reauthorizes PLAYER scope
 before the membership query and excludes completed durable documents. A changed
 or unavailable snapshot does not expose private data or create an engine.
 Unactivated entries offer Continue setup; activated entries link to Resume.
+Activated entries also offer Concede with the existing irreversible-action
+confirmation. Confirm reads the authorized native state, submits `setup/concede`
+at that revision and refreshes the inventory after its reply. Cancellation sends
+no request. A retained concession stays on setup after reload and uses the
+ordinary explicit exact-request retry; it never automatically launches the pitch
+  or resubmits the mutation. The displayed preparation is reloaded after the native
+  reply so its lifecycle subscription and reconnect selection remain current.
+  Native concession legality and penalties are unchanged.
 This opt-in response family leaves existing clients' messages and durable
 formats unchanged; new clients require a server supporting this read operation.
 
