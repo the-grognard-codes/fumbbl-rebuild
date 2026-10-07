@@ -12,7 +12,10 @@ export function currentGameStep(view: SetupState): CurrentGameStep | null {
   const progress = kickoff ? kickoff.event === 'QUICK_SNAP' && kickoff.stage === 'movement'
     ? kickoff.completed + ' moved · maximum ' + kickoff.allowed + ' · ' + Math.max(0, kickoff.allowed - kickoff.completed) + ' remaining'
     : kickoff.selected + ' selected · maximum ' + kickoff.allowed : undefined;
-  const waiting = view.callerRole !== (kickoff?.actor ?? view.actor) ? ' Waiting for the ' + (kickoff?.actor ?? view.actor) + ' coach.' : '';
+  const actor = event === 'TOUCHBACK'
+    ? view.actions.find(action => action.kind === 'touchback')?.actor ?? (view.actor === 'home' ? 'away' : 'home')
+    : kickoff?.actor ?? view.actor;
+  const waiting = view.callerRole !== actor ? ' Waiting for the ' + actor + ' coach.' : '';
   if (event === 'QUICK_SNAP') return { title: 'Quick Snap!',
     instruction: 'Receiving team to select ' + allowance + ', each may move one square.' + waiting, progress };
   if (event === 'CHARGE') return { title: 'Charge!', instruction: (kickoff?.stage === 'movement' || view.turnMode === 'BLITZ'

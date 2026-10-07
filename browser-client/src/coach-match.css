@@ -30,7 +30,7 @@
 .play-runtime .coach-match.hosted-match .coach-score { display: flex; align-items: center; justify-content: center; gap: 8px; border-inline: 1px solid #28485e; font-size: 30px; }
 .play-runtime .coach-match.hosted-match .coach-score b:first-child { color: #49dfff; }
 .play-runtime .coach-match.hosted-match .coach-score b:last-child { color: #ffe17b; }
-.play-runtime .coach-match.hosted-match .live-resources { position: absolute; top: 0; margin: 0; padding: 2.5px 7px; max-width: 18%; }
+.play-runtime .coach-match.hosted-match .live-resources { position: absolute; top: 0; margin: 0; padding: 2.5px 7px; max-width: 18%; height: var(--score-panel-height); }
 .play-runtime .coach-match.hosted-match .live-resources.home { left: 0; }
 .play-runtime .coach-match.hosted-match .live-resources.away { right: 0; }
 .play-runtime .coach-match.hosted-match .live-resource-counts { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -161,9 +161,9 @@
   .play-runtime .coach-match.hosted-match .live-chess-clock { top: 57px; width: 78px; }
   .play-runtime .coach-match.hosted-match .live-chess-clock.home { right: auto; left: 0; }
   .play-runtime .coach-match.hosted-match .live-chess-clock.away { left: auto; right: 0; }
-  .play-runtime .coach-match.hosted-match .live-resources { max-width: 19%; padding: 3px; }
-  .play-runtime .coach-match.hosted-match button.live-resource { width: 25px; height: 25px; }
-  .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { width: 24px; height: 24px; }
+  .play-runtime .coach-match.hosted-match .live-resources { max-width: 19%; padding: 2px; }
+  .play-runtime .coach-match.hosted-match button.live-resource { width: 22px; height: 22px; }
+  .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { width: 22px; height: 22px; }
   .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { width: calc(30% - 52px); }
   .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 20%; }
   .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 20%; }
@@ -242,3 +242,31 @@
 /* Expanded setup containers retain the shared history docking position. */
 .play-runtime .coach-match.hosted-match .live-dugout.expanded { top: auto; bottom: 0; width: min(245px,45%); }
 .play-runtime .coach-match.hosted-match .live-dugout.away { margin-left: auto; }
+
+/* Keep the five score panels on one row, including narrow coach windows. */
+@media (max-width: 900px) {
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard { display: grid; grid-template-columns: 52px 64px minmax(0,1fr) 64px 52px; gap: 6px; }
+  .play-runtime .coach-match.hosted-match .live-resources,
+  .play-runtime .coach-match.hosted-match .live-chess-clock,
+  .play-runtime .coach-match.hosted-match .coach-score-center { position: static; width: 100%; max-width: none; height: var(--score-panel-height); }
+  .play-runtime .coach-match.hosted-match .live-resources.home { grid-column: 1; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock.home { grid-column: 2; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .coach-score-center { grid-column: 3; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock.away { grid-column: 4; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-resources.away { grid-column: 5; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-resource-counts { gap: 0; }
+}
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard { grid-template-columns: 52px 44px minmax(0,1fr) 44px 52px; gap: 3px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock { font-size: 7px; }
+}
+
+@media (max-width: 900px) {
+  .play-runtime .coach-match.hosted-match .live-chess-clock { padding: 2px; font-size: 8px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock span { flex-direction: column; align-items: center; gap: 0; line-height: 10px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock b { font-size: 9px; }
+}
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .live-chess-clock { font-size: 7px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock b { font-size: 8px; }
+}

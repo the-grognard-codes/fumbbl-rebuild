@@ -19,11 +19,19 @@ The older ticket mirrors and verification documents are recovered as historical 
 
 ## Verification
 
-- Browser unit suite: 174 tests passed; TypeScript compilation passed.
+- Browser unit suite: 176 tests passed; TypeScript compilation passed.
 - Play production build passed, with canonical art synchronization.
 - Focused native target-toolchain tests: 52 passed across adapter, action source, kickoff guidance, concession, setup and recovery scenarios, including older checkpoint compatibility.
 - Browser fixture checks passed for equal-height resources, HUD responsiveness, current fourth-round behaviors, kickoff adjustments, dice, playback, independent chat/log sizing, menu events and three-state dugouts.
-- Measured desktop timer, resource and central team boxes: all 52px high, top 10px, bottom 62px at 1224×604 and 1920×1080. Before recovery the committed timers were about 61px high and resources started at 34px.
-- Responsive reconciliation also removes legacy 16% menu-button width caps that caused Debug/Game Menu overlap on a 375px viewport.
+- Measured timer, resource and central team boxes: all 52px high, top 10px, bottom 62px at 1224×604 and 1920×1080. Before recovery the committed timers were about 61px high and resources started at 34px.
+- Responsive reconciliation keeps all five panels in one row and removes legacy 16% menu-button width caps that caused Debug/Game Menu overlap on a 375px viewport.
 
 Browser checks exercise recorded fixtures and intent contracts. They do not establish fresh live gameplay acceptance. Local Node is 26; package/CI declares Node 24. Java checks use the pinned Temurin 21.0.11+10 and Maven 3.9.9 target toolchain.
+
+## Independent review
+
+**Standards:** two findings corrected: preserve recorded ground anchors for prone/stunned sprites in both views, and identify the receiving coach in touchback waiting text.
+
+**Spec:** two findings corrected: maintain timer/team/resource alignment at narrow viewports, and limit kickoff movement selection to players with an offered move. The latest three-state dugout and quarter-field dice contracts take precedence over older local prototypes.
+
+Additional interaction checks passed for smart actions, setup drag/drop and friendly swaps, push chains/artwork, pass workflow/ranges, 56 reroll-choice cases, 22 reroll-accounting cases and immediate end-player-action. Rich resource/button bounds and nested clock text fit at 900, 800, 640 and 375px widths.

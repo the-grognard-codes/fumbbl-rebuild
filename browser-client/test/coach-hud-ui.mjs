@@ -102,6 +102,7 @@ try {
   for (const [width, height] of [[1280,660],[1920,1080],[1920,900],[1920,820],[375,660],[640,330],[375,300]]) {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').clientHeight - innerHeight) < 1);
+    assert.equal(await page.locator('.live-match-scoreboard').evaluate(scoreboard => { const center = scoreboard.querySelector('.coach-score-center').getBoundingClientRect(); return [...scoreboard.querySelectorAll('.live-chess-clock,.live-resources')].every(element => { const rect = element.getBoundingClientRect(); return Math.abs(rect.top - center.top) < 1 && Math.abs(rect.bottom - center.bottom) < 1; }); }), true, 'Timers and resources align with the team bar at every viewport');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight), true);
     assert.equal(await page.locator('.live-team-nameplate strong').evaluateAll(elements => elements.every(element => { const rect = element.getBoundingClientRect(), plate = element.parentElement.getBoundingClientRect(); return element.scrollWidth <= element.clientWidth + 1 && rect.top >= plate.top && rect.bottom <= plate.bottom; })), true, 'Names fit inside their fixed score plates');
     assert.equal(await page.locator('.game-menu-trigger').evaluate(element => element.getBoundingClientRect().width < 130), true, 'Game Menu cannot cover camera and exit controls');

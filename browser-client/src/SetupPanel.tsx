@@ -305,6 +305,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       if (choice) { mutate('action', { actionId: choice.action.id }); return; }
     }
     if (kickoffMovement) {
+      if (!canChoose || !availableActions.some(action => action.kind === 'kickoffMove' && action.sourcePlayerId === id)) return;
       setPlayerId(id); setActionId(''); setSmartIntent(null); setTargetFocus('player'); return;
     }
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
