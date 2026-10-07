@@ -136,6 +136,9 @@ public final class StepInitSelecting extends AbstractStep {
 							if (forceGotoOnDispatch) {
 								fDispatchPlayerAction = playerAction;
 							}
+							if (playerAction == PlayerAction.THROW_TEAM_MATE_MOVE || playerAction == PlayerAction.KICK_TEAM_MATE_MOVE) {
+								fDispatchPlayerAction = playerAction;
+							}
 
 							UtilServerSteps.changePlayerAction(this, actingPlayerCommand.getPlayerId(),
 								playerAction, actingPlayerCommand.isJumping());
@@ -496,7 +499,9 @@ public final class StepInitSelecting extends AbstractStep {
 		} else if (fDispatchPlayerAction != null) {
 			if (StringTool.isProvided(actingPlayer.getPlayerId()) && (actingPlayer.getPlayerAction() != null)) {
 				publishParameter(new StepParameter(StepParameterKey.DISPATCH_PLAYER_ACTION, fDispatchPlayerAction));
-				if (actingPlayer.isStandingUp() && !forceGotoOnDispatch) {
+				if (!forceGotoOnDispatch && (actingPlayer.isStandingUp()
+					|| fDispatchPlayerAction == PlayerAction.THROW_TEAM_MATE_MOVE
+					|| fDispatchPlayerAction == PlayerAction.KICK_TEAM_MATE_MOVE)) {
 					prepareStandingUp();
 					getResult().setNextAction(StepAction.NEXT_STEP);
 				} else {
