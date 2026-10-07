@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+  <defs>
+    <g id="badge"><path d="M24 2 43 9v23L24 46 5 32V9Z" fill="#10283f" stroke="#b9995b" stroke-width="2"/><path d="M24 5 40 11v19L24 42 8 30V11Z" fill="#205270" stroke="#5fd1e3" stroke-width="1"/></g>
+  </defs>
+  <symbol id="pro" viewBox="0 0 48 48"><use xlink:href="#badge"/><path d="m24 9 3.7 9.6 10.3.5-8 6.4 2.9 10-8.9-5.8-8.9 5.8 2.9-10-8-6.4 10.3-.5Z" fill="#edcf7c" stroke="#fff2ce" stroke-width="1.5"/></symbol>
+  <symbol id="brawler" viewBox="0 0 48 48"><use xlink:href="#badge"/><path d="M11 21h6v-6h5v6h2v-8h5v8h2v-6h5v15l-8 8H18l-7-7Z" fill="#d2ac73" stroke="#fff1c9" stroke-width="1.5"/><path d="M14 26h20" stroke="#805636" stroke-width="2"/></symbol>
+  <symbol id="dodge" viewBox="0 0 48 48"><use xlink:href="#badge"/><path d="M10 33c6-1 8-6 12-11 4-6 8-8 16-8M17 35c7-3 13-2 21-4" fill="none" stroke="#d9f7ed" stroke-width="4" stroke-linecap="round"/><path d="m25 13 5 5-5 5" fill="none" stroke="#edcf7c" stroke-width="2"/></symbol>
+  <symbol id="sure-feet" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">SF</text></symbol>
+  <symbol id="sure-hands" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">SH</text></symbol>
+  <symbol id="catch" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">CT</text></symbol>
+  <symbol id="pass" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">PA</text></symbol>
+  <symbol id="loner" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">LO</text></symbol>
+  <symbol id="monstrous-mouth" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">MM</text></symbol>
+  <symbol id="hatred" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">HT</text></symbol>
+  <symbol id="blind-rage" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">BR</text></symbol>
+  <symbol id="the-ballista" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">BL</text></symbol>
+  <symbol id="mesmerising-dance" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">MD</text></symbol>
+  <symbol id="mesmerizing-dance" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">MZ</text></symbol>
+  <symbol id="lord-of-chaos" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">LC</text></symbol>
+  <symbol id="consummate-professional" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">CP</text></symbol>
+  <symbol id="whirling-dervish" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">WD</text></symbol>
+  <symbol id="thinking-man-s-troll" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">TT</text></symbol>
+  <symbol id="halfling-luck" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">HL</text></symbol>
+  <symbol id="bounding-leap" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">BP</text></symbol>
+  <symbol id="unstoppable-momentum" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">UM</text></symbol>
+  <symbol id="savage-blow" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">SB</text></symbol>
+  <symbol id="swoop" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">SW</text></symbol>
+  <symbol id="working-in-tandem" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">WT</text></symbol>
+  <symbol id="woodland-fury" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">WF</text></symbol>
+  <symbol id="kick" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">KI</text></symbol>
+  <symbol id="bribery-and-corruption" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">BC</text></symbol>
+  <symbol id="pump-up-the-crowd" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">PC</text></symbol>
+  <symbol id="star-of-the-show" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">SS</text></symbol>
+  <symbol id="brilliant-coaching" viewBox="0 0 48 48"><use xlink:href="#badge"/><text x="24" y="31">CB</text></symbol>
+  <style>text{fill:#f4e6bd;font:700 17px sans-serif;text-anchor:middle;letter-spacing:-1px}</style>
+</svg>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
@@ -45,8 +46,9 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const body = art?.body;
   const scale = (position?.pixelsPerSquare ?? camera.scale) * 1.08 / 64;
   const groundPose = body?.pose === 'prone' || body?.pose === 'stunned';
-  const anchor = body ? groundPose ? body.groundAnchor : camera.mode === 'top-down'
-    ? { x: body.bounds.x + body.bounds.width / 2, y: body.bounds.y + body.bounds.height / 2 } : body.footAnchor : { x: 0, y: 0 };
+  const anchor = body ? camera.mode === 'top-down'
+    ? { x: body.bounds.x + body.bounds.width / 2, y: body.bounds.y + body.bounds.height / 2 }
+    : groundPose ? body.groundAnchor : body.footAnchor : { x: 0, y: 0 };
   const corners = camera.square({ x: player.x!, y: player.y! });
   const width = position?.pixelsPerSquare ?? camera.scale;
   const height = corners.length ? Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y)) : width;
@@ -54,12 +56,12 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const number = player.number ?? player.slot;
   return <button type="button" data-player-id={player.id} data-x={player.x} data-y={player.y}
     data-center-x={position?.x} data-center-y={position?.y} data-pose={body?.pose ?? 'token'}
-    data-anchor-mode={groundPose ? 'ground' : camera.mode === 'top-down' ? 'visual-center' : 'feet'}
+    data-anchor-mode={camera.mode === 'top-down' ? 'visual-center' : groundPose ? 'ground' : 'feet'}
     className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}`}
     aria-label={`${teamName} ${player.name}, number ${number}, ${player.state}, square ${player.x}, ${player.y}`}
     tabIndex={visible ? 0 : -1} title={`${player.name} #${number} · ${player.state}`} draggable={canDrag && visible}
     style={{ left, top, width, height, zIndex: 10 + order, visibility: visible ? 'visible' : 'hidden' }}
-    onPointerDown={event => { if (canDrag) event.stopPropagation(); }}
+    onPointerDown={event => { if (canDrag && event.button === 0) event.stopPropagation(); }}
     onDragStart={event => { if (!canDrag) return; event.dataTransfer.setData('application/x-fumbbl-setup-player', player.id);
       event.dataTransfer.effectAllowed = 'move'; onStartDrag?.(player.id); }} onDragEnd={() => onEndDrag?.()}
     onPointerEnter={event => { if (event.pointerType !== 'touch') onFocus(event.currentTarget.getBoundingClientRect()); }} onPointerLeave={onBlur}
@@ -90,7 +92,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
-  zoom: controlledZoom, onZoomChange, showToolbar = true, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
+  zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -98,7 +100,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
-  zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean;
+  zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean; debugOpen?: boolean; cameraControlsHost?: HTMLElement | null;
   onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
@@ -112,6 +114,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [viewerEnd, setViewerEnd] = useState<'home' | 'away'>(view.callerRole === 'away' ? 'away' : 'home');
   const [travel, setTravel] = useState({ focus: 13, transverseFocus: 7.5 });
   const [cursor, setCursor] = useState<Point | null>(null);
+  const [hover, setHover] = useState<Point | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
   const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
@@ -177,6 +180,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
+  const kickTarget = pinnedAction?.kind === 'kickoff' && pinnedTarget?.x != null && pinnedTarget.y != null
+    ? { x: pinnedTarget.x, y: pinnedTarget.y }
+    : view.phase === 'READY_FOR_KICKOFF' && hover && actions.some(action => action.kind === 'kickoff'
+      && action.target && 'x' in action.target && action.target.x === hover.x && action.target.y === hover.y) ? hover : null;
   if (pinnedAction?.kind === 'pass' && pinnedTarget?.x != null && pinnedTarget.y != null) {
     const recipient = view.players.find(player => player.x === pinnedTarget.x && player.y === pinnedTarget.y);
     if (recipient) targetPlayers.add(recipient.id);
@@ -191,8 +198,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const diceX = camera.width * .25;
   const diceY = Math.min(camera.height - 130, Math.max(20, camera.height * .38));
   const chalk = (from: Point, to: Point) => routePath([{ x: from.x - .5, y: from.y - .5 }, { x: to.x - .5, y: to.y - .5 }], camera);
-  return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
-    <div hidden={!showToolbar} className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
+  const cameraControls = <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
       <label><span>Perspective angle</span> <select aria-label="Perspective angle" title="Perspective angle" value={perspectiveElevation}
         onChange={event => { setPerspectiveElevation(Number(event.target.value) as PerspectiveElevation); setMode('perspective'); onBlurPlayer?.(); }}>
@@ -203,7 +209,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       <button type="button" disabled={selected?.x == null} onClick={() => selected?.x != null && selected.y != null && reveal(centerOf({ x: selected.x, y: selected.y }))}>Reveal selected</button>
       <button type="button" disabled={!view.ball && activePlayer?.x == null} onClick={() => reveal(view.ball ? centerOf(view.ball) : activePlayer?.x != null && activePlayer.y != null ? centerOf({ x: activePlayer.x, y: activePlayer.y }) : null)}>Reveal ball / active</button>
       {showToolbar && <>{[1, 1.5, 2].map(value => <button key={value} type="button" aria-pressed={zoom === value} onClick={() => { setZoom(value); onBlurPlayer?.(); }}>{value === 1 ? 'Fit' : `${value}×`}</button>)}</>}
-    </div>
+    </div>;
+  return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
+    {debugOpen && (cameraControlsHost === undefined ? cameraControls : cameraControlsHost && createPortal(cameraControls, cameraControlsHost))}
     {passing && <div className="live-pass-legend" role="note" aria-label="Passing distances">
       {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}
       <span>Shaded: unavailable{passing.rangeLimited ? '; weather limits passes to Quick or Short' : ''}</span>
@@ -223,12 +231,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); onSquare(cursor.x, cursor.y); }
       }}
       onContextMenu={event => event.preventDefault()}
+      onAuxClickCapture={event => { if (event.button === 2) { event.preventDefault(); event.stopPropagation(); } }}
       onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault(); drag.current = { x: event.clientX, y: event.clientY, camera, moved: false }; }}
-      onPointerMove={event => { const start = drag.current; if (!start) return; const dx = event.clientX - start.x, dy = event.clientY - start.y;
+      onPointerMove={event => { const start = drag.current; if (!start) { if (view.phase === 'READY_FOR_KICKOFF') setHover(point(event.clientX, event.clientY)); return; } const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
         if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
       onPointerUp={event => { drag.current = null;
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
+      onPointerLeave={() => setHover(null)}
+      onLostPointerCapture={() => { drag.current = null; }}
       onPointerCancel={() => { drag.current = null; }}>
       <div ref={scene} className="live-pitch-scene" data-projection={mode} data-elevation={camera.elevation} data-end={end} data-focus={camera.focus}
         data-transverse-focus={camera.transverseFocus} data-zoom={zoom} style={{ width: size.width, height: size.height }}
@@ -246,9 +257,18 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             data-pass-range={guidance?.code} fill={guidance?.color ?? (square.x === 0 ? '#37669166' : square.x === 25 ? '#874a2d66' : (square.x + square.y) % 2 ? '#18392222' : '#b1c46a0b')}
             stroke="#21371e" strokeOpacity=".5">{guidance && <title>{guidance.description}</title>}</polygon>;
           }) }
+          {occupants.map(player => {
+            const center = centerOf({ x: player.x!, y: player.y! });
+            const shadow = Array.from({ length: 16 }, (_, index) => ({ x: center.x + .28 * Math.cos(index * Math.PI / 8),
+              y: center.y + .28 * Math.sin(index * Math.PI / 8) }));
+            return <polygon key={`shadow-${player.id}`} className="live-player-shadow" data-shadow-player={player.id}
+              points={points(camera.polygon(shadow, true))}/>;
+          })}
           <path className="pitch-chalk" d={[chalk({ x: 0, y: 0 }, { x: 26, y: 0 }), chalk({ x: 0, y: 15 }, { x: 26, y: 15 }), ...[0, 1, 13, 25, 26].map(x => chalk({ x, y: 0 }, { x, y: 15 }))].join(' ')}/>
           {[4, 11].map(y => <path key={y} className="pitch-chalk wide" d={chalk({ x: 0, y }, { x: 26, y })}/>) }
           {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`} className={`live-target-square${passing && moveSquares.has(`${square.x},${square.y}`) ? ' live-pass-move-square' : ''}`} points={points(camera.square(square, .06, true))}/>) }
+          {kickTarget && <polygon className="live-kick-target" data-kick-target={`${kickTarget.x},${kickTarget.y}`}
+            points={points(camera.square(kickTarget, .08, true))}/>}
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
@@ -290,7 +310,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         {decision && <PitchDecisionOverlay key={decision.key} decision={decision}
           diceMoment={decision.kind === 'reroll' || decision.kind === 'skill' ? diceMoment : null}
           disabled={decisionDisabled} viewport={viewport} scene={scene} x={diceX} y={diceY} onAction={onDecisionAction}/>}
-        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong className="sr-only">{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div></div>}
+        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong className="sr-only">{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) =>
+          <span key={index} title={diceMoment.rolls?.[index]?.label ?? diceMoment.label}><DiceFace face={face} selected={diceMoment.selected === index}
+            rollKey={diceMoment.rolls?.[index]?.rollKey ?? diceMoment.rollKey}/></span>)}</div></div>}
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>

@@ -1,5 +1,27 @@
 import { PitchProjection } from '../src/pitch-projection.ts';
 
+export async function travelToFocus(page, focus) {
+  const scene = page.locator('.live-pitch-scene').first();
+  const frame = page.locator('.live-pitch-viewport').first();
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const options = await scene.evaluate(element => ({ width: parseFloat(element.style.width), height: parseFloat(element.style.height),
+      focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
+      mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
+      perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
+    if (Math.abs(options.focus - focus) < .05) return;
+    const camera = new PitchProjection(options);
+    const delta = Math.max(-180, Math.min(180, (focus - camera.focus) * camera.scale
+      * Math.sin(camera.elevation * Math.PI / 180) * (camera.end === 'home' ? 1 : -1)));
+    const box = await frame.boundingBox();
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(x, y + delta, { steps: 3 });
+    await page.mouse.up({ button: 'right' });
+  }
+  throw Error(`Could not travel camera to focus ${focus}`);
+}
+
 /** Exercise camera travel, then address the requested canonical cell. */
 export async function squarePosition(page, x, y) {
   const scene = page.locator('.live-pitch-scene').first();

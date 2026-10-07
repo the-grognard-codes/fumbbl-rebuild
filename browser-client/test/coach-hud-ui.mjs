@@ -31,15 +31,15 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/hud-test`);
   await page.locator('.coach-match').waitFor();
   await page.evaluate(() => document.fonts.ready);
-  await page.getByRole('button', { name: 'Other action', exact: true }).click();
-  const disclosure = page.locator('.action-text-companion > summary'); await disclosure.focus(); await disclosure.press('Enter');
-  assert.equal(await disclosure.evaluate(element => element.parentElement.open), true);
+  await page.getByRole('button', { name: 'Debug', exact: true }).click();
+  assert.equal(await page.getByRole('region', { name: 'Match debug' }).isVisible(), true);
   const offered = page.getByLabel('Server action', { exact: true });
   assert.deepEqual(await offered.locator('option').evaluateAll(options => options.map(option => option.value)), ['', '0:select-human', '0:end']);
   await offered.selectOption('0:select-human');
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true, 'The hosted text fallback stages a real offered proposal');
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Choosing the fallback proposal does not mutate');
-  await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+  await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   assert.equal(await page.getByLabel('Message the match').count(), 0, 'Enter activates native disclosures without opening chat');
   // Cancel closes the additional row as well as clearing its proposal.
   assert.equal(await page.locator('.live-resources.home .live-resource').count(), 2);
@@ -52,7 +52,7 @@ try {
   assert.equal(await page.locator('.live-turn-track.home li').count(), 8);
   assert.equal(await page.locator('.live-turn-track.home [aria-current="step"]').textContent(), '4');
   assert.equal(await page.locator('.live-turn-track.home .past').count(), 3);
-  assert.equal(await page.locator('.coach-weather-slot').textContent(), '');
+  assert.equal(await page.locator('.coach-weather-slot').textContent(), 'Nice');
   for (const selector of ['.live-resources.home', '.live-chess-clock.home', '.match-history-chat', '.match-history-log'])
     assert.equal(await page.locator(selector).evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(9, 23, 38, 0.3)');
   const human = page.locator('[data-player-id="human"]'), orc = page.locator('[data-player-id="orc"]');
@@ -115,14 +115,13 @@ try {
       await page.getByRole('button', { name: /^Game Menu$/ }).click();
       await page.getByRole('tab', { name: 'Game Log', exact: true }).click();
       await page.getByRole('button', { name: 'Close Game Menu', exact: true }).click();
-      await page.getByRole('button', { name: 'Write message', exact: true }).click();
+      await page.getByRole('button', { name: 'Click chat or press Enter to write', exact: true }).click();
       await chat.fill('Short viewport chat stays editable'); await chat.press('Escape');
-      await page.getByRole('button', { name: 'Other action', exact: true }).click();
-      const textActions = page.locator('.action-text-companion > summary');
-      if (!await textActions.evaluate(element => element.parentElement.open)) await textActions.click();
+      if (!await page.getByRole('region', { name: 'Match debug' }).isVisible()) await page.getByRole('button', { name: 'Debug', exact: true }).click();
       await offered.selectOption('0:select-human');
       assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true);
-      await page.getByRole('button', { name: 'Cancel proposed action', exact: true }).click();
+      await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
+      await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
     }
     if (evidence) await page.screenshot({ path: `${evidence}/hud-${width}-${height}.png` });
   }

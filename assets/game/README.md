@@ -1,6 +1,6 @@
 # In-game art
 
-This is the source of truth for browser match art. It excludes the public site's branding assets and the legacy desktop client's `ffb-resources` icons.
+This is the source of truth for browser match art. It excludes the public site's branding assets. Legacy desktop artwork is included only when deliberately promoted with provenance, as with the five weather sprites in `ui/weather/`.
 
 | Path | Purpose |
 | --- | --- |

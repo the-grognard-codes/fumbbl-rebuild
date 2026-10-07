@@ -1,0 +1,20 @@
+.match-chat .match-chat-scroll { cursor: text; }
+.match-chat .match-chat-scroll p,
+.match-chat .match-chat-scroll strong,
+.match-chat .match-chat-scroll span { font-size: inherit; }
+.play-runtime .hosted-match .match-chat .match-chat-hint {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #a4bfd5;
+  font: 10px system-ui, sans-serif;
+  text-align: left;
+  cursor: text;
+}
+.play-runtime .hosted-match .match-chat .match-chat-hint:focus-visible {
+  outline: 2px solid #49e6ff;
+  outline-offset: 1px;
+}

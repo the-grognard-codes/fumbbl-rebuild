@@ -264,9 +264,9 @@ async function actionUI(view, action) {
     const position = await squarePosition(page, action.target.x, action.target.y);
     await page.locator('.live-pitch-scene').click({ position });
   } else {
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
-    await page.getByText('All offered actions', { exact: true }).click();
+    await page.getByRole('button', { name: 'Debug', exact: true }).click();
     await page.getByLabel('Server action', { exact: true }).selectOption(action.id);
+    await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   }
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Confirmed!' && !button.disabled));
   return advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).press('Enter'));
@@ -362,7 +362,7 @@ try {
     : computer ? 'Human coach and independent spectators subscribe to the native computer match'
     : 'Two independent coaches and spectator converge on the real native prematch snapshot', { matchId });
   if (!resumed) {
-  await pages[0].getByRole('button', { name: 'Write message', exact: true }).click();
+  await pages[0].getByRole('button', { name: 'Click chat or press Enter to write', exact: true }).click();
   await pages[0].getByLabel('Message the match', { exact: true }).fill('Acceptance: good luck <escaped>');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await Promise.all(pages.map(page => page.getByRole('log', { name: 'Match chat messages' }).getByText('Acceptance: good luck <escaped>', { exact: true }).waitFor()));

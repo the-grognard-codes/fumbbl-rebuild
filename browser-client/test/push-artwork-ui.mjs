@@ -74,6 +74,7 @@ try {
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
     await checkArtwork(states[0], end, true);
     await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+    if (await page.getByRole('button', { name: 'Close debug panel', exact: true }).count()) await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     for (let index = 1; index < states.length; index++) {
       if (role === 'home') {
         const action = states[index - 1].actions.find(action => action.kind === (journey.frames[index].checkpoint === 'resolved' ? 'followUp' : 'push'));
