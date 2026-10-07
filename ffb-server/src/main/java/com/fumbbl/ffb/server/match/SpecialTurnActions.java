@@ -106,8 +106,11 @@ final class SpecialTurnActions {
                     actions.add(new Action("kick-mate-" + mate.getId(), "kickMate", "Select " + mate.getName() + " to kick", role,
                         new ClientCommandThrowTeamMate(player.getId(), mate.getId(), true), mate.getId()));
             } else if (game.getPassCoordinate() == null) {
+                PassMechanic pass = game.getMechanic(Mechanic.Type.PASS);
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                     FieldCoordinate at = new FieldCoordinate(x, y);
+                    if (ttm.handleKickLikeThrow()
+                        && (at.equals(from) || pass.findPassingDistance(game, from, at, true) == null)) continue;
                     actions.add(new Action("kick-mate-to-" + x + "-" + y, "kickMateTo", "Kick team-mate towards " + x + ", " + y,
                         role, new ClientCommandThrowTeamMate(player.getId(), oriented(at, role), true), at));
                 }
