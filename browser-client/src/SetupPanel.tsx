@@ -256,6 +256,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
   const draggableIds = new Set(connected && !pending && !suspended && !playbackActive && hosted
     ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
+  const reserveDropIds = new Set([...draggableIds].filter(id => canDropSetupPlayer(view, id, null)));
   const pushChoices = hosted ? pitchPushChoices(view, availableActions) : [];
   const decision = hosted ? matchDecision(view, availableActions) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
@@ -561,7 +562,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')}
         onDropPlayer={dropPlayer} onSelectPlayer={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer} onSquare={selectSquare} readOnly={playbackActive} playback={playbackActive}/>
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
-        draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
+        draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} reserveDropIds={reserveDropIds} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
         {matchControls && <div className="match-side-controls" aria-label="Match window controls">
           <span role="status" className={`match-connection-status ${connected ? 'connected' : 'disconnected'}`}><span className="match-connection-dot" aria-hidden="true"/>{connected ? 'Connected' : 'Disconnected'}</span>
           {!connected && <button type="button" onClick={matchControls.reconnect}>Reconnect</button>}

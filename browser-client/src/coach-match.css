@@ -214,3 +214,20 @@
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-left,
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-right { bottom: 120px; max-height: calc(100dvh - 136px); }
 }
+
+/* Expanded setup containers stay directly above their team's history panel. */
+.play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 178px; align-items: flex-end; }
+.play-runtime .coach-match.hosted-match .live-dugout.expanded { top: auto; bottom: 0; width: min(245px,45%); }
+.play-runtime .coach-match.hosted-match .live-dugout.away { margin-left: auto; }
+@media (max-width: 900px) {
+  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 156px; }
+}
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 251px; }
+}
+@media (max-height: 480px) {
+  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 96px; }
+}
+@media (max-height: 480px) and (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 122px; }
+}

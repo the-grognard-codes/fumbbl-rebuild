@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { spriteUrl } from './LivePitch.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
 import type { OffPitchCategory, SetupPlayer } from './setup-protocol.ts';
+import './live-dugouts.css';
 
-type DugoutMode = 'compact' | 'normal' | 'expanded';
+type DugoutMode = 'condensed' | 'compact' | 'expanded';
 type Zone = { id: Exclude<OffPitchCategory, 'pitch'>; label: string };
 
 const zones: Zone[] = [
@@ -22,10 +23,10 @@ function DugoutArrow({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlayer, onBlurPlayer,
-  draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag, onDropReserve }: {
+  draggableIds, reserveDropIds, draggingPlayerId = '', onStartDrag, onEndDrag, onDropReserve }: {
   players: SetupPlayer[]; homeName?: string | null; awayName?: string | null; onSelect: (id: string) => void;
   onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void;
-  draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
+  draggableIds?: Set<string>; reserveDropIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropReserve?: (id: string, role: 'home' | 'away') => void;
 }) {
   const [modes, setModes] = useState<Record<'home' | 'away', DugoutMode>>({ home: 'compact', away: 'compact' });
@@ -35,19 +36,27 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
     const mode = modes[role];
     const name = role === 'home' ? homeName || 'Home' : awayName || 'Away';
     const team = players.filter(player => player.role === role);
-    return <section key={role} className={`live-dugout ${role} ${mode}`} aria-label={`${name} dugout`}>
+    const canReceive = mode === 'expanded' && !!onDropReserve && !!reserveDropIds?.has(draggingPlayerId)
+      && team.some(player => player.id === draggingPlayerId && player.x !== null);
+    return <section key={role} className={`live-dugout ${role} ${mode}${canReceive ? ' drop-ready' : ''}`} aria-label={`${name} dugout`}
+      onDragOver={event => { if (canReceive) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; } }}
+      onDrop={event => {
+        if (!canReceive) return;
+        const id = event.dataTransfer.getData('application/x-fumbbl-setup-player');
+        if (id !== draggingPlayerId) return;
+        event.preventDefault(); event.stopPropagation();
+        onDropReserve?.(id, role); onEndDrag?.();
+      }}>
       <header className="live-dugout-heading"><strong>{name} Dugout</strong><div className="live-dugout-controls">
-        {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'compact' ? 'Restore' : 'Expand'} ${name} dugout`} title={mode === 'compact' ? 'Restore dugout' : 'Expand dugout'} onClick={() => setMode(role, mode === 'compact' ? 'normal' : 'expanded')}><DugoutArrow direction="up"/></button>}
-        {mode !== 'compact' && <button type="button" aria-label={`${mode === 'expanded' ? 'Restore' : 'Minimize'} ${name} dugout`} title={mode === 'expanded' ? 'Restore dugout' : 'Minimize dugout'} onClick={() => setMode(role, mode === 'expanded' ? 'normal' : 'compact')}><DugoutArrow direction="down"/></button>}
+        {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'condensed' ? 'Restore' : 'Expand'} ${name} dugout`}
+          title={mode === 'condensed' ? 'Show state counts' : 'Show players'} onClick={() => setMode(role, mode === 'condensed' ? 'compact' : 'expanded')}><DugoutArrow direction="up"/></button>}
+        {mode !== 'condensed' && <button type="button" aria-label={`${mode === 'expanded' ? 'Minimize' : 'Condense'} ${name} dugout`}
+          title={mode === 'expanded' ? 'Show state counts' : 'Show header only'} onClick={() => setMode(role, mode === 'expanded' ? 'compact' : 'condensed')}><DugoutArrow direction="down"/></button>}
       </div></header>
-      <div className={`live-dugout-zones${mode === 'compact' ? ' compact-summary' : ''}`}>{zones.map(zone => {
+      {mode !== 'condensed' && <div className={`live-dugout-zones${mode === 'compact' ? ' compact-summary' : ''}`}>{zones.map(zone => {
         const members = team.filter(player => player.x === null && (player.offPitch ?? 'reserve') === zone.id);
-        const canReceive = zone.id === 'reserve' && players.some(player => player.id === draggingPlayerId && player.role === role && player.x !== null);
-        return <div className={`live-dugout-zone${canReceive ? ' drop-ready' : ''}`} key={zone.id}
-          onDragOver={event => { if (canReceive) event.preventDefault(); }}
-          onDrop={event => { if (!canReceive) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player');
-            if (id) onDropReserve?.(id, role); onEndDrag?.(); }}>
-          {mode === 'compact' ? <button type="button" className="live-dugout-zone-summary" onClick={() => setMode(role, 'normal')}
+        return <div className="live-dugout-zone" key={zone.id}>
+          {mode === 'compact' ? <button type="button" className="live-dugout-zone-summary" onClick={() => setMode(role, 'expanded')}
             aria-label={`${name} ${zone.label}: ${members.length}; expand dugout`}>{zone.label} <b>{members.length}</b></button>
             : <><span>{zone.label} <b>{members.length}</b></span><div className="live-dugout-players">
           {members.map(player => { const image = resolvePlayerPortrait(player) ?? spriteUrl(player); return <button key={player.id} type="button" onClick={() => onSelect(player.id)} draggable={draggableIds?.has(player.id) ?? false}
@@ -57,12 +66,12 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
             onPointerEnter={event => { if (event.pointerType !== 'touch') onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect()); }} onPointerLeave={onBlurPlayer}
             onFocus={event => onFocusPlayer?.(player.id, event.currentTarget.getBoundingClientRect())} onBlur={onBlurPlayer}
             aria-label={`${player.name}, number ${player.number ?? player.slot}, ${zone.label}`}>
-            {image && failedImages[player.id] !== image ? <img src={image} alt="" onError={() => setFailedImages(current => ({ ...current, [player.id]: image }))}/>
+            {image && failedImages[player.id] !== image ? <img src={image} alt="" draggable={false} onError={() => setFailedImages(current => ({ ...current, [player.id]: image }))}/>
               : <span>{player.number ?? player.slot}</span>}
           </button>; })}
         </div></>}
         </div>;
-      })}</div>
+      })}</div>}
     </section>;
   })}</div>;
 }

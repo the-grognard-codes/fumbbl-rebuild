@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
@@ -23,7 +24,7 @@ async function open(initial) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
-    '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused", getToken:async()=>"token"});</script>' }));
+    '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused", getToken:async()=>"token"});</script>' }));
   await page.addInitScript(initial => {
     window.testSocket = null;
     window.WebSocket = class {
@@ -83,11 +84,71 @@ try {
   assert.deepEqual((await sent())[1].to, { x: 9, y: 7 });
   await home.dragTo(scene, { targetPosition: await squarePosition(page, 8, 7) });
   assert.equal((await sent()).length, 2, 'occupied setup drop must not mutate');
-  await home.dragTo(page.locator('.live-dugout.home .live-dugout-zone').first());
-  await page.waitForFunction(() => window.testSocket.state.revision === 3);
+  await home.dragTo(page.locator('.live-dugout.home .live-dugout-heading'));
+  await page.waitForFunction(() => window.testSocket.state.revision === 3, null, { timeout: 3000 });
   assert.equal((await sent())[2].to, null);
   assert.deepEqual(errors, []);
   await page.close();
+
+  for (const callerRole of ['home', 'away']) {
+    const placedId = `${callerRole}1`;
+    const otherRole = callerRole === 'home' ? 'away' : 'home';
+    const placement = await open({ ...setup, callerRole, actor: callerRole,
+      players: [ { ...frame.players[0], x: 7 }, { ...frame.players[1], x: 18 }, { ...reserve, role: callerRole } ] });
+    const current = placement.page;
+    const ownDugout = current.locator(`.live-dugout.${callerRole}`);
+    const opponentDugout = current.locator(`.live-dugout.${otherRole}`);
+    await ownDugout.getByRole('button', { name: /Reserves: 1; expand dugout/ }).click();
+    assert.equal(await current.locator('.live-dugouts').evaluate(element => {
+      const home = element.querySelector('.home').getBoundingClientRect(), away = element.querySelector('.away').getBoundingClientRect();
+      return home.right < away.left;
+    }), true, 'Expanding one dugout cannot shift the other underneath it');
+    await opponentDugout.getByRole('button', { name: /Expand .* dugout/ }).click();
+    assert.equal(await ownDugout.evaluate(element => element.classList.contains('expanded')), true);
+    const onPitch = current.locator(`.live-marker[data-player-id="${placedId}"]`);
+    const placements = () => current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'place'));
+    await onPitch.dragTo(opponentDugout.locator('.live-dugout-heading'));
+    assert.equal((await placements()).length, 0, 'Opponent dugout cannot receive a friendly pitch player');
+    await current.evaluate(otherRole => document.addEventListener('dragstart', event => {
+      event.dataTransfer.setData('application/x-fumbbl-setup-player', `${otherRole}1`);
+    }, { once: true }), otherRole);
+    await onPitch.dragTo(ownDugout.locator('.live-dugout-heading'));
+    assert.equal((await placements()).length, 0, 'An altered drag payload cannot return a different player');
+    await onPitch.dragTo(ownDugout.locator('.live-dugout-zone').nth(2));
+    await current.waitForFunction(() => window.testSocket.state.revision === 1, null, { timeout: 3000 });
+    assert.deepEqual((await placements()).map(request => [request.playerId, request.to]), [[placedId, null]], 'Even a drop over the Casualties display returns an eligible setup player to reserves');
+    assert.equal(await current.evaluate(id => window.testSocket.state.players.find(player => player.id === id).offPitch, placedId), 'reserve');
+    const returning = ownDugout.getByRole('button', { name: new RegExp(`^${placedId}, number 1, Reserves$`) });
+    const target = { x: callerRole === 'home' ? 8 : 17, y: 7 };
+    await returning.dragTo(current.locator('.live-pitch-scene'), { targetPosition: await squarePosition(current, target.x, target.y) });
+    await current.waitForFunction(() => window.testSocket.state.revision === 2, null, { timeout: 3000 });
+    assert.deepEqual((await placements()).at(-1).to, target, 'The expanded container also supplies players for pitch placement');
+    await ownDugout.getByRole('button', { name: /Minimize .* dugout/ }).click();
+    await onPitch.dragTo(ownDugout.locator('.live-dugout-heading'));
+    assert.equal((await placements()).length, 2, 'The summary view is not a placement drop container');
+    await ownDugout.getByRole('button', { name: /Condense .* dugout/ }).click();
+    await onPitch.dragTo(ownDugout.locator('.live-dugout-heading'));
+    assert.equal((await placements()).length, 2, 'The title-only view is not a placement drop container');
+    await ownDugout.getByRole('button', { name: /Restore .* dugout/ }).click();
+    await ownDugout.getByRole('button', { name: /Expand .* dugout/ }).click();
+    const evidence = process.env.DUGOUT_PLACEMENT_EVIDENCE_DIR;
+    if (evidence) {
+      await mkdir(evidence, { recursive: true });
+      await current.screenshot({ path: `${evidence}/expanded-${callerRole}-1440-900.png` });
+    }
+    for (const [width, height] of [[1440,900], [640,330], [375,300]]) {
+      await current.setViewportSize({ width, height });
+      await current.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').clientWidth - innerWidth) < 1);
+      assert.equal(await ownDugout.evaluate(element => {
+        const r = element.getBoundingClientRect();
+        const history = document.querySelector(`.match-history-${element.classList.contains('home') ? 'chat' : 'log'}`).getBoundingClientRect();
+        return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= history.top && element.scrollWidth <= element.clientWidth;
+      }), true, 'Expanded placement container fits above history without horizontal overflow');
+      if (evidence) await current.screenshot({ path: `${evidence}/expanded-${callerRole}-${width}-${height}.png` });
+    }
+    assert.deepEqual(placement.errors, []);
+    await current.close();
+  }
 
   const keyboard = await open(setup);
   await keyboard.page.getByText('Place players with keyboard or touch', { exact: true }).focus();
@@ -138,7 +199,7 @@ try {
     ['0:event-pick:home1', '1:solid-place:home1:8:7']);
   assert.deepEqual(event.errors, []);
   await event.page.close();
-  console.log('PASS: setup drag and keyboard placement obey legality; narrow mandatory choices stay reachable; Solid Defence uses offered actions.');
+  console.log('PASS: expanded dugout drag/drop in both directions for both coaches, opponent/summary rejection, vertical responsive fit; setup keyboard placement, required choices and Solid Defence remain intact.');
 } finally {
   await browser.close();
   await server.close();

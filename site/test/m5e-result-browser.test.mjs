@@ -215,7 +215,7 @@ test('hosted final decision leads to participant result and read-only replay aft
     for (const label of ['Rerolls: 2 available', 'Apothecaries: 1 available', 'Assistant coaches: 2 available', 'Cheerleaders: 3 available'])
       assert.equal(await homeResources.getByRole('button', { name: label }).count(), 1);
     assert.equal(await page.getByLabel('away resources').getByRole('button', { name: /Apothecaries/ }).count(), 0);
-    await page.getByRole('button', { name: 'Restore away dugout' }).click();
+    await page.getByRole('button', { name: 'Expand away dugout' }).click();
     assert.equal(await page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ }).count(), 1);
     await page.waitForFunction(() => document.querySelector('.live-pitch-scene')?.getBoundingClientRect().bottom <= innerHeight,
       null, { timeout: 5000 }); // ResizeObserver applies Fit after the first authoritative frame.
