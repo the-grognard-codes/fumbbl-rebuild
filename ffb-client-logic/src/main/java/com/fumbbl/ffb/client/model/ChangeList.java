@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBehaviorChange("Browser games open in the current tab by default, with an explicit new-window option and clearer unavailable direct-link feedback")
 			.addFeature("Browser game setup can concede an activated match after confirmation without opening the pitch")
 			.addFeature("Browser game setup lists your unfinished matches with Resume and Continue setup controls")
 			.addImprovement("Moles Under the Pitch Updates adds summaries for five recent merged pull requests through PR 182")

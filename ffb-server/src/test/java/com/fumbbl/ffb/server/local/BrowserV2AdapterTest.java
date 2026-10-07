@@ -9,15 +9,18 @@ import com.fumbbl.ffb.server.match.CompletedMatch;
 import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchMembership;
+import com.fumbbl.ffb.server.match.MatchMembershipRepository;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.match.V2PrincipalDirectory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -45,6 +48,38 @@ class BrowserV2AdapterTest {
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 	private static final String SERVICE_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String SERVICE_HASH = "66d34fba71f8f450f7e45598853e53bfc23bbd129027cbb131a2f4ffd7878cd0";
+
+	@Test void freshSameAccountResumesAndReplacesOldSocketWhileMissingMembershipStaysNotFound() throws Exception {
+		MatchMembershipRepository memberships = mock(MatchMembershipRepository.class);
+		when(memberships.find(MATCH, FIRST)).thenReturn(new MatchMembership(MATCH, FIRST, "home"));
+		V2PrincipalDirectory directory = mock(V2PrincipalDirectory.class);
+		when(directory.reauthorize(any(AuthenticatedPrincipal.class))).thenAnswer(call -> call.getArgument(0));
+		V2MatchAccess access = new V2MatchAccess(memberships, directory, Clock.systemUTC());
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.handleWithOutcome(eq("home"), any(JsonObject.class))).thenAnswer(call -> outcome(new JsonObject()
+			.add("code", "ACCEPTED").add("duplicate", false).add("state", new JsonObject()
+				.add("matchId", MATCH).add("revision", 42).add("phase", "PLAY")), false));
+		BrowserV2Adapter adapter = adapter(bearer -> principal("outsider".equals(bearer) ? SECOND : FIRST,
+			ApplicationScope.PLAYER), access, setup);
+		Connection original = new Connection(), fresh = new Connection(), outsider = new Connection();
+		adapter.receive(original, authenticate("original-auth", "same-account").toString());
+		adapter.receive(original, setup("original-load").toString());
+		adapter.receive(fresh, authenticate("fresh-auth", "same-account").toString());
+		adapter.receive(fresh, setup("fresh-load").toString());
+		assertEquals("CONNECTION_REPLACED", code(original, 2));
+		assertEquals(1008, original.closeStatusCode);
+		assertEquals(JsonObject.readFrom(original.messages.get(1)).get("state"),
+			JsonObject.readFrom(fresh.messages.get(1)).get("state"));
+		adapter.receive(original, setup("queued-old-action").set("operation", "concede").add("expectedRevision", 42).toString());
+		adapter.receive(outsider, authenticate("outsider-auth", "outsider").toString());
+		adapter.receive(outsider, setup("foreign-load").toString());
+		adapter.receive(fresh, setup("unknown-load").set("matchId", SECOND).toString());
+		assertEquals("NOT_FOUND", code(outsider, 1));
+		assertEquals("NOT_FOUND", code(fresh, 2));
+		verify(setup, times(2)).handleWithOutcome(eq("home"), any(JsonObject.class));
+		verify(setup, never()).handleWithOutcome(eq(FIRST), any(JsonObject.class));
+		verify(setup, never()).handleWithOutcome(eq("away"), any(JsonObject.class));
+	}
 
 	@Test void currentMatchesExposeOnlyOwnedPublicFactsIncludingUnactivatedAndUnavailableGames() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);

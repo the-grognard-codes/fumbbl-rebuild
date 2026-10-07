@@ -125,16 +125,15 @@ in-match identity and the name **Bugman's Best**. The creator then selects
 Local and hosted environments use the same v2 messages and each needs its own
 service token and running daemon; no computer accounts are required. See
 [computer player setup](../computer-player/README.md).
-Clicking **Start game** reserves one new browsing context during the user gesture;
-the confirmed `ACTIVATED` response then navigates it to
-`/play/match?matchId=<uuid>`. The browser decides whether the requested popup is
-a window or tab. If it blocks or closes that context, the initiating page opens
-the match in its current tab. The other player receives the server notification
-without a user gesture, so `/play` displays an explicit new-tab match link and
-a same-tab option instead of attempting an automatic popup. The preparation
-socket closes during the handoff because the server permits one active socket
-per account; a reloaded preparation tab remains disconnected until the player
-explicitly reconnects there. A spectator uses
+Clicking **Start game** waits for the confirmed `ACTIVATED` response and opens
+`/play/match?matchId=<uuid>` in the current tab. **Start game in a new window**
+explicitly reserves a browsing context during the user gesture; the browser
+decides whether it is a window or tab. If blocked or closed, launch falls back
+to the current tab. The other player receives a server notification and a
+same-tab continuation link plus an explicit new-window link. For an explicit
+window handoff, the preparation socket closes because the server permits one
+active socket per account; reloaded preparation remains disconnected until the
+player reconnects there. A spectator uses
 the same match route with `watch=1`.
 The match route mounts the existing setup/game view and seeds one `V2Client`
 subscription from its validated URL. `/play/result?matchId=<uuid>` requests
@@ -145,6 +144,21 @@ the URL and can only be retried with its original request ID and account. A
 signed-out direct match link survives the constrained `/play` sign-in return in
 session storage; no bearer or provider identity is placed in the URL. Firebase
 Hosting's existing `/play/**` rewrite serves both routes.
+
+Direct-link diagnostic coverage uses synthetic authorized accounts: fresh
+connections with the same durable membership load the same role and revision,
+and the newest authenticated socket retires the old socket before queued input
+can run. A missing account membership (including a copied reference/legacy ID)
+returns `NOT_FOUND` before any engine read. An activated match without a retained
+checkpoint instead fails `SESSION_UNAVAILABLE`; it is never reinitialized.
+The page explains an unavailable account/link without revealing whether another
+account owns it. The reported local URL was also reproduced against the running
+match-review backend: the preparation, two coach memberships, and checkpoint
+existed, but the account owning the browser's uniquely identified saved team had
+no membership in that match. The real JDBC access gate returned `NOT_FOUND` for
+that account and `home` for its registered home coach. This was a genuine account
+membership denial; no admission checks were relaxed. See the
+[local diagnosis](../docs/verification/fifth-round-direct-resume.md).
 
 ## R3-E recipient contracts and display names
 
