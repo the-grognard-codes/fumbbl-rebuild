@@ -58,6 +58,7 @@ class RecoverySessionTest {
 			JsonObject payload = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 			for (String role : new String[] {"homeView", "awayView"}) {
 				JsonObject saved = payload.get(role).asObject();
+				saved.remove("homeTeamArt"); saved.remove("awayTeamArt");
 				saved.remove("homeTeamName"); saved.remove("awayTeamName");
 				saved.remove("homeResources"); saved.remove("awayResources");
 				for (com.eclipsesource.json.JsonValue item : saved.get("players").asArray()) {

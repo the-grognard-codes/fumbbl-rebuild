@@ -816,6 +816,8 @@ public final class SetupSession {
 			.add("weather", game.getFieldModel().getWeather().name())
 			.add("homeRerolls", game.getTurnDataHome().getReRolls()).add("awayRerolls", game.getTurnDataAway().getReRolls())
 			.add("homeTeamName", game.getTeamHome().getName()).add("awayTeamName", game.getTeamAway().getName())
+			.add("homeTeamArt", new MatchTeamArt().project(document.home.team))
+			.add("awayTeamArt", new MatchTeamArt().project(document.away.team))
 			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome().getApothecaries()))
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
 		JsonObject passing = new PassingProjection().project(game);
@@ -882,6 +884,10 @@ public final class SetupSession {
 		}
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;
+		// Old projections predate team-level art; compare their original public shape.
+		if (saved.get("homeTeamArt") == null) {
+			current.remove("homeTeamArt"); current.remove("awayTeamArt");
+		}
 		JsonArray savedPlayers = saved.get("players").asArray();
 		JsonArray currentPlayers = current.get("players").asArray();
 		if (savedPlayers.size() != currentPlayers.size()) return false;

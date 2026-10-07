@@ -86,12 +86,17 @@ export class PitchProjection {
   }
 
   project(point: Point): ProjectedPoint | null {
-    if (!finitePoint(point)) return null;
-    const depth = this.depth(point);
+    return this.projectRaised(point, 0);
+  }
+
+  /** Height in world squares; shared by scenery surfaces, risers and sprite anchors. */
+  projectRaised(point: Point, rise: number): ProjectedPoint | null {
+    if (!finitePoint(point) || !Number.isFinite(rise)) return null;
+    const depth = this.depth(point) - rise * this.sine;
     if (depth < NEAR - EPSILON) return null;
     const factor = this.mode === 'perspective' ? DISTANCE / Math.max(NEAR, depth) : 1;
     const result = { x: this.center.x + (point.y - this.transverseFocus) * this.orientation * this.scale * factor,
-      y: this.center.y - (point.x - this.focus) * this.orientation * this.sine * this.scale * factor,
+      y: this.center.y - (point.x - this.focus) * this.orientation * this.sine * this.scale * factor - rise * this.cosine * this.scale * factor,
       depth, pixelsPerSquare: this.scale * factor };
     return finitePoint(result) && Number.isFinite(result.depth) && Number.isFinite(result.pixelsPerSquare) ? result : null;
   }
@@ -211,15 +216,16 @@ export class PitchProjection {
   }
 
   /** Ground homography for painted scenery registered in canonical world space. */
-  planeImageTransform(sourceToWorld: PlaneMatrix): string {
+  planeImageTransform(sourceToWorld: PlaneMatrix, rise = 0): string {
+    if (!Number.isFinite(rise)) throw new RangeError('Scenery height must be finite');
     if (sourceToWorld.length !== 3 || sourceToWorld.some(row => row.length !== 3 || !row.every(Number.isFinite)))
       throw new RangeError('Scenery registration must be a finite 3 by 3 matrix');
     const o = this.orientation, s = this.scale, d = DISTANCE, cx = this.center.x, cy = this.center.y;
-    const k = d - o * this.focus * this.cosine;
+    const k = d - o * this.focus * this.cosine - rise * this.sine;
     const projection = this.mode === 'top-down'
       ? [[0, o * s, cx - o * s * this.transverseFocus], [-o * s, 0, cy + o * s * this.focus], [0, 0, 1]]
       : [[cx * o * this.cosine, o * s * d, cx * k - o * s * d * this.transverseFocus],
-        [o * (cy * this.cosine - s * d * this.sine), 0, cy * k + o * s * d * this.sine * this.focus],
+        [o * (cy * this.cosine - s * d * this.sine), 0, cy * k + o * s * d * this.sine * this.focus - rise * s * d * this.cosine],
         [o * this.cosine, 0, k]];
     const h = projection.map(row => [0, 1, 2].map(column => row.reduce((sum, value, index) => sum + value * sourceToWorld[index][column], 0)));
     const n = Math.abs(h[2][2]) || 1;

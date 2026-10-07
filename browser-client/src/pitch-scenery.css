@@ -1,38 +1,14 @@
-.pitch-stadium-turf-world { position: absolute; inset: 0; pointer-events: none; }
+.pitch-stadium-world { position:absolute; inset:0; pointer-events:none; }
+.pitch-stadium-turf-world { position:absolute; inset:0; pointer-events:none; background:#486326; }
+.pitch-stadium-turf { display:block; width:100%; height:100%; image-rendering:pixelated;
+  clip-path:polygon(19% 0,81% 0,96% 100%,4% 100%); mask-image:linear-gradient(transparent,black 12%,black 85%,transparent); }
+.pitch-stadium-structure,.pitch-stadium-crowd,.pitch-stadium-furnishings,.pitch-stadium-terraces {
+  position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.stadium-terrace-plate { position:absolute; left:0; top:0; transform-origin:0 0; pointer-events:none; }
+.stadium-terrace-plate svg,.stadium-sprite image { image-rendering:pixelated; }
+.pitch-stadium-structure { stroke:#24241d; stroke-width:1.3; }
+.pitch-stadium-riser { stroke:#272b26; stroke-width:1.2; }
+.stadium-low-boundary { fill:none; stroke-width:3; }
+.stadium-sprite { pointer-events:none; }
 
-.pitch-stadium-turf {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  /* The source's outer wedges contain spectators and rails. Keep only turf. */
-  clip-path: polygon(19% 0, 81% 0, 96% 100%, 4% 100%);
-  mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
-}
-
-.pitch-stadium-structure, .pitch-stadium-crowd {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.pitch-stadium-structure { fill: #28353b; stroke: #778280; stroke-width: 1.5; }
-.pitch-stadium-structure [data-stand-row="2"] { fill: #34454b; }
-.pitch-stadium-structure [data-stand-row="3"] { fill: #40545a; }
-.pitch-stadium-structure [data-stand-row="4"] { fill: #4b6166; }
-.pitch-stadium-structure .pitch-stadium-riser { fill: #1a292e; stroke: #8d9992; }
-.pitch-stadium-structure .pitch-stadium-stone { fill: #718083; stroke: #1a292e; stroke-width: 1; }
-.pitch-stadium-structure .pitch-stadium-walkway { fill: #263f3d; stroke: #b7a66a; stroke-width: 2; }
-.pitch-stadium-fan[data-crowd-team="home"] { color: #4db2ff; }
-.pitch-stadium-fan[data-crowd-team="away"] { color: #b77b50; }
-.pitch-stadium-fan-art .fan-shadow { fill: #070d16; opacity: .65; }
-.pitch-stadium-fan-art .fan-leg { fill: #21313a; }
-.pitch-stadium-fan-art .fan-arm, .pitch-stadium-fan-art .fan-face { fill: #be895f; }
-.pitch-stadium-fan-art.light .fan-arm, .pitch-stadium-fan-art.light .fan-face { fill: #e2b487; }
-.pitch-stadium-fan-art .fan-jersey { fill: currentColor; stroke: #09141c; stroke-width: 1; }
-.pitch-stadium-fan-art .fan-hair { fill: #243b3c; }
-.pitch-stadium-fan-art.light .fan-hair { fill: #9b6b39; }
-.pitch-stadium-fan-art .fan-eye { fill: #070d16; }
+.pitch-stadium-recesses { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }

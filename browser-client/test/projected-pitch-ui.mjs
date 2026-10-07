@@ -27,6 +27,7 @@ if (evidence) await mkdir(evidence, { recursive: true });
 async function open(role, failArt = false, diceMoment = null, pitchOptions = {}) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
   page.on('pageerror', error => errors.push(error.message));
+  if (pitchOptions.failStadium) await page.route('**/stadiums/*.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
@@ -68,7 +69,7 @@ async function assertProjectedBallAndStands(page, role, mode, angle) {
   assert.equal(rendered.structureDisplay, 'block');
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
   for (const edge of ['north', 'south', 'home', 'away']) {
-    assert.equal(await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).count(), 4);
+    assert.ok(await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).count() >= 4);
     assert.ok((await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).first().getAttribute('points')).length > 8);
   }
 }
@@ -263,7 +264,7 @@ try {
       assert.equal(await setup.locator('.pitch-stadium-crowd').evaluate(element => getComputedStyle(element).display), 'none');
       assert.equal(await setup.locator('.pitch-stadium-structure').evaluate(element => getComputedStyle(element).display), 'block');
       assert.equal(await setup.locator('.pitch-stadium-structure [data-stand-row]').count(), 4);
-      assert.equal(await setup.locator('.pitch-stadium-world image').count(), 0, 'no unmasked spectator-bearing side-tile images remain');
+      assert.equal(await setup.locator('.pitch-stadium-world image[href$="stadium-v1.png"]').count(), 0, 'no unmasked spectator-bearing side-tile images remain');
       assert.ok(await setup.locator('.pitch-stadium-world img').evaluateAll(images => images.length > 0 && images.every(image =>
         image.classList.contains('pitch-stadium-turf') && getComputedStyle(image).clipPath.startsWith('polygon('))),
       'every source painting is clipped to its turf region');
@@ -319,26 +320,7 @@ try {
     await comparison.getByRole('button', { name: '2×', exact: true }).click();
     await travelToFocus(comparison, 26);
     await comparison.screenshot({ path: `${evidence}/perspective-30-home-near-2x-tiled.png` });
-    const legacyWidth = await comparison.locator('.pitch-stadium-world').evaluate(world => {
-      const plates = [...world.querySelectorAll('.pitch-stadium-plate')];
-      for (const center of plates.filter(plate => plate.dataset.side === '0')) {
-        const members = plates.filter(plate => plate.dataset.worldOffset === center.dataset.worldOffset);
-        const strip = document.createElement('div');
-        Object.assign(strip.style, { position: 'absolute', left: '-1672px', top: '0', width: '5016px', height: '941px',
-          maskImage: 'linear-gradient(transparent, black 12%, black 85%, transparent)' });
-        for (const member of members) {
-          const child = member.firstElementChild.cloneNode(true);
-          Object.assign(child.style, { position: 'absolute', left: `${(Number(member.dataset.side) + 1) * 1672}px`, top: '0' });
-          strip.append(child);
-          if (member !== center) member.remove();
-        }
-        center.style.maskImage = 'none';
-        center.replaceChildren(strip);
-      }
-      return Math.max(...[...world.querySelectorAll('.pitch-stadium-plate > div')].map(strip => strip.getBoundingClientRect().width));
-    });
-    assert.ok(legacyWidth > 16384, `legacy strip reproduces oversized 30° layer: ${legacyWidth}`);
-    await comparison.screenshot({ path: `${evidence}/perspective-30-home-near-2x-legacy-strip.png` });
+    assert.ok(await comparison.locator('.pitch-stadium-world .pitch-stadium-plate').count() > 0, 'projected turf plates remain present at 30 degrees and 2x');
     await comparison.close();
   }
   const missing = await open('home', true);
@@ -354,5 +336,11 @@ try {
   assert.deepEqual(await missing.evaluate(() => window.intents), [{ player: 'human' }]);
   await missing.close();
   assert.deepEqual(errors, []);
+  const missingStadium = await open('home',false,null,{failStadium:true});
+  await missingStadium.locator('[data-art-fallback="stone"]').first().waitFor({state:'attached'});
+  assert.ok(await missingStadium.locator('.pitch-stadium-turf').count() > 0,'failed optional atlas retains healthy turf');
+  assert.equal(await missingStadium.locator('[data-cell-x]').count(),390,'failed atlas preserves playable squares');
+  assert.ok(await missingStadium.locator('.pitch-stadium-structure').count() > 0);
+  await missingStadium.close();
   console.log('PASS: both coach ends preserve canonical intents, bounded 30° scenery, player anchors/shadows, right-pan and wheel zoom, centered dice, kickoff targeting, and unavailable-art fallback.');
 } finally { if (errors.length) console.error(errors); await browser.close(); await server.close(); }

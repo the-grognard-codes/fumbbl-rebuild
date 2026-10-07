@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "atlases": [
+    {
+      "id": "old-world-classic",
+      "version": "v1",
+      "atlas": "old-world-classic-v1.png",
+      "palette": {
+        "stone": "#73746b",
+        "riser": "#403c34",
+        "rail": "#b5a078",
+        "cloth": "#3579b4"
+      },
+      "roles": [
+        "stone",
+        "timber",
+        "gate",
+        "gateTop",
+        "crowd",
+        "crowdSide",
+        "crowdTop",
+        "banner",
+        "bench",
+        "benchTop",
+        "pavilion",
+        "pavilionTop",
+        "mugs",
+        "torch",
+        "torchTop",
+        "pennant"
+      ]
+    }
+  ],
+  "venues": {
+    "Old World Classic": "old-world-classic"
+  },
+  "teams": {
+    "human": "old-world-classic"
+  }
+}

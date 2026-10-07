@@ -22,6 +22,8 @@ export async function travelToFocus(page, focus) {
     await page.mouse.move(x, y + Math.sign(delta) * 8);
     await page.mouse.move(x, y + delta);
     await page.mouse.up({ button: 'right' });
+    // Chromium on CI can render the pan after mouse.up has returned.
+    await page.waitForFunction(focus => Math.abs(Number(document.querySelector('.live-pitch-scene').dataset.focus) - focus) < .05, nextFocus, { timeout: 5000 });
   }
   throw Error(`Could not travel camera to focus ${focus}`);
 }

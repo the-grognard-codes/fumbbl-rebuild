@@ -282,7 +282,18 @@ class MatchServiceTest {
 			.add("homeResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0))
 			.add("awayResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0));
 		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
-		state.set("homeTeamName", "Imposter");
+		state.add("homeTeamArt", new MatchTeamArt().project(document.home.team))
+            .add("awayTeamArt", new MatchTeamArt().project(document.away.team));
+        json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+        state.get("homeTeamArt").asObject().set("league", "Badlands Brawl");
+        assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+            () -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+        state.set("homeTeamArt", new MatchTeamArt().project(document.home.team));
+        state.remove("awayTeamArt");
+        assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+            () -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+        state.add("awayTeamArt", new MatchTeamArt().project(document.away.team));
+        state.set("homeTeamName", "Imposter");
 		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
 			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
 		state.set("homeTeamName", "Home").get("homeResources").asObject().add("privateGold", 1);

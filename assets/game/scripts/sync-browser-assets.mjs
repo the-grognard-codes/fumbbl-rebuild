@@ -1,8 +1,9 @@
+import './build-stadium-catalog.mjs';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inflateSync } from 'node:zlib';
+import { readRgbaPng, visibleBounds } from './png-art.mjs';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const deliveryRoot = fileURLToPath(new URL('../../../browser-client/public/assets/game/', import.meta.url));
@@ -13,63 +14,9 @@ if (process.argv.length > (check ? 3 : 2) || (process.argv[2] && !check)) {
 }
 const readJson = async path => JSON.parse((await readFile(path, 'utf8')).replace(/^\uFEFF/, ''));
 
-// The accepted pose PNGs use ordinary non-interlaced RGBA PNG encoding. Read
-// visible alpha here so catalog bounds cannot silently drift from the images.
 async function pngVisibleBounds(path) {
-  const png = await readFile(path);
-  if (png.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error(`Invalid PNG: ${path}`);
-  let offset = 8;
-  let width;
-  let height;
-  const compressed = [];
-  while (offset + 12 <= png.length) {
-    const length = png.readUInt32BE(offset);
-    const type = png.toString('ascii', offset + 4, offset + 8);
-    const data = png.subarray(offset + 8, offset + 8 + length);
-    if (offset + 12 + length > png.length) throw new Error(`Truncated PNG: ${path}`);
-    if (type === 'IHDR') {
-      width = data.readUInt32BE(0); height = data.readUInt32BE(4);
-      if (data[8] !== 8 || data[9] !== 6 || data[10] !== 0 || data[11] !== 0 || data[12] !== 0) {
-        throw new Error(`Pose PNG must be non-interlaced RGBA8: ${path}`);
-      }
-    }
-    if (type === 'IDAT') compressed.push(data);
-    offset += length + 12;
-    if (type === 'IEND') break;
-  }
-  if (!width || !height || !compressed.length) throw new Error(`Incomplete PNG: ${path}`);
-  const inflated = inflateSync(Buffer.concat(compressed));
-  const stride = width * 4;
-  if (inflated.length !== height * (stride + 1)) throw new Error(`Invalid PNG scanlines: ${path}`);
-  let previous = Buffer.alloc(stride);
-  let x0 = width, y0 = height, x1 = -1, y1 = -1;
-  for (let y = 0, cursor = 0; y < height; y++) {
-    const filter = inflated[cursor++];
-    const current = Buffer.alloc(stride);
-    for (let i = 0; i < stride; i++) {
-      const left = i >= 4 ? current[i - 4] : 0;
-      const above = previous[i];
-      const upperLeft = i >= 4 ? previous[i - 4] : 0;
-      let predictor = 0;
-      if (filter === 1) predictor = left;
-      else if (filter === 2) predictor = above;
-      else if (filter === 3) predictor = Math.floor((left + above) / 2);
-      else if (filter === 4) {
-        const p = left + above - upperLeft;
-        const distances = [Math.abs(p - left), Math.abs(p - above), Math.abs(p - upperLeft)];
-        predictor = distances[0] <= distances[1] && distances[0] <= distances[2] ? left : distances[1] <= distances[2] ? above : upperLeft;
-      } else if (filter !== 0) throw new Error(`Unsupported PNG filter: ${path}`);
-      current[i] = (inflated[cursor++] + predictor) & 255;
-    }
-    for (let x = 0; x < width; x++) {
-      if (current[x * 4 + 3] >= 32) {
-        x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
-      }
-    }
-    previous = current;
-  }
-  if (x1 < 0) throw new Error(`Empty pose PNG: ${path}`);
-  return { width, height, bounds: { x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 } };
+  const image = await readRgbaPng(path);
+  return { width: image.width, height: image.height, bounds: visibleBounds(image) };
 }
 
 const same = (first, second) => JSON.stringify(first) === JSON.stringify(second);
@@ -176,6 +123,8 @@ for (const [sourcePath, deliveryPath] of inputs) {
   const source = resolve(gameRoot, sourcePath);
   const files = (await stat(source)).isDirectory() ? await filesUnder(source) : [source];
   for (const file of files) {
+    // Authoring instructions and source calls belong in the repository, not public delivery.
+    if (sourcePath === 'pitch' && (relative(source,file).split(/[\\/]/).includes('source') || file.endsWith('README.md'))) continue;
     const suffix = file === source ? '' : relative(source, file);
     const target = resolve(deliveryRoot, deliveryPath, suffix);
     expected.set(target, file);

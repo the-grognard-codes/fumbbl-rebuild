@@ -190,3 +190,19 @@ test('30 and 50 degree presets retain canonical targeting and fixed travel calib
     }
   }
 });
+
+test('raised plane corners and sprite anchors share a world projection at every depth', () => {
+  const matrix = [[0, 1/64, -5.5], [1/64, 0, -5.5], [0, 0, 1]];
+  for (const end of ends) for (const mode of modes) for (const perspectiveElevation of [30,40,50] as const)
+    for (const focus of [0,13,26]) for (const rise of [0,.3,1.2]) {
+      const camera = new PitchProjection({width:1280,height:660,end,mode,focus,perspectiveElevation});
+      const css = camera.planeImageTransform(matrix,rise).slice(9,-1).split(',').map(Number);
+      for (const x of [0,400,1600]) for (const y of [0,600,2200]) {
+        const point = camera.projectRaised({x:y/64-5.5,y:x/64-5.5},rise);
+        if (!point) continue;
+        const divisor = css[3]*x+css[7]*y+css[15];
+        close((css[0]*x+css[4]*y+css[12])/divisor,point.x);
+        close((css[1]*x+css[5]*y+css[13])/divisor,point.y);
+      }
+    }
+});
