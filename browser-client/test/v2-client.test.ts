@@ -308,6 +308,17 @@ test('a direct spectator match link loads and reconnects through one v2 selectio
   assert.throws(() => client.request('setup', { matchId: match, operation: 'action' }, true), /read-only/);
 });
 
+test('a fresh direct coach link loads its existing seat without requiring browser storage', async () => {
+  const { client, connect, storageData } = fixture(new Map(), { matchId: match, watch: false });
+  const socket = await connect(), load = socket.sent.at(-1);
+  assert.equal(load.type, 'setup'); assert.equal(load.operation, 'load'); assert.equal(load.matchId, match);
+  assert.equal('role' in load, false); assert.equal('accountId' in load, false);
+  socket.reply({ type: 'setupState', requestId: load.requestId, code: 'ACCEPTED', duplicate: false,
+    state: { ...state, callerRole: 'away', revision: 42 } });
+  assert.equal(client.state?.callerRole, 'away'); assert.equal(client.state?.revision, 42);
+  assert.equal(storageData.size, 0); assert.equal(client.pending, null);
+});
+
 test('unavailable Firebase token reports a safe authentication error before disconnecting', async () => {
   const socket = new Socket(); const events: any[] = [];
   const client = new V2Client({ url: 'ws://127.0.0.1/browser/v2', getToken: async () => { throw Error('provider detail'); },
