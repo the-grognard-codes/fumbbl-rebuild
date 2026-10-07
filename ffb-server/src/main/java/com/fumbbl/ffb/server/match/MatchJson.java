@@ -164,7 +164,11 @@ public final class MatchJson {
 					int version = state.getInt("projectionVersion", -1);
 					if (version != 2 && version != 3 && version != 4) throw new IllegalArgumentException();
 					if (version == 4) {
-						exact(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls", "homeTeamName", "awayTeamName", "homeResources", "awayResources");
+						exactWithTeamArt(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls", "homeTeamName", "awayTeamName", "homeResources", "awayResources");
+						if (state.get("homeTeamArt") != null) {
+							validateTeamArt(state.get("homeTeamArt"), document.home.team);
+							validateTeamArt(state.get("awayTeamArt"), document.away.team);
+						}
 						String homeName = document.home.team.teamName.isEmpty() ? "Home" : document.home.team.teamName;
 						String awayName = document.away.team.teamName.isEmpty() ? "Away" : document.away.team.teamName;
 						if (!homeName.equals(state.getString("homeTeamName", null)) || !awayName.equals(state.getString("awayTeamName", null))) throw new IllegalArgumentException();
@@ -469,6 +473,23 @@ public final class MatchJson {
 	private String subject(JsonValue value) { String subject = value.asString(); if (!"home".equals(subject) && !"away".equals(subject)) throw new IllegalArgumentException(); return subject; }
 	private int positive(JsonValue value) { int number = value.asInt(); if (number < 1 || number > 2147483646) throw new IllegalArgumentException(); return number; }
 	private int amount(JsonValue value) { int number = value.asInt(); if (number < 0 || number > 5000000) throw new IllegalArgumentException(); return number; }
+	private void validateTeamArt(JsonValue value, FrozenTeam team) {
+        JsonObject art = value.asObject();
+        exact(art, "rosterId", "league");
+        JsonObject expected = new MatchTeamArt().project(team);
+        if (!expected.get("rosterId").equals(art.get("rosterId"))
+            || !expected.get("league").equals(art.get("league"))) throw new IllegalArgumentException();
+    }
+
+    private void exactWithTeamArt(JsonObject object, String... fields) {
+        boolean home = object.get("homeTeamArt") != null;
+        if (home != (object.get("awayTeamArt") != null)) throw new IllegalArgumentException();
+        if (!home) { exact(object, fields); return; }
+        String[] extended = Arrays.copyOf(fields, fields.length + 2);
+        extended[fields.length] = "homeTeamArt"; extended[fields.length + 1] = "awayTeamArt";
+        exact(object, extended);
+    }
+
 	private void exact(JsonObject object, String... fields) { if (object.size() != fields.length || !new HashSet<>(object.names()).equals(new HashSet<>(Arrays.asList(fields)))) throw new IllegalArgumentException(); }
 	JsonObject parse(String text, int bytes, int maximumDepth) {
 		if (text == null || text.length() > bytes || text.getBytes(StandardCharsets.UTF_8).length > bytes) throw new IllegalArgumentException();

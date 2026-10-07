@@ -111,3 +111,17 @@ test('accepts bounded recovery error codes without accepting unknown codes', () 
   }
   assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'RECOVERY_UNKNOWN', state: null })));
 });
+
+
+test('frozen team art is a paired optional v4 identity even with no pitch players', () => {
+  const live = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const homeTeamArt = { rosterId: 'human', league: 'Old World Classic' };
+  const awayTeamArt = { rosterId: 'orc', league: 'Badlands Brawl' };
+  const empty = { ...live, players: [], actions: [], activePlayerId: null };
+  assert.equal(decodeSetupStateValue(empty).homeTeamArt, undefined);
+  assert.deepEqual(decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt }).awayTeamArt, awayTeamArt);
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt }));
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt: { ...awayTeamArt, secret: 1 } }));
+  assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt: { ...homeTeamArt, league: '' }, awayTeamArt }));
+  assert.throws(() => decodeSetupStateValue({ ...state, homeTeamArt, awayTeamArt }));
+});
