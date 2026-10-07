@@ -1,6 +1,6 @@
 # Match-ready team builder: implementation slices
 
-Status: slices 01–05 implemented and deployed to DEV and PROD on 2026-09-24; live Firebase sign-in acceptance passed per the owner?s 2026-09-24 report. Implements the [accepted contract](../../team-builder-contract.md) and [ADR](../../adr/0001-account-owned-match-ready-teams.md). GitHub Issues is now enabled for follow-up work; these reviewable specs remain the local design and evidence record.
+Status: slices 01–05 implemented and deployed to DEV and PROD on 2026-09-24; live Firebase sign-in acceptance passed per the owner's 2026-09-24 report. Implements the [accepted contract](../../team-builder-contract.md) and [ADR](../../adr/0001-account-owned-match-ready-teams.md). GitHub Issues is now enabled for follow-up work; these reviewable specs remain the local design and evidence record.
 
 The existing v2 service already has internal account IDs, owner-scoped saved teams, a Human catalog, Java validation, and create/join freezing. These slices extend that path and replace the separate public-page rule implementation. They do not create a new game authority or expand BB2025 content.
 

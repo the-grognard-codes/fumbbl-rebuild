@@ -3,21 +3,24 @@ import { PitchProjection } from '../src/pitch-projection.ts';
 export async function travelToFocus(page, focus) {
   const scene = page.locator('.live-pitch-scene').first();
   const frame = page.locator('.live-pitch-viewport').first();
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     const options = await scene.evaluate(element => ({ width: parseFloat(element.style.width), height: parseFloat(element.style.height),
       focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
       mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
       perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
     if (Math.abs(options.focus - focus) < .05) return;
     const camera = new PitchProjection(options);
-    const requestedDelta = Math.max(-180, Math.min(180, (focus - camera.focus) * camera.scale
-      * Math.sin(camera.elevation * Math.PI / 180) * (camera.end === 'home' ? 1 : -1)));
-    const delta = Math.sign(requestedDelta) * Math.max(8, Math.abs(requestedDelta));
+    const nextFocus = camera.focus + Math.max(-8, Math.min(8, focus - camera.focus));
+    const mirrored = camera.project({ x: 2 * camera.focus - nextFocus, y: camera.transverseFocus });
+    if (!mirrored) throw Error('Camera travel target is behind the projection plane');
+    const delta = mirrored.y - camera.center.y;
     const box = await frame.boundingBox();
     const x = box.x + box.width / 2, y = box.y + box.height / 2;
     await page.mouse.move(x, y);
     await page.mouse.down({ button: 'right' });
-    await page.mouse.move(x, y + delta, { steps: 3 });
+    // Activate pointer capture before traveling beyond the viewport.
+    await page.mouse.move(x, y + Math.sign(delta) * 8);
+    await page.mouse.move(x, y + delta);
     await page.mouse.up({ button: 'right' });
   }
   throw Error(`Could not travel camera to focus ${focus}`);
