@@ -37,3 +37,5 @@ Browser checks exercise recorded fixtures and intent contracts. They do not esta
 Additional interaction checks passed for smart actions, setup drag/drop and friendly swaps, push chains/artwork, pass workflow/ranges, 56 reroll-choice cases, 22 reroll-accounting cases and immediate end-player-action. Rich resource/button bounds and nested clock text fit at 900, 800, 640 and 375px widths.
 
 Static-delivery CI caught the older hosted Blitz test expecting the removed Cancel button. The test now exercises Escape cancellation, asserts the proposal clears and reselects the player before the next action; its full actor/other-coach/spectator journey passes locally.
+
+The full Java target CI passed. Browser delivery reached its 15-minute limit during the camera stress check after earlier interaction checks passed. The camera helper now uses exact inverse-projection drags in bounded eight-square segments, activating pointer capture first; an isolated real mouse check reaches both endpoints for both coach views, and independent review confirmed the math. Endpoint/scene assertions remain unchanged.
