@@ -75,6 +75,7 @@ async function assertProjectedBallAndStands(page, role, mode, angle) {
 try {
   for (const role of ['home', 'away']) {
     const page = await open(role);
+    console.log('Camera interaction checks:', role);
     const scene = page.locator('.live-pitch-scene'), frame = page.locator('.live-pitch-viewport');
     assert.equal(await scene.getAttribute('data-end'), role);
     assert.equal(await scene.locator('[data-cell-x]').count(), 390);
@@ -241,6 +242,7 @@ try {
   }
   for (const role of ['home', 'away']) {
     const setup = await open(role, false, 'SETUP');
+    console.log('Camera setup/scenery checks:', role);
     const marker = setup.locator('[data-player-id="human"]');
     const opponent = setup.locator('[data-player-id="orc"]');
     await setup.evaluate(() => window.updatePitchView({ ...window.initial, revision: window.initial.revision + 1,
@@ -294,6 +296,7 @@ try {
   await kickoff.close();
   for (const role of ['home', 'away']) for (const faces of [['SKULL', 'PUSHBACK', 'POW'], ['2', '4', '5', '6', '3']]) {
     const dice = await open(role, false, { label: 'Revealed rolls', faces, subjectId: 'human', selected: null });
+    console.log('Camera dice checks:', role, faces.join(','));
     const area = dice.locator('.live-pitch-viewport'), overlay = dice.locator('.live-dice-overlay');
     for (const angle of [30, 40, 50, 90]) {
       if (angle === 90) await dice.getByRole('button', { name: 'Top-down view', exact: true }).click();
