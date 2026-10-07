@@ -289,12 +289,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const pinnedAction = availableActions.find(action => action.id === actionId);
+  const teammateProposal = pinnedAction?.kind === 'liftTeamMate' || pinnedAction?.kind === 'kickMate';
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
   const additionalActions = [...selectedActions, ...targetChoices.filter(action =>
     !['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && !selectedActions.some(item => item.id === action.id))];
   const cancelProposal = () => {
-    setPlayerId(''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
+    setPlayerId(teammateProposal ? view.activePlayerId ?? playerId : ''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
     setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false);
     setTargetFocus(null); setRouteMode(false); setWaypoints([]); requestRoutePreview?.([]); blurPlayer();
   };
@@ -311,6 +312,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (touchback) { setPlayerId(id); setActionId(touchback.id); setSmartIntent(null); return; }
     const player = view.players.find(item => item.id === id);
+    const teammate = availableActions.find(action => (action.kind === 'liftTeamMate' || action.kind === 'kickMate')
+      && action.target && 'playerId' in action.target && action.target.playerId === id);
+    if (canChoose && hosted && view.phase === 'PLAY' && teammate) {
+      setPlayerId(view.activePlayerId ?? teammate.sourcePlayerId ?? ''); setTargetPlayerId(id);
+      setTargetFocus('player'); setSmartIntent(null); setActionId(teammate.id);
+      return;
+    }
     if (hosted && view.phase === 'PLAY' && player?.role === view.callerRole && id !== playerId && pinnedAction) {
       cancelProposal(); setPlayerId(id); setTargetFocus('player'); return;
     }
@@ -579,7 +587,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" aria-expanded={moreOpen} disabled={!canChoose} onClick={() => setMoreOpen(!moreOpen)}><ActionGlyph kind="other"/>Other action</button>
           <button type="button" className="end-turn-action" onClick={useEndTurn} disabled={!canChoose || !endTurnAction}><ActionGlyph kind="end"/>End Turn</button>
         </div>
-        <div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button></div>
+        <div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
+          {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}</div>
         {moreOpen && <div className="command-menu" aria-label="Additional actions">
           {additionalActions.map(action => <button key={action.id} type="button" disabled={!canChoose} onClick={() => selectMore(action)}>{shortActionLabel(action, view, playerId)}</button>)}
           {canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setSmartIntent(null); setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); setMoreOpen(false); }}>Plan path</button>}
