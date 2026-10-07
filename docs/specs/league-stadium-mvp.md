@@ -328,3 +328,9 @@ The repository links below are pinned to the design-discovery commit so future f
 - [Blizzard: WoW Classic travel guide](https://worldofwarcraft.blizzard.com/en-us/news/23156366/wow-classic-getting-around-azeroth). Additional Classic Barrens/outpost context.
 
 The Human reference, paired Orc treatment, League-based selection, overhead variants, cutaway, sideline interpretation, and animation direction were explicitly confirmed in the discussion. The testing approach above was explicitly confirmed after the specification draft was presented. No implementation or verification completion is claimed by this draft.
+
+## Delivery evidence
+
+- Slice 1: [PR #200](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/200), merged. Frozen team presentation, compatible native recovery/replay, canonical Human venue, margins/recesses/cutaways and shared projection. All CI checks passed.
+- Slice 2: complete Orc atlas and independent mixed-team composition; native identity/recovery regression, 48-case production-scene matrix, 48-case authenticated native matrix, six role reconnects, two spectator end changes and two completed-match replay journeys passed locally. Representative evidence is in `assets/game/references/stadiums/{human-v2,orc-v2}`. [PR #203](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/203) includes gutter validation and accepted v2 exports; earlier v1 evidence is historical.
+- Slice 3: restrained ambient motion, reduced-motion review and final retrospective remain to be completed.

@@ -1,18 +1,19 @@
 {
   "schema": 1,
-  "profile": "old-world-classic",
+  "profile": "badlands-brawl",
   "generator": "Built-in image_gen",
   "generationCalls": "generation-calls.json",
-  "acceptedFile": "../old-world-classic-v2.png",
-  "sha256": "f55ab63cb823f162dc8c0fbb45c7a511c115fa50a50f01cedf31a5e454dca013",
+  "acceptedFile": "../badlands-brawl-v2.png",
+  "sha256": "eee28c5f1c75a5861a13e91f389673f04ef8ed3926951d4c0ef16c7b34cafed0",
   "sourceDimensions": {
     "width": 1254,
     "height": 1254
   },
   "export": "Original transparent RGBA output, unchanged. Bounds are decoded into generated-stadium-art.ts; runtime clips original pixels.",
   "referenceRoles": {
-    "stadium": "docs/adr/references/0003-angled-pitch-v2/art/stadium.png: approved stone/timber Human enclosure",
-    "crowdAndPalette": "assets/game/teams/human/qa/team-preview.png: blue/ivory participant identity"
+    "humanAtlas": "old-world-classic-v1.png: matching role inventory and chibi scale",
+    "crowdAndPalette": "assets/game/teams/orc/qa/team-preview.png: charcoal/orange and olive/tusked supporters",
+    "atmosphere": "Vanilla Barrens/Orgrimmar: original MUTP interpretation of rough timber, riveted iron, spikes and patched canvas"
   },
   "views": {
     "front": [
@@ -40,9 +41,13 @@
       "timber"
     ]
   },
-  "qa": "../../../references/stadiums/human-v2/",
+  "qa": "../../../references/stadiums/orc-v2/",
+  "rejectedDraft": {
+    "file": "orc-rejected-v0.png",
+    "reason": "Recognizable franchise emblem; replaced with original two-tusk football marks in the accepted output."
+  },
   "supersededOutput": {
-    "file": "old-world-classic-superseded-v1.png",
+    "file": "badlands-brawl-superseded-v1.png",
     "reason": "Role-cell boundary spill; accepted v2 provides generous transparent gutters."
   }
 }

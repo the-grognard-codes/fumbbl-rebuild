@@ -8,7 +8,7 @@
   },
   "scripts": {
     "assets:sync": "node ../assets/game/scripts/sync-browser-assets.mjs",
-    "assets:check": "node ../assets/game/scripts/sync-browser-assets.mjs --check",
+    "assets:check": "node --test ../assets/game/scripts/png-art.test.mjs && node ../assets/game/scripts/sync-browser-assets.mjs --check",
     "predev": "npm run assets:sync",
     "prebuild": "npm run assets:sync",
     "prebuild:play": "npm run assets:sync",

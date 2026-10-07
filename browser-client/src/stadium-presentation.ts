@@ -9,7 +9,7 @@ export const STADIUM_ROWS = 4;
 export const STADIUM_RECESSES = [
   { side: 'north', start: 4.5, end: 7.5, depth: 2, role: 'bench', team: 'home', x: 6, y: -2.5 },
   { side: 'south', start: 18.5, end: 21.5, depth: 2, role: 'bench', team: 'away', x: 20, y: 17.5 },
-  { side: 'north', start: 10.5, end: 15.5, depth: 2, role: 'pavilion', x: 13, y: -2.6 },
+  { side: 'north', start: 10.5, end: 15.5, depth: 3, role: 'pavilion', x: 13, y: -3 },
 ] as const;
 const fallback = stadiumAtlases['old-world-classic'];
 /** Independent catalogs allow different supporters to share one League venue. */
