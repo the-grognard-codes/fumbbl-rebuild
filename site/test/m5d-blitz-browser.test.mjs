@@ -24,7 +24,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  const sockets = new Map(); const calls = []; const pages = [];
+  const sockets = new Map(); const calls = []; const previews = []; const pages = [];
   let step = 0; let loads = 0; let overrideState = null;
   const waitForLoadCount = async count => {
     const deadline = Date.now() + 5000;
@@ -46,7 +46,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       const teamName = player.role === 'home' ? frames[step].actor.homeTeamName : frames[step].actor.awayTeamName;
       assert.ok(labels.some(label => label.includes(`${teamName} ${player.name},`) && label.endsWith(`square ${player.x}, ${player.y}`)), `Missing ${player.role} ${player.name} at ${player.x},${player.y}`);
     }
-    assert.equal(await page.getByLabel('Live match pitch').locator('.live-ball').count(), frames[step].actor.ball ? 1 : 0);
+    assert.equal(await page.getByLabel('Live match pitch').locator('.live-ball-marker').count(), frames[step].actor.ball ? 1 : 0);
   };
   try {
     for (let index = 0; index < 3; index++) {
@@ -60,7 +60,17 @@ test('real-engine Blitz actions pin and commit once across both players and spec
           if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
           else if (request.type === 'setup' && request.operation === 'load') { loads++; sendState(index, send, request.requestId); }
           else if (request.type === 'watch') sendState(index, send, request.requestId);
-          else if (request.type === 'setup' && request.operation === 'action') calls.push({ index, request, send });
+          else if (request.type === 'routePreview') {
+            previews.push({ index, request });
+            const snapshot = state(index);
+            const player = snapshot.players.find(item => item.id === snapshot.activePlayerId);
+            const from = { x: player.x, y: player.y };
+            const steps = request.waypoints.map(point => ({ ...point, dodge: 0, rush: 0, reactions: [] }));
+            send({ type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
+              route: { routeVersion: 1, playerId: player.id, from, remaining: 8, steps,
+                revision: snapshot.revision, actor: 'home' } });
+          }
+          else if (request.type === 'setup' && ['action', 'route'].includes(request.operation)) calls.push({ index, request, send });
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}${index === 2 ? '&watch=1' : ''}`);
@@ -110,11 +120,19 @@ test('real-engine Blitz actions pin and commit once across both players and spec
         await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'push-decision-actor.png') });
       }
       await pin();
+      const move = /^\d+:move-(\d+)-(\d+)$/.exec(actionId);
+      if (move) {
+        await actor.waitForFunction(() => document.querySelector('.confirmation-row .commit-action')?.disabled === false);
+        const preview = previews.at(-1);
+        assert.equal(preview?.index, 0, 'Only the actor requests route previews');
+        assert.equal(preview.request.expectedRevision, step);
+        assert.deepEqual(preview.request.waypoints, [{ x: Number(move[1]), y: Number(move[2]) }]);
+      }
       if (!immediate) assert.equal(await commit.isEnabled(), true, `Pinned action ${actionId} must be ready for an explicit commit`);
       if (actionId === '2:move-8-7') {
-        const path = actor.getByLabel('Live match pitch').locator('.live-target-line');
+        const path = actor.getByLabel('Live match pitch').locator('.live-route-line');
         await path.waitFor({ state: 'attached' });
-        assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'live-path-chase');
+        assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'live-arrow-chase');
         await actor.emulateMedia({ reducedMotion: 'reduce' });
         assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'none');
         await actor.emulateMedia({ reducedMotion: 'no-preference' });
@@ -131,7 +149,14 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
       assert.equal(calls[0].request.expectedRevision, step);
-      assert.equal(calls[0].request.actionId, actionId);
+      if (move) {
+        assert.equal(calls[0].request.operation, 'route');
+        assert.equal(calls[0].request.playerId, 'home1');
+        assert.deepEqual(calls[0].request.waypoints, [{ x: Number(move[1]), y: Number(move[2]) }]);
+      } else {
+        assert.equal(calls[0].request.operation, 'action');
+        assert.equal(calls[0].request.actionId, actionId);
+      }
       assert.equal(await commit.isDisabled(), true);
       assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
       assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);

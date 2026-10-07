@@ -37,7 +37,7 @@ export function resolvePlayerPortrait(player: SetupPlayer): string | null {
   return art ? assetUrl(art.roster, art.position.portrait.file) : null;
 }
 
-export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | 'away'; facing?: PlayerFacing }): {
+export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | 'away'; facing?: PlayerFacing; setupPerspective?: boolean; topDown?: boolean }): {
   body: BodyRecord & { url: string; mirror: boolean; pose: string };
   portraitUrl: string;
 } | null {
@@ -49,7 +49,7 @@ export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | '
   if (proneStates.has(state)) pose = 'prone';
   else if (stunnedStates.has(state)) pose = 'stunned';
   else if (standingStates.has(state)) {
-    const facing = options.facing ?? (player.role === 'home' ? 'north' : 'south');
+    const facing = options.setupPerspective || options.topDown || !options.facing ? (player.role === 'home' ? 'north' : 'south') : options.facing;
     const index = facings.indexOf(facing);
     if (index < 0) return null;
     const screenFacing = facings[(index + (options.end === 'away' ? 4 : 0)) % facings.length];

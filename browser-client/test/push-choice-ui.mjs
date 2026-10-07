@@ -54,7 +54,9 @@ try {
   await arrows.first().waitFor();
   assert.equal(await arrows.count(), 3);
   assert.equal(await pitch.locator('.live-token').count(), 2, 'Native fixtures without artwork retain the explicit number-token fallback');
-  for (const angle of [30, 50, 40]) {
+  const debug = page.getByRole('button', { name: 'Debug', exact: true });
+    if (await debug.count()) await debug.click();
+    for (const angle of [30, 50, 40]) {
     await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
     assert.equal(await arrows.count(), 3, 'Camera changes retain the pending push decision');
     assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Camera changes never answer the decision');

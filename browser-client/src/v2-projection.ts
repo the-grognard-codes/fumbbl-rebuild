@@ -20,6 +20,11 @@ export function assertV2Projection(message: Record<string, unknown>) {
   const specific = typeof message.type === 'string' && Object.hasOwn(fields, message.type) ? fields[message.type] : null;
   if (!specific) throw Error('Unknown recipient projection');
   const allowed = ['version', 'type', 'requestId', ...specific];
+  if (message.type === 'setupState' && message.code === 'ILLEGAL_SETUP' && Object.hasOwn(message, 'setupErrors')) {
+    if (!Array.isArray(message.setupErrors) || message.setupErrors.length > 32 || message.setupErrors.some(reason => typeof reason !== 'string' || !reason || reason.length > 1000))
+      throw Error('Invalid setup diagnostics');
+    allowed.push('setupErrors');
+  }
   if (message.type === 'preparedMatch' && Object.hasOwn(message, 'invitationCode')) allowed.push('invitationCode');
   if (Object.keys(message).length !== allowed.length || allowed.some(key => !Object.hasOwn(message, key)))
     throw Error('Unexpected recipient fields');

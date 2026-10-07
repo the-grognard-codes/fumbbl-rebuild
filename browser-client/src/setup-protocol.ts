@@ -12,7 +12,7 @@ export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED'
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
 export type PassingRanges = { version: 1; playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
 export type SetupState = { projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges };
-export type SetupResponse = { version: 1; type: 'setupState'; requestId: string | null; code: SetupCode; duplicate: boolean; state: SetupState | null };
+export type SetupResponse = { version: 1; type: 'setupState'; requestId: string | null; code: SetupCode; duplicate: boolean; state: SetupState | null; setupErrors?: string[] };
 const codes = new Set<SetupCode>(['ACCEPTED','SESSION_UNAVAILABLE','NOT_ACTIVATED','WRONG_ACTOR','WRONG_PHASE','WRONG_PLAYER','ILLEGAL_PLACEMENT','ILLEGAL_SETUP','PROMPT_MISMATCH','INVALID_OPTION','REQUEST_ID_REUSED','REQUEST_HISTORY_LIMIT','SAVE_HISTORY_LIMIT','SAVE_RESUME_UNAVAILABLE','SAVE_PROPOSAL_PENDING','SAVE_PROPOSAL_MISSING','SAVE_PROPOSAL_MISMATCH','SAVE_PROPOSAL_OWNER','MATCH_SUSPENDED','MATCH_NOT_SUSPENDED','MATCH_ABANDONED','STALE_REVISION','INVALID_REQUEST','NOT_FOUND','AUTHENTICATION_REQUIRED','PERSISTENCE_FAILED','SNAPSHOT_UNSUPPORTED','REPLAY_UNSUPPORTED','MATCH_COMPLETED','COMPLETION_PENDING','MATCH_OUTCOME_UNKNOWN','COMPLETION_CONFLICT','REPLAY_LIMIT','RECOVERY_UNSUPPORTED','RECOVERY_CORRUPT','RECOVERY_CONFLICT','RECOVERY_LIMIT','ACTIVATION_LIMIT']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 function object(value: unknown, keys: string[]) { if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected object'); const result = value as Record<string, unknown>; if (Object.keys(result).length !== keys.length || keys.some(key => !Object.hasOwn(result, key))) throw Error('Unexpected fields'); return result; }
@@ -82,7 +82,12 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	return { ...result, players, actions, ball, prompt, ...(saveResume ? { saveResume } : {}), ...(clock ? { clock } : {}), ...(passing ? { passing } : {}) } as SetupState;
 }
 export function decodeSetupState(json: string): SetupResponse {
-	if (new TextEncoder().encode(json).length > 65536) throw Error('Response too large'); const result = object(parseUniqueJson(json), ['version','type','requestId','code','duplicate','state']);
+	if (new TextEncoder().encode(json).length > 65536) throw Error('Response too large');
+  const parsed = parseUniqueJson(json);
+  const hasSetupErrors = parsed !== null && typeof parsed === 'object' && Object.hasOwn(parsed, 'setupErrors');
+  const result = object(parsed, ['version','type','requestId','code','duplicate','state', ...(hasSetupErrors ? ['setupErrors'] : [])]);
+  if (hasSetupErrors && (result.code !== 'ILLEGAL_SETUP' || !Array.isArray(result.setupErrors) || result.setupErrors.length > 32
+    || result.setupErrors.some(reason => typeof reason !== 'string' || !reason || reason.length > 1000))) throw Error('Invalid setup diagnostics');
 	if (result.version !== 1 || result.type !== 'setupState' || (result.requestId !== null && (typeof result.requestId !== 'string' || !result.requestId || result.requestId.length > 100)) || typeof result.code !== 'string' || !codes.has(result.code as SetupCode) || typeof result.duplicate !== 'boolean') throw Error('Invalid setup response');
 	if (result.code === 'ACCEPTED' || result.code === 'ILLEGAL_SETUP' ? result.state === null : result.state !== null || result.duplicate) throw Error('Inconsistent setup response');
 	return { ...result, state: result.state === null ? null : decodeSetupStateValue(result.state) } as SetupResponse;
