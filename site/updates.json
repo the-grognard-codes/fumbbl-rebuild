@@ -1,5 +1,45 @@
 [
   {
+    "number": 182,
+    "title": "Improve match setup, movement and pitch controls",
+    "summary": "Board clicks now plan moves for confirmation, while setup supports friendly-player swaps and explains invalid formations. Match panels gain adjustable backgrounds, compact dice and revised kickoff prompts; camera controls, ball highlighting and stadium stands are clearer. The accompanying retrospective records remaining review work.",
+    "category": "Design",
+    "mergedAt": "2026-10-07T03:58:42Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/182"
+  },
+  {
+    "number": 181,
+    "title": "Place setup players through expanded dugouts",
+    "summary": "Expanded dugouts now act as setup drop targets: drag reserves onto legal pitch squares or return eligible players by dropping them anywhere in their team's expanded dugout. Up/down controls switch among the team name, state counts and vertical player list; opponent and invalid drops remain blocked.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-07T02:26:26Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/181"
+  },
+  {
+    "number": 180,
+    "title": "Fix Windows startup and refresh the homepage",
+    "summary": "Windows review startup now resolves Docker Desktop mount paths correctly before checking local credential files. The homepage replaces its character portrait with a responsive match screenshot, removes Privacy and Support from the top navigation and adds more space between links; both pages remain available from the footer.",
+    "category": "Platform",
+    "mergedAt": "2026-10-06T22:09:59Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/180"
+  },
+  {
+    "number": 165,
+    "title": "Load current Spectate assets for returning players",
+    "summary": "Spectate now requests versioned page and game assets so returning players receive the current directory even when older Play files are cached. The fix keeps existing Play URLs and sign-in return behavior intact.",
+    "category": "Platform",
+    "mergedAt": "2026-10-06T15:26:26Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/165"
+  },
+  {
+    "number": 164,
+    "title": "Browse live matches and search the Updates history",
+    "summary": "The new Spectate page lists live matchups, public game details and Watch links, with an initial replay-search scaffold. Updates now covers the merged PR history with topic and PR-number search, category filters and ten entries per page; full history remains readable without JavaScript.",
+    "category": "Platform",
+    "mergedAt": "2026-10-06T15:07:35Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/164"
+  },
+  {
     "number": 126,
     "title": "Record the pitch follow-up retrospective",
     "summary": "Documented the outcome of seven pitch follow-up changes, linking completed tickets to their checks. The report also records the remaining signed-in match review and visual comparison work.",
