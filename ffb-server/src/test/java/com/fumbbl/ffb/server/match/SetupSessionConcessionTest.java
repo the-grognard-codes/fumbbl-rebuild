@@ -9,6 +9,7 @@ import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.net.ServerCommunication;
+import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 
@@ -62,6 +63,7 @@ class SetupSessionConcessionTest {
         when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
         when(server.getGameCache()).thenReturn(mock(GameCache.class));
         when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
+        when(server.getSessionManager()).thenReturn(new SessionManager());
         SetupSession session = new SetupSession(server, document, -2, true, true, true, true, true, true);
         assertBrowseSummaryMatchesView(session);
         JsonObject initialClock = session.decorateSaveResume(session.reply("load", "ACCEPTED", false, "home"))

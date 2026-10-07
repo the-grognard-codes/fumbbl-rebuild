@@ -32,6 +32,7 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
     { state: { ...initial, players, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 },
+      homeTeamArt: pitchOptions.homeTeamArt ?? initial.homeTeamArt, awayTeamArt: pitchOptions.awayTeamArt ?? initial.awayTeamArt,
       phase: typeof diceMoment === 'string' ? diceMoment : pitchOptions.phase ?? initial.phase }, dice: typeof diceMoment === 'string' ? null : diceMoment, actions: pitchOptions.actions, pinnedAction: pitchOptions.pinnedAction });
   await page.route('**/scene-test', route => route.fulfill({ contentType: 'text/html', body: `
     <style>html,body{margin:0;height:100%;background:#101c2b}.play-runtime{height:100%}#app .live-pitch{height:100%;display:flex;flex-direction:column;margin:0;padding:0;box-sizing:border-box}#app .live-pitch-viewport{flex:1;max-height:none;min-height:0;aspect-ratio:auto}</style>
@@ -282,6 +283,46 @@ try {
     if (evidence) await setup.screenshot({ path: `${evidence}/setup-top-down-${role}.png` });
     await setup.close();
   }
+  const humanArt = { rosterId:'human',league:'Old World Classic' }, orcArt = { rosterId:'orc',league:'Badlands Brawl' };
+  for (const [host,homeTeamArt,awayTeamArt] of [['human',humanArt,orcArt],['orc',orcArt,humanArt]]) for (const role of ['home','away']) {
+    const page=await open(role,false,null,{homeTeamArt,awayTeamArt});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    const world=page.locator('.pitch-stadium-world');
+    assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
+    assert.equal(await world.getAttribute('data-stadium-fallback'),'false');
+    const seatMap=()=>page.locator('[data-seat]').evaluateAll(seats=>seats.map(seat=>[seat.dataset.seat,seat.dataset.crowdTeam]));
+    const fixedSeats=await seatMap();
+    assert.equal(new Set(fixedSeats.map(seat=>seat[0])).size,fixedSeats.length);
+    for (const [team,profile] of [['home',host==='human'?'old-world-classic':'badlands-brawl'],['away',host==='human'?'badlands-brawl':'old-world-classic']]) {
+      const crowd=world.locator('.pitch-stadium-crowd [data-team="'+team+'"]');
+      assert.ok(await crowd.count()>0);
+      assert.ok(await crowd.evaluateAll((fans,profile)=>fans.every(fan=>fan.dataset.stadiumProfile===profile),profile));
+      assert.equal(await world.locator('[data-stadium-role="bench"][data-team="'+team+'"]').getAttribute('data-stadium-profile'),profile);
+    }
+    for (const mode of [30,40,50,90]) {
+      if(mode===90)await page.getByRole('button',{name:'Top-down view',exact:true}).click();
+      else await page.getByLabel('Perspective angle',{exact:true}).selectOption(String(mode));
+      for (const [position,focus] of [['near',role==='home'?1:25],['mid',13],['far',role==='home'?25:1]]) {
+        await travelToFocus(page,focus);
+        assert.equal(await page.locator('[data-cell-x]').count(),390);
+        assert.deepEqual(await seatMap(),fixedSeats,'camera changes preserve canonical supporter ownership');
+        assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
+        assert.equal(await world.locator('[data-cutaway="true"]').filter({visible:true}).count(),0,'cutaway structure stays hidden');
+        if(mode===90){
+          assert.ok(await world.locator('[data-stadium-role="crowdTop"]').count()>0);
+          assert.equal(await world.locator('[data-stadium-role="pavilionTop"]').count(),1);
+          assert.equal(await world.locator('[data-stadium-role="benchTop"]').count(),2);
+        }
+        if(evidence)await page.screenshot({path:evidence+'/stadium-'+host+'-'+role+'-'+mode+'-'+position+'.png'});
+      }
+    }
+    await page.evaluate(()=>window.updatePitchView({...window.initial,revision:window.initial.revision+1,actor:'away',half:2,homeTurn:8,awayTurn:8,players:[]}));
+    await page.waitForFunction(()=>document.querySelectorAll('[data-player-id]').length===0);
+    assert.deepEqual(await seatMap(),fixedSeats,'halftime, acting team and empty positions cannot change sections');
+    assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
+    await page.close();
+  }
+  console.log('PASS: 48 Human/Orc hosting, coach-end, angle and camera-position cases retain stadium and supporter identities.');
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();
   await readonly.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 90 });

@@ -10,5 +10,42 @@
   {
     "timestamp": "2026-10-07T21:39:16.250Z",
     "call": "// @exec: {\"yield_time_ms\": 120000, \"max_output_tokens\": 1000}\nconst result=await tools.image_gen__imagegen({transparent_background:true,referenced_image_paths:[\"C:\\\\Users\\\\jaken\\\\.codex\\\\generated_images\\\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\\\exec-bfd3ab1f-3bcc-46b1-b3fe-a09733666961.png\"],prompt:\"Make one precise correction to this Orc stadium atlas. Replace ALL recognizable World of Warcraft Horde emblems anywhere on gate banners, fan jerseys, and the small pennant with a newly designed MUTP sports emblem: two simple ivory tusks framing a tiny dark oval football. The large orange banner's existing original tusked skull motif may remain. Keep the exact canvas size, exact 4x4 atlas cell positions, materials, pixel art, all figures and props, all colors, and transparency unchanged. Do not use Warcraft/Blizzard logos. Only update the emblems into the simple newly authored tusks-and-football motif. No letters or words.\"});store(\"orcAtlasFinal\",result);generatedImage(result);\n"
+  },
+  {
+    "timestamp": "2026-10-07T23:12:01.020Z",
+    "mode": "edit",
+    "tool": "Built-in image_gen",
+    "transparent_background": true,
+    "referenced_image_paths": [
+      "assets/game/pitch/stadiums/badlands-brawl-v1.png"
+    ],
+    "prompt": "Use case: precise-object-edit. Edit target: the attached Orc/Badlands Brawl 4-by-4 stadium sprite atlas. Fix ONLY sprite isolation and cell gutters. Preserve the original pixel-art subjects, palette, materials, sixteen roles, exact equal 4-column / 4-row ordering, square canvas, and genuine alpha transparency. Every subject must fit entirely in its own equal square cell with at least 24 pixels of transparent clearance on EVERY side, including the crowd feet, side crowd, tall banner, entrance, pavilion and overhead pavilion. Scale each complete subject down uniformly within its own cell as needed to achieve those gutters. Do not clip feet, horns, flames, banners or furniture. Remove all fragments of adjacent subjects from neighboring cells. No fragments outside a subject's cell; no lines, labels or text. Keep the original newly authored two ivory tusks framing a dark oval football emblem; no franchise logos. Row1: stone tile, timber tile, gate front, gate directly overhead. Row2: Orc crowd front, crowd side, crowd directly overhead, tall orange banner. Row3: bench front, bench directly overhead, pavilion front, pavilion directly overhead. Row4: tankards, torch front, torch directly overhead, small pennant. True overhead views remain overhead. Textures may retain their existing padded edges. All isolated objects on true transparent background, crisp chunky SNES pixel-art, original dark masonry, brown wood, riveted iron, olive skin, orange/charcoal cloth unchanged.",
+    "output": "source/orc-rejected-gutters-v1.png",
+    "accepted": false,
+    "reason": "Some neighboring cell fragments remained; broad gutters required."
+  },
+  {
+    "timestamp": "2026-10-07T23:12:01.033Z",
+    "mode": "edit",
+    "tool": "Built-in image_gen",
+    "transparent_background": true,
+    "referenced_image_paths": [
+      "assets/game/pitch/stadiums/old-world-classic-v1.png"
+    ],
+    "prompt": "Use case: precise-object-edit. Keep this original MUTP Human / Old World Classic pixel-art atlas, but REDUCE EVERY INDIVIDUAL OBJECT to at most 60% of its equal square cell's width AND 60% of its height, centered in the cell. This is essential for sprite isolation: each of the sixteen cells must have a very broad completely transparent gutter all around its entire subject. No image pixels whatsoever may reach or cross any of the four equally spaced row or column boundaries. Preserve all sixteen complete subjects, exact 4x4 row-major ordering, original chunky SNES pixel art and blue/ivory Human palette, stone/timber and overhead viewpoints. Row1 stone, timber, gate front, gate overhead; row2 human crowd front, crowd side, crowd overhead, banner; row3 bench front, bench overhead, pavilion front, pavilion overhead; row4 mugs, torch front, torch overhead, pennant. Scale whole objects uniformly, no cropped feet or flame, no extra subjects or fragments or text. Real alpha transparency. Transparent gutters around texture tiles too. Square canvas with exact four by four equal cells.",
+    "output": "old-world-classic-v2.png",
+    "accepted": true
+  },
+  {
+    "timestamp": "2026-10-07T23:12:01.033Z",
+    "mode": "edit",
+    "tool": "Built-in image_gen",
+    "transparent_background": true,
+    "referenced_image_paths": [
+      "assets/game/pitch/stadiums/badlands-brawl-v1.png"
+    ],
+    "prompt": "Use case: precise-object-edit. Keep this original MUTP Orc / Badlands Brawl pixel-art atlas, but REDUCE EVERY INDIVIDUAL OBJECT to at most 60% of its equal square cell's width AND 60% of its height, centered in the cell. This is essential for sprite isolation: each of sixteen cells must have a very broad completely transparent gutter all around its entire subject. No image pixels whatsoever may reach or cross any of the four equally spaced row or column boundaries. Preserve all sixteen complete subjects, exact 4x4 row-major ordering, original chunky SNES pixel art, orange/charcoal Orc palette, dark stone/timber/iron and overhead viewpoints. Row1 stone, timber, gate front, gate overhead; row2 tusked Orc crowd front, crowd side, crowd overhead, banner; row3 bench front, bench overhead, pavilion front, pavilion overhead; row4 tankards, torch front, torch overhead, pennant. Scale whole objects uniformly, no cropped feet or flame, no extra subjects or fragments or text. Real alpha transparency. Transparent gutters around texture tiles too. Original two ivory tusks framing a dark football emblems preserved, no franchise logos. Square canvas, exact four by four equal cells.",
+    "output": "badlands-brawl-v2.png",
+    "accepted": true
   }
 ]

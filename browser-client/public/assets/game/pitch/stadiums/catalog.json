@@ -3,8 +3,8 @@
   "atlases": [
     {
       "id": "old-world-classic",
-      "version": "v1",
-      "atlas": "old-world-classic-v1.png",
+      "version": "v2",
+      "atlas": "old-world-classic-v2.png",
       "palette": {
         "stone": "#73746b",
         "riser": "#403c34",
@@ -28,13 +28,400 @@
         "torch",
         "torchTop",
         "pennant"
-      ]
+      ],
+      "provenance": "source/human-provenance.json"
+    },
+    {
+      "id": "badlands-brawl",
+      "version": "v2",
+      "atlas": "badlands-brawl-v2.png",
+      "palette": {
+        "stone": "#514b42",
+        "riser": "#292724",
+        "rail": "#827a63",
+        "cloth": "#c56c24"
+      },
+      "roles": [
+        "stone",
+        "timber",
+        "gate",
+        "gateTop",
+        "crowd",
+        "crowdSide",
+        "crowdTop",
+        "banner",
+        "bench",
+        "benchTop",
+        "pavilion",
+        "pavilionTop",
+        "mugs",
+        "torch",
+        "torchTop",
+        "pennant"
+      ],
+      "provenance": "source/orc-provenance.json"
     }
   ],
   "venues": {
-    "Old World Classic": "old-world-classic"
+    "Old World Classic": "old-world-classic",
+    "Badlands Brawl": "badlands-brawl"
   },
   "teams": {
-    "human": "old-world-classic"
+    "human": "old-world-classic",
+    "orc": "badlands-brawl"
+  },
+  "layout": {
+    "stone": {
+      "worldWidth": 1,
+      "view": "ground",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1,
+        "across": 1
+      },
+      "layer": "structure",
+      "rise": "0.3 per terrace row",
+      "cutaway": "near-end",
+      "motion": "static"
+    },
+    "timber": {
+      "worldWidth": 1,
+      "view": "ground",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1,
+        "across": 1
+      },
+      "layer": "structure",
+      "rise": "0.3 per terrace row",
+      "cutaway": "near-end",
+      "motion": "static"
+    },
+    "gate": {
+      "worldWidth": 2.4,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 2.4,
+        "across": 0.6
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "near-end",
+      "motion": "static"
+    },
+    "gateTop": {
+      "worldWidth": 2.4,
+      "view": "overhead",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 2.4,
+        "across": 0.6
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "near-end",
+      "motion": "static"
+    },
+    "crowd": {
+      "worldWidth": 1.35,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1.35,
+        "across": 0.5
+      },
+      "layer": "supporters",
+      "rise": "0.3 per terrace row",
+      "cutaway": "near-end",
+      "motion": "sparse-sway"
+    },
+    "crowdSide": {
+      "worldWidth": 1.35,
+      "view": "side",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1.35,
+        "across": 0.5
+      },
+      "layer": "supporters",
+      "rise": "0.3 per terrace row",
+      "cutaway": "near-end",
+      "motion": "sparse-sway"
+    },
+    "crowdTop": {
+      "worldWidth": 1.35,
+      "view": "overhead",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1.35,
+        "across": 0.5
+      },
+      "layer": "supporters",
+      "rise": "0.3 per terrace row",
+      "cutaway": "near-end",
+      "motion": "sparse-sway"
+    },
+    "banner": {
+      "worldWidth": 0.55,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 0.55,
+        "across": 0.55
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "bench": {
+      "worldWidth": 1.65,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1.65,
+        "across": 0.8
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "benchTop": {
+      "worldWidth": 1.65,
+      "view": "overhead",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 1.65,
+        "across": 0.8
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "pavilion": {
+      "worldWidth": 2.65,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 2.65,
+        "across": 2.65
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "pavilionTop": {
+      "worldWidth": 2.65,
+      "view": "overhead",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 2.65,
+        "across": 2.65
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "mugs": {
+      "worldWidth": 0.45,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 0.45,
+        "across": 0.45
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "static"
+    },
+    "torch": {
+      "worldWidth": 0.42,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 0.42,
+        "across": 0.42
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "fire-flicker"
+    },
+    "torchTop": {
+      "worldWidth": 0.42,
+      "view": "overhead",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 0.42,
+        "across": 0.42
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "fire-flicker"
+    },
+    "pennant": {
+      "worldWidth": 0.55,
+      "view": "perspective",
+      "anchor": {
+        "perspective": [
+          0.5,
+          1
+        ],
+        "overhead": [
+          0.5,
+          0.5
+        ]
+      },
+      "footprint": {
+        "along": 0.55,
+        "across": 0.55
+      },
+      "layer": "furnishings",
+      "rise": "ground",
+      "cutaway": "none",
+      "motion": "wind"
+    }
   }
 }
