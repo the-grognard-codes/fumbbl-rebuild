@@ -10,7 +10,7 @@ const output=resolve(process.env.STADIUM_EVIDENCE_DIR ?? '.tools/stadium/native-
 const identityJson=await readFile('.tools/coach-oriented-match-ui/coach-tokens.json','utf8');
 retainedAcceptanceUids(identityJson);
 const tokens=JSON.parse(identityJson);
-const configText=await (await fetch('http://localhost:5000/firebase-web-config.js')).text();
+const configText=await readFile(process.env.STADIUM_FIREBASE_CONFIG ?? 'deployment/firebase/hosting/firebase-web-config.js','utf8');
 const config=JSON.parse(configText.slice(configText.indexOf('{'),configText.lastIndexOf('}')+1));
 const idTokens={};
 for(const role of ['home','away','spectator']) {
@@ -24,8 +24,7 @@ const server=await createServer({root:resolve('browser-client'),configFile:false
   res.end('<style>html,body{margin:0;background:#101c2b;color:#edf5ff}body{font-family:Arial}#app{height:100vh}</style><div id="app"></div><script type="module">import {mountPlay,mountBuilder} from "/src/play-entry.tsx";const options={url:"ws://127.0.0.1:22235/browser/v2",getToken:async()=>window.testToken};(location.pathname==="/teambuilder"?mountBuilder:mountPlay)(document.getElementById("app"),options);</script>');
 });
 }}],server:{host:'127.0.0.1',port:5173,strictPort:true}});
-await server.listen();
-const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? (process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined)});
+let browser;
 const contexts={},pages={},records=[],cameraMatrix=[],restorations=[];
 async function assertVenue(page,host){
   const league=host==='human'?'Old World Classic':'Badlands Brawl';
@@ -51,6 +50,8 @@ const request=async(page,operation,fields={})=>{
 };
 const latest=page=>page.evaluate(()=>window.nativeIncoming.filter(item=>item.type==='setupState'&&item.state).at(-1)?.state);
 try {
+  await server.listen();
+  browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? (process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined)});
   for(const role of ['home','away','spectator']) {
     const context=await browser.newContext({viewport:{width:1920,height:1080}});contexts[role]=context;
     await context.addInitScript(token=>{window.testToken=token;window.nativeIncoming=[];const Native=WebSocket;window.WebSocket=class extends Native{constructor(...args){super(...args);window.nativeSocket=this;this.addEventListener('message',event=>{const item=JSON.parse(event.data);if(item.type!=='authentication')window.nativeIncoming.push(item);});}};},idTokens[role]);
@@ -87,8 +88,9 @@ try {
     await away.getByRole('button',{name:'Join game',exact:true}).click();
     const matchId=await home.getByLabel('Match ID',{exact:true}).inputValue();
     await home.getByRole('button',{name:'Start game',exact:true}).waitFor();
-    const popupPromise=home.waitForEvent('popup');await home.getByRole('button',{name:'Start game',exact:true}).click();
-    const actualHome=await popupPromise;await actualHome.waitForURL(/\/play\/match/);
+    const gamePage=Promise.any([home.waitForEvent('popup'),home.waitForURL(/\/play\/match/).then(()=>home)]);
+    await home.getByRole('button',{name:'Start game',exact:true}).click();
+    const actualHome=await gamePage;await actualHome.waitForURL(/\/play\/match/);
     await away.goto('http://127.0.0.1:5173/play/match?matchId='+matchId);
     await pages.spectator.goto('http://127.0.0.1:5173/play/match?matchId='+matchId+'&watch=1');
     const rolePages=[actualHome,away,pages.spectator];
@@ -165,8 +167,8 @@ try {
     assert.deepEqual(replay.homeTeamArt,game.homeTeamArt);assert.deepEqual(replay.awayTeamArt,game.awayTeamArt);
     restorations.push({host:homeRoster,role:'home',kind:'completed-replay-first-last',passed:true});
     await actualHome.screenshot({path:resolve(output,homeRoster+'-replay.png')});
-    await actualHome.close();
+    if(actualHome!==home)await actualHome.close();
   }
   await writeFile(resolve(output,'native-stadium.json'),JSON.stringify({passed:true,transport:'/browser/v2',records,cameraMatrix,restorations},null,2));
   console.log('PASS: 48 authenticated native Human/Orc camera cases, coaches/spectator reconnects, end change and completed replay retain frozen stadium identity.');
-} catch(error) { console.error('Native stadium driver:',error.message.slice(0,600));throw error; } finally {await browser.close();await server.close();}
+} catch(error) { console.error('Native stadium driver:',error.message.slice(0,600));throw error; } finally {try {await browser?.close();} finally {await server.close();}}

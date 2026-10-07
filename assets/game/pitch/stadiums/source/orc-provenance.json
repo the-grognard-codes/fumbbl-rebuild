@@ -3,8 +3,8 @@
   "profile": "badlands-brawl",
   "generator": "Built-in image_gen",
   "generationCalls": "generation-calls.json",
-  "acceptedFile": "../badlands-brawl-v1.png",
-  "sha256": "82fb520a5e58e7629f3646e868f1c820c16d3852c365c41098409e150ccb73c0",
+  "acceptedFile": "../badlands-brawl-v2.png",
+  "sha256": "eee28c5f1c75a5861a13e91f389673f04ef8ed3926951d4c0ef16c7b34cafed0",
   "sourceDimensions": {
     "width": 1254,
     "height": 1254
@@ -41,9 +41,13 @@
       "timber"
     ]
   },
-  "qa": "../../../references/stadiums/orc-v1/",
+  "qa": "../../../references/stadiums/orc-v2/",
   "rejectedDraft": {
     "file": "orc-rejected-v0.png",
     "reason": "Recognizable franchise emblem; replaced with original two-tusk football marks in the accepted output."
+  },
+  "supersededOutput": {
+    "file": "badlands-brawl-superseded-v1.png",
+    "reason": "Role-cell boundary spill; accepted v2 provides generous transparent gutters."
   }
 }

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
-import { readRgbaPng, visibleBounds } from './png-art.mjs';
+import { readRgbaPng, visibleBounds, isolatedBounds } from './png-art.mjs';
 
 const root = new URL('../pitch/stadiums/', import.meta.url);
 const catalog = JSON.parse(await readFile(new URL('catalog.json', root), 'utf8'));
@@ -16,7 +16,8 @@ for (const profile of catalog.atlases) {
   for (let i = 0; i < required.length; i++) {
     const x = Math.round(i % 4 * image.width / 4), y = Math.round(Math.floor(i / 4) * image.height / 4);
     const right = Math.round((i % 4 + 1) * image.width / 4), bottom = Math.round((Math.floor(i / 4) + 1) * image.height / 4);
-    regions[required[i]] = visibleBounds(image, { x, y, width: right - x, height: bottom - y });
+    const box = { x, y, width: right - x, height: bottom - y };
+    regions[required[i]] = i < 2 ? visibleBounds(image, box) : isolatedBounds(image, box, profile.id + '/' + required[i]);
   }
   atlases[profile.id] = { ...profile, width: image.width, height: image.height, regions };
 }

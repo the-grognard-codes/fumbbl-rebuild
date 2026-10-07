@@ -3,8 +3,8 @@
   "profile": "old-world-classic",
   "generator": "Built-in image_gen",
   "generationCalls": "generation-calls.json",
-  "acceptedFile": "../old-world-classic-v1.png",
-  "sha256": "234c98c042e06d1be39fe0cec657dc1c4c43568d0646ad4447b3f24e6668242b",
+  "acceptedFile": "../old-world-classic-v2.png",
+  "sha256": "f55ab63cb823f162dc8c0fbb45c7a511c115fa50a50f01cedf31a5e454dca013",
   "sourceDimensions": {
     "width": 1254,
     "height": 1254
@@ -40,5 +40,9 @@
       "timber"
     ]
   },
-  "qa": "../../../references/stadiums/human-v1/"
+  "qa": "../../../references/stadiums/human-v2/",
+  "supersededOutput": {
+    "file": "old-world-classic-superseded-v1.png",
+    "reason": "Role-cell boundary spill; accepted v2 provides generous transparent gutters."
+  }
 }

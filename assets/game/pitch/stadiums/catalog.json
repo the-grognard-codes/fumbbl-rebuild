@@ -3,8 +3,8 @@
   "atlases": [
     {
       "id": "old-world-classic",
-      "version": "v1",
-      "atlas": "old-world-classic-v1.png",
+      "version": "v2",
+      "atlas": "old-world-classic-v2.png",
       "palette": {
         "stone": "#73746b",
         "riser": "#403c34",
@@ -33,8 +33,8 @@
     },
     {
       "id": "badlands-brawl",
-      "version": "v1",
-      "atlas": "badlands-brawl-v1.png",
+      "version": "v2",
+      "atlas": "badlands-brawl-v2.png",
       "palette": {
         "stone": "#514b42",
         "riser": "#292724",

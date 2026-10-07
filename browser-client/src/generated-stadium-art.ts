@@ -2,8 +2,8 @@
 export const stadiumAtlases = {
   "old-world-classic": {
     "id": "old-world-classic",
-    "version": "v1",
-    "atlas": "old-world-classic-v1.png",
+    "version": "v2",
+    "atlas": "old-world-classic-v2.png",
     "palette": {
       "stone": "#73746b",
       "riser": "#403c34",
@@ -33,107 +33,107 @@ export const stadiumAtlases = {
     "height": 1254,
     "regions": {
       "stone": {
-        "x": 43,
-        "y": 40,
-        "width": 262,
-        "height": 262
+        "x": 86,
+        "y": 89,
+        "width": 153,
+        "height": 153
       },
       "timber": {
-        "x": 342,
-        "y": 40,
-        "width": 266,
-        "height": 260
+        "x": 391,
+        "y": 93,
+        "width": 160,
+        "height": 150
       },
       "gate": {
-        "x": 641,
-        "y": 64,
-        "width": 280,
-        "height": 232
+        "x": 697,
+        "y": 106,
+        "width": 171,
+        "height": 133
       },
       "gateTop": {
-        "x": 950,
-        "y": 95,
-        "width": 271,
-        "height": 212
+        "x": 1016,
+        "y": 120,
+        "width": 155,
+        "height": 123
       },
       "crowd": {
-        "x": 30,
-        "y": 373,
-        "width": 284,
-        "height": 250
+        "x": 50,
+        "y": 404,
+        "width": 215,
+        "height": 163
       },
       "crowdSide": {
-        "x": 314,
-        "y": 386,
-        "width": 299,
-        "height": 238
+        "x": 373,
+        "y": 406,
+        "width": 204,
+        "height": 161
       },
       "crowdTop": {
-        "x": 642,
-        "y": 437,
-        "width": 294,
-        "height": 144
+        "x": 678,
+        "y": 443,
+        "width": 215,
+        "height": 100
       },
       "banner": {
-        "x": 997,
-        "y": 344,
-        "width": 179,
-        "height": 280
+        "x": 1037,
+        "y": 376,
+        "width": 120,
+        "height": 185
       },
       "bench": {
-        "x": 26,
-        "y": 748,
-        "width": 288,
-        "height": 136
+        "x": 62,
+        "y": 751,
+        "width": 194,
+        "height": 86
       },
       "benchTop": {
-        "x": 314,
-        "y": 737,
-        "width": 296,
-        "height": 131
+        "x": 382,
+        "y": 745,
+        "width": 180,
+        "height": 88
       },
       "pavilion": {
-        "x": 628,
-        "y": 638,
-        "width": 309,
-        "height": 265
+        "x": 673,
+        "y": 687,
+        "width": 219,
+        "height": 177
       },
       "pavilionTop": {
-        "x": 970,
-        "y": 658,
-        "width": 246,
-        "height": 261
+        "x": 1010,
+        "y": 699,
+        "width": 177,
+        "height": 172
       },
       "mugs": {
-        "x": 97,
-        "y": 986,
-        "width": 183,
-        "height": 208
+        "x": 105,
+        "y": 1029,
+        "width": 131,
+        "height": 130
       },
       "torch": {
-        "x": 416,
-        "y": 949,
-        "width": 107,
-        "height": 262
+        "x": 432,
+        "y": 993,
+        "width": 76,
+        "height": 172
       },
       "torchTop": {
-        "x": 706,
-        "y": 997,
-        "width": 153,
-        "height": 188
+        "x": 732,
+        "y": 1027,
+        "width": 100,
+        "height": 120
       },
       "pennant": {
-        "x": 981,
-        "y": 1005,
-        "width": 216,
-        "height": 191
+        "x": 1021,
+        "y": 1022,
+        "width": 149,
+        "height": 126
       }
     }
   },
   "badlands-brawl": {
     "id": "badlands-brawl",
-    "version": "v1",
-    "atlas": "badlands-brawl-v1.png",
+    "version": "v2",
+    "atlas": "badlands-brawl-v2.png",
     "palette": {
       "stone": "#514b42",
       "riser": "#292724",
@@ -163,100 +163,100 @@ export const stadiumAtlases = {
     "height": 1254,
     "regions": {
       "stone": {
-        "x": 43,
-        "y": 40,
-        "width": 261,
-        "height": 261
+        "x": 89,
+        "y": 97,
+        "width": 143,
+        "height": 143
       },
       "timber": {
-        "x": 339,
-        "y": 40,
-        "width": 270,
-        "height": 261
+        "x": 401,
+        "y": 97,
+        "width": 140,
+        "height": 142
       },
       "gate": {
-        "x": 635,
-        "y": 38,
-        "width": 306,
-        "height": 263
+        "x": 701,
+        "y": 90,
+        "width": 166,
+        "height": 150
       },
       "gateTop": {
-        "x": 941,
-        "y": 79,
-        "width": 295,
-        "height": 235
+        "x": 1011,
+        "y": 106,
+        "width": 174,
+        "height": 144
       },
       "crowd": {
-        "x": 26,
-        "y": 383,
-        "width": 288,
-        "height": 244
+        "x": 49,
+        "y": 405,
+        "width": 198,
+        "height": 151
       },
       "crowdSide": {
-        "x": 314,
-        "y": 387,
-        "width": 307,
-        "height": 240
+        "x": 367,
+        "y": 405,
+        "width": 205,
+        "height": 152
       },
       "crowdTop": {
-        "x": 639,
-        "y": 456,
-        "width": 302,
-        "height": 154
+        "x": 687,
+        "y": 437,
+        "width": 205,
+        "height": 104
       },
       "banner": {
-        "x": 941,
-        "y": 314,
-        "width": 265,
-        "height": 313
+        "x": 1034,
+        "y": 365,
+        "width": 131,
+        "height": 213
       },
       "bench": {
-        "x": 21,
-        "y": 627,
-        "width": 293,
-        "height": 266
+        "x": 60,
+        "y": 744,
+        "width": 194,
+        "height": 94
       },
       "benchTop": {
-        "x": 314,
-        "y": 627,
-        "width": 297,
-        "height": 314
+        "x": 378,
+        "y": 732,
+        "width": 185,
+        "height": 101
       },
       "pavilion": {
-        "x": 629,
-        "y": 634,
-        "width": 312,
-        "height": 273
+        "x": 682,
+        "y": 686,
+        "width": 204,
+        "height": 164
       },
       "pavilionTop": {
-        "x": 941,
-        "y": 627,
-        "width": 291,
-        "height": 309
+        "x": 1009,
+        "y": 685,
+        "width": 177,
+        "height": 190
       },
       "mugs": {
         "x": 96,
-        "y": 980,
-        "width": 186,
-        "height": 220
+        "y": 1021,
+        "width": 131,
+        "height": 136
       },
       "torch": {
-        "x": 412,
-        "y": 941,
-        "width": 119,
-        "height": 276
+        "x": 429,
+        "y": 979,
+        "width": 86,
+        "height": 192
       },
       "torchTop": {
-        "x": 678,
-        "y": 990,
-        "width": 210,
-        "height": 221
+        "x": 713,
+        "y": 1020,
+        "width": 138,
+        "height": 140
       },
       "pennant": {
-        "x": 986,
-        "y": 982,
-        "width": 216,
-        "height": 213
+        "x": 1028,
+        "y": 1011,
+        "width": 140,
+        "height": 145
       }
     }
   }

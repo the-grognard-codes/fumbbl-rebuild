@@ -44,6 +44,16 @@ export async function readRgbaPng(path) {
   }
   return { width, height, rgba };
 }
+export function isolatedBounds(image, box, role) {
+  const bounds = visibleBounds(image, box);
+  const gutter = Math.max(2, Math.ceil(Math.min(box.width, box.height) / 32));
+  if (bounds.x < box.x + gutter || bounds.y < box.y + gutter
+      || bounds.x + bounds.width > box.x + box.width - gutter
+      || bounds.y + bounds.height > box.y + box.height - gutter)
+    throw Error('Stadium role needs transparent cell gutters: ' + role);
+  return bounds;
+}
+
 export function visibleBounds(image, box = { x: 0, y: 0, width: image.width, height: image.height }) {
   let left = box.x + box.width, top = box.y + box.height, right = -1, bottom = -1;
   for (let y = box.y; y < box.y + box.height; y++) for (let x = box.x; x < box.x + box.width; x++) {
