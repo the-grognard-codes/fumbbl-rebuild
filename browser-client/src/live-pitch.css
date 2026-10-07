@@ -471,9 +471,12 @@
 .projected-pitch .live-pitch-viewport { position: relative; overflow: hidden; touch-action: none; background: #101719; cursor: grab; }
 .projected-pitch .live-pitch-scene { position: absolute; inset: 0; overflow: clip; }
 .projected-pitch .live-pitch-scene > svg { position: absolute; inset: 0; pointer-events: none; }
+.projected-pitch .live-dice-overlay:not(.interactive) > div { flex-wrap: wrap; }
 .pitch-stadium-world { position: absolute; inset: 0; pointer-events: none; }
 .pitch-stadium-plate { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .pitch-chalk { fill: none; stroke: #f0eed2; stroke-width: 2; stroke-opacity: .84; }
+.live-player-shadow { fill: #08120966; stroke: none; pointer-events: none; }
+.live-kick-target { fill: #f6dfa840; stroke: #f7e6b4; stroke-width: 3; stroke-dasharray: 8 4; pointer-events: none; }
 .pitch-chalk.wide { stroke-dasharray: 12 10; }
 .live-selection-square { fill: #36ddff18; stroke: #36ddff; stroke-width: 3; }
 .live-keyboard-square { fill: #ffe17b18; stroke: #ffe17b; stroke-width: 2; stroke-dasharray: 4 3; }

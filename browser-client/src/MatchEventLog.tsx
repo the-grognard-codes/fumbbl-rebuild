@@ -3,10 +3,10 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { appendMatchLogLines } from './match-log.ts';
 import type { MatchLogLine } from './match-log.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTextSize } from './MatchTextSizeControls.tsx';
+import type { MatchTextSize } from './MatchTextSizeControls.tsx';
 
 const PAGE = 160;
-type LogFontSize = 'small' | 'medium' | 'large';
-const fontPixels: Record<LogFontSize, number> = { small: 12, medium: 14, large: 18 };
 const fontKey = 'ffb.match.log.font-size';
 
 export function MatchEventLog({ records, loading, unavailable }: {
@@ -21,13 +21,10 @@ export function MatchEventLog({ records, loading, unavailable }: {
     return cache.current.lines;
   }, [records]);
   const [windowRange, setWindowRange] = useState<{ first: number; last: number } | null>(null);
-  const [fontSize, setFontSize] = useState<LogFontSize>(() => {
-    try { const saved = localStorage.getItem(fontKey); return saved === 'small' || saved === 'large' ? saved : 'medium'; }
-    catch { return 'medium'; }
-  });
-  const chooseFontSize = (size: LogFontSize) => {
+  const [fontSize, setFontSize] = useState<MatchTextSize>(() => readMatchTextSize(fontKey));
+  const chooseFontSize = (size: MatchTextSize) => {
     setFontSize(size);
-    try { localStorage.setItem(fontKey, size); } catch { /* Keep the current setting in memory. */ }
+    saveMatchTextSize(fontKey, size);
   };
   const pane = useRef<HTMLDivElement>(null);
   const anchor = useRef<{ height: number; top: number } | null>(null);
@@ -46,13 +43,9 @@ export function MatchEventLog({ records, loading, unavailable }: {
   };
   const later = () => setWindowRange({ first, last: Math.min(lines.length, last + PAGE) });
   return <section className="match-event-log" data-font-size={fontSize} aria-label="Match log">
-    <header><h3>Game Log</h3><div className="log-font-controls" role="group" aria-label="Log text size">
-      {(['small', 'medium', 'large'] as const).map(size => <button key={size} type="button" data-log-size={size}
-        aria-label={`${size[0].toUpperCase()}${size.slice(1)} log text`} aria-pressed={fontSize === size}
-        onClick={() => chooseFontSize(size)}>A</button>)}
-    </div></header>
+    <header><h3>Game Log</h3><MatchTextSizeControls subject="log" size={fontSize} onChange={chooseFontSize}/></header>
     {!lines.length && <p>{loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>}
-    <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll" style={{ fontSize: `${fontPixels[fontSize]}px` }}
+    <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll" style={{ fontSize: `${matchTextPixels[fontSize]}px` }}
       onScroll={event => { if (windowRange !== null) return; const element = event.currentTarget;
         if (element.scrollHeight - element.scrollTop - element.clientHeight > 36)
           setWindowRange({ first, last }); }}>

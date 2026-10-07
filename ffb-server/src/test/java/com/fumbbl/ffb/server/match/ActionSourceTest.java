@@ -1,9 +1,11 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 
 import org.junit.jupiter.api.Test;
@@ -46,5 +48,12 @@ class ActionSourceTest {
         assertEquals("home-player", source.playerId(game,
             new Action("block", "block", "Block", "home", null, "away-player")));
         assertNull(source.playerId(game, new Action("block", "block", "Block", "away", null, "home-player")));
+    }
+
+    @Test void kickoffMovementBelongsToItsMovedPlayerWithoutAnActingPlayer() {
+        assertEquals("home-player", source.playerId(game, new Action("event", "kickoffMove", "Move", "home",
+            new ClientCommandSetupPlayer("home-player", new FieldCoordinate(12, 7)), new FieldCoordinate(12, 7))));
+        assertNull(source.playerId(game, new Action("event", "kickoffMove", "Move", "home",
+            new ClientCommandSetupPlayer("away-player", new FieldCoordinate(12, 7)), new FieldCoordinate(12, 7))));
     }
 }

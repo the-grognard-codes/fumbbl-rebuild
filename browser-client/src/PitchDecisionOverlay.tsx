@@ -4,6 +4,10 @@ import { createPortal } from 'react-dom';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import type { DiceMoment } from './dice-presentation.ts';
+import './pitch-decision-overlay.css';
+
+const resourceIcon = `${import.meta.env.BASE_URL}assets/game/ui/reroll-v1.png`;
+const skillIcons = `${import.meta.env.BASE_URL}assets/game/ui/skill-icons-v1.svg`;
 
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
 export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, viewport, scene, x, y, onAction }: {
@@ -50,16 +54,23 @@ export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, vi
     panel.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true });
     return () => { if (prior?.isConnected) prior.focus({ preventScroll: true }); };
   }, [decision.key, ready]);
-  return createPortal(<div ref={panel} className="live-dice-overlay interactive" role="dialog" aria-label={decision.title}
+  return createPortal(<div ref={panel} className="live-dice-overlay interactive pitch-decision-overlay" role="dialog" aria-label={decision.title} aria-busy={disabled}
     style={{ position: 'fixed', ...bounds, visibility: ready ? 'visible' : 'hidden' }}
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
     <strong className={diceMoment || decision.options.some(option => option.face) ? 'sr-only' : undefined}>{decision.title}</strong>
-    {diceMoment && <div role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
-      {diceMoment.faces.map((face, index) => <DiceFace key={index} face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey}/>)}</div>}
+    {diceMoment && <div className="pitch-decision-roll" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
+      {diceMoment.faces.map((face, index) => <span key={index} title={diceMoment.rolls?.[index]?.label ?? diceMoment.label}><DiceFace face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rolls?.[index]?.rollKey ?? diceMoment.rollKey}/></span>)}</div>}
     <div className="live-dice-choices">{decision.options.map(option => <button key={option.id} type="button"
-      className={option.face ? 'live-die-choice' : undefined}
-      disabled={disabled} aria-label={option.label} onClick={() => onAction?.(option.id)}>
-      {option.face && <DiceFace face={option.face}/>}<span className={option.face ? 'sr-only' : undefined}>{option.label}</span>
+      className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}
+      disabled={disabled} aria-label={option.label} title={disabled ? `${option.label} (pending)` : option.label}
+      onClick={() => onAction?.(option.id)}>
+      {option.face && <DiceFace face={option.face}/>}
+      {option.icon === 'resource' && <img src={resourceIcon} alt="" aria-hidden="true"/>}
+      {option.icon?.startsWith('custom:') && <svg aria-hidden="true" viewBox="0 0 48 48" className="pitch-dice-custom-icon">
+        <use href={`${skillIcons}#badge`}/><text x="24" y="31">{option.icon.slice(7).split(/\s+/).map(word => word[0]).slice(0, 2).join('').toUpperCase()}</text>
+      </svg>}
+      {option.icon && option.icon !== 'resource' && !option.icon.startsWith('custom:') && <svg aria-hidden="true" viewBox="0 0 48 48"><use href={`${skillIcons}#${option.icon}`}/></svg>}
+      <span className={option.face || option.icon ? 'sr-only' : undefined}>{option.label}</span>
     </button>)}</div>
   </div>, document.body);
 }

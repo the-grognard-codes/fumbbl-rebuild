@@ -64,6 +64,7 @@ try {
   await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
   assert.equal(await arrows.count(), 3);
   await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+  await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   await page.evaluate(() => document.fonts.ready);
   assert.equal(await page.locator('.live-team-nameplate strong').evaluateAll(elements => elements.every(element =>
     element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.parentElement.clientHeight)), true, 'Both frozen team names fit their plates');

@@ -1,7 +1,26 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
 
-export type MatchDecision = { title: string; key: string; kind: string; options: { id: string; label: string; kind: 'choice' | 'action'; face?: string }[] };
+export type MatchDecision = { title: string; key: string; kind: string; options: {
+  id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string
+}[] };
+
+// These names come from RerollPromptActions and ReRollSources. Automatic skill
+// rerolls have no offered action and therefore never acquire a manual button.
+const skillNames = ['Consummate Professional', 'Unstoppable Momentum', 'Monstrous Mouth', 'Mesmerising Dance',
+  'Mesmerizing Dance', 'Thinking Man\'s Troll', 'Working in Tandem', 'Woodland Fury', 'Bounding Leap',
+  'Bribery and Corruption', 'Pump up the Crowd', 'Star of the Show', 'Halfling Luck', 'Whirling Dervish',
+  'Brilliant Coaching', 'Savage Blow', 'Blind Rage', 'Sure Hands', 'Sure Feet', 'The Ballista',
+  'Lord of Chaos', 'Brawler', 'Hatred', 'Dodge', 'Catch', 'Pass', 'Swoop', 'Kick', 'Pro', 'Loner'];
+
+export function decisionIcon(label: string): string | undefined {
+  if (/^(?:Do not|Keep|Decline)\b/i.test(label)) return undefined;
+  if (/^(?:Use|Try)\s+(?:team|mascot|brilliant coaching|pump up the crowd|star of the show)/i.test(label)) return 'resource';
+  const skill = skillNames.find(name => new RegExp(`^Use ${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\b|$)`, 'i').test(label));
+  if (skill) return skill.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (/^Use\s+\S/.test(label)) return `custom:${label.slice(4)}`;
+  return undefined;
+}
 
 const promptTitles: Record<string, string> = {
   blockDie: 'Choose a block die', reroll: 'Use a re-roll?', skill: 'Use a skill?',
@@ -29,6 +48,6 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
     options: choices.map(action => {
       const face = action.kind === 'blockDie' ? /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
-      return { id: action.id, label, kind: 'action', face };
+      return { id: action.id, label, kind: 'action', face, icon: rollKinds.includes(kind) ? decisionIcon(label) : undefined };
     }) };
 }

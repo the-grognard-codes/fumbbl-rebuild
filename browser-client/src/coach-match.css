@@ -2,7 +2,7 @@
 
 /* One camera fills the match window. The supporting HUD uses a shared alpha. */
 .play-runtime.live-match-page:has(.coach-match) { padding: 0; height: 100dvh; min-height: 0; overflow: hidden; }
-.play-runtime.live-match-page > .coach-match.hosted-match { --support-panel-opacity: 30%; position: relative; display: block; width: 100%; height: 100%; margin: 0; padding: 0; color: #d9e9f7; font: 700 14px/1.35 MUTP, sans-serif; }
+.play-runtime.live-match-page > .coach-match.hosted-match { --support-panel-opacity: 30%; --score-panel-height: 52px; --history-panel-height: 152px; --history-panel-bottom: 16px; --dugout-panel-gap: 8px; position: relative; display: block; width: 100%; height: 100%; margin: 0; padding: 0; color: #d9e9f7; font: 700 14px/1.35 MUTP, sans-serif; }
 .play-runtime .coach-match.hosted-match > h2, .play-runtime .coach-match.hosted-match > [aria-label="Coach labels"], .play-runtime .coach-match.hosted-match > .match-technical-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .play-runtime .coach-match.hosted-match > .match-layout { display: block; position: absolute; inset: 0; height: 100%; margin: 0; }
 .play-runtime .coach-match.hosted-match .match-board { position: absolute; inset: 0; display: block; min-width: 0; }
@@ -22,7 +22,7 @@
 .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-resources,
 .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-chess-clock,
 .play-runtime .coach-match.hosted-match .match-history > section { background: rgb(9 23 38 / var(--support-panel-opacity)); }
-.play-runtime .coach-match.hosted-match .coach-score-center { position: absolute; top: 0; left: 29%; width: 42%; display: grid; grid-template-columns: minmax(0,1fr) 86px minmax(0,1fr); height: 52px; grid-template-rows: minmax(0,1fr); gap: 0; align-items: stretch; justify-content: normal; }
+.play-runtime .coach-match.hosted-match .coach-score-center { position: absolute; top: 0; left: 29%; width: 42%; display: grid; grid-template-columns: minmax(0,1fr) 86px minmax(0,1fr); height: var(--score-panel-height); grid-template-rows: minmax(0,1fr); gap: 0; align-items: stretch; justify-content: normal; }
 .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 0; height: 100%; box-sizing: border-box; padding: 5px 10px; color: #d9e9f7; }
 .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate.away { flex-direction: row-reverse; }
 .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate strong { display: block; flex: 1; min-width: 0; font: 700 17px/1.15 MUTP,sans-serif; letter-spacing: 0; color: #d9e9f7; text-align: center; overflow-wrap: anywhere; }
@@ -30,40 +30,42 @@
 .play-runtime .coach-match.hosted-match .coach-score { display: flex; align-items: center; justify-content: center; gap: 8px; border-inline: 1px solid #28485e; font-size: 30px; }
 .play-runtime .coach-match.hosted-match .coach-score b:first-child { color: #49dfff; }
 .play-runtime .coach-match.hosted-match .coach-score b:last-child { color: #ffe17b; }
-.play-runtime .coach-match.hosted-match .live-resources { position: absolute; top: 0; padding: 5px 7px; max-width: 18%; }
+.play-runtime .coach-match.hosted-match .live-resources { position: absolute; top: 0; margin: 0; padding: 2.5px 7px; max-width: 18%; height: var(--score-panel-height); }
 .play-runtime .coach-match.hosted-match .live-resources.home { left: 0; }
 .play-runtime .coach-match.hosted-match .live-resources.away { right: 0; }
 .play-runtime .coach-match.hosted-match .live-resource-counts { display: flex; flex-wrap: wrap; gap: 5px; }
 .play-runtime .coach-match.hosted-match .live-resource-item { position: relative; }
-.play-runtime .coach-match.hosted-match button.live-resource { position: relative; width: 40px; height: 40px; min-width: 0; padding: 0; margin: 0; border: 0; box-shadow: none; background: none; cursor: help; }
+.play-runtime .coach-match.hosted-match button.live-resource { position: relative; display: block; width: 40px; height: 40px; min-width: 0; padding: 0; margin: 0; border: 0; box-shadow: none; background: none; cursor: help; }
 .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { display: block; width: 36px; height: 36px; object-fit: contain; image-rendering: pixelated; }
 .play-runtime .coach-match.hosted-match .live-resource b { position: absolute; right: 0; bottom: 0; color: #ffe17b; text-shadow: 1px 2px #07111e; font-size: 14px; }
 .play-runtime .coach-match.hosted-match .live-resource-tooltip { position: absolute; left: 0; top: calc(100% + 6px); padding: 7px 10px; width: max-content; max-width: 240px; border: 1px solid #426c9b; color: #ffe17b; background: #091726; opacity: 0; visibility: hidden; pointer-events: none; text-transform: none; font-size: 13px; z-index: 90; }
 .play-runtime .coach-match.hosted-match .live-resources.away .live-resource-tooltip { left: auto; right: 0; }
 .play-runtime .coach-match.hosted-match .live-resource-item:hover .live-resource-tooltip, .play-runtime .coach-match.hosted-match .live-resource-item:focus-within .live-resource-tooltip { visibility: visible; opacity: 1; }
 .play-runtime .coach-match.hosted-match .live-resource-glyph { font: 700 16px MUTP,sans-serif; color: #d9e9f7; }
-.play-runtime .coach-match.hosted-match .live-chess-clock { position: absolute; top: 0; display: flex; flex-direction: column; width: 96px; padding: 5px 7px; font-size: 11px; }
+.play-runtime .coach-match.hosted-match .live-chess-clock { position: absolute; top: 0; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: center; gap: 0; width: 96px; height: var(--score-panel-height); margin: 0; padding: 5px 7px; font-size: 11px; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.home { right: calc(71% + 10px); }
 .play-runtime .coach-match.hosted-match .live-chess-clock.away { left: calc(71% + 10px); }
 .play-runtime .coach-match.hosted-match .live-chess-clock span { display: flex; justify-content: space-between; gap: 5px; line-height: 18px; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.active { border-color: #38cce4; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.active [data-clock-line=turn] b { color: #49e6ff; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.urgent [data-clock-line=turn] b { color: #ffb357; }
-.play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { position: absolute; top: 58px; display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; width: calc(21% - 45px); height: 27px; list-style: none; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { position: absolute; top: 58px; display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; width: calc(21% - 52px); height: 27px; list-style: none; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; pointer-events: none; }
 .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 29%; }
 .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 29%; }
 .play-runtime .coach-match.hosted-match .live-turn-track li { display: grid; place-items: center; border: 1px solid #426c9b; border-radius: 2px; background: #091726bb; color: #b7c9da; font-size: 14px; }
 .play-runtime .coach-match.hosted-match .live-turn-track li.past { opacity: .18; }
 .play-runtime .coach-match.hosted-match .live-turn-track li[aria-current=step] { border-color: #edb644; color: #ffe17b; background: #583d0fd1; }
-.play-runtime .coach-match.hosted-match .live-match-scoreboard > .coach-weather-slot { position: absolute; left: calc(50% - 43px); top: 58px; width: 86px; height: 27px; border: 0; background: none; box-shadow: none; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .live-match-scoreboard > .coach-weather-slot { position: absolute; left: calc(50% - 48px); top: 58px; width: 96px; height: 27px; display: flex; flex-wrap: nowrap; align-items: center; gap: 3px; border: 0; outline: 0; background: none; box-shadow: none; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .coach-weather-slot img { flex: none; width: 34px; height: 36px; object-fit: cover; object-position: center; image-rendering: pixelated; align-self: flex-start; }
+.play-runtime .coach-match.hosted-match .coach-weather-slot span { font: 700 11px/1.1 MUTP,sans-serif; text-shadow: 1px 1px #081522; }
 .play-runtime .coach-match.hosted-match .match-history { display: contents; }
-.play-runtime .coach-match.hosted-match .match-history > section { position: absolute; bottom: 16px; z-index: 50; width: 25%; height: 152px; box-sizing: border-box; padding: 10px; border: 2px solid #426c9b; border-radius: 4px; color: #d9e9f7; background: rgb(9 23 38 / var(--support-panel-opacity)); box-shadow: inset 0 0 0 1px #142e4b; display: flex; flex-direction: column; min-height: 0; }
+.play-runtime .coach-match.hosted-match .match-history > section { position: absolute; bottom: var(--history-panel-bottom); z-index: 50; width: 25%; height: var(--history-panel-height); box-sizing: border-box; margin: 0; padding: 5px 10px; border: 2px solid #426c9b; border-radius: 4px; color: #d9e9f7; background: rgb(9 23 38 / var(--support-panel-opacity)); box-shadow: inset 0 0 0 1px #142e4b; display: flex; flex-direction: column; min-height: 0; }
 .play-runtime .coach-match.hosted-match .match-history-chat { left: 12px; }
 .play-runtime .coach-match.hosted-match .match-history-log { right: 12px; }
 .play-runtime .coach-match.hosted-match .match-event-log, .play-runtime .coach-match.hosted-match .match-chat { display: flex; flex: 1; min-height: 0; flex-direction: column; }
 .play-runtime .coach-match.hosted-match .match-history h3 { margin: 0; font: 700 11px MUTP,sans-serif; letter-spacing: 1px; color: #a4bfd5; }
 .play-runtime .coach-match.hosted-match .match-event-scroll, .play-runtime .coach-match.hosted-match .match-chat-scroll { flex: 1; min-height: 0; max-height: none; color: #a4bfd5; font: 14px/1.5 system-ui,sans-serif; }
-.play-runtime .coach-match.hosted-match .match-event-scroll p, .play-runtime .coach-match.hosted-match .match-chat-scroll p { margin: 3px 0; }
+.play-runtime .coach-match.hosted-match .match-event-scroll p, .play-runtime .coach-match.hosted-match .match-chat-scroll p { margin: 3px 0; font-size: inherit; line-height: inherit; }
 .play-runtime .coach-match.hosted-match .match-log-count, .play-runtime .coach-match.hosted-match .match-chat-count { margin: 2px 0; font: 10px system-ui,sans-serif; color: #a4bfd5; }
 .play-runtime .coach-match.hosted-match .match-chat-scroll strong { color: #49dfff; font-weight: 600; }
 .play-runtime .coach-match.hosted-match .match-chat-scroll time, .play-runtime .coach-match.hosted-match .match-event-scroll time, .play-runtime .coach-match.hosted-match .match-log-revision { display: none; }
@@ -83,18 +85,17 @@
 .play-runtime .coach-match.hosted-match .live-player-card-token { display: grid; place-items: center; width: 76px; height: 76px; color: #ffe17b; border: 1px solid #426c9b; }
 .play-runtime .coach-match.hosted-match .live-dugout.compact .live-dugout-zones { display: flex; flex-wrap: wrap; gap: 2px; }
 .play-runtime .coach-match.hosted-match .live-dugout-zone-summary { padding: 2px 4px; margin: 0; font: 9px MUTP,sans-serif; }
-.play-runtime .coach-match.hosted-match > .match-command-bar { position: absolute; z-index: 55; bottom: 16px; left: 27%; width: 46%; display: block; box-sizing: border-box; padding: 5px; margin: 0; border: 2px solid #426c9b; border-radius: 4px; background: #091726b8; box-shadow: inset 0 0 0 1px #142e4b; }
-.play-runtime .coach-match.hosted-match .match-command-bar .command-buttons { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5px; }
-.play-runtime .coach-match.hosted-match .command-buttons > button { height: 65px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 4px; margin: 0; border: 2px solid #355c7a; border-radius: 3px; background: #0a1828b8; box-shadow: inset 0 0 0 1px #152e46; color: #b7c9da; font: 700 13px/1.15 MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match > .match-command-bar { position: absolute; z-index: 55; bottom: 16px; left: 27%; width: 46%; display: block; box-sizing: border-box; padding: 3px; margin: 0; border: 2px solid #426c9b; border-radius: 4px; background: #091726b8; box-shadow: inset 0 0 0 1px #142e4b; }
+.play-runtime .coach-match.hosted-match .match-command-bar .command-buttons { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
+.play-runtime .coach-match.hosted-match .command-buttons > button { height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 3px; margin: 0; border: 2px solid #355c7a; border-radius: 3px; background: #0a1828b8; box-shadow: inset 0 0 0 1px #152e46; color: #b7c9da; font: 700 13px/1.15 MUTP,sans-serif; text-transform: uppercase; }
 .play-runtime .coach-match.hosted-match .command-buttons > button > svg { width: 25px; height: 25px; }
 .play-runtime .coach-match.hosted-match .command-buttons > button[aria-pressed=true] { border-color: #3edfff; color: #45e7ff; box-shadow: inset 0 0 0 1px #0c82a5,0 0 9px #0a6689; }
 .play-runtime .coach-match.hosted-match .command-buttons > .end-turn-action { border-color: #de9f31; color: #ffbc39; }
 .play-runtime .coach-match.hosted-match .command-heading { position: absolute; bottom: calc(100% + 54px); left: 0; right: 0; display: flex; justify-content: center; gap: 5px; text-align: center; font: 12px MUTP,sans-serif; text-shadow: 1px 2px #081522; pointer-events: none; }
 .play-runtime .coach-match.hosted-match .command-heading > strong { display: none; }
 .play-runtime .coach-match.hosted-match .confirmation-row { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-.play-runtime .coach-match.hosted-match .confirmation-row .commit-action { display: flex; align-items: center; gap: 7px; height: 38px; margin: 0; padding: 4px 14px; color: #45e7ff; border: 2px solid #3edfff; background: #091726db; font: 700 15px MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match .confirmation-row .commit-action { display: flex; align-items: center; gap: 7px; min-height: 0; height: auto; margin: 0; padding: 1px 14px; color: #45e7ff; border: 2px solid #3edfff; background: #091726db; font: 700 15px MUTP,sans-serif; text-transform: uppercase; }
 .play-runtime .coach-match.hosted-match .confirmation-row .commit-action > svg { width: 22px; height: 22px; }
-.play-runtime .coach-match.hosted-match .confirmation-row .cancel-proposal { margin: 0; padding: 2px 8px; height: 38px; background: #091726db; }
 .play-runtime .coach-match.hosted-match .command-preview { display: block; min-height: 0; font-size: 11px; text-align: center; color: #ffe17b; }
 .play-runtime .coach-match.hosted-match .command-preview:empty { display: none; }
 .play-runtime .coach-match.hosted-match .command-menu { position: absolute; bottom: calc(100% + 78px); left: 0; right: 0; z-index: 56; max-height: min(310px,40dvh); overflow: auto; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; padding: 6px; border: 2px solid #426c9b; border-radius: 4px; background: #091726eb; }
@@ -104,15 +105,32 @@
 .play-runtime .coach-match.hosted-match .route-controls { position: absolute; bottom: calc(100% + 79px); left: 0; right: 0; padding: 8px; border: 2px solid #426c9b; background: #091726eb; max-height: 25dvh; overflow: auto; }
 .play-runtime .coach-match.hosted-match .route-controls button { margin: 0; padding: 2px 5px; }
 .play-runtime .coach-match.hosted-match .route-controls details { width: 100%; }
-.play-runtime .coach-match.hosted-match .match-side-controls { position: absolute; z-index: 60; top: 108px; right: 12px; display: flex; gap: 5px; width: auto; }
-.play-runtime .coach-match.hosted-match .match-side-controls > span { font: 11px MUTP,sans-serif; }
 .play-runtime .coach-match.hosted-match .match-pitch-zoom { display: none; }
-.play-runtime .coach-match.hosted-match .game-menu-trigger { position: absolute; z-index: 60; top: 108px; left: 12px; width: auto; padding: 3px 8px; margin: 0; font: 12px MUTP,sans-serif; }
+.play-runtime .coach-match.hosted-match .game-menu-trigger { position: absolute; z-index: 60; top: calc(var(--away-resource-bottom, 64px) + 6px); left: auto; right: 12px; width: auto; padding: 3px 8px; margin: 0; font: 12px MUTP,sans-serif; }
 .play-runtime .coach-match.hosted-match .game-menu-shade { z-index: 3100; }
-.play-runtime .coach-match.hosted-match .live-dugouts { position: absolute; inset: 148px 12px auto; z-index: 45; margin: 0; min-height: 0; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
-.play-runtime .coach-match.hosted-match .live-dugout { width: 245px; height: auto; min-height: 0; padding: 3px 6px; box-sizing: border-box; max-height: 35dvh; overflow: auto; background: #091726b8; border: 1px solid #426c9b; pointer-events: auto; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog { padding: 14px; color: #d9e9f7; font: 700 14px/1.4 MUTP,sans-serif; border: 2px solid #426c9b; border-radius: 4px; background: #091726f2; box-shadow: inset 0 0 0 1px #142e4b,0 18px 60px #000c; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog h2 { color: #49e6ff; font: 700 24px/1.2 MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog h3 { color: #ffe17b; font: 700 16px/1.3 MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog nav { border-color: #426c9b; gap: 6px; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog button,
+.play-runtime .coach-match.hosted-match .game-menu-dialog select { color: #b7c9da; font-family: MUTP,sans-serif; font-weight: 700; border-color: #355c7a; border-radius: 3px; background: #101f32; box-shadow: inset 0 0 0 1px #152e46; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog button { margin: 0; padding: 5px 8px; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog nav button[aria-selected=true] { color: #49e6ff; border-color: #3edfff; background: #153e57; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog button:focus-visible,
+.play-runtime .coach-match.hosted-match .game-menu-dialog select:focus-visible { outline: 2px solid #49e6ff; outline-offset: 2px; }
+.play-runtime .coach-match.hosted-match .game-menu-content > section { margin: 8px 0 0; padding: 10px; border-color: #426c9b; border-radius: 3px; background: #101f3280; }
+.play-runtime .coach-match.hosted-match .game-menu-content > section > p,
+.play-runtime .coach-match.hosted-match .game-menu-confirm p { font: inherit; color: #b7c9da; }
+.play-runtime .coach-match.hosted-match .game-menu-confirm { border-color: #edb644; border-radius: 3px; }
+.play-runtime .coach-match.hosted-match .game-menu-confirm button + button { margin-left: 6px; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog .log-font-controls button { padding: 0 2px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: none; box-shadow: none; }
+.play-runtime .coach-match.hosted-match .game-menu-dialog .log-font-controls button[aria-pressed=true] { color: #49e6ff; border-bottom-color: #49e6ff; }
+.play-runtime .coach-match.hosted-match .live-dugouts { position: absolute; inset: auto 12px calc(var(--history-panel-bottom) + var(--history-panel-height) + var(--dugout-panel-gap)); z-index: 45; margin: 0; min-height: 0; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .live-dugout { width: 245px; height: auto; min-height: 0; margin: 0; padding: 3px 6px; box-sizing: border-box; max-height: min(35dvh, max(40px,calc(100dvh - var(--history-panel-bottom) - var(--history-panel-height) - 150px))); overflow: auto; background: #091726b8; border: 1px solid #426c9b; pointer-events: auto; }
+.play-runtime .coach-match.hosted-match .live-dugout.condensed { width: max-content; max-width: 45%; }
 .play-runtime .coach-match.hosted-match .live-dugout.compact { width: max-content; max-width: 245px; }
 .play-runtime .coach-match.hosted-match .live-dugout-heading strong { font: 10px MUTP,sans-serif; }
+.play-runtime .coach-match.hosted-match .live-dugout-heading { position: sticky; top: 0; z-index: 1; flex: none; background: #091726c9; }
 .play-runtime .coach-match.hosted-match .live-dugout-controls button { height: 20px; width: 20px; padding: 0; margin: 0; }
 .play-runtime .coach-match.hosted-match .live-dugout-zones { display: block; }
 .play-runtime .coach-match.hosted-match .live-dugout-zone { padding: 3px; }
@@ -136,45 +154,51 @@
 .play-runtime .coach-match.hosted-match .match-command-bar:has(.route-controls) { z-index: 70; }
 
 @media (max-width: 900px) {
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 10px; --history-panel-height: 136px; }
   .play-runtime .coach-match.hosted-match .coach-score-center { left: 20%; width: 60%; grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr); }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate { padding: 4px; gap: 4px; }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate strong { font-size: 13px; }
   .play-runtime .coach-match.hosted-match .live-chess-clock { top: 57px; width: 78px; }
   .play-runtime .coach-match.hosted-match .live-chess-clock.home { right: auto; left: 0; }
   .play-runtime .coach-match.hosted-match .live-chess-clock.away { left: auto; right: 0; }
-  .play-runtime .coach-match.hosted-match .live-resources { max-width: 19%; padding: 3px; }
-  .play-runtime .coach-match.hosted-match button.live-resource { width: 25px; height: 25px; }
-  .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { width: 24px; height: 24px; }
-  .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { width: calc(30% - 35px); }
+  .play-runtime .coach-match.hosted-match .live-resources { max-width: 19%; padding: 2px; }
+  .play-runtime .coach-match.hosted-match button.live-resource { width: 22px; height: 22px; }
+  .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { width: 22px; height: 22px; }
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { width: calc(30% - 52px); }
   .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 20%; }
   .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 20%; }
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: 160px; }
   .play-runtime .coach-match.hosted-match .live-camera-controls { top: 118px; max-width: 55%; }
-  .play-runtime .coach-match.hosted-match .match-side-controls, .play-runtime .coach-match.hosted-match .game-menu-trigger { top: 118px; }
-  .play-runtime .coach-match.hosted-match .match-side-controls > span, .play-runtime .coach-match.hosted-match .match-side-controls > button:first-of-type { display: none; }
   .play-runtime .coach-match.hosted-match > .match-command-bar { left: 26%; width: 48%; bottom: 10px; }
-  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 56px; font-size: 10px; }
-  .play-runtime .coach-match.hosted-match .match-history > section { bottom: 10px; width: 24%; height: 136px; padding: 5px; }
+  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 48px; font-size: 10px; }
+  .play-runtime .coach-match.hosted-match .match-history > section { width: 24%; padding: 3px 5px; }
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-left, .play-runtime .coach-match.hosted-match .live-player-hover.dock-right { bottom: 156px; width: 32%; }
 }
 @media (max-width: 600px) {
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 146px; --history-panel-height: 95px; }
   .play-runtime .coach-match.hosted-match .coach-score-center { left: 17%; width: 66%; grid-template-columns: minmax(0,1fr) 42px minmax(0,1fr); }
   .play-runtime .coach-match.hosted-match .coach-score { font-size: 22px; gap: 3px; }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate .match-art { display: none; }
   .play-runtime .coach-match.hosted-match .live-turn-track li { font-size: 10px; }
   .play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { width: calc(33% - 27px); }
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard > .coach-weather-slot { left: calc(50% - 25px); width: 50px; gap: 1px; }
+  .play-runtime .coach-match.hosted-match .coach-weather-slot img { width: 20px; height: 30px; }
+  .play-runtime .coach-match.hosted-match .coach-weather-slot span { font-size: 8px; }
   .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 17%; }
   .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 17%; }
   .play-runtime .coach-match.hosted-match .live-resources { max-width: 16%; }
   .play-runtime .coach-match.hosted-match .live-resource-counts { gap: 0; }
-  .play-runtime .coach-match.hosted-match .live-chess-clock { width: 62px; padding: 3px; font-size: 9px; }
+  .play-runtime .coach-match.hosted-match button.live-resource { width: 22px; height: 22px; }
+  .play-runtime .coach-match.hosted-match .live-resource img, .play-runtime .coach-match.hosted-match .live-resource .match-art { width: 22px; height: 22px; }
+  .play-runtime .coach-match.hosted-match .live-resource b { font-size: 11px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock { top: 94px; width: 56px; padding: 2px; font-size: 8px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock b { font-size: 8px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock span { gap: 2px; }
+  .play-runtime .coach-match.hosted-match .game-menu-trigger { max-width: 16%; padding: 2px 3px; font-size: 9px; white-space: normal; }
   .play-runtime .coach-match.hosted-match .live-camera-controls { top: 109px; max-width: 50%; }
   .play-runtime .coach-match.hosted-match .live-camera-controls button { font-size: 9px; }
-  .play-runtime .coach-match.hosted-match .match-side-controls, .play-runtime .coach-match.hosted-match .game-menu-trigger { top: 109px; }
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: 180px; }
   .play-runtime .coach-match.hosted-match .live-dugout { width: 44%; }
   .play-runtime .coach-match.hosted-match > .match-command-bar { left: 10px; right: 10px; width: auto; bottom: 9px; }
-  .play-runtime .coach-match.hosted-match .match-history > section { bottom: 146px; width: 45%; height: 95px; }
+  .play-runtime .coach-match.hosted-match .match-history > section { width: 45%; }
   .play-runtime .coach-match.hosted-match .match-history-chat { left: 10px; }
   .play-runtime .coach-match.hosted-match .match-history-log { right: 10px; }
   .play-runtime .coach-match.hosted-match .match-log-count, .play-runtime .coach-match.hosted-match .match-chat-count { font-size: 8px; }
@@ -184,17 +208,17 @@
   .play-runtime .coach-match.hosted-match .command-menu { max-height: 30dvh; }
 }
 
-.play-runtime .coach-match.hosted-match .live-dugout.expanded { top: 0; bottom: auto; width: min(420px,45%); }
+.play-runtime .coach-match.hosted-match .live-dugout.expanded { top: auto; bottom: 0; width: min(245px,45%); }
+.play-runtime .coach-match.hosted-match .live-dugout.away { margin-left: auto; }
 .play-runtime .coach-match.hosted-match .live-dugout.compact .live-dugout-zone { padding: 0; border: 0; background: none; }
 .play-runtime .coach-match.hosted-match .live-dugout.compact .live-dugout-heading { min-height: 0; }
 
 /* Browser zoom can leave only 330 CSS pixels of height. Keep the controls
    in the viewport, with scrolling inside supporting panels and inspectors. */
 @media (max-height: 480px) {
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: 154px; }
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-height: 76px; --history-panel-bottom: 10px; }
   .play-runtime .coach-match.hosted-match .live-dugout { max-height: max(48px,calc(100dvh - 258px)); }
   .play-runtime .coach-match.hosted-match .live-dugout-heading strong { font-size: 9px; }
-  .play-runtime .coach-match.hosted-match .match-history > section { height: 76px; bottom: 10px; }
   .play-runtime .coach-match.hosted-match .match-chat header { flex-wrap: wrap; }
   .play-runtime .coach-match.hosted-match .match-log-count, .play-runtime .coach-match.hosted-match .match-chat-count { display: none; }
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-left,
@@ -204,30 +228,45 @@
   .play-runtime .coach-match.hosted-match .live-player-card-main { grid-template-columns: 50px minmax(0,1fr); }
 }
 @media (max-height: 480px) and (max-width: 600px) {
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-height: 32px; --history-panel-bottom: 80px; }
   .play-runtime .coach-match.hosted-match .command-heading { display: none; }
   .play-runtime .coach-match.hosted-match .command-buttons { margin: 0; }
-  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 48px; }
+  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 44px; }
   .play-runtime .coach-match.hosted-match .command-preview { position: absolute; bottom: calc(100% + 50px); left: 0; right: 0; max-height: 36px; overflow: auto; background: #091726eb; }
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: 144px; }
   .play-runtime .coach-match.hosted-match .live-dugout { max-height: 40px; }
-  .play-runtime .coach-match.hosted-match .match-history > section { height: 32px; bottom: 80px; overflow: auto; }
+  .play-runtime .coach-match.hosted-match .match-history > section { overflow: auto; }
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-left,
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-right { bottom: 120px; max-height: calc(100dvh - 136px); }
 }
 
-/* Expanded setup containers stay directly above their team's history panel. */
-.play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 178px; align-items: flex-end; }
+/* Expanded setup containers retain the shared history docking position. */
 .play-runtime .coach-match.hosted-match .live-dugout.expanded { top: auto; bottom: 0; width: min(245px,45%); }
 .play-runtime .coach-match.hosted-match .live-dugout.away { margin-left: auto; }
+
+/* Keep the five score panels on one row, including narrow coach windows. */
 @media (max-width: 900px) {
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 156px; }
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard { display: grid; grid-template-columns: 52px 64px minmax(0,1fr) 64px 52px; gap: 6px; }
+  .play-runtime .coach-match.hosted-match .live-resources,
+  .play-runtime .coach-match.hosted-match .live-chess-clock,
+  .play-runtime .coach-match.hosted-match .coach-score-center { position: static; width: 100%; max-width: none; height: var(--score-panel-height); }
+  .play-runtime .coach-match.hosted-match .live-resources.home { grid-column: 1; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock.home { grid-column: 2; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .coach-score-center { grid-column: 3; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock.away { grid-column: 4; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-resources.away { grid-column: 5; grid-row: 1; }
+  .play-runtime .coach-match.hosted-match .live-resource-counts { gap: 0; }
 }
 @media (max-width: 600px) {
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 251px; }
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard { grid-template-columns: 52px 44px minmax(0,1fr) 44px 52px; gap: 3px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock { font-size: 7px; }
 }
-@media (max-height: 480px) {
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 96px; }
+
+@media (max-width: 900px) {
+  .play-runtime .coach-match.hosted-match .live-chess-clock { padding: 2px; font-size: 8px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock span { flex-direction: column; align-items: center; gap: 0; line-height: 10px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock b { font-size: 9px; }
 }
-@media (max-height: 480px) and (max-width: 600px) {
-  .play-runtime .coach-match.hosted-match .live-dugouts { top: auto; bottom: 122px; }
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match .live-chess-clock { font-size: 7px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock b { font-size: 8px; }
 }
