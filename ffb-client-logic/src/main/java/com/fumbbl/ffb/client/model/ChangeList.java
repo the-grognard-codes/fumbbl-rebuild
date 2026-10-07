@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser game setup lists your unfinished matches with Resume and Continue setup controls")
 			.addImprovement("Moles Under the Pitch Updates adds summaries for five recent merged pull requests through PR 182")
 			.addImprovement("Browser matches use board-only movement planning, a shared setup confirmation with native validation messages, and atomic swaps between friendly pitch players")
 			.addImprovement("Browser match panels offer adjustable background opacity, compact boxed dice, MUTP kickoff choices and a debug drawer beside Game Menu")

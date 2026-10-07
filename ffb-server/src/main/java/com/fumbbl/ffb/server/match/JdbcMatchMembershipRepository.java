@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Short JDBC operations over the v2 copied-storage membership table. */
 public final class JdbcMatchMembershipRepository implements MatchMembershipRepository {
@@ -53,6 +55,20 @@ public final class JdbcMatchMembershipRepository implements MatchMembershipRepos
 			"SELECT COUNT(*) FROM ffb_v2_match_members m JOIN ffb_prepared_matches p ON p.match_id=m.matchid WHERE m.matchid=? AND p.document_version=3")) {
 			query.setString(1, matchId);
 			try (ResultSet rows = query.executeQuery()) { return rows.next() && rows.getInt(1) == 2; }
+		}
+	}
+
+	@Override public List<MatchMembership> unfinishedMatches(String accountId, String afterMatchId) throws SQLException {
+		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+			"SELECT m.matchid,m.role FROM ffb_v2_match_members m FORCE INDEX (ffb_v2_match_members_account) JOIN ffb_prepared_matches p ON p.match_id=m.matchid "
+				+ "WHERE m.account_id=? AND m.matchid>? AND p.document_version BETWEEN 1 AND 3 ORDER BY m.matchid LIMIT 101")) {
+			query.setString(1, accountId);
+			query.setString(2, afterMatchId == null ? "" : afterMatchId);
+			List<MatchMembership> result = new ArrayList<>();
+			try (ResultSet rows = query.executeQuery()) {
+				while (rows.next()) result.add(new MatchMembership(rows.getString(1), accountId, rows.getString(2)));
+			}
+			return result;
 		}
 	}
 

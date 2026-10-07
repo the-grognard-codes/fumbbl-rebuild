@@ -62,9 +62,18 @@ final class Marker6Schema {
 				if (columns.next()) throw new SQLException("Unexpected marker-6 column: " + name);
 			}
 			Set<String> indexes = new HashSet<>();
-			try (ResultSet rows = statement.executeQuery("SELECT INDEX_NAME,NON_UNIQUE,COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" + name + "'")) {
-				while (rows.next()) indexes.add(rows.getString(1) + "|" + rows.getInt(2) + "|" + rows.getString(3));
+			try (ResultSet rows = statement.executeQuery("SELECT INDEX_NAME,NON_UNIQUE,COLUMN_NAME,SEQ_IN_INDEX FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" + name + "'")) {
+				while (rows.next()) {
+					if ("ffb_v2_match_members".equals(name) && "ffb_v2_match_members_account".equals(rows.getString(1))) {
+						if (rows.getInt(2) != 1 || !(rows.getInt(4) == 1 && "account_id".equals(rows.getString(3))
+							|| rows.getInt(4) == 2 && "matchid".equals(rows.getString(3)))) throw new SQLException("Current match index has the wrong shape");
+					}
+					indexes.add(rows.getString(1) + "|" + rows.getInt(2) + "|" + rows.getString(3));
+				}
 			}
+			if ("ffb_v2_match_members".equals(name)
+				&& indexes.containsAll(set("ffb_v2_match_members_account|1|account_id", "ffb_v2_match_members_account|1|matchid")))
+				indexes.removeAll(set("ffb_v2_match_members_account|1|account_id", "ffb_v2_match_members_account|1|matchid"));
 			if (!indexes.equals(expectedIndexes)) throw new SQLException("Marker-6 index mismatch: " + name);
 			Set<String> checks = new HashSet<>();
 			try (ResultSet rows = statement.executeQuery("SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='" + name + "'")) {
@@ -80,6 +89,19 @@ final class Marker6Schema {
 				if (!rows.next() || rows.getInt(1) != 0) throw new SQLException("Unexpected marker-6 trigger: " + name);
 			}
 		}
+	}
+
+	void ensureCurrentMatchIndex(Connection connection) throws SQLException {
+		verify(connection);
+		try (Statement statement = connection.createStatement()) {
+			try (ResultSet rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ffb_v2_match_members' AND INDEX_NAME='ffb_v2_match_members_account'")) {
+				if (!rows.next()) throw new SQLException("Unable to inspect current match index");
+				if (rows.getInt(1) == 2) return;
+				if (rows.getInt(1) != 0) throw new SQLException("Current match index has the wrong shape");
+			}
+			LocalAcceptanceBootstrap.executeResource(statement, "/local-schema/007-current-matches-index.sql");
+		}
+		verify(connection);
 	}
 
 	private String normalizeType(String value) { return value.replace("int(11)", "int").replace("bigint(20)", "bigint"); }

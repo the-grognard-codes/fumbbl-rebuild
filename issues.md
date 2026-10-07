@@ -65,3 +65,21 @@ Implementation and per-ticket evidence are in [the verification report](docs/spe
 - [#162 MUTP Game Menu](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/162) and [#163 setup/kickoff-only broadcasts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/163): implemented locally on `codex/fix-new-match-ui` under #145; [verification](docs/specs/adr0003-menu-event-verification.md). #163 narrows the broadcast scope in #134/#160. Open pending review/merge.
 
 - [#166 Fourth match UI round](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/166): 13 child tickets #167–#179; [scope and acceptance criteria](docs/specs/adr0003-fourth-ui-round.md). #174 was merged in PR #181; the remaining fourth-round changes, including atomic friendly setup swaps, were merged in PR #182. All fourth-round tickets are closed. Those newer behaviors take precedence over older archived UI prototypes.
+
+## Fifth match UI round
+
+Approved 2026-10-07. [Scope and acceptance criteria](docs/specs/adr0003-fifth-ui-round.md). Each slice is delivered through a separate reviewed, validated, committed and merged PR before continuing. Stadium work is in its separate design chat; unfinished setup storage remains deferred in TODO.
+
+- [ ] [#185 List my unfinished matches on the game setup page](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/185).
+- [ ] [#186 Concede an activated match from the game setup page](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) — blocked by #185.
+- [ ] [#187 Open matches in the current tab and verify authenticated direct resume](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/187).
+- [ ] [#188 Check activation traits before Throw/Kick Team Mate movement and confirm teammate selection](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188).
+- [ ] [#189 Use one skill reroll icon and test Pro before selecting the die](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189).
+- [ ] [#190 Revise the pixel ball and its persistent pulsing highlight](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190).
+- [ ] [#191 Correct residual player body and shadow centering](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191).
+- [ ] [#192 Color movement squares by native dodge and rush checks](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192).
+- [ ] [#193 Show additional movement checks as labeled pitch indicators](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193).
+- [ ] [#194 Use team-only coach chat labels and numbered spectator speakers](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194).
+- [ ] [#195 Streamline action and committed-movement logs with persistent Game Log controls](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195).
+- [ ] [#196 Log activation checks, follow-up rolls, and reroll attempts chronologically](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) — blocked by #195.
+- [ ] [#197 Explain block dice choices, skill use, pushes, and knockdowns in the log](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) — blocked by #196.
