@@ -86,3 +86,7 @@ The main failure was delivery bookkeeping. A ticket being scoped, a dirty local 
 Changes to interaction contracts also require updating the shared browser helpers. Wheel-based reveal became invalid when wheel changed to zoom; testing real right-button travel exposed a product bug that DOM-presence checks missed. Similarly, relocating Game Menu hid Exit underneath it; hit-target review identified the overlap and the already-requested removal of that overlay resolved it.
 
 The remaining gaps above already have tickets. They should stay open until implemented and accepted; this retrospective does not close them based on prototype evidence. Final team crowd/weather/cheerleader art and owner hardware/screen-reader acceptance must be reported separately from code and fixture completion.
+
+## Saved-match compatibility boundary
+
+The updated server accepts prior checkpoints. Rejected setup confirmations now persist optional setupErrors in request history so exact retries preserve native reasons after recovery. The previous server requires the old three-field history shape and cannot read those newer entries. UI changes are reversible, but downgrading the server after such checkpoints have been written requires draining/completing those matches or a reviewed compatibility backport. A restart must preserve database/backup volumes and use the updated compatible reader. Do not present an old-image rollback as verified.

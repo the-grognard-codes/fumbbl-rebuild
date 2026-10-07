@@ -34,3 +34,7 @@ Held selection and setup direction had red-capable reproductions before their fi
 The new top-right menu overlapped the old Exit/Fullscreen row. Removing that row and retaining its controls in Interface fulfills the prior request (#158) and keeps normal pointer Exit coverage. Passive setup coaches and spectators no longer render a confirmation button.
 
 Native setup diagnostics remain bounded public strings; neither protocol decoder accepts that field on unrelated response types. Independent native/contract review found the initial legacy decoder mismatch and approved the repair. ChangeList includes user-facing entries, and TODO plus the team creation asset factory prompt capture future per-team crowds and production turf/weather artwork.
+
+## Saved-match compatibility boundary
+
+The updated server accepts prior checkpoints. Rejected setup confirmations now persist optional setupErrors in request history so exact retries preserve native reasons after recovery. The previous server requires the old three-field history shape and cannot read those newer entries. UI changes are reversible, but downgrading the server after such checkpoints have been written requires draining/completing those matches or a reviewed compatibility backport. A restart must preserve database/backup volumes and use the updated compatible reader. Do not present an old-image rollback as verified.
