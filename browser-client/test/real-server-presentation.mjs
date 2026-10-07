@@ -83,9 +83,9 @@ async function measureBoundedPan(page) {
   assert.ok(box && box.width > 80 && box.height > 80, 'Pitch viewport must be usable for camera input');
   const x = box.x + box.width / 2, y = box.y + box.height / 2;
   await page.mouse.move(x, y);
-  await page.mouse.down();
+  await page.mouse.down({ button: 'right' });
   await page.mouse.move(x + 32, y + 20, { steps: 4 });
-  await page.mouse.up();
+  await page.mouse.up({ button: 'right' });
   await page.waitForFunction(() => window.__presentationPan?.latencyMs !== null, null, { timeout: 5000 });
   const latencyMs = await page.evaluate(() => window.__presentationPan.latencyMs);
   const after = await page.evaluate(() => ({ heapUsedBytes: performance.memory?.usedJSHeapSize ?? null,
@@ -96,7 +96,13 @@ async function measureBoundedPan(page) {
     beforeFocus: before.focus, afterFocus: after.focus, inputToCameraMs: latencyMs };
 }
 
+async function revealCameraControls(page) {
+  const debug = page.getByRole('button', { name: 'Debug', exact: true });
+  if (await debug.count() && await debug.getAttribute('aria-expanded') === 'false') await debug.click();
+}
+
 async function verifyCommonHud(page) {
+  await revealCameraControls(page);
   await page.getByLabel('Match scoreboard').waitFor();
   await page.locator('.live-chess-clock').first().waitFor();
   await page.getByLabel('Team dugouts').waitFor();
@@ -210,6 +216,7 @@ export async function capturePresentation(pages, output) {
     const marker = fallbackPage.locator('.live-marker:visible').first();
     await marker.focus();
     await fallbackPage.getByRole('tooltip', { name: /player card$/ }).waitFor();
+    await revealCameraControls(fallbackPage);
     await fallbackPage.getByLabel('Pitch camera controls').getByRole('button', { name: 'Top-down view' }).click();
     await fallbackPage.locator('.live-pitch-scene[data-projection="top-down"]').waitFor();
     evidence.fallback = { reducedMotion: true, textPlayerFallback: true, hoverCardReachable: true, cameraReachable: true };
@@ -387,6 +394,7 @@ export async function captureNativeZoom({ origin, matchId, token, output, comple
 }
 
 async function assertNativeControls(page, inspectPlayer = true) {
+  await revealCameraControls(page);
   const camera = page.getByLabel('Pitch camera controls');
   await camera.getByRole('button', { name: 'Top-down view' }).click();
   await page.locator('.live-pitch-scene[data-projection="top-down"]').waitFor();
