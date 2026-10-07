@@ -14,7 +14,7 @@ Each atlas has 16 equal cells, row-major in the catalog role order. Alpha bounds
 
 Venue roles: stone, timber, gate/gateTop, pavilion/pavilionTop, torch/torchTop, pennant. Participating-team roles: crowd/crowdSide/crowdTop, banner, bench/benchTop, mugs. Perspective crowd front and side forms and independently authored overhead crowd/bench/pavilion/torch/gate forms are separate cells. Banner and mug cells are shared small-detail forms; overhead composition must keep them subordinate to the playable pitch.
 
-Normal margin: 1.5 world squares. Four stand rows rise 0.3 square per row. Large benches and the shared pavilion occupy two-row recesses outside the margin. Seats exclude recesses and corner junctions. Camera travel, viewer end and halftime never change seat ownership. Perspective hides the near raised end; overhead retains the enclosure.
+Normal margin: 1.5 world squares. Four stand rows rise 0.3 square per row. Large benches occupy two-row recesses; the shared pavilion occupies a three-row recess so its whole overhead footprint fits outside the margin. Seats exclude recesses and corner junctions. Camera travel, viewer end and halftime never change seat ownership. Perspective hides the near raised end; overhead retains the enclosure.
 
 ## Art direction
 
@@ -30,3 +30,15 @@ Human / Old World Classic: stone and timber, canvas, blue and ivory, warm torchl
 The original generator requested 1024x1024; the accepted Human output is 1254x1254. Runtime regions use actual dimensions, without resampling. Source calls are retained verbatim; absolute paths in historical calls record their provenance, not portable build dependencies.
 
 Slice 1 QA: production browser build, native projection/recovery/replay checks, browser camera interaction checks for both coach ends, 30/40/50 and overhead, and manually inspected Human perspective/overhead captures. Orc profile and ambient motion follow in separate slices.
+
+## Role contract and paired-profile review
+
+The catalog's shared `layout` records view, normalized perspective/overhead anchor, intended ground footprint, world width, raised-layer treatment, cutaway and motion role for every cell. The renderer consumes world widths and anchors from that contract. Footprints describe reserved ground space; upright pixel silhouettes can rise above it. The explicit bench and pavilion recesses remain the placement authority.
+
+Both accepted atlases are unchanged 1254×1254 transparent RGBA originals. Their source hashes are verified during catalog generation. The rejected first Orc output is retained under source with its rejection reason; it is excluded from runtime delivery. Only the accepted original tusk/football design ships.
+
+Paired visual evidence is under `assets/game/references/stadiums/{human-v1,orc-v1}`. The Orc directory contains the complete 48-view contact sheet; both directories include mixed-team 40-degree and overhead captures from both coach ends. These captures use the production shared pitch harness, with reduced motion for reproducibility.
+
+Native acceptance: start the existing isolated acceptance profile using `tools/acceptance-local-server.mjs`, then run `node tools/stadium-acceptance.mjs` from the repository root. It uses the profile's three synthetic acceptance identities, a production-component host on 127.0.0.1:5173, and the actual /browser/v2 backend on 22235. Local Firebase web config is read from localhost:5000. It creates two synthetic teams and two matches, legally places both rosters, captures all 48 views, reconnects both coaches and the spectator, changes the spectator end, and completes only its newly created matches by concession to verify stored First/Last replay. Credentials and detailed native evidence stay under ignored `.tools`; the command refuses ordinary coach identities. Set `STADIUM_EVIDENCE_DIR` to choose a local capture folder.
+
+This is decorative scenery. No extra pitch squares or interactive bench rules are introduced. Multi-League onboarding remains the future team's responsibility before freezing a selected League.

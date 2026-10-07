@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useId, useRef, useState } from 'r
 import { PitchProjection, type PlaneMatrix } from './pitch-projection.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { stadiumPresentation, stadiumSeats, STADIUM_RECESSES, SIDELINE_MARGIN, STADIUM_ROWS, type StadiumProfile, type StadiumRole } from './stadium-presentation.ts';
+import { stadiumRoleLayout } from './generated-stadium-art.ts';
 import './pitch-scenery.css';
 
 const WIDTH = 1672, HEIGHT = 941;
@@ -35,29 +36,29 @@ const AtlasFailures = createContext<{ failed: ReadonlySet<string>; mark: (profil
 const cutaway = (camera: PitchProjection, edge: string) => camera.mode !== 'top-down' && edge === camera.end;
 
 /** Original atlas pixels are clipped at recorded bounds, never resampled into new exports. */
-function AtlasImage({ profile, role, width, height, onError }: {
-  profile: StadiumProfile; role: StadiumRole; width: number; height: number; onError: () => void;
+function AtlasImage({ profile, role, width, height, onError, anchor = [.5,1] }: {
+  profile: StadiumProfile; role: StadiumRole; width: number; height: number; onError: () => void; anchor?: readonly [number, number];
 }) {
   const { failed, mark } = useContext(AtlasFailures);
   const region = profile.regions[role];
-  return <svg x={-width/2} y={-height} width={width} height={height}
+  return <svg x={-width*anchor[0]} y={-height*anchor[1]} width={width} height={height}
     viewBox={region.x+' '+region.y+' '+region.width+' '+region.height} preserveAspectRatio="xMidYMax meet">
     {failed.has(profile.id) ? <rect data-art-fallback={role} x={region.x} y={region.y} width={region.width} height={region.height} fill={profile.palette.cloth} stroke={profile.palette.rail}/>
       : <image href={atlasUrl(profile)} width={profile.width} height={profile.height} onError={() => mark(profile)}/>}
   </svg>;
 }
 
-function StadiumSprite({ camera, profile, role, x, y, size, rise=0, onError, team }: {
-  camera: PitchProjection; profile: StadiumProfile; role: StadiumRole; x: number; y: number; size: number;
+function StadiumSprite({ camera, profile, role, x, y, rise=0, onError, team }: {
+  camera: PitchProjection; profile: StadiumProfile; role: StadiumRole; x: number; y: number;
   rise?: number; onError: () => void; team?: 'home' | 'away';
 }) {
   const point=raisedProjection(camera,x,y,rise); if(!point)return null;
-  const region=profile.regions[role], width=point.pixelsPerSquare*size, height=width*region.height/region.width;
+  const region=profile.regions[role], width=point.pixelsPerSquare*stadiumRoleLayout[role].worldWidth, height=width*region.height/region.width;
   const overhead=camera.mode==='top-down';
   return <g className="stadium-sprite" data-stadium-role={role} data-stadium-profile={profile.id}
     data-team={team} data-world-x={x} data-world-y={y} data-art-view={camera.mode}
-    transform={'translate('+point.x+' '+point.y+')'+(overhead?' rotate('+(camera.end==='home'?90:-90)+') translate(0 '+height/2+')':'')}>
-    <AtlasImage profile={profile} role={role} width={width} height={height} onError={onError}/>
+    transform={'translate('+point.x+' '+point.y+')'+(overhead?' rotate('+(camera.end==='home'?90:-90)+')':'')}>
+    <AtlasImage profile={profile} role={role} width={width} height={height} anchor={overhead?stadiumRoleLayout[role].anchor.overhead:stadiumRoleLayout[role].anchor.perspective} onError={onError}/>
   </g>;
 }
 
@@ -118,25 +119,25 @@ function StadiumCrowd({camera,home,away,onError}:{camera:PitchProjection;home:St
     {stadiumSeats().map(seat=><g key={seat.id} className="pitch-stadium-fan" data-crowd-team={seat.team} data-seat={seat.id}
       visibility={cutaway(camera,seat.side)?'hidden':'visible'}>
       <StadiumSprite camera={camera} profile={seat.team==='home'?home:away} role={camera.mode==='top-down'?'crowdTop':seat.side==='north'||seat.side==='south'?'crowdSide':'crowd'}
-        x={seat.x} y={seat.y} rise={(seat.row+1)*.3} size={1.35} onError={onError} team={seat.team}/>
+        x={seat.x} y={seat.y} rise={(seat.row+1)*.3} onError={onError} team={seat.team}/>
     </g>)}
   </svg>;
 }
 
 function StadiumFurnishings({camera,venue,home,away,onError}:{camera:PitchProjection;venue:StadiumProfile;home:StadiumProfile;away:StadiumProfile;onError:()=>void}) {
   const top=camera.mode==='top-down';
-  const props:{role:StadiumRole;x:number;y:number;size:number;profile:StadiumProfile;team?:'home'|'away'}[]=[
-    {role:top?'benchTop':'bench',x:6,y:-2.5,size:1.65,profile:home,team:'home'},
-    {role:top?'benchTop':'bench',x:20,y:17.5,size:1.65,profile:away,team:'away'},
-    {role:top?'pavilionTop':'pavilion',x:13,y:-2.6,size:2.65,profile:venue},
-    {role:'mugs',x:6.9,y:-1.25,size:.45,profile:home,team:'home'},
-    {role:'mugs',x:19.1,y:16.25,size:.45,profile:away,team:'away'},
-    {role:'banner',x:8,y:-1.6,size:.55,profile:home,team:'home'},
-    {role:'banner',x:18,y:16.6,size:.55,profile:away,team:'away'},
-    {role:top?'gateTop':'gate',x:-2.2,y:7.5,size:2.4,profile:venue},
-    {role:top?'gateTop':'gate',x:28.2,y:7.5,size:2.4,profile:venue},
+  const props:{role:StadiumRole;x:number;y:number;profile:StadiumProfile;team?:'home'|'away'}[]=[
+    {role:top?'benchTop':'bench',x:6,y:-2.5,profile:home,team:'home'},
+    {role:top?'benchTop':'bench',x:20,y:17.5,profile:away,team:'away'},
+    {role:top?'pavilionTop':'pavilion',x:13,y:-3,profile:venue},
+    {role:'mugs',x:6.9,y:-1.25,profile:home,team:'home'},
+    {role:'mugs',x:19.1,y:16.25,profile:away,team:'away'},
+    {role:'banner',x:8,y:-1.6,profile:home,team:'home'},
+    {role:'banner',x:18,y:16.6,profile:away,team:'away'},
+    {role:top?'gateTop':'gate',x:-2.2,y:7.5,profile:venue},
+    {role:top?'gateTop':'gate',x:28.2,y:7.5,profile:venue},
   ];
-  for(const x of [3,10,16,23])for(const y of [-1.65,16.65])props.push({role:top?'torchTop':'torch',x,y,size:.42,profile:venue});
+  for(const x of [3,10,16,23])for(const y of [-1.65,16.65])props.push({role:top?'torchTop':'torch',x,y,profile:venue});
   return <svg className="pitch-stadium-furnishings" viewBox={'0 0 '+camera.width+' '+camera.height}>
     {props.sort((a,b)=>camera.end==='home'?b.x-a.x:a.x-b.x).map((prop,i)=><g key={i} visibility={prop.role.startsWith('gate')&&cutaway(camera,prop.x<0?'home':'away')?'hidden':'visible'}>
       <StadiumSprite camera={camera} {...prop} onError={onError}/>
@@ -183,7 +184,7 @@ export function PitchScenery({camera,view,onError}:{camera:PitchProjection;view:
 
     <svg className="pitch-stadium-recesses" viewBox={'0 0 '+camera.width+' '+camera.height}>
       {STADIUM_RECESSES.map(recess => <polygon key={recess.side+'-'+recess.start} data-recess={recess.role} fill="#486326"
-        points={polygon(camera,recess.start,recess.side==='north'?-3.5:16.5,recess.end,recess.side==='north'?-1.5:18.5)}/>)}
+        points={polygon(camera,recess.start,recess.side==='north'?-SIDELINE_MARGIN-recess.depth:15+SIDELINE_MARGIN,recess.end,recess.side==='north'?-SIDELINE_MARGIN:15+SIDELINE_MARGIN+recess.depth)}/>)}
     </svg>
     <StadiumStructure camera={camera} profile={presentation.venue} onError={onError}/>
     <StadiumCrowd camera={camera} home={presentation.home} away={presentation.away} onError={onError}/>

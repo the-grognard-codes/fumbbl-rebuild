@@ -46,6 +46,29 @@ class SetupSessionPlacementTest {
         assertEquals(view.get("awayTeamArt"), restoredView.get("awayTeamArt"));
     }
 
+    @Test
+    void preservesBothHostingIdentitiesAcrossEmptyPositionsRecipientsAndRecovery() {
+        for (String homeRoster : new String[] { "human", "orc" }) {
+            String awayRoster = "human".equals(homeRoster) ? "orc" : "human";
+            Fixture fixture = new Fixture(homeRoster, awayRoster);
+            JsonObject initial = fixture.session.reply("initial", "ACCEPTED", false, "home").get("state").asObject();
+            for (JsonValue item : initial.get("players").asArray()) assertTrue(item.asObject().get("x").isNull());
+            JsonObject expectedHome = initial.get("homeTeamArt").asObject();
+            JsonObject expectedAway = initial.get("awayTeamArt").asObject();
+            assertEquals(homeRoster, expectedHome.getString("rosterId", null));
+            assertEquals("human".equals(homeRoster) ? "Old World Classic" : "Badlands Brawl", expectedHome.getString("league", null));
+            assertEquals(awayRoster, expectedAway.getString("rosterId", null));
+            assertEquals("human".equals(awayRoster) ? "Old World Classic" : "Badlands Brawl", expectedAway.getString("league", null));
+            fixture.setup();
+            SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+            for (String role : new String[] { "home", "away", "spectator" }) {
+                JsonObject state = restored.reply("restored-" + role, "ACCEPTED", false, role).get("state").asObject();
+                assertEquals(expectedHome, state.get("homeTeamArt"));
+                assertEquals(expectedAway, state.get("awayTeamArt"));
+            }
+        }
+    }
+
     private void removeTeamArt(JsonValue value) {
         if (value.isObject()) {
             JsonObject object = value.asObject();
@@ -122,16 +145,12 @@ class SetupSessionPlacementTest {
         private int sequence;
 
         Fixture() {
-            RosterCatalog catalog = new RosterCatalog();
-            List<TeamDraft.Player> players = new ArrayList<>();
-            for (int slot = 1; slot <= 11; slot++)
-                players.add(new TeamDraft.Player("player" + slot, slot, "lineman", Collections.emptyList()));
-            Map<String, Integer> resources = new LinkedHashMap<>();
-            for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
-            TeamDraft draft = new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET,
-                "player1", players, resources);
-            FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000, 0, catalog);
-            FrozenTeam away = new FrozenTeam("00000000-0000-0000-0000-000000000012", 1, "away", draft, 550000, 0, catalog);
+            this("human", "human");
+        }
+
+        Fixture(String homeRoster, String awayRoster) {
+            FrozenTeam home = frozen("00000000-0000-0000-0000-000000000011", "home", homeRoster);
+            FrozenTeam away = frozen("00000000-0000-0000-0000-000000000012", "away", awayRoster);
             document = new MatchDocument("00000000-0000-0000-0000-000000000021", 3, "away", MatchDocument.Lifecycle.ACTIVATED,
                 new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
             FactoryManager manager = new FactoryManager();
@@ -144,6 +163,18 @@ class SetupSessionPlacementTest {
             when(server.getGameCache()).thenReturn(mock(GameCache.class));
             when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
             session = new SetupSession(server, document, -2, true, true, true, true, true, true);
+        }
+
+        private FrozenTeam frozen(String id, String role, String roster) {
+            RosterCatalog catalog = new RosterCatalog(roster);
+            List<TeamDraft.Player> players = new ArrayList<>();
+            for (int slot = 1; slot <= 11; slot++)
+                players.add(new TeamDraft.Player("player" + slot, slot, "orc".equals(roster) ? "orc-lineman" : "lineman", Collections.emptyList()));
+            Map<String, Integer> resources = new LinkedHashMap<>();
+            for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
+            TeamDraft draft = new TeamDraft(RosterCatalog.VERSION, "BB2025", roster, RosterCatalog.PRESET,
+                "player1", players, resources);
+            return new FrozenTeam(id, 1, role, draft, 550000, 0, catalog);
         }
 
         JsonObject setup() {

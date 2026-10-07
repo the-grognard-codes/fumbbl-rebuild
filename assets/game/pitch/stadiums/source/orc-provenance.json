@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "profile": "badlands-brawl",
+  "generator": "Built-in image_gen",
+  "generationCalls": "generation-calls.json",
+  "acceptedFile": "../badlands-brawl-v1.png",
+  "sha256": "82fb520a5e58e7629f3646e868f1c820c16d3852c365c41098409e150ccb73c0",
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "export": "Original transparent RGBA output, unchanged. Bounds are decoded into generated-stadium-art.ts; runtime clips original pixels.",
+  "referenceRoles": {
+    "humanAtlas": "old-world-classic-v1.png: matching role inventory and chibi scale",
+    "crowdAndPalette": "assets/game/teams/orc/qa/team-preview.png: charcoal/orange and olive/tusked supporters",
+    "atmosphere": "Vanilla Barrens/Orgrimmar: original MUTP interpretation of rough timber, riveted iron, spikes and patched canvas"
+  },
+  "views": {
+    "front": [
+      "gate",
+      "crowd",
+      "banner",
+      "bench",
+      "pavilion",
+      "mugs",
+      "torch",
+      "pennant"
+    ],
+    "side": [
+      "crowdSide"
+    ],
+    "overhead": [
+      "gateTop",
+      "crowdTop",
+      "benchTop",
+      "pavilionTop",
+      "torchTop"
+    ],
+    "ground": [
+      "stone",
+      "timber"
+    ]
+  },
+  "qa": "../../../references/stadiums/orc-v1/",
+  "rejectedDraft": {
+    "file": "orc-rejected-v0.png",
+    "reason": "Recognizable franchise emblem; replaced with original two-tusk football marks in the accepted output."
+  }
+}

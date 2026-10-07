@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Human and Orc home leagues now have complete stadium, supporter, bench and sideline artwork in either hosting arrangement")
 			.addImprovement("Browser stadiums use frozen home-team league identity, pitch-colored sidelines, layered Human scenery and view-aware foreground cutaways")
 			.addFeature("Browser game setup can concede an activated match after confirmation without opening the pitch")
 			.addFeature("Browser game setup lists your unfinished matches with Resume and Continue setup controls")
