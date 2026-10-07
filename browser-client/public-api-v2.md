@@ -71,6 +71,7 @@ provider/JDBC exception details and request bodies are not logged.
 | `preparationChanged` (server event) | Rechecked PLAYER scope and persisted membership of a preparation subscriber | Match ID only; no invitation or team document | Read invalidation only; recipient denial `VIEW_UNAVAILABLE` |
 | `setup` | PLAYER plus account-to-match membership, or a service connection for the verified computer away side, before every load/action/retry | Existing R2 public setup state | Existing server-issued decisions and exact retries; non-member `NOT_FOUND` |
 | `browse` | SPECTATOR | Up to 100 active marker-6 match IDs, Home vs Away | Read only; copied R2-only rows never listed |
+| `currentMatches` | PLAYER, current identity | Keyset pages of the caller's durable unfinished marker-6 memberships, frozen team names and public phase | Read only; includes unactivated preparations, excludes completed matches, never restores an engine |
 | `watch` | SPECTATOR plus active match with both marker-6 membership rows | Same public state as players; `callerRole:"spectator"` | Live read-only subscription; unavailable/finished/reference match `NOT_FOUND` |
 | `matchResult` | PLAYER plus completed-match participant membership | Final score/metadata on `load`; one bounded recorded event on `replay` | Read-only; spectator and non-member `NOT_FOUND`; existing R2 result codes |
 | Admin, support, legacy HTTP routes | Not exposed | None | HTTP 404; unknown protocol message `UNSUPPORTED_MESSAGE` |
@@ -82,6 +83,30 @@ Recipient reauthorization failure stops delivery with `VIEW_UNAVAILABLE`.
 The browser clears views on disconnect, sign-out and access loss.
 
 ## Hosted match route
+
+The setup page requests `{type:"currentMatches",after:null}` after authentication,
+on focus, after preparation changes, and every 30 seconds while connected.
+Each response has `code:"ACCEPTED"`, `matches` (at most 100 entries) and `next`
+(a match UUID or null). Pass `next` as `after` to read the remaining entries.
+Each entry contains exactly `matchId`, `callerRole` (home/away), `lifecycle`,
+`homeTeamName`, `awayTeamName`, and `phase`. Names/phase may be null for an
+unavailable entry; the away name is null while waiting for an opponent.
+Lifecycle is WAITING_FOR_OPPONENT, AWAITING_SETUP, ACTIVATED, or UNAVAILABLE.
+The caller supplies no account or role. The server reauthorizes PLAYER scope
+before the membership query and excludes completed durable documents. A changed
+or unavailable snapshot does not expose private data or create an engine.
+Unactivated entries offer Continue setup; activated entries link to Resume.
+This opt-in response family leaves existing clients' messages and durable
+formats unchanged; new clients require a server supporting this read operation.
+
+Before enabling this inventory, invoke the existing explicit
+`LocalAcceptanceBootstrap` against the acceptance profile. It verifies the
+marker-7 schema and idempotently adds the account/match membership index from
+`007-current-matches-index.sql`, without changing documents or the marker.
+Ordinary server startup remains read-only and accepts the historical index
+layout. The inventory query requires the new index; an unmigrated database
+returns an unavailable refresh instead of periodically scanning all accounts.
+Verify historical marker-6 copy evidence before applying this additive index.
 
 `/play` starts with a play-mode dropdown. The human option shows the existing
 invitation setup. The computer option shows Coach Bugman - Random, the player's
@@ -131,6 +156,7 @@ preparation and game structures retain their existing decoder contracts.
 | `authentication` | `code`, `accountId` | Caller's internal account only, for retained intent; never a displayed name |
 | `error` | `code` | No provider/JDBC exception, account or team payload |
 | `browse` | `code`, `matches` | Each entry has exactly `matchId`, `label`; label is Home vs Away |
+| `currentMatches` | `code`, `matches`, `next` | Own unfinished match page; no account, invitation, roster, checkpoint, or private retry history |
 | `computer` | `code` | Current availability or service registration acknowledgement, with no account or team data |
 | `computerAuthentication` | `code` | Service credential acknowledgement, with no account or team data |
 | `computerJobs` | `code`, `matches` | Unsolicited match IDs only for the registered service dispatcher |

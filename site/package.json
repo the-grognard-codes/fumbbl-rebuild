@@ -11,6 +11,6 @@
     "test": "node --test test/play-client.test.mjs test/updates.test.mjs",
     "test:updates": "npm run build && node --test test/updates-browser.test.mjs",
     "test:spectate": "npm run build && node --test test/spectate-browser.test.mjs",
-    "test:browser": "npm run build && node --test test/play-browser.test.mjs test/spectate-browser.test.mjs test/updates-browser.test.mjs test/builder-browser.test.mjs test/m5d-blitz-browser.test.mjs test/m5e-result-browser.test.mjs test/m5f-keyboard-browser.test.mjs && npm --prefix ../browser-client run test:interaction"
+    "test:browser": "npm run build && node --test test/play-browser.test.mjs test/current-games-browser.test.mjs test/spectate-browser.test.mjs test/updates-browser.test.mjs test/builder-browser.test.mjs test/m5d-blitz-browser.test.mjs test/m5e-result-browser.test.mjs test/m5f-keyboard-browser.test.mjs && npm --prefix ../browser-client run test:interaction"
   }
 }

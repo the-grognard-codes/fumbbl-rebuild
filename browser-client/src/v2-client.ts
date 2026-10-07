@@ -198,6 +198,11 @@ export class V2Client {
       this.preparationMatchId = message.document.matchId;
       this.selection = null; this.state = null;
     }
+    if (message.type === 'currentMatches') {
+      const after = request?.after ?? '';
+      if (message.matches.some((match: V2Message) => match.matchId <= after)
+        || message.next !== null && message.next <= after) throw Error('Invalid current match page correlation');
+    }
     if (message.type === 'matchResult') {
       const decoded = decodeMatchResult(JSON.stringify({ ...message, version: 1 }));
       if (!request || request.type !== 'matchResult' || (decoded.result && decoded.result.matchId !== request.matchId)) throw Error('Foreign result');

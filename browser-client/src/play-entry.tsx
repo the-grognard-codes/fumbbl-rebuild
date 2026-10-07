@@ -11,6 +11,8 @@ import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
+import { currentMatchStatus } from './current-matches-protocol.ts';
+import type { CurrentMatch } from './current-matches-protocol.ts';
 import './play-brand.css';
 
 const transferredMatchKey = 'moles.play.open-match';
@@ -50,6 +52,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
   const [matchId, setMatchId] = useState(() => new URLSearchParams(location.search).get('matchId') ?? '');
   const [prepared, setPrepared] = useState<V2Message | null>(null);
+  const [currentMatches, setCurrentMatches] = useState<CurrentMatch[]>([]);
+  const [currentMatchesLoading, setCurrentMatchesLoading] = useState(false);
+  const [currentMatchesError, setCurrentMatchesError] = useState('');
+  const currentMatchesRequestRef = useRef<string | null>(null);
+  const currentMatchesBufferRef = useRef<CurrentMatch[]>([]);
+  const currentMatchesRefreshRef = useRef(false);
   const [result, setResult] = useState<MatchResultMetadata | null>(null);
   const [replayEvent, setReplayEvent] = useState<ReplayEvent | null>(null);
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
@@ -89,6 +97,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
   useEffect(() => {
+    const requestCurrentMatches = (after: string | null = null) => {
+      if (matchRoute || resultRoute || !connection.accountId) return;
+      if (currentMatchesRequestRef.current) { currentMatchesRefreshRef.current = true; return; }
+      try {
+        if (after === null) currentMatchesBufferRef.current = [];
+        currentMatchesRequestRef.current = connection.request('currentMatches', { after });
+        setCurrentMatchesLoading(true); setCurrentMatchesError('');
+      } catch { setCurrentMatchesLoading(false); setCurrentMatchesError('Reconnect to refresh your current games.'); }
+    };
     const requestChat = (from = chatLoadedRef.current) => {
       if (!(matchRoute || resultRoute) || !matchIdPattern.test(matchId) || chatRequestRef.current || chatUnavailableRef.current) return;
       try { chatRequestRef.current = connection.request('matchChat', { operation: 'load', matchId, from, limit: 32 }); setChatLoading(true); }
@@ -111,6 +128,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
       if (message.type === 'status') {
+        currentMatchesRequestRef.current = null; currentMatchesRefreshRef.current = false;
+        setCurrentMatches([]); setCurrentMatchesLoading(false);
         logRequestRef.current = null; setLogLoading(false);
         chatRequestRef.current = null; chatSendRef.current = null; chatInitializedRef.current = false; setChatLoading(false);
         routeRequestRef.current = null; setRoutePreview(null); setRouteError('');
@@ -119,8 +138,25 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setStatus(message.code === 'CONNECTING' ? 'Connecting' : 'Disconnected'); setTeams([]); setPrepared(null); setResult(null); setReplayEvent(null); setReplayIndex(null); setResultPending(false);
       }
       if (message.type === 'authentication') { setStatus('Connected'); setError(''); logUnavailableRef.current = false; setLogUnavailable(false);
+        requestCurrentMatches();
         if (resultRoute && matchIdPattern.test(matchId)) { connection.request('matchResult', { operation: 'load', matchId }); setResultPending(true); }
         if (!matchRoute && !resultRoute) connection.request('computer', { operation: 'status' }); }
+      if (message.type === 'currentMatches' && message.requestId === currentMatchesRequestRef.current) {
+        currentMatchesRequestRef.current = null;
+        currentMatchesBufferRef.current.push(...message.matches);
+        if (message.next !== null) requestCurrentMatches(message.next);
+        else {
+          setCurrentMatches(currentMatchesBufferRef.current); setCurrentMatchesLoading(false);
+          if (currentMatchesRefreshRef.current) { currentMatchesRefreshRef.current = false; requestCurrentMatches(); }
+        }
+      }
+      const currentMatchesFailure = message.type === 'error' && currentMatchesRequestRef.current !== null
+        && message.requestId === currentMatchesRequestRef.current;
+      if (currentMatchesFailure) {
+        currentMatchesRequestRef.current = null; setCurrentMatchesLoading(false);
+        setCurrentMatchesError('Your current games could not be refreshed. Try again after reconnecting.');
+        if (currentMatchesRefreshRef.current) { currentMatchesRefreshRef.current = false; requestCurrentMatches(); }
+      }
       if (message.type === 'computer' && ['READY', 'UNAVAILABLE'].includes(message.code)) {
         setComputerAvailable(message.code === 'READY');
       }
@@ -207,6 +243,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         if (message.code === 'ACCEPTED') {
           sessionStorage.removeItem('moles.play.invitation');
           setPrepared(message); setMatchId(message.document.matchId);
+          requestCurrentMatches();
           setInvite(message.invitationCode ?? '');
           if (launch) {
             if (message.document.lifecycle === 'ACTIVATED' && message.document.matchId === launch.matchId) {
@@ -223,13 +260,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       }
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
+        && !currentMatchesFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
         && !['READY', 'INVITED', 'UNAVAILABLE', 'ILLEGAL_SETUP'].includes(message.code)) setError(message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
-    const refresh = () => { if (connection.accountId) connection.request('savedTeam', { operation: 'list' }); };
+    const refresh = () => { if (connection.accountId) { connection.request('savedTeam', { operation: 'list' }); requestCurrentMatches(); } };
     window.addEventListener('focus', refresh);
+    const currentMatchesTimer = window.setInterval(requestCurrentMatches, 30_000);
     client.current = connection;
     if (!matchRoute && !resultRoute && connection.pending?.request.type === 'setup')
       location.replace(matchUrl(connection.pending.request.matchId, false));
@@ -238,7 +277,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       location.replace(matchUrl(connection.pending.request.matchId, false));
     else if (!matchRoute && !resultRoute && transferredMatchId) setStatus('Match opened in another tab or window');
     else connection.connect();
-    return () => { window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); };
+    return () => { window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); };
   }, [options]);
   const connection = client.current;
   const connected = status === 'Connected';
@@ -320,6 +359,25 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
+    <section aria-label="Your current games"><h2>Your current games</h2>
+      <button disabled={!connected || currentMatchesLoading} onClick={() => run(() => {
+        currentMatchesBufferRef.current = [];
+        currentMatchesRequestRef.current = connection!.request('currentMatches', { after: null });
+        setCurrentMatchesLoading(true); setCurrentMatchesError('');
+      })}>Refresh games</button>
+      {currentMatchesLoading && <p role="status">Loading your games…</p>}
+      {currentMatchesError && <p role="alert">{currentMatchesError}</p>}
+      {connected && !currentMatchesLoading && !currentMatchesError && currentMatches.length === 0 && <p>You have no unfinished games.</p>}
+      <ul>{currentMatches.map(game => <li key={game.matchId}>
+        <strong>{game.homeTeamName ?? 'Unavailable game'}{game.awayTeamName ? ` vs. ${game.awayTeamName}` : ''}</strong>
+        {game.homeTeamName && <span>{' · '}Your team: {game.callerRole === 'home' ? game.homeTeamName : game.awayTeamName}
+          {' · '}Opponent: {(game.callerRole === 'home' ? game.awayTeamName : game.homeTeamName) ?? 'Waiting for opponent'}</span>}
+        {' · '}{currentMatchStatus(game)}{' · '}
+        {game.lifecycle === 'ACTIVATED' ? <a href={matchUrl(game.matchId, false)}>Resume</a>
+          : game.lifecycle === 'UNAVAILABLE' ? <span>Refresh to try again</span>
+          : <button disabled={busy} onClick={() => run(() => connection!.request('preparedMatch', { operation: 'load', matchId: game.matchId }))}>Continue setup</button>}
+      </li>)}</ul>
+    </section>
     <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
       <option value="human">Play against a human opponent</option>
       <option value="computer">Play against a computer opponent</option>

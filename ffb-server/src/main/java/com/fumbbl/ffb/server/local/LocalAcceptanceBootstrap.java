@@ -71,6 +71,7 @@ public final class LocalAcceptanceBootstrap {
 		if (version == 7) {
 			requireInventory(tables, MARKER7_TABLES);
 			schema.initialize(manager, "", true);
+			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 			return;
 		}
 		if (version == 5) {
@@ -105,6 +106,7 @@ public final class LocalAcceptanceBootstrap {
 		tables = tableNames(manager);
 		requireInventory(tables, MARKER7_TABLES);
 		schema.initialize(manager, "", true);
+		try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 	}
 
 	static void requireInventory(Set<String> actual, Set<String> expected) throws SQLException {
@@ -141,7 +143,7 @@ public final class LocalAcceptanceBootstrap {
 		}
 	}
 
-	private static void executeResource(Statement statement, String path) throws SQLException {
+	static void executeResource(Statement statement, String path) throws SQLException {
 		try (InputStream source = LocalAcceptanceBootstrap.class.getResourceAsStream(path)) {
 			if (source == null) throw new SQLException("Missing required acceptance migration");
 			String ddl;

@@ -9,5 +9,8 @@ public interface MatchMembershipRepository {
 	void insert(MatchMembership membership) throws SQLException;
 	default String accountForRole(String matchId, String role) throws SQLException { return null; }
 	default java.util.List<String> activeMatches() throws SQLException { return java.util.Collections.emptyList(); }
+	default java.util.List<MatchMembership> unfinishedMatches(String accountId, String afterMatchId) throws SQLException {
+		return java.util.Collections.emptyList();
+	}
 	default boolean isActive(String matchId) throws SQLException { return activeMatches().contains(matchId); }
 }

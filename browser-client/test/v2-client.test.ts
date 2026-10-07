@@ -14,6 +14,21 @@ const member = { role: 'home', sourceTeamId: match, sourceDocumentVersion: 1, ru
 const prepared = { type: 'preparedMatch', code: 'ACCEPTED', duplicate: false, callerRole: 'home', recoveryMatchId: null,
   document: { formatVersion: 1, matchId: match, documentVersion: 1, lifecycle: 'WAITING_FOR_OPPONENT', invitation: { intendedOpponent: 'away' }, home: member, away: null } };
 
+test('owned match reads preserve an uncertain mutation and reject a nonadvancing page', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const mutation = client.request('preparedMatch', { operation: 'create' }, true);
+  const page = client.request('currentMatches', { after: null });
+  socket.reply({ type: 'currentMatches', requestId: page, code: 'ACCEPTED', matches: [
+    { matchId: match, callerRole: 'home', lifecycle: 'ACTIVATED', homeTeamName: 'Home', awayTeamName: 'Away', phase: 'PLAY' },
+  ], next: null });
+  assert.equal(client.pending?.request.requestId, mutation);
+  assert.equal(events.at(-1).type, 'currentMatches');
+  const invalid = client.request('currentMatches', { after: match });
+  socket.reply({ type: 'currentMatches', requestId: invalid, code: 'ACCEPTED', matches: [], next: match });
+  assert.equal(socket.closed, true); assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+  assert.equal(client.pending?.request.requestId, mutation);
+});
+
 test('preparation notification reloads only the selected match and preserves an uncertain mutation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const created = client.request('preparedMatch', { operation: 'create' }, true);

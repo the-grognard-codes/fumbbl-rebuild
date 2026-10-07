@@ -8,6 +8,7 @@ import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
 import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
+import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -43,6 +45,79 @@ class BrowserV2AdapterTest {
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 	private static final String SERVICE_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String SERVICE_HASH = "66d34fba71f8f450f7e45598853e53bfc23bbd129027cbb131a2f4ffd7878cd0";
+
+	@Test void currentMatchesExposeOnlyOwnedPublicFactsIncludingUnactivatedAndUnavailableGames() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.currentMatches(player, null)).thenReturn(java.util.Arrays.asList(
+			new MatchMembership(MATCH, FIRST, "home"), new MatchMembership(SECOND, FIRST, "away")));
+		SetupApplication setup = mock(SetupApplication.class);
+		MatchDocument waiting = new MatchDocument(MATCH, 1, "away", MatchDocument.Lifecycle.WAITING_FOR_OPPONENT,
+			new MatchDocument.Member("home", "home", frozenTeam("The Reavers", "human", 1000000)), null);
+		when(setup.browseDocument(MATCH)).thenReturn(waiting);
+		when(setup.browseDocument(SECOND)).thenThrow(new SQLException("storage unavailable"));
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("currentMatches", "list").add("after", JsonValue.NULL).toString());
+		JsonObject response = JsonObject.readFrom(connection.messages.get(1));
+		JsonArray entries = response.get("matches").asArray();
+		assertEquals("ACCEPTED", response.getString("code", null)); assertEquals(2, entries.size());
+		assertEquals(6, entries.get(0).asObject().size());
+		assertEquals("The Reavers", entries.get(0).asObject().getString("homeTeamName", null));
+		assertEquals("WAITING_FOR_OPPONENT", entries.get(0).asObject().getString("lifecycle", null));
+		assertTrue(entries.get(0).asObject().get("awayTeamName").isNull());
+		assertEquals("UNAVAILABLE", entries.get(1).asObject().getString("lifecycle", null));
+		assertTrue(response.get("next").isNull());
+		verify(setup, never()).browseState(any(String.class));
+		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
+		adapter.receive(connection, request("currentMatches", "foreign").add("after", JsonValue.NULL).add("accountId", SECOND).toString());
+		assertEquals("MALFORMED_MESSAGE", code(connection, 2));
+	}
+
+	@Test void activatedInventoryRequiresAReadableCheckpointBeforeOfferingResume() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.currentMatches(player, null)).thenReturn(Collections.singletonList(new MatchMembership(MATCH, FIRST, "home")));
+		SetupApplication setup = mock(SetupApplication.class);
+		FrozenTeam team = frozenTeam("The Reavers", "human", 1000000);
+		when(setup.browseDocument(MATCH)).thenReturn(new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", team), new MatchDocument.Member("away", "away", team)));
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		for (int attempt = 0; attempt < 3; attempt++) {
+			if (attempt == 1) when(setup.browseState(MATCH)).thenThrow(new SQLException("unavailable"));
+			if (attempt == 2) doReturn(new JsonObject().add("phase", "PRE_MATCH")).when(setup).browseState(MATCH);
+			adapter.receive(connection, request("currentMatches", "list" + attempt).add("after", JsonValue.NULL).toString());
+			JsonObject entry = JsonObject.readFrom(connection.messages.get(attempt + 1)).get("matches").asArray().get(0).asObject();
+			assertEquals(attempt == 2 ? "ACTIVATED" : "UNAVAILABLE", entry.getString("lifecycle", null));
+		}
+		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
+	}
+
+	@Test void currentMatchesRequireAuthorizationAndReturnAPagingCursorWithoutRestoringEngines() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		List<MatchMembership> memberships = new ArrayList<>();
+		for (int index = 1; index <= 101; index++) memberships.add(new MatchMembership(
+			String.format("%08x-1234-1234-1234-123456789abc", index), FIRST, "home"));
+		when(access.currentMatches(player, null)).thenReturn(memberships);
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.browseDocument(any(String.class))).thenThrow(new MatchService.Failure("NOT_FOUND"));
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("currentMatches", "page").add("after", JsonValue.NULL).toString());
+		JsonObject response = JsonObject.readFrom(connection.messages.get(1));
+		assertEquals(100, response.get("matches").asArray().size());
+		assertEquals(memberships.get(99).matchId, response.getString("next", null));
+		when(access.currentMatches(player, MATCH)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		adapter.receive(connection, request("currentMatches", "denied").add("after", MATCH).toString());
+		assertEquals("AUTHORIZATION", code(connection, 2));
+		verify(setup, times(100)).browseDocument(any(String.class));
+		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
+	}
 
 	@Test void routePreviewRequiresCoachMembershipAndKeepsTheEngineReadOnly() throws Exception {
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);

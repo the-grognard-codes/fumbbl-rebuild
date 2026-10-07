@@ -10,6 +10,7 @@ import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchJson;
+import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
@@ -103,6 +104,41 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
+			if ("currentMatches".equals(type)) {
+				fields(request, "version", "type", "requestId", "after");
+				JsonValue after = request.get("after");
+				if (!after.isNull() && (!after.isString()
+					|| !after.asString().matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"))) throw new IllegalArgumentException();
+				List<MatchMembership> memberships = access.currentMatches(principal, after.isNull() ? null : after.asString());
+				JsonArray entries = new JsonArray();
+				int count = Math.min(100, memberships.size());
+				for (int index = 0; index < count; index++) {
+					MatchMembership membership = memberships.get(index);
+					JsonObject entry = new JsonObject().add("matchId", membership.matchId).add("callerRole", membership.role)
+						.add("lifecycle", "UNAVAILABLE").add("homeTeamName", JsonValue.NULL)
+						.add("awayTeamName", JsonValue.NULL).add("phase", JsonValue.NULL);
+					try {
+						MatchDocument document = setup.browseDocument(membership.matchId);
+						if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED) continue;
+						entry.set("lifecycle", document.lifecycle.name())
+							.set("homeTeamName", document.home.team.teamName == null || document.home.team.teamName.isEmpty() ? "Home" : document.home.team.teamName)
+							.set("awayTeamName", document.away == null ? JsonValue.NULL
+								: JsonValue.valueOf(document.away.team.teamName == null || document.away.team.teamName.isEmpty() ? "Away" : document.away.team.teamName));
+						if (document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) {
+							try {
+								JsonObject state = setup.browseState(membership.matchId);
+                                if (state != null && state.get("phase") != null) entry.set("phase", state.get("phase"));
+                                else entry.set("lifecycle", "UNAVAILABLE");
+                            } catch (SQLException | RuntimeException unavailable) { entry.set("lifecycle", "UNAVAILABLE"); }
+						}
+					} catch (SQLException | RuntimeException unavailable) { /* Retain unavailable owned entries for explicit refresh. */ }
+					entries.add(entry);
+				}
+				send(connection, new JsonObject().add("type", "currentMatches").add("requestId", requestId).add("code", "ACCEPTED")
+					.add("matches", entries).add("next", memberships.size() > count
+						? JsonValue.valueOf(memberships.get(count - 1).matchId) : JsonValue.NULL));
+				return;
+			}
 			if ("browse".equals(type)) {
 				JsonValue requestedDetails = request.get("includeDetails");
 				if (requestedDetails == null) fields(request, "version", "type", "requestId");

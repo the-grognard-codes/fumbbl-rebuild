@@ -49,6 +49,22 @@ class V2MatchAccessTest {
 		verifyNoInteractions(directory, memberships);
 	}
 
+	@Test void currentMatchesUseOnlyTheReauthorizedAccountAndRequirePlayerScope() throws Exception {
+		AuthenticatedPrincipal player = principal(2000, ApplicationScope.PLAYER);
+		when(directory.reauthorize(player)).thenReturn(player);
+		MatchMembership membership = new MatchMembership(match, account, "home");
+		when(memberships.unfinishedMatches(account, null)).thenReturn(Arrays.asList(membership));
+		assertEquals(Arrays.asList(membership), access.currentMatches(player, null));
+		when(directory.reauthorize(player)).thenReturn(principal(2000, ApplicationScope.SPECTATOR));
+		assertThrows(MatchService.Failure.class, () -> access.currentMatches(player, match));
+	}
+
+	@Test void currentMatchesDenyExpiredIdentityBeforeReadingOwnedInventory() {
+		assertThrows(MatchService.Failure.class, () -> access.currentMatches(null, null));
+		assertThrows(MatchService.Failure.class, () -> access.currentMatches(principal(1000, ApplicationScope.PLAYER), null));
+		verifyNoInteractions(directory, memberships);
+	}
+
 	@Test void inactiveAndCopiedReferenceMatchesStayUnavailable() throws Exception {
 		AuthenticatedPrincipal viewer = principal(2000, ApplicationScope.SPECTATOR);
 		when(directory.reauthorize(viewer)).thenReturn(viewer);

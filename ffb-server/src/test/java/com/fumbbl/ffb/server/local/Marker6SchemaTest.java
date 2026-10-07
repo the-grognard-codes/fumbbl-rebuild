@@ -26,11 +26,26 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class Marker6SchemaTest {
+	@Test
+	void explicitBootstrapAddsMissingInventoryIndexAndLeavesExistingIndexAlone() throws Exception {
+		for (int existing : new int[] {0, 2}) {
+			Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet rows = mock(ResultSet.class);
+			when(connection.createStatement()).thenReturn(statement); when(statement.executeQuery(anyString())).thenReturn(rows);
+			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(existing);
+			Marker6Schema schema = spy(new Marker6Schema()); doNothing().when(schema).verify(connection);
+			schema.ensureCurrentMatchIndex(connection);
+			verify(statement, times(existing == 0 ? 1 : 0)).execute("CREATE INDEX ffb_v2_match_members_account ON ffb_v2_match_members (account_id, matchid)");
+			verify(schema, times(existing == 0 ? 2 : 1)).verify(connection);
+		}
+	}
 	@Test
 	void missingNamedTeamTableFailsClosedWithoutWriting() throws Exception {
 		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet version = mock(ResultSet.class), table = mock(ResultSet.class);
