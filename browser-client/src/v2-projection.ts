@@ -1,8 +1,10 @@
 import { decodeBrowseGames } from './browse-protocol.ts';
+import { decodeCurrentMatches } from './current-matches-protocol.ts';
 
 /** New response fields/families require a recipient projection test before rendering. */
 const fields: Record<string, string[]> = {
   authentication: ['code', 'accountId'], error: ['code'], browse: ['code', 'matches'],
+  currentMatches: ['code', 'matches', 'next'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
   preparationChanged: ['code', 'matchId'], setupState: ['code', 'duplicate', 'state'],
   matchResult: ['code', 'result', 'event'],
@@ -31,6 +33,10 @@ export function assertV2Projection(message: Record<string, unknown>) {
   if (message.requestId !== null && (typeof message.requestId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(message.requestId)))
     throw Error('Invalid response correlation');
   if (message.type === 'browse') decodeBrowseGames(message.matches);
+  if (message.type === 'currentMatches') {
+    if (message.code !== 'ACCEPTED') throw Error('Invalid current match response');
+    decodeCurrentMatches(message.matches, message.next);
+  }
   if (message.type === 'computerJobs' && (!Array.isArray(message.matches) || message.matches.length > 1024
     || message.matches.some(id => typeof id !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))))
     throw Error('Invalid computer jobs');
