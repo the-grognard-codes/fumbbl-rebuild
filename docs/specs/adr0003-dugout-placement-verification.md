@@ -11,3 +11,4 @@ Verified on an isolated branch based on main c899b5ae2:
 - Site production build and check pass.
 
 The first fixture run before the container fix failed because a drop over the dugout heading did not return the player to reserves. The updated fixture passes. This PR publishes #174 only; other fourth-round UI tickets remain open.
+- Static-delivery CI identified a stale Restore selector in the result/replay fixture. Updated it to Expand; all five tests in m5e-result-browser.test.mjs pass locally.
