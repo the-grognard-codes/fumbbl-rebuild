@@ -22,3 +22,13 @@ test('canonical seats never overlap corners or large-furniture recesses', () => 
   }
   for (const recess of STADIUM_RECESSES) assert.ok(recess.y<-1.5||recess.y>16.5);
 });
+
+test('unrecognized identities cannot select inherited catalog properties', () => {
+  for (const name of ['constructor','toString','__proto__']) {
+    const value=stadiumPresentation({homeTeamArt:{rosterId:name,league:name},awayTeamArt:{rosterId:name,league:name}});
+    assert.equal(value.venue.id,'old-world-classic');
+    assert.equal(value.home.id,'old-world-classic');
+    assert.equal(value.away.id,'old-world-classic');
+    assert.equal(value.fallback,true);
+  }
+});

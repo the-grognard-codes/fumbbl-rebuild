@@ -16,11 +16,11 @@ const fallback = stadiumAtlases['old-world-classic'];
 export function stadiumPresentation(view: Pick<SetupState, 'homeTeamArt' | 'awayTeamArt'>) {
   const diagnostics: string[] = [];
   const team = (identity: MatchTeamArt | undefined, role: PitchEnd) => {
-    const id = identity && stadiumTeams[identity.rosterId];
+    const id = identity && Object.hasOwn(stadiumTeams, identity.rosterId) ? stadiumTeams[identity.rosterId] : undefined;
     if (!id) diagnostics.push('Missing ' + role + ' supporter profile for ' + (identity?.rosterId ?? 'legacy team') + '; using Human placeholder');
     return id ? stadiumAtlases[id] : fallback;
   };
-  const league = view.homeTeamArt?.league, venueId = league && stadiumVenues[league];
+  const league = view.homeTeamArt?.league, venueId = league && Object.hasOwn(stadiumVenues, league) ? stadiumVenues[league] : undefined;
   if (!venueId) diagnostics.push('Missing venue for ' + (league ?? 'legacy home League') + '; using Old World Classic');
   return { venue: venueId ? stadiumAtlases[venueId] : fallback, home: team(view.homeTeamArt, 'home'),
     away: team(view.awayTeamArt, 'away'), league: venueId ? league : 'Old World Classic', fallback: !venueId, diagnostics };
