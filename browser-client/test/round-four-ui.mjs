@@ -68,6 +68,8 @@ try {
   assert.equal(await dice.evaluate(el => getComputedStyle(el).backgroundColor),'rgb(9, 23, 38)','Portal dice share HUD opacity');
   assert.equal(await dice.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight),true,'Dice need no scrollbars at normal size');
   assert.equal(await page.locator('.match-log-count').count(),0,'HUD log counter removed');
+  await page.evaluate(state => window.publishHud({...state,phase:'PLAY',turnMode:'SOLID_DEFENCE',prompt:null,actions:[]},['Minimum of 3 players on the Line of Scrimmage.']),state);
+  assert.match(await page.getByRole('alert').innerText(),/Minimum of 3 players/,'Native redeployment errors remain visible during kickoff setup');
   console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices and boxed quarter-field dice.');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); await server.close(); }

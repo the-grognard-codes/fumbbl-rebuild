@@ -38,3 +38,7 @@ Native setup diagnostics remain bounded public strings; neither protocol decoder
 ## Saved-match compatibility boundary
 
 The updated server accepts prior checkpoints. Rejected setup confirmations now persist optional setupErrors in request history so exact retries preserve native reasons after recovery. The previous server requires the old three-field history shape and cannot read those newer entries. UI changes are reversible, but downgrading the server after such checkpoints have been written requires draining/completing those matches or a reviewed compatibility backport. A restart must preserve database/backup volumes and use the updated compatible reader. Do not present an old-image rollback as verified.
+
+## CI regression follow-up
+
+The first PR run exposed old single-step Blitz mock submissions, a replay drag beginning outside the visible page, and the previous Solid Defence exception expectation. The fixtures now preserve canonical route submission and unchanged invalid formation/revision/retry while matching the updated contract. Replay reveal drags begin in the visible viewport. Native legality feedback also remains visible for kickoff redeployment, not only the initial drive setup. Focused checks passed before the corrected CI run.

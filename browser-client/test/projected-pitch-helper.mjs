@@ -17,6 +17,7 @@ export async function squarePosition(page, x, y) {
     const screen = camera.project(point);
     if (screen && camera.isVisible(point, 20) && screen.y >= options.height * .27 && screen.y <= options.height * .7) break;
     if (!screen) throw Error(`Square ${x},${y} cannot be projected`);
+    await viewport.scrollIntoViewIfNeeded();
     const bounds = await viewport.boundingBox();
     if (!bounds) throw Error('Pitch viewport is unavailable');
     const delta = { x: options.zoom > 1 ? Math.max(-options.width * .3, Math.min(options.width * .3, options.width * .5 - screen.x)) : 0,
@@ -24,7 +25,11 @@ export async function squarePosition(page, x, y) {
     const expected = camera.panPixels(delta);
     if (Math.abs(expected.focus - options.focus) < 1e-6 && Math.abs(expected.transverseFocus - options.transverseFocus) < 1e-6)
       throw Error(`Camera cannot reveal square ${x},${y}`);
-    const start = { x: bounds.x + bounds.width * .5, y: bounds.y + bounds.height * .5 };
+    const visible = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+    const left = Math.max(0, bounds.x), right = Math.min(visible.width, bounds.x + bounds.width);
+    const top = Math.max(0, bounds.y), bottom = Math.min(visible.height, bounds.y + bounds.height);
+    if (right <= left || bottom <= top) throw Error('Pitch viewport is outside the visible page');
+    const start = { x: (left + right) / 2, y: (top + bottom) / 2 };
     await page.mouse.move(start.x, start.y);
     await page.mouse.down({ button: 'right' });
     await page.mouse.move(start.x + delta.x * bounds.width / options.width,
