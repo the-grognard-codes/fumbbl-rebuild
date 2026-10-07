@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
@@ -22,13 +23,24 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionConcessionTest {
-    @Test
-    void nonActingCoachConcedesAndOpponentWinsWithReplayableResult() {
+    @Test void homeCoachConcedesBeforeKickoffWithReplayableResult() { assertConcession("home"); }
+    @Test void awayCoachConcedesBeforeKickoffWithReplayableResult() { assertConcession("away"); }
+    @Test void homeCoachConcedesDuringOwnTurn() { assertConcession("home", "home"); }
+    @Test void homeCoachConcedesDuringOpponentsTurn() { assertConcession("home", "away"); }
+    @Test void awayCoachConcedesDuringOwnTurn() { assertConcession("away", "away"); }
+    @Test void awayCoachConcedesDuringOpponentsTurn() { assertConcession("away", "home"); }
+
+    private void assertConcession(String concedingRole) {
+        assertConcession(concedingRole, null);
+    }
+
+    private void assertConcession(String concedingRole, String actingRole) {
         RosterCatalog catalog = new RosterCatalog();
         List<TeamDraft.Player> players = new ArrayList<>();
         for (int slot = 1; slot <= 11; slot++)
@@ -67,11 +79,14 @@ class SetupSessionConcessionTest {
         SetupSession recovered = new SetupSession(server, document, session.recoveryArtifact());
         assertEquals(initialClock.get("homeReserveMs").asLong(), recovered.decorateSaveResumeState(recovered.spectatorView())
             .get("clock").asObject().get("homeReserveMs").asLong());
-        String nonActor = "home".equals(session.reply("load", "ACCEPTED", false, "home").get("state").asObject().getString("actor", null)) ? "away" : "home";
+        JsonObject before = actingRole == null ? session.spectatorView() : advanceToTurn(session, document.matchId, actingRole);
+        int revision = before.getInt("revision", -1);
         JsonObject request = new JsonObject().add("version", 1).add("type", "setup").add("operation", "concede")
-            .add("requestId", "concession-1").add("matchId", document.matchId).add("expectedRevision", 0);
+            .add("requestId", "concession-1").add("matchId", document.matchId).add("expectedRevision", revision);
 
-        JsonObject response = session.apply(nonActor, request);
+        JsonObject stale = JsonObject.readFrom(request.toString()).set("requestId", "stale").set("expectedRevision", revision + 1);
+        assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class, () -> session.apply(concedingRole, stale)).code);
+        JsonObject response = session.apply(concedingRole, request);
 
         assertEquals("ACCEPTED", response.getString("code", null));
         assertEquals("FULL_TIME", response.get("state").asObject().getString("phase", null));
@@ -79,11 +94,39 @@ class SetupSessionConcessionTest {
         assertTrue(session.isComplete());
         int homeScore = response.get("state").asObject().getInt("homeScore", -1);
         int awayScore = response.get("state").asObject().getInt("awayScore", -1);
-        assertTrue("home".equals(nonActor) ? awayScore > homeScore : homeScore > awayScore);
+        assertTrue("home".equals(concedingRole) ? awayScore > homeScore : homeScore > awayScore);
         JsonObject result = JsonObject.readFrom(session.completedMatch().json());
         assertEquals("FULL_TIME", result.get("events").asArray().get(result.get("events").asArray().size() - 1).asObject().getString("kind", null));
-        assertEquals("ACCEPTED", session.apply(nonActor, request).getString("code", null));
-        assertTrue(session.apply(nonActor, request).getBoolean("duplicate", false));
+        assertEquals("ACCEPTED", session.apply(concedingRole, request).getString("code", null));
+        assertTrue(session.apply(concedingRole, request).getBoolean("duplicate", false));
+        JsonObject second = JsonObject.readFrom(request.toString()).set("requestId", "second").set("expectedRevision", revision + 1);
+        assertEquals("MATCH_COMPLETED", assertThrows(MatchService.Failure.class, () -> session.apply(concedingRole, second)).code);
+    }
+
+    private JsonObject advanceToTurn(SetupSession session, String matchId, String actingRole) {
+        JsonObject view = session.reply("load", "ACCEPTED", false, "home").get("state").asObject();
+        for (int index = 0; index < 100; index++) {
+            JsonObject endTurn = null;
+            for (JsonValue item : view.get("actions").asArray())
+                if ("endTurn".equals(item.asObject().getString("kind", null))) endTurn = item.asObject();
+            if ("REGULAR".equals(view.getString("turnMode", null)) && endTurn != null
+                && actingRole.equals(view.getString("actor", null))) return view;
+            JsonObject request = new JsonObject().add("version", 1).add("type", "setup")
+                .add("requestId", "advance-" + index).add("matchId", matchId)
+                .add("expectedRevision", view.getInt("revision", -1));
+            if ("SETUP".equals(view.getString("phase", null))) request.add("operation", "confirm");
+            else if (!view.get("prompt").isNull()) {
+                JsonObject prompt = view.get("prompt").asObject();
+                request.add("operation", "choice").add("promptId", prompt.get("id"))
+                    .add("optionId", "coin".equals(prompt.getString("kind", null)) ? "heads" : "receive");
+            } else {
+                assertTrue(view.get("actions").asArray().size() > 0, view.toString());
+                JsonObject action = endTurn == null ? view.get("actions").asArray().get(0).asObject() : endTurn;
+                request.add("operation", "action").add("actionId", action.get("id"));
+            }
+            view = session.apply(view.getString("actor", null), request).get("state").asObject();
+        }
+        throw new AssertionError("Did not reach " + actingRole + " turn: " + view);
     }
 
 	private void assertBrowseSummaryMatchesView(SetupSession session) {

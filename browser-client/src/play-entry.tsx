@@ -13,6 +13,8 @@ import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
 import { currentMatchStatus } from './current-matches-protocol.ts';
 import type { CurrentMatch } from './current-matches-protocol.ts';
+import { LobbyConcession } from './lobby-concession.ts';
+import type { ConcessionStatus } from './lobby-concession.ts';
 import './play-brand.css';
 
 const transferredMatchKey = 'moles.play.open-match';
@@ -58,6 +60,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const currentMatchesRequestRef = useRef<string | null>(null);
   const currentMatchesBufferRef = useRef<CurrentMatch[]>([]);
   const currentMatchesRefreshRef = useRef(false);
+  const [confirmConcession, setConfirmConcession] = useState<string | null>(null);
+  const [concessionStatus, setConcessionStatus] = useState<ConcessionStatus>({ matchId: null, busy: false, text: '' });
+  const concessionRef = useRef<LobbyConcession | null>(null);
   const [result, setResult] = useState<MatchResultMetadata | null>(null);
   const [replayEvent, setReplayEvent] = useState<ReplayEvent | null>(null);
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
@@ -127,6 +132,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     const connection = new V2Client({ ...options, storage: sessionStorage,
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
+      if (concessionRef.current?.receive(message)) requestCurrentMatches();
       if (message.type === 'status') {
         currentMatchesRequestRef.current = null; currentMatchesRefreshRef.current = false;
         setCurrentMatches([]); setCurrentMatchesLoading(false);
@@ -270,19 +276,20 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     window.addEventListener('focus', refresh);
     const currentMatchesTimer = window.setInterval(requestCurrentMatches, 30_000);
     client.current = connection;
-    if (!matchRoute && !resultRoute && connection.pending?.request.type === 'setup')
+    concessionRef.current = new LobbyConcession(connection, setConcessionStatus);
+    if (!matchRoute && !resultRoute && connection.pending?.request.type === 'setup' && connection.pending.request.operation !== 'concede')
       location.replace(matchUrl(connection.pending.request.matchId, false));
     else if ((matchRoute || resultRoute) && !matchIdPattern.test(matchId)) setError('Enter a valid match ID.');
     else if (matchRoute && connection.pending?.request.type === 'setup' && (connection.pending.request.matchId !== matchId || watchRoute))
       location.replace(matchUrl(connection.pending.request.matchId, false));
     else if (!matchRoute && !resultRoute && transferredMatchId) setStatus('Match opened in another tab or window');
     else connection.connect();
-    return () => { window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); };
+    return () => { window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); concessionRef.current = null; };
   }, [options]);
   const connection = client.current;
   const connected = status === 'Connected';
   const preparationTransferred = !!transferredMatchId && !matchRoute && !resultRoute;
-  const busy = !connected || !!connection?.pending;
+  const busy = !connected || !!connection?.pending || concessionStatus.busy;
   const selected = teams.find(team => team.teamId === teamId && team.eligibility === 'CURRENT');
   const selectedComputer = teams.find(team => team.teamId === computerTeamId && team.eligibility === 'CURRENT');
   function transferToMatch(id: string, connection: V2Client) {
@@ -367,6 +374,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       })}>Refresh games</button>
       {currentMatchesLoading && <p role="status">Loading your games…</p>}
       {currentMatchesError && <p role="alert">{currentMatchesError}</p>}
+      {concessionStatus.text && <p role="status">{concessionStatus.text}</p>}
       {connected && !currentMatchesLoading && !currentMatchesError && currentMatches.length === 0 && <p>You have no unfinished games.</p>}
       <ul>{currentMatches.map(game => <li key={game.matchId}>
         <strong>{game.homeTeamName ?? 'Unavailable game'}{game.awayTeamName ? ` vs. ${game.awayTeamName}` : ''}</strong>
@@ -376,6 +384,14 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         {game.lifecycle === 'ACTIVATED' ? <a href={matchUrl(game.matchId, false)}>Resume</a>
           : game.lifecycle === 'UNAVAILABLE' ? <span>Refresh to try again</span>
           : <button disabled={busy} onClick={() => run(() => connection!.request('preparedMatch', { operation: 'load', matchId: game.matchId }))}>Continue setup</button>}
+        {game.lifecycle === 'ACTIVATED' && <>
+          {' · '}<button disabled={busy} onClick={() => setConfirmConcession(game.matchId)}>Concede</button>
+          {confirmConcession === game.matchId && <div role="group" aria-label="Confirm concession">
+            <p>Concede this match? This cannot be undone.</p>
+            <button disabled={busy} onClick={() => run(() => { concessionRef.current!.begin(game.matchId, prepared?.document.matchId ?? null); setConfirmConcession(null); })}>Confirm concession</button>
+            <button onClick={() => setConfirmConcession(null)}>Keep playing</button>
+          </div>}
+        </>}
       </li>)}</ul>
     </section>
     <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
