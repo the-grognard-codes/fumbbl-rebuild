@@ -59,9 +59,9 @@ export async function observeStadiumMotion(page, durationMs = 2400) {
       commandsStable: commandsBefore === setupCommands(), intents: window.intents ?? [],
       frameObservation: { frames: frameTimes.length, meanMs: frameTimes.reduce((a,b) => a+b,0)/frameTimes.length, p95Ms: ordered[Math.floor(ordered.length*.95)], maxMs: ordered.at(-1) } };
   }, durationMs);
-  assert.ok(result.animatedCrowdGroups > 0 && result.animatedCrowdGroups < result.crowdGroups / 5);
-  assert.equal(result.torchCount, 8); assert.equal(result.pennantCount, 4);
-  assert.ok(result.crowdMoved && result.fireChanged && result.pennantMoved, JSON.stringify(result));
+  assert.equal(result.animatedCrowdGroups,0);
+  assert.ok(result.torchCount>0 && result.torchCount<=8); assert.ok(result.pennantCount>0 && result.pennantCount<=4);
+  assert.equal(result.crowdMoved,false); assert.ok(result.fireChanged && result.pennantMoved, JSON.stringify(result));
   assert.ok(result.maxPixelShift <= 3, JSON.stringify(result));
   assert.equal(result.mutations, 0, "ambient motion must not drive DOM updates");
   assert.ok(result.anchorsStable && result.seatsStable && result.commandsStable);

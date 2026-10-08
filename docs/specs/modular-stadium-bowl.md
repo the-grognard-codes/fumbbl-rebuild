@@ -8,7 +8,7 @@ The user accepted the first-iteration material/crowd style, raised bowl, existin
 
 Delivery slices:
 - [x] Original Human/Orc modular sheets, measured transparent regions, source provenance, reusable world layout and automated catalog validation.
-- [ ] World-projected shell and crowd integration, two sideline locker-room portals/benches, two-square apron, fixed mixed supporter ownership, x=13 timber dividers, both coach ends and overhead.
+- [x] World-projected shell and crowd integration, two sideline locker-room portals/benches, two-square apron, fixed mixed supporter ownership, x=13 timber dividers, both coach ends and overhead.
 - [ ] Isolated fan gesture frames/reduced motion, full renderer validation, native shared integration checks and retrospective compared against functional/media/intent requirements.
 
 Acceptance:
