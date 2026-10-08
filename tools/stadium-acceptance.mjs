@@ -6,6 +6,7 @@ import {createServer} from '../browser-client/node_modules/vite/dist/node/index.
 import {chromium} from '../browser-client/node_modules/playwright/index.mjs';
 import {resolve} from 'node:path';
 import {travelToFocus} from '../browser-client/test/projected-pitch-helper.mjs';
+import {observeStadiumMotion} from '../browser-client/test/stadium-motion-helper.mjs';
 const output=resolve(process.env.STADIUM_EVIDENCE_DIR ?? '.tools/stadium/native-evidence'); await mkdir(output,{recursive:true});
 const identityJson=await readFile('.tools/coach-oriented-match-ui/coach-tokens.json','utf8');
 retainedAcceptanceUids(identityJson);
@@ -25,7 +26,7 @@ const server=await createServer({root:resolve('browser-client'),configFile:false
 });
 }}],server:{host:'127.0.0.1',port:5173,strictPort:true}});
 let browser;
-const contexts={},pages={},records=[],cameraMatrix=[],restorations=[];
+const contexts={},pages={},records=[],cameraMatrix=[],restorations=[],motionObservations=[];
 async function assertVenue(page,host){
   const league=host==='human'?'Old World Classic':'Badlands Brawl';
   await page.locator('.pitch-stadium-world').waitFor({state:'attached'});
@@ -54,7 +55,7 @@ try {
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? (process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined)});
   for(const role of ['home','away','spectator']) {
     const context=await browser.newContext({viewport:{width:1920,height:1080}});contexts[role]=context;
-    await context.addInitScript(token=>{window.testToken=token;window.nativeIncoming=[];const Native=WebSocket;window.WebSocket=class extends Native{constructor(...args){super(...args);window.nativeSocket=this;this.addEventListener('message',event=>{const item=JSON.parse(event.data);if(item.type!=='authentication')window.nativeIncoming.push(item);});}};},idTokens[role]);
+    await context.addInitScript(token=>{window.testToken=token;window.nativeIncoming=[];window.nativeOutgoing=[];const Native=WebSocket;window.WebSocket=class extends Native{constructor(...args){super(...args);window.nativeSocket=this;this.addEventListener('message',event=>{const item=JSON.parse(event.data);if(item.type!=='authentication')window.nativeIncoming.push(item);});}send(value){window.nativeOutgoing.push(JSON.parse(value));super.send(value);}};},idTokens[role]);
     pages[role]=await context.newPage();
   }
   const teamIds={};
@@ -111,6 +112,11 @@ try {
       await actualHome.waitForFunction(revision=>window.nativeIncoming.some(item=>item.state?.revision===revision),game.revision);
     }
     assert.equal(game.phase,'READY_FOR_KICKOFF');
+    await assertVenue(actualHome,homeRoster);
+    const revisionBefore=(await latest(actualHome)).revision;
+    const motion=await observeStadiumMotion(actualHome);
+    assert.equal((await latest(actualHome)).revision,revisionBefore,'ambient movement cannot advance native match state');
+    motionObservations.push({host:homeRoster,nativeRevisionStable:true,...motion});
     for(const page of rolePages)await page.waitForFunction(revision=>window.nativeIncoming.some(item=>item.state?.revision===revision),game.revision);
     for(const [index,page] of rolePages.entries()) {
       await page.getByLabel('Live match pitch').waitFor();
@@ -169,6 +175,6 @@ try {
     await actualHome.screenshot({path:resolve(output,homeRoster+'-replay.png')});
     if(actualHome!==home)await actualHome.close();
   }
-  await writeFile(resolve(output,'native-stadium.json'),JSON.stringify({passed:true,transport:'/browser/v2',records,cameraMatrix,restorations},null,2));
+  await writeFile(resolve(output,'native-stadium.json'),JSON.stringify({passed:true,transport:'/browser/v2',records,cameraMatrix,restorations,motionObservations},null,2));
   console.log('PASS: 48 authenticated native Human/Orc camera cases, coaches/spectator reconnects, end change and completed replay retain frozen stadium identity.');
 } catch(error) { console.error('Native stadium driver:',error.message.slice(0,600));throw error; } finally {try {await browser?.close();} finally {await server.close();}}

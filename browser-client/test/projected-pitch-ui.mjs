@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { observeStadiumMotion } from './stadium-motion-helper.mjs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
@@ -25,7 +26,8 @@ const errors = [];
 const evidence = process.env.PITCH_SCENE_EVIDENCE_DIR;
 if (evidence) await mkdir(evidence, { recursive: true });
 async function open(role, failArt = false, diceMoment = null, pitchOptions = {}) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 660 },
+    recordVideo: pitchOptions.recordMotion ? {dir:evidence+'/motion-video',size:{width:1280,height:660}} : undefined });
   page.on('pageerror', error => errors.push(error.message));
   if (pitchOptions.failStadium) await page.route('**/stadiums/*.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
@@ -301,6 +303,7 @@ try {
   for (const [host,homeTeamArt,awayTeamArt] of [['human',humanArt,orcArt],['orc',orcArt,humanArt]]) for (const role of ['home','away']) {
     const page=await open(role,false,null,{homeTeamArt,awayTeamArt});
     await page.emulateMedia({reducedMotion:'reduce'});
+    await page.waitForFunction(() => [...document.querySelectorAll('.stadium-ambient')].every(element => element.getAnimations().length === 0));
     const world=page.locator('.pitch-stadium-world');
     assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
     assert.equal(await world.getAttribute('data-stadium-fallback'),'false');
@@ -326,6 +329,7 @@ try {
           assert.ok(await world.locator('[data-stadium-role="crowdTop"]').count()>0);
           assert.equal(await world.locator('[data-stadium-role="pavilionTop"]').count(),1);
           assert.equal(await world.locator('[data-stadium-role="benchTop"]').count(),2);
+          assert.equal(await world.locator('[data-art-variant="composed-overhead"]').count(),4);
         }
         if(evidence)await page.screenshot({path:evidence+'/stadium-'+host+'-'+role+'-'+mode+'-'+position+'.png'});
       }
@@ -337,6 +341,21 @@ try {
     await page.close();
   }
   console.log('PASS: 48 Human/Orc hosting, coach-end, angle and camera-position cases retain stadium and supporter identities.');
+  const motionEvidence=[];
+  for(const host of ['human','orc']) {
+    const human={rosterId:'human',league:'Old World Classic'}, orc={rosterId:'orc',league:'Badlands Brawl'};
+    const page=await open('spectator',false,null,{homeTeamArt:host==='human'?human:orc,awayTeamArt:host==='human'?orc:human,recordMotion:Boolean(evidence)});
+    await page.getByLabel('Perspective angle',{exact:true}).selectOption('40');
+    await travelToFocus(page,13);
+    motionEvidence.push({host,...await observeStadiumMotion(page,evidence?5000:2400)});
+    await page.getByRole('button',{name:'Top-down view',exact:true}).click();
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    motionEvidence.push({host,view:90,...await observeStadiumMotion(page,2400)});
+    if(evidence)await page.screenshot({path:evidence+'/stadium-'+host+'-reduced-motion.png'});
+    const video=page.video();await page.close();if(video)await video.saveAs(evidence+'/stadium-'+host+'-motion.webm');
+  }
+  if(evidence)await writeFile(evidence+'/stadium-motion.json',JSON.stringify({observations:motionEvidence,limits:'Short foreground headless Chrome observation; no sustained hardware-wide GPU claim.'},null,2));
+  console.log('PASS: sparse crowd, fire and pennants visibly move within 3px; anchors, seats and input remain stable; reduced motion is static.');
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();
   await readonly.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 90 });

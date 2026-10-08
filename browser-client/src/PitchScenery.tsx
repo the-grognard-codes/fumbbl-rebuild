@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useId, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { PitchProjection, type PlaneMatrix } from './pitch-projection.ts';
 import type { SetupState } from './setup-protocol.ts';
-import { stadiumPresentation, stadiumSeats, STADIUM_RECESSES, SIDELINE_MARGIN, STADIUM_ROWS, type StadiumProfile, type StadiumRole } from './stadium-presentation.ts';
+import { stadiumPresentation, stadiumSeats, stadiumMotion, STADIUM_RECESSES, SIDELINE_MARGIN, STADIUM_ROWS, type StadiumProfile, type StadiumRole } from './stadium-presentation.ts';
 import { stadiumRoleLayout } from './generated-stadium-art.ts';
 import './pitch-scenery.css';
 
@@ -52,13 +52,22 @@ function StadiumSprite({ camera, profile, role, x, y, rise=0, onError, team }: {
   camera: PitchProjection; profile: StadiumProfile; role: StadiumRole; x: number; y: number;
   rise?: number; onError: () => void; team?: 'home' | 'away';
 }) {
+  const { failed } = useContext(AtlasFailures);
   const point=raisedProjection(camera,x,y,rise); if(!point)return null;
   const region=profile.regions[role], width=point.pixelsPerSquare*stadiumRoleLayout[role].worldWidth, height=width*region.height/region.width;
-  const overhead=camera.mode==='top-down';
+  const overhead=camera.mode==='top-down', motion=stadiumMotion(role,x,y);
+  const motionStyle: CSSProperties & { '--stadium-sway': string } = {
+    animationDuration: motion.duration+'s', animationDelay: motion.delay+'s',
+    '--stadium-sway': Math.min(1.5,point.pixelsPerSquare*.025)+'px' };
   return <g className="stadium-sprite" data-stadium-role={role} data-stadium-profile={profile.id}
     data-team={team} data-world-x={x} data-world-y={y} data-art-view={camera.mode}
     transform={'translate('+point.x+' '+point.y+')'+(overhead?' rotate('+(camera.end==='home'?90:-90)+')':'')}>
-    <AtlasImage profile={profile} role={role} width={width} height={height} anchor={overhead?stadiumRoleLayout[role].anchor.overhead:stadiumRoleLayout[role].anchor.perspective} onError={onError}/>
+    <g className="stadium-ambient" data-motion={failed.has(profile.id)?'static':motion.kind} style={motionStyle}>
+      {overhead && role==='pennant' ? <g data-art-variant="composed-overhead" shapeRendering="crispEdges">
+        <path d={'M0 0 L'+width*.45+' '+(-width*.18)+' L'+width*.4+' '+width*.18+' Z'} fill={profile.palette.cloth} stroke={profile.palette.riser} strokeWidth={Math.max(.6,width*.03)}/>
+        <circle r={width*.07} fill={profile.palette.rail}/>
+      </g> : <AtlasImage profile={profile} role={role} width={width} height={height} anchor={overhead?stadiumRoleLayout[role].anchor.overhead:stadiumRoleLayout[role].anchor.perspective} onError={onError}/>}
+    </g>
   </g>;
 }
 
@@ -137,6 +146,7 @@ function StadiumFurnishings({camera,venue,home,away,onError}:{camera:PitchProjec
     {role:top?'gateTop':'gate',x:-2.2,y:7.5,profile:venue},
     {role:top?'gateTop':'gate',x:28.2,y:7.5,profile:venue},
   ];
+  for(const x of [4,22])for(const y of [-1.85,16.85])props.push({role:'pennant',x,y,profile:x<13?home:away,team:x<13?'home':'away'});
   for(const x of [3,10,16,23])for(const y of [-1.65,16.65])props.push({role:top?'torchTop':'torch',x,y,profile:venue});
   return <svg className="pitch-stadium-furnishings" viewBox={'0 0 '+camera.width+' '+camera.height}>
     {props.sort((a,b)=>camera.end==='home'?b.x-a.x:a.x-b.x).map((prop,i)=><g key={i} visibility={prop.role.startsWith('gate')&&cutaway(camera,prop.x<0?'home':'away')?'hidden':'visible'}>
