@@ -8,6 +8,6 @@ declare global { interface Window { logFixture: TranscriptRecord[]; publishLogRe
 function App() {
   const [records, setRecords] = useState(window.logFixture);
   window.publishLogRecords = setRecords;
-  return <main className="play-runtime live-match-page"><section className="coach-match hosted-match"><div className="match-history"><MatchEventLog records={records} loading={false} unavailable={false}/></div></section></main>;
+  return <main className="play-runtime live-match-page" data-fixture-match={records[0]?.state.matchId}><section className="coach-match hosted-match"><div className="match-history"><MatchEventLog records={records} loading={false} unavailable={false}/></div></section></main>;
 }
 createRoot(document.getElementById('app')!).render(<App/>);

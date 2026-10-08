@@ -52,3 +52,15 @@ export function decodeLogRoll(value: unknown): LogRoll {
   return { version: 1, base: Number(item.base), target: Number(item.target), modifier: Number(item.modifier),
     square: item.square === null ? null : square(item.square) };
 }
+
+export type LogActors = { version: 1; actorId: string; targetId: string | null };
+export function decodeLogActors(value: unknown): LogActors {
+  const item = object(value, ['version', 'actorId', 'targetId']);
+  if (item.version !== 1 || !id(item.actorId) || item.targetId !== null && !id(item.targetId)) throw Error('Invalid native log actors');
+  return { version: 1, actorId: item.actorId, targetId: item.targetId as string | null };
+}
+export function decodeLogTest(value: unknown): { version: 1; rerolled: boolean } {
+  const item = object(value, ['version', 'rerolled']);
+  if (item.version !== 1 || typeof item.rerolled !== 'boolean') throw Error('Invalid native source test');
+  return { version: 1, rerolled: item.rerolled };
+}

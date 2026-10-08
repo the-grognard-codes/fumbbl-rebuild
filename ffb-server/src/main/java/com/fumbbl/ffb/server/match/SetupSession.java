@@ -541,7 +541,7 @@ public final class SetupSession {
 		FieldCoordinate swapOrigin = null;
 		FieldCoordinate swapBuffer = null;
 		Game game = state.getGame();
-        PrimaryRollPresentation rollPresentation = new PrimaryRollPresentation(game);
+        NativeRollPresentation rollPresentation = new NativeRollPresentation(state);
         AcceptedActionPresentation narrative = new AcceptedActionPresentation();
         JsonObject logPresentation = new JsonObject().add("version", 1).add("action", JsonValue.NULL).add("movement", JsonValue.NULL);
         JsonObject acceptedDecision = JsonObject.readFrom(request.toString()).add("logPresentation", logPresentation);
@@ -993,7 +993,7 @@ public final class SetupSession {
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
     private void recordEvent(String kind, String role, JsonValue decision) { recordEvent(kind, role, decision, null); }
 
-    private void recordEvent(String kind, String role, JsonValue decision, PrimaryRollPresentation rollPresentation) {
+    private void recordEvent(String kind, String role, JsonValue decision, NativeRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
