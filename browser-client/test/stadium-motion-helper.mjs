@@ -4,6 +4,20 @@ import assert from 'node:assert/strict';
 export async function observeStadiumMotion(page, durationMs = 2400) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.waitForLoadState('networkidle');
+  // Passive samples avoid the geometry/style reads used by the behavior probe below.
+  const passiveFrames = () => page.evaluate(async duration => {
+    const frames = []; let start, previous;
+    await new Promise(resolve => {
+      const tick = now => {
+        start ??= now; if (previous !== undefined) frames.push(now - previous); previous = now;
+        if (now - start < duration) requestAnimationFrame(tick); else resolve();
+      }; requestAnimationFrame(tick);
+    });
+    const ordered = [...frames].sort((a,b) => a-b);
+    return { frames: frames.length, meanMs: frames.reduce((a,b) => a+b,0)/frames.length,
+      p95Ms: ordered[Math.floor(ordered.length*.95)], maxMs: ordered.at(-1) };
+  }, durationMs);
+  const ambientFrameObservation = await passiveFrames();
   const result = await page.evaluate(async duration => {
     const world = document.querySelector('.pitch-stadium-world');
     const anchors = () => [...world.querySelectorAll('.stadium-sprite')].map(sprite => [sprite.dataset.worldX, sprite.dataset.worldY, sprite.getAttribute('transform')]);
@@ -54,5 +68,6 @@ export async function observeStadiumMotion(page, durationMs = 2400) {
   assert.equal(result.canonicalCells, 390); assert.deepEqual(result.intents, []);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.waitForFunction(() => [...document.querySelectorAll('.stadium-ambient')].every(element => element.getAnimations().length === 0 && getComputedStyle(element).transform === 'none' && getComputedStyle(element).filter === 'none'));
-  return { ...result, reducedMotionStatic: true };
+  const reducedFrameObservation = await passiveFrames();
+  return { ...result, ambientFrameObservation, reducedFrameObservation, reducedMotionStatic: true };
 }

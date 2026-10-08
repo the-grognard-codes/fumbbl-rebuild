@@ -114,8 +114,9 @@ try {
     assert.equal(game.phase,'READY_FOR_KICKOFF');
     await assertVenue(actualHome,homeRoster);
     const revisionBefore=(await latest(actualHome)).revision;
-    motionObservations.push({host:homeRoster,...await observeStadiumMotion(actualHome)});
+    const motion=await observeStadiumMotion(actualHome);
     assert.equal((await latest(actualHome)).revision,revisionBefore,'ambient movement cannot advance native match state');
+    motionObservations.push({host:homeRoster,nativeRevisionStable:true,...motion});
     for(const page of rolePages)await page.waitForFunction(revision=>window.nativeIncoming.some(item=>item.state?.revision===revision),game.revision);
     for(const [index,page] of rolePages.entries()) {
       await page.getByLabel('Live match pitch').waitFor();

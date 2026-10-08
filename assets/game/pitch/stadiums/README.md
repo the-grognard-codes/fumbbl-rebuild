@@ -29,7 +29,7 @@ Human / Old World Classic: stone and timber, canvas, blue and ivory, warm torchl
 
 The original generator requested 1024x1024; the accepted Human output is 1254x1254. Runtime regions use actual dimensions, without resampling. Source calls are retained verbatim; absolute paths in historical calls record their provenance, not portable build dependencies.
 
-Slice 1 QA: production browser build, native projection/recovery/replay checks, browser camera interaction checks for both coach ends, 30/40/50 and overhead, and manually inspected Human perspective/overhead captures. Orc profile and ambient motion follow in separate slices.
+Slice 1 QA: production browser build, native projection/recovery/replay checks, browser camera interaction checks for both coach ends, 30/40/50 and overhead, and manually inspected Human perspective/overhead captures. This is the historical Slice 1 checkpoint; current paired v2 art and ambient evidence are described below.
 
 ## Role contract and paired-profile review
 
@@ -53,4 +53,4 @@ The catalog assigns static, sparse-sway, fire-flicker or wind to each role. Worl
 
 Small overhead pennants are an original modular composition: team-colored cloth triangle and pole cap at the same world anchor, recorded as `overheadComposition` in the role contract. They are not upright front banners rotated into the plane. Front pennants use unchanged atlas pixels.
 
-Both v2 QA directories contain `ambient-motion.webm`, reduced-motion captures and current mixed frames. `orc-v2/motion-review.json` records short foreground frame observations. These are instrumented headless desktop measurements, including probe overhead; they do not certify sustained GPU performance, mobile layout or all hardware. Set `PITCH_SCENE_EVIDENCE_DIR` when running the existing projected pitch harness to regenerate the matrix and clips. Clip capture requires the repository-pinned Playwright ffmpeg binary (`node browser-client/node_modules/playwright/cli.js install ffmpeg`); ordinary interaction checks do not record video.
+Both v2 QA directories contain `ambient-motion.webm`, reduced-motion captures and current mixed frames. `orc-v2/motion-review.json` records separate passive normal/reduced-motion frame observations and the geometry-sampling probe. Earlier concurrent and isolated probe outliers remain recorded for comparison. These are short headless desktop measurements; they do not certify sustained GPU performance, mobile layout or all hardware. Set `PITCH_SCENE_EVIDENCE_DIR` when running the existing projected pitch harness to regenerate the matrix and clips. Clip capture requires the repository-pinned Playwright ffmpeg binary (`node browser-client/node_modules/playwright/cli.js install ffmpeg`); ordinary interaction checks do not record video.

@@ -1095,11 +1095,12 @@
       "focus": 1.0000000929585209
     }
   ],
-  "validatedSourceCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803",
   "integratedBrowserChecks": {
     "assets": 176,
     "unitTests": 194,
     "interactionScripts": 15,
     "productionPlayBuild": "passed"
-  }
+  },
+  "nativeRevisionStable": true,
+  "validatedProductionCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803"
 }

@@ -23,10 +23,22 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
+        "frames": 557,
+        "meanMs": 8.990125673249551,
+        "p95Ms": 15.600000000000364,
+        "maxMs": 16.699999999999818
+      },
+      "ambientFrameObservation": {
+        "frames": 596,
+        "meanMs": 8.393959731543623,
+        "p95Ms": 15.200000000000045,
+        "maxMs": 23.09999999999991
+      },
+      "reducedFrameObservation": {
         "frames": 638,
-        "meanMs": 7.840595611285266,
-        "p95Ms": 8.300000000000182,
-        "maxMs": 15.600000000000136
+        "meanMs": 7.846708463949842,
+        "p95Ms": 8.200000000000728,
+        "maxMs": 36.899999999999636
       },
       "reducedMotionStatic": true
     },
@@ -49,10 +61,22 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
-        "frames": 316,
-        "meanMs": 7.617835443037977,
-        "p95Ms": 8.199999999999818,
-        "maxMs": 8.699999999999818
+        "frames": 305,
+        "meanMs": 7.878360655737709,
+        "p95Ms": 8.400000000001455,
+        "maxMs": 15.899999999997817
+      },
+      "ambientFrameObservation": {
+        "frames": 285,
+        "meanMs": 8.440000000000005,
+        "p95Ms": 15.299999999999272,
+        "maxMs": 46.099999999998545
+      },
+      "reducedFrameObservation": {
+        "frames": 311,
+        "meanMs": 7.739549839228296,
+        "p95Ms": 8.200000000000728,
+        "maxMs": 8.799999999999272
       },
       "reducedMotionStatic": true
     },
@@ -74,10 +98,22 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
-        "frames": 609,
-        "meanMs": 8.210673234811166,
-        "p95Ms": 14.700000000000273,
-        "maxMs": 22.300000000000182
+        "frames": 524,
+        "meanMs": 9.567748091603052,
+        "p95Ms": 15.799999999999272,
+        "maxMs": 133.89999999999964
+      },
+      "ambientFrameObservation": {
+        "frames": 583,
+        "meanMs": 8.586106346483705,
+        "p95Ms": 15.400000000000091,
+        "maxMs": 31.09999999999991
+      },
+      "reducedFrameObservation": {
+        "frames": 624,
+        "meanMs": 8.020512820512819,
+        "p95Ms": 8.299999999999272,
+        "maxMs": 72.70000000000073
       },
       "reducedMotionStatic": true
     },
@@ -100,10 +136,22 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
-        "frames": 308,
-        "meanMs": 7.812987012987015,
+        "frames": 280,
+        "meanMs": 8.604642857142855,
+        "p95Ms": 15.599999999998545,
+        "maxMs": 17.19999999999709
+      },
+      "ambientFrameObservation": {
+        "frames": 291,
+        "meanMs": 8.2701030927835,
+        "p95Ms": 8.5,
+        "maxMs": 48
+      },
+      "reducedFrameObservation": {
+        "frames": 310,
+        "meanMs": 7.758709677419358,
         "p95Ms": 8.299999999999272,
-        "maxMs": 16
+        "maxMs": 15
       },
       "reducedMotionStatic": true
     }
@@ -111,6 +159,7 @@
   "native": [
     {
       "host": "human",
+      "nativeRevisionStable": true,
       "durationMs": 2400,
       "crowdGroups": 155,
       "animatedCrowdGroups": 21,
@@ -127,15 +176,28 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
-        "frames": 269,
-        "meanMs": 8.924907063197036,
+        "frames": 313,
+        "meanMs": 7.68753993610225,
         "p95Ms": 8.299999999995634,
-        "maxMs": 129.40000000000146
+        "maxMs": 8.700000000004366
+      },
+      "ambientFrameObservation": {
+        "frames": 280,
+        "meanMs": 8.579285714285703,
+        "p95Ms": 8.400000000001455,
+        "maxMs": 121.20000000000437
+      },
+      "reducedFrameObservation": {
+        "frames": 307,
+        "meanMs": 7.826710097719856,
+        "p95Ms": 8.10000000000582,
+        "maxMs": 31.599999999998545
       },
       "reducedMotionStatic": true
     },
     {
       "host": "orc",
+      "nativeRevisionStable": true,
       "durationMs": 2400,
       "crowdGroups": 155,
       "animatedCrowdGroups": 21,
@@ -152,15 +214,27 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
-        "frames": 280,
-        "meanMs": 8.573571428571423,
-        "p95Ms": 8.400000000001455,
-        "maxMs": 134.29999999999563
+        "frames": 315,
+        "meanMs": 7.63968253968254,
+        "p95Ms": 8.19999999999709,
+        "maxMs": 8.69999999999709
+      },
+      "ambientFrameObservation": {
+        "frames": 307,
+        "meanMs": 7.832899022801318,
+        "p95Ms": 8.200000000004366,
+        "maxMs": 45.69999999999709
+      },
+      "reducedFrameObservation": {
+        "frames": 309,
+        "meanMs": 7.785113268608433,
+        "p95Ms": 8.19999999999709,
+        "maxMs": 20.69999999999709
       },
       "reducedMotionStatic": true
     }
   ],
-  "limits": "Instrumented foreground headless desktop Chrome; probe overhead included. nativeConcurrent retains the earlier concurrent-run outliers for comparison. No sustained/hardware-wide GPU certification.",
+  "limits": "Short foreground headless desktop Chrome. Passive ambient/reduced samples are separate from the geometry/style probe. Earlier concurrent and isolated probe outliers remain recorded. No sustained/hardware-wide GPU certification.",
   "manualReview": "Both encoded 1280x660 clips inspected at 2s/4s perspective and 7s overhead; small staggered movement remains subordinate to pitch.",
   "nativeConcurrent": [
     {
@@ -214,6 +288,58 @@
       "reducedMotionStatic": true
     }
   ],
-  "validatedSourceCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803",
-  "nativeRun": "Final isolated native server rebuild and acceptance after the 15-script browser suite; no concurrent build/assets sync/browser suite."
+  "nativeRun": "Final isolated native acceptance with passive normal/reduced-motion samples, after the full 15-script browser suite and focused 48-case observer rerun.",
+  "nativeIsolatedProbe": [
+    {
+      "host": "human",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 269,
+        "meanMs": 8.924907063197036,
+        "p95Ms": 8.299999999995634,
+        "maxMs": 129.40000000000146
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 280,
+        "meanMs": 8.573571428571423,
+        "p95Ms": 8.400000000001455,
+        "maxMs": 134.29999999999563
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "validatedProductionCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803"
 }
