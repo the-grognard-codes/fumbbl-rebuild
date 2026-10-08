@@ -93,10 +93,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       return { confirmBottom: confirm?.bottom, barTop: bar?.top, barLeft: bar?.left, barRight: bar?.right,
         chatRight: chat?.right, logLeft: log?.left, sceneTop: scene?.top, sceneBottom: scene?.bottom, height: innerHeight,
         pitchTop: pitch?.top, pitchBottom: pitch?.bottom, headerBottom: header?.bottom,
+        spacing: parseFloat(getComputedStyle(document.documentElement).fontSize),
         panelAlpha: getComputedStyle(document.querySelector('.match-history-log')).backgroundColor };
     });
     assert.ok(layout.confirmBottom < layout.barTop && layout.chatRight < layout.barLeft && layout.barRight < layout.logLeft, JSON.stringify(layout));
     assert.ok(layout.headerBottom > 0 && layout.headerBottom <= layout.pitchTop && layout.pitchBottom <= layout.height);
+    assert.ok(Math.abs(layout.pitchTop - layout.headerBottom - layout.spacing) < 1
+      && Math.abs(layout.height - layout.pitchBottom - layout.spacing) < 1, 'The pitch fills the space below navigation with one-rem margins');
     assert.ok(Math.abs(layout.sceneTop - layout.pitchTop) < 1 && Math.abs(layout.sceneBottom - layout.pitchBottom) < 1);
     assert.equal(layout.panelAlpha, 'rgba(9, 23, 38, 0.3)');
     const commit = actor.getByRole('button', { name: 'Confirmed!', exact: true });
