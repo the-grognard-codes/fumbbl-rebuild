@@ -32,7 +32,7 @@ export function MatchHistory(props: Props) {
     else if (props.messages.length > seen.current) setUnread(props.messages.length - seen.current);
   }, [props.messages.length, props.chatLoading, props.stacked, tab]);
   if (props.stacked) return <div className="match-history" aria-label="Match history">
-    <section className="match-history-log" aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable}/></section>
+    <section className="match-history-log" aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable} showSettings={!props.overlay}/></section>
     <section className="match-history-chat" aria-label="Chat"><MatchChatPanel {...props} active overlay={Boolean(props.overlay)}/></section>
   </div>;
   return <section className="match-history" aria-label="Match history">

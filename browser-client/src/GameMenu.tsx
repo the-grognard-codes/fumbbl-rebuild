@@ -65,7 +65,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
           </>}
           {tab === 'Game Log' && <MatchEventLog records={records} loading={logLoading} unavailable={logUnavailable}/>}
           {tab === 'Interface' && <section><h3>Pitch and interface</h3>{interfaceControls}<p>Background opacity preserves readable text, icons and borders. Event log text has three size controls.</p></section>}
-          {tab === 'Key Bindings' && <section><h3>Keyboard controls</h3><p>Arrow keys: navigate the pitch. Enter on the pitch: choose a square. Space on the pitch: confirm a valid proposal. Enter outside controls: chat. Escape: close chat or this menu.</p><p>Tab navigates players and commands. Setup also offers numeric placement controls.</p></section>}
+          {tab === 'Key Bindings' && <section><h3>Keyboard controls</h3><p>Arrow keys: navigate the pitch. Enter on the pitch: choose a square. Space on the pitch: confirm a valid proposal. Enter outside controls: chat. Escape: close chat or this menu.</p><p>Tab navigates players and commands. Debug offers numeric setup placement controls.</p></section>}
         </div>
       </div>
     </div>}
