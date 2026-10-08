@@ -17,6 +17,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  local-review-tools:
+    name: Local review lifecycle and computer player
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs
+      - run: npm test --prefix computer-player
+
   baseline:
     # Keep the established required-check context used by PR branch protection.
     name: Validate

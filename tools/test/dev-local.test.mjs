@@ -1,10 +1,76 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync, readdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, parse } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-import { composeEnvironment, readManagedState } from '../dev-local.mjs';
+import { composeEnvironment, readManagedState, validateComputerPlayer, validateComputerStartup, waitForComputerPlayer } from '../dev-local.mjs';
+
+test('rejects unavailable computer prerequisites before restart can stop the running stack', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'dev-local-preflight-test-'));
+  const tokenFile = join(directory, 'service.key');
+  try {
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../dev-local.mjs', import.meta.url)), '--restart'], {
+      encoding: 'utf8', windowsHide: true,
+      env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN_FILE: tokenFile },
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /COMPUTER_TOKEN_FILE_UNAVAILABLE/);
+    assert.equal(result.stdout, '', 'preflight must precede stop and build operations');
+    writeFileSync(tokenFile, ' ');
+    assert.throws(() => validateComputerStartup(tokenFile, '26.7.0'), /COMPUTER_TOKEN_FILE_INVALID/);
+    writeFileSync(tokenFile, 'synthetic-test-token');
+    assert.throws(() => validateComputerStartup(tokenFile, '24.0.0'), /COMPUTER_NODE_VERSION_UNSUPPORTED/);
+    validateComputerStartup(tokenFile, '26.7.0');
+  } finally {
+    try { unlinkSync(tokenFile); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    rmdirSync(directory);
+  }
+});
+
+test('only stops the recorded computer daemon from its owning checkout and local endpoint', () => {
+  const owner = join(tmpdir(), 'dev-local-owner');
+  const state = { pid: 42, script: join(owner, 'computer-player', 'src', 'daemon.mjs') };
+  const command = `node "${state.script}" --url ws://127.0.0.1:22232/browser/v2 --origin http://localhost:5000`;
+  validateComputerPlayer(state, owner, command);
+  validateComputerPlayer(state, owner, ''); // An already stopped daemon needs no termination.
+  assert.throws(() => validateComputerPlayer(state, join(tmpdir(), 'another-checkout'), command), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer({ ...state, pid: -1 }, owner, command), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, 'node unrelated.mjs'), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, command.replace('22232', '22234')), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, command.replace('localhost:5000', 'localhost:5173')), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, command.replace('daemon.mjs', 'daemon.mjs.backup')), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, command.replace('/browser/v2', '/browser/v2-extra')), /COMPUTER_STATE_MISMATCH/);
+  assert.throws(() => validateComputerPlayer(state, owner, command.replace('localhost:5000', 'localhost:50001')), /COMPUTER_STATE_MISMATCH/);
+});
+
+test('waits for computer registration and rejects a failed process even with a ready log', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'dev-local-computer-test-'));
+  const log = join(directory, 'computer.log');
+  const child = Object.assign(new EventEmitter(), { exitCode: null, signalCode: null });
+  try {
+    writeFileSync(log, 'Connecting...\n');
+    const waiting = waitForComputerPlayer(child, log);
+    writeFileSync(log, '[computer-daemon] Ready for computer matches; capacity 32.\n');
+    await waiting;
+    child.exitCode = 1;
+    await assert.rejects(waitForComputerPlayer(child, log), /COMPUTER_START_FAILED/);
+    child.exitCode = null;
+    child.signalCode = 'SIGTERM';
+    await assert.rejects(waitForComputerPlayer(child, log), /COMPUTER_START_FAILED/);
+    child.signalCode = null;
+    writeFileSync(log, 'Connecting...\n');
+    const failed = waitForComputerPlayer(child, log);
+    child.emit('error', Error('spawn failed'));
+    await assert.rejects(failed, /COMPUTER_START_FAILED/);
+  } finally {
+    unlinkSync(log);
+    rmdirSync(directory);
+  }
+});
 
 test('finds a managed browser stack started from another checkout of the same repository', () => {
   const directory = mkdtempSync(join(tmpdir(), 'dev-local-state-test-'));

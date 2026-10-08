@@ -107,6 +107,34 @@ function validateProxy(state, ownerRoot) {
   if (!config.includes('proxy_pass http://127.0.0.1:22234;')) throw Error('PROXY_STATE_MISMATCH');
 }
 
+export function validateComputerPlayer(state, ownerRoot, commandLine) {
+  if (!Number.isSafeInteger(state?.pid) || state.pid < 1 || typeof state.script !== 'string'
+    || !samePath(state.script, join(ownerRoot, 'computer-player', 'src', 'daemon.mjs'))) throw Error('COMPUTER_STATE_MISMATCH');
+  const scriptArgument = state.script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (commandLine && (!new RegExp(`(?:^|\\s)"?${scriptArgument}"?(?=\\s|$)`).test(commandLine)
+    || !/(?:^|\s)--url\s+"?ws:\/\/127\.0\.0\.1:22232\/browser\/v2"?(?=\s|$)/.test(commandLine)
+    || !/(?:^|\s)--origin\s+"?http:\/\/localhost:5000"?(?=\s|$)/.test(commandLine))) throw Error('COMPUTER_STATE_MISMATCH');
+}
+
+export async function waitForComputerPlayer(child, outputFile) {
+  let failed = false;
+  child.once('error', () => { failed = true; });
+  for (let attempt = 0; attempt < 120; attempt++) {
+    if (failed || child.exitCode !== null || child.signalCode !== null) throw Error('COMPUTER_START_FAILED');
+    if (readFileSync(outputFile, 'utf8').includes('[computer-daemon] Ready for computer matches;')) return;
+    await new Promise(resolveWait => setTimeout(resolveWait, 250));
+  }
+  throw Error('COMPUTER_UNAVAILABLE');
+}
+
+export function validateComputerStartup(tokenFile, nodeVersion = process.versions.node) {
+  let token;
+  try { token = readFileSync(tokenFile, 'utf8').trim(); }
+  catch { throw Error('COMPUTER_TOKEN_FILE_UNAVAILABLE'); }
+  if (!token) throw Error('COMPUTER_TOKEN_FILE_INVALID');
+  if (Number(nodeVersion.split('.')[0]) < 26) throw Error('COMPUTER_NODE_VERSION_UNSUPPORTED');
+}
+
 async function portFree(port) {
   const reservation = createServer();
   try { await new Promise((resolveFree, reject) => { reservation.once('error', reject); reservation.listen(port, '127.0.0.1', resolveFree); }); }
@@ -123,13 +151,19 @@ async function waitForPortFree(port) {
   throw Error('DEV_LOCAL_PORT_BUSY');
 }
 
-async function stopBrowserServices() {
+async function stopLocalProcesses() {
   const managed = readState();
   if (!managed) {
     if (!await portFree(5000) || !await portFree(22232)) throw Error('UNMANAGED_LOCAL_SERVICE');
     return;
   }
   const { state, file } = managed;
+  if (state.computerPlayer) {
+    validateComputerPlayer(state.computerPlayer, state.root);
+    const commandLine = processCommandLine(state.computerPlayer.pid);
+    validateComputerPlayer(state.computerPlayer, state.root, commandLine);
+    if (commandLine) run('taskkill.exe', ['/PID', String(state.computerPlayer.pid), '/T', '/F']);
+  }
   if (state.hosting) {
     const commandLine = processCommandLine(state.hosting.pid);
     if (commandLine) {
@@ -153,7 +187,7 @@ async function stopBrowserServices() {
 }
 
 async function stop() {
-  await stopBrowserServices();
+  await stopLocalProcesses();
   const server = inspect(serverName, 'server');
   const database = inspect(databaseName, 'database');
   if (server.State.Running) run('docker', ['stop', serverName], { stdio: 'inherit' });
@@ -180,8 +214,8 @@ async function waitForReviewServer() {
   throw Error('REVIEW_SERVER_UNHEALTHY');
 }
 
-async function start() {
-  await stopBrowserServices();
+async function start(tokenFile) {
+  await stopLocalProcesses();
   const server = inspect(serverName, 'server');
   const database = inspect(databaseName, 'database');
   const secrets = composeEnvironment(server, database);
@@ -210,9 +244,24 @@ async function start() {
   closeSync(out); closeSync(err);
   if (!child.pid) throw Error('HOSTING_START_FAILED');
   child.unref();
-  saveState({ proxy: { prefix, binary: nginx, pid }, hosting: { pid: child.pid, script: firebase } });
+  const state = { proxy: { prefix, binary: nginx, pid }, hosting: { pid: child.pid, script: firebase } };
+  saveState(state);
   await waitForHosting();
   run(process.execPath, ['--test', join(root, 'deployment', 'game-service', 'proxy', 'live-local-test.mjs')], { stdio: 'inherit' });
+  console.log('Starting the local computer player service...');
+  const computerScript = join(root, 'computer-player', 'src', 'daemon.mjs');
+  const computerLog = join(toolsDirectory, 'dev-local-computer.log');
+  const computerOut = openSync(computerLog, 'w');
+  const computerErr = openSync(join(toolsDirectory, 'dev-local-computer.err.log'), 'w');
+  const computer = spawn(process.execPath, [computerScript, '--url', 'ws://127.0.0.1:22232/browser/v2',
+    '--origin', 'http://localhost:5000', '--service-token-file', tokenFile],
+    { cwd: root, detached: true, windowsHide: true, stdio: ['ignore', computerOut, computerErr] });
+  closeSync(computerOut); closeSync(computerErr);
+  computer.once('error', () => {});
+  if (!computer.pid) throw Error('COMPUTER_START_FAILED');
+  computer.unref();
+  saveState({ ...state, computerPlayer: { pid: computer.pid, script: computerScript } });
+  await waitForComputerPlayer(computer, computerLog);
   console.log('Dev-local ready: http://localhost:5000/play');
 }
 
@@ -221,8 +270,10 @@ if (invokedDirectly && (!['--start', '--stop', '--restart'].includes(mode) || pr
   process.exitCode = 2;
 } else if (invokedDirectly) {
   try {
+    const tokenFile = resolve(process.env.FFB_COMPUTER_SERVICE_TOKEN_FILE || 'C:\\secure\\coach-bugman-token.key');
+    if (mode !== '--stop') validateComputerStartup(tokenFile);
     if (mode === '--stop' || mode === '--restart') await stop();
-    if (mode === '--start' || mode === '--restart') await start();
+    if (mode === '--start' || mode === '--restart') await start(tokenFile);
   } catch (failure) {
     const safe = /^[A-Z][A-Z_]+$/.test(failure.message) ? failure.message : 'DEV_LOCAL_COMMAND_FAILED';
     console.error(`Dev-local: ${safe}`);
