@@ -11,7 +11,7 @@ Debug, Movement and Roll modifiers retain their shared behavior. Images and nati
 ## Verification
 
 - Four new native tests export 42 accepted-session cases: six face values, equal/uphill choices, both/one-player Block, Dodge/Tackle, attacker/defender Wrestle and decline, Grab, legal forced chain pushes/follow-up, Pro/Brawler originals and rerolls, Pro-test retries and exact request deduplication, from both coaches.
-- All 48 focused native tests pass, covering projection, manual rerolls, prior logs, setup and exact dice/reroll fixture guards. Existing source reports remain free of presentation metadata.
+- All 61 focused native tests pass, covering projection, manual rerolls, prior logs, setup and exact dice/reroll fixture guards. The opponent-owned skill-source guard requires the actual native dialog owner and a nonempty action set; it still excludes the home acting player. Existing source reports remain free of presentation metadata.
 - 219 client tests cover native faces/chooser/effects, all eight setting combinations, incremental/exact replay, legacy omission and strict metadata bounds. TypeScript and site build pass.
 - The new browser journey renders all 42 native cases with loaded artwork, accessible names and chosen-die styling, then checks settings, reload and paging. All 14 hosted-page browser tests pass, including completed replay with both named faces and the accessible selected die. The existing full interaction pack passes and covers live dice, native rerolls, pushes, playback, movement overlays and log regressions.
 - Both exact fixture updates were compared recursively: dice adds 12 `logBlock` values, reroll choices adds 52; every prior field/value is unchanged. No existing outcomes were rewritten.
