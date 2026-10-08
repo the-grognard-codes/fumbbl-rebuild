@@ -13,24 +13,33 @@ node tools/dev-local.mjs --restart
 `--start` assembles the latest local-dev Firebase Hosting site, rebuilds and
 starts the isolated Docker game server and database, validates or renews the
 game server's Google Application Default Credential, starts the local WebSocket
-proxy and Hosting emulator, and checks both browser routes. Open
+proxy and Hosting emulator, checks both browser routes, and starts the computer
+player daemon, waiting for its registration before reporting ready. Open
 <http://localhost:5000/play>. `--restart` stops and repeats that sequence;
 `--stop` shuts down only these review processes and containers, retaining their
-database volumes. The script records the browser processes it owns in the
+database volumes. The script records the browser and computer processes it owns in the
 repository's shared `.git/dev-local-state.json` file so it can stop the exact
 instances from any checkout of this repository. It also recognizes the former
 `.tools/dev-local-state.json` file when upgrading an already running session.
 It refuses to take over an unrelated process on port 5000 or 22232.
 
 The one-time review stack provisioning below must already have been completed.
-Docker Desktop, Node.js, the Firebase CLI, and the local nginx binary must be
+Docker Desktop, Node.js 26 or newer, the Firebase CLI, and the local nginx binary must be
 installed. The command reuses the existing mounted secret files; it does not
 print or copy their contents into the repository. A Google sign-in opens only
 if both the mounted ADC and standard gcloud ADC need renewal. A normal local
 Firebase Hosting start does not require a separate Firebase CLI sign-in.
 
-Hosting output is saved under `.tools/dev-local-hosting*.log`. If startup fails,
-fix the reported condition and rerun `--start`; the next run stops any browser
+The computer daemon reads `C:\secure\coach-bugman-token.key` by default. Set
+`FFB_COMPUTER_SERVICE_TOKEN_FILE` to use another token file matching the game
+server's configured hash. The token stays outside the repository.
+Token readability and the Node version are checked before stopping an existing
+stack, so a missing or empty token or an unsupported Node version cannot take
+down a working stack during `--restart`.
+
+Hosting output is saved under `.tools/dev-local-hosting*.log`; computer player
+output is in `.tools/dev-local-computer*.log`. If startup fails,
+fix the reported condition and rerun `--start`; the next run stops any managed
 processes recorded by the interrupted run before starting them again.
 
 On Windows, the startup helpers translate Docker Desktop mount sources such as
