@@ -1,12 +1,8 @@
 package com.fumbbl.ffb.factory;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import com.fumbbl.ffb.FactoryType;
-import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.RulesCollection.Rules;
+import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.modifiers.PickupContext;
@@ -14,6 +10,11 @@ import com.fumbbl.ffb.modifiers.PickupModifier;
 import com.fumbbl.ffb.modifiers.PickupModifierCollection;
 import com.fumbbl.ffb.modifiers.RollModifier;
 import com.fumbbl.ffb.util.Scanner;
+import com.fumbbl.ffb.util.UtilPlayer;
+
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * 
@@ -57,6 +58,11 @@ public class PickupModifierFactory extends GenerifiedModifierFactory<PickupConte
 	@Override
 	protected Optional<PickupModifier> checkClass(RollModifier<?> modifier) {
 		return modifier instanceof PickupModifier ? Optional.of((PickupModifier) modifier) : Optional.empty();
+	}
+
+	@Override
+	protected int numberOfTacklezones(PickupContext context) {
+		return UtilPlayer.findTacklezones(context.getGame(), context.getPlayer(), context.getCoordinate());
 	}
 
 	@Override
