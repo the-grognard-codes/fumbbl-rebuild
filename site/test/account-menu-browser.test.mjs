@@ -58,6 +58,7 @@ test('shared account disclosure tracks authentication, signs out, dismisses and 
     assert.equal(await menu.getAttribute('open'), null);
     await page.evaluate(() => window.__setAccount({ email: 'coach@example.test' }));
     await menu.getByText('coach@example.test', { exact: true }).waitFor();
+    assert.equal(await summary.evaluate(element => document.getElementById(element.getAttribute('aria-describedby')).textContent), 'coach@example.test', 'the focusable account control announces its current identity');
     await summary.click();
     await menu.getByRole('button', { name: 'Sign out', exact: true }).waitFor();
     assert.equal(await menu.getByRole('link', { name: 'Sign in', exact: true }).isVisible(), false);

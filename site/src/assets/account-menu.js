@@ -8,9 +8,9 @@ if (header) {
   }
   const menu = document.createElement('details');
   menu.className = 'account-menu';
-  menu.innerHTML = `<summary aria-label="My account" aria-controls="account-options">
+  menu.innerHTML = `<summary aria-label="My account" aria-describedby="account-identity" aria-controls="account-options">
     <svg class="account-avatar" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M3 23v-4a9 9 0 0 1 18 0v4Z"/></svg>
-    <span class="account-label"><span>My account</span><span class="account-identity">Sign in</span></span>
+    <span class="account-label"><span>My account</span><span id="account-identity" class="account-identity">Sign in</span></span>
   </summary>
   <div id="account-options" class="account-options">
     <ul aria-label="Account options">

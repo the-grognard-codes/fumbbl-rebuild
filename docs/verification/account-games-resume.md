@@ -7,7 +7,7 @@ Scope: [#220](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/220), 
 - A signed-in coach can refresh their unfinished games and resume an authorized match in the current tab. Keep durable membership, wrong-account denials, connection replacement, native revision checks and exact-request recovery.
 - Local development explicitly provisions the existing current-games query index and verifies its shape. The runtime database identity gains no schema privileges. Maintenance is confined to the named, labelled local review database.
 - Computer clients default to four concurrent matches, matching hosted configuration, with the existing queue for the backlog. The dispatcher and workers use five of the server's sixteen connection slots.
-- Site headers expose a person silhouette and My account disclosure. Its identity line reads Sign in when signed out and the authenticated email when signed in. Account Settings, My games, My teams, Match history and Preferences remain disabled placeholders. Sign in uses the existing login; Sign out uses Firebase and reports a failed attempt.
+- Visible site headers expose a person silhouette and My account disclosure. Its identity line reads Sign in when signed out and the authenticated email when signed in, including the control's accessible description. Account Settings, My games, My teams, Match history and Preferences remain disabled placeholders. Sign in uses the existing login; Sign out uses Firebase and reports a failed attempt. The existing match presentation uses its board-focused chrome.
 - Share one authentication context between the account header and existing page modules. Support keyboard activation, Escape/focus restoration, outside click/focus dismissal and narrow screens.
 
 The user separately authorized deleting all existing local test games. This is local maintenance, not a new product deletion feature. Saved teams, identities, scopes and accounts must survive.
@@ -38,4 +38,8 @@ Stopped the managed computer process tree and game server before cleanup. Verifi
 
 ## Validation status
 
-In progress. Final browser, review and PR evidence will be recorded before delivery.
+Local regressions pass: nine computer tests, eight lifecycle/index tests, ten site unit checks, forty-five admission/projection/current-games contract checks, six existing authenticated hosted journeys and the new account-disclosure journey. TypeScript/site build and site input checks pass. The current-source native server build passes 333 checks with two opt-in database checks skipped.
+
+The actual signed-in browser now loads the empty owned-games list. Created one fresh disposable native computer game: it appeared as Ready to start with Continue setup, launched in the same tab, displayed the pitch and native receive/kick choice, and restored that same choice on direct reload. Its activated entry is retained for the user's local verification. The live native unauthenticated read/mutation/exact-retry denial check also passes.
+
+Both independent review axes found no blocking implementation defects. Their small accessibility/cache observations are addressed by linking the identity as the control's accessible description and updating the site stylesheet query version. Final PR CI is pending.
