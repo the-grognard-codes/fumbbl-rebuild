@@ -1,0 +1,194 @@
+{
+  "status": "Reviewed art direction and bowl accepted; revised entrance/apron/mixed-supporter layout proposed for review",
+  "coordinateSystem": {
+    "x": "Canonical field length; 0 home goal line, 26 away goal line",
+    "y": "Canonical field width; 0 north sideline, 15 south sideline",
+    "z": "Height in world-square units"
+  },
+  "pitch": {
+    "length": 26,
+    "width": 15,
+    "cells": 390,
+    "midfieldX": 13
+  },
+  "apron": {
+    "clearSquares": 2,
+    "groundBounds": {
+      "x": [
+        -2,
+        28
+      ],
+      "y": [
+        -2,
+        17
+      ]
+    },
+    "note": "Scenery only; no extra playable cells. Benches and pavilion fit in recessed pockets outside this clear apron."
+  },
+  "stadium": {
+    "proposedOuterBounds": {
+      "x": [
+        -6,
+        32
+      ],
+      "y": [
+        -6,
+        21
+      ]
+    },
+    "sharedAcrossAllVenueThemes": true,
+    "reviewNote": "Draft measured layout, not a claim that flattened illustrations are geometrically registered"
+  },
+  "lockerRooms": [
+    {
+      "id": "home-north-locker",
+      "side": "north",
+      "x": 6,
+      "y": -2,
+      "openingAlong": 2.4,
+      "team": "home"
+    },
+    {
+      "id": "away-south-locker",
+      "side": "south",
+      "x": 20,
+      "y": 17,
+      "openingAlong": 2.4,
+      "team": "away"
+    }
+  ],
+  "benches": [
+    {
+      "id": "home-north-bench",
+      "team": "home",
+      "x": 9,
+      "y": -3.25,
+      "footprint": {
+        "along": 3,
+        "across": 1.1
+      }
+    },
+    {
+      "id": "away-south-bench",
+      "team": "away",
+      "x": 17,
+      "y": 18.25,
+      "footprint": {
+        "along": 3,
+        "across": 1.1
+      }
+    }
+  ],
+  "pavilion": {
+    "venueOwned": true,
+    "x": 3,
+    "y": -3.7,
+    "footprint": {
+      "along": 2.65,
+      "across": 2.65
+    }
+  },
+  "supporterSections": [
+    {
+      "id": "north-home",
+      "side": "north",
+      "team": "home",
+      "x": [
+        -2,
+        13
+      ]
+    },
+    {
+      "id": "north-away",
+      "side": "north",
+      "team": "away",
+      "x": [
+        13,
+        28
+      ]
+    },
+    {
+      "id": "south-home",
+      "side": "south",
+      "team": "home",
+      "x": [
+        -2,
+        13
+      ]
+    },
+    {
+      "id": "south-away",
+      "side": "south",
+      "team": "away",
+      "x": [
+        13,
+        28
+      ]
+    },
+    {
+      "id": "home-end",
+      "side": "home-end",
+      "team": "home",
+      "x": [
+        -6,
+        -2
+      ]
+    },
+    {
+      "id": "away-end",
+      "side": "away-end",
+      "team": "away",
+      "x": [
+        28,
+        32
+      ]
+    }
+  ],
+  "partitions": [
+    {
+      "id": "north-midfield-divider",
+      "x": 13,
+      "y": [
+        -6,
+        -2
+      ]
+    },
+    {
+      "id": "south-midfield-divider",
+      "x": 13,
+      "y": [
+        17,
+        21
+      ]
+    }
+  ],
+  "layers": [
+    "ground-and-apron",
+    "static-stadium-shell",
+    "team-crowd-sections",
+    "midfield-dividers",
+    "locker-room-portals",
+    "team-benches-and-cups",
+    "venue-pavilion-and-torch-fixtures",
+    "team-flags",
+    "isolated-fan-gestures-and-small-ambient-effects"
+  ],
+  "cameraRules": [
+    "Use existing PitchProjection for every world anchor and raised surface",
+    "Never use a fixed full-stadium panorama as a scrolling background",
+    "Fixed canonical supporter ownership independent of viewing end, travel, zoom, reconnect and halftime",
+    "Reveal/crop outer stands naturally; keep foreground rim without hiding interactive pitch cells",
+    "Clip raised surfaces before projection at lens boundary",
+    "Author direction-specific crowd views and overhead assets without distorting one camera-specific painting"
+  ],
+  "motion": "A few isolated individual gesture poses; the crowd mass and stadium shell stay still",
+  "pendingProductionValidation": [
+    "Registered asset dimensions and seams",
+    "Both roster hosting arrangements",
+    "Camera ends and full continuous travel",
+    "30/40/50 and overhead; practical zooms and narrow viewports",
+    "Near foreground rim, player readability and access to all 390 playable cells",
+    "Bench recesses, entrances, dividers and pavilion clear of apron",
+    "Reduced motion"
+  ]
+}

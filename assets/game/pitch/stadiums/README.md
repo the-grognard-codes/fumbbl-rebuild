@@ -54,3 +54,13 @@ The catalog assigns static, sparse-sway, fire-flicker or wind to each role. Worl
 Small overhead pennants are an original modular composition: team-colored cloth triangle and pole cap at the same world anchor, recorded as `overheadComposition` in the role contract. They are not upright front banners rotated into the plane. Front pennants use unchanged atlas pixels.
 
 Both v2 QA directories contain `ambient-motion.webm`, reduced-motion captures and current mixed frames. `orc-v2/motion-review.json` records separate passive normal/reduced-motion frame observations and the geometry-sampling probe. Earlier concurrent and isolated probe outliers remain recorded for comparison. These are short headless desktop measurements; they do not certify sustained GPU performance, mobile layout or all hardware. Set `PITCH_SCENE_EVIDENCE_DIR` when running the existing projected pitch harness to regenerate the matrix and clips. Clip capture requires the repository-pinned Playwright ffmpeg binary (`node browser-client/node_modules/playwright/cli.js install ffmpeg`); ordinary interaction checks do not record video.
+
+## Source-faithful modular bowls (#211)
+
+The approved correction and measured layout are in [the review brief](../../references/stadiums/human-reference-revision/README.md) and [implementation spec](../../../../docs/specs/modular-stadium-bowl.md).
+
+The v3 original Human/Orc sheets each contain 20 distinct assets: static structure/locker-room portals, dense front/side/reverse/back/overhead crowd, separate furniture and flags, and an individual resting/cheering fan pair. The original PNG bytes are unchanged. Per-asset transparent frames are measured from connected alpha components because generated rows/columns are nonuniform; equal-cell slicing would clip nearby sprites. The catalog builder checks all bounds, gutters, source hashes, role completeness and the shared world contract.
+
+modular-catalog.json and generated-stadium-modules.ts describe the next renderer independently of the historical v2 catalog. Both v3 sheets are 1122 × 1402 RGBA originals. World dimensions, not sheet pixel dimensions, define interchangeable venue geometry. Keep body/foot anchors stable when compositing gesture frames; do not animate an entire strip.
+
+Production geometry preserves 26 × 15 playable squares, a two-square clear apron, and the same 38 × 27 outer footprint. Two locker-room portals replace end gates; team benches occupy adjacent recesses. Canonical midfield x=13 separates both long-side crowd sections with timber partitions. The near-end crowd stays as an elevated foreground rim. Layered world surfaces and player readability are validated during integration, not inferred from the authoring sheet alone.

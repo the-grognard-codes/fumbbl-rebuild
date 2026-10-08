@@ -1,0 +1,361 @@
+{
+  "version": 1,
+  "atlases": [
+    {
+      "id": "old-world-classic",
+      "version": "v3",
+      "atlas": "old-world-classic-v3.png",
+      "palette": {
+        "stone": "#73746b",
+        "riser": "#403c34",
+        "rail": "#b5a078",
+        "cloth": "#3579b4"
+      },
+      "provenance": "source/human-modular-provenance.json",
+      "cells": {
+        "stone": {
+          "x": 33,
+          "y": 77,
+          "width": 195,
+          "height": 201
+        },
+        "timber": {
+          "x": 282,
+          "y": 140,
+          "width": 301,
+          "height": 121
+        },
+        "gate": {
+          "x": 621,
+          "y": 102,
+          "width": 232,
+          "height": 178
+        },
+        "gateTop": {
+          "x": 889,
+          "y": 105,
+          "width": 208,
+          "height": 155
+        },
+        "crowd": {
+          "x": 23,
+          "y": 372,
+          "width": 288,
+          "height": 184
+        },
+        "crowdSide": {
+          "x": 320,
+          "y": 374,
+          "width": 302,
+          "height": 181
+        },
+        "crowdTop": {
+          "x": 642,
+          "y": 331,
+          "width": 231,
+          "height": 234
+        },
+        "banner": {
+          "x": 921,
+          "y": 326,
+          "width": 172,
+          "height": 239
+        },
+        "bench": {
+          "x": 33,
+          "y": 691,
+          "width": 286,
+          "height": 109
+        },
+        "benchTop": {
+          "x": 338,
+          "y": 682,
+          "width": 235,
+          "height": 100
+        },
+        "pavilion": {
+          "x": 613,
+          "y": 599,
+          "width": 252,
+          "height": 225
+        },
+        "pavilionTop": {
+          "x": 900,
+          "y": 608,
+          "width": 191,
+          "height": 207
+        },
+        "mugs": {
+          "x": 64,
+          "y": 938,
+          "width": 202,
+          "height": 154
+        },
+        "torch": {
+          "x": 388,
+          "y": 837,
+          "width": 101,
+          "height": 271
+        },
+        "torchTop": {
+          "x": 669,
+          "y": 919,
+          "width": 103,
+          "height": 155
+        },
+        "pennant": {
+          "x": 901,
+          "y": 860,
+          "width": 188,
+          "height": 230
+        },
+        "crowdBack": {
+          "x": 16,
+          "y": 1184,
+          "width": 330,
+          "height": 177
+        },
+        "crowdSideReverse": {
+          "x": 349,
+          "y": 1185,
+          "width": 301,
+          "height": 177
+        },
+        "fanRest": {
+          "x": 671,
+          "y": 1222,
+          "width": 187,
+          "height": 138
+        },
+        "fanCheer": {
+          "x": 893,
+          "y": 1178,
+          "width": 209,
+          "height": 184
+        }
+      }
+    },
+    {
+      "id": "badlands-brawl",
+      "version": "v3",
+      "atlas": "badlands-brawl-v3.png",
+      "palette": {
+        "stone": "#514b42",
+        "riser": "#292724",
+        "rail": "#827a63",
+        "cloth": "#c56c24"
+      },
+      "provenance": "source/orc-modular-provenance.json",
+      "cells": {
+        "stone": {
+          "x": 25,
+          "y": 69,
+          "width": 213,
+          "height": 214
+        },
+        "timber": {
+          "x": 267,
+          "y": 108,
+          "width": 317,
+          "height": 162
+        },
+        "gate": {
+          "x": 610,
+          "y": 65,
+          "width": 250,
+          "height": 218
+        },
+        "gateTop": {
+          "x": 883,
+          "y": 83,
+          "width": 231,
+          "height": 199
+        },
+        "crowd": {
+          "x": 18,
+          "y": 368,
+          "width": 305,
+          "height": 204
+        },
+        "crowdSide": {
+          "x": 325,
+          "y": 376,
+          "width": 302,
+          "height": 195
+        },
+        "crowdTop": {
+          "x": 639,
+          "y": 347,
+          "width": 236,
+          "height": 233
+        },
+        "banner": {
+          "x": 902,
+          "y": 327,
+          "width": 209,
+          "height": 269
+        },
+        "bench": {
+          "x": 20,
+          "y": 710,
+          "width": 315,
+          "height": 125
+        },
+        "benchTop": {
+          "x": 339,
+          "y": 688,
+          "width": 250,
+          "height": 126
+        },
+        "pavilion": {
+          "x": 601,
+          "y": 608,
+          "width": 276,
+          "height": 242
+        },
+        "pavilionTop": {
+          "x": 891,
+          "y": 617,
+          "width": 217,
+          "height": 240
+        },
+        "mugs": {
+          "x": 59,
+          "y": 945,
+          "width": 229,
+          "height": 156
+        },
+        "torch": {
+          "x": 388,
+          "y": 850,
+          "width": 123,
+          "height": 267
+        },
+        "torchTop": {
+          "x": 648,
+          "y": 932,
+          "width": 140,
+          "height": 174
+        },
+        "pennant": {
+          "x": 894,
+          "y": 859,
+          "width": 200,
+          "height": 244
+        },
+        "crowdBack": {
+          "x": 14,
+          "y": 1169,
+          "width": 315,
+          "height": 197
+        },
+        "crowdSideReverse": {
+          "x": 334,
+          "y": 1171,
+          "width": 290,
+          "height": 195
+        },
+        "fanRest": {
+          "x": 632,
+          "y": 1213,
+          "width": 234,
+          "height": 152
+        },
+        "fanCheer": {
+          "x": 878,
+          "y": 1149,
+          "width": 240,
+          "height": 218
+        }
+      }
+    }
+  ],
+  "geometry": {
+    "pitch": {
+      "length": 26,
+      "width": 15
+    },
+    "apron": 2,
+    "outer": {
+      "x": [
+        -6,
+        32
+      ],
+      "y": [
+        -6,
+        21
+      ]
+    },
+    "wallHeight": 1.1,
+    "crowdRows": 4,
+    "crowdRise": 0.8,
+    "crowdRowRise": 0.2,
+    "crowdHeight": 1,
+    "crowdSpan": 2,
+    "lockerRooms": [
+      {
+        "id": "home-locker",
+        "side": "north",
+        "team": "home",
+        "x": 6,
+        "y": -2,
+        "span": 2.4
+      },
+      {
+        "id": "away-locker",
+        "side": "south",
+        "team": "away",
+        "x": 20,
+        "y": 17,
+        "span": 2.4
+      }
+    ],
+    "benches": [
+      {
+        "side": "north",
+        "team": "home",
+        "x": 9,
+        "y": -3.25,
+        "along": 3,
+        "across": 1.1
+      },
+      {
+        "side": "south",
+        "team": "away",
+        "x": 17,
+        "y": 18.25,
+        "along": 3,
+        "across": 1.1
+      }
+    ],
+    "pavilion": {
+      "side": "north",
+      "x": 3,
+      "y": -3.7,
+      "along": 2.65,
+      "across": 2.65
+    },
+    "partitions": [
+      {
+        "id": "north-midfield",
+        "x": 13,
+        "y0": -6,
+        "y1": -2
+      },
+      {
+        "id": "south-midfield",
+        "x": 13,
+        "y0": 17,
+        "y1": 21
+      }
+    ]
+  },
+  "venues": {
+    "Old World Classic": "old-world-classic",
+    "Badlands Brawl": "badlands-brawl"
+  },
+  "teams": {
+    "human": "old-world-classic",
+    "orc": "badlands-brawl"
+  }
+}
