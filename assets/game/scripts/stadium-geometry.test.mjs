@@ -5,6 +5,8 @@ import {validateStadiumGeometry} from './stadium-geometry.mjs';
 const {geometry}=JSON.parse(await readFile(new URL('../pitch/stadiums/modular-catalog.json',import.meta.url),'utf8'));
 test('approved modular bowl fits its shared apron and locker passages',()=>validateStadiumGeometry(geometry));
 for (const [name,change] of [
+  ['away bench on the wrong sideline',g=>{g.benches[1].side='north';g.benches[1].y=-4;}],
+  ['pavilion in a different recess',g=>{g.pavilion.x=22;}],
   ['both portals on one sideline',g=>{g.lockerRooms[1].side='north';}],
   ['portal moved from its approved position',g=>{g.lockerRooms[0].x=13;}],
   ['different outer dimensions',g=>{g.outer.x[1]=33;}],

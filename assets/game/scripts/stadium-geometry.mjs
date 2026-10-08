@@ -11,7 +11,14 @@ export function validateStadiumGeometry(g) {
     Object.entries(expected).every(([key,value]) => actual[key] === value))), 'exactly one approved portal per sideline is required');
   require(g.partitions.length === 2 && [[-6,-2],[17,21]].every(([y0,y1]) =>
     g.partitions.some(p => p.x === 13 && p.y0 === y0 && p.y1 === y1)), 'midfield partitions must stay inside both stands');
-  require(g.benches.length === 2 && ['home','away'].every(team => g.benches.filter(b => b.team === team).length === 1), 'one bench per team is required');
+  const benches = [
+    {side:'north',team:'home',x:9,y:-3.25,along:3,across:1.1},
+    {side:'south',team:'away',x:17,y:18.25,along:3,across:1.1},
+  ];
+  require(g.benches.length === 2 && benches.every(expected => g.benches.some(actual =>
+    Object.entries(expected).every(([key,value]) => actual[key] === value))), 'benches must occupy their approved team locker recesses');
+  require(Object.entries({side:'north',x:3,y:-3.7,along:2.65,across:2.65}).every(([key,value]) =>
+    g.pavilion[key] === value), 'pavilion must occupy its approved recess');
   for (const item of [...g.benches,g.pavilion]) {
     require([item.x,item.y,item.along,item.across].every(Number.isFinite) && item.along > 0 && item.across > 0, 'furniture footprint must be positive and finite');
     const x0=item.x-item.along/2, x1=item.x+item.along/2, y0=item.y-item.across/2, y1=item.y+item.across/2;
