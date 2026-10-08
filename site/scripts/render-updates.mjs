@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { updateCategories } from '../src/assets/updates.js';
+import { renderSiteHeader } from './site-header.mjs';
 
 const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const date = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'long', day: 'numeric' });
@@ -32,11 +33,11 @@ export function renderUpdatesPage(entries) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Brief updates for every merged Moles Under the Pitch pull request, covering gameplay, design and project development.">
   <title>Updates · Moles Under the Pitch</title>
-  <link rel="stylesheet" href="/assets/site.css?v=20261008-1">
+  <link rel="stylesheet" href="/assets/site.css?v=20261008-3">
   <link rel="stylesheet" href="/assets/updates.css">
 </head>
 <body>
-  <header class="site-header updates-site-header"><a class="brand" href="/"><img src="/assets/brand-package-v4/moles-under-the-pitch-logo.svg" alt="Moles Under the Pitch"></a><nav aria-label="Primary navigation"><a href="/teambuilder">Team Builder</a><a href="/play">Play</a><a href="/spectate">Spectate</a><a href="/updates" aria-current="page">Updates</a></nav></header>
+  ${renderSiteHeader('updates')}
   <main class="updates-page">
     <div class="updates-intro"><p class="kicker">Project updates</p><h1>What's new under the pitch.</h1>
       <p>A brief look at the work behind MUTP, from game-day improvements to the tools that keep the project moving. Each entry links to its merged pull request for the full details.</p>

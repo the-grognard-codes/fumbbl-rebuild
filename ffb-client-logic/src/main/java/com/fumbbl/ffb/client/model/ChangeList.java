@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Moles Under the Pitch pages share one navigation bar, including matches, with consistent account option highlights")
 			.addBugfix("Local game setup provisions its current-games index and reserves browser connections when computer matches are queued")
 			.addFeature("Moles Under the Pitch headers show an account menu with signed-in email, Sign in and Sign out")
 			.addBugfix("Local computer match clients run without opening extra console windows on Windows")

@@ -8,14 +8,15 @@ import { chromium } from '../../browser-client/node_modules/playwright/index.mjs
 import { configurationScript, resolveEnvironment } from '../../deployment/firebase/scripts/environment.mjs';
 
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
-test('shared account disclosure tracks authentication, signs out, dismisses and fits narrow screens', { timeout: 45000 }, async () => {
+test('shared navigation and account disclosure stay consistent across pages, highlighting, authentication and narrow screens', { timeout: 90000 }, async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') {
       response.setHeader('Content-Type', 'text/javascript');
       response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return;
     }
-    const pagePath = extname(path) ? path : `${path === '/' ? '' : path}/index.html`;
+    const pagePath = ['/play/match', '/play/result'].includes(path) ? '/play/index.html'
+      : extname(path) ? path : `${path === '/' ? '' : path}/index.html`;
     const file = resolve(root, `.${pagePath}`);
     if (!file.startsWith(root + sep)) { response.writeHead(404).end(); return; }
     try {
@@ -32,7 +33,7 @@ test('shared account disclosure tracks authentication, signs out, dismisses and 
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js', route => route.fulfill({ contentType: 'text/javascript', body:
       'export function initializeApp(config){window.__initializations=(window.__initializations||0)+1;return {config};}' }));
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `
-      const callbacks=new Set();let user=null;const auth={};
+      const callbacks=new Set();let user=window.__initialAccount??null;const auth={};
       window.__setAccount=next=>{user=next;callbacks.forEach(callback=>callback(user));};
       export function getAuth(){return auth;}
       export function onAuthStateChanged(auth,callback){callbacks.add(callback);queueMicrotask(()=>callback(user));return()=>callbacks.delete(callback);}
@@ -61,6 +62,21 @@ test('shared account disclosure tracks authentication, signs out, dismisses and 
     assert.equal(await summary.evaluate(element => document.getElementById(element.getAttribute('aria-describedby')).textContent), 'coach@example.test', 'the focusable account control announces its current identity');
     await summary.click();
     await menu.getByRole('button', { name: 'Sign out', exact: true }).waitFor();
+    const highlight = locator => locator.evaluate(element => {
+      const style = getComputedStyle(element); return { color: style.color, background: style.backgroundColor };
+    });
+    const signOut = menu.getByRole('button', { name: 'Sign out', exact: true });
+    await signOut.hover();
+    const expectedHighlight = await highlight(signOut);
+    assert.deepEqual(expectedHighlight, { color: 'rgb(255, 225, 123)', background: 'rgb(36, 57, 78)' });
+    await summary.hover();
+    assert.deepEqual(await highlight(summary), expectedHighlight);
+    for (const name of ['Account Settings', 'My games', 'My teams', 'Match history', 'Preferences']) {
+      const row = menu.getByRole('button', { name, exact: true });
+      await row.hover();
+      assert.deepEqual(await highlight(row), expectedHighlight, `${name} highlights like Sign out`);
+      assert.equal(await row.isEnabled(), false, 'highlighting does not activate placeholders');
+    }
     assert.equal(await menu.getByRole('link', { name: 'Sign in', exact: true }).isVisible(), false);
     assert.equal(await page.evaluate(async () => { const { authentication } = await import('/assets/auth-client.js'); return authentication() === authentication() && window.__initializations === 1; }), true);
     if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR) {
@@ -80,9 +96,34 @@ test('shared account disclosure tracks authentication, signs out, dismisses and 
     const bounds = await page.locator('.account-options').boundingBox();
     assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 360, 'the open disclosure fits a narrow viewport');
     if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, 'account-mobile.png') });
-    for (const route of ['/updates', '/privacy', '/support', '/login', '/login/complete']) {
-      await page.goto(`http://127.0.0.1:${server.address().port}${route}`);
-      await page.getByLabel('My account', { exact: true }).waitFor();
+    await page.addInitScript(() => { window.__initialAccount = { email: 'coach@example.test', getIdToken: async () => 'fixture' }; });
+    await page.routeWebSocket('**/browser/v2', socket => socket.close({ code: 1000, reason: 'Header-only fixture' }));
+    const routes = ['/', '/teambuilder', '/play', '/spectate', '/updates', '/privacy', '/support', '/login', '/login/complete', '/play/match', '/play/result'];
+    for (const width of [1224, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      let reference;
+      for (const route of routes) {
+        await page.goto(`http://127.0.0.1:${server.address().port}${route}`);
+        await page.getByLabel('My account', { exact: true }).waitFor();
+        const header = page.locator('.site-header');
+        assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
+        const navigation = header.getByRole('navigation', { name: 'Primary navigation' });
+        assert.deepEqual(await navigation.locator(':scope > a').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
+          [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/updates', 'Updates']]);
+        const active = ['/teambuilder', '/play', '/spectate', '/updates'].find(path => route === path || route.startsWith(path + '/'));
+        assert.deepEqual(await navigation.locator('[aria-current="page"]').evaluateAll(links => links.map(link => link.getAttribute('href'))), active ? [active] : []);
+        const styles = await header.evaluate(element => {
+          const h = getComputedStyle(element), nav = getComputedStyle(element.querySelector('nav')), brand = getComputedStyle(element.querySelector('.brand'));
+          return [h.width, h.padding, h.border, h.marginTop, brand.font, nav.gap];
+        });
+        if (!reference) reference = styles;
+        assert.deepEqual(styles, reference, `${route} uses the same header layout at ${width}px`);
+        const bounds = await header.boundingBox();
+        assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+        await page.getByLabel('My account', { exact: true }).click();
+        const options = await page.locator('.account-options').boundingBox();
+        assert.ok(options.x >= 0 && options.x + options.width <= width, `${route} keeps account options within the screen`);
+      }
     }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
