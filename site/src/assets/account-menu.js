@@ -27,13 +27,26 @@ if (header) {
   const oldSignIn = navigation.querySelector('a[href="/login"]');
   if (oldSignIn) oldSignIn.replaceWith(menu); else navigation.append(menu);
   const summary = menu.querySelector('summary');
+  const options = menu.querySelector('.account-options');
+  const fitOptions = () => {
+    if (menu.open) options.style.setProperty('--account-options-top', `${options.getBoundingClientRect().top}px`);
+  };
+  const layoutObserver = new ResizeObserver(fitOptions);
+  layoutObserver.observe(header);
+  layoutObserver.observe(navigation);
+  layoutObserver.observe(summary);
+  window.addEventListener('resize', fitOptions);
+  window.addEventListener('scroll', fitOptions, { passive: true });
   const close = () => { menu.open = false; };
   menu.addEventListener('keydown', event => {
     if (event.key === 'Escape' && menu.open) { event.preventDefault(); close(); summary.focus(); }
   });
   document.addEventListener('click', event => { if (!menu.contains(event.target)) close(); });
   document.addEventListener('focusin', event => { if (!menu.contains(event.target)) close(); });
-  menu.addEventListener('toggle', () => summary.setAttribute('aria-expanded', String(menu.open)));
+  menu.addEventListener('toggle', () => {
+    summary.setAttribute('aria-expanded', String(menu.open));
+    fitOptions();
+  });
   summary.setAttribute('aria-expanded', 'false');
   const identity = menu.querySelector('.account-identity');
   const signIn = menu.querySelector('.account-sign-in');
