@@ -17,12 +17,12 @@
 .live-pitch-scene { position: relative; flex: none; }
 .live-pitch-scene > svg { display: block; width: 100%; height: 100%; }
 .live-ball-marker { pointer-events: none; filter: drop-shadow(0 1px 2px #000); }
-.live-ball-pulse { fill: none; stroke: #ffe17b; stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: live-ball-inward 1.5s ease-out infinite; }
+.live-ball-highlight { transform-box: fill-box; transform-origin: center; animation: live-ball-inward 1.5s ease-in-out infinite; opacity: .65; }
+.live-ball-pulse { fill: none; stroke: #ffe17b; stroke-width: 3; }
 .live-ball-ring { fill: #070d1688; stroke: #edf5ff; stroke-width: 1.5; }
 .live-ball-arrow { fill: #ffe17b; stroke: #070d16; stroke-width: 1; }
-.live-ball-football ellipse { fill: #874a2d; stroke: #edf5ff; stroke-width: 1.5; }
-.live-ball-football path { fill: none; stroke: #edf5ff; stroke-width: 1; }
-@keyframes live-ball-inward { from { transform: scale(1.55); opacity: .9; } to { transform: scale(.75); opacity: .2; } }
+.live-ball-football { image-rendering: pixelated; }
+@keyframes live-ball-inward { 0%, 100% { transform: scale(.78); opacity: .25; } 50% { transform: scale(1.18); opacity: .9; } }
 .live-target-square { fill: #74d6e126; stroke: #b4e7e9; stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
 .live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
 .play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; cursor: pointer; }
@@ -97,7 +97,7 @@
 @media (max-width: 620px) { .match-scoreboard { gap: .25rem; padding: .4rem; } .match-scoreboard > div { display: block; } .match-scoreboard strong { display: block; } .match-side { display: block; } }
 @media (max-width: 760px) { .match-command-bar { grid-template-columns: 1fr; } .match-command-bar span { grid-column: 1; } }
 @media (max-height: 700px) and (min-width: 981px) { .live-match-page .live-pitch-viewport { min-height: 260px; max-height: calc(100dvh - 350px); } }
-@media (prefers-reduced-motion: reduce) { .live-target-line, .live-route-line, .live-push-shaft, .live-ball-pulse { animation: none; } .play-runtime .live-marker { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .live-target-line, .live-route-line, .live-push-shaft, .live-ball-highlight { animation: none; } .play-runtime .live-marker { transition: none; } }
 
 /* The live match uses the content viewport; supporting controls follow below it. */
 @font-face { font-family: 'Match Alegreya'; src: url('/assets/game/ui/fonts/AlegreyaSC-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }

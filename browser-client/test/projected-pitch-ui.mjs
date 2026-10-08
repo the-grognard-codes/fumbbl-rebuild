@@ -33,7 +33,8 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
-    { state: { ...initial, players, callerRole: role, activePlayerId: 'human', ball: { x: 12, y: 8 },
+    { state: { ...initial, players, callerRole: role, activePlayerId: 'human', ball: pitchOptions.ball ?? { x: 12, y: 8 },
+      ballState: pitchOptions.ballState ?? { version: 1, carrierPlayerId: null, inPlay: true, moving: true },
       homeTeamArt: pitchOptions.homeTeamArt ?? initial.homeTeamArt, awayTeamArt: pitchOptions.awayTeamArt ?? initial.awayTeamArt,
       phase: typeof diceMoment === 'string' ? diceMoment : pitchOptions.phase ?? initial.phase }, dice: typeof diceMoment === 'string' ? null : diceMoment, actions: pitchOptions.actions, pinnedAction: pitchOptions.pinnedAction });
   await page.route('**/scene-test', route => route.fulfill({ contentType: 'text/html', body: `
@@ -44,11 +45,11 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   await page.waitForFunction(() => [...document.querySelectorAll('.live-marker img')].every(image => image.complete));
   return page;
 }
-async function assertProjectedBallAndStands(page, role, mode, angle) {
+async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x: 12, y: 8 }) {
   const scene = page.locator('.live-pitch-scene');
   const rendered = await scene.evaluate(element => {
     const ball = element.querySelector('.live-ball-marker');
-    const pulse = element.querySelector('.live-ball-pulse');
+    const pulse = element.querySelector('.live-ball-highlight');
     const structure = element.querySelector('.pitch-stadium-structure');
     return { width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height),
       focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
@@ -60,14 +61,14 @@ async function assertProjectedBallAndStands(page, role, mode, angle) {
   });
   const expected = new PitchProjection({ width: rendered.width, height: rendered.height, focus: rendered.focus,
     transverseFocus: rendered.transverseFocus, zoom: rendered.zoom, end: role, mode,
-    perspectiveElevation: angle }).project({ x: 12.5, y: 8.5 });
+    perspectiveElevation: angle }).project({ x: ball.x + .5, y: ball.y + .5 });
   const actual = /^translate\(([-\d.]+) ([-\d.]+)\)$/.exec(rendered.transform);
   assert.ok(actual && expected, 'ball marker has a projected transform');
   assert.ok(Math.abs(Number(actual[1]) - expected.x) < .02 && Math.abs(Number(actual[2]) - expected.y) < .02,
     'ball marker uses canonical square center');
   assert.equal(rendered.pointerEvents, 'none');
   assert.equal(rendered.animation, 'live-ball-inward');
-  assert.deepEqual(rendered.pulseFrames, ['scale(1.55)', 'scale(0.75)']);
+  assert.deepEqual(rendered.pulseFrames, ['scale(0.78)', 'scale(1.18)', 'scale(0.78)']);
   assert.notEqual(rendered.arrowFill, 'none');
   assert.equal(rendered.structureDisplay, 'block');
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
@@ -77,6 +78,19 @@ async function assertProjectedBallAndStands(page, role, mode, angle) {
   }
 }
 try {
+  for (const role of ['home', 'away']) for (const carried of [false, true]) {
+    const page = await open(role, false, null, { ball: { x: 12, y: 7 },
+      ballState: { version: 1, carrierPlayerId: carried ? 'human' : null, inPlay: true, moving: !carried } });
+    assert.equal(await page.locator('.live-ball-football').count(), carried ? 0 : 1,
+      'An occupied loose ball remains distinct from native possession');
+    for (const angle of [30, 40, 50, 90]) {
+      if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+      else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await assertProjectedBallAndStands(page, role, angle === 90 ? 'top-down' : 'perspective', angle === 90 ? 40 : angle, { x: 12, y: 7 });
+      if (evidence && [40,90].includes(angle)) await page.screenshot({ path: `${evidence}/ball-${role}-${carried ? 'carried' : 'occupied-loose'}-${angle}.png` });
+    }
+    await page.close();
+  }
   for (const role of ['home', 'away']) {
     const page = await open(role);
     console.log('Camera interaction checks:', role);
@@ -281,7 +295,7 @@ try {
     assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'top-down opposing art ignores movement facing');
     await assertProjectedBallAndStands(setup, role, 'top-down', 50);
     await setup.emulateMedia({ reducedMotion: 'reduce' });
-    assert.equal(await setup.locator('.live-ball-pulse').evaluate(element => getComputedStyle(element).animationName), 'none');
+    assert.equal(await setup.locator('.live-ball-highlight').evaluate(element => getComputedStyle(element).animationName), 'none');
     if (evidence) await setup.screenshot({ path: `${evidence}/setup-top-down-${role}.png` });
     await setup.close();
   }
