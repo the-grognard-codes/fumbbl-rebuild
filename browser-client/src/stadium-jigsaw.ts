@@ -99,7 +99,9 @@ export function jigsawModules(camera:PitchProjection,venue:StadiumProfile,home:S
       if(camera.end==='away')for(const p of target)p.x=piece.bounds.y0+piece.bounds.y1-p.x;
 
 
-      const holes=crowdHoles().filter(h=>x>=h.x0&&x<=h.x1).map(h=>({x0:h.y0,y0:0,x1:h.y1,y1:height}));
+      // Field-level benches sit below the raised crowd: retain the supporters above their bays.
+      // Only the taller pavilion needs a perspective crowd cutout; overhead still clears all footprints.
+      const holes=crowdHoles().filter((h,i)=>i>=geometry.benches.length&&x>=h.x0&&x<=h.x1).map(h=>({x0:h.y0,y0:0,x1:h.y1,y1:height}));
       modules.push({jigsaw:true,id:piece.id+'-row-'+row,piece:piece.id,role:'crowd',profile,team:piece.team,edge:piece.edge,
         anchor:{x,y:(piece.bounds.y0+piece.bounds.y1)/2},bounds:{x0:piece.bounds.y0,y0:0,x1:piece.bounds.y1,y1:height},
         origin:{x,y:0,z:rowBank?1.1+(corner?(x<-2?-2-x:x-28)*.15:0):0},across:{x:0,y:1,z:0},down:{x:(camera.end==='home'?1:-1)*Math.sin(camera.elevation*Math.PI/180),y:0,z:Math.cos(camera.elevation*Math.PI/180)},

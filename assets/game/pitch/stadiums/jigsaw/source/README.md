@@ -19,7 +19,7 @@ Coordinates are game-world squares. The pitch stays 26 × 15; the clear apron is
 | away-north-corner | 28 to 32 | -6 to -2 | Away |
 | away-south-corner | 28 to 32 | 17 to 21 | Away |
 
-The ten slots cover the stand area exactly once. North and south are physical sidelines, independent of screen orientation. Timber dividers cross only the stand depth at x=13. Two locker-room portals remain at north x=6 and south x=20. Furniture cutouts reserve the bench/pavilion footprints. Each bench pocket extends to the apron edge for field-level access; floors and furniture bases are at z=0. A 0.35-square retaining lip and low returns keep benches visible, with a 1.1-square back wall holding the raised crowd. These open bench bays are separate from the two locker-room doorways.
+The ten slots cover the stand area exactly once. North and south are physical sidelines, independent of screen orientation. Timber dividers cross only the stand depth at x=13. Two locker-room portals remain at north x=6 and south x=20. Furniture cutouts reserve the bench/pavilion footprints. Each bench pocket extends to the apron edge for field-level access; floors and furniture bases are at z=0. A 0.35-square retaining lip and low returns keep benches visible, with a 1.1-square back wall holding the raised crowd. Perspective retains the elevated crowd above the field-level benches; only the taller pavilion cuts that painting. Overhead clears all furniture footprints. These open bench bays are separate from the two locker-room doorways.
 
 The frozen home League chooses walls and shared props. Each participating team chooses crowd, bench, mugs and team flags. Camera travel, viewing end, acting coach, halftime, reconnect and replay preserve those assignments.
 
