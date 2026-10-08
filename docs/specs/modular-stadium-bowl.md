@@ -27,3 +27,5 @@ Acceptance:
 - [ ] Final retrospective links original intent and evidence, records limits honestly, and documents how future League venues reuse geometry and art contracts.
 
 Scope excludes player sprite redesign, rules/transport changes and multi-League onboarding. Preserve concurrent main work and native identity behavior.
+
+Current implementation checkpoint: integrated code a0924c1a0 passes 229 browser units, all 23 interaction drivers (including the 48-view stadium matrix), 18 asset checks, TypeScript and production build. Standards and Spec reviews approve this code. See the [verification report](../verification/stadium-jigsaw-revision.md), [current assembled gallery](../../assets/game/references/stadiums/human-reference-revision/jigsaw-review/README.md) and [interim retrospective](../verification/stadium-jigsaw-retrospective.md). The final native rerun and merge remain open because the DEV ADC login expired; PR #214 stays a draft.

@@ -14,17 +14,17 @@ The [before/after review](../../assets/game/references/stadiums/human-reference-
 
 | Check | Result |
 | --- | --- |
-| Browser unit suite | 215 passed |
+| Browser unit suite | 229 passed after integration with main |
 | PNG/geometry/jigsaw checks | 18 passed; 191 delivered assets match canonical originals |
 | TypeScript and production play build | Passed |
-| Full browser interaction suite | Passed; setup, action targeting, passing, rerolls, dice, camera controls, HUD, replay, ball and routes |
+| Full browser interaction suite | All 23 drivers passed after main integration, including stadium camera/motion/failure checks and current movement/chat/log behavior |
 | Final renderer matrix | 48 cases passed: both hosting assignments, both coach ends, 30/40/50/90 degrees and near/mid/far |
 | Random gesture observations | Human/Orc perspective and overhead passed; one active section, stable base transforms/ownership, no unintended commands, only burst-start/end DOM changes |
 | Reduced motion | No gesture, fire or pennant animation |
 | Missing-art fallback | Missing base atlases preserve cells/input; a missing optional gesture disables only that file and retains healthy crowd/wall/props |
 | Diff whitespace | Passed |
 
-The final camera/motion run follows the independent-review fixes: denser end-bank paintings with natural silhouettes, field-level open bench bays, isolated optional-file failure and shared camera projection/cropping. Full interaction coverage ran earlier; the affected renderer tests, units, asset checks, TypeScript and production build were rerun after the corrections.
+The final camera/motion run follows the independent-review fixes: denser end-bank paintings with natural silhouettes, field-level open bench bays, isolated optional-file failure and shared camera projection/cropping. After preserving the newer movement/chat/log work from main, all 23 interaction drivers, 229 browser units, TypeScript and the production build passed. Canonical asset checks remain 18 passed / 191 matching delivery files. Perspective keeps elevated supporters above field-level bench bays; only the taller pavilion needs a crowd cutout.
 
 ## Native integration status
 
@@ -42,6 +42,16 @@ The assembled images still require review against the owner's reference. Passing
 
 ## Independent review
 
-At 6b64aa636, Standards requested isolated optional-file failure (P2) and shared projection/cropping (P3); Spec requested field-level furniture/access (P2) and consistent end/corner head scale (P2). All four were corrected and regression/assembled evidence updated. A fresh two-axis review of the follow-up commit is pending. Earlier reports against 019848f6 are superseded.
+The fixed code checkpoint is a0924c1a0, integrated with main at 504c9a42c. Review-only agents compared the originating brief and documented standards; they did not rerun the reported tests. Earlier renderer reports against 019848f6 are superseded.
 
-The [interim retrospective](stadium-jigsaw-retrospective.md) compares the original plan, later reference corrections and current functional/media/intent outcome. Final native acceptance and merge remain open.
+## Standards
+
+**APPROVE at a0924c1a0.** Missing optional gesture art now disables only that file, and affine/registered surfaces share projection/cropping. The final bench-mask change and merge resolution introduce no documented-standard violation or actionable smell. ChangeList entries, the asset guard and all interaction drivers are preserved.
+
+## Spec
+
+**APPROVE at a0924c1a0.** Furniture uses field-level pockets; denser end banks match corner scale; raised crowd remains above bench bays without black gaps. The main integration leaves the corrected stadium renderer and team-art selection intact. No remaining actionable stadium requirement finding was reported.
+
+Current findings: Standards 0; Spec 0. The earlier failure-isolation, duplicated projection, furniture-elevation, head-scale and pocket-mask findings were resolved. Final authenticated native evidence remains blocked; owner artistic acceptance is not claimed.
+
+The [interim retrospective](stadium-jigsaw-retrospective.md) compares the original plan, later reference corrections and current functional/media/intent outcome. Native completion and merge remain open.

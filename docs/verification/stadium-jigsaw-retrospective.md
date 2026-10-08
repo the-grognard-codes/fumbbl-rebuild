@@ -2,7 +2,7 @@
 
 Date: 2026-10-08. Workstream: [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211), [draft PR #214](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/214).
 
-The original functional framework was delivered, but the owner rejected its assembled stadium and crowd. The earlier retrospective overstated visual and intent alignment. This revision replaces small repeated crowd cards with large authored banks and corners and restores a packed foreground bowl. Local verification is complete; the final authenticated native rerun and merge remain open because the DEV Google Cloud session expired. This is an interim audit, not an all-slices completion report.
+The original functional framework was delivered, but the owner rejected its assembled stadium and crowd. The earlier retrospective overstated visual and intent alignment. This revision replaces small repeated crowd cards with large authored banks and corners and restores a packed foreground bowl. Local integrated verification is complete (229 units, 23 interaction drivers, 18 asset checks, TypeScript and build); the final authenticated native rerun and merge remain open because the DEV Google Cloud session expired. This is an interim audit, not an all-slices completion report.
 
 ## Sources and intended outcome
 
@@ -30,7 +30,7 @@ The Human masonry and timber follow the supplied reference. Orc materials retain
 
 The renderer proved geometry and identity, then treated that evidence as proof of composition. Small reusable fan cards, terrace bands and a near-end cutaway met portions of the earlier technical plan while losing the owner's standing-room-only bowl. Reviewing source atlases or schematic geometry could not reveal the full mismatch.
 
-The revised acceptance unit is the assembled production view: the same pitch camera, native scale, both ends and near/middle/far positions. Source compatibility, behavior tests and visual judgement remain separate. Independent review caught furniture elevated above its entrance and larger end-bank faces at corner joins. Lowered furniture needed open bays and retaining returns; denser authored ends resolved scale without flattening faces or sacrificing near-wall occlusion.
+The revised acceptance unit is the assembled production view: the same pitch camera, native scale, both ends and near/middle/far positions. Source compatibility, behavior tests and visual judgement remain separate. Independent review caught furniture elevated above its entrance, larger end-bank faces at corner joins, and an overly broad bench mask. Both Standards and Spec approved the integrated code at a0924c1a0 after those findings were corrected. Lowered furniture needed open bays and retaining returns; denser authored ends resolved scale without flattening faces or sacrificing near-wall occlusion.
 
 ## Environment improvements, by severity
 
