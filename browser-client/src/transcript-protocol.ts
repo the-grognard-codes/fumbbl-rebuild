@@ -1,5 +1,5 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
-import { decodeLogPresentation, decodeLogRoll } from './log-presentation.ts';
+import { decodeLogActors, decodeLogPresentation, decodeLogRoll, decodeLogTest } from './log-presentation.ts';
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 
@@ -58,6 +58,10 @@ export function decodeTranscript(json: string): TranscriptResponse {
       if (Array.isArray(reports)) for (const report of reports) {
         if (report && typeof report === 'object' && Object.hasOwn(report, 'logRoll'))
           decodeLogRoll((report as Record<string, unknown>).logRoll);
+        if (report && typeof report === 'object' && Object.hasOwn(report, 'logActors'))
+          decodeLogActors((report as Record<string, unknown>).logActors);
+        if (report && typeof report === 'object' && Object.hasOwn(report, 'logTest'))
+          decodeLogTest((report as Record<string, unknown>).logTest);
       }
       return command;
     });
