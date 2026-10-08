@@ -43,6 +43,7 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       export function isSignInWithEmailLink(){return false;} export async function signInWithEmailLink(){}
     ` }));
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.evaluate(() => document.fonts.ready);
     const menu = page.locator('.account-menu');
     const summary = page.getByLabel('My account', { exact: true });
     await summary.waitFor();
@@ -105,8 +106,18 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       for (const route of routes) {
         await page.goto(`http://127.0.0.1:${server.address().port}${route}`);
         await page.getByLabel('My account', { exact: true }).waitFor();
+        await page.evaluate(() => document.fonts.ready);
         const header = page.locator('.site-header');
         assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
+        const logo = header.getByRole('img', { name: 'Moles Under the Pitch', exact: true });
+        await logo.waitFor();
+        assert.equal(await logo.getAttribute('src'), '/assets/brand-package-v4/moles-under-the-pitch-logo.svg');
+        await page.waitForFunction(() => {
+          const image = document.querySelector('.site-header .brand img');
+          return image?.complete && image.naturalWidth > 0;
+        });
+        const logoBounds = await logo.boundingBox();
+        assert.ok(logoBounds.width <= 240 && logoBounds.height <= 70, 'The existing logo is scaled down for navigation');
         const navigation = header.getByRole('navigation', { name: 'Primary navigation' });
         assert.deepEqual(await navigation.locator(':scope > a').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
           [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/updates', 'Updates']]);
@@ -114,12 +125,17 @@ test('shared navigation and account disclosure stay consistent across pages, hig
         assert.deepEqual(await navigation.locator('[aria-current="page"]').evaluateAll(links => links.map(link => link.getAttribute('href'))), active ? [active] : []);
         const styles = await header.evaluate(element => {
           const h = getComputedStyle(element), nav = getComputedStyle(element.querySelector('nav')), brand = getComputedStyle(element.querySelector('.brand'));
-          return [h.width, h.padding, h.border, h.marginTop, brand.font, nav.gap];
+          const image = getComputedStyle(element.querySelector('.brand img'));
+          return [h.width, h.height, h.padding, h.border, h.marginTop, brand.font, image.width, image.height, nav.gap];
         });
         if (!reference) reference = styles;
         assert.deepEqual(styles, reference, `${route} uses the same header layout at ${width}px`);
         const bounds = await header.boundingBox();
         assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+        assert.ok(logoBounds.x >= bounds.x && logoBounds.x + logoBounds.width <= bounds.x + bounds.width);
+        assert.equal(await header.evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Logo and navigation fit the shared header');
+        if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR && ['/', '/play'].includes(route))
+          await header.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, `header-${route === '/' ? 'home' : 'play'}-${width}.png`) });
         await page.getByLabel('My account', { exact: true }).click();
         const options = await page.locator('.account-options').boundingBox();
         assert.ok(options.x >= 0 && options.x + options.width <= width, `${route} keeps account options within the screen`);
@@ -129,15 +145,35 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       await page.setViewportSize({ width, height: 330 });
       await page.goto(`http://127.0.0.1:${server.address().port}/`);
       await page.getByLabel('My account', { exact: true }).click();
+      await page.evaluate(() => document.fonts.ready);
       const options = await page.locator('.account-options').boundingBox();
-      assert.ok(options.y >= 0 && options.y + options.height <= 330, 'account options fit a short viewport');
+      assert.ok(options.y >= 0 && options.y + options.height <= 330, `account options fit a short ${width}px viewport: ${JSON.stringify(options)}`);
       const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
       await signOut.scrollIntoViewIfNeeded();
       const action = await signOut.boundingBox();
       assert.ok(action.y >= options.y && action.y + action.height <= options.y + options.height, 'Sign out scrolls into view inside the disclosure');
       assert.equal(await page.evaluate(() => scrollY), 0, 'reaching Sign out leaves the page and top bar in place');
+      if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR)
+        await page.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, `account-short-${width}.png`) });
       await signOut.click();
       assert.equal(await page.locator('.account-menu').getAttribute('open'), null);
+    }
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => scrollTo(0, 64));
+    await page.getByLabel('My account', { exact: true }).click();
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const scrolledOptions = await page.locator('.account-options').boundingBox();
+    assert.ok(scrolledOptions.y >= 0 && scrolledOptions.y + scrolledOptions.height <= 330,
+      `account options still fit after scrolling the open menu: ${JSON.stringify(scrolledOptions)}`);
+    for (const width of [400, 1224, 360]) {
+      await page.setViewportSize({ width, height: 330 });
+      await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+      const resizedOptions = await page.locator('.account-options').boundingBox();
+      assert.ok(resizedOptions.y >= 0 && resizedOptions.y + resizedOptions.height <= 330,
+        `account options fit after resizing the open menu to ${width}px: ${JSON.stringify(resizedOptions)}`);
     }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });

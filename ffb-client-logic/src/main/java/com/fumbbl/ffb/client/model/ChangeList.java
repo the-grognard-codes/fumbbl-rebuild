@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("The site account menu fits short browser windows after the shared logo and fonts load")
+			.addImprovement("Moles Under the Pitch pages share the compact mole-and-wordmark logo in the navigation bar")
 			.addImprovement("Browser Play presents current games below creation controls and keeps setup placement and log settings off the pitch")
 			.addBugfix("Browser Confirmed! stays in the same position across setup, action previews and teammate selection")
 			.addImprovement("Moles Under the Pitch pages share one navigation bar, including matches, with consistent account option highlights")
