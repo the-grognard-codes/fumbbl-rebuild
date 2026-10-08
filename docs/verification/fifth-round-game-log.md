@@ -18,3 +18,5 @@ Existing transcript format 2, history byte/record bounds and strict state snapsh
 - TypeScript and hosted site build; independent Standards and Spec reviews before publication. Current run logs: `.tools/t11-*`. Native visual evidence: `.tools/fifth-round-evidence/T11/native-log-controls.png`.
 
 No deployment is included.
+
+The full native CI run identified three exact fixture guards requiring the added roll facts. Dice, reroll accounting, and reroll choice fixtures were regenerated from native exports; removing only `logRoll` reproduces each previous fixture exactly. All six guard tests now pass, and both review axes independently verified these metadata-only changes.
