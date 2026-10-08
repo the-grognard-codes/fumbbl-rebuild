@@ -125,5 +125,19 @@ test('shared navigation and account disclosure stay consistent across pages, hig
         assert.ok(options.x >= 0 && options.x + options.width <= width, `${route} keeps account options within the screen`);
       }
     }
+    for (const width of [1224, 360]) {
+      await page.setViewportSize({ width, height: 330 });
+      await page.goto(`http://127.0.0.1:${server.address().port}/`);
+      await page.getByLabel('My account', { exact: true }).click();
+      const options = await page.locator('.account-options').boundingBox();
+      assert.ok(options.y >= 0 && options.y + options.height <= 330, 'account options fit a short viewport');
+      const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
+      await signOut.scrollIntoViewIfNeeded();
+      const action = await signOut.boundingBox();
+      assert.ok(action.y >= options.y && action.y + action.height <= options.y + options.height, 'Sign out scrolls into view inside the disclosure');
+      assert.equal(await page.evaluate(() => scrollY), 0, 'reaching Sign out leaves the page and top bar in place');
+      await signOut.click();
+      assert.equal(await page.locator('.account-menu').getAttribute('open'), null);
+    }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });

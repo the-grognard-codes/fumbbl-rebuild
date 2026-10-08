@@ -19,7 +19,7 @@ nav { align-items: center; }
 .account-avatar { width: 1.6rem; height: 1.8rem; flex-shrink: 0; fill: currentColor; }
 .account-label { display: flex; flex-direction: column; min-width: 0; }
 .account-identity { max-width: min(16rem, 65vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: .75rem/1.6 Inter, sans-serif; }
-.account-options { position: absolute; top: calc(100% + .9rem); right: 0; width: min(18rem, calc(100vw - 4rem)); padding: .9rem; background: #101c2b; border: 3px solid #4db2ff; box-shadow: 5px 5px 0 #03070c; }
+.account-options { position: absolute; top: calc(100% + .9rem); right: 0; width: min(18rem, calc(100vw - 4rem)); max-height: calc(100dvh - 12rem); overflow-y: auto; padding: .9rem; background: #101c2b; border: 3px solid #4db2ff; box-shadow: 5px 5px 0 #03070c; }
 .account-options ul { list-style: none; padding: 0; margin: 0 0 .6rem; border-bottom: 1px solid #40637e; }
 .account-options button, .account-options a { display: block; width: 100%; padding: .65rem .35rem; text-align: left; color: #c1e9ff; background: transparent; border: 0; box-shadow: none; transform: none; font: 600 .85rem/1.4 Inter, sans-serif; text-decoration: none; }
 .account-options button:disabled { color: #9bb4c8; cursor: default; }

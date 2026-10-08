@@ -29,4 +29,4 @@ Browser captures use synthetic test identities:
 - [Mobile account menu](../../.notes/overhaul-analysis/verification/general-navigation/account-mobile.png)
 - [Shared bar above a short match viewport](../../.notes/overhaul-analysis/verification/general-navigation/match-desktop.png)
 
-Independent review and final PR CI are required before merge. Existing generated-file edits are preserved separately from this fix.
+Both independent review axes approved the implementation. The Spec review additionally observed that the account popover could extend below a short viewport. It now scrolls internally; the focused account journey passes at 1224x330 and 360x330, keeping Sign out visible within the disclosure and leaving the page at scroll position zero. Final PR CI is required before merge. Existing generated-file edits are preserved separately from this fix.
