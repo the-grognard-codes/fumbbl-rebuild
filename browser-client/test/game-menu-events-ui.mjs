@@ -38,7 +38,7 @@ try {
         const css = getComputedStyle(element);
         return [css.backgroundColor, css.borderTopColor, css.color];
       }), ['rgba(9, 23, 38, 0.95)', 'rgb(66, 108, 155)', 'rgb(217, 233, 247)']);
-      assert.equal(await menu.locator('h2,h3,button,.game-menu-content > section > p').evaluateAll(elements =>
+      assert.equal(await menu.locator('h2,h3,button,.game-menu-content > section > p,.match-log-settings label').evaluateAll(elements =>
         elements.every(element => getComputedStyle(element).fontFamily.includes('MUTP'))), true, `${tab}: MUTP typography`);
       assert.equal(await selected.evaluate(element => getComputedStyle(element).color), 'rgb(73, 230, 255)');
       assert.equal(await menu.evaluate(element => {
@@ -54,7 +54,7 @@ try {
     }
     const close = menu.getByRole('button', { name: 'Close Game Menu' });
     await close.focus(); await page.keyboard.press('Shift+Tab');
-    assert.equal(await menu.getByRole('button', { name: 'Large log text' }).evaluate(element => element === document.activeElement), true, 'Focus wraps inside menu');
+    assert.equal(await menu.getByRole('checkbox', { name: 'Roll modifiers', exact: true }).evaluate(element => element === document.activeElement), true, 'Focus wraps to the final Game Log setting inside menu');
     await page.keyboard.press('Tab');
     assert.equal(await close.evaluate(element => element === document.activeElement), true);
     await page.keyboard.press('Escape');

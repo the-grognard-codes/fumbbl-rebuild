@@ -84,6 +84,15 @@ final class MatchTranscript {
         return new JsonObject().add("formatVersion", FORMAT_VERSION).add("nativeCursor", nativeCursor).add("records", records);
     }
 
+    JsonObject pendingMovement() {
+        JsonObject last = records.get(records.size() - 1).asObject();
+        JsonValue decision = last.get("decision");
+        if (!decision.isObject() || decision.asObject().get("logPresentation") == null) return null;
+        JsonValue movement = decision.asObject().get("logPresentation").asObject().get("movement");
+        return movement.isObject() && !movement.asObject().getBoolean("complete", true)
+            ? JsonObject.readFrom(movement.toString()) : null;
+    }
+
     int size() { return records.size(); }
     int bytes() { return bytes; }
     int nativeCursor() { return nativeCursor; }
