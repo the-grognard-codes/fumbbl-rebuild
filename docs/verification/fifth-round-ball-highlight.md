@@ -8,7 +8,7 @@ Playback consumes actual native array coordinates and legacy object coordinates,
 
 ## Evidence
 
-- 31 focused native checks pass: 30 state tests covering ball transitions, strict projection fixtures and recovery, plus the completed-replay metadata validation. Older v1-v4 checkpoints remain accepted and modified current metadata is rejected.
+- 35 focused native checks pass: 34 state tests covering ball transitions, strict projection fixtures and recovery, plus the completed-replay metadata validation. All eight stored full-state native fixtures were updated only for additive ball metadata, and the exact recipient contract includes its four public fields. Older v1-v4 checkpoints remain accepted and modified current metadata is rejected.
 - 200 client tests pass; TypeScript, static-site build and 177-asset validation pass.
 - Four real native route transcript journeys cover pickup and failed carrier rush for both coaches. Pure and production-hook browser checks require carried positions at 9, 8 and 7, native drop, out-of-play removal, unknown legacy state and reduced motion.
 - Projected-pitch browser checks cover occupied loose/carried states at 30/40/50 degrees and top-down from both ends, plus existing pan/zoom/camera, crowded player, read-only and artwork fallback regressions. Existing ordered playback, prompt interruption, seek and reconnect checks pass.
