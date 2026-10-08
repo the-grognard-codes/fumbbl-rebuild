@@ -13,7 +13,8 @@ export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED'
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
 export type PassingRanges = { version: 1; playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
 export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number };
-export type SetupState = { projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeTeamArt?: MatchTeamArt; awayTeamArt?: MatchTeamArt; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges; kickoff?: KickoffPresentation };
+export type BallState = { version: 1; carrierPlayerId: string | null; inPlay: boolean; moving: boolean };
+export type SetupState = { projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeTeamArt?: MatchTeamArt; awayTeamArt?: MatchTeamArt; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges; kickoff?: KickoffPresentation; ballState?: BallState };
 export type SetupResponse = { version: 1; type: 'setupState'; requestId: string | null; code: SetupCode; duplicate: boolean; state: SetupState | null; setupErrors?: string[] };
 const codes = new Set<SetupCode>(['ACCEPTED','SESSION_UNAVAILABLE','NOT_ACTIVATED','WRONG_ACTOR','WRONG_PHASE','WRONG_PLAYER','ILLEGAL_PLACEMENT','ILLEGAL_SETUP','PROMPT_MISMATCH','INVALID_OPTION','REQUEST_ID_REUSED','REQUEST_HISTORY_LIMIT','SAVE_HISTORY_LIMIT','SAVE_RESUME_UNAVAILABLE','SAVE_PROPOSAL_PENDING','SAVE_PROPOSAL_MISSING','SAVE_PROPOSAL_MISMATCH','SAVE_PROPOSAL_OWNER','MATCH_SUSPENDED','MATCH_NOT_SUSPENDED','MATCH_ABANDONED','STALE_REVISION','INVALID_REQUEST','NOT_FOUND','AUTHENTICATION_REQUIRED','PERSISTENCE_FAILED','SNAPSHOT_UNSUPPORTED','REPLAY_UNSUPPORTED','MATCH_COMPLETED','COMPLETION_PENDING','MATCH_OUTCOME_UNKNOWN','COMPLETION_CONFLICT','REPLAY_LIMIT','RECOVERY_UNSUPPORTED','RECOVERY_CORRUPT','RECOVERY_CONFLICT','RECOVERY_LIMIT','ACTIVATION_LIMIT']);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -29,7 +30,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	const artV2 = source.projectionVersion === 2 || source.projectionVersion === 3 || detailsV4;
 	const targetsV3 = source.projectionVersion === 3 || detailsV4;
 	const required = artV2 ? [...base, 'projectionVersion', ...(detailsV4 ? ['homeTeamName','awayTeamName','homeResources','awayResources'] : [])] : base;
-	if ((source.projectionVersion !== undefined && !artV2) || required.some(key => !Object.hasOwn(source, key)) || keys.some(key => !required.includes(key) && key !== 'saveResume' && key !== 'clock' && key !== 'passing' && key !== 'kickoff' && key !== 'homeTeamArt' && key !== 'awayTeamArt') || (Object.hasOwn(source, 'clock') || Object.hasOwn(source, 'passing') || Object.hasOwn(source, 'kickoff') || Object.hasOwn(source, 'homeTeamArt') || Object.hasOwn(source, 'awayTeamArt')) && !detailsV4) throw Error('Unexpected fields');
+	if ((source.projectionVersion !== undefined && !artV2) || required.some(key => !Object.hasOwn(source, key)) || keys.some(key => !required.includes(key) && key !== 'saveResume' && key !== 'clock' && key !== 'passing' && key !== 'kickoff' && key !== 'ballState' && key !== 'homeTeamArt' && key !== 'awayTeamArt') || (Object.hasOwn(source, 'clock') || Object.hasOwn(source, 'passing') || Object.hasOwn(source, 'kickoff') || Object.hasOwn(source, 'ballState') || Object.hasOwn(source, 'homeTeamArt') || Object.hasOwn(source, 'awayTeamArt')) && !detailsV4) throw Error('Unexpected fields');
 	if (Object.hasOwn(source, 'homeTeamArt') !== Object.hasOwn(source, 'awayTeamArt')) throw Error('Incomplete team art');
     if (Object.hasOwn(source, 'homeTeamArt')) for (const key of ['homeTeamArt', 'awayTeamArt']) {
         const art = object(source[key], ['rosterId', 'league']); text(art.rosterId, 60);
@@ -45,6 +46,17 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	if (new Set(actions.map(action => action.id)).size !== actions.length) throw Error('Repeated action');
 	let ball: { x: number; y: number } | null = null;
 	if (result.ball !== null) { const value = object(result.ball, ['x','y']); integer(value.x, 25); integer(value.y, 14); ball = value as { x: number; y: number }; }
+	if (Object.hasOwn(result, 'ballState')) {
+		const state = object(result.ballState, ['version', 'carrierPlayerId', 'inPlay', 'moving']);
+		if (state.version !== 1) throw Error('Invalid ball-state version');
+		if (typeof state.inPlay !== 'boolean' || typeof state.moving !== 'boolean') throw Error('Invalid native ball flags');
+		if (state.carrierPlayerId !== null) {
+			if (!state.inPlay || state.moving) throw Error('Invalid native possession');
+			text(state.carrierPlayerId);
+			const carrier = players.find(player => player.id === state.carrierPlayerId);
+			if (!ball || !carrier || carrier.x !== ball.x || carrier.y !== ball.y) throw Error('Invalid ball carrier');
+		}
+	}
 	if (result.activePlayerId !== null) text(result.activePlayerId);
 	let prompt: SetupPrompt | null = null;
 	if (result.prompt !== null) { const value = object(result.prompt, ['id','actor','kind','options']); text(value.id); role(value.actor); if ((value.kind !== 'coin' && value.kind !== 'receive') || !Array.isArray(value.options) || value.options.length !== 2) throw Error('Invalid prompt'); const expected = value.kind === 'coin' ? ['heads','tails'] : ['receive','kick']; if (!value.options.every(option => typeof option === 'string' && expected.includes(option)) || new Set(value.options).size !== 2) throw Error('Invalid options'); prompt = value as SetupPrompt; }

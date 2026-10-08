@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { playbackBeats } from './pitch-playback.ts';
+import { playbackBeats, withConfirmedBallChanges, withConfirmedMove } from './pitch-playback.ts';
 import { accumulateDiceMoment, recordDice } from './dice-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
@@ -144,10 +144,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
             sequenceKey(record.state), false, true);
           continue;
         }
-        const move = beat.move, current = presented.current;
-        const player = current.players.find(item => item.id === move.playerId);
-        if (!player || player.x === move.x && player.y === move.y) continue;
-        const next = { ...current, players: current.players.map(item => item.id === move.playerId ? { ...item, x: move.x, y: move.y } : item) };
+        const current = presented.current;
+        const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
+        const next = beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
+        if (next === current) continue;
         presented.current = next; setPitchView(next);
         // Separate tasks retain discrete states under React batching. Reduced
         // motion never interpolates or spins, but still exposes each square.

@@ -1,5 +1,7 @@
 # In-game art
 
+The loose ball uses the original 16×20 pixel-grid vector asset `ui/ball-v1.svg`. Its warm leather, ivory laces, dark outline and restrained gold highlights follow the MUTP match reference. `ui/ball-v1.provenance.json` records authorship and the source hash; the asset sync delivers it unchanged. Possession and the synchronized highlight remain native-state-driven presentation.
+
 This is the source of truth for browser match art. It excludes the public site's branding assets. Legacy desktop artwork is included only when deliberately promoted with provenance, as with the five weather sprites in `ui/weather/`.
 
 | Path | Purpose |

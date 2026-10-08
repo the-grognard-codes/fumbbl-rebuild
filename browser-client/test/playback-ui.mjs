@@ -106,6 +106,17 @@ try {
   await publish({view:state(15,25),records:[],enabled:false}); await wait(15,25);
   await publish({view:state(15,25),records:[]}); await wait(15,25);
   assert.equal(await successfulDice.count(),0, 'Reconnect does not replay stale retained dice');
+  const carried = (revision, x) => ({ ...state(revision, x), ball: { x, y: 7 },
+    ballState: { version: 1, carrierPlayerId: 'home1', inPlay: true, moving: false } });
+  const history = Array.from({length:18}, (_,revision) => ({ ...record(revision,25), state: carried(revision,25) }));
+  await publish({view:carried(16,25),records:history.slice(0,17),enabled:false}); await wait(16,25);
+  await page.evaluate(() => { window.playbackFrames = []; });
+  history[17] = { ...record(17,22,[{modelChangeList:{modelChangeArray:[change(24),change(23),change(22)]}}]), state:carried(17,22) };
+  await publish({view:carried(17,22),records:history}); await wait(17,22);
+  const carrierFrames = await page.evaluate(() => window.playbackFrames);
+  assert.ok(carrierFrames.some(frame => frame.x === 24) && carrierFrames.some(frame => frame.x === 23));
+  assert.ok(carrierFrames.every(frame => frame.ballX === frame.x), 'Carried highlight follows every confirmed playback step');
+  assert.equal(await page.locator('.live-ball-football').count(),0, 'Carried ball keeps the highlight without a loose sprite');
   if (process.env.DICE_EVIDENCE_DIR) { await mkdir(process.env.DICE_EVIDENCE_DIR,{recursive:true}); await page.locator('#dice-specimens').screenshot({path:`${process.env.DICE_EVIDENCE_DIR}/ivory-cyan.png`}); }
   assert.deepEqual(errors,[]);
   console.log('PASS: exact authoritative dice, short nonblocking animation, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');

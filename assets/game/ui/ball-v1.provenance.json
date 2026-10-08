@@ -1,0 +1,12 @@
+{
+  "asset": "ball-v1.svg",
+  "version": 1,
+  "date": "2026-10-07",
+  "tool": "Codex native SVG authoring",
+  "method": "Original pixel-grid vector drawing; no generated raster or external artwork",
+  "viewBox": [0, 0, 16, 20],
+  "reference": "assets/game/references/match-screen-concept-v1.png",
+  "style": "Warm leather, ivory laces, dark contour and restrained gold highlights",
+  "sourceSha256": "11cb0408cb177f5d939685fa7eafca973cafc10f0a65176e3eb245f4c6c3c6f8",
+  "validation": "Native-scale, crowded pitch, loose/carried, camera, motion and reduced-motion checks recorded with T06"
+}

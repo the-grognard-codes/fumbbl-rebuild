@@ -164,7 +164,7 @@ public final class MatchJson {
 					int version = state.getInt("projectionVersion", -1);
 					if (version != 2 && version != 3 && version != 4) throw new IllegalArgumentException();
 					if (version == 4) {
-						exactWithTeamArt(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls", "homeTeamName", "awayTeamName", "homeResources", "awayResources");
+						exactPublicProjection(state, "projectionVersion", "half", "drive", "homeScore", "awayScore", "homeTurn", "awayTurn", "actions", "turn", "turnMode", "activePlayerId", "ball", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls", "homeTeamName", "awayTeamName", "homeResources", "awayResources");
 						if (state.get("homeTeamArt") != null) {
 							validateTeamArt(state.get("homeTeamArt"), document.home.team);
 							validateTeamArt(state.get("awayTeamArt"), document.away.team);
@@ -222,6 +222,23 @@ public final class MatchJson {
             bounded(ball.get("x"), 0, 25); bounded(ball.get("y"), 0, 14);
         }
         JsonArray players = state.get("players").asArray(); if (players.size() > 32) throw new IllegalArgumentException();
+        if (state.get("ballState") != null) {
+            if (!detailsV4) throw new IllegalArgumentException();
+            JsonObject ballState = state.get("ballState").asObject(); exact(ballState, "version", "carrierPlayerId", "inPlay", "moving");
+            if (ballState.getInt("version", -1) != 1) throw new IllegalArgumentException();
+            boolean inPlay = ballState.get("inPlay").asBoolean(), moving = ballState.get("moving").asBoolean();
+            if (!ballState.get("carrierPlayerId").isNull()) {
+                if (!inPlay || moving) throw new IllegalArgumentException();
+                String carrier = ballState.get("carrierPlayerId").asString(); shortText(ballState.get("carrierPlayerId"));
+                JsonObject ball = state.get("ball").asObject();
+                boolean found = false;
+                for (JsonValue value : players) {
+                    JsonObject player = value.asObject();
+                    if (carrier.equals(player.getString("id", null)) && ball.get("x").equals(player.get("x")) && ball.get("y").equals(player.get("y"))) found = true;
+                }
+                if (!found) throw new IllegalArgumentException();
+            }
+        }
         Set<String> ids = new HashSet<>();
         for (JsonValue value : players) {
 			JsonObject player = value.asObject();
@@ -481,13 +498,13 @@ public final class MatchJson {
             || !expected.get("league").equals(art.get("league"))) throw new IllegalArgumentException();
     }
 
-    private void exactWithTeamArt(JsonObject object, String... fields) {
+    private void exactPublicProjection(JsonObject object, String... fields) {
         boolean home = object.get("homeTeamArt") != null;
         if (home != (object.get("awayTeamArt") != null)) throw new IllegalArgumentException();
-        if (!home) { exact(object, fields); return; }
-        String[] extended = Arrays.copyOf(fields, fields.length + 2);
-        extended[fields.length] = "homeTeamArt"; extended[fields.length + 1] = "awayTeamArt";
-        exact(object, extended);
+        List<String> extended = new ArrayList<>(Arrays.asList(fields));
+        if (home) { extended.add("homeTeamArt"); extended.add("awayTeamArt"); }
+        if (object.get("ballState") != null) extended.add("ballState");
+        exact(object, extended.toArray(new String[0]));
     }
 
 	private void exact(JsonObject object, String... fields) { if (object.size() != fields.length || !new HashSet<>(object.names()).equals(new HashSet<>(Arrays.asList(fields)))) throw new IllegalArgumentException(); }

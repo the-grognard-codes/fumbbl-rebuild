@@ -22,7 +22,8 @@ class RecipientProjectionTest {
 		for (JsonObject view : Arrays.asList(home, away, spectator)) {
 			keys(view, "projectionVersion", "matchId", "revision", "callerRole", "phase", "actor", "prompt", "players", "weather", "homeRerolls", "awayRerolls",
 				"actions", "turn", "turnMode", "ball", "activePlayerId", "half", "homeTurn", "awayTurn", "homeScore", "awayScore", "drive",
-				"homeTeamName", "awayTeamName", "homeTeamArt", "awayTeamArt", "homeResources", "awayResources");
+				"homeTeamName", "awayTeamName", "homeTeamArt", "awayTeamArt", "homeResources", "awayResources", "ballState");
+			keys(view.get("ballState").asObject(), "version", "carrierPlayerId", "inPlay", "moving");
 			assertEquals(4, view.getInt("projectionVersion", 0));
 			assertEquals("Home", view.getString("homeTeamName", null));
 			assertEquals("Away", view.getString("awayTeamName", null));
