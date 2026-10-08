@@ -1,0 +1,130 @@
+{
+  "status": "passed",
+  "scope": "Production PitchProjection mathematical check and schematic review layout; not finished raster/crowd integration",
+  "productionSource": "C:\\Users\\jaken\\.codex\\worktrees\\league-stadium-mvp\\fumbbl-rebuild\\browser-client\\src\\pitch-projection.ts",
+  "productionSourceSha256": "76bf46bd051fbb098b99815890ef93286e92c118d7bb91987a836ea99d3bd674",
+  "cameras": 7560,
+  "finiteProjected": 1386252,
+  "nearClipped": 42588,
+  "roundTrips": 210220,
+  "maxRoundTripError": 3.552713678800501e-14,
+  "maxSmoothStepRatio": 0.3451225735164916,
+  "checked": {
+    "focus": "0 through 26 at 0.25-square intervals",
+    "ends": [
+      "home",
+      "away"
+    ],
+    "angles": [
+      30,
+      40,
+      50,
+      90
+    ],
+    "zooms": [
+      0.5,
+      1,
+      2
+    ],
+    "viewports": [
+      [
+        1672,
+        941
+      ],
+      [
+        736,
+        414
+      ],
+      [
+        320,
+        280
+      ]
+    ],
+    "lensHandling": "Behind-lens anchors are omitted; schematic raised surfaces clip in world space"
+  },
+  "proposedLayout": {
+    "pitch": {
+      "length": 26,
+      "width": 15,
+      "cells": 390
+    },
+    "apron": {
+      "squares": 2,
+      "x": [
+        -2,
+        28
+      ],
+      "y": [
+        -2,
+        17
+      ]
+    },
+    "sectionSplitX": 13,
+    "crowdOuterBounds": {
+      "x": [
+        -6,
+        32
+      ],
+      "y": [
+        -6,
+        21
+      ]
+    },
+    "gates": [
+      {
+        "id": "home-locker",
+        "x": 6,
+        "y": -2,
+        "width": 2.4
+      },
+      {
+        "id": "away-locker",
+        "x": 20,
+        "y": 17,
+        "width": 2.4
+      }
+    ],
+    "benches": [
+      {
+        "id": "home-bench",
+        "x": 9,
+        "y": -3.25,
+        "along": 3,
+        "across": 1.1
+      },
+      {
+        "id": "away-bench",
+        "x": 17,
+        "y": 18.25,
+        "along": 3,
+        "across": 1.1
+      }
+    ],
+    "partitions": [
+      {
+        "id": "north-midfield",
+        "x": 13,
+        "y": [
+          -6,
+          -2
+        ]
+      },
+      {
+        "id": "south-midfield",
+        "x": 13,
+        "y": [
+          17,
+          21
+        ]
+      }
+    ],
+    "standingPlatformRise": 0.9,
+    "diagramHeadRise": 1.65
+  },
+  "limits": [
+    "No shipping scenery code changed",
+    "Raster artwork is illustrative, not registered to this camera",
+    "Schematic uses raised colored supporter markers, not production crowd sprites",
+    "Final occlusion, module seams, camera movement and interactive pitch access need browser validation after asset separation"
+  ]
+}

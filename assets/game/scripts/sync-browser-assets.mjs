@@ -1,3 +1,4 @@
+import './build-modular-stadium-catalog.mjs';
 import './build-stadium-catalog.mjs';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';

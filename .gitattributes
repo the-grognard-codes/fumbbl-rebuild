@@ -4,3 +4,4 @@ tools/*.sh text eol=lf
 # Generated catalogs are compared byte-for-byte by assets:check.
 browser-client/src/generated-stadium-art.ts text eol=lf
 browser-client/src/generated-player-art.ts text eol=lf
+browser-client/src/generated-stadium-modules.ts text eol=lf
