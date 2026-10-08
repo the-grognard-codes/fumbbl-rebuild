@@ -57,6 +57,8 @@ ${articles}
   </main>
   <footer><span>© 2026 Moles Under the Pitch</span><a href="/privacy">Privacy</a><a href="/support">Support</a></footer>
   <script type="module" src="/assets/updates.js"></script>
+  <script src="/firebase-web-config.js"></script>
+  <script type="module" src="/assets/account-menu.js"></script>
 </body>
 </html>
 `;

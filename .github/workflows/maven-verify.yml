@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '26'
-      - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs
+      - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs
       - run: npm test --prefix computer-player
 
   baseline:

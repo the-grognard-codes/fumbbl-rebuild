@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { startReview } from './match-review-start.mjs';
 import { reviewMountSource } from './review-mount-source.mjs';
+import { ensureReviewCurrentMatchesIndex } from './review-current-matches-index.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const toolsDirectory = join(root, '.tools');
@@ -230,6 +231,7 @@ async function start(tokenFile) {
   run('docker', [...compose, 'up', '-d', '--build', 'server'], { env: environment, stdio: 'inherit' });
   await waitForReviewServer();
   await startReview();
+  ensureReviewCurrentMatchesIndex();
   const proxyOutput = run(process.execPath, [join(root, 'deployment', 'game-service', 'proxy', 'start-local.mjs')],
     { env: { ...process.env, NGINX_LOCAL_BINARY: nginx, LOCAL_GAME_BACKEND_PORT: '22234' } });
   const prefix = proxyOutput.match(/^Instance prefix: (.+)$/m)?.[1]?.trim();
@@ -254,7 +256,7 @@ async function start(tokenFile) {
   const computerOut = openSync(computerLog, 'w');
   const computerErr = openSync(join(toolsDirectory, 'dev-local-computer.err.log'), 'w');
   const computer = spawn(process.execPath, [computerScript, '--url', 'ws://127.0.0.1:22232/browser/v2',
-    '--origin', 'http://localhost:5000', '--service-token-file', tokenFile],
+    '--origin', 'http://localhost:5000', '--service-token-file', tokenFile, '--max-matches', '4'],
     { cwd: root, detached: true, windowsHide: true, stdio: ['ignore', computerOut, computerErr] });
   closeSync(computerOut); closeSync(computerErr);
   computer.once('error', () => {});

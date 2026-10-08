@@ -60,6 +60,51 @@ function readFrames(socket, onMessage) {
   });
 }
 
+test('default daemon leaves browser slots and starts queued matches when a worker completes', { timeout: 15000 }, async () => {
+  const jobs = Array.from({ length: 20 }, (_, index) => `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`);
+  const loaded = [];
+  const sockets = new Set();
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, requestBody => {
+      if (requestBody.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: requestBody.requestId, code: 'ACCEPTED' });
+      else if (requestBody.operation === 'register') {
+        send(socket, { version: 2, type: 'computer', requestId: requestBody.requestId, code: 'READY' });
+        send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: jobs });
+      } else if (requestBody.operation === 'load') loaded.push({ socket, requestBody });
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  const waitFor = async predicate => {
+    const deadline = Date.now() + 6000;
+    while (!predicate() && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
+    assert.ok(predicate(), output);
+  };
+  try {
+    await waitFor(() => loaded.length >= 4);
+    // Give all workers time to connect; an oversized default admits the entire backlog.
+    await new Promise(done => setTimeout(done, 400));
+    assert.equal(loaded.length, 4, 'only four match clients may hold slots while a backlog waits');
+    assert.equal(sockets.size, 5, 'dispatcher plus four workers leave eleven of sixteen slots for browsers');
+    const first = loaded[0];
+    send(first.socket, response(first.requestBody.requestId, { ...state, matchId: first.requestBody.matchId, phase: 'FULL_TIME', prompt: null }));
+    await waitFor(() => loaded.length === 5);
+    assert.equal(loaded[4].requestBody.matchId, jobs[4], 'the next queued match replaces the completed worker');
+  } finally {
+    await stopChild(child);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+  }
+});
+
 test('authenticates over the browser route and acts from received state', { timeout: 15000 }, async () => {
   const seen = [];
   let choices = 0;
