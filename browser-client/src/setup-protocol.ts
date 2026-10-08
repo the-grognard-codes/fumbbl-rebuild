@@ -14,7 +14,7 @@ export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED'
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
 export type PassingRanges = { version: 1; playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
 export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number };
-export type MovementForecast = { version: 1; playerId: string; steps: RouteStep[] };
+export type MovementForecast = { version: 1 | 2; playerId: string; steps: RouteStep[] };
 export type BallState = { version: 1; carrierPlayerId: string | null; inPlay: boolean; moving: boolean };
 export type SetupState = { projectionVersion?: 2 | 3 | 4; matchId: string; revision: number; callerRole: MatchRole | 'spectator'; phase: 'PRE_MATCH' | 'SETUP' | 'READY_FOR_KICKOFF' | 'PLAY' | 'FULL_TIME'; actor: MatchRole; prompt: SetupPrompt | null; players: SetupPlayer[]; weather: string; homeRerolls: number; awayRerolls: number; actions: SetupAction[]; turn: number; turnMode: string; ball: { x: number; y: number } | null; activePlayerId: string | null; half: number; homeTurn: number; awayTurn: number; homeScore: number; awayScore: number; drive: number; homeTeamName?: string; awayTeamName?: string; homeTeamArt?: MatchTeamArt; awayTeamArt?: MatchTeamArt; homeResources?: TeamResources; awayResources?: TeamResources; saveResume?: SaveResumeStatus; clock?: MatchClock; passing?: PassingRanges; kickoff?: KickoffPresentation; ballState?: BallState; movementForecast?: MovementForecast };
 export type SetupResponse = { version: 1; type: 'setupState'; requestId: string | null; code: SetupCode; duplicate: boolean; state: SetupState | null; setupErrors?: string[] };
@@ -64,16 +64,24 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	if (Object.hasOwn(result, 'movementForecast')) {
 		const value = object(result.movementForecast, ['version', 'playerId', 'steps']);
 		const mover = players.find(player => player.id === value.playerId);
-		if (value.version !== 1 || result.phase !== 'PLAY' || !mover || mover.id !== result.activePlayerId
-			|| mover.x === null || mover.y === null || !Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 8)
+		if (![1, 2].includes(value.version as number) || result.phase !== 'PLAY' || !mover || mover.id !== result.activePlayerId
+			|| mover.x === null || mover.y === null || !Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > (value.version === 2 ? 24 : 8))
 			throw Error('Invalid movement forecast');
-		const steps = value.steps.map(step => decodeRouteStep(step));
+		const steps = value.steps.map(step => decodeRouteStep(step, value.version === 2 ? 3 : 2));
 		if (new Set(steps.map(step => `${step.x},${step.y}`)).size !== steps.length
-			|| steps.some(step => Math.max(Math.abs(step.x - mover.x!), Math.abs(step.y - mover.y!)) !== 1
-				|| !actions.some(action => action.kind === 'move' && action.sourcePlayerId === mover.id
-					&& action.target && 'x' in action.target && action.target.x === step.x && action.target.y === step.y)))
+			|| steps.some(step => !actions.some(action => {
+				const jumping = value.version === 2 && action.kind === 'jump';
+				return (action.kind === 'move' || jumping) && action.sourcePlayerId === mover.id
+					&& Math.max(Math.abs(step.x - mover.x!), Math.abs(step.y - mover.y!)) === (jumping ? 2 : 1)
+					&& !!step.checks?.some(check => check.name === 'Jump') === jumping
+					&& action.target && 'x' in action.target && action.target.x === step.x && action.target.y === step.y;
+			})))
 			throw Error('Unavailable movement forecast');
-		movementForecast = { version: 1, playerId: mover.id, steps };
+        if (steps.some(step => step.checks?.some(check => ['Pickup', 'Ball scatter'].includes(check.name))
+          && (!ball || ball.x !== step.x || ball.y !== step.y || !result.ballState
+            || !(result.ballState as Record<string, unknown>).inPlay || !(result.ballState as Record<string, unknown>).moving)))
+          throw Error('Unavailable ball contact');
+		movementForecast = { version: value.version as 1 | 2, playerId: mover.id, steps };
 	}
 	let prompt: SetupPrompt | null = null;
 	if (result.prompt !== null) { const value = object(result.prompt, ['id','actor','kind','options']); text(value.id); role(value.actor); if ((value.kind !== 'coin' && value.kind !== 'receive') || !Array.isArray(value.options) || value.options.length !== 2) throw Error('Invalid prompt'); const expected = value.kind === 'coin' ? ['heads','tails'] : ['receive','kick']; if (!value.options.every(option => typeof option === 'string' && expected.includes(option)) || new Set(value.options).size !== 2) throw Error('Invalid options'); prompt = value as SetupPrompt; }

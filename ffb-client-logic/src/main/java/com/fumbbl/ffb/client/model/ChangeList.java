@@ -11,6 +11,11 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addImprovement("Browser stadiums assemble matching wall, corner and packed Human/Orc crowd pieces, with occasional random section gestures and two locker-room entrances")
+			.addImprovement("Browser Game Log shows block dice faces, native chooser, player skills and resolved pushes and knockdowns")
+			.addImprovement("Browser Game Log preserves native trait thresholds, follow-up checks, reroll sources and skill-test retries in chronological order")
+			.addImprovement("Browser Game Log shows readable declarations, native action results and committed movement, with persistent Debug, Movement and Roll modifiers controls")
+			.addImprovement("Browser match chat shows team names for coaches and stable numbered spectators in a distinct color")
+			.addImprovement("Browser movement squares show native pickup and jump targets, ball contact, and possible Diving Tackle, Tentacles, Shadowing and Steady Footing checks")
 			.addImprovement("Browser movement plans color each entered square by native dodge penalties and show native dodge and rush targets")
 			.addImprovement("Human and Orc sprites use reviewed body centerlines and grounded shadows in every pitch view")
 			.addImprovement("Browser balls use crisp pixel artwork and a synchronized, always-visible pulse; carried balls keep their highlight through confirmed movement")

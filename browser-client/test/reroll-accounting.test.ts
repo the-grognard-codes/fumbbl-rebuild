@@ -28,7 +28,7 @@ test('the durable log identifies native consumed sources and conditional Mascot 
       at: state.revision, decision: { operation: 'action', actionId: journey.selectedId }, native: [{ commandNr: 1, reportList: { reports: journey.reports } }], state };
     const text = matchLogLines([record]).map(line => line.text).join('\n');
     for (const report of journey.reports) {
-      if (report.reportId === 'reRoll') assert.ok(text.toLowerCase().includes(report.reRollSource.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()));
+      if (report.reportId === 'reRoll') assert.ok(text.toLowerCase().replace(/\s/g, '').includes(report.reRollSource.toLowerCase().replace(/\s/g, '')));
       if (report.reportId === 'mascotUsed') assert.ok(text.includes(`conditional Mascot attempt ${report.roll} vs ${report.minimumRoll}+`));
     }
     if (journey.mode === 'mascot-fallback') assert.ok(text.includes('continued with a guaranteed team source'));

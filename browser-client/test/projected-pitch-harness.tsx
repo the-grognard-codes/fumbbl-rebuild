@@ -26,7 +26,8 @@ function App() {
   window.updatePitchView = setView;
   return <LivePitch view={view} selectedId={selected} actions={window.initialActions ?? []}
     pinnedAction={window.initialPinnedAction} diceMoment={window.initialDice}
-    routePreview={{ from: { x: 12, y: 7 }, steps: [{ x: 11, y: 7 }, { x: 10, y: 8 }] }}
+    routePreview={{ routeVersion: 2, playerId: 'human', from: { x: 12, y: 7 }, remaining: 6, revision: view.revision, actor: 'home',
+      steps: [{ x: 11, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [] }, { x: 10, y: 8, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [] }] }}
     readOnly={view.callerRole === 'spectator'}
     onSelectionPosition={recordSelectionPosition}
     onSelectPlayer={id => { window.intents.push({ player: id }); setSelected(id); }}

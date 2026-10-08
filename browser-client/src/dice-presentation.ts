@@ -15,6 +15,10 @@ export function accumulateDiceMoment(previous: DiceMoment | null, next: DiceMome
 
 const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
 export function blockFace(roll: number): string | null { return Number.isInteger(roll) && roll >= 1 && roll <= 6 ? blockFaces[roll - 1] : null; }
+export function blockFaceLabel(face: string): string | undefined {
+  const labels: Record<string, string> = { SKULL: 'Skull', 'BOTH DOWN': 'Both down', PUSHBACK: 'Push', 'POW/PUSH': 'Stumble', POW: 'Pow' };
+  return Object.hasOwn(labels, face) ? labels[face] : undefined;
+}
 
 /** Only values written by native reports become visible dice; no roll is generated in the browser. */
 export function reportedDice(report: Record<string, unknown>): DiceMoment | null {
@@ -22,12 +26,12 @@ export function reportedDice(report: Record<string, unknown>): DiceMoment | null
   if (typeof id !== 'string') return null;
   const subjectId = typeof report.playerId === 'string' ? report.playerId
     : typeof report.defenderId === 'string' ? report.defenderId : null;
-  if ((id === 'blockRoll' || id === 'blockChoice') && Array.isArray(report.blockRoll)) {
+  if ((id === 'blockRoll' || id === 'blockChoice' || id === 'blockReRoll') && Array.isArray(report.blockRoll)) {
     const faces = report.blockRoll.map(value => blockFace(value as number));
     if (!faces.length || faces.some(face => face === null)) return null;
     const selected = id === 'blockChoice' && Number.isInteger(report.diceIndex)
       && (report.diceIndex as number) >= 0 && (report.diceIndex as number) < faces.length ? report.diceIndex as number : null;
-    return { label: id === 'blockChoice' ? 'Block die selected' : 'Block dice rolled', faces: faces as string[], subjectId, selected };
+    return { label: id === 'blockChoice' ? 'Block die selected' : id === 'blockReRoll' ? 'Block dice rerolled' : 'Block dice rolled', faces: faces as string[], subjectId, selected };
   }
   if (typeof report.roll === 'number' && Number.isInteger(report.roll) && report.roll >= 1 && report.roll <= 6) {
     const name = id === 'goForItRoll' ? 'Rush' : id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/ Roll$/, '').replace(/^./, letter => letter.toUpperCase());

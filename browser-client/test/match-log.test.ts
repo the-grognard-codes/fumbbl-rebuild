@@ -25,9 +25,9 @@ test('logs raw dodge target, net modifier, reroll and block dice without coordin
     ] } }], state: state(1, 10) };
   const lines = matchLogLines([start, action]).map(line => line.text);
   assert.ok(lines.some(line => line.includes('4 vs 5+ (base 3+ · -2 net modifier)') && line.includes('failure')));
-  assert.ok(lines.some(line => line.includes('re roll') && line.includes('Dodge')));
-  assert.ok(lines.some(line => line.includes('dice [4, 6]')));
-  assert.ok(lines.some(line => line.includes('selected die 2: PUSHBACK')));
+  assert.ok(lines.some(line => line.includes('used Dodge reroll.')));
+  assert.ok(lines.some(line => line.includes('Push, Pow')));
+  assert.ok(lines.some(line => line.includes('chooses die 2 (Pow)') && line.includes('result Push')));
   assert.ok(lines.every(line => !line.includes('(4, 7) → (10, 7)')));
 });
 
@@ -57,14 +57,14 @@ test('renders retained injury, apothecary, foul rulings, rerolls and KO recovery
   assert.ok(lines.some(line => /armor 5 \+ 5 = 10 vs base AV 9\+ · broken/.test(line) && line.includes('Mighty Blow')));
   assert.ok(lines.some(line => line.includes('injury 4 + 6 = 10') && line.includes('casualty 3 · serious injury die 4')));
   assert.ok(lines.some(line => line.includes('apothecary roll') && line.includes('casualty 2 · serious injury die 3')));
-  assert.ok(lines.some(line => line.includes('regeneration roll') && line.includes('5 vs 4+')));
+  assert.ok(lines.some(line => line.includes('tests Regeneration') && line.includes('5 vs 4+')));
   assert.ok(lines.some(line => line.includes('argue the call') && line.includes('5 vs 5+')));
   assert.ok(lines.some(line => line.includes('bribes roll') && line.includes('2 vs 2+')));
   assert.ok(lines.some(line => line.includes('fouling player sent off') && line.includes('under scrutiny')));
   assert.ok(lines.some(line => line.includes('Secret weapon · Runner: roll 1 · sent off')));
   assert.ok(lines.some(line => line.includes('bribery and corruption re roll') && line.includes('reroll bribe')));
-  assert.ok(lines.some(line => line.includes('source Team re roll') && line.includes('roll 3')));
-  assert.ok(lines.some(line => line.includes('block re roll') && line.includes('source Brawler')));
+  assert.ok(lines.some(line => line.includes('used Team reroll.')));
+  assert.ok(lines.some(line => line.includes('rerolls block dice') && line.includes('source Brawler')));
   assert.equal(lines.filter(line => line.startsWith('KO recovery · Runner')).length, 2);
 });
 

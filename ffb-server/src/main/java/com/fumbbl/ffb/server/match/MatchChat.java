@@ -15,6 +15,7 @@ public final class MatchChat {
 	private static final int MAX_MESSAGES = 512;
 	private final JsonArray messages = new JsonArray();
 	private final Map<String, Entry> requests = new LinkedHashMap<>();
+	private final Map<String, Integer> spectatorNumbers = new LinkedHashMap<>();
 
 	public MatchChat() { }
 
@@ -33,6 +34,7 @@ public final class MatchChat {
 			identity(message.getString("authorId", null)); role(message.getString("role", null)); content(message.getString("text", null));
 			priorTime = message.get("at").asLong();
 			messages.add(message);
+			registerSpectator(message);
 		}
 		JsonArray history = saved.get("requests").asArray();
 		if (history.size() != stored.size()) throw new IllegalArgumentException("Chat request count");
@@ -70,6 +72,7 @@ public final class MatchChat {
 		JsonObject message = new JsonObject().add("index", messages.size()).add("at", at).add("revision", revision)
 			.add("authorId", authorId).add("role", authorRole).add("text", text);
 		messages.add(message);
+		registerSpectator(message);
 		requests.put(authorId + "\n" + id, new Entry(message.getInt("index", -1), text));
 		return new Outcome(message, false);
 	}
@@ -85,9 +88,22 @@ public final class MatchChat {
 	public JsonObject page(int from, int limit) {
 		if (from < 0 || from > messages.size() || limit < 1 || limit > 32) throw new MatchService.Failure("INVALID_REQUEST");
 		JsonArray selected = new JsonArray();
-		for (int index = from; index < messages.size() && selected.size() < limit; index++) selected.add(messages.get(index));
-		return new JsonObject().add("formatVersion", 1).add("from", from).add("next", from + selected.size())
+		for (int index = from; index < messages.size() && selected.size() < limit; index++) selected.add(publicMessage(messages.get(index).asObject()));
+		return new JsonObject().add("formatVersion", 2).add("from", from).add("next", from + selected.size())
 			.add("total", messages.size()).add("messages", selected);
+	}
+
+	private void registerSpectator(JsonObject message) {
+		if ("spectator".equals(message.getString("role", null))) {
+			String author = message.getString("authorId", null);
+			if (!spectatorNumbers.containsKey(author)) spectatorNumbers.put(author, spectatorNumbers.size() + 1);
+		}
+	}
+
+	private JsonObject publicMessage(JsonObject message) {
+		JsonObject out = JsonObject.readFrom(message.toString());
+		Integer number = "spectator".equals(message.getString("role", null)) ? spectatorNumbers.get(message.getString("authorId", null)) : null;
+		return out.add("spectatorNumber", number == null ? JsonValue.NULL : JsonValue.valueOf(number));
 	}
 
 	public JsonObject json() {

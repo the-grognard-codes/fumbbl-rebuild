@@ -1,0 +1,87 @@
+export type LogSquare = { x: number; y: number };
+export type LogAction = { kind: string; label: string; playerId: string | null; target: LogSquare | { playerId: string } | null };
+export type LogMovement = { commitRevision: number; playerId: string; from: LogSquare; to: LogSquare | null; complete: boolean };
+export type LogPresentation = { version: 1; action: LogAction | null; movement: LogMovement | null };
+export type LogRoll = { version: 1; base: number; target: number; modifier: number; square: LogSquare | null };
+function object(value: unknown, fields: string[]) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid log presentation');
+  const item = value as Record<string, unknown>;
+  if (Object.keys(item).length !== fields.length || fields.some(field => !Object.hasOwn(item, field))) throw Error('Invalid log presentation fields');
+  return item;
+}
+const id = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 200;
+function square(value: unknown): LogSquare {
+  const item = object(value, ['x', 'y']);
+  if (!Number.isInteger(item.x) || Number(item.x) < 0 || Number(item.x) > 25 || !Number.isInteger(item.y) || Number(item.y) < 0 || Number(item.y) > 14)
+    throw Error('Invalid log square');
+  return { x: Number(item.x), y: Number(item.y) };
+}
+export function decodeLogPresentation(value: unknown, revision: number): LogPresentation {
+  const item = object(value, ['version', 'action', 'movement']);
+  if (item.version !== 1) throw Error('Unsupported log presentation');
+  let action: LogAction | null = null, movement: LogMovement | null = null;
+  if (item.action !== null) {
+    const input = object(item.action, ['kind', 'label', 'playerId', 'target']);
+    if (!id(input.kind) || typeof input.label !== 'string' || !input.label.length || input.label.length > 2000
+      || input.playerId !== null && !id(input.playerId)) throw Error('Invalid log action');
+    let target: LogAction['target'] = null;
+    if (input.target !== null) {
+      if (typeof input.target === 'object' && Object.hasOwn(input.target, 'playerId')) {
+        const player = object(input.target, ['playerId']);
+        if (!id(player.playerId)) throw Error('Invalid log target');
+        target = { playerId: player.playerId };
+      } else target = square(input.target);
+    }
+    action = { kind: input.kind, label: input.label, playerId: input.playerId as string | null, target };
+  }
+  if (item.movement !== null) {
+    const input = object(item.movement, ['commitRevision', 'playerId', 'from', 'to', 'complete']);
+    if (!Number.isInteger(input.commitRevision) || Number(input.commitRevision) < 0 || Number(input.commitRevision) >= revision
+      || !id(input.playerId) || typeof input.complete !== 'boolean') throw Error('Invalid log movement');
+    movement = { commitRevision: Number(input.commitRevision), playerId: input.playerId, from: square(input.from),
+      to: input.to === null ? null : square(input.to), complete: input.complete };
+  }
+  return { version: 1, action, movement };
+}
+
+export function decodeLogRoll(value: unknown): LogRoll {
+  const item = object(value, ['version', 'base', 'target', 'modifier', 'square']);
+  if (item.version !== 1 || !Number.isInteger(item.base) || Number(item.base) < 1 || Number(item.base) > 30
+    || !Number.isInteger(item.target) || Number(item.target) < 2 || Number(item.target) > 6
+    || !Number.isInteger(item.modifier) || Math.abs(Number(item.modifier)) > 60) throw Error('Invalid native log roll');
+  return { version: 1, base: Number(item.base), target: Number(item.target), modifier: Number(item.modifier),
+    square: item.square === null ? null : square(item.square) };
+}
+
+export type LogActors = { version: 1; actorId: string; targetId: string | null };
+export function decodeLogActors(value: unknown): LogActors {
+  const item = object(value, ['version', 'actorId', 'targetId']);
+  if (item.version !== 1 || !id(item.actorId) || item.targetId !== null && !id(item.targetId)) throw Error('Invalid native log actors');
+  return { version: 1, actorId: item.actorId, targetId: item.targetId as string | null };
+}
+export function decodeLogTest(value: unknown): { version: 1; rerolled: boolean } {
+  const item = object(value, ['version', 'rerolled']);
+  if (item.version !== 1 || typeof item.rerolled !== 'boolean') throw Error('Invalid native source test');
+  return { version: 1, rerolled: item.rerolled };
+}
+
+export type LogBlock = { version: 1; attackerId: string | null; defenderId: string | null; chooser: 'home' | 'away' | null };
+export function decodeLogBlock(value: unknown): LogBlock {
+  const item = object(value, ['version', 'attackerId', 'defenderId', 'chooser']);
+  if (item.version !== 1 || item.attackerId !== null && !id(item.attackerId) || item.defenderId !== null && !id(item.defenderId)
+    || item.chooser !== null && item.chooser !== 'home' && item.chooser !== 'away') throw Error('Invalid native block context');
+  return item as LogBlock;
+}
+export type LogOutcome = { playerId: string; kind: 'push' | 'followUp' | 'knockdown' | 'prone' | 'stunned' | 'knockedOut' | 'removed' | 'dead' | 'standing';
+  from: LogSquare | null; to: LogSquare | null; skill: string | null };
+export function decodeLogOutcomes(value: unknown): { version: 1; events: LogOutcome[] } {
+  const input = object(value, ['version', 'events']);
+  if (input.version !== 1 || !Array.isArray(input.events) || input.events.length > 256) throw Error('Invalid native outcomes');
+  const events = input.events.map(value => {
+    const item = object(value, ['playerId', 'kind', 'from', 'to', 'skill']);
+    if (!id(item.playerId) || !['push', 'followUp', 'knockdown', 'prone', 'stunned', 'knockedOut', 'removed', 'dead', 'standing'].includes(String(item.kind))
+      || item.skill !== null && !id(item.skill)) throw Error('Invalid native player outcome');
+    return { ...item, from: item.from === null ? null : square(item.from), to: item.to === null ? null : square(item.to) } as LogOutcome;
+  });
+  return { version: 1, events };
+}

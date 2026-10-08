@@ -13,12 +13,12 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Merged in [#206](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/206) |
 | T06 | [#190](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190) | None | Merged in [#208](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/208) |
 | T07 | [#191](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191) | None | Merged in [#209](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/209) |
-| T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Implemented, reviewed and validated; PR pending |
-| T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Planned |
-| T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Planned |
-| T11 | [#195](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195) | None | Planned |
-| T12 | [#196](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) | #195 | Planned |
-| T13 | [#197](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) | #196 | Planned |
+| T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Merged in [#210](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/210) |
+| T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Merged in [#213](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/213) |
+| T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Merged [#215](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/215) |
+| T11 | [#195](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195) | None | Merged [#216](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/216) |
+| T12 | [#196](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) | #195 | Merged [#217](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/217) |
+| T13 | [#197](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) | #196 | Implemented in [#218](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/218); validation and both reviews passed |
 
 The existing match checkpoint, transcript, native rules, and canonical pitch remain authoritative. Each ticket delivers behavior through every affected layer and includes focused native/contract/browser verification as appropriate. Add a user-facing change-list entry for user-visible implementation changes. Preserve unaffected rulesets and the existing accepted-input, authorization, revision, and retry safeguards.
 
