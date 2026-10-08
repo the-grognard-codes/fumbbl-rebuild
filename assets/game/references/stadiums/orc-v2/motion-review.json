@@ -127,6 +127,60 @@
       "commandsStable": true,
       "intents": [],
       "frameObservation": {
+        "frames": 269,
+        "meanMs": 8.924907063197036,
+        "p95Ms": 8.299999999995634,
+        "maxMs": 129.40000000000146
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 280,
+        "meanMs": 8.573571428571423,
+        "p95Ms": 8.400000000001455,
+        "maxMs": 134.29999999999563
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "limits": "Instrumented foreground headless desktop Chrome; probe overhead included. nativeConcurrent retains the earlier concurrent-run outliers for comparison. No sustained/hardware-wide GPU certification.",
+  "manualReview": "Both encoded 1280x660 clips inspected at 2s/4s perspective and 7s overhead; small staggered movement remains subordinate to pitch.",
+  "nativeConcurrent": [
+    {
+      "host": "human",
+      "durationMs": 2400,
+      "crowdGroups": 155,
+      "animatedCrowdGroups": 21,
+      "torchCount": 8,
+      "pennantCount": 4,
+      "crowdMoved": true,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 1.5,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
         "frames": 267,
         "meanMs": 9.004868913857662,
         "p95Ms": 8.30000000000291,
@@ -160,6 +214,6 @@
       "reducedMotionStatic": true
     }
   ],
-  "limits": "Instrumented foreground headless desktop Chrome; probe overhead and concurrent local tests included. No sustained/hardware-wide GPU certification.",
-  "manualReview": "Both encoded 1280x660 clips inspected at 2s/4s perspective and 7s overhead; small staggered movement remains subordinate to pitch."
+  "validatedSourceCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803",
+  "nativeRun": "Final isolated native server rebuild and acceptance after the 15-script browser suite; no concurrent build/assets sync/browser suite."
 }

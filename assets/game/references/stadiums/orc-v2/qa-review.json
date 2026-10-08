@@ -756,5 +756,350 @@
       "position": "far",
       "focus": 1.0000000929585209
     }
-  ]
+  ],
+  "nativeViewMatrix": [
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 30,
+      "position": "near",
+      "focus": 0.9999995864533666
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 30,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 30,
+      "position": "far",
+      "focus": 25.0000006563789
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 40,
+      "position": "near",
+      "focus": 1.000000512463565
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 40,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 40,
+      "position": "far",
+      "focus": 25.000000127784652
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 50,
+      "position": "near",
+      "focus": 1.0000001651399302
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 50,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 50,
+      "position": "far",
+      "focus": 25.000000262116853
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 90,
+      "position": "near",
+      "focus": 1.00000035289208
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 90,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "home",
+      "angle": 90,
+      "position": "far",
+      "focus": 24.999999907041477
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 30,
+      "position": "near",
+      "focus": 25.000000413546633
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 30,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 30,
+      "position": "far",
+      "focus": 0.9999993436210985
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 40,
+      "position": "near",
+      "focus": 24.99999948753643
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 40,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 40,
+      "position": "far",
+      "focus": 0.9999998722153478
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 50,
+      "position": "near",
+      "focus": 24.999999834860066
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 50,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 50,
+      "position": "far",
+      "focus": 0.9999997378831473
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 90,
+      "position": "near",
+      "focus": 24.99999964710792
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 90,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "human",
+      "end": "away",
+      "angle": 90,
+      "position": "far",
+      "focus": 1.0000000929585209
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 30,
+      "position": "near",
+      "focus": 0.9999995864533666
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 30,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 30,
+      "position": "far",
+      "focus": 25.0000006563789
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 40,
+      "position": "near",
+      "focus": 1.000000512463565
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 40,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 40,
+      "position": "far",
+      "focus": 25.000000127784652
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 50,
+      "position": "near",
+      "focus": 1.0000001651399302
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 50,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 50,
+      "position": "far",
+      "focus": 25.000000262116853
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 90,
+      "position": "near",
+      "focus": 1.00000035289208
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 90,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "home",
+      "angle": 90,
+      "position": "far",
+      "focus": 24.999999907041477
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 30,
+      "position": "near",
+      "focus": 25.000000413546633
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 30,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 30,
+      "position": "far",
+      "focus": 0.9999993436210985
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 40,
+      "position": "near",
+      "focus": 24.99999948753643
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 40,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 40,
+      "position": "far",
+      "focus": 0.9999998722153478
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 50,
+      "position": "near",
+      "focus": 24.999999834860066
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 50,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 50,
+      "position": "far",
+      "focus": 0.9999997378831473
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 90,
+      "position": "near",
+      "focus": 24.99999964710792
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 90,
+      "position": "mid",
+      "focus": 13
+    },
+    {
+      "host": "orc",
+      "end": "away",
+      "angle": 90,
+      "position": "far",
+      "focus": 1.0000000929585209
+    }
+  ],
+  "validatedSourceCommit": "02526bcea8e28de39f915ae048d0cd96a79a1803",
+  "integratedBrowserChecks": {
+    "assets": 176,
+    "unitTests": 194,
+    "interactionScripts": 15,
+    "productionPlayBuild": "passed"
+  }
 }
