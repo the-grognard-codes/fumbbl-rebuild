@@ -1,9 +1,9 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { appendMatchLogLines } from './match-log.ts';
 import type { MatchLogLine } from './match-log.ts';
 import { DiceFace } from './DiceFace.tsx';
-import { readMatchLogPreferences, saveMatchLogPreferences } from './match-log-preferences.ts';
+import { readMatchLogPreferences, saveMatchLogPreferences, subscribeMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTextSize } from './MatchTextSizeControls.tsx';
@@ -21,8 +21,8 @@ const locate = (lines: MatchLogLine[], point: Boundary, end = false) => {
   return index >= 0 ? index : end ? lines.length - 1 : 0;
 };
 
-export function MatchEventLog({ records, loading, unavailable }: {
-  records: TranscriptRecord[]; loading: boolean; unavailable: boolean;
+export function MatchEventLog({ records, loading, unavailable, showSettings = true }: {
+  records: TranscriptRecord[]; loading: boolean; unavailable: boolean; showSettings?: boolean;
 }) {
   const [preferences, setPreferences] = useState(readMatchLogPreferences);
   const signature = JSON.stringify(preferences);
@@ -62,14 +62,16 @@ export function MatchEventLog({ records, loading, unavailable }: {
       anchor.current = null;
     } else if (windowRange === null) element.scrollTop = element.scrollHeight;
   }, [lines, windowRange, fontSize]);
-  const choosePreference = (name: keyof MatchLogPreferences, value: boolean) => {
+  useEffect(() => subscribeMatchLogPreferences(next => {
+    if (JSON.stringify(next) === signature) return;
     rememberPosition();
     if (windowRange === null && lines.length && pane.current
       && pane.current.scrollHeight - pane.current.scrollTop - pane.current.clientHeight > 36)
       setWindowRange({ first: boundary(lines[first]), last: boundary(lines[last - 1]) });
-    const next = { ...preferences, [name]: value };
-    setPreferences(next); saveMatchLogPreferences(next);
-  };
+    setPreferences(next);
+  }), [signature, lines, windowRange, first, last]);
+  const choosePreference = (name: keyof MatchLogPreferences, value: boolean) =>
+    saveMatchLogPreferences({ ...preferences, [name]: value });
   const earlier = () => {
     rememberPosition();
     setWindowRange({ first: boundary(lines[Math.max(0, first - PAGE)]), last: boundary(lines[last - 1]) });
@@ -79,11 +81,11 @@ export function MatchEventLog({ records, loading, unavailable }: {
     <header><h3>Game Log</h3><MatchTextSizeControls subject="log" size={fontSize} onChange={size => {
       rememberPosition(); setFontSize(size); saveMatchTextSize(fontKey, size);
     }}/></header>
-    <div className="match-log-settings" role="group" aria-label="Game Log settings">
+    {showSettings && <div className="match-log-settings" role="group" aria-label="Game Log settings">
       {([['debug', 'Debug'], ['movement', 'Movement'], ['rollModifiers', 'Roll modifiers']] as const).map(([name, label]) =>
         <label key={name}><input type="checkbox" checked={preferences[name]}
           onChange={event => choosePreference(name, event.target.checked)}/>{label}</label>)}
-    </div>
+    </div>}
     {!lines.length && <p>{loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>}
     <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll" style={{ fontSize: `${matchTextPixels[fontSize]}px` }}
       onScroll={event => { if (windowRange !== null || !lines.length) return; const element = event.currentTarget;

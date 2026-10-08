@@ -2,20 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { V2Client } from './v2-client.ts';
 import { emptyReplayFilters, filterLiveGames, gameLabel, searchReplayGames } from './browse-protocol.ts';
 import type { BrowseGame, BrowseTeam, ReplayFilters } from './browse-protocol.ts';
+import { MatchupTeam } from './MatchupTeam.tsx';
 import './spectate.css';
 
 type Options = { url: string; getToken: () => Promise<string> };
 
 function Team({ team, side }: { team: BrowseTeam; side: 'home' | 'away' }) {
-  return <div className={`spectate-team spectate-team-${side}`}>
-    <span className="spectate-team-mark" aria-hidden="true">
-      <svg viewBox="0 0 44 52" focusable="false"><path d="M1.5 1.5H42.5V40.5L22 50.5L1.5 40.5Z" /></svg>
-      <span>{team.name.trim().slice(0, 1).toUpperCase()}</span>
-    </span>
-    <div><h3>{team.name}</h3><p>{team.type}<span className="spectate-divider">·</span>
+  return <MatchupTeam name={team.name} side={side}>
+    <p>{team.type}<span className="spectate-divider">·</span>
       {team.teamValue === null ? 'TV unavailable' : `TV ${new Intl.NumberFormat('en').format(team.teamValue / 1000)}k`}</p>
-      <p className="spectate-coach">{team.coach ? /^coach\b/i.test(team.coach) ? team.coach : `Coach ${team.coach}` : 'Coach details unavailable'}</p></div>
-  </div>;
+    <p className="spectate-coach">{team.coach ? /^coach\b/i.test(team.coach) ? team.coach : `Coach ${team.coach}` : 'Coach details unavailable'}</p>
+  </MatchupTeam>;
 }
 
 function LiveGame({ game }: { game: BrowseGame }) {

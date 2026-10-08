@@ -38,18 +38,21 @@ test('current games page assembles owned pages, resumes setup, and links activat
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
     || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   const requests = [];
-  let empty = false, unavailable = false;
+  let empty = false, unavailable = false, longNames = false;
   let conceded = false, uncertainConcession = true;
   let holdRefresh = false, releasePage, signalHeld;
   try {
     for (let account = 0; account < 2; account++) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
       const page = await context.newPage();
+      let latestSocket;
+      const errors = []; page.on('pageerror', error => errors.push(error.message));
       await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript',
         body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
       await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript',
         body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
       await context.routeWebSocket('**/browser/v2', socket => {
+        latestSocket = socket;
         const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
         socket.onMessage(raw => {
           const request = JSON.parse(raw); requests.push({ ...request, account });
@@ -61,7 +64,7 @@ test('current games page assembles owned pages, resumes setup, and links activat
             if (unavailable) { send({ type: 'error', requestId: request.requestId, code: 'PERSISTENCE_FAILED' }); return; }
             const matches = empty || account === 1 ? [] : request.after === null
               ? [entry(1, 'WAITING_FOR_OPPONENT', 'Orcs 4 Hire', null), entry(2, 'AWAITING_SETUP', 'Reavers', 'Raiders')]
-              : [...(conceded ? [] : [entry(3, 'ACTIVATED', 'Active Orcs', "Bugman's Best")]), entry(4, 'UNAVAILABLE', null, null)];
+              : [...(conceded ? [] : [entry(3, 'ACTIVATED', longNames ? 'A'.repeat(80) : 'Active Orcs', "Bugman's Best")]), entry(4, 'UNAVAILABLE', null, null)];
             const reply = () => send({ type: 'currentMatches', requestId: request.requestId, code: 'ACCEPTED', matches,
               next: matches.length && request.after === null ? id(2) : null });
             if (holdRefresh) { holdRefresh = false; releasePage = reply; signalHeld(); }
@@ -83,10 +86,17 @@ test('current games page assembles owned pages, resumes setup, and links activat
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play`);
       const games = page.getByRole('region', { name: 'Your current games' });
+      await page.getByRole('heading', { name: 'Create a game', exact: true }).waitFor();
+      const atBottom = () => games.evaluate(element => element === element.parentElement.querySelector(':scope > section:last-of-type'));
       if (account === 1) {
         await games.getByText('You have no unfinished games.').waitFor();
-
         assert.equal(await games.getByRole('listitem').count(), 0);
+        latestSocket.close({ code: 1001, reason: 'fixture disconnect' });
+        await page.getByRole('button', { name: 'Reconnect', exact: true }).waitFor();
+        await page.getByText('Disconnected', { exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Reconnect', exact: true }).click();
+        await games.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+        await page.waitForFunction(() => !document.querySelector('section[aria-label="Your current games"] button').disabled);
       } else {
         await games.getByRole('link', { name: 'Resume', exact: true }).waitFor();
         assert.equal(await games.getByRole('listitem').count(), 4);
@@ -95,6 +105,12 @@ test('current games page assembles owned pages, resumes setup, and links activat
         await games.getByText('Awaiting kickoff', { exact: false }).waitFor();
         await games.getByText('Your team: Active Orcs', { exact: false }).waitFor();
         await games.getByText("Opponent: Bugman's Best", { exact: false }).waitFor();
+        assert.equal(await games.locator('.spectate-game').count(), 4, 'Owned games use Spectate matchup cards');
+        assert.equal(await games.locator('.spectate-team-mark').count(), 8, 'Shared team nameplates are present');
+        assert.equal(await atBottom(), true);
+        await page.getByRole('combobox', { name: /^Play mode/ }).selectOption('computer');
+        assert.equal(await atBottom(), true, 'Current games stay last for both play modes');
+        await page.getByRole('combobox', { name: /^Play mode/ }).selectOption('human');
         const before = requests.filter(request => request.type === 'currentMatches' && request.after === null).length;
         holdRefresh = true;
         const held = new Promise(done => { signalHeld = done; });
@@ -113,6 +129,24 @@ test('current games page assembles owned pages, resumes setup, and links activat
           await mkdir(process.env.CURRENT_GAMES_SCREENSHOT_DIR, { recursive: true });
           await page.screenshot({ path: resolve(process.env.CURRENT_GAMES_SCREENSHOT_DIR, 'current-games.png'), fullPage: true });
         }
+        longNames = true;
+        await games.getByRole('button', { name: 'Refresh games', exact: true }).click();
+        await games.getByRole('heading', { name: 'A'.repeat(80), exact: true }).waitFor();
+        for (const width of [1224, 360]) {
+          await page.setViewportSize({ width, height: 700 });
+          await games.getByText('Game ID', { exact: true }).nth(2).click();
+          await games.getByRole('button', { name: 'Concede', exact: true }).click();
+          assert.equal(await games.evaluate(element => {
+            const box = element.getBoundingClientRect();
+            return box.left >= 0 && box.right <= innerWidth && element.scrollWidth <= element.clientWidth;
+          }), true, 'Long names, expanded IDs and concession controls fit the page');
+          if (process.env.CURRENT_GAMES_SCREENSHOT_DIR)
+            await games.screenshot({ path: resolve(process.env.CURRENT_GAMES_SCREENSHOT_DIR, `current-games-${width}.png`) });
+          await games.getByRole('button', { name: 'Keep playing', exact: true }).click();
+          await games.getByText('Game ID', { exact: true }).nth(2).click();
+        }
+        longNames = false;
+        await page.setViewportSize({ width: 1280, height: 900 });
         unavailable = true;
         await games.getByRole('button', { name: 'Refresh games', exact: true }).click();
         await games.getByRole('alert').waitFor();
@@ -146,6 +180,11 @@ test('current games page assembles owned pages, resumes setup, and links activat
         assert.equal(await games.getByRole('link', { name: 'Resume', exact: true }).count(), 0);
         assert.equal(context.pages().length, 1);
       }
+      assert.equal(await atBottom(), true);
+      assert.equal(await page.getByRole('button', { name: 'Disconnect', exact: true }).count(), 0);
+      assert.equal(await page.getByText('Connected', { exact: true }).count(), 0);
+      assert.equal(await page.getByText('The game browser has moved to', { exact: false }).count(), 0);
+      assert.deepEqual(errors, []);
       await context.close();
     }
     assert.ok(requests.some(request => request.type === 'currentMatches' && request.after === id(2)), 'Load subsequent pages');

@@ -47,6 +47,8 @@ try {
       assert.ok(box.y >= 0 && box.y + box.height <= height && box.x >= 0 && box.x + box.width <= width, 'Confirmation stays inside the match');
     };
     await publish({ ...play, phase: 'SETUP', actions: [] }, ['Setup is not yet legal']);
+    assert.equal(await page.locator('.match-command-bar').isVisible(), false, 'Setup confirmation has no empty background bar');
+    assert.equal(await page.getByText('Place players with keyboard or touch', { exact: true }).count(), 0);
     await samePosition('Setup'); await confirm.click(); await samePosition('Pending setup confirmation');
     assert.equal((await page.evaluate(() => window.hudIntents)).at(-1).operation, 'confirm');
     await publish(play); await samePosition('Return to play');
