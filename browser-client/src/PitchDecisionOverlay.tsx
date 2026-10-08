@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import type { MatchDecision } from './match-decision.ts';
+import type { DecisionOption, MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import type { DiceMoment } from './dice-presentation.ts';
 import './pitch-decision-overlay.css';
@@ -16,6 +16,7 @@ export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, vi
   scene: RefObject<HTMLDivElement | null>; x: number; y: number; onAction?: (id: string) => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
   const [bounds, setBounds] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   useLayoutEffect(() => {
     const element = panel.current, frame = viewport.current, surface = scene.current;
@@ -58,12 +59,17 @@ export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, vi
     style={{ position: 'fixed', ...bounds, visibility: ready ? 'visible' : 'hidden' }}
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
     <strong className={diceMoment || decision.options.some(option => option.face) ? 'sr-only' : undefined}>{decision.title}</strong>
-    {diceMoment && <div className="pitch-decision-roll" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
+    {decision.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={decision.originalLabel ?? 'Original block dice'}>
+      {decision.originalFaces.map((face, index) => <DiceFace key={index} face={face}/>)}</div>}
+    {decision.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${decision.proTest.face}, ${decision.proTest.successful ? 'success' : 'failure'}`}>
+      <span>Pro</span><DiceFace face={decision.proTest.face}/></div>}
+    {diceMoment && !decision.proTest && <div className="pitch-decision-roll" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
       {diceMoment.faces.map((face, index) => <span key={index} title={diceMoment.rolls?.[index]?.label ?? diceMoment.label}><DiceFace face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rolls?.[index]?.rollKey ?? diceMoment.rollKey}/></span>)}</div>}
     <div className="live-dice-choices">{decision.options.map(option => <button key={option.id} type="button"
       className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}
-      disabled={disabled} aria-label={option.label} title={disabled ? `${option.label} (pending)` : option.label}
-      onClick={() => onAction?.(option.id)}>
+      disabled={disabled} aria-label={option.label} title={option.choices ? option.choices.map(choice => choice.label).join('\n') : disabled ? `${option.label} (pending)` : option.label}
+      aria-expanded={option.choices ? skillChoices?.id === option.id : undefined}
+      onClick={() => option.choices ? setSkillChoices(skillChoices?.id === option.id ? null : option) : onAction?.(option.id)}>
       {option.face && <DiceFace face={option.face}/>}
       {option.icon === 'resource' && <img src={resourceIcon} alt="" aria-hidden="true"/>}
       {option.icon?.startsWith('custom:') && <svg aria-hidden="true" viewBox="0 0 48 48" className="pitch-dice-custom-icon">
@@ -72,5 +78,10 @@ export function PitchDecisionOverlay({ decision, diceMoment = null, disabled, vi
       {option.icon && option.icon !== 'resource' && !option.icon.startsWith('custom:') && <svg aria-hidden="true" viewBox="0 0 48 48"><use href={`${skillIcons}#${option.icon}`}/></svg>}
       <span className={option.face || option.icon ? 'sr-only' : undefined}>{option.label}</span>
     </button>)}</div>
+    {skillChoices && <div className="pitch-skill-choices" aria-label={`${skillChoices.label} choices`}>
+      {skillChoices.choices?.map(option => <button key={option.id} type="button" disabled={disabled}
+        onClick={() => onAction?.(option.id)}>{option.label}</button>)}
+      <button type="button" disabled={disabled} onClick={() => setSkillChoices(null)}>Cancel skill choice</button>
+    </div>}
   </div>, document.body);
 }

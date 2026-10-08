@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
+import { matchDecision } from '../src/match-decision.ts';
 
 const accounting = Boolean(process.env.REROLL_FIXTURE);
 const journeys = JSON.parse(readFileSync(new URL(process.env.REROLL_FIXTURE ?? './fixtures/adr0003-reroll-choices.json', import.meta.url), 'utf8'));
@@ -80,15 +81,19 @@ try {
     }
     const options = journey.offered.actions.filter(action => ['blockDie', 'reroll', 'skill'].includes(action.kind));
     const selected = options.find(action => action.id === journey.selectedId);
-    const button = page.getByRole('button', { name: selected.label, exact: true });
+    const decision = matchDecision(journey.offered, options);
+    const group = decision.options.find(option => option.choices?.some(choice => choice.id === selected.id));
+    const button = page.getByRole('button', { name: group?.label ?? selected.label, exact: true });
     await button.waitFor({ state: 'visible' });
     if (accounting) {
       const resource = page.locator(`.live-resources.${journey.role} .live-resource.reroll`);
       assert.equal(await resource.count(), journey.before > 0 ? 1 : 0);
       if (journey.before > 0) assert.equal(await resource.getAttribute('aria-label'), `Rerolls: ${journey.before} available`);
     }
-    for (const option of options) assert.equal(await page.getByRole('button', { name: option.label, exact: true }).count(), 1, option.id);
-    for (const option of options.filter(option => /^(?:Use|Try)\b/.test(option.label))) {
+    for (const option of decision.options) assert.equal(await page.getByRole('button', { name: option.label, exact: true }).count(), 1, option.id);
+    const skillIcons = decision.options.filter(option => option.icon && option.icon !== 'resource').map(option => option.icon);
+    assert.equal(new Set(skillIcons).size, skillIcons.length, 'One icon per manually offered skill source');
+    for (const option of decision.options.filter(option => /^(?:Use|Try)\b/.test(option.label))) {
       const offeredButton = page.getByRole('button', { name: option.label, exact: true });
       const resource = /^(?:Use|Try) (?:team|mascot|brilliant coaching|pump up the crowd|star of the show)/i.test(option.label);
       if (resource) assert.ok(await offeredButton.locator('img').evaluate(image => image.complete && image.naturalWidth > 0 && image.src.endsWith('/assets/game/ui/reroll-v1.png')), option.label);
@@ -132,6 +137,7 @@ try {
       await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}.jpg`), type: 'jpeg', quality: 80 });
     const loseReply = journey.mode === 'pro' || journey.mode === 'block-pro';
     if (loseReply) await page.evaluate(() => { window.testTransport.dropReply = true; });
+    if (group) { await button.click(); await page.getByRole('button', { name: selected.label, exact: true }).focus(); }
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
     if (loseReply) {
