@@ -14,7 +14,7 @@ import java.util.List;
 final class NativeOutcomeCapture {
     Capture since(GameLog log, int afterCommandNr) { return since(log, afterCommandNr, null); }
 
-    Capture since(GameLog log, int afterCommandNr, PrimaryRollPresentation presentation) {
+    Capture since(GameLog log, int afterCommandNr, NativeRollPresentation presentation) {
         if (log == null || afterCommandNr < 0) throw new IllegalArgumentException("Invalid native command cursor");
         List<ServerCommand> pending = new ArrayList<>();
         int lastCommandNr = afterCommandNr;

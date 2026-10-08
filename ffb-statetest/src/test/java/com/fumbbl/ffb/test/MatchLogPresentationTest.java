@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MatchLogPresentationTest {
@@ -130,6 +131,126 @@ class MatchLogPresentationTest {
             cases.add(new JsonObject().add("name", "pass-" + roll).add("records", records));
         }
         write("primary", cases);
+    }
+
+    @Test void activationTraitsUseTheirNativeBasesAndConditionalModifiers() throws Exception {
+        JsonArray cases = new JsonArray();
+        for (boolean home : new boolean[] {true, false}) for (String skill : new String[] {"Bone Head", "Really Stupid", "Take Root", "Unchannelled Fury", "Bloodlust"})
+            for (boolean good : new boolean[] {false, true}) for (int die : new int[] {1, 6}) {
+                if (good && !skill.equals("Really Stupid") && !skill.equals("Unchannelled Fury")) continue;
+                GameState state = fixture(home, false);
+                addSkill(state, "actor", skill); state.getGame().getPlayerById("actor").setAgility(5);
+                state.getGame().getTurnData().setReRolls(0);
+                if (skill.equals("Really Stupid") && good) state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("mate"), new FieldCoordinate(11, 8));
+                if (skill.equals("Unchannelled Fury") && good) state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("opponent"), new FieldCoordinate(11, 7));
+                SetupSession session = session(state); TestRolls.on(state).general(die, 6, 6, 6, 6);
+                submit(session, home ? "home" : "away", skill.equals("Unchannelled Fury") && good ? "selectBlock" : "select", null);
+                if (skill.equals("Unchannelled Fury") && good) submit(session, home ? "home" : "away", "block", null);
+                else submit(session, home ? "home" : "away", "move", point(11, 7));
+                JsonArray records = records(session);
+                JsonObject roll = report(records, skill.equals("Bloodlust") ? "bloodLustRoll" : "confusionRoll");
+                int base = skill.equals("Really Stupid") || skill.equals("Unchannelled Fury") ? 4 : 2;
+                assertEquals(base, roll.get("logRoll").asObject().getInt("base", -1));
+                assertEquals(good ? 2 : base, roll.getInt("minimumRoll", -1));
+                assertEquals(base - roll.getInt("minimumRoll", -1), roll.get("logRoll").asObject().getInt("modifier", -9));
+                assertEquals(die == 6, roll.getBoolean("successful", false));
+                cases.add(new JsonObject().add("name", (home ? "home" : "away") + "-" + skill + "-" + good + "-" + die).add("records", records));
+            }
+        write("traits", cases);
+    }
+
+    @Test void traitRerollsPreserveBothAttemptsAndSourceOrder() throws Exception {
+        JsonArray cases = new JsonArray();
+        for (boolean home : new boolean[] {true, false}) {
+            GameState state = fixture(home, false); addSkill(state, "actor", "Bone Head");
+            state.getGame().getTurnData().setReRolls(1); SetupSession session = session(state);
+            TestRolls.on(state).general(1, 6); submit(session, home ? "home" : "away", "select", null);
+            submit(session, home ? "home" : "away", "move", point(11, 7));
+            assertFalse(reportIds(records(session)).contains("turnEnd"), "Pending trait failure is not a finalized turn end");
+            submit(session, home ? "home" : "away", "reroll:team", null);
+            assertEquals(java.util.Arrays.asList("confusionRoll", "reRoll", "confusionRoll"), checks(records(session)));
+            cases.add(new JsonObject().add("name", (home ? "home" : "away") + "-trait-team").add("records", records(session)));
+        }
+        write("trait-rerolls", cases);
+    }
+
+    @Test void automaticDodgePrecedesPickupAndKeepsItsFailedOriginal() throws Exception {
+        JsonArray cases = new JsonArray();
+        for (boolean home : new boolean[] {true, false}) {
+            GameState state = fixture(home, true); addSkill(state, "actor", "Dodge");
+            state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("opponent"), new FieldCoordinate(11, 7));
+            state.getGame().getFieldModel().setBallCoordinate(new FieldCoordinate(9, 7));
+            state.getGame().getFieldModel().setBallInPlay(true);
+            SetupSession session = session(state); TestRolls.on(state).general(1, 6, 6);
+            submit(session, home ? "home" : "away", "select", null);
+            submit(session, home ? "home" : "away", "move", point(9, 7));
+            assertEquals(java.util.Arrays.asList("dodgeRoll", "reRoll", "dodgeRoll", "pickUpRoll"), checks(records(session)));
+            assertFalse(report(records(session), "dodgeRoll").getBoolean("successful", true));
+            cases.add(new JsonObject().add("name", (home ? "home" : "away") + "-automatic-dodge-pickup").add("records", records(session)));
+        }
+        write("automatic", cases);
+    }
+
+    @Test void rerolledProTestRemainsSeparateFromTheOriginalPickupAndExactRetries() throws Exception {
+        JsonArray cases = new JsonArray();
+        for (boolean home : new boolean[] {true, false}) {
+            GameState state = fixture(home, true); addSkill(state, "actor", "Pro"); addSkill(state, "actor", "Loner");
+            state.getGame().getTurnData().setReRolls(1); SetupSession session = session(state); String role = home ? "home" : "away";
+            TestRolls.on(state).general(1, 1, 6, 6, 6);
+            submit(session, role, "select", null); submit(session, role, "move", point(11, 7));
+            submit(session, role, "reroll:pro", null);
+            JsonObject view = view(session, role);
+            JsonObject action = view.get("actions").asArray().values().stream().map(JsonValue::asObject)
+                .filter(value -> value.getString("id", "").endsWith("pro-test:team")).findFirst().get();
+            JsonObject request = new JsonObject().add("operation", "action").add("requestId", "pro-test-retry")
+                .add("expectedRevision", view.get("revision")).add("actionId", action.get("id"));
+            assertEquals("ACCEPTED", session.apply(role, request).getString("code", null));
+            JsonArray before = records(session); assertTrue(session.apply(role, request).getBoolean("duplicate", false));
+            assertEquals(before, records(session));
+            assertEquals(java.util.Arrays.asList("pickUpRoll", "reRoll", "reRoll", "reRoll", "reRoll", "pickUpRoll"), checks(before));
+            int pro = 0;
+            for (JsonValue value : reports(before)) {
+                JsonObject report = value.asObject();
+                if ("Pro".equals(report.getString("reRollSource", null))) {
+                    assertEquals(3, report.get("logRoll").asObject().getInt("base", -1));
+                    assertEquals(pro++ > 0, report.get("logTest").asObject().getBoolean("rerolled", false));
+                }
+                if ("Loner".equals(report.getString("reRollSource", null))) assertEquals(4, report.get("logRoll").asObject().getInt("base", -1));
+            }
+            assertEquals(2, pro);
+            cases.add(new JsonObject().add("name", role + "-pro-test-team").add("records", before));
+        }
+        write("pro-test", cases);
+    }
+
+    @Test void passAndCatchFollowUpKeepEveryNativeAttempt() throws Exception {
+        JsonArray cases = new JsonArray();
+        for (boolean home : new boolean[] {true, false}) {
+            GameState state = fixture(home, false); addSkill(state, "mate", "Catch");
+            state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("mate"), new FieldCoordinate(14, 7));
+            state.getGame().getFieldModel().setBallCoordinate(new FieldCoordinate(10, 7));
+            state.getGame().getFieldModel().setBallInPlay(true); state.getGame().getFieldModel().setBallMoving(false);
+            SetupSession session = session(state); String role = home ? "home" : "away";
+            TestRolls.on(state).general(6, 1, 6, 6, 6); submit(session, role, "declarePass", null); submit(session, role, "pass", point(14, 7));
+            JsonObject view = view(session, role);
+            if (view.get("actions").asArray().values().stream().map(JsonValue::asObject).anyMatch(value -> value.getString("id", "").endsWith("reroll:catch"))) submit(session, role, "reroll:catch", null);
+            assertEquals(java.util.Arrays.asList("passRoll", "catchRoll", "reRoll", "catchRoll"), checks(records(session)));
+            cases.add(new JsonObject().add("name", role + "-pass-catch").add("records", records(session)));
+        }
+        write("follow-up", cases);
+    }
+
+    private void addSkill(GameState state, String id, String name) {
+        ((RosterPlayer) state.getGame().getPlayerById(id)).addSkill(state.getGame().getRules().getSkillFactory().forName(name));
+    }
+    private JsonObject report(JsonArray records, String id) {
+        return reports(records).values().stream().map(JsonValue::asObject).filter(value -> id.equals(value.getString("reportId", null))).findFirst().get();
+    }
+    private java.util.List<String> reportIds(JsonArray records) {
+        return reports(records).values().stream().map(value -> value.asObject().getString("reportId", "")).collect(java.util.stream.Collectors.toList());
+    }
+    private java.util.List<String> checks(JsonArray records) {
+        return reportIds(records).stream().filter(id -> id.endsWith("Roll") || id.equals("reRoll")).collect(java.util.stream.Collectors.toList());
     }
 
     private GameState fixture(boolean home, boolean looseBall) throws Exception {

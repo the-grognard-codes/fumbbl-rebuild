@@ -3,7 +3,7 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import { defaultMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
-import type { LogPresentation } from './log-presentation.ts';
+import type { LogActors, LogPresentation, LogRoll } from './log-presentation.ts';
 
 export type MatchLogLine = { key: string; revision: number; at: number; text: string; debug?: string };
 
@@ -25,7 +25,8 @@ const valueText = (value: unknown): string => {
 function reportLine(report: Record<string, unknown>, state: SetupState, preferences: MatchLogPreferences, presentation?: LogPresentation): string {
   const players = state.players;
   const id = typeof report.reportId === 'string' ? report.reportId : 'native report';
-  const subject = playerName(report.playerId ?? report.defenderId, players);
+  const actors = report.logActors as LogActors | undefined;
+  const subject = playerName(actors?.actorId ?? report.playerId ?? report.defenderId, players);
   const defender = report.playerId && report.defenderId ? playerName(report.defenderId, players) : '';
   const teamId = report.teamId ?? report.choosingTeamId;
   // Native team IDs are the frozen team prefix of every projected player ID.
@@ -46,8 +47,6 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
     return `${title}: rolled ${valueText(report.blockRoll)} · selected die ${Number(report.diceIndex) + 1}: ${valueText(report.blockResult)}`;
   if (id === 'blockReRoll' && Array.isArray(report.blockRoll))
     return `${title}: rerolled ${valueText(report.blockRoll)} · source ${sourceName(report.reRollSource)}`;
-  if (id === 'reRoll')
-    return `${title}: source ${sourceName(report.reRollSource)}${typeof report.roll === 'number' && report.roll > 0 ? ` · roll ${report.roll}` : ''}${typeof report.successful === 'boolean' ? ` · ${report.successful ? 'success' : 'failure'}` : ''}`;
   if (id === 'mascotUsed')
     return `${title}: conditional Mascot attempt ${report.roll} vs ${report.minimumRoll}+ · ${report.successful ? 'success' : 'failure'}${report.reRollUsed ? ' · continued with a guaranteed team source' : ''}`;
   if (id === 'bribesRoll' && typeof report.roll === 'number')
@@ -60,8 +59,11 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
     return `${title}: ${named(report.briberyAncCorruptionAction)}`;
   if (id === 'referee')
     return `${title}: ${report.foulingPlayerBanned ? 'fouling player sent off' : 'fouling player remains'}${report.underScrutiny ? ' · under scrutiny' : ''}`;
-  if (id === 'turnEnd' && Array.isArray(report.knockoutRecoveryArray))
-    return `${title}: ${report.knockoutRecoveryArray.length} KO recovery roll${report.knockoutRecoveryArray.length === 1 ? '' : 's'}`;
+  if (id === 'turnEnd') return report.playerIdTouchdown ? `${playerName(report.playerIdTouchdown, players)} scores a touchdown.` : 'Turn ends.';
+  if (id === 'handOver') return `${presentation?.action?.playerId ? playerName(presentation.action.playerId, players) : 'Player'} hands the ball to ${playerName(report.catcherId, players)}.`;
+  if (id === 'animalSavagery') return report.defenderId
+    ? `${playerName(report.attackerId, players)} lashes out at ${playerName(report.defenderId, players)}.`
+    : `${playerName(report.attackerId, players)} resolves Animal Savagery.`;
   if (id === 'secretWeaponBan' && Array.isArray(report.playerIds))
     return `${title}: ${report.playerIds.length} player${report.playerIds.length === 1 ? '' : 's'} checked`;
   if (id === 'apothecaryRoll' || id === 'apothecaryChoice') {
@@ -82,31 +84,35 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
       Array.isArray(report.casualtyRollDecay) ? `decay casualty ${casualtyDice(report.casualtyRollDecay)}${report.seriousInjuryDecay ? ` · ${named(report.seriousInjuryDecay)}` : ''}` : null];
     return `${title}: ${parts.filter(Boolean).join(' · ') || named(report.injuryType)}`;
   }
-  if (typeof report.roll === 'number' && typeof report.minimumRoll === 'number') {
+  if (typeof report.roll === 'number' && (typeof report.minimumRoll === 'number' || report.logRoll)) {
     const player = players.find(candidate => candidate.id === report.playerId);
-    const facts = report.logRoll as { base: number; target: number; modifier: number; square: { x: number; y: number } | null } | undefined;
+    const facts = report.logRoll as LogRoll | undefined;
     // Legacy reports use only their documented primary stat. Other families have no assumed AG base.
     const legacyBase = id === 'goForItRoll' || id === 'pickUpRoll' && report.secureTheBallUsed === true
       || id === 'passRoll' && report.hailMaryPass === true ? 2 : id === 'passRoll' ? player?.pa
       : ['dodgeRoll', 'pickUpRoll', 'pickupRoll', 'catchRoll', 'leapRoll'].includes(id) ? player?.ag : undefined;
-    const base = facts?.base ?? legacyBase, target = facts?.target ?? Math.max(2, Math.min(6, report.minimumRoll));
-    const net = facts?.modifier ?? (typeof base === 'number' ? base - report.minimumRoll : null);
+    const base = facts?.base ?? legacyBase, target = facts?.target ?? Math.max(2, Math.min(6, Number(report.minimumRoll)));
+    const net = facts?.modifier ?? (typeof base === 'number' ? base - Number(report.minimumRoll) : null);
     const modifier = !preferences.rollModifiers || net === null || net === 0 ? '' : ` · ${net > 0 ? '+' : ''}${net} net modifier`;
     const modifiers = preferences.rollModifiers && Array.isArray(report.rollModifiers) && report.rollModifiers.length
       ? ` · ${report.rollModifiers.map(value => named(value)).join(', ')}` : '';
-    const result = id === 'passRoll' && typeof report.passResult === 'string' ? ` · ${readable(report.passResult)}`
+    const result = ['passRoll', 'throwTeamMateRoll'].includes(id) && typeof report.passResult === 'string' ? ` · ${readable(report.passResult)}`
       : typeof report.successful === 'boolean' ? ` · ${report.successful ? 'success' : 'failure'}` : '';
     const verbs: Record<string, string> = { dodgeRoll: 'dodges', goForItRoll: 'rushes', pickUpRoll: report.secureTheBallUsed === true ? 'secures the ball' : 'picks up the ball',
-      pickupRoll: 'picks up the ball', passRoll: 'passes', catchRoll: 'catches', leapRoll: 'jumps' };
+      pickupRoll: 'picks up the ball', passRoll: 'passes', catchRoll: 'catches', leapRoll: 'jumps', standUpRoll: 'stands up',
+      rightStuffRoll: 'lands', throwTeamMateRoll: `${report.kicked ? 'kicks' : 'throws'} ${playerName(report.thrownPlayerId, players)}` };
+    const check = id === 'confusionRoll' ? sourceName(report.confusionSkill) : id === 'tentaclesShadowingRoll'
+      ? sourceName(report.skill) : sourceName(id.replace(/Roll$/, ''));
     let where = facts?.square ? ` at (${facts.square.x}, ${facts.square.y})` : '';
     if (id === 'passRoll' && presentation?.action?.target) {
       const destination = presentation.action.target;
       where = 'playerId' in destination ? ` to ${playerName(destination.playerId, players)}` : ` to (${destination.x}, ${destination.y})`;
     }
-    const heading = verbs[id] ? `${subject || 'Player'} ${verbs[id]}${where}` : title;
+    if (actors?.targetId) where += ` against ${playerName(actors.targetId, players)}`;
+    const heading = verbs[id] ? `${subject || 'Player'} ${verbs[id]}${where}` : `${subject || 'Player'} tests ${check}${where}`;
     return `${heading}: ${report.roll} vs ${target}+${typeof base === 'number' ? ` (base ${base}+${modifier})` : ''}${modifiers}${report.reRolled === true ? ' · rerolled' : ''}${result}`;
   }
-  const details = Object.entries(report).filter(([key]) => !['reportId', 'playerId', 'defenderId', 'logRoll'].includes(key) && !/(?:id|ids)$/i.test(key) && (preferences.rollModifiers || !/modifier/i.test(key)))
+  const details = Object.entries(report).filter(([key]) => !['reportId', 'playerId', 'defenderId', 'logRoll', 'logActors', 'logTest'].includes(key) && !/(?:id|ids)$/i.test(key) && (preferences.rollModifiers || !/modifier/i.test(key)))
     .map(([key, value]) => `${readable(key)} ${valueText(value)}`);
   return details.length ? `${title}: ${details.join(' · ')}` : title;
 }
@@ -114,6 +120,20 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
 function reportLines(report: Record<string, unknown>, state: SetupState, preferences: MatchLogPreferences, presentation?: LogPresentation): string[] {
   if (report.reportId === 'receiveChoice' || report.reportId === 'startHalf') return [];
   const players = state.players;
+  if (report.reportId === 'reRoll') {
+    const player = playerName(report.playerId, players) || 'Player';
+    const source = sourceName(report.reRollSource).replace(/\s+re\s*roll$/i, '');
+    if (['Pro', 'Loner'].includes(source) && typeof report.roll === 'number' && report.roll > 0) {
+      const facts = report.logRoll as LogRoll | undefined;
+      const retry = (report.logTest as { rerolled: boolean } | undefined)?.rerolled === true;
+      const threshold = facts ? ` vs ${facts.target}+ (base ${facts.base}+)` : '';
+      const outcome = report.successful ? source === 'Loner' ? 'reroll permitted' : 'reroll available'
+        : source === 'Loner' ? 'reroll denied' : 'original roll unchanged';
+      const check = `${player} ${retry ? 'rerolls' : 'tests'} ${source}: ${report.roll}${threshold} · ${report.successful ? 'success' : 'failure'} · ${outcome}.`;
+      return source === 'Pro' && !retry ? [`${player} used Pro reroll.`, check] : [check];
+    }
+    return [`${player} ${report.successful === false ? 'attempted' : 'used'} ${source} reroll${report.successful === false ? ' · unavailable' : ''}.`];
+  }
   const lines = [reportLine(report, state, preferences, presentation)];
   if (report.reportId === 'secretWeaponBan' && Array.isArray(report.playerIds)
     && Array.isArray(report.rolls) && Array.isArray(report.banArray)) {
@@ -142,7 +162,9 @@ function decisionLine(record: TranscriptRecord, presentation?: LogPresentation):
     if (!action || ['move', 'jump', 'select', 'selectBlock', 'stand', 'blitz', 'forgo'].includes(action.kind) || action.kind.startsWith('declare')) return null;
     // Roll reports and declarations describe execution; accepted descriptions cover choices without those reports.
     const reports = record.native.flatMap(sync => (sync.reportList as { reports?: Record<string, unknown>[] } | undefined)?.reports ?? []);
-    if (reports.some(report => report.reportId === 'playerAction') || action.kind === 'secureBall') return null;
+    if (reports.some(report => report.reportId === 'playerAction') || action.kind === 'secureBall'
+      || /reroll/i.test(action.kind) && reports.some(report => report.reportId === 'reRoll' || report.reportId === 'mascotUsed')
+      || reports.some(report => report.reportId === 'handOver')) return null;
     return `${action.playerId ? playerName(action.playerId, record.state.players) : team}: ${action.label}.`;
   }
   if (operation === 'choice') return ['kick', 'receive', 'heads', 'tails'].includes(String(decision.optionId))

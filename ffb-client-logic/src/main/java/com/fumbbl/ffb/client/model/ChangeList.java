@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser Game Log preserves native trait thresholds, follow-up checks, reroll sources and skill-test retries in chronological order")
 			.addImprovement("Browser Game Log shows readable declarations, native action results and committed movement, with persistent Debug, Movement and Roll modifiers controls")
 			.addImprovement("Browser match chat shows team names for coaches and stable numbered spectators in a distinct color")
 			.addImprovement("Browser movement squares show native pickup and jump targets, ball contact, and possible Diving Tackle, Tentacles, Shadowing and Steady Footing checks")
