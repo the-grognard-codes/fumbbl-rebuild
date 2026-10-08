@@ -12,3 +12,15 @@
 .stadium-sprite { pointer-events:none; }
 
 .pitch-stadium-recesses { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+
+/* Animate only sprite-local pixels; the projected world anchor never moves. */
+.stadium-ambient[data-motion="sparse-sway"] { animation-name:stadium-crowd; animation-timing-function:steps(2,end); animation-iteration-count:infinite; }
+.stadium-ambient[data-motion="fire-flicker"] { animation-name:stadium-fire; animation-timing-function:steps(2,end); animation-iteration-count:infinite; }
+.stadium-ambient[data-motion="wind"] { animation-name:stadium-pennant; animation-timing-function:steps(2,end); animation-iteration-count:infinite; }
+@keyframes stadium-crowd { 0%,80%,100% { transform:translateY(0); } 86%,92% { transform:translateY(calc(-1 * var(--stadium-sway))); } }
+@keyframes stadium-fire { 0%,100% { filter:brightness(.97); } 33% { filter:brightness(1.05); } 67% { filter:brightness(1.01); } }
+@keyframes stadium-pennant { 0%,100% { transform:translateX(calc(-.5 * var(--stadium-sway))); } 50% { transform:translateX(calc(.5 * var(--stadium-sway))); } }
+.pitch-stadium-fan[visibility="hidden"] .stadium-ambient { animation:none; }
+@media (prefers-reduced-motion:reduce) {
+  .pitch-stadium-world .stadium-ambient { animation:none; transform:none; filter:none; }
+}

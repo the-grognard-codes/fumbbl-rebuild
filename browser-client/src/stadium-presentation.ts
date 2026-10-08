@@ -1,9 +1,17 @@
-import { stadiumAtlases, stadiumVenues, stadiumTeams } from './generated-stadium-art.ts';
+import { stadiumAtlases, stadiumVenues, stadiumTeams, stadiumRoleLayout } from './generated-stadium-art.ts';
 import type { MatchTeamArt, SetupState } from './setup-protocol.ts';
 import type { PitchEnd } from './pitch-projection.ts';
 
 export type StadiumProfile = (typeof stadiumAtlases)[keyof typeof stadiumAtlases];
 export type StadiumRole = keyof StadiumProfile['regions'];
+/** World-coordinate phases keep ambient movement independent of match events and viewing end. */
+export function stadiumMotion(role: StadiumRole, x: number, y: number) {
+  const seed = Math.abs(Math.round(x * 10) * 17 + Math.round(y * 10) * 31);
+  const motion = stadiumRoleLayout[role].motion;
+  return { kind: motion === 'sparse-sway' && seed % 7 !== 0 ? 'static' : motion,
+    delay: -(seed % 120) / 20, duration: motion === 'sparse-sway' ? 6 + seed % 3
+      : motion === 'fire-flicker' ? 1.8 + (seed % 4) * .2 : 4 + (seed % 4) * .5 };
+}
 export const SIDELINE_MARGIN = 1.5;
 export const STADIUM_ROWS = 4;
 export const STADIUM_RECESSES = [
