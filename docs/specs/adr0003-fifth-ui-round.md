@@ -12,8 +12,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | T04 | [#188](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188) | None | Merged in [#204](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/204) |
 | T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Merged in [#206](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/206) |
 | T06 | [#190](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190) | None | Merged in [#208](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/208) |
-| T07 | [#191](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191) | None | Implemented, reviewed and validated; PR pending |
-| T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Planned |
+| T07 | [#191](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191) | None | Merged in [#209](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/209) |
+| T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Implemented, reviewed and validated; PR pending |
 | T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Planned |
 | T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Planned |
 | T11 | [#195](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195) | None | Planned |
@@ -298,3 +298,5 @@ Block log entries show the rolled faces and chosen face with small dice images a
 ### Blocked by
 
 T12: Log activation checks, follow-up rolls, and reroll attempts chronologically. This ticket uses the delivered reroll narrative and inherited T11 settings/entry conventions for block outcomes.
+
+T08 evidence: [native movement colors](../verification/fifth-round-movement-colors.md). Adjacent offered squares and planned routes share native checks, filled penalty colors and separate Dodge/Rush targets. Following visual feedback, dodge/rush bands use about 30% opacity for stronger colors while safe squares keep the existing transparent blue; labels remain above ordinary and focused neighboring sprite artwork. Waypoint labels remain legible, old recovery remains compatible, and frozen replay omits live move forecasts. Both review axes approve.

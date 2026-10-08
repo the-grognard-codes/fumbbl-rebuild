@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
-import type { RoutePoint, RoutePreview } from './route-protocol.ts';
+import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
+import { routeSquarePresentation } from './route-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
@@ -30,6 +31,21 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
     const command = previous ? 'L' : 'M'; previous = true;
     return `${command}${point.x},${point.y}`;
   }).join(' ');
+}
+
+function MovementSquare({ step, camera, planned, index, labelsOnly = false }: { step: RouteStep; camera: PitchProjection; planned: boolean; index: number; labelsOnly?: boolean }) {
+  const p = camera.project(centerOf(step));
+  if (!p) return null;
+  const presentation = routeSquarePresentation(step);
+  const fontSize = Math.max(10, Math.min(15, p.pixelsPerSquare * .25));
+  return <g className={`live-route-step${!labelsOnly && !planned ? ' live-available-step' : ''}`} data-route-square={!labelsOnly && planned ? `${step.x},${step.y}` : undefined}
+    data-movement-square={!labelsOnly && !planned ? `${step.x},${step.y}` : undefined} data-label-square={labelsOnly ? `${step.x},${step.y}` : undefined}
+    data-route-band={presentation.band} data-step-index={index}>
+    {!labelsOnly && <polygon fill={presentation.color} points={points(camera.square(step, .025, true))}><title>{presentation.description}</title></polygon>}
+    {labelsOnly && <text x={p.x} y={p.y - (presentation.labels.length - 1) * fontSize / 2 + fontSize * .35} textAnchor="middle" style={{ fontSize }}>
+      {presentation.labels.map((label, row) => <tspan key={label} x={p.x} dy={row ? fontSize : 0}>{label}</tspan>)}
+    </text>}
+  </g>;
 }
 
 function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
@@ -177,6 +193,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       if (action.kind === 'move') moveSquares.add(key);
     }
   }
+  const availableChecks = view.movementForecast?.steps.filter(step => moveSquares.has(`${step.x},${step.y}`)) ?? [];
+  const forecastSquares = new Set(availableChecks.map(step => `${step.x},${step.y}`));
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
@@ -216,7 +234,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     {passing && <div className="live-pass-legend" role="note" aria-label="Passing distances">
       {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}
       <span>Shaded: unavailable{passing.rangeLimited ? '; weather limits passes to Quick or Short' : ''}</span>
-      <span>Cyan outline: legal move</span>
+      <span>Filled squares: legal moves; D: Dodge · R: Rush</span>
       {passing.weatherPenalty > 0 && <span>weather +{passing.weatherPenalty} passing penalty; range names stay the same</span>}
       {(pinnedTarget?.x != null && pinnedTarget.y != null || cursor) && <output className="live-pass-target-detail" aria-live="polite">
         {passingSquare(passing, pinnedTarget?.x ?? cursor!.x, pinnedTarget?.y ?? cursor!.y).description}
@@ -248,6 +266,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); } }}>
+        {(routePreview || availableChecks.length > 0) && <span className="live-route-legend" role="note">D: Dodge · R: Rush</span>}
         {!backgroundFailed && <PitchScenery camera={camera} view={view} onError={() => setBackgroundFailed(true)}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
@@ -272,14 +291,17 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           })}
           <path className="pitch-chalk" d={[chalk({ x: 0, y: 0 }, { x: 26, y: 0 }), chalk({ x: 0, y: 15 }, { x: 26, y: 15 }), ...[0, 1, 13, 25, 26].map(x => chalk({ x, y: 0 }, { x, y: 15 }))].join(' ')}/>
           {[4, 11].map(y => <path key={y} className="pitch-chalk wide" d={chalk({ x: 0, y }, { x: 26, y })}/>) }
-          {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`} className={`live-target-square${passing && moveSquares.has(`${square.x},${square.y}`) ? ' live-pass-move-square' : ''}`} points={points(camera.square(square, .06, true))}/>) }
+          {[...targetSquares.values()].filter(square => !forecastSquares.has(`${square.x},${square.y}`)).map(square => <polygon key={`target-${square.x},${square.y}`}
+            className={`live-target-square${moveSquares.has(`${square.x},${square.y}`) ? ' live-unforecast-move-square' : ''}`}
+            points={points(camera.square(square, .06, true))}/>)}
+          {availableChecks.map((step, index) => <MovementSquare key={`available-${step.x},${step.y}`} step={step} camera={camera} planned={false} index={index}/>)}
           {kickTarget && <polygon className="live-kick-target" data-kick-target={`${kickTarget.x},${kickTarget.y}`}
             points={points(camera.square(kickTarget, .08, true))}/>}
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
-          {waypoints.map((square, index) => { const p = camera.project(centerOf(square)); return p && <g key={index} className="live-route-waypoint"><circle cx={p.x} cy={p.y} r="8"/><text x={p.x} y={p.y + 3} textAnchor="middle">{index + 1}</text></g>; })}
+          {routePreview?.steps.map((step, index) => <MovementSquare key={`route-step-${index}`} step={step} camera={camera} planned index={index}/>)}
           {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
           {view.ball && view.ballState?.inPlay !== false && (() => {
             const p = camera.project(centerOf(view.ball!));
@@ -299,6 +321,14 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
                 x={-8 * ballScale} y={-10 * ballScale} width={16 * ballScale} height={20 * ballScale}/>}
             </g>;
           })()}
+        </svg>
+        <svg className="live-movement-label-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
+          {availableChecks.map((step, index) => <MovementSquare key={`available-label-${step.x},${step.y}`} step={step} camera={camera} planned={false} index={index} labelsOnly/>)}
+          {routePreview?.steps.map((step, index) => <MovementSquare key={`route-label-${index}`} step={step} camera={camera} planned index={index} labelsOnly/>)}
+          {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
+            const offset = p && Math.max(24, p.pixelsPerSquare * .55);
+            return p && <g key={index} className="live-route-waypoint"><circle cx={p.x + offset!} cy={p.y - offset!} r="6"/>
+              <text x={p.x + offset!} y={p.y - offset! + 3} textAnchor="middle">{index + 1}</text></g>; })}
         </svg>
         {occupants.map(player => <PlayerMarker failedArt={failedArt} onArtError={onArtError} key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}
@@ -323,6 +353,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>
+    {availableChecks.length > 0 && <ol className="sr-only" aria-label="Available square checks">{availableChecks.map((step, index) => <li key={index}>Square {step.x}, {step.y}: {routeSquarePresentation(step).description}</li>)}</ol>}
+    {routePreview && <ol className="sr-only" aria-label="Planned square checks">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}: {routeSquarePresentation(step).description}{step.reactions?.length ? ` · possible ${step.reactions.join(', ')}` : ''}</li>)}</ol>}
     <output className="sr-only" aria-live="polite">{cursor ? `Square ${cursor.x}, ${cursor.y}` : 'Pitch camera ready'}</output>
   </section>;
 }

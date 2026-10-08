@@ -68,9 +68,10 @@ try {
       zIndex: getComputedStyle(element).zIndex, pointerEvents: getComputedStyle(element).pointerEvents })),
       { position: 'absolute', zIndex: '60', pointerEvents: 'none' }, 'The hosted legend is visible above the pitch without intercepting targets');
     const nativeMoves = journey.frames[1].actor.actions.filter(action => action.kind === 'move').length;
-    assert.equal(await pitch.locator('.live-pass-move-square').count(), nativeMoves, 'Every offered move remains indicated over the pass ranges');
-    assert.equal(await pitch.locator('.live-target-square').count(), nativeMoves, 'Only move outlines accompany the pass grid');
-    assert.equal(await pitch.locator('.live-pass-move-square').first().evaluate(element => getComputedStyle(element).fill), 'none', 'Move outlines preserve native range fills');
+    assert.equal(await pitch.locator('.live-available-step').count(), nativeMoves, 'Every offered move has its native forecast over the pass ranges');
+    assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Confirmed movement forecasts replace generic target outlines');
+    assert.equal(await pitch.locator('.live-available-step polygon').first().evaluate(element => getComputedStyle(element).stroke), 'none', 'Movement squares use a filled highlight during passing');
+    assert.notEqual(await pitch.locator('.live-available-step polygon').first().evaluate(element => getComputedStyle(element).fill), 'none');
     const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
