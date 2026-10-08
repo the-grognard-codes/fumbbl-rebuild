@@ -6,7 +6,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-const responseKinds = new Set(['blockDie', 'reroll', 'skill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
+const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
 const DICE_RETENTION_MS = 1000;
 
 function sequenceKey(view: SetupState): string {

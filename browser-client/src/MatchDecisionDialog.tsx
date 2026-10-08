@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { MatchDecision } from './match-decision.ts';
+import type { DecisionOption, MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import './match-decision.css';
 
@@ -10,8 +10,10 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
   onChoice: (optionId: string) => void; onAction: (actionId: string) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
   useEffect(() => {
     const element = dialog.current;
+    setSkillChoices(null);
     if (!element) return;
     const prior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element.showModal();
@@ -22,7 +24,11 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
     aria-label="Match decision" onCancel={event => event.preventDefault()}>
     <h2>{decision.title}</h2>
     <div className="match-decision-options">{decision.options.map(option => <button key={option.id} type="button" disabled={disabled}
-      onClick={() => option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>
+      onClick={() => option.choices ? setSkillChoices(option) : option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>
       {option.face && <DiceFace face={option.face}/>}<span>{option.label}</span></button>)}</div>
+    {skillChoices && <div className="pitch-skill-choices" aria-label={`${skillChoices.label} choices`}>
+      {skillChoices.choices?.map(option => <button key={option.id} type="button" disabled={disabled} onClick={() => onAction(option.id)}>{option.label}</button>)}
+      <button type="button" disabled={disabled} onClick={() => setSkillChoices(null)}>Cancel skill choice</button>
+    </div>}
   </dialog>, document.body);
 }

@@ -10,8 +10,9 @@ test('native reroll catalogs retain every exact source and decline identity for 
   for (const journey of journeys) {
     const view = decodeSetupStateValue(journey.offered);
     const offered = view.actions.filter(action => ['blockDie', 'reroll', 'skill'].includes(action.kind));
-    assert.deepEqual(matchDecision(view, view.actions)?.options.map(option => [option.id, option.label]),
-      offered.map(action => [action.id, action.label]), `${journey.role}/${journey.mode}`);
+    const nativeChoices = matchDecision(view, view.actions)?.options.flatMap(option => option.choices ?? [option]);
+    assert.deepEqual(nativeChoices?.map(option => [option.id, option.label]).sort(),
+      offered.map(action => [action.id, action.label]).sort(), `${journey.role}/${journey.mode}`);
     assert.equal(matchDecision(decodeSetupStateValue(journey.otherCoach), journey.otherCoach.actions), null);
     assert.equal(matchDecision(decodeSetupStateValue(journey.spectator, true), journey.spectator.actions), null);
     decodeSetupStateValue(journey.accepted);

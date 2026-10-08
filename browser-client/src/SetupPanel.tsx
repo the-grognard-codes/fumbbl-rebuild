@@ -18,6 +18,7 @@ import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
+import { withProTest } from './reroll-presentation.ts';
 import { pitchPushChoices } from './push-choice.ts';
 import { kickoffChoice } from './kickoff-choice.ts';
 import { currentGameStep } from './match-status.ts';
@@ -266,7 +267,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
   const reserveDropIds = new Set([...draggableIds].filter(id => canDropSetupPlayer(view, id, null)));
   const pushChoices = hosted ? pitchPushChoices(view, availableActions) : [];
-  const decision = hosted ? matchDecision(view, availableActions) : null;
+  const decision = hosted ? withProTest(matchDecision(view, availableActions), logRecords, view.revision) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
   const gameStep = currentGameStep(pitchView);
@@ -559,7 +560,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         <strong>{gameStep.title}</strong><span>{gameStep.instruction}</span>{gameStep.progress && <small>{gameStep.progress}</small>}
       </div>}
       {hosted && setupErrors.length > 0 && <p className="setup-feedback" role="alert">{setupErrors.join(' · ')}</p>}
-      {!playbackActive && decision && !['blockDie', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
+      {!playbackActive && decision && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
@@ -609,7 +610,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
         routePreview={!playbackActive && routeReady ? routePreview : null} waypoints={!playbackActive && routeMode ? waypoints : []} diceMoment={diceMoment}
-        decision={!playbackActive && decision && ['blockDie', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
+        decision={!playbackActive && decision && ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
         decisionDisabled={!connected || !!pending || suspended}
         onDecisionAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}
         pushChoices={canChoose && !playbackActive ? pushChoices : []}

@@ -7,6 +7,7 @@ import com.fumbbl.ffb.InjuryAttribute;
 import com.fumbbl.ffb.LeaderState;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.ReRollOptions;
 import com.fumbbl.ffb.ReRollProperty;
 import com.fumbbl.ffb.ReRollSource;
 import com.fumbbl.ffb.ReRollSources;
@@ -31,15 +32,20 @@ import com.fumbbl.ffb.model.ZappedPlayer;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.modifiers.bb2020.CasualtyModifier;
+import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.report.ReportReRoll;
 import com.fumbbl.ffb.report.bb2025.ReportMascotUsed;
 import com.fumbbl.ffb.report.bb2025.ReportTeamCaptainRoll;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.DiceRoller;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.ReRollOptions;
+import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
+import com.fumbbl.ffb.server.step.DeferredReRoll;
 import com.fumbbl.ffb.server.step.IStep;
+import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepResult;
+import com.fumbbl.ffb.server.step.UtilServerSteps;
 import com.fumbbl.ffb.server.util.ServerUtilPlayer;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerInducementUse;
@@ -274,9 +280,67 @@ public class RollMechanic extends com.fumbbl.ffb.server.mechanic.RollMechanic {
 		return dialogShown;
 	}
 
+	@Override
+	public StepCommandStatus handleDeferredReRoll(AbstractStepWithReRoll step, ReceivedCommand received) {
+		GameState state = step.getGameState();
+		Game game = state.getGame();
+		DeferredReRoll deferred = step.getDeferredReRoll();
+		if (!(game.getDialogParameter() instanceof DialogReRollPropertiesParameter))
+			return deferred == null ? null : StepCommandStatus.SKIP_STEP;
+		DialogReRollPropertiesParameter dialog = (DialogReRollPropertiesParameter) game.getDialogParameter();
+		if (!(received.getCommand() instanceof ClientCommandUseReRoll))
+			return deferred == null ? null : StepCommandStatus.SKIP_STEP;
+		ClientCommandUseReRoll command = (ClientCommandUseReRoll) received.getCommand();
+		if (deferred == null && command.getReRollSource() != ReRollSources.PRO) return null;
+		Player<?> player = game.getPlayerById(dialog.getPlayerId());
+		boolean authorized = player != null && (game.getTeamHome().hasPlayer(player)
+			? UtilServerSteps.checkCommandIsFromHomePlayer(state, received)
+			: UtilServerSteps.checkCommandIsFromAwayPlayer(state, received));
+		if (!authorized || command.getReRolledAction() != dialog.getReRolledAction()) return StepCommandStatus.SKIP_STEP;
+		if (deferred != null) {
+			if (deferred.getSuccessful() != null || !deferred.getPlayerId().equals(player.getId())) return StepCommandStatus.SKIP_STEP;
+			ReRollSource source = command.getReRollSource();
+			boolean permitted = source == null
+				|| source == ReRollSources.TEAM_RE_ROLL && dialog.hasProperty(ReRollProperty.TRR)
+				|| source == ReRollSources.MASCOT && dialog.hasProperty(ReRollProperty.MASCOT)
+				|| source == ReRollSources.MASCOT_TRR && dialog.hasProperty(ReRollProperty.TRR) && dialog.hasProperty(ReRollProperty.MASCOT);
+			if (!permitted) return StepCommandStatus.SKIP_STEP;
+			boolean successful = source != null && useReRoll(step, source, player);
+			if (successful) {
+				int roll = state.getDiceRoller().rollSkill();
+				successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, minimumProRoll());
+				step.getResult().addReport(new ReportReRoll(player.getId(), ReRollSources.PRO, successful, roll));
+			}
+			step.setDeferredReRoll(new DeferredReRoll(player.getId(), successful));
+			return StepCommandStatus.EXECUTE_STEP;
+		}
+		if (!dialog.hasProperty(ReRollProperty.PRO)) return StepCommandStatus.SKIP_STEP;
+		step.setReRolledAction(command.getReRolledAction());
+		step.setReRollSource(ReRollSources.PRO);
+		boolean successful = useReRoll(step, ReRollSources.PRO, player);
+		boolean retryAllowed = !successful && dialog.hasProperty(ReRollProperty.LONER)
+			&& (dialog.hasProperty(ReRollProperty.TRR) || dialog.hasProperty(ReRollProperty.MASCOT));
+		step.setDeferredReRoll(new DeferredReRoll(player.getId(), retryAllowed ? null : successful));
+		if (!retryAllowed) return StepCommandStatus.EXECUTE_STEP;
+		List<ReRollProperty> properties = new ArrayList<>();
+		for (ReRollProperty property : ReRollProperty.values())
+			if (property != ReRollProperty.PRO && dialog.hasProperty(property)) properties.add(property);
+		UtilServerDialog.showDialog(state, new DialogReRollPropertiesParameter(player.getId(), ReRolledActions.SINGLE_DIE,
+			minimumProRoll(), properties, false, null, null, null, null, null), !game.getActingTeam().hasPlayer(player));
+		return StepCommandStatus.SKIP_STEP;
+	}
+
 	public boolean useReRoll(IStep pStep, ReRollSource reRollSource, Player<?> pPlayer) {
 		if (pPlayer == null) {
 			throw new IllegalArgumentException("Parameter player must not be null.");
+		}
+		if (reRollSource == ReRollSources.PRO && pStep instanceof AbstractStepWithReRoll) {
+			AbstractStepWithReRoll step = (AbstractStepWithReRoll) pStep;
+			DeferredReRoll deferred = step.getDeferredReRoll();
+			if (deferred != null && deferred.getSuccessful() != null && deferred.getPlayerId().equals(pPlayer.getId())) {
+				step.setDeferredReRoll(null);
+				return deferred.getSuccessful();
+			}
 		}
 		boolean successful = false;
 		GameState gameState = pStep.getGameState();

@@ -14,6 +14,7 @@ public class ChangeList {
 			.addImprovement("Browser stadiums use frozen home-team league identity, pitch-colored sidelines, layered Human scenery and view-aware foreground cutaways")
 			.addBehaviorChange("Browser games open in the current tab by default, with an explicit new-window option and clearer unavailable direct-link feedback")
 			.addBugfix("Browser teammate throws and kicks resolve activation traits on declaration and review eligible teammate selection before committing")
+			.addImprovement("Browser manual skill rerolls use one source icon, with Pro tested before choosing a block die and Brawler selecting only eligible Both Down dice")
 			.addFeature("Browser game setup can concede an activated match after confirmation without opening the pitch")
 			.addFeature("Browser game setup lists your unfinished matches with Resume and Continue setup controls")
 			.addImprovement("Moles Under the Pitch Updates adds summaries for five recent merged pull requests through PR 182")

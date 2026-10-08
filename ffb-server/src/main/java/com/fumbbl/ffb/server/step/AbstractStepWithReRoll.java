@@ -2,6 +2,7 @@ package com.fumbbl.ffb.server.step;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.ReRollSource;
 import com.fumbbl.ffb.ReRollSources;
@@ -11,6 +12,7 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.UtilJson;
+import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.property.NamedProperties;
@@ -19,6 +21,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
+import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.util.UtilCards;
@@ -35,12 +38,18 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 	private ReRolledAction fReRolledAction;
 	private ReRollSource fReRollSource;
 	private String playerIdForSingleUseReRoll;
+	private DeferredReRoll deferredReRoll;
 
 	public AbstractStepWithReRoll(GameState pGameState) {
 		super(pGameState);
 	}
 
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
+		if (deferredReRoll != null || pReceivedCommand.getCommand() instanceof ClientCommandUseReRoll) {
+			RollMechanic mechanic = (RollMechanic) getGameState().getGame().getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.ROLL.name());
+			StepCommandStatus intercepted = mechanic.handleDeferredReRoll(this, pReceivedCommand);
+			if (intercepted != null) return intercepted;
+		}
 		StepCommandStatus commandStatus = super.handleCommand(pReceivedCommand);
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND) {
 			switch (pReceivedCommand.getId()) {
@@ -76,6 +85,9 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 	public ReRolledAction getReRolledAction() {
 		return fReRolledAction;
 	}
+
+	public DeferredReRoll getDeferredReRoll() { return deferredReRoll; }
+	public void setDeferredReRoll(DeferredReRoll deferredReRoll) { this.deferredReRoll = deferredReRoll; }
 
 	public void setReRolledAction(ReRolledAction pReRolledAction) {
 		fReRolledAction = pReRolledAction;
@@ -137,6 +149,7 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 		IServerJsonOption.RE_ROLLED_ACTION.addTo(jsonObject, fReRolledAction);
 		IServerJsonOption.RE_ROLL_SOURCE.addTo(jsonObject, fReRollSource);
 		IServerJsonOption.PLAYER_ID_SINGLE_USE_RE_ROLL.addTo(jsonObject, playerIdForSingleUseReRoll);
+		if (deferredReRoll != null) jsonObject.add("deferredReRoll", deferredReRoll.toJsonValue());
 		return jsonObject;
 	}
 
@@ -147,6 +160,8 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 		fReRolledAction = (ReRolledAction) IServerJsonOption.RE_ROLLED_ACTION.getFrom(source, jsonObject);
 		fReRollSource = (ReRollSource) IServerJsonOption.RE_ROLL_SOURCE.getFrom(source, jsonObject);
 		playerIdForSingleUseReRoll = IServerJsonOption.PLAYER_ID_SINGLE_USE_RE_ROLL.getFrom(source, jsonObject);
+		JsonValue deferred = jsonObject.get("deferredReRoll");
+		deferredReRoll = deferred == null ? null : DeferredReRoll.fromJsonValue(deferred);
 		return this;
 	}
 

@@ -3,9 +3,48 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { decisionIcon, matchDecision } from '../src/match-decision.ts';
 import { pitchPushChoices } from '../src/push-choice.ts';
+import { withProTest } from '../src/reroll-presentation.ts';
 import type { SetupState } from '../src/setup-protocol.ts';
 
 const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+
+test('die-specific choices share one skill icon and retain each native command', () => {
+  const frame = frames[6].actor as SetupState;
+  const actions = [0, 1, 2].map(index => ({ id: `pro:${index}`, actor: frame.callerRole as 'home', kind: 'reroll', label: `Use Pro on die ${index + 1}` }));
+  actions.push({ id: 'brawler', actor: frame.callerRole as 'home', kind: 'reroll', label: 'Use Brawler on a Both Down die' });
+  const decision = matchDecision({ ...frame, actions }, actions)!;
+  assert.equal(decision.options.length, 2);
+  assert.equal(decision.options[0].icon, 'pro');
+  assert.deepEqual(decision.options[0].choices?.map(choice => choice.id), ['pro:0', 'pro:1', 'pro:2']);
+});
+
+test('a Pro test has its own d6 while original block outcomes remain visible', () => {
+  const frame = frames[6].actor as SetupState;
+  const decision = { title: 'Reroll the Pro test?', key: '2', kind: 'proTestReroll', options: [
+    { id: '1:block-pro-test:none', label: 'Keep original block dice', kind: 'action' as const }] };
+  const records = [{ index: 0, revision: 0, kind: 'START', actor: 'system' as const, at: 0, decision: null, state: frame,
+    native: [{ reportList: { reports: [{ reportId: 'blockRoll', blockRoll: [1, 2] }] } }] },
+    { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: {}, state: frame,
+      native: [{ reportList: { reports: [{ reportId: 'reRoll', reRollSource: 'Pro', roll: 1, successful: false }] } }] }];
+  assert.deepEqual(withProTest(decision, records, 1)?.originalFaces, ['SKULL', 'BOTH DOWN']);
+  assert.deepEqual(withProTest(decision, records, 1)?.proTest, { face: '1', successful: false });
+  assert.equal(withProTest(decision, records, 2)?.proTest, undefined, 'Earlier Pro results cannot leak into a new decision');
+});
+
+test('a single-die Pro retry shows its original action d6 instead of an earlier block', () => {
+  const frame = frames[6].actor as SetupState;
+  const decision = { title: 'Reroll the Pro test?', key: '2', kind: 'proTestReroll', options: [
+    { id: '2:pro-test:none', label: 'Keep original roll', kind: 'action' as const }] };
+  const records = [{ index: 0, revision: 0, kind: 'START', actor: 'system' as const, at: 0, decision: null, state: frame,
+    native: [{ reportList: { reports: [{ reportId: 'blockRoll', blockRoll: [1, 2] }] } }] },
+    { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: {}, state: frame,
+      native: [{ reportList: { reports: [{ reportId: 'pickUpRoll', roll: 1 }] } }] },
+    { index: 2, revision: 2, kind: 'ACTION', actor: 'home' as const, at: 2, decision: {}, state: frame,
+      native: [{ reportList: { reports: [{ reportId: 'reRoll', reRollSource: 'Pro', roll: 2, successful: false }] } }] }];
+  assert.deepEqual(withProTest(decision, records, 2)?.originalFaces, ['1']);
+  assert.equal(withProTest(decision, records, 2)?.originalLabel, 'Original action roll');
+  assert.equal(withProTest(decision, records, 2)?.proTest?.face, '2');
+});
 
 test('real block dice become pitch choices while push squares stay on the pitch', () => {
   const block = frames[6].actor as SetupState;

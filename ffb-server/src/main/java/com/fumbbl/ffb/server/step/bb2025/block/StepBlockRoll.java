@@ -13,6 +13,7 @@ import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.SoundId;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.factory.SkillFactory;
@@ -24,16 +25,20 @@ import com.fumbbl.ffb.model.Keyword;
 import com.fumbbl.ffb.model.TargetSelectionState;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
+import com.fumbbl.ffb.net.NetCommandId;
 import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandUseConsummateReRollForBlock;
 import com.fumbbl.ffb.net.commands.ClientCommandUseMultiBlockDiceReRoll;
 import com.fumbbl.ffb.net.commands.ClientCommandUseProReRollForBlock;
+import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSingleBlockDieReRoll;
 import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.report.ReportBlock;
 import com.fumbbl.ffb.report.ReportBlockRoll;
+import com.fumbbl.ffb.report.ReportReRoll;
 import com.fumbbl.ffb.report.mixed.ReportBlockReRoll;
+import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.mechanic.RollMechanic;
@@ -44,6 +49,7 @@ import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
+import com.fumbbl.ffb.server.step.UtilServerSteps;
 import com.fumbbl.ffb.server.util.ServerUtilBlock;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
@@ -77,6 +83,7 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 	private int[] fBlockRoll, diceIndexes;
 	private BlockResult fBlockResult;
 	private boolean successfulDauntless, doubleTargetStrength;
+	private String blockRerollPhase;
 
 	public StepBlockRoll(GameState pGameState) {
 		super(pGameState);
@@ -94,6 +101,21 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 
 	@Override
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
+		if (blockRerollPhase != null) return handlePendingReroll(pReceivedCommand);
+		if (pReceivedCommand.getCommand() instanceof ClientCommandUseProReRollForBlock
+			&& ((ClientCommandUseProReRollForBlock) pReceivedCommand.getCommand()).getProIndex() == -1) {
+			if (offersSkillSource(ReRollSources.PRO)
+				&& UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)) startProTest();
+			return StepCommandStatus.SKIP_STEP;
+		}
+		if (pReceivedCommand.getId() == NetCommandId.CLIENT_USE_BRAWLER
+			&& offersSkillSource(ReRollSources.BRAWLER)
+			&& UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)
+			&& eligibleBrawlerIndexes().size() > 1) {
+			setReRollSource(ReRollSources.BRAWLER); setReRolledAction(ReRolledActions.BLOCK);
+			blockRerollPhase = "brawler-die"; showRerollDieSelection();
+			return StepCommandStatus.SKIP_STEP;
+		}
 		StepCommandStatus commandStatus = super.handleCommand(pReceivedCommand);
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND) {
 			ActingPlayer actingPlayer = getGameState().getGame().getActingPlayer();
@@ -162,6 +184,111 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 			executeStep();
 		}
 		return commandStatus;
+	}
+
+	/** Pending choices are native state and survive checkpoint recovery. */
+	public String getBlockRerollPhase() { return blockRerollPhase; }
+
+	private boolean offersSkillSource(ReRollSource source) {
+		Game game = getGameState().getGame();
+		if (!(game.getDialogParameter() instanceof DialogBlockRollPropertiesParameter)) return false;
+		DialogBlockRollPropertiesParameter dialog = (DialogBlockRollPropertiesParameter) game.getDialogParameter();
+		return dialog.getRrActionToSource().containsValue(source.getName(game))
+			|| source == ReRollSources.PRO && dialog.hasProperty(ReRollProperty.PRO);
+	}
+
+	public List<Integer> getRerollDieIndexes() {
+		if ("brawler-die".equals(blockRerollPhase)) return eligibleBrawlerIndexes();
+		List<Integer> indexes = new ArrayList<>();
+		if ("pro-die".equals(blockRerollPhase)) for (int index = 0; index < fBlockRoll.length; index++) indexes.add(index);
+		return indexes;
+	}
+
+	private List<Integer> eligibleBrawlerIndexes() {
+		List<Integer> indexes = new ArrayList<>();
+		if (fBlockRoll != null) {
+			BlockResultFactory factory = getGameState().getGame().getFactory(Factory.BLOCK_RESULT);
+			for (int index = 0; index < fBlockRoll.length; index++)
+				if (factory.forRoll(fBlockRoll[index]) == BlockResult.BOTH_DOWN) indexes.add(index);
+		}
+		return indexes;
+	}
+
+	private void startProTest() {
+		Game game = getGameState().getGame();
+		DialogBlockRollPropertiesParameter original = (DialogBlockRollPropertiesParameter) game.getDialogParameter();
+		setReRolledAction(ReRolledActions.BLOCK); setReRollSource(ReRollSources.PRO);
+		game.getActingPlayer().markSkillUsed(NamedProperties.canRerollOncePerTurn);
+		if (UtilServerReRoll.useReRoll(this, ReRollSources.PRO, game.getActingPlayer().getPlayer())) {
+			proTestSucceeded();
+		} else {
+			List<ReRollProperty> properties = new ArrayList<>(original.getReRollProperties());
+			properties.removeIf(property -> property == ReRollProperty.PRO);
+			if (game.getActingPlayer().getPlayer().hasSkillProperty(NamedProperties.hasToRollToUseTeamReroll)) properties.add(ReRollProperty.LONER);
+			if (properties.stream().anyMatch(ReRollProperty::isActualReRoll)) {
+				RollMechanic mechanic = game.getMechanic(Mechanic.Type.ROLL);
+				blockRerollPhase = "pro-test";
+				UtilServerDialog.showDialog(getGameState(), new DialogReRollPropertiesParameter(game.getActingPlayer().getPlayerId(),
+					ReRolledActions.SINGLE_DIE, mechanic.minimumProRoll(), properties, false, null, null, null, null,
+					Collections.singletonList("Re-roll the failed Pro test? Original block dice remain unchanged.")), false);
+			} else showBlockRollDialog(false);
+		}
+	}
+
+	private StepCommandStatus handlePendingReroll(ReceivedCommand received) {
+		if (!UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), received)) return StepCommandStatus.UNHANDLED_COMMAND;
+		Game game = getGameState().getGame();
+		if ("pro-test".equals(blockRerollPhase) && received.getCommand() instanceof ClientCommandUseReRoll) {
+			ReRollSource source = ((ClientCommandUseReRoll) received.getCommand()).getReRollSource();
+			DialogReRollPropertiesParameter dialog = (DialogReRollPropertiesParameter) game.getDialogParameter();
+			if (source != null && !(source == ReRollSources.TEAM_RE_ROLL && dialog.hasProperty(ReRollProperty.TRR)
+				|| source == ReRollSources.MASCOT && dialog.hasProperty(ReRollProperty.MASCOT)
+				|| source == ReRollSources.MASCOT_TRR && dialog.hasProperty(ReRollProperty.MASCOT) && dialog.hasProperty(ReRollProperty.TRR)))
+				return StepCommandStatus.SKIP_STEP;
+			blockRerollPhase = null;
+			boolean successful = source != null && UtilServerReRoll.useReRoll(this, source, game.getActingPlayer().getPlayer());
+			if (successful) {
+				int roll = getGameState().getDiceRoller().rollSkill();
+				RollMechanic mechanic = game.getMechanic(Mechanic.Type.ROLL);
+				successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, mechanic.minimumProRoll());
+				getResult().addReport(new ReportReRoll(game.getActingPlayer().getPlayerId(), ReRollSources.PRO, successful, roll));
+			}
+			if (successful) proTestSucceeded(); else showBlockRollDialog(false);
+			return StepCommandStatus.SKIP_STEP;
+		}
+		if (received.getCommand() instanceof ClientCommandBlockChoice) {
+			int index = ((ClientCommandBlockChoice) received.getCommand()).getDiceIndex();
+			if (getRerollDieIndexes().contains(index)) completeSelectedReroll(index);
+			return StepCommandStatus.SKIP_STEP;
+		}
+		return StepCommandStatus.UNHANDLED_COMMAND;
+	}
+
+	private void proTestSucceeded() {
+		blockRerollPhase = "pro-die";
+		if (fBlockRoll.length == 1) completeSelectedReroll(0); else showRerollDieSelection();
+	}
+
+	private void showRerollDieSelection() {
+		Game game = getGameState().getGame();
+		getResult().addReport(new ReportBlockRoll(game.getActingTeam().getId(), fBlockRoll));
+		UtilServerDialog.showDialog(getGameState(), new DialogBlockRollPropertiesParameter(game.getActingTeam().getId(),
+			fNrOfDice, fBlockRoll, Collections.emptyList(), Collections.emptyMap()), false);
+	}
+
+	private void completeSelectedReroll(int index) {
+		Game game = getGameState().getGame();
+		ActingPlayer player = game.getActingPlayer();
+		boolean brawler = "brawler-die".equals(blockRerollPhase);
+		blockRerollPhase = null;
+		if (!brawler || UtilServerReRoll.useReRoll(this, ReRollSources.BRAWLER, player.getPlayer())) {
+			if (brawler && !UtilGameOption.isOptionEnabled(game, GameOptionId.ALLOW_BRAWLER_ON_BOTH_BLOCKS))
+				player.markSkillUsed(ReRollSources.BRAWLER, ReRolledActions.SINGLE_BOTH_DOWN);
+			int roll = getGameState().getDiceRoller().rollBlockDice(1)[0];
+			getResult().addReport(new ReportBlockReRoll(new int[] { roll }, player.getPlayerId(), getReRollSource()));
+			fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length); fBlockRoll[index] = roll;
+		}
+		showBlockRollDialog(false);
 	}
 
 	@Override
@@ -431,6 +558,7 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 		IServerJsonOption.BLOCK_RESULT.addTo(jsonObject, fBlockResult);
 		IServerJsonOption.SUCCESSFUL_DAUNTLESS.addTo(jsonObject, successfulDauntless);
 		IServerJsonOption.BLOCK_DIE_INDEX.addTo(jsonObject, dieIndex);
+		if (blockRerollPhase != null) jsonObject.add("blockRerollPhase", blockRerollPhase);
 		return jsonObject;
 	}
 
@@ -438,6 +566,7 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 	public StepBlockRoll initFrom(IFactorySource source, JsonValue jsonValue) {
 		super.initFrom(source, jsonValue);
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+		blockRerollPhase = jsonObject.getString("blockRerollPhase", null);
 		fNrOfDice = IServerJsonOption.NR_OF_DICE.getFrom(source, jsonObject);
 		fBlockRoll = IServerJsonOption.BLOCK_ROLL.getFrom(source, jsonObject);
 		fDiceIndex = IServerJsonOption.DICE_INDEX.getFrom(source, jsonObject);
@@ -446,6 +575,10 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 		if (IServerJsonOption.BLOCK_DIE_INDEX.isDefinedIn(jsonObject)) {
 			dieIndex = IServerJsonOption.BLOCK_DIE_INDEX.getFrom(source, jsonObject);
 		}
+		if (blockRerollPhase != null && (!Arrays.asList("pro-test", "pro-die", "brawler-die").contains(blockRerollPhase)
+			|| fBlockRoll == null || fBlockRoll.length < 1 || fBlockRoll.length != Math.abs(fNrOfDice)
+			|| getReRollSource() != ("brawler-die".equals(blockRerollPhase) ? ReRollSources.BRAWLER : ReRollSources.PRO)))
+			throw new IllegalArgumentException("Invalid pending block skill reroll");
 		return this;
 	}
 

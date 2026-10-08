@@ -3,6 +3,7 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.ApothecaryType;
 import com.fumbbl.ffb.Direction;
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
@@ -15,11 +16,13 @@ import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
+import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandApothecaryChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
 import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
@@ -28,6 +31,8 @@ import com.fumbbl.ffb.net.commands.ClientCommandPushback;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
+import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
 import com.fumbbl.ffb.util.UtilPassing;
 
 import java.util.ArrayList;
@@ -46,6 +51,18 @@ public final class CorePromptActions {
 		Game game = state.getGame();
 		if (game == null) return result;
 		IDialogParameter dialog = game.getDialogParameter();
+		if (state.getCurrentStep() instanceof StepBlockRoll) {
+			StepBlockRoll block = (StepBlockRoll) state.getCurrentStep();
+			if (!block.getRerollDieIndexes().isEmpty() && dialog instanceof DialogBlockRollPropertiesParameter) {
+				DialogBlockRollPropertiesParameter roll = (DialogBlockRollPropertiesParameter) dialog;
+				String role = roleForTeam(game, roll.getChoosingTeamId());
+				BlockResultFactory factory = game.getFactory(FactoryType.Factory.BLOCK_RESULT);
+				for (int index : block.getRerollDieIndexes()) add(result, "block-reroll-die:" + index, "rerollDie",
+					"Reroll " + factory.forRoll(roll.getBlockRoll()[index]).getName() + " (die " + (index + 1) + ")", role,
+					new ClientCommandBlockChoice(index));
+				return result;
+			}
+		}
 		if (dialog instanceof DialogBlockRollPropertiesParameter) {
 			blockRoll(result, game, (DialogBlockRollPropertiesParameter) dialog);
 		} else if (dialog instanceof DialogReRollPropertiesParameter) {
@@ -116,7 +133,20 @@ public final class CorePromptActions {
 
 	private void reroll(List<CoreTurnActions.Action> result, Game game, DialogReRollPropertiesParameter dialog) {
 		String role = roleForPlayer(game, game.getPlayerById(dialog.getPlayerId()));
-		if (role != null && dialog.getReRolledAction() != null) result.addAll(new RerollPromptActions(game, role).reroll(dialog));
+		if (role != null && dialog.getReRolledAction() != null) {
+			List<CoreTurnActions.Action> choices = new RerollPromptActions(game, role).reroll(dialog);
+			boolean blockProTest = state.getCurrentStep() instanceof StepBlockRoll
+				&& "pro-test".equals(((StepBlockRoll) state.getCurrentStep()).getBlockRerollPhase());
+			boolean genericProTest = state.getCurrentStep() instanceof AbstractStepWithReRoll
+				&& ((AbstractStepWithReRoll) state.getCurrentStep()).getDeferredReRoll() != null
+				&& ((AbstractStepWithReRoll) state.getCurrentStep()).getDeferredReRoll().getSuccessful() == null;
+			for (CoreTurnActions.Action choice : choices) {
+				if (blockProTest || genericProTest) add(result, choice.id.replace("reroll:", blockProTest ? "block-pro-test:" : "pro-test:"), "proTestReroll",
+					choice.id.endsWith(":none") ? blockProTest ? "Keep original block dice" : "Keep original roll" : choice.label.split(" for ")[0] + " for Pro test",
+					role, choice.command);
+				else result.add(choice);
+			}
+		}
 	}
 	private void followUp(List<CoreTurnActions.Action> result, Game game) {
 		ActingPlayer acting = game.getActingPlayer();

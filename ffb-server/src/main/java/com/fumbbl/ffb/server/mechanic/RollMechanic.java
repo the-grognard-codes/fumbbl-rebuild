@@ -19,7 +19,10 @@ import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.server.DiceRoller;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
 import com.fumbbl.ffb.server.step.IStep;
+import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
 
 import java.util.List;
@@ -60,6 +63,11 @@ public abstract class RollMechanic implements Mechanic {
 		List<String> messages);
 
 	public abstract boolean useReRoll(IStep pStep, ReRollSource pReRollSource, Player<?> pPlayer);
+
+	/** Null leaves the original step command handling unchanged. */
+	public StepCommandStatus handleDeferredReRoll(AbstractStepWithReRoll step, ReceivedCommand command) {
+		return null;
+	}
 
 	public abstract boolean allowsTeamReRoll(TurnMode turnMode);
 
