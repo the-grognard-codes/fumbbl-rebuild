@@ -8,7 +8,7 @@ import { chromium } from '../../browser-client/node_modules/playwright/index.mjs
 import { configurationScript, resolveEnvironment } from '../../deployment/firebase/scripts/environment.mjs';
 
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
-test('shared navigation and account disclosure stay consistent across pages, highlighting, authentication and narrow screens', { timeout: 90000 }, async () => {
+test('shared navigation and account disclosure stay consistent on site pages, with game displays excluded', { timeout: 90000 }, async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') {
@@ -99,15 +99,21 @@ test('shared navigation and account disclosure stay consistent across pages, hig
     if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR) await page.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, 'account-mobile.png') });
     await page.addInitScript(() => { window.__initialAccount = { email: 'coach@example.test', getIdToken: async () => 'fixture' }; });
     await page.routeWebSocket('**/browser/v2', socket => socket.close({ code: 1000, reason: 'Header-only fixture' }));
-    const routes = ['/', '/teambuilder', '/play', '/spectate', '/updates', '/privacy', '/support', '/login', '/login/complete', '/play/match', '/play/result'];
+    const gameDisplays = ['/play/match', '/play/match?watch=1', '/play/result'];
+    const routes = ['/', '/teambuilder', '/play', '/spectate', '/updates', '/privacy', '/support', '/login', '/login/complete', ...gameDisplays];
     for (const width of [1224, 360]) {
       await page.setViewportSize({ width, height: 800 });
       let reference;
       for (const route of routes) {
         await page.goto(`http://127.0.0.1:${server.address().port}${route}`);
+        const header = page.locator('.site-header');
+        if (gameDisplays.includes(route)) {
+          await page.locator('body.game-focused').waitFor();
+          assert.equal(await header.isVisible(), false, `${route} hides the site bar for the game display at ${width}px`);
+          continue;
+        }
         await page.getByLabel('My account', { exact: true }).waitFor();
         await page.evaluate(() => document.fonts.ready);
-        const header = page.locator('.site-header');
         assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
         const logo = header.getByRole('img', { name: 'Moles Under the Pitch', exact: true });
         await logo.waitFor();
