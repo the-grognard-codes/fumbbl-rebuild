@@ -136,6 +136,7 @@ jobs:
           cache: npm
           cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
+      - run: npm run assets:check --prefix browser-client
       - run: npm test --prefix browser-client
       - run: npm run check --prefix site
       - run: npm test --prefix site

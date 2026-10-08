@@ -4,7 +4,8 @@ Date: 2026-10-07.
 
 Design status: confirmed by the owner after the stadium-only grilling discussion.
 Testing status: existing-seam approach confirmed by the owner on 2026-10-07.
-Tracker: [#198](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/198), labelled `ready-for-agent`.
+Tracker: [#198](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/198).
+Implementation status: all three slices merged; final requirements/media/intent audit recorded in [the retrospective](../verification/league-stadium-mvp-retrospective.md).
 
 This document is the durable design and art-direction mirror for the stadium workstream. It covers only stadium structure, supporters, surroundings, and their presentation framework. The original discussion's other gameplay, logging, chat, ball, and player-alignment changes belong to their separate workstream.
 
@@ -267,24 +268,24 @@ Testing approach was confirmed by the owner. It reuses existing rendered-pitch a
 
 ### Acceptance checklist
 
-- [ ] Human home selects Old World Classic; Orc home selects Badlands Brawl, independent of viewing end or active team.
-- [ ] Both Human-home/Orc-away and Orc-home/Human-away scenes have complete venue, supporter, bench, and sideline families.
-- [ ] Both teams have visibly appropriate supporters, banners, and bench-area treatment inside the home venue.
-- [ ] Each supporter section occupies its assigned end and sidestand halves and stays fixed across match/view changes.
-- [ ] All four boundaries form a complete enclosure with continuous corner joins and no duplicated crowd areas.
-- [ ] Pitch-colored ground continues around all four edges; unwanted gray border strips are gone.
-- [ ] Normal stadium boundaries sit approximately 1.5 world squares outside the playable Pitch, with clear inner space and recessed large furniture.
-- [ ] Human and Orc materials, silhouettes, palettes, and prop treatments match their approved briefs at real pitch scale.
-- [ ] Perspective cutaways expose playable content from either end while retaining appropriate low/far scenery.
-- [ ] Top-down shows overhead art and a complete enclosure at the same canonical world footprints.
-- [ ] Scenery travels/scales with the pitch at 30/40/50 degrees and remains parallel/equal-scale at 90 degrees.
-- [ ] Default width-fit framing prioritizes readable pitch and immediate sidelines while permitting outer stadium cropping.
-- [ ] Scenery does not consume gameplay input or alter canonical square/player/action identities.
-- [ ] Minor crowd movement, fire flicker, and pennants achieve the restrained SNES-background feel and respect reduced motion.
-- [ ] Live coaches, spectators, reconnects, and Match replay retain consistent venue and team-section identities.
-- [ ] Asset catalogs, source/provenance, overhead/perspective variants, and canonical/runtime delivery integrity are recorded and verified.
-- [ ] Review evidence covers both hosting assignments, both ends, supported cameras, near/mid/far positions, and representative framing/motion cases.
-- [ ] Required user-facing change-list entry and issue/local verification records accompany implementation.
+- [x] Human home selects Old World Classic; Orc home selects Badlands Brawl, independent of viewing end or active team.
+- [x] Both Human-home/Orc-away and Orc-home/Human-away scenes have complete venue, supporter, bench, and sideline families.
+- [x] Both teams have visibly appropriate supporters, banners, and bench-area treatment inside the home venue.
+- [x] Each supporter section occupies its assigned end and sidestand halves and stays fixed across match/view changes.
+- [x] All four boundaries form a complete enclosure with continuous corner joins and no duplicated crowd areas.
+- [x] Pitch-colored ground continues around all four edges; unwanted gray border strips are gone.
+- [x] Normal stadium boundaries sit approximately 1.5 world squares outside the playable Pitch, with clear inner space and recessed large furniture.
+- [x] Human and Orc materials, silhouettes, palettes, and prop treatments match their approved briefs at real pitch scale.
+- [x] Perspective cutaways expose playable content from either end while retaining appropriate low/far scenery.
+- [x] Top-down shows overhead art and a complete enclosure at the same canonical world footprints.
+- [x] Scenery travels/scales with the pitch at 30/40/50 degrees and remains parallel/equal-scale at 90 degrees.
+- [x] Default width-fit framing prioritizes readable pitch and immediate sidelines while permitting outer stadium cropping.
+- [x] Scenery does not consume gameplay input or alter canonical square/player/action identities.
+- [x] Minor crowd movement, fire flicker, and pennants achieve the restrained SNES-background feel and respect reduced motion.
+- [x] Live coaches, spectators, reconnects, and Match replay retain consistent venue and team-section identities.
+- [x] Asset catalogs, source/provenance, overhead/perspective variants, and canonical/runtime delivery integrity are recorded and verified.
+- [x] Review evidence covers both hosting assignments, both ends, supported cameras, near/mid/far positions, and representative framing/motion cases.
+- [x] Required user-facing change-list entry and issue/local verification records accompany implementation.
 
 ## Out of Scope
 
@@ -327,10 +328,12 @@ The repository links below are pinned to the design-discovery commit so future f
 - [Blizzard: Inside the WoW Classic demo](https://worldofwarcraft.blizzard.com/en-us/news/22548005/dev-watercooler-inside-the-world-of-warcraft-classic-blizzcon-demo). Establishes the original pre-Cataclysm Barrens as the intended era reference.
 - [Blizzard: WoW Classic travel guide](https://worldofwarcraft.blizzard.com/en-us/news/23156366/wow-classic-getting-around-azeroth). Additional Classic Barrens/outpost context.
 
-The Human reference, paired Orc treatment, League-based selection, overhead variants, cutaway, sideline interpretation, and animation direction were explicitly confirmed in the discussion. The testing approach above was explicitly confirmed after the specification draft was presented. No implementation or verification completion is claimed by this draft.
+The Human reference, paired Orc treatment, League-based selection, overhead variants, cutaway, sideline interpretation, and animation direction were explicitly confirmed in the discussion. The testing approach above was explicitly confirmed after the specification draft was presented. The original draft established the design and testing scope; delivery evidence below and the retrospective record the completed implementation and its verification limits.
 
 ## Delivery evidence
 
-- Slice 1: [PR #200](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/200), merged. Frozen team presentation, compatible native recovery/replay, canonical Human venue, margins/recesses/cutaways and shared projection. All CI checks passed.
-- Slice 2: complete Orc atlas and independent mixed-team composition; native identity/recovery regression, 48-case production-scene matrix, 48-case authenticated native matrix, six role reconnects, two spectator end changes and two completed-match replay journeys passed locally. Representative evidence is in `assets/game/references/stadiums/{human-v2,orc-v2}`. [PR #203](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/203) includes gutter validation and accepted v2 exports; earlier v1 evidence is historical.
-- Slice 3: restrained ambient motion, reduced-motion review and final retrospective remain to be completed.
+- Slice 1: [PR #200](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/200), merged. Frozen team presentation, compatible native recovery/replay, canonical Human venue, margins/recesses/cutaways and shared projection. Required CI passed.
+- Slice 2: [PR #203](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/203), merged. Complete Orc atlas, independent mixed-team composition and accepted Human/Orc v2 gutters. Native identity/recovery regression, production-scene and authenticated native 48-case matrices, role reconnects, spectator end changes and completed replay passed. Required CI passed; earlier v1 captures are historical.
+- Slice 3: [PR #205](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/205), merged. Sparse crowd movement, fire flicker, team pennants and genuine overhead pennant composition; reduced motion; fixed seats/anchors and unchanged native revision/commands. All 194 browser units, production build, 176-asset check, 15 interaction scripts, focused matrix/motion review and authenticated native 48 cases plus ten restoration journeys passed. All 11 CI checks passed.
+- [Final retrospective](../verification/league-stadium-mvp-retrospective.md): all 48 stories mapped to functional and visual evidence, intent assessment, severity-ordered environment improvements and explicit limits. This follow-up runs the existing asset check before CI rebuilds and preserves generated-catalog LF bytes on Windows. Source/provenance and current review media are retained under assets/game/pitch/stadiums and assets/game/references/stadiums/{human-v2,orc-v2}.
+- Verification limits: no full native 16-turn halftime playthrough, additional-League/onboarding implementation, mobile/sustained hardware performance certification or deployment. Shared half-two behavior and actual frozen native identity/reconnect/replay were checked separately. Short passive frame data retain unexplained outliers; see the retrospective and motion-review.json.
