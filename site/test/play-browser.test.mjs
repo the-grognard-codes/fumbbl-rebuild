@@ -133,7 +133,7 @@ test('start defaults to the current tab and supports explicit windows with block
       const setupBounds = await starterMatch.evaluate(() => {
         const side = document.querySelector('.match-side')?.getBoundingClientRect();
         const placement = document.querySelector('[aria-label="Placement controls"]');
-        const confirmation = document.querySelector('.match-command-bar .commit-action');
+        const confirmation = document.querySelector('.confirmation-row .commit-action');
         const confirm = confirmation?.getBoundingClientRect();
         return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight,
           confirmText: confirmation?.textContent?.trim(),

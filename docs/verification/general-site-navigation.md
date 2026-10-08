@@ -8,6 +8,8 @@ Every site page uses the homepage's top bar: Moles Under the Pitch, Team Builder
 
 Account option hover colors match Sign out, including placeholder rows. My account uses those same highlight colors. Keyboard focus also receives the highlight. Account Settings, My games, My teams, Match history and Preferences remain disabled placeholders.
 
+Confirmed! must stay anchored at one position across setup, play, action previews, teammate selection and pending actions. Existing hidden states and confirmation eligibility/submitted intents remain unchanged.
+
 ## Implementation and relevant checks
 
 A shared static renderer produces the header during site builds and Updates generation. Other page sources include a header marker checked by the existing site input check. Generated output has full navigation before JavaScript loads. Page-specific header overrides are removed, and the match viewport uses the remaining space below the bar. Account popovers paint above the isolated match content.
@@ -19,7 +21,7 @@ A shared static renderer produces the header during site builds and Updates gene
 
 ## Local validation
 
-Site build and input checks pass, along with ten site unit tests and nine affected browser journeys. The account journey covers eleven routes at 1224px and 360px widths. Match checks cover same-tab/optional-window launch, direct resume/denial, two coaches and a spectator, reconnect, six viewport sizes (including 1224x330 and 360x800), and opening/closing Game Menu inside the remaining match area. The bounded synthetic console check reports zero errors and no private identifier leakage.
+Site build and input checks pass, along with ten site unit tests and fourteen affected hosted browser journeys. Four focused interaction journeys cover the confirmation position, HUD controls, teammate selection and smart Blitz submission. The account journey covers eleven routes at 1224px and 360px widths. Match checks cover same-tab/optional-window launch, direct resume/denial, two coaches and a spectator, reconnect, six viewport sizes (including 1224x330 and 360x800), and opening/closing Game Menu inside the remaining match area. The bounded synthetic console check reports zero errors and no private identifier leakage.
 
 Initial match checks caught the old full-window game-menu positioning and a competing full-height match rule. Both are corrected, and all three play journeys passed on rerun. A navigation locator now targets the primary bar explicitly because setup also contains a Spectate link.
 
@@ -31,4 +33,11 @@ Browser captures use synthetic test identities:
 - [Mobile account menu](../../.notes/overhaul-analysis/verification/general-navigation/account-mobile.png)
 - [Shared bar above a short match viewport](../../.notes/overhaul-analysis/verification/general-navigation/match-desktop.png)
 
-Both independent review axes approved the implementation. The Spec review additionally observed that the account popover could extend below a short viewport. It now scrolls internally; the focused account journey passes at 1224x330 and 360x330, keeping Sign out visible within the disclosure and leaving the page at scroll position zero. Final PR CI is required before merge. Existing generated-file edits are preserved separately from this fix.
+Confirmed! now uses one dock anchored to the match viewport, separate from the variable decision panel. Setup and play use the same control and existing eligibility/submission rules. Preview text and teammate cancellation cannot move its center. Hover does not translate the button. The outer match clips focus scrolling; supporting panels still scroll internally.
+
+The position regression first reproduced a 65px setup jump and a sideways shift at 1280x660. It now passes for both coaches at 1280x660, 1920x1080, 375x660, 640x330 and 375x300 across setup, play, additional actions, previews, teammate proposal/cancellation, pending setup/action requests, hidden kickoff/waiting/full-time/spectator states and reappearance. It checks exact x/y within 1px, viewport centering/bounds, no match-container scrolling and submitted setup/action operations. Existing hosted setup/result selectors now locate the shared confirmation dock. All nine hosted play/Blitz/result journeys passed after the change; HUD, teammate and smart Blitz interaction journeys passed too.
+
+- [Confirmation during play (isolated fixture)](../../.notes/overhaul-analysis/verification/general-navigation/confirmation-play.png)
+- [Same confirmation position during setup (isolated fixture)](../../.notes/overhaul-analysis/verification/general-navigation/confirmation-setup.png)
+
+Both independent review axes approved the implementation and confirmation follow-up. The Spec review additionally observed that the account popover could extend below a short viewport. It now scrolls internally; the focused account journey passes at 1224x330 and 360x330, keeping Sign out visible within the disclosure and leaving the page at scroll position zero. Final PR CI is required before merge. Existing generated-file edits are preserved separately from this fix.
