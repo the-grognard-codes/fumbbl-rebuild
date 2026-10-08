@@ -24,6 +24,7 @@ for (const profile of catalog.atlases) {
 for (const role of required) {
   const layout = catalog.layout[role];
   if (!layout || !(layout.worldWidth > 0) || !['perspective','overhead','ground','side'].includes(layout.view)
+      || !['static','sparse-sway','fire-flicker','wind'].includes(layout.motion)
       || !['near-end','none'].includes(layout.cutaway) || !(layout.footprint.along > 0 && layout.footprint.across > 0)
       || [layout.anchor.perspective, layout.anchor.overhead].some(anchor => !Array.isArray(anchor) || anchor.length !== 2 || anchor.some(value => value < 0 || value > 1))) throw Error('Invalid stadium role layout: ' + role);
 }

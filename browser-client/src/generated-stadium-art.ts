@@ -612,7 +612,8 @@ export const stadiumRoleLayout = {
     "layer": "furnishings",
     "rise": "ground",
     "cutaway": "none",
-    "motion": "wind"
+    "motion": "wind",
+    "overheadComposition": "cloth-triangle-and-pole-dot"
   }
 } as const;
 export const stadiumVenues: Readonly<Record<string, keyof typeof stadiumAtlases>> = {

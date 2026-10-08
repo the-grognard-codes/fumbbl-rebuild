@@ -1,3 +1,5 @@
 deployment/game-service/*.sh text eol=lf
 deployment/firebase/scripts/*.sh text eol=lf
 tools/*.sh text eol=lf
+# Generated stadium catalog is compared byte-for-byte by assets:check.
+browser-client/src/generated-stadium-art.ts text eol=lf

@@ -421,7 +421,8 @@
       "layer": "furnishings",
       "rise": "ground",
       "cutaway": "none",
-      "motion": "wind"
+      "motion": "wind",
+      "overheadComposition": "cloth-triangle-and-pole-dot"
     }
   }
 }
