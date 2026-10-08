@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolvePlayerArt, resolvePlayerPortrait, type PlayerFacing } from '../src/player-art.ts';
+import { resolvePlayerArt, resolvePlayerPortrait, playerArtPlacement, type PlayerFacing } from '../src/player-art.ts';
 import type { SetupPlayer } from '../src/setup-protocol.ts';
 
 const human: SetupPlayer = { id: 'person-17', name: 'Any Name', slot: 17, number: 41, role: 'home', x: 12, y: 7,
@@ -22,11 +22,38 @@ test('eight canonical directions select five originals and correct mirrored anch
     const original = resolvePlayerArt(human, { end: 'home', facing: facingsForOriginal[pose] });
     assert.equal(result!.body.bounds.x, mirror ? result!.body.width - original!.body.bounds.x - original!.body.bounds.width : original!.body.bounds.x);
     assert.equal(result!.body.footAnchor.x, mirror ? result!.body.width - original!.body.footAnchor.x : original!.body.footAnchor.x);
+    assert.equal(result!.body.bodyAnchor.x, mirror ? result!.body.width - original!.body.bodyAnchor.x : original!.body.bodyAnchor.x);
     assert.equal(result!.body.groundAnchor.x, mirror ? result!.body.width - original!.body.groundAnchor.x : original!.body.groundAnchor.x);
   }
 });
 
 const facingsForOriginal: Record<string, PlayerFacing> = { front: 'south', back: 'north', front45: 'south-east', back45: 'north-east', side: 'east' };
+
+test('asymmetric body centerlines exclude equipment and mirror with the visible body', () => {
+  for (const [rosterId, positionId, facing, center] of [
+    ['human', 'blitzer', 'south', 30], ['orc', 'orc-thrower', 'north', 27], ['orc', 'troll', 'east', 34],
+  ] as const) {
+    const player = { ...human, art: { rosterId, positionId } };
+    const body = resolvePlayerArt(player, { end: 'home', facing })!.body;
+    assert.equal(body.bodyAnchor.x, center);
+    assert.equal(body.footAnchor.x, center);
+    assert.deepEqual(playerArtPlacement(body, false).anchor, body.footAnchor);
+    assert.deepEqual(playerArtPlacement(body, true).anchor, body.bodyAnchor);
+    assert.deepEqual(playerArtPlacement(body, true).shadowAnchor, body.footAnchor);
+  }
+  const original = resolvePlayerArt({ ...human, art: { rosterId: 'orc', positionId: 'troll' } }, { end: 'home', facing: 'east' })!.body;
+  const mirrored = resolvePlayerArt({ ...human, art: { rosterId: 'orc', positionId: 'troll' } }, { end: 'home', facing: 'west' })!.body;
+  assert.equal(mirrored.bodyAnchor.x, 80 - original.bodyAnchor.x);
+});
+
+test('ground artwork and shadows retain the same contact center in both projections', () => {
+  for (const player of [human, orc]) for (const state of ['is prone', 'has been stunned']) {
+    const body = resolvePlayerArt({ ...player, state }, { end: 'away' })!.body;
+    for (const topDown of [false, true]) assert.deepEqual(playerArtPlacement(body, topDown), {
+      anchor: body.groundAnchor, shadowAnchor: body.groundAnchor, mode: 'ground',
+    });
+  }
+});
 
 test('away end reverses both ground axes and default facing points toward the opponent', () => {
   assert.equal(resolvePlayerArt(human, { end: 'home' })?.body.pose, 'back');
