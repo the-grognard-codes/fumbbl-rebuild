@@ -301,17 +301,18 @@ class CoreTurnActionsTest {
         assertTrue(((com.fumbbl.ffb.net.commands.ClientCommandUseSkill) never.command).isNeverUse());
     }
 
-    @Test void opponentOwnedPromptDoesNotClaimActingPlayerAsItsSource() throws Exception {
+    @Test void opponentOwnedSkillPromptNamesItsOwnerInsteadOfActingPlayer() throws Exception {
         GameState state = fixture(true);
         state.getGame().getFieldModel().setWeather(Weather.NICE);
         state.getGame().getActingPlayer().setPlayerId("home1");
         com.fumbbl.ffb.model.skill.Skill block = state.getGame().getRules().getSkillFactory().forName("Block");
         state.getGame().setDialogParameter(new com.fumbbl.ffb.dialog.DialogSkillUseParameter("away1", block, 0));
         JsonObject view = sessionWithState(state).reply("load", "ACCEPTED", false, "away").get("state").asObject();
+        assertTrue(view.get("actions").asArray().size() > 0);
         for (JsonValue item : view.get("actions").asArray()) {
             JsonObject action = item.asObject();
             assertEquals("away", action.getString("actor", null));
-            assertTrue(action.get("sourcePlayerId").isNull());
+            assertEquals("away1", action.getString("sourcePlayerId", null));
         }
     }
 

@@ -38,6 +38,7 @@ final class NativeOutcomeCapture {
             publicSyncs.add(publicSync);
             previous = command.getCommandNr();
         }
+        if (presentation != null) presentation.finish(publicSyncs);
         return new Capture(lastCommandNr, Collections.unmodifiableList(publicSyncs));
     }
 

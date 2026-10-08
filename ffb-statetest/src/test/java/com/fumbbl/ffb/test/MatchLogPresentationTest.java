@@ -240,7 +240,7 @@ class MatchLogPresentationTest {
         write("follow-up", cases);
     }
 
-    private void addSkill(GameState state, String id, String name) {
+    void addSkill(GameState state, String id, String name) {
         ((RosterPlayer) state.getGame().getPlayerById(id)).addSkill(state.getGame().getRules().getSkillFactory().forName(name));
     }
     private JsonObject report(JsonArray records, String id) {
@@ -253,11 +253,18 @@ class MatchLogPresentationTest {
         return reportIds(records).stream().filter(id -> id.endsWith("Roll") || id.equals("reRoll")).collect(java.util.stream.Collectors.toList());
     }
 
-    private GameState fixture(boolean home, boolean looseBall) throws Exception {
+    GameState fixture(boolean home, boolean looseBall) throws Exception {
+        return fixture(home, looseBall, false);
+    }
+    GameState fixture(boolean home, boolean looseBall, boolean chain) throws Exception {
         GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
         new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(11, 7)
-            .withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 3, 3, 3, 9))
-                .player("mate", player -> player.at(14, 8).stats(6, 3, 3, 3, 9)))
+            .withTeam(home, team -> {
+                team.player("actor", player -> player.at(10, 7).stats(6, 3, 3, 3, 9))
+                    .player("mate", player -> player.at(chain ? 12 : 14, chain ? 7 : 8).stats(6, 3, 3, 3, 9));
+                if (chain) team.player("wall1", player -> player.at(12, 6).stats(6, 3, 3, 3, 9))
+                    .player("wall2", player -> player.at(12, 8).stats(6, 3, 3, 3, 9));
+            })
             .withTeam(!home, team -> team.player("opponent", player -> player.at(20, 12).stats(6, 3, 3, 3, 9))).build();
         ((RosterPlayer) state.getGame().getPlayerById("actor")).setName("Runner");
         ((RosterPlayer) state.getGame().getPlayerById("mate")).setName("Catcher");
@@ -268,14 +275,14 @@ class MatchLogPresentationTest {
         StepEngine.start(state);
         return state;
     }
-    private SetupSession session(GameState state) throws Exception {
+    SetupSession session(GameState state) throws Exception {
         SetupSession session = new SetupSessionTest().session(11, true);
         state.initCommandNrGenerator(JsonObject.readFrom(session.recoveryArtifact()).get("payload").asObject().get("transcript").asObject().getInt("nativeCursor", 0));
         Field engine = SetupSession.class.getDeclaredField("state"); engine.setAccessible(true); engine.set(session, state);
         return session;
     }
-    private JsonObject view(SetupSession session, String role) { return session.reply("load", "ACCEPTED", false, role).get("state").asObject(); }
-    private void submit(SetupSession session, String role, String kind, JsonObject square) {
+    JsonObject view(SetupSession session, String role) { return session.reply("load", "ACCEPTED", false, role).get("state").asObject(); }
+    void submit(SetupSession session, String role, String kind, JsonObject square) {
         JsonObject view = view(session, role), selected = null;
         for (JsonValue value : view.get("actions").asArray()) {
             JsonObject action = value.asObject();
@@ -290,20 +297,20 @@ class MatchLogPresentationTest {
             .add("expectedRevision", view.get("revision")).add("playerId", "actor").add("waypoints", points);
         assertEquals("ACCEPTED", session.apply(role, request).getString("code", null)); return request;
     }
-    private JsonArray records(SetupSession session) {
+    JsonArray records(SetupSession session) {
         JsonArray all = new JsonArray(); int next = 0;
         do { JsonObject page = session.transcriptPage(next, 8); for (JsonValue value : page.get("records").asArray()) all.add(value);
             next = page.getInt("next", 0); if (next == page.getInt("total", 0)) break; } while (true);
         return all;
     }
-    private JsonArray reports(JsonArray records) {
+    JsonArray reports(JsonArray records) {
         JsonArray all = new JsonArray();
         for (JsonValue record : records) for (JsonValue sync : record.asObject().get("native").asArray())
             for (JsonValue report : sync.asObject().get("reportList").asObject().get("reports").asArray()) all.add(report);
         return all;
     }
-    private JsonObject point(int x, int y) { return new JsonObject().add("x", x).add("y", y); }
-    private void write(String name, JsonArray cases) throws Exception {
+    JsonObject point(int x, int y) { return new JsonObject().add("x", x).add("y", y); }
+    void write(String name, JsonArray cases) throws Exception {
         Files.write(Paths.get("target", "match-log-" + name + ".json"), cases.toString().getBytes(StandardCharsets.UTF_8));
     }
 }

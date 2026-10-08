@@ -64,3 +64,24 @@ export function decodeLogTest(value: unknown): { version: 1; rerolled: boolean }
   if (item.version !== 1 || typeof item.rerolled !== 'boolean') throw Error('Invalid native source test');
   return { version: 1, rerolled: item.rerolled };
 }
+
+export type LogBlock = { version: 1; attackerId: string | null; defenderId: string | null; chooser: 'home' | 'away' | null };
+export function decodeLogBlock(value: unknown): LogBlock {
+  const item = object(value, ['version', 'attackerId', 'defenderId', 'chooser']);
+  if (item.version !== 1 || item.attackerId !== null && !id(item.attackerId) || item.defenderId !== null && !id(item.defenderId)
+    || item.chooser !== null && item.chooser !== 'home' && item.chooser !== 'away') throw Error('Invalid native block context');
+  return item as LogBlock;
+}
+export type LogOutcome = { playerId: string; kind: 'push' | 'followUp' | 'knockdown' | 'prone' | 'stunned' | 'knockedOut' | 'removed' | 'dead' | 'standing';
+  from: LogSquare | null; to: LogSquare | null; skill: string | null };
+export function decodeLogOutcomes(value: unknown): { version: 1; events: LogOutcome[] } {
+  const input = object(value, ['version', 'events']);
+  if (input.version !== 1 || !Array.isArray(input.events) || input.events.length > 256) throw Error('Invalid native outcomes');
+  const events = input.events.map(value => {
+    const item = object(value, ['playerId', 'kind', 'from', 'to', 'skill']);
+    if (!id(item.playerId) || !['push', 'followUp', 'knockdown', 'prone', 'stunned', 'knockedOut', 'removed', 'dead', 'standing'].includes(String(item.kind))
+      || item.skill !== null && !id(item.skill)) throw Error('Invalid native player outcome');
+    return { ...item, from: item.from === null ? null : square(item.from), to: item.to === null ? null : square(item.to) } as LogOutcome;
+  });
+  return { version: 1, events };
+}
