@@ -8,14 +8,15 @@ import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts
 const url = option('--url');
 const origin = option('--origin');
 const tokenFile = option('--service-token-file', false);
-const maxMatches = Number(option('--max-matches', false) ?? 32);
+// The server admits sixteen sockets total, including coaches, spectators and this dispatcher.
+const maxMatches = Number(option('--max-matches', false) ?? 4);
 const refreshMs = Number(option('--refresh-ms', false) ?? 30000);
 if (!url || !origin || !['ws:', 'wss:'].includes(new URL(url).protocol)
   || new URL(url).pathname !== '/browser/v2' || new URL(url).search || new URL(url).hash
   || !/^https?:\/\/[^/]+$/.test(origin) || (!tokenFile && !process.env.FFB_COMPUTER_SERVICE_TOKEN)
   || !Number.isInteger(maxMatches) || maxMatches < 1 || maxMatches > 64
   || !Number.isInteger(refreshMs) || refreshMs < 1000 || refreshMs > 300000) {
-  console.error('Usage: node src/daemon.mjs --url <ws(s)://host/browser/v2> --origin <allowed origin> --service-token-file <path> [--max-matches 32] [--refresh-ms 30000]');
+  console.error('Usage: node src/daemon.mjs --url <ws(s)://host/browser/v2> --origin <allowed origin> --service-token-file <path> [--max-matches 4] [--refresh-ms 30000]');
   process.exit(2);
 }
 

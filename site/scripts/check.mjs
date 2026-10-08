@@ -18,6 +18,7 @@ const required = [
   'src/assets/updates.js',
   'updates.json',
   'src/assets/auth-client.js',
+  'src/assets/account-menu.js',
   'src/assets/play.js',
   'src/assets/teambuilder.js'
 ];
