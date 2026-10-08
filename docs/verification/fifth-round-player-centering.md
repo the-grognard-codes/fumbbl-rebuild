@@ -14,6 +14,7 @@ Validation:
 - The strict asset check validates 177 delivered game files, catalog geometry, bounded reviewed anchors and exact delivery hashes. The historical export helper refuses to overwrite promoted schema-2 anchors.
 - TypeScript and the static site build pass.
 - The projected-pitch browser journey passes in both coach views at 30/40/50 degrees and top-down, including pan, zoom, canonical input, shadows beneath rendered feet and missing-art token shadows. The same run verifies 48 stadium/camera combinations and existing motion behavior.
+- Native ordinary/chain-push artwork journeys pass with the revised body-anchor contract, preserving canonical positions and native prone transitions.
 - Native transcript playback rendering passes, including ordered movement, ball pickup/movement, reconnect, reduced motion, replay seek and required prompts.
 - Native-size and enlarged contact sheets and actual pitch captures were inspected. This is a placement correction, not approval of new artwork or a change to native game rules.
 
