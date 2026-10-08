@@ -43,6 +43,7 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       export function isSignInWithEmailLink(){return false;} export async function signInWithEmailLink(){}
     ` }));
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.evaluate(() => document.fonts.ready);
     const menu = page.locator('.account-menu');
     const summary = page.getByLabel('My account', { exact: true });
     await summary.waitFor();
@@ -105,6 +106,7 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       for (const route of routes) {
         await page.goto(`http://127.0.0.1:${server.address().port}${route}`);
         await page.getByLabel('My account', { exact: true }).waitFor();
+        await page.evaluate(() => document.fonts.ready);
         const header = page.locator('.site-header');
         assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
         const logo = header.getByRole('img', { name: 'Moles Under the Pitch', exact: true });
@@ -143,15 +145,35 @@ test('shared navigation and account disclosure stay consistent across pages, hig
       await page.setViewportSize({ width, height: 330 });
       await page.goto(`http://127.0.0.1:${server.address().port}/`);
       await page.getByLabel('My account', { exact: true }).click();
+      await page.evaluate(() => document.fonts.ready);
       const options = await page.locator('.account-options').boundingBox();
-      assert.ok(options.y >= 0 && options.y + options.height <= 330, 'account options fit a short viewport');
+      assert.ok(options.y >= 0 && options.y + options.height <= 330, `account options fit a short ${width}px viewport: ${JSON.stringify(options)}`);
       const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
       await signOut.scrollIntoViewIfNeeded();
       const action = await signOut.boundingBox();
       assert.ok(action.y >= options.y && action.y + action.height <= options.y + options.height, 'Sign out scrolls into view inside the disclosure');
       assert.equal(await page.evaluate(() => scrollY), 0, 'reaching Sign out leaves the page and top bar in place');
+      if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR)
+        await page.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, `account-short-${width}.png`) });
       await signOut.click();
       assert.equal(await page.locator('.account-menu').getAttribute('open'), null);
+    }
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => scrollTo(0, 64));
+    await page.getByLabel('My account', { exact: true }).click();
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const scrolledOptions = await page.locator('.account-options').boundingBox();
+    assert.ok(scrolledOptions.y >= 0 && scrolledOptions.y + scrolledOptions.height <= 330,
+      `account options still fit after scrolling the open menu: ${JSON.stringify(scrolledOptions)}`);
+    for (const width of [400, 1224, 360]) {
+      await page.setViewportSize({ width, height: 330 });
+      await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+      const resizedOptions = await page.locator('.account-options').boundingBox();
+      assert.ok(resizedOptions.y >= 0 && resizedOptions.y + resizedOptions.height <= 330,
+        `account options fit after resizing the open menu to ${width}px: ${JSON.stringify(resizedOptions)}`);
     }
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
