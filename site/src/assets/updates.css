@@ -27,7 +27,6 @@
 .update-entry > p { margin: 0; color: #d1e1ec; font-size: .95rem; }
 .updates-empty { margin: 1rem 0; padding: 2rem 1rem; background: #101c2b; border: 1px dashed #40637e; text-align: center; }
 .updates-empty h2 { margin-top: 0; }.updates-empty p { color: #a9c8da; }
-.updates-site-header .brand img { display: block; width: min(100%, 18rem); height: auto; }
 @media (max-width: 640px) {
   .updates-page { padding-top: 1.75rem; }
   .updates-tools { grid-template-columns: 1fr; padding: 1rem; }

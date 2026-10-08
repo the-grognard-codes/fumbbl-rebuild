@@ -224,7 +224,7 @@ test('hosted final decision leads to participant result and read-only replay aft
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
         const ribbon = document.querySelector('.match-command-bar')?.getBoundingClientRect();
-        const commit = document.querySelector('.match-command-bar .commit-action')?.getBoundingClientRect();
+        const commit = document.querySelector('.confirmation-row .commit-action')?.getBoundingClientRect();
         return pitch && bench && ribbon && commit && pitch.top >= 0 && pitch.bottom <= innerHeight && bench.bottom <= innerHeight
           && commit.bottom <= ribbon.bottom && ribbon.bottom <= innerHeight
           && document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight;
@@ -233,7 +233,7 @@ test('hosted final decision leads to participant result and read-only replay aft
         const pitch = document.querySelector('.live-pitch-scene')?.getBoundingClientRect();
         const bench = document.querySelector('.match-bench')?.getBoundingClientRect();
         const ribbon = document.querySelector('.match-command-bar')?.getBoundingClientRect();
-        const commit = document.querySelector('.match-command-bar .commit-action')?.getBoundingClientRect();
+        const commit = document.querySelector('.confirmation-row .commit-action')?.getBoundingClientRect();
         return { pitchTop: pitch?.top, pitchBottom: pitch?.bottom, benchBottom: bench?.bottom, ribbonBottom: ribbon?.bottom, commitBottom: commit?.bottom,
           height: innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight, width: innerWidth };
       });

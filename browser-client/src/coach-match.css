@@ -1,8 +1,8 @@
 @font-face { font-family: MUTP; src: url('/assets/game/ui/fonts/ChakraPetch-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 
 /* One camera fills the match window. The supporting HUD uses a shared alpha. */
-.play-runtime.live-match-page:has(.coach-match) { padding: 0; height: 100dvh; min-height: 0; overflow: hidden; }
-.play-runtime.live-match-page > .coach-match.hosted-match { --support-panel-opacity: 30%; --score-panel-height: 52px; --history-panel-height: 152px; --history-panel-bottom: 16px; --dugout-panel-gap: 8px; position: relative; display: block; width: 100%; height: 100%; margin: 0; padding: 0; color: #d9e9f7; font: 700 14px/1.35 MUTP, sans-serif; }
+.play-runtime.live-match-page:has(.coach-match) { padding: 0; height: 100dvh; min-height: 0; overflow: clip; }
+.play-runtime.live-match-page > .coach-match.hosted-match { --support-panel-opacity: 30%; --command-bar-left: 27%; --command-bar-width: 46%; --command-bar-bottom: 16px; --command-button-height: 54px; --score-panel-height: 52px; --history-panel-height: 152px; --history-panel-bottom: 16px; --dugout-panel-gap: 8px; position: relative; display: block; width: 100%; height: 100%; margin: 0; padding: 0; color: #d9e9f7; font: 700 14px/1.35 MUTP, sans-serif; }
 .play-runtime .coach-match.hosted-match > h2, .play-runtime .coach-match.hosted-match > [aria-label="Coach labels"], .play-runtime .coach-match.hosted-match > .match-technical-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .play-runtime .coach-match.hosted-match > .match-layout { display: block; position: absolute; inset: 0; height: 100%; margin: 0; }
 .play-runtime .coach-match.hosted-match .match-board { position: absolute; inset: 0; display: block; min-width: 0; }
@@ -85,19 +85,21 @@
 .play-runtime .coach-match.hosted-match .live-player-card-token { display: grid; place-items: center; width: 76px; height: 76px; color: #ffe17b; border: 1px solid #426c9b; }
 .play-runtime .coach-match.hosted-match .live-dugout.compact .live-dugout-zones { display: flex; flex-wrap: wrap; gap: 2px; }
 .play-runtime .coach-match.hosted-match .live-dugout-zone-summary { padding: 2px 4px; margin: 0; font: 9px MUTP,sans-serif; }
-.play-runtime .coach-match.hosted-match > .match-command-bar { position: absolute; z-index: 55; bottom: 16px; left: 27%; width: 46%; display: block; box-sizing: border-box; padding: 3px; margin: 0; border: 2px solid #426c9b; border-radius: 4px; background: #091726b8; box-shadow: inset 0 0 0 1px #142e4b; }
-.play-runtime .coach-match.hosted-match .match-command-bar .command-buttons { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
-.play-runtime .coach-match.hosted-match .command-buttons > button { height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 3px; margin: 0; border: 2px solid #355c7a; border-radius: 3px; background: #0a1828b8; box-shadow: inset 0 0 0 1px #152e46; color: #b7c9da; font: 700 13px/1.15 MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match > .match-command-bar { position: absolute; z-index: 55; bottom: var(--command-bar-bottom); left: var(--command-bar-left); width: var(--command-bar-width); display: block; box-sizing: border-box; padding: 3px; margin: 0; border: 2px solid #426c9b; border-radius: 4px; background: #091726b8; box-shadow: inset 0 0 0 1px #142e4b; }
+.play-runtime .coach-match.hosted-match .match-command-bar .command-buttons { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; margin: 0; }
+.play-runtime .coach-match.hosted-match .command-buttons > button { height: var(--command-button-height); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 3px; margin: 0; border: 2px solid #355c7a; border-radius: 3px; background: #0a1828b8; box-shadow: inset 0 0 0 1px #152e46; color: #b7c9da; font: 700 13px/1.15 MUTP,sans-serif; text-transform: uppercase; }
 .play-runtime .coach-match.hosted-match .command-buttons > button > svg { width: 25px; height: 25px; }
 .play-runtime .coach-match.hosted-match .command-buttons > button[aria-pressed=true] { border-color: #3edfff; color: #45e7ff; box-shadow: inset 0 0 0 1px #0c82a5,0 0 9px #0a6689; }
 .play-runtime .coach-match.hosted-match .command-buttons > .end-turn-action { border-color: #de9f31; color: #ffbc39; }
-.play-runtime .coach-match.hosted-match .command-heading { position: absolute; bottom: calc(100% + 54px); left: 0; right: 0; display: flex; justify-content: center; gap: 5px; text-align: center; font: 12px MUTP,sans-serif; text-shadow: 1px 2px #081522; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .command-heading { position: absolute; bottom: calc(100% + 86px); left: 0; right: 0; display: flex; justify-content: center; gap: 5px; text-align: center; font: 12px MUTP,sans-serif; text-shadow: 1px 2px #081522; pointer-events: none; }
 .play-runtime .coach-match.hosted-match .command-heading > strong { display: none; }
-.play-runtime .coach-match.hosted-match .confirmation-row { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-.play-runtime .coach-match.hosted-match .confirmation-row .commit-action { display: flex; align-items: center; gap: 7px; min-height: 0; height: auto; margin: 0; padding: 1px 14px; color: #45e7ff; border: 2px solid #3edfff; background: #091726db; font: 700 15px MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match .confirmation-row { position: absolute; z-index: 70; pointer-events: none; bottom: calc(var(--command-bar-bottom) + var(--command-button-height) + 18px); left: var(--command-bar-left); width: var(--command-bar-width); display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: end; gap: 5px; }
+.play-runtime .coach-match.hosted-match .confirmation-row .commit-action { grid-column: 2; pointer-events: auto; transform: none; display: flex; align-items: center; gap: 7px; min-height: 0; height: auto; margin: 0; padding: 1px 14px; color: #45e7ff; border: 2px solid #3edfff; background: #091726db; font: 700 15px MUTP,sans-serif; text-transform: uppercase; }
+.play-runtime .coach-match.hosted-match .confirmation-row .secondary { grid-column: 3; pointer-events: auto; justify-self: start; max-width: 100%; margin: 0; padding: 2px 5px; white-space: normal; font: 700 11px MUTP,sans-serif; }
 .play-runtime .coach-match.hosted-match .confirmation-row .commit-action > svg { width: 22px; height: 22px; }
-.play-runtime .coach-match.hosted-match .command-preview { display: block; min-height: 0; font-size: 11px; text-align: center; color: #ffe17b; }
+.play-runtime .coach-match.hosted-match .command-preview { position: absolute; bottom: calc(100% + 46px); left: 0; right: 0; max-height: 36px; overflow: auto; margin: 0; display: block; min-height: 0; font-size: 11px; text-align: center; color: #ffe17b; }
 .play-runtime .coach-match.hosted-match .command-preview:empty { display: none; }
+.play-runtime .coach-match.hosted-match > .match-command-bar:empty { display: none; }
 .play-runtime .coach-match.hosted-match .command-menu { position: absolute; bottom: calc(100% + 78px); left: 0; right: 0; z-index: 56; max-height: min(310px,40dvh); overflow: auto; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; padding: 6px; border: 2px solid #426c9b; border-radius: 4px; background: #091726eb; }
 .play-runtime .coach-match.hosted-match .command-menu > button { min-height: 48px; height: auto; white-space: normal; margin: 0; padding: 5px; font: 700 12px MUTP,sans-serif; border-color: #355c7a; }
 .play-runtime .coach-match.hosted-match .action-text-companion { grid-column: 1 / -1; font: 13px system-ui,sans-serif; }
@@ -154,7 +156,7 @@
 .play-runtime .coach-match.hosted-match .match-command-bar:has(.route-controls) { z-index: 70; }
 
 @media (max-width: 900px) {
-  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 10px; --history-panel-height: 136px; }
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 10px; --history-panel-height: 136px; --command-bar-left: 26%; --command-bar-width: 48%; --command-bar-bottom: 10px; --command-button-height: 48px; }
   .play-runtime .coach-match.hosted-match .coach-score-center { left: 20%; width: 60%; grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr); }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate { padding: 4px; gap: 4px; }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate strong { font-size: 13px; }
@@ -168,13 +170,12 @@
   .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 20%; }
   .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 20%; }
   .play-runtime .coach-match.hosted-match .live-camera-controls { top: 118px; max-width: 55%; }
-  .play-runtime .coach-match.hosted-match > .match-command-bar { left: 26%; width: 48%; bottom: 10px; }
-  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 48px; font-size: 10px; }
+  .play-runtime .coach-match.hosted-match .command-buttons > button { font-size: 10px; }
   .play-runtime .coach-match.hosted-match .match-history > section { width: 24%; padding: 3px 5px; }
   .play-runtime .coach-match.hosted-match .live-player-hover.dock-left, .play-runtime .coach-match.hosted-match .live-player-hover.dock-right { bottom: 156px; width: 32%; }
 }
 @media (max-width: 600px) {
-  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 146px; --history-panel-height: 95px; }
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-bottom: 146px; --history-panel-height: 95px; --command-bar-left: 10px; --command-bar-width: calc(100% - 20px); --command-bar-bottom: 9px; }
   .play-runtime .coach-match.hosted-match .coach-score-center { left: 17%; width: 66%; grid-template-columns: minmax(0,1fr) 42px minmax(0,1fr); }
   .play-runtime .coach-match.hosted-match .coach-score { font-size: 22px; gap: 3px; }
   .play-runtime .coach-match.hosted-match .coach-score-center .live-team-nameplate .match-art { display: none; }
@@ -197,7 +198,6 @@
   .play-runtime .coach-match.hosted-match .live-camera-controls { top: 109px; max-width: 50%; }
   .play-runtime .coach-match.hosted-match .live-camera-controls button { font-size: 9px; }
   .play-runtime .coach-match.hosted-match .live-dugout { width: 44%; }
-  .play-runtime .coach-match.hosted-match > .match-command-bar { left: 10px; right: 10px; width: auto; bottom: 9px; }
   .play-runtime .coach-match.hosted-match .match-history > section { width: 45%; }
   .play-runtime .coach-match.hosted-match .match-history-chat { left: 10px; }
   .play-runtime .coach-match.hosted-match .match-history-log { right: 10px; }
@@ -228,10 +228,9 @@
   .play-runtime .coach-match.hosted-match .live-player-card-main { grid-template-columns: 50px minmax(0,1fr); }
 }
 @media (max-height: 480px) and (max-width: 600px) {
-  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-height: 32px; --history-panel-bottom: 80px; }
+  .play-runtime.live-match-page > .coach-match.hosted-match { --history-panel-height: 32px; --history-panel-bottom: 80px; --command-button-height: 44px; }
   .play-runtime .coach-match.hosted-match .command-heading { display: none; }
   .play-runtime .coach-match.hosted-match .command-buttons { margin: 0; }
-  .play-runtime .coach-match.hosted-match .command-buttons > button { height: 44px; }
   .play-runtime .coach-match.hosted-match .command-preview { position: absolute; bottom: calc(100% + 50px); left: 0; right: 0; max-height: 36px; overflow: auto; background: #091726eb; }
   .play-runtime .coach-match.hosted-match .live-dugout { max-height: 40px; }
   .play-runtime .coach-match.hosted-match .match-history > section { overflow: auto; }

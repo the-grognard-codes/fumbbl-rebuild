@@ -133,7 +133,7 @@ test('start defaults to the current tab and supports explicit windows with block
       const setupBounds = await starterMatch.evaluate(() => {
         const side = document.querySelector('.match-side')?.getBoundingClientRect();
         const placement = document.querySelector('[aria-label="Placement controls"]');
-        const confirmation = document.querySelector('.match-command-bar .commit-action');
+        const confirmation = document.querySelector('.confirmation-row .commit-action');
         const confirm = confirmation?.getBoundingClientRect();
         return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight,
           confirmText: confirmation?.textContent?.trim(),
@@ -251,7 +251,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play`);
       await page.getByLabel('Match ID', { exact: true }).waitFor();
-      if (index === 2) { await page.getByRole('link', { name: 'Spectate', exact: true }).click(); await page.getByRole('link', { name: /Watch Home vs Away/ }).click(); }
+      if (index === 2) { await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Spectate', exact: true }).click(); await page.getByRole('link', { name: /Watch Home vs Away/ }).click(); }
       else { await page.getByLabel('Match ID', { exact: true }).fill(matchId); await page.getByRole('button', { name: 'Resume play', exact: true }).click(); }
       await openGrid(page);
       assert.equal(new URL(page.url()).pathname, '/play/match');
@@ -264,8 +264,9 @@ test('two players and spectator use one board; updates, read-only controls and r
         ['Home: You / Away: Opponent', 'Home: Opponent / Away: You', 'Home / Away'][index]);
       assert.equal(await page.getByLabel('Live match pitch').locator('.live-marker img').count(), 2);
       assert.equal(await page.evaluate(() => window.__projectionExecuted === true), false);
-      const text = await page.locator('body').innerText();
+      const text = await page.locator('main.play-runtime').innerText();
       assert.ok(privateSentinels.every(value => !text.includes(value)));
+      assert.equal(await page.locator('.account-identity').textContent(), 'private-email@example.invalid', 'only the authenticated header shows the caller identity');
     }
     if (process.env.M5C_SCREENSHOT_DIR) {
       await mkdir(process.env.M5C_SCREENSHOT_DIR, { recursive: true });
@@ -283,7 +284,7 @@ test('two players and spectator use one board; updates, read-only controls and r
       await pages[0].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'actor-crowded.png') });
       await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, 'spectator-crowded.png') });
     }
-    for (const [width, height] of [[1920, 1080], [1920, 900], [1920, 820], [1280, 660]]) {
+    for (const [width, height] of [[1920, 1080], [1920, 900], [1920, 820], [1280, 660], [1224, 330], [360, 800]]) {
       await pages[2].setViewportSize({ width, height });
       await pages[2].waitForFunction(() => {
         const scene = document.querySelector('.live-pitch-scene');
@@ -300,6 +301,13 @@ test('two players and spectator use one board; updates, read-only controls and r
       if (process.env.M5C_SCREENSHOT_DIR) await pages[2].screenshot({ path: resolve(process.env.M5C_SCREENSHOT_DIR, `spectator-crowded-${width}x${height}.png`) });
       assert.equal(await pages[2].evaluate(() => document.documentElement.scrollHeight <= innerHeight), true,
         `Crowded match must fit a ${width}x${height} viewport`);
+      const header = await pages[2].locator('.site-header').boundingBox();
+      const pitch = await pages[2].getByLabel('Live match pitch').boundingBox();
+      assert.ok(header.y >= 0 && header.y + header.height <= pitch.y, 'the match leaves room for the top bar');
+      await pages[2].getByRole('button', { name: 'Game Menu', exact: true }).click();
+      const dialog = await pages[2].getByRole('dialog', { name: 'Game Menu', exact: true }).boundingBox();
+      assert.ok(dialog.y >= header.y + header.height && dialog.y + dialog.height <= height, 'Game Menu stays within the remaining match area');
+      await pages[2].getByRole('button', { name: 'Close Game Menu' }).click();
     }
     assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
     assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);

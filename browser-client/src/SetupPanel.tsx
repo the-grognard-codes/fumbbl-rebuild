@@ -270,6 +270,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const decision = hosted ? withProTest(matchDecision(view, availableActions), logRecords, view.revision) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
+  const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
+    : !kickoff && !kickoffMovement && availableActions.length > 0;
   const gameStep = currentGameStep(pitchView);
   const pitchActions = kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions;
@@ -564,8 +566,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
+      {hosted && showConfirmation && <div className="confirmation-row">
+        <button type="button" className="commit-action" onClick={commit} disabled={view.phase === 'SETUP' ? !maySetup : routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
+        {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
+      </div>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
-        {view.phase === 'SETUP' ? view.actor === view.callerRole ? <div className="setup-confirmation"><div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={!maySetup}><ActionGlyph kind="confirm"/>Confirmed!</button></div></div> : null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
+        {view.phase === 'SETUP' ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
           <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
           <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
             aria-pressed={selected} disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}</div>
@@ -588,8 +594,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" aria-expanded={moreOpen} disabled={!canChoose} onClick={() => setMoreOpen(!moreOpen)}><ActionGlyph kind="other"/>Other action</button>
           <button type="button" className="end-turn-action" onClick={useEndTurn} disabled={!canChoose || !endTurnAction}><ActionGlyph kind="end"/>End Turn</button>
         </div>
-        <div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
-          {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}</div>
         {moreOpen && <div className="command-menu" aria-label="Additional actions">
           {additionalActions.map(action => <button key={action.id} type="button" disabled={!canChoose} onClick={() => selectMore(action)}>{shortActionLabel(action, view, playerId)}</button>)}
           {canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setSmartIntent(null); setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); setMoreOpen(false); }}>Plan path</button>}
