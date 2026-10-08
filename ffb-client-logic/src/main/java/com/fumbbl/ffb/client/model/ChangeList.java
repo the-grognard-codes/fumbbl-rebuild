@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Local game setup provisions its current-games index and reserves browser connections when computer matches are queued")
+			.addFeature("Moles Under the Pitch headers show an account menu with signed-in email, Sign in and Sign out")
 			.addBugfix("Local computer match clients run without opening extra console windows on Windows")
 			.addImprovement("Local development startup includes Coach Bugman's computer player service")
 			.addImprovement("Browser stadiums assemble matching wall, corner and packed Human/Orc crowd pieces, with occasional random section gestures and two locker-room entrances")

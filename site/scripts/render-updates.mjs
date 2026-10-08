@@ -32,7 +32,7 @@ export function renderUpdatesPage(entries) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Brief updates for every merged Moles Under the Pitch pull request, covering gameplay, design and project development.">
   <title>Updates · Moles Under the Pitch</title>
-  <link rel="stylesheet" href="/assets/site.css?v=20261006-2">
+  <link rel="stylesheet" href="/assets/site.css?v=20261008-1">
   <link rel="stylesheet" href="/assets/updates.css">
 </head>
 <body>
@@ -57,6 +57,8 @@ ${articles}
   </main>
   <footer><span>© 2026 Moles Under the Pitch</span><a href="/privacy">Privacy</a><a href="/support">Support</a></footer>
   <script type="module" src="/assets/updates.js"></script>
+  <script src="/firebase-web-config.js"></script>
+  <script type="module" src="/assets/account-menu.js"></script>
 </body>
 </html>
 `;
