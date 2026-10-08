@@ -60,6 +60,9 @@ def make_preview(pack, roles, zoom):
 def build(root, team):
     roles = ROLES[team]
     pack = root / "teams" / team / "poses" / "coach-oriented-v1"
+    existing = pack / "catalog.json"
+    if existing.exists() and json.loads(existing.read_text(encoding="utf-8")).get("anchorVersion") == 2:
+        raise ValueError("Reviewed body anchors are already promoted; build and review a new pack instead of overwriting them")
     exported = pack / "source" / "export-v2"
     manifest = json.loads((exported / "manifest.json").read_text(encoding="utf-8-sig"))
     entries = {entry["id"]: entry for entry in manifest["players"]}

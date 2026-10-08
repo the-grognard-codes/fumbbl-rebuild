@@ -24,6 +24,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32,
               "y": 35
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 35
             }
           },
           "back": {
@@ -43,6 +47,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32,
               "y": 34.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 34.5
             }
           },
           "front45": {
@@ -56,11 +64,15 @@ export const playerArtCatalog = {
               "height": 55
             },
             "footAnchor": {
-              "x": 32,
+              "x": 34,
               "y": 62
             },
             "groundAnchor": {
               "x": 32.5,
+              "y": 34.5
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 34.5
             }
           },
@@ -75,11 +87,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 34,
               "y": 62
             },
             "groundAnchor": {
               "x": 37,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 32.5
             }
           },
@@ -94,11 +110,15 @@ export const playerArtCatalog = {
               "height": 57
             },
             "footAnchor": {
-              "x": 32,
+              "x": 29,
               "y": 61
             },
             "groundAnchor": {
               "x": 31.5,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 29,
               "y": 32.5
             }
           },
@@ -119,6 +139,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 42
+            },
+            "bodyAnchor": {
+              "x": 31,
+              "y": 42
             }
           },
           "stunned": {
@@ -136,6 +160,10 @@ export const playerArtCatalog = {
               "y": 62
             },
             "groundAnchor": {
+              "x": 33.5,
+              "y": 42.5
+            },
+            "bodyAnchor": {
               "x": 33.5,
               "y": 42.5
             }
@@ -167,10 +195,14 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 62
             },
             "groundAnchor": {
+              "x": 30,
+              "y": 33
+            },
+            "bodyAnchor": {
               "x": 30,
               "y": 33
             }
@@ -192,6 +224,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31.5,
               "y": 33
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33
             }
           },
           "front45": {
@@ -210,6 +246,10 @@ export const playerArtCatalog = {
             },
             "groundAnchor": {
               "x": 30.5,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 32,
               "y": 32.5
             }
           },
@@ -230,6 +270,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 34,
               "y": 33
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33
             }
           },
           "side": {
@@ -243,11 +287,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 27,
               "y": 62
             },
             "groundAnchor": {
               "x": 31.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 27,
               "y": 33
             }
           },
@@ -268,6 +316,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 30.5,
               "y": 44
+            },
+            "bodyAnchor": {
+              "x": 30.5,
+              "y": 44
             }
           },
           "stunned": {
@@ -285,6 +337,10 @@ export const playerArtCatalog = {
               "y": 59
             },
             "groundAnchor": {
+              "x": 31.5,
+              "y": 41.5
+            },
+            "bodyAnchor": {
               "x": 31.5,
               "y": 41.5
             }
@@ -322,6 +378,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32,
               "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33.5
             }
           },
           "back": {
@@ -335,10 +395,14 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 33,
               "y": 63
             },
             "groundAnchor": {
+              "x": 33,
+              "y": 33.5
+            },
+            "bodyAnchor": {
               "x": 33,
               "y": 33.5
             }
@@ -354,11 +418,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 63
             },
             "groundAnchor": {
               "x": 32.5,
+              "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 30,
               "y": 33.5
             }
           },
@@ -373,11 +441,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 63
             },
             "groundAnchor": {
               "x": 34.5,
+              "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 30,
               "y": 33.5
             }
           },
@@ -392,11 +464,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 28,
               "y": 63
             },
             "groundAnchor": {
               "x": 32,
+              "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 28,
               "y": 33.5
             }
           },
@@ -417,6 +493,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32,
               "y": 39.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 39.5
             }
           },
           "stunned": {
@@ -434,6 +514,10 @@ export const playerArtCatalog = {
               "y": 62
             },
             "groundAnchor": {
+              "x": 32,
+              "y": 41
+            },
+            "bodyAnchor": {
               "x": 32,
               "y": 41
             }
@@ -471,6 +555,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 27,
               "y": 33
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33
             }
           },
           "back": {
@@ -490,6 +578,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 35,
               "y": 33
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33
             }
           },
           "front45": {
@@ -503,11 +595,15 @@ export const playerArtCatalog = {
               "height": 57
             },
             "footAnchor": {
-              "x": 32,
+              "x": 31,
               "y": 62
             },
             "groundAnchor": {
               "x": 30,
+              "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 31,
               "y": 33.5
             }
           },
@@ -522,11 +618,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 34,
               "y": 62
             },
             "groundAnchor": {
               "x": 34.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 33
             }
           },
@@ -541,11 +641,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 29,
               "y": 62
             },
             "groundAnchor": {
               "x": 29.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 29,
               "y": 33
             }
           },
@@ -566,6 +670,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32,
               "y": 38
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 38
             }
           },
           "stunned": {
@@ -583,6 +691,10 @@ export const playerArtCatalog = {
               "y": 62
             },
             "groundAnchor": {
+              "x": 32.5,
+              "y": 42
+            },
+            "bodyAnchor": {
               "x": 32.5,
               "y": 42
             }
@@ -620,6 +732,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 40,
               "y": 42.5
+            },
+            "bodyAnchor": {
+              "x": 40,
+              "y": 42.5
             }
           },
           "back": {
@@ -637,6 +753,10 @@ export const playerArtCatalog = {
               "y": 77
             },
             "groundAnchor": {
+              "x": 40,
+              "y": 42
+            },
+            "bodyAnchor": {
               "x": 40,
               "y": 42
             }
@@ -658,6 +778,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 40.5,
               "y": 41
+            },
+            "bodyAnchor": {
+              "x": 40,
+              "y": 41
             }
           },
           "back45": {
@@ -671,11 +795,15 @@ export const playerArtCatalog = {
               "height": 74
             },
             "footAnchor": {
-              "x": 40,
+              "x": 41,
               "y": 78
             },
             "groundAnchor": {
               "x": 43,
+              "y": 41
+            },
+            "bodyAnchor": {
+              "x": 41,
               "y": 41
             }
           },
@@ -690,11 +818,15 @@ export const playerArtCatalog = {
               "height": 74
             },
             "footAnchor": {
-              "x": 40,
+              "x": 35,
               "y": 78
             },
             "groundAnchor": {
               "x": 39.5,
+              "y": 41
+            },
+            "bodyAnchor": {
+              "x": 35,
               "y": 41
             }
           },
@@ -715,6 +847,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 39,
               "y": 47
+            },
+            "bodyAnchor": {
+              "x": 39,
+              "y": 47
             }
           },
           "stunned": {
@@ -732,6 +868,10 @@ export const playerArtCatalog = {
               "y": 75
             },
             "groundAnchor": {
+              "x": 39.5,
+              "y": 53
+            },
+            "bodyAnchor": {
               "x": 39.5,
               "y": 53
             }
@@ -769,6 +909,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 41.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 41.5
             }
           },
           "back": {
@@ -787,6 +931,10 @@ export const playerArtCatalog = {
             },
             "groundAnchor": {
               "x": 33,
+              "y": 41
+            },
+            "bodyAnchor": {
+              "x": 32,
               "y": 41
             }
           },
@@ -807,6 +955,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32.5,
               "y": 41.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 41.5
             }
           },
           "back45": {
@@ -820,11 +972,15 @@ export const playerArtCatalog = {
               "height": 45
             },
             "footAnchor": {
-              "x": 32,
+              "x": 33,
               "y": 62
             },
             "groundAnchor": {
               "x": 34,
+              "y": 39.5
+            },
+            "bodyAnchor": {
+              "x": 33,
               "y": 39.5
             }
           },
@@ -845,6 +1001,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 40
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 40
             }
           },
           "prone": {
@@ -862,6 +1022,10 @@ export const playerArtCatalog = {
               "y": 56
             },
             "groundAnchor": {
+              "x": 32.5,
+              "y": 41.5
+            },
+            "bodyAnchor": {
               "x": 32.5,
               "y": 41.5
             }
@@ -883,6 +1047,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 32.5,
               "y": 48.5
+            },
+            "bodyAnchor": {
+              "x": 32.5,
+              "y": 48.5
             }
           }
         },
@@ -898,7 +1066,8 @@ export const playerArtCatalog = {
           }
         }
       }
-    }
+    },
+    "anchorVersion": 2
   },
   "orc": {
     "version": "coach-oriented-v1",
@@ -918,11 +1087,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 61
             },
             "groundAnchor": {
               "x": 28.5,
+              "y": 32
+            },
+            "bodyAnchor": {
+              "x": 30,
               "y": 32
             }
           },
@@ -937,11 +1110,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 34,
               "y": 61
             },
             "groundAnchor": {
               "x": 34.5,
+              "y": 32
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 32
             }
           },
@@ -956,11 +1133,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 62
             },
             "groundAnchor": {
               "x": 30.5,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 30,
               "y": 32.5
             }
           },
@@ -975,11 +1156,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 34,
               "y": 62
             },
             "groundAnchor": {
               "x": 38.5,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 32.5
             }
           },
@@ -994,11 +1179,15 @@ export const playerArtCatalog = {
               "height": 57
             },
             "footAnchor": {
-              "x": 32,
+              "x": 25,
               "y": 61
             },
             "groundAnchor": {
               "x": 24,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 25,
               "y": 32.5
             }
           },
@@ -1019,6 +1208,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 30.5,
               "y": 42.5
+            },
+            "bodyAnchor": {
+              "x": 30.5,
+              "y": 42.5
             }
           },
           "stunned": {
@@ -1036,6 +1229,10 @@ export const playerArtCatalog = {
               "y": 62
             },
             "groundAnchor": {
+              "x": 32.5,
+              "y": 41.5
+            },
+            "bodyAnchor": {
               "x": 32.5,
               "y": 41.5
             }
@@ -1067,11 +1264,15 @@ export const playerArtCatalog = {
               "height": 52
             },
             "footAnchor": {
-              "x": 32,
+              "x": 31,
               "y": 61
             },
             "groundAnchor": {
               "x": 30.5,
+              "y": 35
+            },
+            "bodyAnchor": {
+              "x": 31,
               "y": 35
             }
           },
@@ -1090,6 +1291,10 @@ export const playerArtCatalog = {
               "y": 61
             },
             "groundAnchor": {
+              "x": 32,
+              "y": 33
+            },
+            "bodyAnchor": {
               "x": 32,
               "y": 33
             }
@@ -1111,6 +1316,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 34.5,
               "y": 35
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 35
             }
           },
           "back45": {
@@ -1130,6 +1339,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 33.5,
               "y": 34
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 34
             }
           },
           "side": {
@@ -1143,11 +1356,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 29,
               "y": 62
             },
             "groundAnchor": {
               "x": 31.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 29,
               "y": 33
             }
           },
@@ -1168,6 +1385,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 35
+            },
+            "bodyAnchor": {
+              "x": 31,
+              "y": 35
             }
           },
           "stunned": {
@@ -1185,6 +1406,10 @@ export const playerArtCatalog = {
               "y": 55
             },
             "groundAnchor": {
+              "x": 33,
+              "y": 37.5
+            },
+            "bodyAnchor": {
               "x": 33,
               "y": 37.5
             }
@@ -1216,11 +1441,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 30,
               "y": 62
             },
             "groundAnchor": {
               "x": 29.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 30,
               "y": 33
             }
           },
@@ -1241,6 +1470,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31.5,
               "y": 33
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33
             }
           },
           "front45": {
@@ -1260,6 +1493,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 30.5,
               "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 33.5
             }
           },
           "back45": {
@@ -1273,11 +1510,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 33,
               "y": 62
             },
             "groundAnchor": {
               "x": 35.5,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 33,
               "y": 33
             }
           },
@@ -1292,11 +1533,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 31,
               "y": 62
             },
             "groundAnchor": {
               "x": 30,
+              "y": 33
+            },
+            "bodyAnchor": {
+              "x": 31,
               "y": 33
             }
           },
@@ -1317,6 +1562,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 41
+            },
+            "bodyAnchor": {
+              "x": 31,
+              "y": 41
             }
           },
           "stunned": {
@@ -1334,6 +1583,10 @@ export const playerArtCatalog = {
               "y": 60
             },
             "groundAnchor": {
+              "x": 32,
+              "y": 40
+            },
+            "bodyAnchor": {
               "x": 32,
               "y": 40
             }
@@ -1365,11 +1618,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 29,
               "y": 63
             },
             "groundAnchor": {
               "x": 27,
+              "y": 33.5
+            },
+            "bodyAnchor": {
+              "x": 29,
               "y": 33.5
             }
           },
@@ -1384,10 +1641,14 @@ export const playerArtCatalog = {
               "height": 60
             },
             "footAnchor": {
-              "x": 32,
+              "x": 27,
               "y": 63
             },
             "groundAnchor": {
+              "x": 27,
+              "y": 33
+            },
+            "bodyAnchor": {
               "x": 27,
               "y": 33
             }
@@ -1403,11 +1664,15 @@ export const playerArtCatalog = {
               "height": 58
             },
             "footAnchor": {
-              "x": 32,
+              "x": 31,
               "y": 63
             },
             "groundAnchor": {
               "x": 27.5,
+              "y": 34
+            },
+            "bodyAnchor": {
+              "x": 31,
               "y": 34
             }
           },
@@ -1428,6 +1693,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 33,
               "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 32.5
             }
           },
           "side": {
@@ -1441,11 +1710,15 @@ export const playerArtCatalog = {
               "height": 59
             },
             "footAnchor": {
-              "x": 32,
+              "x": 31,
               "y": 62
             },
             "groundAnchor": {
               "x": 29,
+              "y": 32.5
+            },
+            "bodyAnchor": {
+              "x": 31,
               "y": 32.5
             }
           },
@@ -1466,6 +1739,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 30.5,
               "y": 41.5
+            },
+            "bodyAnchor": {
+              "x": 30.5,
+              "y": 41.5
             }
           },
           "stunned": {
@@ -1483,6 +1760,10 @@ export const playerArtCatalog = {
               "y": 63
             },
             "groundAnchor": {
+              "x": 31.5,
+              "y": 42.5
+            },
+            "bodyAnchor": {
               "x": 31.5,
               "y": 42.5
             }
@@ -1520,6 +1801,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 39.5,
               "y": 41
+            },
+            "bodyAnchor": {
+              "x": 40,
+              "y": 41
             }
           },
           "back": {
@@ -1538,6 +1823,10 @@ export const playerArtCatalog = {
             },
             "groundAnchor": {
               "x": 40.5,
+              "y": 39
+            },
+            "bodyAnchor": {
+              "x": 40,
               "y": 39
             }
           },
@@ -1558,6 +1847,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 39.5,
               "y": 40
+            },
+            "bodyAnchor": {
+              "x": 40,
+              "y": 40
             }
           },
           "back45": {
@@ -1571,11 +1864,15 @@ export const playerArtCatalog = {
               "height": 72
             },
             "footAnchor": {
-              "x": 40,
+              "x": 39,
               "y": 77
             },
             "groundAnchor": {
               "x": 40,
+              "y": 41
+            },
+            "bodyAnchor": {
+              "x": 39,
               "y": 41
             }
           },
@@ -1590,11 +1887,15 @@ export const playerArtCatalog = {
               "height": 75
             },
             "footAnchor": {
-              "x": 40,
+              "x": 34,
               "y": 79
             },
             "groundAnchor": {
               "x": 40,
+              "y": 41.5
+            },
+            "bodyAnchor": {
+              "x": 34,
               "y": 41.5
             }
           },
@@ -1615,6 +1916,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 39.5,
               "y": 47
+            },
+            "bodyAnchor": {
+              "x": 39.5,
+              "y": 47
             }
           },
           "stunned": {
@@ -1632,6 +1937,10 @@ export const playerArtCatalog = {
               "y": 69
             },
             "groundAnchor": {
+              "x": 38.5,
+              "y": 47
+            },
+            "bodyAnchor": {
               "x": 38.5,
               "y": 47
             }
@@ -1663,10 +1972,14 @@ export const playerArtCatalog = {
               "height": 41
             },
             "footAnchor": {
-              "x": 32,
+              "x": 33,
               "y": 63
             },
             "groundAnchor": {
+              "x": 33,
+              "y": 42.5
+            },
+            "bodyAnchor": {
               "x": 33,
               "y": 42.5
             }
@@ -1688,6 +2001,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31,
               "y": 41.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 41.5
             }
           },
           "front45": {
@@ -1706,6 +2023,10 @@ export const playerArtCatalog = {
             },
             "groundAnchor": {
               "x": 33.5,
+              "y": 42
+            },
+            "bodyAnchor": {
+              "x": 32,
               "y": 42
             }
           },
@@ -1726,6 +2047,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 34.5,
               "y": 40.5
+            },
+            "bodyAnchor": {
+              "x": 32,
+              "y": 40.5
             }
           },
           "side": {
@@ -1739,11 +2064,15 @@ export const playerArtCatalog = {
               "height": 44
             },
             "footAnchor": {
-              "x": 32,
+              "x": 28,
               "y": 62
             },
             "groundAnchor": {
               "x": 32,
+              "y": 40
+            },
+            "bodyAnchor": {
+              "x": 28,
               "y": 40
             }
           },
@@ -1762,6 +2091,10 @@ export const playerArtCatalog = {
               "y": 62
             },
             "groundAnchor": {
+              "x": 31,
+              "y": 47.5
+            },
+            "bodyAnchor": {
               "x": 31,
               "y": 47.5
             }
@@ -1783,6 +2116,10 @@ export const playerArtCatalog = {
             "groundAnchor": {
               "x": 31.5,
               "y": 47.5
+            },
+            "bodyAnchor": {
+              "x": 31.5,
+              "y": 47.5
             }
           }
         },
@@ -1798,6 +2135,7 @@ export const playerArtCatalog = {
           }
         }
       }
-    }
+    },
+    "anchorVersion": 2
   }
 } as const;

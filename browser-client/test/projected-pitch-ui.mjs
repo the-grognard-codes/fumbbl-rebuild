@@ -33,7 +33,7 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
-    { state: { ...initial, players, callerRole: role, activePlayerId: 'human', ball: pitchOptions.ball ?? { x: 12, y: 8 },
+    { state: { ...initial, players: pitchOptions.players ?? players, callerRole: role, activePlayerId: 'human', ball: pitchOptions.ball ?? { x: 12, y: 8 },
       ballState: pitchOptions.ballState ?? { version: 1, carrierPlayerId: null, inPlay: true, moving: true },
       homeTeamArt: pitchOptions.homeTeamArt ?? initial.homeTeamArt, awayTeamArt: pitchOptions.awayTeamArt ?? initial.awayTeamArt,
       phase: typeof diceMoment === 'string' ? diceMoment : pitchOptions.phase ?? initial.phase }, dice: typeof diceMoment === 'string' ? null : diceMoment, actions: pitchOptions.actions, pinnedAction: pitchOptions.pinnedAction });
@@ -184,7 +184,7 @@ try {
     await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
     assert.equal(await scene.getAttribute('data-focus'), focus);
     assert.equal(await scene.getAttribute('data-projection'), 'top-down');
-    assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'visual-center');
+    assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'body-center');
     assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-anchor-mode'), 'ground');
     const centered = await scene.locator('.live-marker').evaluateAll(markers => markers.every(marker => {
       const x = parseFloat(marker.style.left) + parseFloat(marker.style.width) / 2;
@@ -194,9 +194,8 @@ try {
     assert.equal(centered, true, 'tactical visible bounds and ground poses center within their canonical cells');
     for (const player of players) {
       const art = resolvePlayerArt(player, { end: role, topDown: true });
-      const bounds = art.body.bounds;
       const anchor = ['prone', 'stunned'].includes(art.body.pose) ? art.body.groundAnchor
-        : { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+        : art.body.bodyAnchor;
       const offset = await scene.locator(`[data-player-id="${player.id}"]`).evaluate((marker, anchor) => {
         const image = marker.querySelector('img');
         const scale = parseFloat(image.style.width) / image.naturalWidth;
@@ -208,6 +207,18 @@ try {
           dy: top + anchor.y * scale - Number(marker.dataset.centerY) };
       }, anchor);
       assert.ok(Math.abs(offset.dx) < .04 && Math.abs(offset.dy) < .04, `visible ${player.id} artwork is centered`);
+      const contact = ['prone', 'stunned'].includes(art.body.pose) ? art.body.groundAnchor : art.body.footAnchor;
+      const shadowOffset = await scene.locator(`[data-shadow-player="${player.id}"]`).evaluate((shadow, { id, contact }) => {
+        const marker = shadow.closest('.live-pitch-scene').querySelector(`[data-player-id="${id}"]`);
+        const image = marker.querySelector('img'), surface = marker.closest('.live-pitch-scene').getBoundingClientRect();
+        const rect = image.getBoundingClientRect(), scale = rect.width / image.naturalWidth;
+        const coordinates = shadow.getAttribute('points').split(' ').map(pair => pair.split(',').map(Number));
+        const xs = coordinates.map(pair => pair[0]), ys = coordinates.map(pair => pair[1]);
+        return { dx: (Math.min(...xs) + Math.max(...xs)) / 2 - (rect.left - surface.left + contact.x * scale),
+          dy: (Math.min(...ys) + Math.max(...ys)) / 2 - (rect.top - surface.top + contact.y * scale) };
+      }, { id: player.id, contact });
+      assert.ok(Math.abs(shadowOffset.dx) < .05 && Math.abs(shadowOffset.dy) < .05, `${role} ${player.id} shadow is beneath rendered ground contact`);
+
     }
     const destination = await squarePosition(page, 10, 9);
     await scene.click({ position: destination });
@@ -408,6 +419,14 @@ try {
   assert.ok(tokenOffsets.every(offset => Math.abs(offset.dx) < .02 && Math.abs(offset.dy) < .02), `unavailable art stays centered at the canonical ground anchor: ${JSON.stringify(tokenOffsets)}`);
   await missing.locator('[data-player-id="human"]').click();
   assert.deepEqual(await missing.evaluate(() => window.intents), [{ player: 'human' }]);
+  await missing.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  const fallbackShadows = await missing.locator('[data-shadow-player]').evaluateAll(shadows => shadows.map(shadow => {
+    const marker = shadow.closest('.live-pitch-scene').querySelector(`[data-player-id="${shadow.dataset.shadowPlayer}"]`);
+    const coordinates = shadow.getAttribute('points').split(' ').map(pair => pair.split(',').map(Number));
+    return { mode: marker.dataset.anchorMode, x: (Math.min(...coordinates.map(p => p[0])) + Math.max(...coordinates.map(p => p[0]))) / 2 - Number(marker.dataset.centerX),
+      y: (Math.min(...coordinates.map(p => p[1])) + Math.max(...coordinates.map(p => p[1]))) / 2 - Number(marker.dataset.centerY) };
+  }));
+  assert.ok(fallbackShadows.every(s => s.mode === 'token' && Math.abs(s.x) < .05 && Math.abs(s.y) < .05), 'Missing-art tokens retain centered shadows in top-down view');
   await missing.close();
   assert.deepEqual(errors, []);
   const missingStadium = await open('home',false,null,{failStadium:true});

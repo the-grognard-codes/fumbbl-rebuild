@@ -20,13 +20,17 @@ async function pngVisibleBounds(path) {
 }
 
 const same = (first, second) => JSON.stringify(first) === JSON.stringify(second);
+const boundedAnchor = (anchor, bounds) => anchor && Object.keys(anchor).length === 2
+  && Number.isFinite(anchor.x) && Number.isFinite(anchor.y)
+  && anchor.x >= bounds.x && anchor.x <= bounds.x + bounds.width
+  && anchor.y >= bounds.y && anchor.y <= bounds.y + bounds.height;
 const poseNames = ['front', 'back', 'front45', 'back45', 'side', 'prone', 'stunned'];
 async function validatePosePack(rosterId, team) {
   const version = team.posePack;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(version)) throw new Error(`Invalid pose pack version: ${rosterId}`);
   const packPath = resolve(gameRoot, 'teams', rosterId, 'poses', version);
   const catalog = await readJson(resolve(packPath, 'catalog.json'));
-  if (catalog.version !== version || catalog.rosterId !== rosterId || !same(Object.keys(catalog.positions).sort(), Object.keys(team.positions).sort())) {
+  if (catalog.anchorVersion !== 2 || catalog.version !== version || catalog.rosterId !== rosterId || !same(Object.keys(catalog.positions).sort(), Object.keys(team.positions).sort())) {
     throw new Error(`Pose catalog differs from team positions: ${rosterId}`);
   }
   const expected = new Set();
@@ -44,7 +48,11 @@ async function validatePosePack(rosterId, team) {
       if (width !== canvas || height !== canvas || !same(entry.bounds, bounds) || entry.width !== width || entry.height !== height ||
           bounds.x < 1 || bounds.y < 1 || bounds.x + bounds.width >= canvas || bounds.y + bounds.height >= canvas ||
           bounds.width > maximum || bounds.height > maximum ||
-          !same(entry.footAnchor, { x: canvas / 2, y: bounds.y + bounds.height }) ||
+          !boundedAnchor(entry.footAnchor, bounds) || !boundedAnchor(entry.bodyAnchor, bounds) ||
+          entry.footAnchor.y !== bounds.y + bounds.height ||
+          entry.bodyAnchor.y !== bounds.y + bounds.height / 2 ||
+          (!['prone', 'stunned'].includes(pose) && entry.bodyAnchor.x !== entry.footAnchor.x) ||
+          (['prone', 'stunned'].includes(pose) && !same(entry.bodyAnchor, entry.groundAnchor)) ||
           !same(entry.groundAnchor, { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 })) {
         throw new Error(`Invalid pose geometry: ${rosterId}/${role}/${pose}`);
       }

@@ -5,7 +5,7 @@ export type PlayerFacing = 'north' | 'north-east' | 'east' | 'south-east' | 'sou
 type Point = { x: number; y: number };
 type Bounds = Point & { width: number; height: number };
 type ImageRecord = { file: string; width: number; height: number; bounds: Bounds };
-type BodyRecord = ImageRecord & { footAnchor: Point; groundAnchor: Point };
+type BodyRecord = ImageRecord & { bodyAnchor: Point; footAnchor: Point; groundAnchor: Point };
 type PositionRecord = { sizeClass: string; portrait: ImageRecord; poses: Record<string, BodyRecord> };
 type RosterRecord = { version: string; rosterId: string; positions: Record<string, PositionRecord> };
 
@@ -64,9 +64,20 @@ export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | '
   if (!selected) return null;
   const bounds = mirror ? { ...selected.bounds, x: selected.width - selected.bounds.x - selected.bounds.width } : selected.bounds;
   const footAnchor = mirror ? { ...selected.footAnchor, x: selected.width - selected.footAnchor.x } : selected.footAnchor;
+  const bodyAnchor = mirror ? { ...selected.bodyAnchor, x: selected.width - selected.bodyAnchor.x } : selected.bodyAnchor;
   const groundAnchor = mirror ? { ...selected.groundAnchor, x: selected.width - selected.groundAnchor.x } : selected.groundAnchor;
   return {
-    body: { ...selected, bounds, footAnchor, groundAnchor, url: assetUrl(art.roster, selected.file), mirror, pose },
+    body: { ...selected, bounds, bodyAnchor, footAnchor, groundAnchor, url: assetUrl(art.roster, selected.file), mirror, pose },
     portraitUrl: assetUrl(art.roster, art.position.portrait.file),
   };
+}
+
+/** The body and its ground shadow share one reviewed placement contract. */
+export function playerArtPlacement(body: BodyRecord & { pose: string }, topDown: boolean): {
+  anchor: Point; shadowAnchor: Point; mode: 'ground' | 'body-center' | 'feet';
+} {
+  if (body.pose === 'prone' || body.pose === 'stunned')
+    return { anchor: body.groundAnchor, shadowAnchor: body.groundAnchor, mode: 'ground' };
+  return { anchor: topDown ? body.bodyAnchor : body.footAnchor, shadowAnchor: body.footAnchor,
+    mode: topDown ? 'body-center' : 'feet' };
 }

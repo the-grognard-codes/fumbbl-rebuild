@@ -16,11 +16,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 30,
             "y": 61
           },
           "groundAnchor": {
             "x": 28.5,
+            "y": 32.0
+          },
+          "bodyAnchor": {
+            "x": 30,
             "y": 32.0
           }
         },
@@ -35,11 +39,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 34,
             "y": 61
           },
           "groundAnchor": {
             "x": 34.5,
+            "y": 32.0
+          },
+          "bodyAnchor": {
+            "x": 34,
             "y": 32.0
           }
         },
@@ -54,11 +62,15 @@
             "height": 59
           },
           "footAnchor": {
-            "x": 32,
+            "x": 30,
             "y": 62
           },
           "groundAnchor": {
             "x": 30.5,
+            "y": 32.5
+          },
+          "bodyAnchor": {
+            "x": 30,
             "y": 32.5
           }
         },
@@ -73,11 +85,15 @@
             "height": 59
           },
           "footAnchor": {
-            "x": 32,
+            "x": 34,
             "y": 62
           },
           "groundAnchor": {
             "x": 38.5,
+            "y": 32.5
+          },
+          "bodyAnchor": {
+            "x": 34,
             "y": 32.5
           }
         },
@@ -92,11 +108,15 @@
             "height": 57
           },
           "footAnchor": {
-            "x": 32,
+            "x": 25,
             "y": 61
           },
           "groundAnchor": {
             "x": 24.0,
+            "y": 32.5
+          },
+          "bodyAnchor": {
+            "x": 25,
             "y": 32.5
           }
         },
@@ -117,6 +137,10 @@
           "groundAnchor": {
             "x": 30.5,
             "y": 42.5
+          },
+          "bodyAnchor": {
+            "x": 30.5,
+            "y": 42.5
           }
         },
         "stunned": {
@@ -134,6 +158,10 @@
             "y": 62
           },
           "groundAnchor": {
+            "x": 32.5,
+            "y": 41.5
+          },
+          "bodyAnchor": {
             "x": 32.5,
             "y": 41.5
           }
@@ -165,11 +193,15 @@
             "height": 52
           },
           "footAnchor": {
-            "x": 32,
+            "x": 31,
             "y": 61
           },
           "groundAnchor": {
             "x": 30.5,
+            "y": 35.0
+          },
+          "bodyAnchor": {
+            "x": 31,
             "y": 35.0
           }
         },
@@ -190,6 +222,10 @@
           "groundAnchor": {
             "x": 32.0,
             "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 33.0
           }
         },
         "front45": {
@@ -208,6 +244,10 @@
           },
           "groundAnchor": {
             "x": 34.5,
+            "y": 35.0
+          },
+          "bodyAnchor": {
+            "x": 32,
             "y": 35.0
           }
         },
@@ -228,6 +268,10 @@
           "groundAnchor": {
             "x": 33.5,
             "y": 34.0
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 34.0
           }
         },
         "side": {
@@ -241,11 +285,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 29,
             "y": 62
           },
           "groundAnchor": {
             "x": 31.5,
+            "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 29,
             "y": 33.0
           }
         },
@@ -266,6 +314,10 @@
           "groundAnchor": {
             "x": 31.0,
             "y": 35.0
+          },
+          "bodyAnchor": {
+            "x": 31.0,
+            "y": 35.0
           }
         },
         "stunned": {
@@ -283,6 +335,10 @@
             "y": 55
           },
           "groundAnchor": {
+            "x": 33.0,
+            "y": 37.5
+          },
+          "bodyAnchor": {
             "x": 33.0,
             "y": 37.5
           }
@@ -314,11 +370,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 30,
             "y": 62
           },
           "groundAnchor": {
             "x": 29.5,
+            "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 30,
             "y": 33.0
           }
         },
@@ -339,6 +399,10 @@
           "groundAnchor": {
             "x": 31.5,
             "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 33.0
           }
         },
         "front45": {
@@ -358,6 +422,10 @@
           "groundAnchor": {
             "x": 30.5,
             "y": 33.5
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 33.5
           }
         },
         "back45": {
@@ -371,11 +439,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 33,
             "y": 62
           },
           "groundAnchor": {
             "x": 35.5,
+            "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 33,
             "y": 33.0
           }
         },
@@ -390,11 +462,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 31,
             "y": 62
           },
           "groundAnchor": {
             "x": 30.0,
+            "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 31,
             "y": 33.0
           }
         },
@@ -415,6 +491,10 @@
           "groundAnchor": {
             "x": 31.0,
             "y": 41.0
+          },
+          "bodyAnchor": {
+            "x": 31.0,
+            "y": 41.0
           }
         },
         "stunned": {
@@ -432,6 +512,10 @@
             "y": 60
           },
           "groundAnchor": {
+            "x": 32.0,
+            "y": 40.0
+          },
+          "bodyAnchor": {
             "x": 32.0,
             "y": 40.0
           }
@@ -463,11 +547,15 @@
             "height": 59
           },
           "footAnchor": {
-            "x": 32,
+            "x": 29,
             "y": 63
           },
           "groundAnchor": {
             "x": 27.0,
+            "y": 33.5
+          },
+          "bodyAnchor": {
+            "x": 29,
             "y": 33.5
           }
         },
@@ -482,11 +570,15 @@
             "height": 60
           },
           "footAnchor": {
-            "x": 32,
+            "x": 27,
             "y": 63
           },
           "groundAnchor": {
             "x": 27.0,
+            "y": 33.0
+          },
+          "bodyAnchor": {
+            "x": 27,
             "y": 33.0
           }
         },
@@ -501,11 +593,15 @@
             "height": 58
           },
           "footAnchor": {
-            "x": 32,
+            "x": 31,
             "y": 63
           },
           "groundAnchor": {
             "x": 27.5,
+            "y": 34.0
+          },
+          "bodyAnchor": {
+            "x": 31,
             "y": 34.0
           }
         },
@@ -526,6 +622,10 @@
           "groundAnchor": {
             "x": 33.0,
             "y": 32.5
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 32.5
           }
         },
         "side": {
@@ -539,11 +639,15 @@
             "height": 59
           },
           "footAnchor": {
-            "x": 32,
+            "x": 31,
             "y": 62
           },
           "groundAnchor": {
             "x": 29.0,
+            "y": 32.5
+          },
+          "bodyAnchor": {
+            "x": 31,
             "y": 32.5
           }
         },
@@ -564,6 +668,10 @@
           "groundAnchor": {
             "x": 30.5,
             "y": 41.5
+          },
+          "bodyAnchor": {
+            "x": 30.5,
+            "y": 41.5
           }
         },
         "stunned": {
@@ -581,6 +689,10 @@
             "y": 63
           },
           "groundAnchor": {
+            "x": 31.5,
+            "y": 42.5
+          },
+          "bodyAnchor": {
             "x": 31.5,
             "y": 42.5
           }
@@ -618,6 +730,10 @@
           "groundAnchor": {
             "x": 39.5,
             "y": 41.0
+          },
+          "bodyAnchor": {
+            "x": 40,
+            "y": 41.0
           }
         },
         "back": {
@@ -636,6 +752,10 @@
           },
           "groundAnchor": {
             "x": 40.5,
+            "y": 39.0
+          },
+          "bodyAnchor": {
+            "x": 40,
             "y": 39.0
           }
         },
@@ -656,6 +776,10 @@
           "groundAnchor": {
             "x": 39.5,
             "y": 40.0
+          },
+          "bodyAnchor": {
+            "x": 40,
+            "y": 40.0
           }
         },
         "back45": {
@@ -669,11 +793,15 @@
             "height": 72
           },
           "footAnchor": {
-            "x": 40,
+            "x": 39,
             "y": 77
           },
           "groundAnchor": {
             "x": 40.0,
+            "y": 41.0
+          },
+          "bodyAnchor": {
+            "x": 39,
             "y": 41.0
           }
         },
@@ -688,11 +816,15 @@
             "height": 75
           },
           "footAnchor": {
-            "x": 40,
+            "x": 34,
             "y": 79
           },
           "groundAnchor": {
             "x": 40.0,
+            "y": 41.5
+          },
+          "bodyAnchor": {
+            "x": 34,
             "y": 41.5
           }
         },
@@ -713,6 +845,10 @@
           "groundAnchor": {
             "x": 39.5,
             "y": 47.0
+          },
+          "bodyAnchor": {
+            "x": 39.5,
+            "y": 47.0
           }
         },
         "stunned": {
@@ -730,6 +866,10 @@
             "y": 69
           },
           "groundAnchor": {
+            "x": 38.5,
+            "y": 47.0
+          },
+          "bodyAnchor": {
             "x": 38.5,
             "y": 47.0
           }
@@ -761,11 +901,15 @@
             "height": 41
           },
           "footAnchor": {
-            "x": 32,
+            "x": 33,
             "y": 63
           },
           "groundAnchor": {
             "x": 33.0,
+            "y": 42.5
+          },
+          "bodyAnchor": {
+            "x": 33,
             "y": 42.5
           }
         },
@@ -786,6 +930,10 @@
           "groundAnchor": {
             "x": 31.0,
             "y": 41.5
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 41.5
           }
         },
         "front45": {
@@ -804,6 +952,10 @@
           },
           "groundAnchor": {
             "x": 33.5,
+            "y": 42.0
+          },
+          "bodyAnchor": {
+            "x": 32,
             "y": 42.0
           }
         },
@@ -824,6 +976,10 @@
           "groundAnchor": {
             "x": 34.5,
             "y": 40.5
+          },
+          "bodyAnchor": {
+            "x": 32,
+            "y": 40.5
           }
         },
         "side": {
@@ -837,11 +993,15 @@
             "height": 44
           },
           "footAnchor": {
-            "x": 32,
+            "x": 28,
             "y": 62
           },
           "groundAnchor": {
             "x": 32.0,
+            "y": 40.0
+          },
+          "bodyAnchor": {
+            "x": 28,
             "y": 40.0
           }
         },
@@ -860,6 +1020,10 @@
             "y": 62
           },
           "groundAnchor": {
+            "x": 31.0,
+            "y": 47.5
+          },
+          "bodyAnchor": {
             "x": 31.0,
             "y": 47.5
           }
@@ -881,6 +1045,10 @@
           "groundAnchor": {
             "x": 31.5,
             "y": 47.5
+          },
+          "bodyAnchor": {
+            "x": 31.5,
+            "y": 47.5
           }
         }
       },
@@ -896,5 +1064,6 @@
         }
       }
     }
-  }
+  },
+  "anchorVersion": 2
 }
