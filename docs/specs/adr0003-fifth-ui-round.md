@@ -14,8 +14,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | T06 | [#190](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190) | None | Merged in [#208](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/208) |
 | T07 | [#191](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191) | None | Merged in [#209](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/209) |
 | T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Merged in [#210](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/210) |
-| T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Implemented; merge pending |
-| T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Planned |
+| T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Merged in [#213](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/213) |
+| T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Implemented; merge pending |
 | T11 | [#195](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195) | None | Planned |
 | T12 | [#196](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) | #195 | Planned |
 | T13 | [#197](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) | #196 | Planned |
