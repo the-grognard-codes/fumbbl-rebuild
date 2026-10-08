@@ -306,10 +306,11 @@ test('two players and spectator use one board; updates, read-only controls and r
         `Crowded match must fit a ${width}x${height} viewport`);
       const header = await pages[2].locator('.site-header').boundingBox();
       const pitch = await pages[2].getByLabel('Live match pitch').boundingBox();
-      assert.ok(header.y >= 0 && header.y + header.height <= pitch.y, 'the match leaves room for the top bar');
+      assert.equal(header, null, 'the game display hides the top bar without reserving layout space');
+      assert.ok(pitch.y >= 0 && pitch.y + pitch.height <= height, 'the pitch fits the game viewport');
       await pages[2].getByRole('button', { name: 'Game Menu', exact: true }).click();
       const dialog = await pages[2].getByRole('dialog', { name: 'Game Menu', exact: true }).boundingBox();
-      assert.ok(dialog.y >= header.y + header.height && dialog.y + dialog.height <= height, 'Game Menu stays within the remaining match area');
+      assert.ok(dialog.y >= 0 && dialog.y + dialog.height <= height, 'Game Menu stays within the match viewport');
       await pages[2].getByRole('button', { name: 'Close Game Menu' }).click();
     }
     assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
