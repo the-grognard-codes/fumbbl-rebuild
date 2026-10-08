@@ -61,7 +61,7 @@ try {
         assert.equal(await marker.getAttribute('data-x'), String(player.x));
         assert.equal(await marker.getAttribute('data-y'), String(player.y));
         assert.equal(await marker.locator('.live-number').textContent(), String(player.number));
-        assert.equal(await marker.getAttribute('data-anchor-mode'), prone ? 'ground' : tactical ? 'visual-center' : 'feet');
+        assert.equal(await marker.getAttribute('data-anchor-mode'), prone ? 'ground' : tactical ? 'body-center' : 'feet');
       }
     };
     const end = role === 'away' ? 'away' : 'home';

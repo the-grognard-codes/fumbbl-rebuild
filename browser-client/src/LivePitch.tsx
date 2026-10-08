@@ -9,7 +9,7 @@ import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
 import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
-import { resolvePlayerArt, resolvePlayerPortrait, type PlayerFacing } from './player-art.ts';
+import { resolvePlayerArt, resolvePlayerPortrait, playerArtPlacement, type PlayerFacing } from './player-art.ts';
 import { canPlaceReserve } from './setup-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import type { PushChoice } from './push-choice.ts';
@@ -33,21 +33,20 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
 }
 
 function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
-  onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag }: {
+  onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag, failedArt, onArtError }: {
   player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; setupPerspective: boolean; order: number;
   active: boolean; selected: boolean; target: boolean; onSelect: () => void; onGround: (x: number, y: number) => void;
   onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
+  failedArt: Set<string>; onArtError: (url: string) => void;
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
 }) {
   const art = resolvePlayerArt(player, { end: camera.end, facing, setupPerspective, topDown: camera.mode === 'top-down' });
-  const [failedUrl, setFailedUrl] = useState('');
   const position = camera.project(centerOf({ x: player.x!, y: player.y! }));
   const visible = !!position && camera.square({ x: player.x!, y: player.y! }, 0, true).length >= 3;
   const body = art?.body;
   const scale = (position?.pixelsPerSquare ?? camera.scale) * 1.08 / 64;
-  const groundPose = body?.pose === 'prone' || body?.pose === 'stunned';
-  const anchor = body ? groundPose ? body.groundAnchor : camera.mode === 'top-down'
-    ? { x: body.bounds.x + body.bounds.width / 2, y: body.bounds.y + body.bounds.height / 2 } : body.footAnchor : { x: 0, y: 0 };
+  const placement = body ? playerArtPlacement(body, camera.mode === 'top-down') : null;
+  const anchor = placement?.anchor ?? { x: 0, y: 0 };
   const corners = camera.square({ x: player.x!, y: player.y! });
   const width = position?.pixelsPerSquare ?? camera.scale;
   const height = corners.length ? Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y)) : width;
@@ -55,7 +54,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const number = player.number ?? player.slot;
   return <button type="button" data-player-id={player.id} data-x={player.x} data-y={player.y}
     data-center-x={position?.x} data-center-y={position?.y} data-pose={body?.pose ?? 'token'}
-    data-anchor-mode={groundPose ? 'ground' : camera.mode === 'top-down' ? 'visual-center' : 'feet'}
+    data-anchor-mode={body && !failedArt.has(body.url) ? placement?.mode : 'token'}
     className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}`}
     aria-label={`${teamName} ${player.name}, number ${number}, ${player.state}, square ${player.x}, ${player.y}`}
     tabIndex={visible ? 0 : -1} title={`${player.name} #${number} · ${player.state}`} draggable={canDrag && visible}
@@ -79,7 +78,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
       }
       onSelect();
     }}>
-    {body && failedUrl !== body.url ? <img src={body.url} alt="" draggable={false} onError={() => setFailedUrl(body.url)}
+    {body && !failedArt.has(body.url) ? <img src={body.url} alt="" draggable={false} onError={() => onArtError(body.url)}
       style={{ width: body.width * scale, height: body.height * scale, left: width / 2 - anchor.x * scale,
         top: height / 2 - anchor.y * scale, transform: body.mirror ? 'scaleX(-1)' : 'none' }}/>
       : <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{number}</span>}
@@ -115,6 +114,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [cursor, setCursor] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
+  const [failedArt, setFailedArt] = useState<Set<string>>(() => new Set());
+  const onArtError = (url: string) => setFailedArt(current => current.has(url) ? current : new Set([...current, url]));
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
   const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
   const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
@@ -190,6 +191,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const point = (clientX: number, clientY: number) => {
     const local = camera.fromClient({ x: clientX, y: clientY }, scene.current!.getBoundingClientRect()); return local && camera.cellAt(local);
   };
+  const setupPerspective = mode === 'perspective' && (view.phase === 'SETUP' || view.phase === 'READY_FOR_KICKOFF');
   const occupants = view.players.filter(player => player.x !== null && player.y !== null);
   const depthOrder = new Map([...occupants].sort((a, b) =>
     (camera.project(centerOf({ x: b.x!, y: b.y! }))?.depth ?? 0) - (camera.project(centerOf({ x: a.x!, y: a.y! }))?.depth ?? 0) || a.id.localeCompare(b.id))
@@ -258,10 +260,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           }) }
           {occupants.map(player => {
             const center = centerOf({ x: player.x!, y: player.y! });
+            const body = resolvePlayerArt(player, { end, facing: facings[player.id], setupPerspective, topDown: mode === 'top-down' })?.body;
+            const placement = body && !failedArt.has(body.url) ? playerArtPlacement(body, mode === 'top-down') : null;
+            const scale = (camera.project(center)?.pixelsPerSquare ?? camera.scale) * 1.08 / 64;
+            const offset = placement ? { x: (placement.shadowAnchor.x - placement.anchor.x) * scale,
+              y: (placement.shadowAnchor.y - placement.anchor.y) * scale } : { x: 0, y: 0 };
             const shadow = Array.from({ length: 16 }, (_, index) => ({ x: center.x + .28 * Math.cos(index * Math.PI / 8),
               y: center.y + .28 * Math.sin(index * Math.PI / 8) }));
             return <polygon key={`shadow-${player.id}`} className="live-player-shadow" data-shadow-player={player.id}
-              points={points(camera.polygon(shadow, true))}/>;
+              points={points(camera.polygon(shadow, true).map(p => ({ x: p.x + offset.x, y: p.y + offset.y })))}/>;
           })}
           <path className="pitch-chalk" d={[chalk({ x: 0, y: 0 }, { x: 26, y: 0 }), chalk({ x: 0, y: 15 }, { x: 26, y: 15 }), ...[0, 1, 13, 25, 26].map(x => chalk({ x, y: 0 }, { x, y: 15 }))].join(' ')}/>
           {[4, 11].map(y => <path key={y} className="pitch-chalk wide" d={chalk({ x: 0, y }, { x: 26, y })}/>) }
@@ -293,8 +300,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             </g>;
           })()}
         </svg>
-        {occupants.map(player => <PlayerMarker key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
-          setupPerspective={mode === 'perspective' && (view.phase === 'SETUP' || view.phase === 'READY_FOR_KICKOFF')} order={depthOrder.get(player.id)!}
+        {occupants.map(player => <PlayerMarker failedArt={failedArt} onArtError={onArtError} key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
+          setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
           onSelect={() => onSelectPlayer(player.id)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }

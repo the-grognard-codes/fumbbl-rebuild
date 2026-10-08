@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Human and Orc sprites use reviewed body centerlines and grounded shadows in every pitch view")
 			.addImprovement("Browser balls use crisp pixel artwork and a synchronized, always-visible pulse; carried balls keep their highlight through confirmed movement")
 			.addImprovement("Browser stadiums use subtle crowd, fire and pennant movement, with reduced-motion support")
 			.addImprovement("Human and Orc home leagues now have complete stadium, supporter, bench and sideline artwork in either hosting arrangement")
