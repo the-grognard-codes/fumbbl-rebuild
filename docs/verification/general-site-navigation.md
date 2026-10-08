@@ -19,9 +19,11 @@ A shared static renderer produces the header during site builds and Updates gene
 
 ## Local validation
 
-Site build and input checks pass, along with ten site unit tests and eight affected browser journeys. The account journey covers eleven routes at 1224px and 360px widths. Match checks cover same-tab/optional-window launch, direct resume/denial, two coaches and a spectator, reconnect, six viewport sizes (including 1224x330 and 360x800), and opening/closing Game Menu inside the remaining match area. The bounded synthetic console check reports zero errors and no private identifier leakage.
+Site build and input checks pass, along with ten site unit tests and nine affected browser journeys. The account journey covers eleven routes at 1224px and 360px widths. Match checks cover same-tab/optional-window launch, direct resume/denial, two coaches and a spectator, reconnect, six viewport sizes (including 1224x330 and 360x800), and opening/closing Game Menu inside the remaining match area. The bounded synthetic console check reports zero errors and no private identifier leakage.
 
 Initial match checks caught the old full-window game-menu positioning and a competing full-height match rule. Both are corrected, and all three play journeys passed on rerun. A navigation locator now targets the primary bar explicitly because setup also contains a Spectate link.
+
+Full CI also exposed an old Blitz layout assertion requiring the pitch to begin at window coordinate zero and end at window height. Its replacement checks the pitch against its actual viewport, verifies that viewport fits below the visible header, and retains all action/pinning/confirmation assertions. The full Blitz journey passed locally after this contract update.
 
 Browser captures use synthetic test identities:
 

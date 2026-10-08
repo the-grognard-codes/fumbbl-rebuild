@@ -80,7 +80,8 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     }
     const actor = pages[0];
     await actor.setViewportSize({ width: 1224, height: 604 });
-    await actor.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').getBoundingClientRect().bottom - innerHeight) < 1);
+    await actor.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').getBoundingClientRect().bottom
+      - document.querySelector('.live-pitch-viewport').getBoundingClientRect().bottom) < 1);
     assert.equal(await actor.locator('.live-chess-clock.home.urgent').count(), 1, 'The active turn pulses during its last 15 seconds');
     assert.equal(await actor.locator('.live-chess-clock').evaluateAll(elements => elements.every(element => element.scrollHeight <= element.clientHeight + 1)), true,
       'Both clocks fit beside the team plates');
@@ -88,12 +89,15 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       const box = selector => document.querySelector(selector)?.getBoundingClientRect();
       const bar = box('.match-command-bar'), confirm = box('.confirmation-row .commit-action');
       const chat = box('.match-history-chat'), log = box('.match-history-log'), scene = box('.live-pitch-scene');
+      const pitch = box('.live-pitch-viewport'), header = box('.site-header');
       return { confirmBottom: confirm?.bottom, barTop: bar?.top, barLeft: bar?.left, barRight: bar?.right,
         chatRight: chat?.right, logLeft: log?.left, sceneTop: scene?.top, sceneBottom: scene?.bottom, height: innerHeight,
+        pitchTop: pitch?.top, pitchBottom: pitch?.bottom, headerBottom: header?.bottom,
         panelAlpha: getComputedStyle(document.querySelector('.match-history-log')).backgroundColor };
     });
     assert.ok(layout.confirmBottom < layout.barTop && layout.chatRight < layout.barLeft && layout.barRight < layout.logLeft, JSON.stringify(layout));
-    assert.equal(layout.sceneTop, 0); assert.ok(Math.abs(layout.sceneBottom - layout.height) < 1);
+    assert.ok(layout.headerBottom > 0 && layout.headerBottom <= layout.pitchTop && layout.pitchBottom <= layout.height);
+    assert.ok(Math.abs(layout.sceneTop - layout.pitchTop) < 1 && Math.abs(layout.sceneBottom - layout.pitchBottom) < 1);
     assert.equal(layout.panelAlpha, 'rgba(9, 23, 38, 0.3)');
     const commit = actor.getByRole('button', { name: 'Confirmed!', exact: true });
     assert.equal(await actor.getByRole('button', { name: 'Move', exact: true }).isDisabled(), true);
