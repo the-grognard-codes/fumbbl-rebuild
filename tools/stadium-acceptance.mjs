@@ -1,5 +1,6 @@
 // Opt-in acceptance against the existing isolated native v2 server; synthetic identities only.
 import assert from 'node:assert/strict';
+import {resolveEnvironment} from '../deployment/firebase/scripts/environment.mjs';
 import { retainedAcceptanceUids } from './acceptance-local-server.mjs';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {createServer} from '../browser-client/node_modules/vite/dist/node/index.js';
@@ -11,8 +12,8 @@ const output=resolve(process.env.STADIUM_EVIDENCE_DIR ?? '.tools/stadium/native-
 const identityJson=await readFile('.tools/coach-oriented-match-ui/coach-tokens.json','utf8');
 retainedAcceptanceUids(identityJson);
 const tokens=JSON.parse(identityJson);
-const configText=await readFile(process.env.STADIUM_FIREBASE_CONFIG ?? 'deployment/firebase/hosting/firebase-web-config.js','utf8');
-const config=JSON.parse(configText.slice(configText.indexOf('{'),configText.lastIndexOf('}')+1));
+const configText=process.env.STADIUM_FIREBASE_CONFIG?await readFile(process.env.STADIUM_FIREBASE_CONFIG,'utf8'):null;
+const config=configText?JSON.parse(configText.slice(configText.indexOf('{'),configText.lastIndexOf('}')+1)):resolveEnvironment(['--environment','local-dev']);
 const idTokens={};
 for(const role of ['home','away','spectator']) {
   const response=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key='+config.apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tokens[role].token??tokens[role],returnSecureToken:true})});
@@ -26,7 +27,7 @@ const server=await createServer({root:resolve('browser-client'),configFile:false
 });
 }}],server:{host:'127.0.0.1',port:5173,strictPort:true}});
 let browser;
-const contexts={},pages={},records=[],cameraMatrix=[],restorations=[],motionObservations=[];
+const scriptErrors=[],contexts={},pages={},records=[],cameraMatrix=[],restorations=[],motionObservations=[];
 async function assertVenue(page,host){
   const league=host==='human'?'Old World Classic':'Badlands Brawl';
   await page.locator('.pitch-stadium-world').waitFor({state:'attached'});
@@ -35,7 +36,7 @@ async function assertVenue(page,host){
   await page.waitForLoadState('networkidle');
   assert.equal(await page.locator('[data-art-fallback]').count(),0);
   for(const [team,profile] of [['home',host==='human'?'old-world-classic':'badlands-brawl'],['away',host==='human'?'badlands-brawl':'old-world-classic']]){
-    const fans=page.locator('.pitch-stadium-crowd [data-team="'+team+'"]');
+    const fans=page.locator('.pitch-stadium-crowd[data-team="'+team+'"]');
     assert.ok(await fans.count()>0);
     assert.ok(await fans.evaluateAll((fans,profile)=>fans.every(fan=>fan.dataset.stadiumProfile===profile),profile));
   }
@@ -54,7 +55,7 @@ try {
   await server.listen();
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? (process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined)});
   for(const role of ['home','away','spectator']) {
-    const context=await browser.newContext({viewport:{width:1920,height:1080}});contexts[role]=context;
+    const context=await browser.newContext({viewport:{width:1920,height:1080}});contexts[role]=context;context.on('page',p=>p.on('pageerror',e=>scriptErrors.push(e.message)));
     await context.addInitScript(token=>{window.testToken=token;window.nativeIncoming=[];window.nativeOutgoing=[];const Native=WebSocket;window.WebSocket=class extends Native{constructor(...args){super(...args);window.nativeSocket=this;this.addEventListener('message',event=>{const item=JSON.parse(event.data);if(item.type!=='authentication')window.nativeIncoming.push(item);});}send(value){window.nativeOutgoing.push(JSON.parse(value));super.send(value);}};},idTokens[role]);
     pages[role]=await context.newPage();
   }
@@ -177,4 +178,10 @@ try {
   }
   await writeFile(resolve(output,'native-stadium.json'),JSON.stringify({passed:true,transport:'/browser/v2',records,cameraMatrix,restorations,motionObservations},null,2));
   console.log('PASS: 48 authenticated native Human/Orc camera cases, coaches/spectator reconnects, end change and completed replay retain frozen stadium identity.');
-} catch(error) { console.error('Native stadium driver:',error.message.slice(0,600));throw error; } finally {try {await browser?.close();} finally {await server.close();}}
+} catch(error) {
+  const diagnostics={scriptErrors,statuses:[]};
+  for(const [role,page] of Object.entries(pages))if(!page.isClosed())diagnostics.statuses.push({role,
+    status:await page.locator('[role="status"]').allTextContents(),
+    codes:await page.evaluate(()=>(window.nativeIncoming??[]).filter(e=>e.type==='error').map(e=>e.code))});
+  console.error('Native stadium driver:',error.message.slice(0,600),JSON.stringify(diagnostics));throw error;
+} finally {try {await browser?.close();} finally {await server.close();}}

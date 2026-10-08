@@ -1,0 +1,155 @@
+{
+  "observations": [
+    {
+      "host": "human",
+      "durationMs": 5000,
+      "crowdGroups": 61,
+      "animatedCrowdGroups": 0,
+      "torchCount": 6,
+      "pennantCount": 2,
+      "crowdMoved": false,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.143707275390625,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 309,
+        "meanMs": 16.181229773462782,
+        "p95Ms": 24.100000000000364,
+        "maxMs": 24.399999999999636
+      },
+      "ambientFrameObservation": {
+        "frames": 317,
+        "meanMs": 15.782347003154573,
+        "p95Ms": 21.103999999999928,
+        "maxMs": 30.499999999999886
+      },
+      "reducedFrameObservation": {
+        "frames": 783,
+        "meanMs": 6.393231162196681,
+        "p95Ms": 6.300000000001091,
+        "maxMs": 115
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "human",
+      "view": 90,
+      "durationMs": 2400,
+      "crowdGroups": 62,
+      "animatedCrowdGroups": 0,
+      "torchCount": 4,
+      "pennantCount": 2,
+      "crowdMoved": false,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.177703857421875,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 314,
+        "meanMs": 7.663375796178341,
+        "p95Ms": 12.299999999999272,
+        "maxMs": 18.799999999999272
+      },
+      "ambientFrameObservation": {
+        "frames": 313,
+        "meanMs": 7.667731629392971,
+        "p95Ms": 12.200000000000728,
+        "maxMs": 96.69999999999891
+      },
+      "reducedFrameObservation": {
+        "frames": 392,
+        "meanMs": 6.137755102040816,
+        "p95Ms": 6.200000000000728,
+        "maxMs": 24.200000000000728
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 5000,
+      "crowdGroups": 61,
+      "animatedCrowdGroups": 0,
+      "torchCount": 6,
+      "pennantCount": 2,
+      "crowdMoved": false,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.1317138671875,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 309,
+        "meanMs": 16.220064724919094,
+        "p95Ms": 18.5,
+        "maxMs": 24.5
+      },
+      "ambientFrameObservation": {
+        "frames": 273,
+        "meanMs": 18.315018315018314,
+        "p95Ms": 24.300000000000182,
+        "maxMs": 139.20000000000005
+      },
+      "reducedFrameObservation": {
+        "frames": 769,
+        "meanMs": 6.509882964889467,
+        "p95Ms": 11.799999999999272,
+        "maxMs": 96.89999999999964
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "view": 90,
+      "durationMs": 2400,
+      "crowdGroups": 62,
+      "animatedCrowdGroups": 0,
+      "torchCount": 4,
+      "pennantCount": 2,
+      "crowdMoved": false,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.166015625,
+      "mutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "canonicalCells": 390,
+      "commandsStable": true,
+      "intents": [],
+      "frameObservation": {
+        "frames": 351,
+        "meanMs": 6.837606837606837,
+        "p95Ms": 12.100000000002183,
+        "maxMs": 18.599999999998545
+      },
+      "ambientFrameObservation": {
+        "frames": 329,
+        "meanMs": 7.295136778115503,
+        "p95Ms": 12.200000000000728,
+        "maxMs": 42.399999999999636
+      },
+      "reducedFrameObservation": {
+        "frames": 381,
+        "meanMs": 6.31496062992126,
+        "p95Ms": 6.399999999997817,
+        "maxMs": 24.100000000002183
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "limits": "Short foreground headless Chrome observation; no sustained hardware-wide GPU claim."
+}

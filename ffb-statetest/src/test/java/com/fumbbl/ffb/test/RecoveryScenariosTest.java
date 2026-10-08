@@ -3,6 +3,7 @@ package com.fumbbl.ffb.test;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -143,6 +144,7 @@ class RecoveryScenariosTest {
 		boolean home = game.isHomePlaying(); FieldCoordinate at = new FieldCoordinate(home ? 24 : 1, 7);
 		game.getFieldModel().setPlayerCoordinate(scorer, at); game.getFieldModel().setBallCoordinate(at);
 		game.getFieldModel().setBallInPlay(true); game.getFieldModel().setBallMoving(false);
+		game.getFieldModel().setWeather(Weather.SWELTERING_HEAT);
 		JsonObject select = null;
 		for (JsonValue item : view(session, "home").get("actions").asArray()) {
 			JsonObject candidate = item.asObject();
@@ -153,6 +155,10 @@ class RecoveryScenariosTest {
 		JsonObject touchdown = request(view(session, "home"), "action", "touchdown").add("actionId", score.get("id"));
 		assertEquals("ACCEPTED", session.apply(score.getString("actor", null), touchdown).getString("code", null));
 		assertEquals("SETUP", view(session, "home").getString("phase", null));
+		boolean exhausted = false;
+		for (JsonValue value : view(session, "home").get("players").asArray())
+			if ("Exhausted".equals(value.asObject().getString("status", null))) exhausted = true;
+		assertTrue(exhausted, "The recovered drive must exercise unavailable setup players");
 		assertRestoresAndRetries(session, score.getString("actor", null), touchdown);
 		SetupSession terminal = playToFullTime(session);
 		SetupSession restored = restore(terminal);
@@ -199,6 +205,9 @@ class RecoveryScenariosTest {
 		JsonObject snapshot = view(session, "home"); String role = snapshot.getString("actor", null); int index = 0;
 		for (JsonValue value : snapshot.get("players").asArray()) {
 			JsonObject player = value.asObject(); if (!role.equals(player.getString("role", null))) continue;
+			// Native setup retains exhausted/injured players on the roster but cannot place them.
+			Player<?> nativePlayer = engine(session).getGame().getPlayerById(player.getString("id", null));
+			if (!engine(session).getGame().getFieldModel().getPlayerState(nativePlayer).canBeMovedDuringSetup()) continue;
 			int x = index < 3 ? 12 : 10; if ("away".equals(role)) x = 25 - x;
 			JsonObject command = request(view(session, "home"), "place", unique("setup-" + role + "-" + index)).add("playerId", player.get("id"))
 				.add("to", new JsonObject().add("x", x).add("y", index < 3 ? 6 + index : index + 1));
