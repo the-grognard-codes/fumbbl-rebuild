@@ -506,3 +506,7 @@
 .live-pitch .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .live-pitch-scene > svg.live-movement-label-layer { position: absolute; inset: 0; z-index: 60; pointer-events: none; }
+
+.live-check-key { display: flex; flex-wrap: wrap; gap: 3px 10px; max-width: 360px; }
+.live-check-description { display: block; max-width: 360px; margin-top: 4px; }
+.live-additional-check { font-size: 10px; }

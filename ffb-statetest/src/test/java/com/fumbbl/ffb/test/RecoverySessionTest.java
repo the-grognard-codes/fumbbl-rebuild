@@ -40,6 +40,13 @@ class RecoverySessionTest {
 		MatchDocument document = (MatchDocument) documentField.get(current);
 		TestServer server = new TestServer();
 		restore(server, document, current);
+		JsonObject priorForecast = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+		for (String role : new String[] {"homeView", "awayView"}) {
+			JsonObject oldForecast = priorForecast.get(role).asObject().get("movementForecast").asObject();
+			oldForecast.set("version", 1);
+			for (com.eclipsesource.json.JsonValue value : oldForecast.get("steps").asArray()) value.asObject().remove("checks");
+		}
+		assertEquals(view(current, "home"), view(new SetupSession(server.getServer(), document, signed(priorForecast)), "home"));
 		JsonObject legacy = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
 		legacy.get("homeView").asObject().remove("movementForecast"); legacy.get("awayView").asObject().remove("movementForecast");
 		assertEquals(view(current, "home"), view(new SetupSession(server.getServer(), document, signed(legacy)), "home"));

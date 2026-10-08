@@ -26,7 +26,7 @@ class RouteForecastTest {
 			SetupSession session = session(state);
 			String unchanged = state.toJsonValue().toString();
 			JsonObject route = route(session, 9, 7), step = route.get("steps").asArray().get(0).asObject();
-			assertEquals(2, route.getInt("routeVersion", 0));
+			assertEquals(3, route.getInt("routeVersion", 0));
 			assertEquals(-penalty, step.getInt("dodgeModifier", 99));
 			assertEquals(Math.min(6, agility + penalty), step.getInt("dodge", 0));
 			assertEquals(0, step.getInt("rush", -1));
@@ -87,7 +87,7 @@ class RouteForecastTest {
 	private JsonObject route(SetupSession session, int x, int y) {
 		JsonObject route = session.routePreview("home", view(session).getInt("revision", -1), new JsonArray().add(point(x, y)));
 		JsonObject forecast = view(session).get("movementForecast").asObject();
-		assertEquals(1, forecast.getInt("version", 0));
+		assertEquals(2, forecast.getInt("version", 0));
 		assertEquals(route.get("playerId"), forecast.get("playerId"));
 		JsonObject adjacent = null;
 		for (com.eclipsesource.json.JsonValue value : forecast.get("steps").asArray())

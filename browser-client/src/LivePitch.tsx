@@ -37,14 +37,30 @@ function MovementSquare({ step, camera, planned, index, labelsOnly = false }: { 
   const p = camera.project(centerOf(step));
   if (!p) return null;
   const presentation = routeSquarePresentation(step);
-  const fontSize = Math.max(10, Math.min(15, p.pixelsPerSquare * .25));
+  const polygon = camera.square(step, .025, true);
+  if (polygon.length < 3) return null;
+  const width = Math.max(...polygon.map(point => point.x)) - Math.min(...polygon.map(point => point.x));
+  const height = Math.max(...polygon.map(point => point.y)) - Math.min(...polygon.map(point => point.y));
+  const compact = presentation.labels.length === 2 && height < 34;
+  const fontSize = Math.max(7, Math.min(compact ? 11 : 15, p.pixelsPerSquare * .25,
+    height / (compact ? 1 : Math.max(1, presentation.labels.length)) * .5));
+  const top = p.y - (compact ? 1 : presentation.labels.length) * fontSize / 2;
+  const badgeRadius = Math.min(4, height * (compact ? .12 : .22), width * .06);
   return <g className={`live-route-step${!labelsOnly && !planned ? ' live-available-step' : ''}`} data-route-square={!labelsOnly && planned ? `${step.x},${step.y}` : undefined}
     data-movement-square={!labelsOnly && !planned ? `${step.x},${step.y}` : undefined} data-label-square={labelsOnly ? `${step.x},${step.y}` : undefined}
-    data-route-band={presentation.band} data-step-index={index}>
-    {!labelsOnly && <polygon fill={presentation.color} points={points(camera.square(step, .025, true))}><title>{presentation.description}</title></polygon>}
-    {labelsOnly && <text x={p.x} y={p.y - (presentation.labels.length - 1) * fontSize / 2 + fontSize * .35} textAnchor="middle" style={{ fontSize }}>
-      {presentation.labels.map((label, row) => <tspan key={label} x={p.x} dy={row ? fontSize : 0}>{label}</tspan>)}
+    data-route-band={presentation.band} data-step-index={index} data-center-x={p.x} data-center-y={p.y}>
+    {!labelsOnly && <polygon fill={presentation.color} points={points(polygon)}><title>{presentation.description}</title></polygon>}
+    {labelsOnly && <text x={p.x} y={top + fontSize * .8} textAnchor="middle" style={{ fontSize, strokeWidth: compact ? 1 : 2 }}>
+      {presentation.labels.map((label, row) => <tspan key={label} x={compact ? p.x + (row ? 1 : -1) * width * .25 : p.x}
+        dy={row && !compact ? fontSize : 0} textLength={compact ? width * .35 : undefined} lengthAdjust={compact ? 'spacingAndGlyphs' : undefined}>{label}</tspan>)}
     </text>}
+    {labelsOnly && presentation.badges.length > 0 && <g className="live-additional-check" data-check-names={presentation.badges.map(badge => badge.name).join(',')}>
+      <title>{presentation.badges.map(badge => badge.description).join(' · ')}</title>
+      <g transform={`translate(${compact ? p.x : p.x + width * .4},${compact ? p.y - height * .3 : p.y}) scale(${badgeRadius / 5})`}>
+        <circle r="5" fill="#ffe17b" stroke="#102337" strokeWidth="1"/>
+        <path d="M0 -3V1 M0 2.5V3" stroke="#102337" strokeWidth="1.5" strokeLinecap="round"/>
+      </g>
+    </g>}
   </g>;
 }
 
@@ -190,10 +206,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       && !(passing && action.kind === 'pass')) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
-      if (action.kind === 'move') moveSquares.add(key);
+      if (action.kind === 'move' || action.kind === 'jump') moveSquares.add(key);
     }
   }
   const availableChecks = view.movementForecast?.steps.filter(step => moveSquares.has(`${step.x},${step.y}`)) ?? [];
+  const checkSteps = routePreview?.steps ?? availableChecks;
+  const checkKey = [...new Map(checkSteps.flatMap(step => routeSquarePresentation(step).badges).map(badge => [badge.name, badge])).values()];
+  const inspectedSquare = hover ?? cursor;
+  const inspectedStep = inspectedSquare ? checkSteps.find(step => step.x === inspectedSquare.x && step.y === inspectedSquare.y)
+    : checkSteps.find(step => routeSquarePresentation(step).badges.length > 0);
   const forecastSquares = new Set(availableChecks.map(step => `${step.x},${step.y}`));
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
@@ -244,7 +265,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onKeyDown={event => {
         if (event.target !== event.currentTarget) return;
         const direction = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[event.key] as PitchDirection | undefined;
-        if (direction) { event.preventDefault();
+        if (direction) { event.preventDefault(); setHover(null);
           const origin = cursor ?? (selected?.x != null && selected.y != null ? { x: selected.x, y: selected.y } : { x: Math.min(25, Math.floor(camera.focus)), y: 7 });
           const next = camera.neighbor(origin, direction); setCursor(next); reveal(centerOf(next));
         } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); onSquare(cursor.x, cursor.y); }
@@ -252,7 +273,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onContextMenu={event => event.preventDefault()}
       onAuxClickCapture={event => { if (event.button === 2) { event.preventDefault(); event.stopPropagation(); } }}
       onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault(); drag.current = { x: event.clientX, y: event.clientY, camera, moved: false }; }}
-      onPointerMove={event => { const start = drag.current; if (!start) { if (view.phase === 'READY_FOR_KICKOFF') setHover(point(event.clientX, event.clientY)); return; } const dx = event.clientX - start.x, dy = event.clientY - start.y;
+      onPointerMove={event => { const start = drag.current; if (!start) { const square = point(event.clientX, event.clientY);
+        setHover(previous => previous?.x === square?.x && previous?.y === square?.y ? previous : square); return; } const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
         if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
       onPointerUp={event => { drag.current = null;
@@ -266,7 +288,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); } }}>
-        {(routePreview || availableChecks.length > 0) && <span className="live-route-legend" role="note">D: Dodge · R: Rush</span>}
+        {(routePreview || availableChecks.length > 0) && <span className="live-route-legend" role="note">D: Dodge · R: Rush
+          {checkKey.length > 0 && <span className="live-check-key" aria-label="Additional movement check key">{checkKey.map(badge => <span key={badge.name}>{badge.code}: {badge.name}</span>)}<span>!: additional checks — point to a square or use the arrow keys for details</span></span>}
+          {inspectedStep && routeSquarePresentation(inspectedStep).badges.length > 0 && <output className="live-check-description" aria-live="polite">Square {inspectedStep.x}, {inspectedStep.y}: {routeSquarePresentation(inspectedStep).description}</output>}
+        </span>}
         {!backgroundFailed && <PitchScenery camera={camera} view={view} onError={() => setBackgroundFailed(true)}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
@@ -354,7 +379,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       </div>
     </div>
     {availableChecks.length > 0 && <ol className="sr-only" aria-label="Available square checks">{availableChecks.map((step, index) => <li key={index}>Square {step.x}, {step.y}: {routeSquarePresentation(step).description}</li>)}</ol>}
-    {routePreview && <ol className="sr-only" aria-label="Planned square checks">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}: {routeSquarePresentation(step).description}{step.reactions?.length ? ` · possible ${step.reactions.join(', ')}` : ''}</li>)}</ol>}
+    {routePreview && <ol className="sr-only" aria-label="Planned square checks">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}: {routeSquarePresentation(step).description}</li>)}</ol>}
     <output className="sr-only" aria-live="polite">{cursor ? `Square ${cursor.x}, ${cursor.y}` : 'Pitch camera ready'}</output>
   </section>;
 }

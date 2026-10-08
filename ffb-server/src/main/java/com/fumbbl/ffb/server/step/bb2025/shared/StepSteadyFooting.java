@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.shared;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.ApothecaryMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.ReRolledActions;
@@ -38,12 +36,15 @@ import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.Optional;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
 public class StepSteadyFooting extends AbstractStepWithReRoll {
 
-	private static final int MINMUM_ROLL = 6;
+	public static final int MINIMUM_ROLL = 6;
 	private Boolean useSkill;
 	private String goToLabelOnFailure, goToLabelOnSuccess;
 	private ApothecaryMode apothecaryMode;
@@ -190,7 +191,7 @@ public class StepSteadyFooting extends AbstractStepWithReRoll {
 		if (useSkill == null) {
 			UtilServerDialog.showDialog(getGameState(),
 				new DialogSkillUseParameter(player.getId(), player.getSkillWithProperty(NamedProperties.canAvoidFallingDown),
-					MINMUM_ROLL), !game.getActingTeam().hasPlayer(player));
+					MINIMUM_ROLL), !game.getActingTeam().hasPlayer(player));
 			getResult().setNextAction(StepAction.CONTINUE);
 			return;
 		}
@@ -215,9 +216,9 @@ public class StepSteadyFooting extends AbstractStepWithReRoll {
 
 		int roll = getGameState().getDiceRoller().rollSkill();
 
-		boolean successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, MINMUM_ROLL);
+		boolean successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, MINIMUM_ROLL);
 
-		getResult().addReport(new ReportSteadyFootingRoll(player.getId(), successful, roll, MINMUM_ROLL, reRolled));
+		getResult().addReport(new ReportSteadyFootingRoll(player.getId(), successful, roll, MINIMUM_ROLL, reRolled));
 
 		if (successful) {
 			// sequences that only raise a turnover once a player actually goes down must not revert it,
@@ -245,7 +246,7 @@ public class StepSteadyFooting extends AbstractStepWithReRoll {
 		}
 
 		if (!reRolled &&
-			UtilServerReRoll.askForReRollIfAvailable(getGameState(), player, ReRolledActions.STEADY_FOOTING, MINMUM_ROLL,
+			UtilServerReRoll.askForReRollIfAvailable(getGameState(), player, ReRolledActions.STEADY_FOOTING, MINIMUM_ROLL,
 				false)) {
 			setReRolledAction(ReRolledActions.STEADY_FOOTING);
 			getResult().setNextAction(StepAction.CONTINUE);
