@@ -96,6 +96,12 @@ public class DiceInterpreter {
 		}
 	}
 
+	/** First physical d6 face that succeeds under the native natural-one/six rules. */
+	public int minimumSuccessfulSkillRoll(int minimum) {
+		for (int roll = 2; roll <= 6; roll++) if (isSkillRollSuccessful(roll, minimum)) return roll;
+		throw new IllegalArgumentException("No native skill roll can succeed");
+	}
+
 	public boolean isSkillRollSuccessful(int roll, int pMinimumRoll) {
 		return ((roll == 6) || ((roll != 1) && (roll >= pMinimumRoll)));
 	}

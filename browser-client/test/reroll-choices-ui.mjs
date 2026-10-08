@@ -43,12 +43,14 @@ try {
           if (request.type === 'matchTranscript') {
             // The transport envelope is synthetic; current snapshots and dice reports are exported by the native engine.
             const from = request.from, total = transport.state.revision + 1, next = Math.min(total, from + request.limit);
+            const frozen = { ...transport.state, actions: [], prompt: null };
+            delete frozen.movementForecast; // Mirror native frozen snapshots: live choices are absent.
             const records = Array.from({ length: next - from }, (_, offset) => {
               const index = from + offset;
               const reports = index === journey.offered.revision ? journey.offeredReports : index === journey.accepted.revision ? journey.acceptedReports : [];
               return { index, revision: index, kind: index === 0 ? 'START' : 'ACTION', actor: index === 0 ? 'system' : journey.role,
                 at: index, decision: index === 0 ? null : {}, native: [{ commandNr: index + 1, reportList: { reports } }],
-                state: { ...transport.state, revision: index, callerRole: 'home', actions: [], prompt: null } };
+                state: { ...frozen, revision: index, callerRole: 'home' } };
             });
             setTimeout(() => this.emit({ version: 2, type: 'matchTranscript', code: 'ACCEPTED', requestId: request.requestId,
               matchId: transport.state.matchId, page: { formatVersion: 2, from, next, total, records } }), 80);

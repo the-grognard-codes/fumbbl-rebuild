@@ -239,6 +239,35 @@ public final class MatchJson {
                 if (!found) throw new IllegalArgumentException();
             }
         }
+        if (state.get("movementForecast") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonObject forecast = state.get("movementForecast").asObject(); exact(forecast, "version", "playerId", "steps");
+            if (forecast.getInt("version", -1) != 1 || !forecast.get("playerId").equals(state.get("activePlayerId"))) throw new IllegalArgumentException();
+            JsonObject mover = null;
+            for (JsonValue value : players) if (value.asObject().get("id").equals(forecast.get("playerId"))) mover = value.asObject();
+            if (mover == null || mover.get("x").isNull()) throw new IllegalArgumentException();
+            JsonArray steps = forecast.get("steps").asArray();
+            if (steps.size() < 1 || steps.size() > 8) throw new IllegalArgumentException();
+            Set<String> squares = new HashSet<>();
+            for (JsonValue value : steps) {
+                JsonObject step = value.asObject(); exact(step, "x", "y", "dodge", "rush", "dodgeModifier", "reactions");
+                bounded(step.get("x"), 0, 25); bounded(step.get("y"), 0, 14);
+                bounded(step.get("dodge"), 0, 6); bounded(step.get("rush"), 0, 6); bounded(step.get("dodgeModifier"), -64, 64);
+                int x = step.getInt("x", -1), y = step.getInt("y", -1);
+                if (!squares.add(x + ":" + y) || Math.max(Math.abs(x - mover.getInt("x", -1)), Math.abs(y - mover.getInt("y", -1))) != 1) throw new IllegalArgumentException();
+                boolean offered = false;
+                for (JsonValue option : state.get("actions").asArray()) {
+                    JsonObject action = option.asObject();
+                    if ("move".equals(action.getString("kind", null)) && forecast.get("playerId").equals(action.get("sourcePlayerId"))
+                        && action.get("target").isObject() && step.get("x").equals(action.get("target").asObject().get("x"))
+                        && step.get("y").equals(action.get("target").asObject().get("y"))) offered = true;
+                }
+                if (!offered) throw new IllegalArgumentException();
+                JsonArray reactions = step.get("reactions").asArray();
+                if (reactions.size() > 3) throw new IllegalArgumentException();
+                for (JsonValue reaction : reactions) if (!Arrays.asList("Diving Tackle", "Tentacles", "Shadowing").contains(reaction.asString())) throw new IllegalArgumentException();
+            }
+        }
         Set<String> ids = new HashSet<>();
         for (JsonValue value : players) {
 			JsonObject player = value.asObject();
@@ -504,6 +533,7 @@ public final class MatchJson {
         List<String> extended = new ArrayList<>(Arrays.asList(fields));
         if (home) { extended.add("homeTeamArt"); extended.add("awayTeamArt"); }
         if (object.get("ballState") != null) extended.add("ballState");
+        if (object.get("movementForecast") != null) extended.add("movementForecast");
         exact(object, extended.toArray(new String[0]));
     }
 

@@ -4,10 +4,10 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.PlayerAction;
+import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
-import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.mechanics.JumpMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
@@ -24,6 +24,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandMove;
 import com.fumbbl.ffb.net.commands.ClientCommandTargetSelected;
 import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
+import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.util.UtilPlayer;
@@ -36,6 +37,19 @@ import java.util.List;
 public final class CoreTurnActions {
     private final GameState state;
     public CoreTurnActions(GameState state) { this.state = state; }
+    String legacyMovementLabel(FieldCoordinate target, boolean jumping) {
+        for (MoveSquare square : state.getGame().getFieldModel().getMoveSquares())
+            if (square.getCoordinate().equals(target)) return movementLabel(square, jumping, false);
+        return null;
+    }
+    private String movementLabel(MoveSquare square, boolean jumping, boolean effective) {
+        FieldCoordinate to = square.getCoordinate();
+        String label = (jumping ? "Jump to " : "Move to ") + to.getX() + ", " + to.getY();
+        int dodge = square.getMinimumRollDodge(), rush = square.getMinimumRollGoForIt();
+        if (dodge > 0) label += " (dodge " + (effective ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(dodge) : dodge) + "+)";
+        if (rush > 0) label += " (rush " + (effective ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(rush) : rush) + "+)";
+        return label;
+    }
     public List<Action> actions() {
         List<Action> result = new ArrayList<>();
         Game game = state.getGame();
@@ -103,9 +117,7 @@ public final class CoreTurnActions {
                 FieldCoordinate to = square.getCoordinate();
                 if (!FieldCoordinateBounds.FIELD.isInBounds(to) || game.getFieldModel().getPlayer(to) != null
                     || (acting.isJumping() ? !jump.isValidJump(game, acting.getPlayer(), from, to) : !to.isAdjacent(from))) continue;
-                String label = (acting.isJumping() ? "Jump to " : "Move to ") + to.getX() + ", " + to.getY();
-                if (square.getMinimumRollDodge() > 0) label += " (dodge " + square.getMinimumRollDodge() + "+)";
-                if (square.getMinimumRollGoForIt() > 0) label += " (rush " + square.getMinimumRollGoForIt() + "+)";
+                String label = movementLabel(square, acting.isJumping(), true);
                 ClientCommand command = action.isBlitzing() ? new ClientCommandBlitzMove(id, oriented(from, role), new FieldCoordinate[] { oriented(to, role) })
                     : new ClientCommandMove(id, oriented(from, role), new FieldCoordinate[] { oriented(to, role) }, null);
                 result.add(new Action("move-" + to.getX() + "-" + to.getY(), acting.isJumping() ? "jump" : "move", label, role, command, to));

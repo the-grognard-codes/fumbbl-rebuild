@@ -14,6 +14,48 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoverySessionTest {
+	@Test void activeMovementForecastRestoresAndLegacyOmissionDoesNotAcceptTamperedChecks() throws Exception {
+		SetupSessionTest fixtures = new SetupSessionTest();
+		java.lang.reflect.Method ready = SetupSessionTest.class.getDeclaredMethod("readySession", boolean.class);
+		ready.setAccessible(true);
+		SetupSession current = (SetupSession) ready.invoke(fixtures, true);
+		Field stateField = SetupSession.class.getDeclaredField("state"); stateField.setAccessible(true);
+		com.fumbbl.ffb.server.GameState nativeState = (com.fumbbl.ffb.server.GameState) stateField.get(current);
+		TestRolls.on(nativeState).general(1, 1, 4, 4, 3, 3, 3);
+		JsonObject initial = view(current, "home");
+		JsonObject kick = null;
+		for (com.eclipsesource.json.JsonValue value : initial.get("actions").asArray())
+			if ("kickoff".equals(value.asObject().getString("kind", null)) && value.asObject().get("target").asObject().getInt("y", -1) == 7
+				&& (value.asObject().get("target").asObject().getInt("x", -1) == 6 || value.asObject().get("target").asObject().getInt("x", -1) == 19)) { kick = value.asObject(); break; }
+		assertTrue(kick != null);
+		submitAction(current, kick, "kick");
+		assertEquals("REGULAR", view(current, "home").getString("turnMode", null));
+		JsonObject select = null;
+		for (com.eclipsesource.json.JsonValue value : view(current, "home").get("actions").asArray())
+			if ("select".equals(value.asObject().getString("kind", null))) { select = value.asObject(); break; }
+		assertTrue(select != null);
+		submitAction(current, select, "select");
+		assertTrue(view(current, "home").get("movementForecast") != null);
+		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
+		MatchDocument document = (MatchDocument) documentField.get(current);
+		TestServer server = new TestServer();
+		restore(server, document, current);
+		JsonObject legacy = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+		legacy.get("homeView").asObject().remove("movementForecast"); legacy.get("awayView").asObject().remove("movementForecast");
+		assertEquals(view(current, "home"), view(new SetupSession(server.getServer(), document, signed(legacy)), "home"));
+		JsonObject changed = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject();
+		changed.get("homeView").asObject().get("movementForecast").asObject().get("steps").asArray().get(0).asObject().set("rush", 6);
+		assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class,
+			() -> new SetupSession(server.getServer(), document, signed(changed))).code);
+		JsonObject records = JsonObject.readFrom(current.recoveryArtifact()).get("payload").asObject().get("transcript").asObject();
+		for (com.eclipsesource.json.JsonValue value : records.get("records").asArray())
+			assertTrue(value.asObject().get("state").asObject().get("movementForecast") == null);
+	}
+	private void submitAction(SetupSession session, JsonObject action, String requestId) {
+		JsonObject snapshot = view(session, "home");
+		assertEquals("ACCEPTED", session.apply(action.getString("actor", null), new JsonObject().add("operation", "action")
+			.add("requestId", requestId).add("expectedRevision", snapshot.get("revision")).add("actionId", action.get("id"))).getString("code", null));
+	}
 	@Test void chatCheckpointKeepsMessagesWithoutChangingGameRevision() throws Exception {
 		SetupSession seed = new SetupSessionTest().session(11);
 		Field documentField = SetupSession.class.getDeclaredField("document"); documentField.setAccessible(true);
@@ -59,6 +101,7 @@ class RecoverySessionTest {
 			for (String role : new String[] {"homeView", "awayView"}) {
 				JsonObject saved = payload.get(role).asObject();
 				saved.remove("ballState");
+				saved.remove("movementForecast");
 				saved.remove("homeTeamArt"); saved.remove("awayTeamArt");
 				saved.remove("homeTeamName"); saved.remove("awayTeamName");
 				saved.remove("homeResources"); saved.remove("awayResources");
@@ -79,6 +122,7 @@ class RecoverySessionTest {
 		}
 		JsonObject legacyV4 = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 		legacyV4.get("homeView").asObject().remove("ballState"); legacyV4.get("awayView").asObject().remove("ballState");
+		legacyV4.get("homeView").asObject().remove("movementForecast"); legacyV4.get("awayView").asObject().remove("movementForecast");
 		assertEquals(view(original, "away"), view(new SetupSession(server.getServer(), document, signed(legacyV4)), "away"));
 		JsonObject changedBall = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 		changedBall.get("homeView").asObject().get("ballState").asObject().set("moving", true);

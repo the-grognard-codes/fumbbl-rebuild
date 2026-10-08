@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.match;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
@@ -14,11 +12,16 @@ import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.DodgeContext;
+import com.fumbbl.ffb.modifiers.DodgeModifier;
 import com.fumbbl.ffb.modifiers.GoForItContext;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -74,9 +77,16 @@ final class RoutePlanner {
 		}
 		JsonArray steps = new JsonArray();
 		for (Step step : path) steps.add(step.json());
-		return new JsonObject().add("routeVersion", 1).add("playerId", player.getId())
+		return new JsonObject().add("routeVersion", 2).add("playerId", player.getId())
 			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove))
 			.add("steps", steps);
+	}
+
+	JsonObject adjacent(List<Action> actions) {
+		JsonArray steps = new JsonArray();
+		for (Action action : actions) if ("move".equals(action.kind) && action.targetSquare != null
+			&& action.targetSquare.isAdjacent(start)) steps.add(step(start, action.targetSquare, 0).json());
+		return steps.size() == 0 ? null : new JsonObject().add("version", 1).add("playerId", player.getId()).add("steps", steps);
 	}
 
 	private List<Step> span(FieldCoordinate from, FieldCoordinate target, int used) {
@@ -115,12 +125,13 @@ final class RoutePlanner {
 
 	private Step step(FieldCoordinate from, FieldCoordinate to, int used) {
 		Set<String> reactions = new HashSet<>();
-		int dodge = 0;
+		int dodge = 0, dodgeModifier = 0;
 		boolean inTackleZone = UtilPlayer.findTacklezones(game, player, from) > 0;
 		if (!player.hasSkillProperty(NamedProperties.ignoreTacklezonesWhenMoving) && inTackleZone) {
 			DodgeModifierFactory modifiers = game.getFactory(FactoryType.Factory.DODGE_MODIFIER);
-			dodge = agility.minimumRollDodge(game, player,
-				modifiers.findModifiers(new DodgeContext(game, acting, from, to)));
+			Set<DodgeModifier> applicable = modifiers.findModifiers(new DodgeContext(game, acting, from, to));
+			dodgeModifier = -applicable.stream().mapToInt(DodgeModifier::getModifier).sum();
+			dodge = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(agility.minimumRollDodge(game, player, applicable));
 		}
 		if (inTackleZone) {
 			for (Player<?> opponent : game.getOtherTeam(player.getTeam()).getPlayers()) {
@@ -136,10 +147,10 @@ final class RoutePlanner {
 		int rush = 0;
 		if (currentMove + used >= player.getMovementWithModifiers()) {
 			GoForItModifierFactory modifiers = game.getFactory(FactoryType.Factory.GO_FOR_IT_MODIFIER);
-			rush = DiceInterpreter.getInstance().minimumRollGoingForIt(modifiers.findModifiers(
-				new GoForItContext(game, player, state.getPrayerState().getMolesUnderThePitch())));
+			rush = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(DiceInterpreter.getInstance().minimumRollGoingForIt(modifiers.findModifiers(
+				new GoForItContext(game, player, state.getPrayerState().getMolesUnderThePitch()))));
 		}
-		return new Step(to, dodge, rush, reactions);
+		return new Step(to, dodge, rush, dodgeModifier, reactions);
 	}
 
 	private boolean occupied(FieldCoordinate coordinate) {
@@ -181,16 +192,16 @@ final class RoutePlanner {
 	}
 	private static final class Step {
 		final FieldCoordinate at;
-		final int dodge, rush;
+		final int dodge, rush, dodgeModifier;
 		final Set<String> reactions;
-		Step(FieldCoordinate at, int dodge, int rush, Set<String> reactions) {
-			this.at = at; this.dodge = dodge; this.rush = rush; this.reactions = reactions;
+		Step(FieldCoordinate at, int dodge, int rush, int dodgeModifier, Set<String> reactions) {
+			this.at = at; this.dodge = dodge; this.rush = rush; this.dodgeModifier = dodgeModifier; this.reactions = reactions;
 		}
 		JsonObject json() {
 			JsonArray hazards = new JsonArray();
 			reactions.stream().sorted().forEach(hazards::add);
 			return new JsonObject().add("x", at.getX()).add("y", at.getY())
-				.add("dodge", dodge).add("rush", rush).add("reactions", hazards);
+				.add("dodge", dodge).add("rush", rush).add("dodgeModifier", dodgeModifier).add("reactions", hazards);
 		}
 	}
 }
