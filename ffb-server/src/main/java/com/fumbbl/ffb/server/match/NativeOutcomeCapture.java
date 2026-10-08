@@ -12,7 +12,9 @@ import java.util.List;
 
 /** Captures the home-oriented public native report/model stream since a durable command cursor. */
 final class NativeOutcomeCapture {
-    Capture since(GameLog log, int afterCommandNr) {
+    Capture since(GameLog log, int afterCommandNr) { return since(log, afterCommandNr, null); }
+
+    Capture since(GameLog log, int afterCommandNr, PrimaryRollPresentation presentation) {
         if (log == null || afterCommandNr < 0) throw new IllegalArgumentException("Invalid native command cursor");
         List<ServerCommand> pending = new ArrayList<>();
         int lastCommandNr = afterCommandNr;
@@ -31,7 +33,9 @@ final class NativeOutcomeCapture {
         int previous = afterCommandNr;
         for (ServerCommand command : pending) {
             if (command.getCommandNr() <= previous) throw new IllegalStateException("Duplicate native model sync");
-            publicSyncs.add(command.toJsonValue().asObject());
+            JsonObject publicSync = command.toJsonValue().asObject();
+            if (presentation != null) presentation.decorate((ServerCommandModelSync) command, publicSync);
+            publicSyncs.add(publicSync);
             previous = command.getCommandNr();
         }
         return new Capture(lastCommandNr, Collections.unmodifiableList(publicSyncs));

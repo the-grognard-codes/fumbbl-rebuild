@@ -1,4 +1,5 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
+import { decodeLogPresentation, decodeLogRoll } from './log-presentation.ts';
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 
@@ -44,6 +45,8 @@ export function decodeTranscript(json: string): TranscriptResponse {
     if (at < priorTime || (record.index === 0 ? record.decision !== null : !record.decision || typeof record.decision !== 'object' || Array.isArray(record.decision)))
       throw Error('Invalid transcript decision');
     priorTime = at;
+    if (record.decision && Object.hasOwn(record.decision, 'logPresentation'))
+      decodeLogPresentation((record.decision as Record<string, unknown>).logPresentation, Number(record.revision));
     if (!Array.isArray(record.native) || record.native.length > 512) throw Error('Invalid native outcome list');
     const native = record.native.map(value => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid native outcome');
@@ -51,6 +54,11 @@ export function decodeTranscript(json: string): TranscriptResponse {
       const number = integer(command.commandNr, 2_147_483_647);
       if (number <= priorCommand) throw Error('Native outcomes out of order');
       priorCommand = number;
+      const reports = (command.reportList as { reports?: unknown[] } | undefined)?.reports;
+      if (Array.isArray(reports)) for (const report of reports) {
+        if (report && typeof report === 'object' && Object.hasOwn(report, 'logRoll'))
+          decodeLogRoll((report as Record<string, unknown>).logRoll);
+      }
       return command;
     });
     const state = decodeSetupStateValue(record.state);

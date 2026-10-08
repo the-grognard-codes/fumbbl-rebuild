@@ -541,6 +541,13 @@ public final class SetupSession {
 		FieldCoordinate swapOrigin = null;
 		FieldCoordinate swapBuffer = null;
 		Game game = state.getGame();
+        PrimaryRollPresentation rollPresentation = new PrimaryRollPresentation(game);
+        AcceptedActionPresentation narrative = new AcceptedActionPresentation();
+        JsonObject logPresentation = new JsonObject().add("version", 1).add("action", JsonValue.NULL).add("movement", JsonValue.NULL);
+        JsonObject acceptedDecision = JsonObject.readFrom(request.toString()).add("logPresentation", logPresentation);
+        JsonObject movement = transcriptV2 ? transcript.pendingMovement() : null;
+        if (movement == null && pendingRoute != null)
+            movement = narrative.movement(pendingRoute.declaredRevision, pendingRoute.playerId, pendingRoute.origin);
 		if ("concede".equals(operation)) {
 			command = null;
 		} else if ("route".equals(operation)) {
@@ -548,12 +555,18 @@ public final class SetupSession {
 			if (!preview.getString("playerId", "").equals(request.getString("playerId", "")))
 				throw new MatchService.Failure("WRONG_PLAYER");
 			pendingRoute = new PendingRoute(role, revision, preview);
+            movement = narrative.movement(revision, pendingRoute.playerId, pendingRoute.origin);
 			command = null;
 		} else if ("action".equals(operation)) {
             Action selected = null;
             for (Action action : actions()) if (actionId(action).equals(request.getString("actionId", null))) selected = action;
             if (selected == null) throw new MatchService.Failure("INVALID_OPTION");
             if (!role.equals(selected.role)) throw new MatchService.Failure("WRONG_ACTOR");
+            logPresentation.set("action", narrative.action(game, selected));
+            if ("move".equals(selected.kind) || "jump".equals(selected.kind)) {
+                String movingId = game.getActingPlayer().getPlayerId();
+                movement = narrative.movement(revision, movingId, game.getFieldModel().getPlayerCoordinate(game.getPlayerById(movingId)));
+            }
             command = selected.command;
             if (command == null) {
                 if (!selected.id.startsWith("event-pick:")) throw new MatchService.Failure("INVALID_OPTION");
@@ -561,7 +574,7 @@ public final class SetupSession {
                 if (!kickoffSelection.remove(player)) kickoffSelection.add(player);
                 revision++;
                 history.put(key, new Record(fingerprint, "ACCEPTED"));
-				recordEvent("SELECTION", role, request);
+				recordEvent("SELECTION", role, acceptedDecision, rollPresentation);
                 return reply(id, "ACCEPTED", false, role);
             }
             if ("confirm-solid-defence".equals(selected.id)) {
@@ -680,7 +693,9 @@ public final class SetupSession {
 			if (!isComplete() && (newHalf || touchdown)) drive++;
 			if (defaultSetup && step() == StepId.SETUP && (oldStep != StepId.SETUP || !oldActor.equals(actor())))
 				deployDefaultSetup();
-			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION", role, request);
+            JsonObject progress = narrative.finishMovement(game, movement, pendingRoute != null);
+            logPresentation.set("movement", progress == null ? JsonValue.NULL : progress);
+			recordEvent(isComplete() ? "FULL_TIME" : newHalf ? "HALFTIME" : touchdown ? "TOUCHDOWN" : "ACTION", role, acceptedDecision, rollPresentation);
 			return reply(id, "ACCEPTED", false, role);
 		} catch (RuntimeException failure) {
 			failed = true;
@@ -976,14 +991,16 @@ public final class SetupSession {
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
-    private void recordEvent(String kind, String role, JsonValue decision) {
+    private void recordEvent(String kind, String role, JsonValue decision) { recordEvent(kind, role, decision, null); }
+
+    private void recordEvent(String kind, String role, JsonValue decision, PrimaryRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
         events.add(event);
         if (transcriptV2) {
-            NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor());
+            NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
             JsonArray nativeOutcomes = new JsonArray();
             capture.modelSyncs.forEach(nativeOutcomes::add);
             JsonValue accepted = decision.isObject() ? JsonObject.readFrom(canonical(decision.asObject())) : JsonValue.NULL;
