@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser match chat shows team names for coaches and stable numbered spectators in a distinct color")
 			.addImprovement("Browser movement squares show native pickup and jump targets, ball contact, and possible Diving Tackle, Tentacles, Shadowing and Steady Footing checks")
 			.addImprovement("Browser movement plans color each entered square by native dodge penalties and show native dodge and rush targets")
 			.addImprovement("Human and Orc sprites use reviewed body centerlines and grounded shadows in every pitch view")

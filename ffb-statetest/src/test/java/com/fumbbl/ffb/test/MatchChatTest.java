@@ -1,8 +1,14 @@
 package com.fumbbl.ffb.test;
 
-import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.MatchService;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +40,40 @@ class MatchChatTest {
 		assertEquals(chat.json(), restored.json());
 		assertTrue(restored.duplicate(WATCHER, "three", "Watching").duplicate);
 		assertEquals(3, restored.page(0, 32).get("messages").asArray().size());
+	}
+
+	@Test void spectatorNumbersFollowFirstPostsAcrossPagesRestartAndExactRetry() throws Exception {
+		String second = "dddddddd-dddd-dddd-dddd-dddddddddddd", third = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+		MatchChat chat = new MatchChat();
+		chat.append(HOME, "home", "home", "Home hello", 1, 1000);
+		chat.append(WATCHER, "spectator", "watch-one", "First spectator", 1, 1100);
+		chat.append(AWAY, "away", "away", "Away hello", 1, 1200);
+		chat.append(second, "spectator", "watch-two", "Second spectator", 1, 1300);
+		chat.append(WATCHER, "spectator", "watch-again", "First spectator again", 1, 2200);
+		for (int index = 0; index < 30; index++) chat.append(HOME, "home", "filler-" + index, "Coach message " + index, 1, 4000 + index * 1000);
+		assertThrows(IllegalArgumentException.class, () -> chat.append(third, "spectator", "bad", "bad\nmessage", 1, 35000));
+		chat.append(third, "spectator", "watch-three", "Third spectator on a later page", 1, 36000);
+		chat.append(WATCHER, "spectator", "watch-late", "First spectator on the later page", 1, 37000);
+		assertEquals(2, chat.page(0, 32).getInt("formatVersion", -1));
+		JsonArray first = chat.page(0, 32).get("messages").asArray();
+		assertTrue(first.get(0).asObject().get("spectatorNumber").isNull());
+		assertEquals(1, first.get(1).asObject().getInt("spectatorNumber", -1));
+		assertEquals(2, first.get(3).asObject().getInt("spectatorNumber", -1));
+		assertEquals(1, first.get(4).asObject().getInt("spectatorNumber", -1));
+		JsonObject saved = JsonObject.readFrom(chat.json().toString());
+		assertEquals(1, saved.getInt("formatVersion", -1));
+		assertTrue(saved.get("messages").asArray().get(1).asObject().get("spectatorNumber") == null);
+		MatchChat restored = new MatchChat(saved);
+		assertEquals(chat.json(), restored.json(), "Presentation numbering does not rewrite durable history");
+		assertEquals(chat.page(32, 32), restored.page(32, 32));
+		JsonArray late = restored.page(32, 32).get("messages").asArray();
+		assertEquals(3, late.get(3).asObject().getInt("spectatorNumber", -1));
+		assertEquals(1, late.get(4).asObject().getInt("spectatorNumber", -1));
+		assertTrue(restored.append(third, "spectator", "watch-three", "Third spectator on a later page", 9, 38000).duplicate);
+		assertEquals(chat.page(32, 32), restored.page(32, 32));
+		JsonObject evidence = new JsonObject().add("pages", new JsonArray().add(chat.page(0, 32)).add(chat.page(32, 32)))
+			.add("late", restored.page(32, 32));
+		Files.write(Paths.get("target", "chat-speakers.json"), evidence.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
 	@Test void rateAndContentLimitsRejectBeforeAppendingOrConsumingARequestId() {

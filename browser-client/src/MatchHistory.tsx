@@ -5,6 +5,7 @@ import { MatchEventLog } from './MatchEventLog.tsx';
 import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTextSize } from './MatchTextSizeControls.tsx';
 import type { MatchTextSize } from './MatchTextSizeControls.tsx';
 import type { ChatMessage } from './chat-protocol.ts';
+import { chatSpeaker } from './chat-speaker.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import './match-chat.css';
 
@@ -123,9 +124,9 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
       style={{ fontSize: `${matchTextPixels[fontSize]}px` }} onClick={openEntry}
       onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
         try { sessionStorage.setItem(scrollKey, String(element.scrollTop)); } catch { /* Scroll position remains in memory. */ } }}>
-      {(chatUnavailable || chatLoading) && <p role="status">{chatUnavailable ? 'Chat is unavailable for this match.' : 'Loading conversation…'}</p>}
+      {(chatUnavailable || chatLoading) && <p role="status"><strong data-speaker-role="system">Match</strong> {chatUnavailable ? 'Chat is unavailable for this match.' : 'Loading conversation…'}</p>}
       {messages.map(message => <p key={message.index}><time dateTime={new Date(message.at).toISOString()}>{new Date(message.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-        <strong>{message.role === 'spectator' ? 'Spectator' : `${message.role === 'home' ? homeTeamName || 'Home' : awayTeamName || 'Away'} coach`} · {message.authorId.slice(0, 8)}</strong>
+        <strong data-speaker-role={message.role}>{chatSpeaker(message, homeTeamName, awayTeamName)}</strong>
         <span>{message.text}</span></p>)}
     </div>
     {overlay && canSend && !chatUnavailable && !entryOpen && <button type="button" className="match-chat-hint" onClick={openEntry}>
