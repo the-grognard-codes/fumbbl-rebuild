@@ -9,6 +9,8 @@ a { color: #77d8ff; text-decoration-thickness: 2px; text-underline-offset: .2em;
 .site-header { position: relative; z-index: 20; flex-shrink: 0; margin-top: 1rem; background: #101c2b; border: 3px solid #4db2ff; box-shadow: 5px 5px 0 #03070c, -3px -3px 0 #24394e; }
 .brand, .kicker, nav a, .button, button { font-family: 'Press Start 2P', monospace; }
 .brand { color: #ffe17b; font-size: .75rem; line-height: 1.7; text-decoration: none; text-shadow: 2px 2px 0 #874a2d; }
+.site-header .brand { display: block; flex-shrink: 0; max-width: 100%; }
+.site-header .brand img { display: block; width: 12.25rem; max-width: 100%; height: auto; }
 nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; } nav a { color: #c1e9ff; font-size: .62rem; line-height: 1.7; text-decoration: none; } nav a:hover, nav a[aria-current="page"] { color: #ffe17b; text-shadow: 2px 2px 0 #874a2d; }
 nav { align-items: center; }
 .account-menu { position: relative; max-width: 100%; color: #c1e9ff; z-index: 20; }

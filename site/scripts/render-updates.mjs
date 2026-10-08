@@ -33,7 +33,7 @@ export function renderUpdatesPage(entries) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Brief updates for every merged Moles Under the Pitch pull request, covering gameplay, design and project development.">
   <title>Updates · Moles Under the Pitch</title>
-  <link rel="stylesheet" href="/assets/site.css?v=20261008-4">
+  <link rel="stylesheet" href="/assets/site.css?v=20261008-5">
   <link rel="stylesheet" href="/assets/updates.css">
 </head>
 <body>

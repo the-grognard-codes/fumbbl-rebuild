@@ -107,6 +107,15 @@ test('shared navigation and account disclosure stay consistent across pages, hig
         await page.getByLabel('My account', { exact: true }).waitFor();
         const header = page.locator('.site-header');
         assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
+        const logo = header.getByRole('img', { name: 'Moles Under the Pitch', exact: true });
+        await logo.waitFor();
+        assert.equal(await logo.getAttribute('src'), '/assets/brand-package-v4/moles-under-the-pitch-logo.svg');
+        await page.waitForFunction(() => {
+          const image = document.querySelector('.site-header .brand img');
+          return image?.complete && image.naturalWidth > 0;
+        });
+        const logoBounds = await logo.boundingBox();
+        assert.ok(logoBounds.width <= 240 && logoBounds.height <= 70, 'The existing logo is scaled down for navigation');
         const navigation = header.getByRole('navigation', { name: 'Primary navigation' });
         assert.deepEqual(await navigation.locator(':scope > a').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
           [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/updates', 'Updates']]);
@@ -114,12 +123,17 @@ test('shared navigation and account disclosure stay consistent across pages, hig
         assert.deepEqual(await navigation.locator('[aria-current="page"]').evaluateAll(links => links.map(link => link.getAttribute('href'))), active ? [active] : []);
         const styles = await header.evaluate(element => {
           const h = getComputedStyle(element), nav = getComputedStyle(element.querySelector('nav')), brand = getComputedStyle(element.querySelector('.brand'));
-          return [h.width, h.padding, h.border, h.marginTop, brand.font, nav.gap];
+          const image = getComputedStyle(element.querySelector('.brand img'));
+          return [h.width, h.height, h.padding, h.border, h.marginTop, brand.font, image.width, image.height, nav.gap];
         });
         if (!reference) reference = styles;
         assert.deepEqual(styles, reference, `${route} uses the same header layout at ${width}px`);
         const bounds = await header.boundingBox();
         assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+        assert.ok(logoBounds.x >= bounds.x && logoBounds.x + logoBounds.width <= bounds.x + bounds.width);
+        assert.equal(await header.evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Logo and navigation fit the shared header');
+        if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR && ['/', '/play'].includes(route))
+          await header.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, `header-${route === '/' ? 'home' : 'play'}-${width}.png`) });
         await page.getByLabel('My account', { exact: true }).click();
         const options = await page.locator('.account-options').boundingBox();
         assert.ok(options.x >= 0 && options.x + options.width <= width, `${route} keeps account options within the screen`);
