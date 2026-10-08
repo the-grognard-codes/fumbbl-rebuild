@@ -104,7 +104,7 @@ test('spectate browses live details, filters matches, prepares replay searches a
     await context.unroute('**/assets/play.js');
     await context.unroute('**/assets/game/game.js');
     await page.goto(`${origin}/play`);
-    const setup = page.getByRole('region', { name: 'Watch games' });
+    const setup = page.getByRole('navigation', { name: 'Primary navigation', exact: true });
     await setup.getByRole('link', { name: 'Spectate', exact: true }).waitFor();
     assert.equal(await setup.getByRole('link', { name: 'Spectate', exact: true }).getAttribute('href'), '/spectate');
     assert.deepEqual(errors, []);

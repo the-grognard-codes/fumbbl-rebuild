@@ -166,7 +166,9 @@ try {
   }
 
   const keyboard = await open(setup);
-  await keyboard.page.getByText('Place players with keyboard or touch', { exact: true }).focus();
+  assert.equal(await keyboard.page.getByText('Place players with keyboard or touch', { exact: true }).count(), 0);
+  assert.equal(await keyboard.page.getByLabel('Setup player').count(), 0, 'Numeric placement stays off the pitch');
+  await keyboard.page.getByRole('button', { name: 'Debug', exact: true }).focus();
   await keyboard.page.keyboard.press('Enter');
   const selected = keyboard.page.getByLabel('Setup player');
   await selected.focus(); await selected.press('End');

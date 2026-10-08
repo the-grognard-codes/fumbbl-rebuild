@@ -132,19 +132,22 @@ test('start defaults to the current tab and supports explicit windows with block
       await starterMatch.evaluate(() => window.scrollTo(0, 0));
       const setupBounds = await starterMatch.evaluate(() => {
         const side = document.querySelector('.match-side')?.getBoundingClientRect();
-        const placement = document.querySelector('[aria-label="Placement controls"]');
+        const placement = document.querySelector('[aria-label="Setup placement"]');
         const confirmation = document.querySelector('.confirmation-row .commit-action');
         const confirm = confirmation?.getBoundingClientRect();
         return { sideBottom: side?.bottom, confirmBottom: confirm?.bottom, height: innerHeight,
           confirmText: confirmation?.textContent?.trim(),
-          placementButtons: placement?.querySelectorAll(':scope > button').length,
-          setupDetailsOpen: placement?.querySelector('details')?.open,
+          numericPlacement: Boolean(placement),
           toolbarCount: document.querySelectorAll('.live-pitch-toolbar').length };
       });
       assert.equal(setupBounds.confirmText, undefined, 'Passive setup coach has no confirmation control');
-      assert.equal(setupBounds.placementButtons, 0);
-      assert.equal(setupBounds.setupDetailsOpen, false);
-      assert.equal(await starterMatch.getByLabel('Setup player').isVisible(), false, 'keyboard placement stays collapsed until requested');
+      assert.equal(setupBounds.numericPlacement, false);
+      assert.equal(await starterMatch.getByLabel('Setup player').count(), 0, 'Numeric placement stays off the pitch until Debug is opened');
+      assert.equal(await starterMatch.getByText('Place players with keyboard or touch', { exact: true }).count(), 0);
+      await starterMatch.getByRole('button', { name: 'Debug', exact: true }).click();
+      await starterMatch.getByRole('region', { name: 'Setup placement', exact: true }).waitFor();
+      assert.equal(await starterMatch.getByLabel('Setup player').isVisible(), true, 'Debug retains accessible numeric placement');
+      await starterMatch.getByRole('button', { name: 'Debug', exact: true }).click();
       assert.equal(setupBounds.toolbarCount, 0);
       assert.ok(setupBounds.confirmBottom === undefined,
         `Setup confirmation must be visible: ${JSON.stringify(setupBounds)}`);

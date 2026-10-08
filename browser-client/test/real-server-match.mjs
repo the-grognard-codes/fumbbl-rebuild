@@ -122,8 +122,8 @@ async function buildTeam(page, roster) {
 }
 async function arrange(view) {
   const page = pages[view.actor === 'home' ? 0 : 1], role = view.actor;
-  const disclosure = page.getByText('Place players with keyboard or touch', { exact: true });
-  await disclosure.click();
+  if (!await page.getByRole('region', { name: 'Setup placement', exact: true }).isVisible())
+    await page.getByRole('button', { name: 'Debug', exact: true }).click();
   for (const player of view.players.filter(player => player.role === role && player.x !== null)) {
     await page.getByLabel('Setup player', { exact: true }).selectOption(player.id);
     view = await advanced(view, () => page.getByRole('button', { name: 'Return selected player to reserve', exact: true }).click());
