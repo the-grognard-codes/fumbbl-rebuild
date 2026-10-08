@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { PitchProjection, PITCH_LENGTH, PITCH_WIDTH } from '../../../../../browser-client/src/pitch-projection.ts';
 
@@ -63,7 +62,7 @@ for(const end of ['home','away'])for(const elevation of [30,40,50,90])
   }
 const report={
   status:'passed', scope:'Production PitchProjection mathematical check and schematic review layout; not finished raster/crowd integration',
-  productionSource:fileURLToPath(sourcePath),
+  productionSource:'browser-client/src/pitch-projection.ts',
   productionSourceSha256:createHash('sha256').update(source).digest('hex'),
   cameras,finiteProjected,nearClipped,roundTrips,maxRoundTripError,maxSmoothStepRatio,
   checked:{focus:'0 through 26 at 0.25-square intervals',ends:['home','away'],angles:[30,40,50,90],zooms:[.5,1,2],

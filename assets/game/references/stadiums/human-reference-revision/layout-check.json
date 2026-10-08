@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "scope": "Production PitchProjection mathematical check and schematic review layout; not finished raster/crowd integration",
-  "productionSource": "C:\\Users\\jaken\\.codex\\worktrees\\league-stadium-mvp\\fumbbl-rebuild\\browser-client\\src\\pitch-projection.ts",
+  "productionSource": "browser-client/src/pitch-projection.ts",
   "productionSourceSha256": "76bf46bd051fbb098b99815890ef93286e92c118d7bb91987a836ea99d3bd674",
   "cameras": 7560,
   "finiteProjected": 1386252,

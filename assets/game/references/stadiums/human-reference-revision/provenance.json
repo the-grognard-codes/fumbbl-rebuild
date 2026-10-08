@@ -7,7 +7,7 @@
     {
       "file": "source-reference.png",
       "role": "user reference",
-      "source": "C:\\Users\\jaken\\AppData\\Local\\Temp\\codex-clipboard-6fdb8437-3f30-4fac-aadc-33afd993135a.png",
+      "source": "user-approved first-iteration reference",
       "width": 1672,
       "height": 941,
       "bytes": 2874459,
@@ -16,7 +16,7 @@
     {
       "file": "01-full-wraparound.png",
       "role": "assembled full enclosure",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-ced7949d-32ee-46de-93d5-ecb08d184710.png",
+      "source": "image_gen/exec-ced7949d-32ee-46de-93d5-ecb08d184710.png",
       "width": 1671,
       "height": 941,
       "bytes": 3095625,
@@ -25,7 +25,7 @@
     {
       "file": "02-close-match-view.png",
       "role": "closer match framing",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-8224fbaa-4565-45b0-8861-33c2e026fdc0.png",
+      "source": "image_gen/exec-8224fbaa-4565-45b0-8861-33c2e026fdc0.png",
       "width": 1672,
       "height": 941,
       "bytes": 3031909,
@@ -34,7 +34,7 @@
     {
       "file": "03-layer-study.png",
       "role": "conceptual layer study",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-e7bb9e22-5c34-4aba-9908-099843e706b9.png",
+      "source": "image_gen/exec-e7bb9e22-5c34-4aba-9908-099843e706b9.png",
       "width": 1536,
       "height": 1024,
       "bytes": 2190510,
@@ -43,7 +43,7 @@
     {
       "file": "04-full-wraparound-bowl-v2.png",
       "role": "revised assembled enclosure with elevated bowl and near crowd occlusion",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-d16c9980-e0a5-4b89-876c-3151204d6ac7.png",
+      "source": "image_gen/exec-d16c9980-e0a5-4b89-876c-3151204d6ac7.png",
       "width": 1671,
       "height": 941,
       "bytes": 2904349,
@@ -52,7 +52,7 @@
     {
       "file": "05-close-match-view-bowl-v2.png",
       "role": "revised close view with raised foreground crowd",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-e3d720d7-dcfa-44f0-a26d-d986cb51b4f8.png",
+      "source": "image_gen/exec-e3d720d7-dcfa-44f0-a26d-d986cb51b4f8.png",
       "width": 1672,
       "height": 941,
       "bytes": 2926528,
@@ -61,7 +61,7 @@
     {
       "file": "06-locker-rooms-mixed-crowd-v3.png",
       "role": "two sideline locker-room entrances, mixed supporters and clear apron",
-      "source": "C:\\Users\\jaken\\.codex\\generated_images\\01a117cc-bb24-7853-bd5e-06c5b4d9ddbc\\exec-f01dff3e-556c-4eb2-a7bd-c7dffcc31883.png",
+      "source": "image_gen/exec-f01dff3e-556c-4eb2-a7bd-c7dffcc31883.png",
       "width": 1671,
       "height": 941,
       "bytes": 2760703,
