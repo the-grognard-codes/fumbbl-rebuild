@@ -80,6 +80,7 @@ const inputs = [
   ['ui/mvp-art/match-ui-icon-atlas-v1.png', 'ui/match-ui-icon-atlas-v1.png'],
   ['ui/reroll-v1.png', 'ui/reroll-v1.png'],
   ['ui/skill-icons-v1.svg', 'ui/skill-icons-v1.svg'],
+  ['ui/ball-v1.svg', 'ui/ball-v1.svg'],
   ['ui/weather', 'ui/weather'],
   ['ui/dice', 'ui/dice'],
   ['references/match-screen-concept-v1.png', 'references/match-screen-concept-v1.png'],

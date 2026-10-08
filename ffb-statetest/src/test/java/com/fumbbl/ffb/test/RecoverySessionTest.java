@@ -58,6 +58,7 @@ class RecoverySessionTest {
 			JsonObject payload = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 			for (String role : new String[] {"homeView", "awayView"}) {
 				JsonObject saved = payload.get(role).asObject();
+				saved.remove("ballState");
 				saved.remove("homeTeamArt"); saved.remove("awayTeamArt");
 				saved.remove("homeTeamName"); saved.remove("awayTeamName");
 				saved.remove("homeResources"); saved.remove("awayResources");
@@ -76,6 +77,13 @@ class RecoverySessionTest {
 			assertEquals(4, view(restored, "home").getInt("projectionVersion", 0));
 			assertEquals(view(original, "away"), view(restored, "away"));
 		}
+		JsonObject legacyV4 = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
+		legacyV4.get("homeView").asObject().remove("ballState"); legacyV4.get("awayView").asObject().remove("ballState");
+		assertEquals(view(original, "away"), view(new SetupSession(server.getServer(), document, signed(legacyV4)), "away"));
+		JsonObject changedBall = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
+		changedBall.get("homeView").asObject().get("ballState").asObject().set("moving", true);
+		assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class,
+			() -> new SetupSession(server.getServer(), document, signed(changedBall))).code);
 		JsonObject tampered = JsonObject.readFrom(original.recoveryArtifact()).get("payload").asObject();
 		tampered.get("homeView").asObject().get("players").asArray().get(0).asObject().get("art").asObject().set("positionId", "private-change");
 		assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class,

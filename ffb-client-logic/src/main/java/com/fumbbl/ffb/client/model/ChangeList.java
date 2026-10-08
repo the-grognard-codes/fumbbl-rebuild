@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser balls use crisp pixel artwork and a synchronized, always-visible pulse; carried balls keep their highlight through confirmed movement")
 			.addImprovement("Human and Orc home leagues now have complete stadium, supporter, bench and sideline artwork in either hosting arrangement")
 			.addImprovement("Browser stadiums use frozen home-team league identity, pitch-colored sidelines, layered Human scenery and view-aware foreground cutaways")
 			.addBehaviorChange("Browser games open in the current tab by default, with an explicit new-window option and clearer unavailable direct-link feedback")

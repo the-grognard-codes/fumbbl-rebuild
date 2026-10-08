@@ -12,7 +12,7 @@ declare global {
   interface Window {
     playbackInput: Input;
     publishPlayback: (input: Input) => void;
-    playbackFrames: { revision: number; x: number | null; active: boolean }[];
+    playbackFrames: { revision: number; x: number | null; actorX: number | null; ballX: number | null; carrier: string | null; active: boolean }[];
   }
 }
 function Harness() {
@@ -20,7 +20,9 @@ function Harness() {
   window.publishPlayback = setInput;
   const { pitchView, playbackActive, diceMoment } = usePitchPlayback(input.view, input.records, input.enabled, 1, input.mode);
   useLayoutEffect(() => {
-    window.playbackFrames.push({ revision: pitchView.revision, x: pitchView.players[0]?.x ?? null, active: playbackActive });
+    window.playbackFrames.push({ revision: pitchView.revision, x: pitchView.players[0]?.x ?? null,
+      actorX: pitchView.players.find(player => player.id === 'actor')?.x ?? null,
+      ballX: pitchView.ball?.x ?? null, carrier: pitchView.ballState?.carrierPlayerId ?? null, active: playbackActive });
   }, [pitchView, playbackActive]);
   return <main className="play-runtime">
     <output id="playback-state" data-revision={pitchView.revision} data-x={pitchView.players[0]?.x}

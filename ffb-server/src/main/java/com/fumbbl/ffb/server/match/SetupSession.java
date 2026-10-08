@@ -821,6 +821,7 @@ public final class SetupSession {
 			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome().getApothecaries()))
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
 		JsonObject passing = new PassingProjection().project(game);
+		projected.add("ballState", new BallPresentation().project(game));
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
@@ -874,6 +875,7 @@ public final class SetupSession {
 		// Existing checkpoints predate this optional, independently versioned public guidance.
 		if (saved.get("passing") == null) current.remove("passing");
 		if (saved.get("kickoff") == null) current.remove("kickoff");
+		if (saved.get("ballState") == null) current.remove("ballState");
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {

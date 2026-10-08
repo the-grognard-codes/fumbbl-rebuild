@@ -313,6 +313,20 @@ class MatchServiceTest {
 		JsonObject player = JsonObject.readFrom("{\"id\":\"home1\",\"name\":\"Player\",\"slot\":1,\"art\":null,\"role\":\"home\",\"state\":\"is standing\",\"x\":7,\"y\":7,\"number\":1,\"position\":\"Lineman\",\"ma\":6,\"st\":3,\"ag\":3,\"pa\":5,\"av\":8,\"skills\":[],\"offPitch\":\"pitch\"}");
 		state.get("players").asArray().add(player);
 		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		state.set("ball", new JsonObject().add("x", 7).add("y", 7));
+		JsonObject ballState = new JsonObject().add("version", 1).add("carrierPlayerId", "home1").add("inPlay", true).add("moving", false);
+		state.add("ballState", ballState);
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		for (String flag : new String[] { "inPlay", "moving" }) {
+			ballState.set(flag, "moving".equals(flag));
+			assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+				() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+			ballState.set(flag, "inPlay".equals(flag));
+		}
+		ballState.set("carrierPlayerId", "missing");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		ballState.set("carrierPlayerId", "home1");
 		player.add("status", "Standing");
 		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
 		player.add("positionRace", "Human").add("positionRole", "Lineman");
