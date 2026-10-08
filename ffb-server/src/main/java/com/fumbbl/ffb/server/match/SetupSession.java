@@ -14,6 +14,7 @@ import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandCoinChoice;
@@ -39,9 +40,10 @@ import com.fumbbl.ffb.util.UtilBox;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import java.util.Date;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -795,7 +797,8 @@ public final class SetupSession {
 		}
 		JsonArray legal = new JsonArray();
         ActionSource source = new ActionSource();
-        for (Action action : actions()) {
+        List<Action> available = actions();
+        for (Action action : available) {
             JsonValue target = action.targetPlayerId != null ? new JsonObject().add("playerId", action.targetPlayerId)
                 : action.targetSquare != null ? new JsonObject().add("x", action.targetSquare.getX()).add("y", action.targetSquare.getY()) : JsonValue.NULL;
             String sourcePlayerId = source.playerId(game, action);
@@ -822,6 +825,13 @@ public final class SetupSession {
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));
+		Player<?> mover = game.getActingPlayer().getPlayer();
+		if (mover != null && !game.getActingPlayer().isJumping()
+			&& !mover.hasSkillProperty(NamedProperties.movesRandomly)
+			&& available.stream().anyMatch(action -> "move".equals(action.kind))) {
+			JsonObject forecast = new RoutePlanner(state).adjacent(available);
+			if (forecast != null) projected.add("movementForecast", forecast);
+		}
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
@@ -876,10 +886,18 @@ public final class SetupSession {
 		if (saved.get("passing") == null) current.remove("passing");
 		if (saved.get("kickoff") == null) current.remove("kickoff");
 		if (saved.get("ballState") == null) current.remove("ballState");
+		if (saved.get("movementForecast") == null) current.remove("movementForecast");
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
 			JsonObject previous = savedActions.get(index).asObject(), now = currentActions.get(index).asObject();
+			if (saved.get("movementForecast") == null && ("move".equals(previous.getString("kind", null))
+				|| "jump".equals(previous.getString("kind", null))) && previous.get("target") != null && previous.get("target").isObject()) {
+				JsonObject target = previous.get("target").asObject();
+				String legacyLabel = new CoreTurnActions(state).legacyMovementLabel(
+					new FieldCoordinate(target.getInt("x", -1), target.getInt("y", -1)), "jump".equals(previous.getString("kind", null)));
+				if (previous.getString("label", "").equals(legacyLabel)) now.set("label", legacyLabel);
+			}
 			// Old kickoff checkpoints omitted the moved player's source, but retained its exact target and action ID.
 			if ("kickoffMove".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("sourcePlayerId")))
 				now.set("sourcePlayerId", JsonValue.NULL);
@@ -955,6 +973,7 @@ public final class SetupSession {
     private int awayScore() { return state.getGame().getGameResult().getTeamResultAway().getScore(); }
     private void recordEvent(String kind, String role, JsonValue decision) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
+        snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
         events.add(event);
@@ -1054,10 +1073,12 @@ public final class SetupSession {
 			playerId = preview.get("playerId").asString();
 			declaredRevision = revision;
 			origin = coordinate(preview.get("from").asObject());
+			int version = preview.getInt("routeVersion", 1);
+			if (version != 1 && version != 2) throw new IllegalArgumentException("Unsupported route version");
 			for (JsonValue value : preview.get("steps").asArray()) {
 				JsonObject step = value.asObject();
-				if (step.size() != 5 || !step.names().containsAll(java.util.Arrays.asList(
-					"x", "y", "dodge", "rush", "reactions"))) throw new IllegalArgumentException("Invalid route step");
+				if (step.size() != (version == 2 ? 6 : 5) || !step.names().containsAll(java.util.Arrays.asList(
+					"x", "y", "dodge", "rush", "reactions")) || (version == 2 && !step.names().contains("dodgeModifier"))) throw new IllegalArgumentException("Invalid route step");
 				steps.add(new FieldCoordinate(step.get("x").asInt(), step.get("y").asInt()));
 			}
 			check();
