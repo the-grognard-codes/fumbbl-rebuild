@@ -33,17 +33,18 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
   }).join(' ');
 }
 
-function MovementSquare({ step, camera, planned, index }: { step: RouteStep; camera: PitchProjection; planned: boolean; index: number }) {
+function MovementSquare({ step, camera, planned, index, labelsOnly = false }: { step: RouteStep; camera: PitchProjection; planned: boolean; index: number; labelsOnly?: boolean }) {
   const p = camera.project(centerOf(step));
   if (!p) return null;
   const presentation = routeSquarePresentation(step);
   const fontSize = Math.max(10, Math.min(15, p.pixelsPerSquare * .25));
-  return <g className={`live-route-step${planned ? '' : ' live-available-step'}`} data-route-square={planned ? `${step.x},${step.y}` : undefined}
-    data-movement-square={planned ? undefined : `${step.x},${step.y}`} data-route-band={presentation.band} data-step-index={index}>
-    <polygon fill={presentation.color} points={points(camera.square(step, .025, true))}><title>{presentation.description}</title></polygon>
-    <text x={p.x} y={p.y - (presentation.labels.length - 1) * fontSize / 2 + fontSize * .35} textAnchor="middle" style={{ fontSize }}>
+  return <g className={`live-route-step${!labelsOnly && !planned ? ' live-available-step' : ''}`} data-route-square={!labelsOnly && planned ? `${step.x},${step.y}` : undefined}
+    data-movement-square={!labelsOnly && !planned ? `${step.x},${step.y}` : undefined} data-label-square={labelsOnly ? `${step.x},${step.y}` : undefined}
+    data-route-band={presentation.band} data-step-index={index}>
+    {!labelsOnly && <polygon fill={presentation.color} points={points(camera.square(step, .025, true))}><title>{presentation.description}</title></polygon>}
+    {labelsOnly && <text x={p.x} y={p.y - (presentation.labels.length - 1) * fontSize / 2 + fontSize * .35} textAnchor="middle" style={{ fontSize }}>
       {presentation.labels.map((label, row) => <tspan key={label} x={p.x} dy={row ? fontSize : 0}>{label}</tspan>)}
-    </text>
+    </text>}
   </g>;
 }
 
@@ -301,10 +302,6 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
           {routePreview?.steps.map((step, index) => <MovementSquare key={`route-step-${index}`} step={step} camera={camera} planned index={index}/>)}
-          {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
-            const offset = p && Math.max(24, p.pixelsPerSquare * .55);
-            return p && <g key={index} className="live-route-waypoint"><circle cx={p.x + offset!} cy={p.y - offset!} r="6"/>
-              <text x={p.x + offset!} y={p.y - offset! + 3} textAnchor="middle">{index + 1}</text></g>; })}
           {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
           {view.ball && view.ballState?.inPlay !== false && (() => {
             const p = camera.project(centerOf(view.ball!));
@@ -324,6 +321,14 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
                 x={-8 * ballScale} y={-10 * ballScale} width={16 * ballScale} height={20 * ballScale}/>}
             </g>;
           })()}
+        </svg>
+        <svg className="live-movement-label-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
+          {availableChecks.map((step, index) => <MovementSquare key={`available-label-${step.x},${step.y}`} step={step} camera={camera} planned={false} index={index} labelsOnly/>)}
+          {routePreview?.steps.map((step, index) => <MovementSquare key={`route-label-${index}`} step={step} camera={camera} planned index={index} labelsOnly/>)}
+          {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
+            const offset = p && Math.max(24, p.pixelsPerSquare * .55);
+            return p && <g key={index} className="live-route-waypoint"><circle cx={p.x + offset!} cy={p.y - offset!} r="6"/>
+              <text x={p.x + offset!} y={p.y - offset! + 3} textAnchor="middle">{index + 1}</text></g>; })}
         </svg>
         {occupants.map(player => <PlayerMarker failedArt={failedArt} onArtError={onArtError} key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}

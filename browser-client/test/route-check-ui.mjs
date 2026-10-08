@@ -17,6 +17,15 @@ await server.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 const errors = [];
+async function ensureSprites(page) {
+  await page.waitForFunction(() => {
+    const markers = [...document.querySelectorAll('.live-marker')];
+    return markers.length > 0 && markers.every(marker => {
+      const image = marker.querySelector('img');
+      return image && image.complete && image.naturalWidth > 0;
+    });
+  });
+}
 try {
   for (const end of ['home', 'away']) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
@@ -28,26 +37,41 @@ try {
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/route-check-test`);
     await page.locator('.live-route-step').first().waitFor();
     await page.getByRole('button', { name: 'Reveal selected', exact: true }).click();
+    await ensureSprites(page);
+    assert.equal(await page.locator('.live-token').count(), 0, 'Visual evidence uses real catalog sprites at native fixture positions');
+    assert.ok(await page.locator('.live-movement-label-layer').evaluate(layer => {
+      const style = getComputedStyle(layer), markers = [...document.querySelectorAll('.live-marker')];
+      return style.position === 'absolute' && style.pointerEvents === 'none'
+        && markers.every(marker => Number(getComputedStyle(marker).zIndex) < Number(style.zIndex));
+    }), 'Roll labels remain above neighboring sprites without intercepting canonical pitch input');
     for (const angle of [30, 40, 50, 90]) {
       if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
       else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await page.keyboard.press('Tab');
+      await page.locator('.live-marker').last().focus();
+      assert.ok(await page.locator('.live-marker').last().evaluate(marker => marker.matches(':focus-visible')
+        && Number(getComputedStyle(marker).zIndex) < Number(getComputedStyle(document.querySelector('.live-movement-label-layer')).zIndex)),
+        'Keyboard-focused sprites remain below roll labels');
       for (const input of cases) {
         decodeSetupStateValue(input.state);
         const route = decodeRoutePreview(JSON.stringify({ version: 2, type: 'routePreview', requestId: 'forecast',
           code: 'ACCEPTED', matchId: input.state.matchId, route: input.route })).route;
         await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route });
+        await ensureSprites(page);
         for (const step of route.steps) {
           const indicator = page.locator(`[data-route-square="${step.x},${step.y}"]`);
           const band = step.dodge ? ['dodge-zero', 'dodge-one', 'dodge-two', 'dodge-three'][Math.min(3, Math.max(0, -step.dodgeModifier))]
             : step.rush ? 'rush' : 'clear';
           assert.equal(await indicator.getAttribute('data-route-band'), band);
-          const labels = await indicator.locator('tspan').allTextContents();
+          const label = page.locator(`[data-label-square="${step.x},${step.y}"]`);
+          const labels = await label.locator('tspan').allTextContents();
           assert.deepEqual(labels, [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
           assert.equal(await indicator.locator('polygon').evaluate(polygon => getComputedStyle(polygon).stroke), 'none');
+          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith('26'), 'Every forecast uses the established transparent overlay alpha');
           const rect = await indicator.locator('polygon').boundingBox();
           assert.ok(rect && rect.width > 10 && rect.height > 5, 'Planned squares remain visible in every camera');
           if (labels.length && step === route.steps.at(-1)) {
-            const labelRect = await indicator.locator('text').boundingBox();
+            const labelRect = await label.locator('text').boundingBox();
             const badge = await page.locator('.live-route-waypoint circle').boundingBox();
             assert.ok(labelRect && badge && (badge.x + badge.width <= labelRect.x || badge.x >= labelRect.x + labelRect.width
               || badge.y + badge.height <= labelRect.y || badge.y >= labelRect.y + labelRect.height), 'Waypoint badges leave targets visible');
@@ -65,8 +89,9 @@ try {
           const band = step.dodge ? ['dodge-zero', 'dodge-one', 'dodge-two', 'dodge-three'][Math.min(3, Math.max(0, -step.dodgeModifier))]
             : step.rush ? 'rush' : 'clear';
           assert.equal(await indicator.getAttribute('data-route-band'), band);
-          assert.deepEqual(await indicator.locator('tspan').allTextContents(), [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
+          assert.deepEqual(await page.locator(`[data-label-square="${step.x},${step.y}"] tspan`).allTextContents(), [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
           assert.equal(await indicator.locator('polygon').evaluate(polygon => getComputedStyle(polygon).stroke), 'none');
+          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith('26'), 'Every forecast uses the established transparent overlay alpha');
         }
       }
     }

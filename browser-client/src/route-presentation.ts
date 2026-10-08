@@ -6,8 +6,8 @@ export function routeSquarePresentation(step: RouteStep): { color: string; band:
   const penalty = step.dodgeModifier;
   const band = step.dodge ? penalty === undefined ? 'unknown' : penalty >= 0 ? 'dodge-zero'
     : penalty === -1 ? 'dodge-one' : penalty === -2 ? 'dodge-two' : 'dodge-three' : step.rush ? 'rush' : 'clear';
-  const colors: Record<string, string> = { clear: '#93c6e8', rush: '#4b8fbd', unknown: '#b4a877',
-    'dodge-zero': '#e0bd3c', 'dodge-one': '#df843b', 'dodge-two': '#be453b', 'dodge-three': '#652932' };
+  const colors: Record<string, string> = { clear: '#74d6e126', rush: '#4b8fbd26', unknown: '#b4a87726',
+    'dodge-zero': '#e0bd3c26', 'dodge-one': '#df843b26', 'dodge-two': '#be453b26', 'dodge-three': '#65293226' };
   const checks = [...(step.dodge ? [`Dodge ${step.dodge}+${penalty === undefined ? '; modifier unavailable'
     : `; net modifier ${penalty > 0 ? '+' : ''}${penalty}`}`] : []), ...(step.rush ? [`Rush ${step.rush}+`] : [])];
   return { color: colors[band], band, labels, description: checks.join(' · ') || 'No dodge or rush roll' };
