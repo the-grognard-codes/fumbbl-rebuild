@@ -60,7 +60,7 @@ export function crowdRegistration(profile:string,end:'home'|'away',piece:JigsawP
   return registerJigsaw(source,end==='home'?points:[points[2],points[3],points[0],points[1]]);
 }
 export function crowdHoles():JigsawBounds[] {
-  const benches=geometry.benches.map(b=>({x0:b.x-b.along/2,y0:b.y-b.across/2,x1:b.x+b.along/2,y1:b.y+b.across/2}));
+  const benches=geometry.benches.map(b=>({x0:b.x-b.along/2,y0:b.side==='north'?b.y-b.across/2:17,x1:b.x+b.along/2,y1:b.side==='north'?-2:b.y+b.across/2}));
   const p=geometry.pavilion;
   return [...benches,{x0:p.x-p.along/2,y0:p.y-p.across/2,x1:p.x+p.along/2,y1:p.y+p.across/2}];
 }
@@ -93,6 +93,7 @@ export function jigsawModules(camera:PitchProjection,venue:StadiumProfile,home:S
       const overscan=rowBank?8:0,top=rect.y+sourceRow*rect.height/rows-overscan,bottom=rect.y+(sourceRow+1)*rect.height/rows+overscan;
       const source=[{x:rect.x,y:top},{x:rect.x+rect.width,y:top},{x:rect.x+rect.width,y:bottom},{x:rect.x,y:bottom}];
       // Source art is calibrated at 40 degrees; rows overlap as the lens tilts rather than flattening heads.
+      // End art has denser, smaller faces calibrated to adjoining corner heads at these fixed heights.
       const height=rowBank?(bottom-top)/rect.height*span*Math.sin(40*Math.PI/180):(near?3.45:3);
       const target=[{x:piece.bounds.y0,y:height},{x:piece.bounds.y1,y:height},{x:piece.bounds.y1,y:0},{x:piece.bounds.y0,y:0}];
       if(camera.end==='away')for(const p of target)p.x=piece.bounds.y0+piece.bounds.y1-p.x;
@@ -118,8 +119,19 @@ export function jigsawModules(camera:PitchProjection,venue:StadiumProfile,home:S
       const target=[{x:start,y:wallHeight},{x:finish,y:wallHeight},{x:finish,y:0},{x:start,y:0}];
       const registration=registerJigsaw(source,camera.end==='home'?target:target.map(p=>({x:start+finish-p.x,y:p.y})));
       const spans=portal&&portal.x>start&&portal.x<finish?[[start,portal.x-portal.span/2],[portal.x+portal.span/2,finish]]:[[start,finish]];
-      for(const [i,[from,to]] of spans.entries())modules.push({jigsaw:true,id:'shell-'+edge+'-'+half+'-'+i,role:'wall',
-        profile:venue,edge,...plane,registration,bounds:{x0:from,y0:0,x1:to,y1:wallHeight},art:family.walls});
+      const bench=geometry.benches.find(b=>b.side===edge),bay=bench?[bench.x-bench.along/2,bench.x+bench.along/2]:null;
+      for(const [i,[from,to]] of spans.entries()) {
+        const cuts=[from,...(bay??[]).filter(x=>x>from&&x<to),to];
+        for(let part=0;part<cuts.length-1;part++) {
+          const low=cuts[part],high=cuts[part+1],recess=bay&&low>=bay[0]&&high<=bay[1];
+          // A low retaining lip leaves field-level bench bays open; these are not extra gates.
+          const height=recess&&camera.mode!=='top-down'?.35:wallHeight;
+          const localRegistration=recess&&camera.mode!=='top-down'?registerJigsaw(source,(camera.end==='home'?target:target.map(p=>({x:start+finish-p.x,y:p.y}))).map(p=>({...p,y:p.y/wallHeight*height}))):registration;
+          modules.push({jigsaw:true,id:'shell-'+edge+'-'+half+'-'+i+'-'+part,role:'wall',profile:venue,edge,...plane,
+            origin:recess&&camera.mode==='top-down'?{...plane.origin,z:.35}:plane.origin,registration:localRegistration,
+            bounds:{x0:low,y0:0,x1:high,y1:height},art:family.walls});
+        }
+      }
     }
   }
   return modules;

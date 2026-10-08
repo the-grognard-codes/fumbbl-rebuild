@@ -239,17 +239,7 @@ export class PitchProjection {
     if (![width,height].every(value => Number.isFinite(value) && value > 0)
       || ![origin,across,down].every(p => [p.x,p.y,p.z].every(Number.isFinite)))
       throw new RangeError('Scenery surface must have finite world coordinates and positive source dimensions');
-    const column = (p: WorldPoint, offset: boolean) => {
-      const x=p.x-(offset?this.focus:0), y=p.y-(offset?this.transverseFocus:0);
-      const depth=(offset?DISTANCE:0)+this.orientation*x*this.cosine-p.z*this.sine;
-      return this.mode==='top-down'
-        ? [this.orientation*this.scale*y+(offset?this.center.x:0),
-          -this.orientation*this.scale*x+(offset?this.center.y:0),offset?1:0]
-        : [this.center.x*depth+this.orientation*this.scale*DISTANCE*y,
-          this.center.y*depth-this.orientation*this.scale*DISTANCE*this.sine*x-this.scale*DISTANCE*this.cosine*p.z,depth];
-    };
-    const columns=[column(across,false),column(down,false),column(origin,true)];
-    const h=[0,1,2].map(row=>columns.map(col=>col[row]));
+    const h=this.surfaceProjection(origin,across,down);
     const value=(row:number,p:Point)=>h[row][0]*p.x+h[row][1]*p.y+h[row][2];
     let visible=[{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];
     // Clip source pixels against the lens and viewport before CSS projection.
@@ -257,16 +247,7 @@ export class PitchProjection {
       (p:Point)=>value(0,p),(p:Point)=>this.width*value(2,p)-value(0,p),
       (p:Point)=>value(1,p),(p:Point)=>this.height*value(2,p)-value(1,p)];
     for(const distance of planes) visible=this.clip(visible,distance);
-    if(visible.length<3)return null;
-    const left=Math.min(...visible.map(p=>p.x)), top=Math.min(...visible.map(p=>p.y));
-    const croppedWidth=Math.max(...visible.map(p=>p.x))-left, croppedHeight=Math.max(...visible.map(p=>p.y))-top;
-    if(croppedWidth<EPSILON||croppedHeight<EPSILON)return null;
-    for(const row of h)row[2]+=row[0]*left+row[1]*top;
-    const n=Math.abs(h[2][2])||1;
-    const transform=`matrix3d(${[h[0][0],h[1][0],0,h[2][0],h[0][1],h[1][1],0,h[2][1],
-      0,0,n,0,h[0][2],h[1][2],0,h[2][2]].map(v=>v/n).join(',')})`;
-    const clipPath='polygon('+visible.map(p=>(p.x-left)/croppedWidth*100+'% '+(p.y-top)/croppedHeight*100+'%').join(',')+')';
-    return {left,top,width:croppedWidth,height:croppedHeight,transform,clipPath};
+    return this.croppedSurface(h,visible);
   }
 
   /** A painted jigsaw section registered on a ground or upright world plane. */
@@ -278,17 +259,7 @@ export class PitchProjection {
       || ![origin,across,down].every(p=>[p.x,p.y,p.z].every(Number.isFinite))
       || ![bounds.x0,bounds.y0,bounds.x1,bounds.y1].every(Number.isFinite) || bounds.x1<=bounds.x0 || bounds.y1<=bounds.y0)
       throw new RangeError('Jigsaw registration needs a finite plane, positive dimensions and ordered bounds');
-    const column=(p:WorldPoint,offset:boolean)=>{
-      const x=p.x-(offset?this.focus:0),y=p.y-(offset?this.transverseFocus:0);
-      const depth=(offset?DISTANCE:0)+this.orientation*x*this.cosine-p.z*this.sine;
-      return this.mode==='top-down'
-        ? [this.orientation*this.scale*y+(offset?this.center.x:0),
-          -this.orientation*this.scale*x+(offset?this.center.y:0),offset?1:0]
-        : [this.center.x*depth+this.orientation*this.scale*DISTANCE*y,
-          this.center.y*depth-this.orientation*this.scale*DISTANCE*this.sine*x-this.scale*DISTANCE*this.cosine*p.z,depth];
-    };
-    const columns=[column(across,false),column(down,false),column(origin,true)];
-    const projection=[0,1,2].map(row=>columns.map(c=>c[row]));
+    const projection=this.surfaceProjection(origin,across,down);
     const h=projection.map(row=>[0,1,2].map(c=>row.reduce((sum,v,i)=>sum+v*sourceToPlane[i][c],0)));
     const value=(m:PlaneMatrix,row:number,p:Point)=>m[row][0]*p.x+m[row][1]*p.y+m[row][2];
     let visible=[{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];
@@ -302,15 +273,35 @@ export class PitchProjection {
       (p:Point)=>value(h,0,p),(p:Point)=>this.width*value(h,2,p)-value(h,0,p),
       (p:Point)=>value(h,1,p),(p:Point)=>this.height*value(h,2,p)-value(h,1,p)];
     for(const distance of planes)visible=this.clip(visible,distance);
+    return this.croppedSurface(h,visible);
+  }
+  /** The common world-plane lens used by affine and registered artwork. */
+  private surfaceProjection(origin:WorldPoint,across:WorldPoint,down:WorldPoint) {
+    const column = (p: WorldPoint, offset: boolean) => {
+      const x=p.x-(offset?this.focus:0), y=p.y-(offset?this.transverseFocus:0);
+      const depth=(offset?DISTANCE:0)+this.orientation*x*this.cosine-p.z*this.sine;
+      return this.mode==='top-down'
+        ? [this.orientation*this.scale*y+(offset?this.center.x:0),
+          -this.orientation*this.scale*x+(offset?this.center.y:0),offset?1:0]
+        : [this.center.x*depth+this.orientation*this.scale*DISTANCE*y,
+          this.center.y*depth-this.orientation*this.scale*DISTANCE*this.sine*x-this.scale*DISTANCE*this.cosine*p.z,depth];
+    };
+    const columns=[column(across,false),column(down,false),column(origin,true)];
+    return [0,1,2].map(row=>columns.map(col=>col[row]));
+  }
+
+  /** Crop before emitting CSS so both surface types share viewport behavior. */
+  private croppedSurface(h:number[][],visible:Point[]) {
     if(visible.length<3)return null;
-    const left=Math.min(...visible.map(p=>p.x)),top=Math.min(...visible.map(p=>p.y));
-    const croppedWidth=Math.max(...visible.map(p=>p.x))-left,croppedHeight=Math.max(...visible.map(p=>p.y))-top;
+    const left=Math.min(...visible.map(p=>p.x)), top=Math.min(...visible.map(p=>p.y));
+    const croppedWidth=Math.max(...visible.map(p=>p.x))-left, croppedHeight=Math.max(...visible.map(p=>p.y))-top;
     if(croppedWidth<EPSILON||croppedHeight<EPSILON)return null;
     for(const row of h)row[2]+=row[0]*left+row[1]*top;
     const n=Math.abs(h[2][2])||1;
-    const transform='matrix3d('+[h[0][0],h[1][0],0,h[2][0],h[0][1],h[1][1],0,h[2][1],
-      0,0,n,0,h[0][2],h[1][2],0,h[2][2]].map(v=>v/n).join(',')+')';
-    return {left,top,width:croppedWidth,height:croppedHeight,transform,sourcePolygon:visible,
-      clipPath:'polygon('+visible.map(p=>(p.x-left)/croppedWidth*100+'% '+(p.y-top)/croppedHeight*100+'%').join(',')+')'};
+    const transform=`matrix3d(${[h[0][0],h[1][0],0,h[2][0],h[0][1],h[1][1],0,h[2][1],
+      0,0,n,0,h[0][2],h[1][2],0,h[2][2]].map(v=>v/n).join(',')})`;
+    const clipPath='polygon('+visible.map(p=>(p.x-left)/croppedWidth*100+'% '+(p.y-top)/croppedHeight*100+'%').join(',')+')';
+    return {left,top,width:croppedWidth,height:croppedHeight,transform,clipPath,sourcePolygon:visible};
   }
+
 }

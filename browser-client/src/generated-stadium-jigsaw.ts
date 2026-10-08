@@ -8,7 +8,7 @@ export const jigsawCatalog = {
         "file": "human-crowd-v2.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "30d4ee6c96adb9d36a81371994c0053a7defe69ded8336d8ad2351a875ddd0e0",
+        "sha256": "9e7e1ec0e93286ff01810412ccd74565441f3f608db862b9bf8690d7cbee8d52",
         "regions": {
           "north": {
             "x": 30,
@@ -48,22 +48,22 @@ export const jigsawCatalog = {
           },
           "away": {
             "x": 35,
-            "y": 1006,
+            "y": 980,
             "width": 1051,
-            "height": 153
+            "height": 179
           },
           "home": {
             "x": 35,
-            "y": 1197,
+            "y": 1170,
             "width": 1051,
-            "height": 164
+            "height": 191
           }
         },
         "gesture": {
           "file": "human-gesture-v1.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "c7884db861a61ce6b39fb2212c4811e44a842a1d6208ec9785d1668015f90a63",
+          "sha256": "e1b453174d8bed6d1e6a0060a9b7d575fc0d57927c9505a800543c0b2a5fe3c8",
           "zones": {
             "north": {
               "x": 230,
@@ -178,15 +178,15 @@ export const jigsawCatalog = {
           },
           "away": {
             "x": 35,
-            "y": 1006,
+            "y": 980,
             "width": 1051,
-            "height": 153
+            "height": 179
           },
           "home": {
             "x": 35,
-            "y": 1197,
+            "y": 1170,
             "width": 1051,
-            "height": 164
+            "height": 191
           }
         },
         "gesture": {
@@ -252,7 +252,7 @@ export const jigsawCatalog = {
         "file": "orc-crowd-v2.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "7141fff2e1c0b65b7598a456ae6b830d9071f1116a3d0966bfec037eceb951d4",
+        "sha256": "f9e44f78c97ba80295b770cbf04d47a3b6bac18dc88f4e652f73ca7ec365efcb",
         "regions": {
           "north": {
             "x": 30,
@@ -292,22 +292,22 @@ export const jigsawCatalog = {
           },
           "away": {
             "x": 35,
-            "y": 1006,
+            "y": 980,
             "width": 1051,
-            "height": 153
+            "height": 179
           },
           "home": {
             "x": 35,
-            "y": 1197,
+            "y": 1170,
             "width": 1051,
-            "height": 164
+            "height": 191
           }
         },
         "gesture": {
           "file": "orc-gesture-v1.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "5339a271b3c89d9e0a7ddbd173c7fadc5130ec1ec64d6dc485a100c2e79f5bdf",
+          "sha256": "205d3b1f450269dea97aa0b1dc9fe2baa7a03495b2bcae19054b09de7bfcb57e",
           "zones": {
             "north": {
               "x": 230,
@@ -422,15 +422,15 @@ export const jigsawCatalog = {
           },
           "away": {
             "x": 35,
-            "y": 1006,
+            "y": 980,
             "width": 1051,
-            "height": 153
+            "height": 179
           },
           "home": {
             "x": 35,
-            "y": 1197,
+            "y": 1170,
             "width": 1051,
-            "height": 164
+            "height": 191
           }
         },
         "gesture": {

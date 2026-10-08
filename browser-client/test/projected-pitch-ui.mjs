@@ -29,6 +29,7 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 },
     recordVideo: pitchOptions.recordMotion ? {dir:evidence+'/motion-video',size:{width:1280,height:660}} : undefined });
   page.on('pageerror', error => errors.push(error.message));
+  if (pitchOptions.failGesture) await page.route('**/jigsaw/human-gesture-v1.png', route => route.fulfill({ status: 404, body: '' }));
   if (pitchOptions.failStadium) await page.route('**/stadiums/**/*.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
@@ -318,6 +319,7 @@ try {
     const world=page.locator('.pitch-stadium-world');
     assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
     assert.equal(await world.getAttribute('data-stadium-fallback'),'false');
+    assert.ok(await world.locator('[data-stadium-role="bench"], [data-stadium-role="pavilion"]').evaluateAll(parts=>parts.every(p=>Number(p.dataset.worldBase)===0)),'furniture bases share field level with their locker room');
     const seatMap=()=>page.locator('[data-seat]').evaluateAll(seats=>[...new Map(seats.map(seat=>[seat.dataset.jigsawPiece,[seat.dataset.jigsawPiece,seat.dataset.crowdTeam,seat.dataset.sectionX0,seat.dataset.sectionX1,seat.dataset.sectionY0,seat.dataset.sectionY1]])).values()].sort((a,b)=>a[0].localeCompare(b[0])));
     const fixedSeats=await seatMap();
     assert.equal(new Set(fixedSeats.map(seat=>seat[0])).size,fixedSeats.length);
@@ -438,6 +440,17 @@ try {
   assert.ok(fallbackShadows.every(s => s.mode === 'token' && Math.abs(s.x) < .05 && Math.abs(s.y) < .05), 'Missing-art tokens retain centered shadows in top-down view');
   await missing.close();
   assert.deepEqual(errors, []);
+  const missingGesture = await open('home',false,null,{failGesture:true,homeTeamArt:humanArt,awayTeamArt:orcArt});
+  await missingGesture.waitForFunction(()=>document.querySelector('[data-jigsaw-piece] img[src$="human-crowd-v2.png"]')?.complete);
+  await missingGesture.locator('[data-gesture-failed="true"]').first().waitFor({state:'attached'});
+  assert.equal(await missingGesture.locator('img[src$="human-gesture-v1.png"]').count(),0,'failed overlay is disabled');
+  assert.equal(await missingGesture.locator('[data-art-fallback]').count(),0,'optional gestures cannot hide healthy architecture, props or base crowds');
+  assert.ok(await missingGesture.locator('img[src$="human-crowd-v2.png"]').count()>0);
+  assert.ok(await missingGesture.locator('img[src$="human-walls-v1.png"]').count()>0);
+  assert.equal(await missingGesture.locator('[data-cell-x]').count(),390);
+  await missingGesture.locator('[data-player-id="human"]').click();
+  assert.deepEqual(await missingGesture.evaluate(()=>window.intents),[{player:'human'}]);
+  await missingGesture.close();
   const missingStadium = await open('home',false,null,{failStadium:true});
   await missingStadium.locator('[data-art-fallback="wall"]').first().waitFor({state:'attached'});
   assert.ok(await missingStadium.locator('.pitch-stadium-turf').count() > 0,'failed optional atlas retains healthy turf');

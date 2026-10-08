@@ -7,7 +7,7 @@
       "maxActiveSections": 1,
       "fireChanged": true,
       "pennantMoved": true,
-      "maxPixelShift": 0.143707275390625,
+      "maxPixelShift": 0.287384033203125,
       "baseCrowdAnimations": 0,
       "mutations": 4,
       "unexpectedMutations": 0,
@@ -17,10 +17,10 @@
       "intents": [],
       "canonicalCells": 390,
       "frameObservation": {
-        "frames": 438,
-        "meanMs": 11.419863013698633,
-        "p95Ms": 16.100000000000364,
-        "maxMs": 17.100000000000364
+        "frames": 411,
+        "meanMs": 12.172992700729928,
+        "p95Ms": 16.200000000000728,
+        "maxMs": 23.5
       },
       "reducedMotionStatic": true
     },
@@ -32,7 +32,7 @@
       "maxActiveSections": 1,
       "fireChanged": true,
       "pennantMoved": true,
-      "maxPixelShift": 0.177734375,
+      "maxPixelShift": 0.0888671875,
       "baseCrowdAnimations": 0,
       "mutations": 1,
       "unexpectedMutations": 0,
@@ -42,10 +42,10 @@
       "intents": [],
       "canonicalCells": 390,
       "frameObservation": {
-        "frames": 313,
-        "meanMs": 7.6900958466453675,
+        "frames": 308,
+        "meanMs": 7.805519480519476,
         "p95Ms": 8.19999999999709,
-        "maxMs": 8.700000000000728
+        "maxMs": 8.599999999998545
       },
       "reducedMotionStatic": true
     },
@@ -66,10 +66,10 @@
       "intents": [],
       "canonicalCells": 390,
       "frameObservation": {
-        "frames": 429,
-        "meanMs": 11.657342657342657,
-        "p95Ms": 16,
-        "maxMs": 23
+        "frames": 433,
+        "meanMs": 11.555889145496538,
+        "p95Ms": 16.100000000000364,
+        "maxMs": 17
       },
       "reducedMotionStatic": true
     },
@@ -91,10 +91,10 @@
       "intents": [],
       "canonicalCells": 390,
       "frameObservation": {
-        "frames": 311,
-        "meanMs": 7.732475884244383,
+        "frames": 310,
+        "meanMs": 7.741935483870968,
         "p95Ms": 8.200000000000728,
-        "maxMs": 9.400000000001455
+        "maxMs": 8.599999999998545
       },
       "reducedMotionStatic": true
     }

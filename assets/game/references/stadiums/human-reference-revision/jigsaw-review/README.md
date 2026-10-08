@@ -10,6 +10,8 @@ The earlier repeated-card renderer is superseded. The current pieces reproduce t
 
 ![Rejected renderer: repeated crowd cards, exposed stone terraces and full near wall](before-card-near.png)
 
+The current gallery includes independent-review corrections to end/corner head scale and field-level bench bays.
+
 ## Human venue with Human/Orc sections
 
 ![Near: backs form the foreground rim and cover most of the wall](human-home-near.png)
@@ -32,8 +34,8 @@ The crowd bases remain still. Separate local frame patches give occasional gestu
 
 The captures use both venue families and preserve canonical supporter ownership. The automated renderer matrix covers both viewing ends, 30/40/50 degrees and overhead, and near/mid/far travel. Native reconnect/replay completion is pending refreshed local DEV credentials.
 
-## Native Human fixture
+## Earlier native Human fixture
 
 ![Authenticated Human-home native match with actual players and HUD](native-human-near.png)
 
-Human-home camera captures and first/last completed replay were recorded before the local Google Cloud session expired. The full native rerun for both hosting arrangements remains open.
+This native capture predates the latest end-bank density and field-level pocket corrections. Human-home camera captures and first/last completed replay were recorded before the local Google Cloud session expired. The full native rerun for both hosting arrangements remains open.

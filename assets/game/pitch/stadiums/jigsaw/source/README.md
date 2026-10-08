@@ -19,7 +19,7 @@ Coordinates are game-world squares. The pitch stays 26 × 15; the clear apron is
 | away-north-corner | 28 to 32 | -6 to -2 | Away |
 | away-south-corner | 28 to 32 | 17 to 21 | Away |
 
-The ten slots cover the stand area exactly once. North and south are physical sidelines, independent of screen orientation. Timber dividers cross only the stand depth at x=13. Two locker-room portals remain at north x=6 and south x=20. Furniture cutouts reserve only the actual bench/pavilion footprints; each shallow pocket has its own floor.
+The ten slots cover the stand area exactly once. North and south are physical sidelines, independent of screen orientation. Timber dividers cross only the stand depth at x=13. Two locker-room portals remain at north x=6 and south x=20. Furniture cutouts reserve the bench/pavilion footprints. Each bench pocket extends to the apron edge for field-level access; floors and furniture bases are at z=0. A 0.35-square retaining lip and low returns keep benches visible, with a 1.1-square back wall holding the raised crowd. These open bench bays are separate from the two locker-room doorways.
 
 The frozen home League chooses walls and shared props. Each participating team chooses crowd, bench, mugs and team flags. Camera travel, viewing end, acting coach, halftime, reconnect and replay preserve those assignments.
 
@@ -29,13 +29,13 @@ Each team family supplies eight distinct continuous crowd paintings: two side ba
 
 Every original crowd sheet is 1122 × 1402. Measured regions in ../catalog.json are identical between Human/Orc and their view variants. Wall masters are separate 1835 × 857 originals. Four world-facing wall runs use the measured masonry face; overhead uses only the narrow rail/rim, not a flattened upright wall.
 
-The renderer registers source pixels directly on the production PitchProjection. Internally, side banks and corners use overlapping camera-facing depth strips from their own continuous painting. These strips preserve upright heads while the camera travels; they are renderer subdivisions, not additional authored puzzle pieces. End banks remain intact. Head proportions use the artwork's 40-degree calibration while lens tilt changes row overlap. The near back bank stays raised and naturally covers most of its wall.
+The renderer registers source pixels directly on the production PitchProjection. Internally, side banks and corners use overlapping camera-facing depth strips from their own continuous painting. These strips preserve upright heads while the camera travels; they are renderer subdivisions, not additional authored puzzle pieces. End banks remain intact. Their revised paintings pack more, smaller spectators into the same slots; registration includes each irregular head silhouette rather than clipping a flat top edge. Head proportions use the artwork's 40-degree calibration while lens tilt changes row overlap. The near back bank stays raised and naturally covers most of its wall.
 
 Retaining walls, crowd, portals, timber dividers, bench/mug pairs, pavilion, fire fixtures and flags are independent layers. Perspective props use upright art; benches, pavilion and fire have overhead variants. Overhead pennants are composed cloth, post-top and shadow shapes in team colors.
 
 Human art follows the original weathered grey masonry, heavy dark rounded timber, blue/ivory clothing, warm firelight and lush green grass. Orc art uses olive skin, charcoal/russet clothing, rough timber, dark iron and battered warm stone, drawing atmosphere from Vanilla Barrens/Orgrimmar. The original reference remains the stylistic authority.
 
-Original generated PNG bytes remain unchanged. Source rectangles, clipping, masking and projection happen at runtime. prompts.json records exact generation/edit prompts; catalog hashes verify the selected masters. Experimental full-scene paintings were rejected because a travelling camera stretched the figures.
+Original generated PNG bytes remain unchanged. Source rectangles, clipping, masking and projection happen at runtime. prompts.json records exact generation/edit prompts; catalog hashes verify the selected masters. Experimental full-scene paintings were rejected because a travelling camera stretched the figures. A reviewed end-bank height reduction also flattened faces and exposed the near wall; denser authored paintings resolved the scale seam while preserving the intended bowl silhouette.
 
 ## Section gestures
 
@@ -43,7 +43,7 @@ Each view supplies an alternate frame and eight measured local zones. Only the r
 
 The local scheduler waits a random 3.5–15.5 seconds, chooses one eligible visible section, shows a two-second gesture burst and waits again. Selection reads current visibility without restarting the cadence when the camera moves. At most one section is active. The gesture can be a small fist, mug, head or mouth change; the whole bank has no movement animation.
 
-Torch brightness changes and tiny flag movement run independently in CSS. Reduced motion or a hidden document cancels section gestures; reduced motion freezes fire/flags as well. The scheduler has no game transport or per-frame JavaScript callbacks.
+Torch brightness changes and tiny flag movement run independently in CSS. Reduced motion or a hidden document cancels section gestures; reduced motion freezes fire/flags as well. The scheduler has no game transport or per-frame JavaScript callbacks. Missing optional gesture files disable only that overlay; healthy base crowds, walls and props stay rendered. Each unavailable source is reported once with its actual URL.
 
 ## Adding a League or crowd family
 

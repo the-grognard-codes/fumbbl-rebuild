@@ -30,7 +30,7 @@ function Surface({camera,module}:{camera:PitchProjection;module:Module}) {
     {x:module.down.x/h,y:module.down.y/h,z:module.down.z/h});
   const metadata={'data-stadium-role':module.role,'data-stadium-profile':module.profile.id,'data-team':module.team,
     'data-stand-edge':module.edge,
-    'data-world-x':module.origin.x,'data-world-y':module.origin.y,'data-art-view':camera.mode};
+    'data-world-x':module.origin.x,'data-world-y':module.origin.y,'data-world-base':module.origin.z+module.down.z,'data-art-view':camera.mode};
   if(!surface)return <div className={"stadium-surface stadium-sprite"} {...metadata} style={{display:'none'}}/>;
   const motion=stadiumMotion(module.role,module.origin.x,module.origin.y);
   const style:CSSProperties & {'--stadium-sway':string}={width:surface.width,height:surface.height,
@@ -68,22 +68,28 @@ function bowlModules(camera:PitchProjection,venue:StadiumProfile,home:StadiumPro
     edge:portal.side,team:portal.team});
   for(const p of geometry.partitions)modules.push(top?ground(p.id,'timber',venue,p.x-.1,p.y0,p.x+.1,p.y1,1.8):
     vertical(p.id,'timber',venue,p.x,p.y0,0,p.y1-p.y0,1,geometry.crowdRise));
-  for(const [i,hole] of crowdHoles().entries())modules.push(ground('pocket-'+i,'stone',venue,hole.x0,hole.y0,hole.x1,hole.y1,1.1));
+  for(const [i,hole] of crowdHoles().entries()) {
+    modules.push(ground('pocket-'+i,'stone',venue,hole.x0,hole.y0,hole.x1,hole.y1,0));
+    const outerY=hole.y1<=-2?hole.y0:hole.y1;
+    // Retaining returns connect the raised crowd to each field-level recessed floor.
+    modules.push(vertical('pocket-back-'+i,'stone',venue,hole.x0,outerY,hole.x1-hole.x0,0,geometry.wallHeight));
+    for(const x of [hole.x0,hole.x1])modules.push(vertical('pocket-return-'+i+'-'+x,'stone',venue,x,hole.y0,0,hole.y1-hole.y0,i<geometry.benches.length?.35:geometry.wallHeight));
+  }
   // Recess furniture is authored in the same canonical footprint as the layout study.
   for(const b of geometry.benches)modules.push({...top?
-    ground('bench-'+b.team,'benchTop',b.team==='home'?home:away,b.x-b.along/2,b.y-b.across/2,b.x+b.along/2,b.y+b.across/2,1.1):
-    vertical('bench-'+b.team,'bench',b.team==='home'?home:away,b.x,b.y-(camera.end==='home'?1:-1)*.65,0,(camera.end==='home'?1:-1)*1.3,.65,1.1),team:b.team});
+    ground('bench-'+b.team,'benchTop',b.team==='home'?home:away,b.x-b.along/2,b.y-b.across/2,b.x+b.along/2,b.y+b.across/2,0):
+    vertical('bench-'+b.team,'bench',b.team==='home'?home:away,b.x,b.y-(camera.end==='home'?1:-1)*.65,0,(camera.end==='home'?1:-1)*1.3,.65,0),team:b.team});
   const p=geometry.pavilion;
-  modules.push(top?ground('pavilion','pavilionTop',venue,p.x-p.along/2,p.y-p.across/2,p.x+p.along/2,p.y+p.across/2,1.1):
-    vertical('pavilion','pavilion',venue,p.x,p.y-p.across/2,0,p.across,2.2,1.1));
+  modules.push(top?ground('pavilion','pavilionTop',venue,p.x-p.along/2,p.y-p.across/2,p.x+p.along/2,p.y+p.across/2,0):
+    vertical('pavilion','pavilion',venue,p.x,p.y-p.across/2,0,p.across,2.2,0));
   return modules;
 }
 function props(camera:PitchProjection,venue:StadiumProfile,home:StadiumProfile,away:StadiumProfile):Module[] {
   const top=camera.mode==='top-down',modules:Module[]=[];
   const add=(id:string,role:StadiumRole,profile:StadiumProfile,x:number,y:number,width:number,height:number,team?:'home'|'away')=>{
     // Perspective props stand upright across the camera's horizontal world axis.
-    modules.push({...top?ground(id,role,profile,x-width/2,y-height/2,x+width/2,y+height/2,role==='mugs'?1.1:0):
-      vertical(id,role,profile,x,y-width/2,0,width,height,role==='mugs'?1.1:0),team});
+    modules.push({...top?ground(id,role,profile,x-width/2,y-height/2,x+width/2,y+height/2,role==='mugs'?.65:0):
+      vertical(id,role,profile,x,y-width/2,0,width,height,role==='mugs'?.65:0),team});
   };
   for(const b of geometry.benches)add('mugs-'+b.team,'mugs',b.team==='home'?home:away,b.x+.5,b.y,.4,top?.4:.3,b.team);
   for(const [x,y,team] of [[8,-2.1,'home'],[18,17.1,'away']] as const)add('banner-'+team,'banner',team==='home'?home:away,x,y,.7,top?.65:1.2,team);
@@ -110,9 +116,10 @@ function GrassGround({camera,onError}:{camera:PitchProjection;onError:()=>void})
 export function PitchScenery({camera,view,onError}:{camera:PitchProjection;view:SetupState;onError:()=>void}) {
   const presentation=stadiumPresentation(view),[failed,setFailed]=useState<ReadonlySet<string>>(new Set()),reported=useRef(new Set<string>());
   const mark=(profile:StadiumProfile,source?:string)=>{
-    if(reported.current.has(profile.id))return;reported.current.add(profile.id);
-    console.warn('Stadium atlas unavailable: '+(source??atlasUrl(profile))+'; inspect assets:check. Using simple scenery for this profile.');
-    setFailed(previous=>new Set([...previous,profile.id]));
+    const key=source?'jigsaw/'+source:profile.id;
+    if(reported.current.has(key))return;reported.current.add(key);
+    console.warn('Stadium art unavailable: '+(source?import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+source:atlasUrl(profile))+'; inspect assets:check. Only this file uses a fallback.');
+    setFailed(previous=>new Set([...previous,key]));
   };
   const diagnostic=presentation.diagnostics.join('; ');
   useEffect(()=>{if(diagnostic)console.warn(diagnostic+'. Add canonical stadium catalog mappings to supply this theme.');},[diagnostic]);
@@ -143,9 +150,9 @@ export function PitchScenery({camera,view,onError}:{camera:PitchProjection;view:
         </div>;
       })}
     </div>
-    <CrowdGestureProvider eligible={visibleGesturePieces(jigsaw,camera)}><div className="pitch-stadium-structure">
+    <CrowdGestureProvider eligible={visibleGesturePieces(jigsaw.filter(m=>!failed.has('jigsaw/'+m.art.file)&&!failed.has('jigsaw/'+m.gesture?.file)),camera)}><div className="pitch-stadium-structure">
 
-      {modules.map(module=>'jigsaw' in module?<JigsawSurface key={module.id} camera={camera} module={module} onError={mark} failed={failed.has(module.profile.id)}/>:<Surface key={module.id} camera={camera} module={module}/>)}
+      {modules.map(module=>'jigsaw' in module?<JigsawSurface key={module.id} camera={camera} module={module} onError={mark} failed={failed.has('jigsaw/'+module.art.file)} gestureFailed={failed.has('jigsaw/'+module.gesture?.file)}/>:<Surface key={module.id} camera={camera} module={module}/>)}
     </div></CrowdGestureProvider>
   </div></AtlasFailures.Provider>;
 }

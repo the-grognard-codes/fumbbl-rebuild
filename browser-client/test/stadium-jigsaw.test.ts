@@ -43,7 +43,7 @@ test('Human and Orc pieces retain physical ownership and bounds through both end
     }
   }
 });
-test('walls retain precisely two sideline portal openings and pockets match only actual furniture footprints',()=>{
+test('walls retain precisely two portals and field-level bench bays outside the apron',()=>{
   const p=stadiumPresentation({}),camera=new PitchProjection({width:1280,height:660});
   const walls=jigsawModules(camera,p.venue,p.home,p.away).filter(m=>m.role==='wall');
   for(const edge of ['north','south','home','away']) {
@@ -52,6 +52,12 @@ test('walls retain precisely two sideline portal openings and pockets match only
     assert.ok(Math.abs(spans.reduce((a,b)=>a+b,0)-(edge==='north'||edge==='south'?30-portal!.span:19))<1e-8);
   }
   assert.equal(crowdHoles().length,3);
+  for(const bench of geometry.benches) {
+    const lip=walls.find(m=>m.edge===bench.side&&m.bounds.x0===bench.x-bench.along/2&&m.bounds.x1===bench.x+bench.along/2)!;
+    assert.equal(lip.bounds.y1,.35,'bench bays keep a low lip instead of another doorway');
+    const pocket=crowdHoles().find(h=>h.x0===bench.x-bench.along/2)!;
+    assert.equal(bench.side==='north'?pocket.y1:pocket.y0,bench.side==='north'?-2:17,'bench pocket opens at the apron edge');
+  }
   for(const hole of crowdHoles()) {
     assert.ok(hole.y1<=-2||hole.y0>=17);
     assert.ok(hole.x1-hole.x0<=3 && hole.y1-hole.y0<=2.65+1e-8);

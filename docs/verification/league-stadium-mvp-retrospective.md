@@ -1,5 +1,7 @@
 # League stadium MVP retrospective
 
+Historical assessment: the owner subsequently rejected the initial stadium/crowd composition. Its visual and intent-success claims are superseded by the [jigsaw revision audit](stadium-jigsaw-retrospective.md) and current approved bowl brief. The original merged-slice history and test evidence below remain historical records.
+
 Date: 2026-10-07 (local session date). Tracker: [#198](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/198).
 
 The delivered stadium work matches the confirmed MVP's functional requirements, visual direction and intent within the verification limits below. Both leagues have complete venue and supporter families; either team can host, visiting supporters retain their identity, and the surroundings form a camera-registered world layer with restrained ambient motion. This is the stadium-only workstream. The other gameplay, chat, logging and match-launch changes remain separate work.
