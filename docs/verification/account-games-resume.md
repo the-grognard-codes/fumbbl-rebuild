@@ -38,8 +38,13 @@ Stopped the managed computer process tree and game server before cleanup. Verifi
 
 ## Validation status
 
-Local regressions pass: nine computer tests, eight lifecycle/index tests, ten site unit checks, forty-five admission/projection/current-games contract checks, six existing authenticated hosted journeys and the new account-disclosure journey. TypeScript/site build and site input checks pass. The current-source native server build passes 333 checks with two opt-in database checks skipped.
+Local regressions pass: nine computer tests, eight lifecycle/index tests, ten site unit checks, forty-five admission/projection/current-games contract checks, six existing authenticated hosted journeys and the new account-disclosure journey. TypeScript/site build and site input checks pass. The current-source native server build reports 333 tests, zero failures/errors and two skipped opt-in database tests.
 
 The actual signed-in browser now loads the empty owned-games list. Created one fresh disposable native computer game: it appeared as Ready to start with Continue setup, launched in the same tab, displayed the pitch and native receive/kick choice, and restored that same choice on direct reload. Its activated entry is retained for the user's local verification. The live native unauthenticated read/mutation/exact-retry denial check also passes.
 
-Both independent review axes found no blocking implementation defects. Their small accessibility/cache observations are addressed by linking the identity as the control's accessible description and updating the site stylesheet query version. Final PR CI is pending.
+The actual local homepage also displays the authenticated identity, person silhouette, My account disclosure, five disabled account options and Sign out. The following browser-test captures use a synthetic identity and the real rendered header/styles:
+
+- [Desktop account menu](../../.notes/overhaul-analysis/verification/account-menu/account-desktop.png)
+- [Mobile account menu](../../.notes/overhaul-analysis/verification/account-menu/account-mobile.png)
+
+Both independent review axes found no blocking implementation defects. Their small accessibility/cache observations are addressed by linking the identity as the control's accessible description and updating the site stylesheet query version. All required PR checks must pass on the final commit before merge.
