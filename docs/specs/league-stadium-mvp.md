@@ -5,7 +5,9 @@ Date: 2026-10-07.
 Design status: confirmed by the owner after the stadium-only grilling discussion.
 Testing status: existing-seam approach confirmed by the owner on 2026-10-07.
 Tracker: [#198](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/198).
-Implementation status: all three slices merged; final requirements/media/intent audit recorded in [the retrospective](../verification/league-stadium-mvp-retrospective.md).
+Implementation status: the initial MVP slices merged, but the owner rejected the assembled visual result. The earlier retrospective does not establish visual acceptance. The current revision is tracked in [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211) and [the modular bowl spec](modular-stadium-bowl.md).
+
+This is the historical initial plan. Later owner decisions supersede its 1.5-square margin, broad foreground cutaway and small reusable fan approach: use a two-square clear apron, retain the near crowd, exactly two sideline locker-room portals and consistent large jigsaw pieces with random section gestures.
 
 This document is the durable design and art-direction mirror for the stadium workstream. It covers only stadium structure, supporters, surroundings, and their presentation framework. The original discussion's other gameplay, logging, chat, ball, and player-alignment changes belong to their separate workstream.
 

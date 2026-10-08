@@ -42,6 +42,7 @@ hs_err_pid*
 replay_pid*
 
 # Test and coverage output
+test-output/
 coverage/
 *.lcov
 *.exec

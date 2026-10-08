@@ -1,0 +1,103 @@
+{
+  "observations": [
+    {
+      "host": "human",
+      "durationMs": 5000,
+      "localGestureChanged": true,
+      "maxActiveSections": 1,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.143707275390625,
+      "baseCrowdAnimations": 0,
+      "mutations": 4,
+      "unexpectedMutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "commandsStable": true,
+      "intents": [],
+      "canonicalCells": 390,
+      "frameObservation": {
+        "frames": 438,
+        "meanMs": 11.419863013698633,
+        "p95Ms": 16.100000000000364,
+        "maxMs": 17.100000000000364
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "human",
+      "view": 90,
+      "durationMs": 2400,
+      "localGestureChanged": true,
+      "maxActiveSections": 1,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.177734375,
+      "baseCrowdAnimations": 0,
+      "mutations": 1,
+      "unexpectedMutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "commandsStable": true,
+      "intents": [],
+      "canonicalCells": 390,
+      "frameObservation": {
+        "frames": 313,
+        "meanMs": 7.6900958466453675,
+        "p95Ms": 8.19999999999709,
+        "maxMs": 8.700000000000728
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "durationMs": 5000,
+      "localGestureChanged": true,
+      "maxActiveSections": 1,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.1317138671875,
+      "baseCrowdAnimations": 0,
+      "mutations": 4,
+      "unexpectedMutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "commandsStable": true,
+      "intents": [],
+      "canonicalCells": 390,
+      "frameObservation": {
+        "frames": 429,
+        "meanMs": 11.657342657342657,
+        "p95Ms": 16,
+        "maxMs": 23
+      },
+      "reducedMotionStatic": true
+    },
+    {
+      "host": "orc",
+      "view": 90,
+      "durationMs": 2400,
+      "localGestureChanged": true,
+      "maxActiveSections": 1,
+      "fireChanged": true,
+      "pennantMoved": true,
+      "maxPixelShift": 0.166015625,
+      "baseCrowdAnimations": 0,
+      "mutations": 1,
+      "unexpectedMutations": 0,
+      "anchorsStable": true,
+      "seatsStable": true,
+      "commandsStable": true,
+      "intents": [],
+      "canonicalCells": 390,
+      "frameObservation": {
+        "frames": 311,
+        "meanMs": 7.732475884244383,
+        "p95Ms": 8.200000000000728,
+        "maxMs": 9.400000000001455
+      },
+      "reducedMotionStatic": true
+    }
+  ],
+  "limits": "Short foreground headless Chrome observation; no sustained hardware-wide GPU claim."
+}

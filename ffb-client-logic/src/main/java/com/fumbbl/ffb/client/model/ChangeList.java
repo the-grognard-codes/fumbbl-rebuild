@@ -10,7 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
-			.addImprovement("Browser stadiums use modular raised bowls with packed directional Human and Orc crowds, two sideline locker entrances and mixed midfield sections")
+			.addImprovement("Browser stadiums assemble matching wall, corner and packed Human/Orc crowd pieces, with occasional random section gestures and two locker-room entrances")
 			.addImprovement("Browser movement plans color each entered square by native dodge penalties and show native dodge and rush targets")
 			.addImprovement("Human and Orc sprites use reviewed body centerlines and grounded shadows in every pitch view")
 			.addImprovement("Browser balls use crisp pixel artwork and a synchronized, always-visible pulse; carried balls keep their highlight through confirmed movement")

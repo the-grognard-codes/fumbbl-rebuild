@@ -29,7 +29,7 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 },
     recordVideo: pitchOptions.recordMotion ? {dir:evidence+'/motion-video',size:{width:1280,height:660}} : undefined });
   page.on('pageerror', error => errors.push(error.message));
-  if (pitchOptions.failStadium) await page.route('**/stadiums/*.png', route => route.fulfill({ status: 404, body: '' }));
+  if (pitchOptions.failStadium) await page.route('**/stadiums/**/*.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
@@ -73,7 +73,7 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
   assert.equal(rendered.structureDisplay, 'block');
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
   for (const edge of ['north', 'south', 'home', 'away']) {
-    assert.ok(await scene.locator(`.pitch-stadium-structure [data-stand-edge="${edge}"]`).count() >= 4);
+    assert.equal(await scene.locator(`.pitch-stadium-crowd[data-stand-edge="${edge}"]`).evaluateAll(parts=>new Set(parts.map(p=>p.dataset.jigsawPiece)).size),edge==="north"||edge==="south"?2:3);
 
   }
 }
@@ -99,7 +99,7 @@ try {
     assert.equal(await scene.locator('[data-cell-x]').count(), 390);
     assert.equal(await scene.locator('.live-ball-marker[data-ball-x="12"][data-ball-y="8"]').count(), 1);
     assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
-    assert.equal(await scene.locator('.pitch-stadium-structure [data-stand-row]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.standRow)).size), 4);
+    assert.equal(await scene.locator('.pitch-stadium-crowd[data-jigsaw-piece]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.jigsawPiece)).size), 10);
     assert.ok(await scene.locator('[data-crowd-team="home"]').count() > 0);
     assert.ok(await scene.locator('[data-crowd-team="away"]').count() > 0);
     assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
@@ -291,9 +291,9 @@ try {
       const hiddenCrowd = await setup.addStyleTag({ content: '.pitch-stadium-crowd { display: none !important; }' });
       assert.equal(await setup.locator('.pitch-stadium-crowd').first().evaluate(element => getComputedStyle(element).display), 'none');
       assert.equal(await setup.locator('.pitch-stadium-structure').evaluate(element => getComputedStyle(element).display), 'block');
-      assert.equal(await setup.locator('.pitch-stadium-structure [data-stand-row]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.standRow)).size), 4);
+      assert.equal(await setup.locator('.pitch-stadium-crowd[data-jigsaw-piece]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.jigsawPiece)).size), 10);
       assert.equal(await setup.locator('.pitch-stadium-world image[href$="stadium-v1.png"]:not([data-grass-sample])').count(), 0, 'no unmasked spectator-bearing side-tile images remain');
-      assert.ok(await setup.locator('.pitch-stadium-world img').evaluateAll(images => images.length > 0 && images.every(image =>
+      assert.ok(await setup.locator('.pitch-stadium-world .pitch-stadium-turf').evaluateAll(images => images.length > 0 && images.every(image =>
         image.classList.contains('pitch-stadium-turf') && getComputedStyle(image).clipPath.startsWith('polygon('))),
       'every source painting is clipped to its turf region');
       if (evidence) await setup.screenshot({ path: `${evidence}/stadium-crowd-hidden-50-home.png` });
@@ -318,7 +318,7 @@ try {
     const world=page.locator('.pitch-stadium-world');
     assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
     assert.equal(await world.getAttribute('data-stadium-fallback'),'false');
-    const seatMap=()=>page.locator('[data-seat]').evaluateAll(seats=>seats.map(seat=>[seat.dataset.seat,seat.dataset.crowdTeam,seat.dataset.worldX,seat.dataset.worldY]).sort((a,b)=>a[0].localeCompare(b[0])));
+    const seatMap=()=>page.locator('[data-seat]').evaluateAll(seats=>[...new Map(seats.map(seat=>[seat.dataset.jigsawPiece,[seat.dataset.jigsawPiece,seat.dataset.crowdTeam,seat.dataset.sectionX0,seat.dataset.sectionX1,seat.dataset.sectionY0,seat.dataset.sectionY1]])).values()].sort((a,b)=>a[0].localeCompare(b[0])));
     const fixedSeats=await seatMap();
     assert.equal(new Set(fixedSeats.map(seat=>seat[0])).size,fixedSeats.length);
     for (const [team,profile] of [['home',host==='human'?'old-world-classic':'badlands-brawl'],['away',host==='human'?'badlands-brawl':'old-world-classic']]) {
@@ -335,9 +335,18 @@ try {
         assert.equal(await page.locator('[data-cell-x]').count(),390);
         assert.deepEqual(await seatMap(),fixedSeats,'camera changes preserve canonical supporter ownership');
         assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
-        assert.equal(await world.locator('[data-cutaway="true"]').filter({visible:true}).count(),0,'cutaway structure stays hidden');
+        if(mode!==90&&position==='near') {
+          const near=world.locator('[data-jigsaw-piece="'+role+'-bank"]').filter({visible:true});
+          assert.equal(await near.count(),1,'near end bank stays rendered');
+          assert.equal(await near.getAttribute('data-crowd-pose'),'home','near crowd uses inward-looking backs');
+          assert.ok((await near.boundingBox()).height>100,'foreground bank has meaningful height');
+          assert.ok(await near.evaluate(bank=>[...bank.parentElement.children].indexOf(bank)>[...bank.parentElement.children].findIndex(e=>e.dataset.stadiumRole==='wall'&&e.dataset.standEdge===bank.dataset.standEdge)),
+            'near spectators draw over their retaining wall');
+        }
         if(mode===90){
-          assert.ok(await world.locator('[data-stadium-role="crowdTop"]').count()>0);
+          assert.equal(await world.locator('[data-seat][data-art-view="top-down"]').count(),10);
+          assert.ok(await world.locator('[data-seat] img[src*="-overhead-v1.png"]').count()>0);
+          if(position!=='mid')assert.ok(await world.locator('[data-overhead-pennant="true"]').count()>0);
           assert.equal(await world.locator('[data-stadium-role="pavilionTop"]').count(),1);
           assert.equal(await world.locator('[data-stadium-role="benchTop"]').count(),2);
           assert.equal(await world.locator('[data-stadium-role="pennant"]').count(),4);
@@ -366,7 +375,7 @@ try {
     const video=page.video();await page.close();if(video)await video.saveAs(evidence+'/stadium-'+host+'-motion.webm');
   }
   if(evidence)await writeFile(evidence+'/stadium-motion.json',JSON.stringify({observations:motionEvidence,limits:'Short foreground headless Chrome observation; no sustained hardware-wide GPU claim.'},null,2));
-  console.log('PASS: packed crowd stays static; fire and pennants visibly move within 3px; anchors, seats and input remain stable; reduced motion is static.');
+  console.log('PASS: section-local crowd gestures trigger randomly; base banks and ownership remain fixed; fire/flags stay subtle; reduced motion is static.');
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();
   await readonly.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 90 });
@@ -430,7 +439,7 @@ try {
   await missing.close();
   assert.deepEqual(errors, []);
   const missingStadium = await open('home',false,null,{failStadium:true});
-  await missingStadium.locator('[data-art-fallback="stone"]').first().waitFor({state:'attached'});
+  await missingStadium.locator('[data-art-fallback="wall"]').first().waitFor({state:'attached'});
   assert.ok(await missingStadium.locator('.pitch-stadium-turf').count() > 0,'failed optional atlas retains healthy turf');
   assert.equal(await missingStadium.locator('[data-cell-x]').count(),390,'failed atlas preserves playable squares');
   assert.ok(await missingStadium.locator('.pitch-stadium-structure').count() > 0);

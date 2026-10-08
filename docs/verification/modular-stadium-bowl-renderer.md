@@ -1,3 +1,5 @@
+> Superseded visual evidence: the owner rejected these repeated-card captures. The current large-piece implementation and review images are [here](../../assets/game/references/stadiums/human-reference-revision/jigsaw-review/README.md). Earlier technical passes do not establish acceptance of the replacement.
+
 # Modular bowl renderer verification
 
 Issue [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211). Asset slice merged in [#212](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/212). Renderer base: 747bf57f950cea9bc4a7249342f53f3f3a36837d.

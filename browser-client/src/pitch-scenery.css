@@ -13,3 +13,8 @@
 @media (prefers-reduced-motion:reduce) {
   .pitch-stadium-world .stadium-ambient { animation:none; transform:none; filter:none; }
 }
+
+.stadium-gesture { opacity:0; pointer-events:none; }
+.stadium-gesture[data-active="true"] { animation:stadium-local-gesture 2s steps(1,end); }
+@keyframes stadium-local-gesture { 0%,25%,55%,85%,100% { opacity:0; } 10%,40%,70% { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .stadium-gesture[data-active="true"] { animation:none; opacity:0; } }
