@@ -9,8 +9,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | T01 | [#185](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/185) | None | Merged in [#199](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/199) |
 | T02 | [#186](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/186) | #185 | Merged in [#201](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/201) |
 | T03 | [#187](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/187) | None | Merged in [#202](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/202) |
-| T04 | [#188](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188) | None | Implemented; reviewed and being validated |
-| T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Planned |
+| T04 | [#188](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/188) | None | Merged in [#204](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/204) |
+| T05 | [#189](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/189) | None | Implemented, reviewed and validated; PR pending |
 | T06 | [#190](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/190) | None | Planned |
 | T07 | [#191](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/191) | None | Planned |
 | T08 | [#192](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/192) | None | Planned |
@@ -132,6 +132,8 @@ Manual skill rerolls appear as one recognizable icon per offered source. Pro per
 None (can start immediately).
 
 Follow-up to #140 and #117: existing icons remain useful; the additional work is consolidation and the confirmed decision ordering.
+
+T05 evidence: [native/manual-reroll verification](../verification/fifth-round-manual-rerolls.md). One native skill source produces one icon; source variants retain their exact commands in a local choice list. BB2025 Pro tests immediately and offers a permitted test retry afterward. Block Pro and Brawler then expose native eligible die choices, automatically resolving a sole candidate. Original dice, separate Pro d6, usage accounting, coach ownership, pending checkpoints, legacy commands, and automatic Dodge are covered. Both independent review axes approve.
 
 ## T06: Revise the pixel ball and its persistent pulsing highlight
 

@@ -1,9 +1,9 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
 
-export type MatchDecision = { title: string; key: string; kind: string; options: {
-  id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string
-}[] };
+export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; choices?: DecisionOption[] };
+export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
+  originalFaces?: string[]; originalLabel?: string; proTest?: { face: string; successful: boolean } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
 // rerolls have no offered action and therefore never acquire a manual button.
@@ -23,11 +23,11 @@ export function decisionIcon(label: string): string | undefined {
 }
 
 const promptTitles: Record<string, string> = {
-  blockDie: 'Choose a block die', reroll: 'Use a re-roll?', skill: 'Use a skill?',
+  blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
   apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?',
   interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square'
 };
-const promptOrder = ['blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
+const promptOrder = ['rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
 export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
@@ -42,12 +42,23 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate)
     && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;
-  const rollKinds = ['blockDie', 'reroll', 'skill'];
+  const rollKinds = ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'];
   const choices = ownActions.filter(action => action.kind === kind || rollKinds.includes(kind) && rollKinds.includes(action.kind));
-  return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind,
-    options: choices.map(action => {
-      const face = action.kind === 'blockDie' ? /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
+  const options: DecisionOption[] = choices.map(action => {
+      const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
       return { id: action.id, label, kind: 'action', face, icon: rollKinds.includes(kind) ? decisionIcon(label) : undefined };
-    }) };
+    });
+  const grouped: DecisionOption[] = [];
+  for (const option of options) {
+    // Resource alternatives retain their native accounting choices; only skill
+    // variants share a single source icon and a local, explicit choice list.
+    const existing = option.icon && option.icon !== 'resource' ? grouped.find(item => item.icon === option.icon) : undefined;
+    if (existing) {
+      existing.choices ??= [{ ...existing }]; existing.choices.push(option);
+      const name = skillNames.find(name => decisionIcon(`Use ${name}`) === existing.icon);
+      existing.label = name ? `Use ${name}` : existing.label.replace(/ on dice? .*/, '');
+    } else grouped.push({ ...option });
+  }
+  return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind, options: grouped };
 }

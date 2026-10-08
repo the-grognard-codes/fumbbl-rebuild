@@ -24,12 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 final class BrowserActionEvidence {
     private final Map<GameState, SetupSession> sessions = new IdentityHashMap<>();
     private final JsonArray frames = new JsonArray();
+    private final boolean transcript;
+
+    BrowserActionEvidence() { this(false); }
+    BrowserActionEvidence(boolean transcript) { this.transcript = transcript; }
 
     void perform(GameState state, Action action) {
         try {
             SetupSession session = sessions.get(state);
             if (session == null) {
-                session = new SetupSessionTest().session(11);
+                session = new SetupSessionTest().session(11, transcript);
                 Field field = SetupSession.class.getDeclaredField("state");
                 field.setAccessible(true); field.set(session, state);
                 sessions.put(state, session);
@@ -60,6 +64,11 @@ final class BrowserActionEvidence {
         catch (Exception failure) { throw new AssertionError(failure); }
     }
     private int queuedDice(GameState state) { return state.getDiceRoller().getTestRolls().values().stream().mapToInt(java.util.List::size).sum(); }
+    JsonObject snapshot(GameState state, String role) {
+        SetupSession session = sessions.get(state);
+        return new JsonObject().add("state", session.reply("inspect", "ACCEPTED", false, role).get("state"))
+            .add("records", session.transcriptPage(0, 8).get("records"));
+    }
     void write() throws Exception {
         Files.createDirectories(Paths.get("target"));
         Files.write(Paths.get("target", "m3c-actions.json"), frames.toString().getBytes(StandardCharsets.UTF_8));

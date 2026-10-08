@@ -194,14 +194,15 @@ class BallAndFoulActionsTest {
         assertFalse(state.getGame().getFieldModel().getPlayerState(state.getGame().getPlayerById("actor")).isActive());
         assertFalse(actions(state).isEmpty());
     }
-    @Test void nativeProBlockMappingExposesEachDieAndRerollsExactlyOne() throws Exception {
+    @Test void nativeProBlockMappingTestsFirstAndRerollsExactlyOne() throws Exception {
         GameState state = fixture(true, false, "Pro", "");
         Game game = state.getGame();
         game.getFieldModel().setPlayerCoordinate(game.getPlayerById("opponent"), new FieldCoordinate(8, 7));
         game.getFieldModel().setPlayerCoordinate(game.getPlayerById("mate"), new FieldCoordinate(15, 12));
         TestRolls.on(state).block("skull").general(6).block("pushback");
         perform(state, "selectBlock"); perform(state, "block");
-        performId(state, "block-reroll:pro:0");
+        performId(state, "block-reroll:pro");
+        if (actions(state).stream().anyMatch(a -> a.kind.equals("rerollDie"))) performId(state, "block-reroll-die:0");
         assertTrue(actions(state).stream().anyMatch(a -> a.label.contains("PUSH")));
         assertFalse(actions(state).stream().anyMatch(a -> a.id.startsWith("block-reroll:pro")));
     }

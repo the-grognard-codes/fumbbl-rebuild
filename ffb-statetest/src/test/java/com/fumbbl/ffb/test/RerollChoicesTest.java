@@ -67,7 +67,7 @@ class RerollChoicesTest {
 			JsonObject offered = view(session, role), otherCoach = view(session, other), spectator = normalize(session.spectatorView());
 			JsonArray offeredReports = reports(session, offered.getInt("revision", -1));
 			int originalRerolls = (home ? state.getGame().getTurnDataHome() : state.getGame().getTurnDataAway()).getReRolls();
-			if (mode.contains("pro")) { find(offered, block ? "block-reroll:pro:0" : "reroll:pro"); find(offered, block ? "block-reroll:team" : "reroll:team"); }
+			if (mode.contains("pro")) { find(offered, block ? "block-reroll:pro" : "reroll:pro"); find(offered, block ? "block-reroll:team" : "reroll:team"); }
 			if (mode.equals("pro")) for (JsonValue item : offered.get("actions").asArray()) assertFalse(item.asObject().getString("id", "").contains("reroll:pro-"), "Non-Loner generic prompts do not offer failed-Pro-check fallback");
 			String selected = mode.equals("decline") ? "reroll:none" : mode.equals("skill") ? "reroll:skill"
 				: mode.endsWith("pro-mascot-team") ? (block ? "block-reroll:pro-mascot-team:0" : "reroll:pro-mascot-team")
@@ -79,6 +79,7 @@ class RerollChoicesTest {
 				: mode.equals("block-opponent") ? "block-reroll:none" : mode.equals("block-brawler") ? "block-reroll:brawler"
 				: mode.equals("block-consummate") ? "block-reroll:single:0" : mode.equals("block-single") ? "block-reroll:block-single:0"
 				: mode.contains("multi") ? "block-reroll:multi:" + (mode.endsWith("-2") ? 2 : mode.endsWith("-3") ? 3 : 1) : block ? "block-reroll:team" : "reroll:team";
+			if (mode.contains("pro")) selected = block ? "block-reroll:pro" : "reroll:pro";
 			if (mode.equals("block-opponent")) for (JsonValue item : offered.get("actions").asArray()) assertFalse(item.asObject().getString("kind", "").equals("blockDie"));
 			JsonObject request = request(offered, find(offered, selected));
 			assertEquals("WRONG_ACTOR", assertThrows(MatchService.Failure.class, () -> session.apply(other, request)).code);
@@ -86,6 +87,11 @@ class RerollChoicesTest {
 			assertTrue(session.apply(role, request).getBoolean("duplicate", false));
 			assertEquals("STALE_REVISION", assertThrows(MatchService.Failure.class,
 				() -> session.apply(role, JsonObject.readFrom(request.toString()).set("requestId", UUID.randomUUID().toString()))).code);
+			if (mode.startsWith("block-pro")) {
+				if (proFallback) submit(session, role, mode.endsWith("mascot-team") ? "block-pro-test:mascot-team" : "block-pro-test:team");
+				submit(session, role, "block-reroll-die:0");
+			}
+			if (!block && proFallback) submit(session, role, "pro-test:" + (mode.endsWith("mascot-team") ? "mascot-team" : mode.endsWith("mascot") ? "mascot" : "team"));
 			JsonObject accepted = view(session, role);
 			boolean teamSpent = mode.equals("team") || mode.equals("block-team") || mode.equals("block-success") || mode.endsWith("pro-team") || mode.endsWith("mascot-team");
 			assertEquals(originalRerolls - (teamSpent ? 1 : 0), (home ? state.getGame().getTurnDataHome() : state.getGame().getTurnDataAway()).getReRolls(), mode);

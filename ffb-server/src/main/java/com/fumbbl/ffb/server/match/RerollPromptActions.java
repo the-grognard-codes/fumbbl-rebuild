@@ -43,7 +43,7 @@ final class RerollPromptActions {
 		} else add(result, "block-reroll:none", "reroll", "Keep dice; opponent chooses", new ClientCommandUseReRoll(ReRolledActions.BLOCK, null));
 		teamChoices(result, dialog, "block-reroll", ReRolledActions.BLOCK);
 		boolean pro = dialog.hasProperty(ReRollProperty.PRO) || source(dialog, ReRolledActions.SINGLE_DIE_PER_ACTIVATION) == ReRollSources.PRO;
-		if (pro) for (int index = 0; index < count; index++) proChoices(result, dialog, "block-reroll", ReRolledActions.BLOCK, index);
+		if (pro) add(result, "block-reroll:pro", "reroll", "Use Pro; test first, then choose a die", new ClientCommandUseProReRollForBlock(-1));
 		if (source(dialog, ReRolledActions.SINGLE_BOTH_DOWN) == ReRollSources.BRAWLER)
 			add(result, "block-reroll:brawler", "reroll", "Use Brawler on a Both Down die", new ClientCommandUseBrawler(null));
 		if (source(dialog, ReRolledActions.SINGLE_SKULL) == ReRollSources.HATRED)
@@ -67,7 +67,8 @@ final class RerollPromptActions {
 		ReRolledAction action = dialog.getReRolledAction();
 		add(result, "reroll:none", "reroll", "Do not re-roll " + action.getName(game.getRules().getSkillFactory()), new ClientCommandUseReRoll(action, null));
 		teamChoices(result, dialog, "reroll", action);
-		if (dialog.hasProperty(ReRollProperty.PRO)) proChoices(result, dialog, "reroll", action, -1);
+		if (dialog.hasProperty(ReRollProperty.PRO)) add(result, "reroll:pro", "reroll",
+			"Use Pro re-roll for " + action.getName(game.getRules().getSkillFactory()), new ClientCommandUseReRoll(action, ReRollSources.PRO));
 		if (dialog.getReRollSkill() != null) add(result, "reroll:skill", "reroll", "Use " + dialog.getReRollSkill().getName(), new ClientCommandUseSkill(dialog.getReRollSkill(), true, dialog.getPlayerId(), action, false));
 		if (dialog.getModifyingSkill() != null) add(result, "reroll:modify", "reroll", "Use " + dialog.getModifyingSkill().getName(), new ClientCommandUseSkill(dialog.getModifyingSkill(), true, dialog.getPlayerId(), action, false));
 		return result;
@@ -84,24 +85,6 @@ final class RerollPromptActions {
 			add(result, prefix + ":mascot", "reroll", "Try Team Mascot (conditional re-roll)" + suffix, new ClientCommandUseReRoll(action, ReRollSources.MASCOT));
 			if (dialog.hasProperty(ReRollProperty.TRR)) add(result, prefix + ":mascot-team", "reroll", "Try Mascot; team re-roll if Mascot fails" + suffix, new ClientCommandUseReRoll(action, ReRollSources.MASCOT_TRR));
 		}
-	}
-
-	private void proChoices(List<CoreTurnActions.Action> result, HasReRollProperties dialog, String prefix, ReRolledAction action, int index) {
-		proChoice(result, prefix, action, index, "pro", ReRollSources.PRO, "");
-		// Generic native dialogs allow a failed Pro-check fallback only for Loner.
-		// Block dialogs have their own per-die flow and do not use that restriction.
-		if (index < 0 && !dialog.hasProperty(ReRollProperty.LONER)) return;
-		if (dialog.hasProperty(ReRollProperty.TRR)) proChoice(result, prefix, action, index, "pro-team", ReRollSources.PRO_TRR, "; team re-roll a failed Pro check");
-		if (dialog.hasProperty(ReRollProperty.MASCOT)) {
-			proChoice(result, prefix, action, index, "pro-mascot", ReRollSources.PRO_MASCOT, "; try Mascot on a failed Pro check");
-			if (dialog.hasProperty(ReRollProperty.TRR)) proChoice(result, prefix, action, index, "pro-mascot-team", ReRollSources.PRO_MASCOT_TRR, "; Mascot then team re-roll a failed Pro check");
-		}
-	}
-
-	private void proChoice(List<CoreTurnActions.Action> result, String prefix, ReRolledAction action, int index, String id, ReRollSource source, String fallback) {
-		String label = index >= 0 ? "Use Pro on die " + (index + 1) : "Use Pro re-roll for " + action.getName(game.getRules().getSkillFactory());
-		ClientCommand command = index < 0 ? new ClientCommandUseReRoll(action, source) : source == ReRollSources.PRO ? new ClientCommandUseProReRollForBlock(index) : new ClientCommandUseSingleBlockDieReRoll(index, source);
-		add(result, prefix + ":" + id + (index >= 0 ? ":" + index : ""), "reroll", label + fallback, command);
 	}
 
 	private ReRollSource source(DialogBlockRollPropertiesParameter dialog, ReRolledAction action) {
