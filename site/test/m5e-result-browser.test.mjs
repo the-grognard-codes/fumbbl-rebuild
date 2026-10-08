@@ -381,6 +381,9 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await page.getByText('Final play').waitFor();
     assert.equal(await page.getByLabel('Read-only replay pitch').locator('.live-dice-overlay .match-die').count(), 2);
     await page.getByRole('tab', { name: 'Log' }).click();
-    await page.getByText(/selected die 2/).waitFor();
+    const log = page.getByRole('log');
+    await log.getByText(/chooses die 2 \(Pow\).*dice Skull, Pow/).waitFor();
+    assert.equal(await log.locator('svg.match-die').count(), 2);
+    assert.equal(await log.locator('svg.match-die.selected').getAttribute('aria-label'), 'Ivory and cyan die: Pow');
   } finally { await browser?.close(); await new Promise(done => server.close(done)); }
 });

@@ -3,3 +3,6 @@
 .play-runtime .hosted-match .match-log-settings input { width: 12px; height: 12px; margin: 0; accent-color: #49dfff; }
 .match-event-scroll { position: relative; }
 .match-log-debug { display: block; color: #93aabc; font: 10px system-ui, sans-serif; overflow-wrap: anywhere; }
+.match-log-dice { display: inline-flex; gap: 3px; margin-right: 5px; vertical-align: middle; }
+.match-log-dice .match-die { width: 22px; height: 22px; flex-shrink: 0; }
+.match-log-dice .match-die.selected { outline: 1px solid #49dfff; border-radius: 3px; }

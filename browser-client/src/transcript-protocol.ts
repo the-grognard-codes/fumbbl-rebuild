@@ -1,5 +1,5 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
-import { decodeLogActors, decodeLogPresentation, decodeLogRoll, decodeLogTest } from './log-presentation.ts';
+import { decodeLogActors, decodeLogBlock, decodeLogOutcomes, decodeLogPresentation, decodeLogRoll, decodeLogTest } from './log-presentation.ts';
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 
@@ -54,6 +54,7 @@ export function decodeTranscript(json: string): TranscriptResponse {
       const number = integer(command.commandNr, 2_147_483_647);
       if (number <= priorCommand) throw Error('Native outcomes out of order');
       priorCommand = number;
+      if (Object.hasOwn(command, 'logOutcomes')) decodeLogOutcomes(command.logOutcomes);
       const reports = (command.reportList as { reports?: unknown[] } | undefined)?.reports;
       if (Array.isArray(reports)) for (const report of reports) {
         if (report && typeof report === 'object' && Object.hasOwn(report, 'logRoll'))
@@ -62,6 +63,8 @@ export function decodeTranscript(json: string): TranscriptResponse {
           decodeLogActors((report as Record<string, unknown>).logActors);
         if (report && typeof report === 'object' && Object.hasOwn(report, 'logTest'))
           decodeLogTest((report as Record<string, unknown>).logTest);
+        if (report && typeof report === 'object' && Object.hasOwn(report, 'logBlock'))
+          decodeLogBlock((report as Record<string, unknown>).logBlock);
       }
       return command;
     });

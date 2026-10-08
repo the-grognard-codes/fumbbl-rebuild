@@ -26,8 +26,8 @@ test('logs raw dodge target, net modifier, reroll and block dice without coordin
   const lines = matchLogLines([start, action]).map(line => line.text);
   assert.ok(lines.some(line => line.includes('4 vs 5+ (base 3+ · -2 net modifier)') && line.includes('failure')));
   assert.ok(lines.some(line => line.includes('used Dodge reroll.')));
-  assert.ok(lines.some(line => line.includes('dice [4, 6]')));
-  assert.ok(lines.some(line => line.includes('selected die 2: PUSHBACK')));
+  assert.ok(lines.some(line => line.includes('Push, Pow')));
+  assert.ok(lines.some(line => line.includes('chooses die 2 (Pow)') && line.includes('result Push')));
   assert.ok(lines.every(line => !line.includes('(4, 7) → (10, 7)')));
 });
 
@@ -64,7 +64,7 @@ test('renders retained injury, apothecary, foul rulings, rerolls and KO recovery
   assert.ok(lines.some(line => line.includes('Secret weapon · Runner: roll 1 · sent off')));
   assert.ok(lines.some(line => line.includes('bribery and corruption re roll') && line.includes('reroll bribe')));
   assert.ok(lines.some(line => line.includes('used Team reroll.')));
-  assert.ok(lines.some(line => line.includes('block re roll') && line.includes('source Brawler')));
+  assert.ok(lines.some(line => line.includes('rerolls block dice') && line.includes('source Brawler')));
   assert.equal(lines.filter(line => line.startsWith('KO recovery · Runner')).length, 2);
 });
 
