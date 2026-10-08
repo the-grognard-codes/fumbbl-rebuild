@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "scenarios": 24,
+  "wheel": {
+    "before": "13",
+    "after": "14.92"
+  },
+  "narrow": {
+    "width": 328,
+    "scrollWidth": 328,
+    "svgWidth": 328,
+    "controls": [
+      {
+        "width": 328,
+        "kind": "SELECT"
+      },
+      {
+        "width": 328,
+        "kind": "SELECT"
+      },
+      {
+        "width": 328,
+        "kind": "INPUT"
+      },
+      {
+        "width": 328,
+        "kind": "INPUT"
+      }
+    ]
+  },
+  "errors": [],
+  "limits": "Schematic review with actual projection; not production raster assets, native game integration or performance certification"
+}

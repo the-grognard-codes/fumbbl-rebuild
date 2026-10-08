@@ -1,0 +1,71 @@
+{
+  "purpose": "Human stadium visual review after correction to original reference",
+  "tool": "built-in image_gen.imagegen",
+  "status": "Art treatment and bowl accepted; revised modular layout awaiting review",
+  "physicalFootprint": "Shared stadium dimensions must be fixed during source-preserving production separation",
+  "files": [
+    {
+      "file": "source-reference.png",
+      "role": "user reference",
+      "source": "user-approved first-iteration reference",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2874459,
+      "sha256": "165c7d7a3bb62ad2e50cbc3fbd73106591b894b8a6eab3aceaf1a88cd44cc664"
+    },
+    {
+      "file": "01-full-wraparound.png",
+      "role": "assembled full enclosure",
+      "source": "image_gen/exec-ced7949d-32ee-46de-93d5-ecb08d184710.png",
+      "width": 1671,
+      "height": 941,
+      "bytes": 3095625,
+      "sha256": "b1485a16839955b4eaf33220563a3d7e812bbfab23fbd8b4552525eb82d6a2b5"
+    },
+    {
+      "file": "02-close-match-view.png",
+      "role": "closer match framing",
+      "source": "image_gen/exec-8224fbaa-4565-45b0-8861-33c2e026fdc0.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3031909,
+      "sha256": "7ee2ac13b8821d828146b1f62bc2ef9a42a3d2db3e26f3f363dc280a0a965008"
+    },
+    {
+      "file": "03-layer-study.png",
+      "role": "conceptual layer study",
+      "source": "image_gen/exec-e7bb9e22-5c34-4aba-9908-099843e706b9.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2190510,
+      "sha256": "7b572ba01162d80df25251422ea321010c4645ac52114e6d31a5b4302d09d8e9"
+    },
+    {
+      "file": "04-full-wraparound-bowl-v2.png",
+      "role": "revised assembled enclosure with elevated bowl and near crowd occlusion",
+      "source": "image_gen/exec-d16c9980-e0a5-4b89-876c-3151204d6ac7.png",
+      "width": 1671,
+      "height": 941,
+      "bytes": 2904349,
+      "sha256": "e77f8aafe0bae91d0e2db3f75b67682f3141c7e521e3fe77c527ff9974a85104"
+    },
+    {
+      "file": "05-close-match-view-bowl-v2.png",
+      "role": "revised close view with raised foreground crowd",
+      "source": "image_gen/exec-e3d720d7-dcfa-44f0-a26d-d986cb51b4f8.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2926528,
+      "sha256": "65c9586613e74ba69ae5c36b7c820b3803228c351d8698f42653af0d1c388893"
+    },
+    {
+      "file": "06-locker-rooms-mixed-crowd-v3.png",
+      "role": "two sideline locker-room entrances, mixed supporters and clear apron",
+      "source": "image_gen/exec-f01dff3e-556c-4eb2-a7bd-c7dffcc31883.png",
+      "width": 1671,
+      "height": 941,
+      "bytes": 2760703,
+      "sha256": "5cfc6b5c754820e59538932c19bed908565dbdecda863f1f15928d6c8c78ad72"
+    }
+  ]
+}
