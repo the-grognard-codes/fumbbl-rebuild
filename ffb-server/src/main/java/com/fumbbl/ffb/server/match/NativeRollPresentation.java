@@ -31,10 +31,12 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Public roll facts frozen from the resident native game, without executing it again. */
 final class NativeRollPresentation {
+    private final NativeBlockPresentation blocks;
     private final Map<String, Integer> agility = new HashMap<>();
     private final Map<String, Integer> passing = new HashMap<>();
     private final Map<String, Integer> strength = new HashMap<>();
@@ -47,6 +49,7 @@ final class NativeRollPresentation {
     private final Map<String, JsonValue> squares = new HashMap<>();
 
     NativeRollPresentation(GameState state) {
+        blocks = new NativeBlockPresentation(state);
         Game game = state.getGame();
         proTestRetry = state.getCurrentStep() instanceof AbstractStepWithReRoll
             && ((AbstractStepWithReRoll) state.getCurrentStep()).getDeferredReRoll() != null
@@ -68,6 +71,7 @@ final class NativeRollPresentation {
     }
 
     void decorate(ServerCommandModelSync command, JsonObject publicSync) {
+        blocks.decorate(publicSync);
         JsonArray changes = publicSync.get("modelChangeList").asObject().get("modelChangeArray").asArray();
         for (JsonValue value : changes) {
             JsonObject change = value.asObject();
@@ -164,6 +168,8 @@ final class NativeRollPresentation {
             .add("target", DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(minimum))
             .add("modifier", modifier).add("square", squares.getOrDefault(playerId, JsonValue.NULL)));
     }
+
+    void finish(List<JsonObject> syncs) { blocks.finish(syncs); }
 
     private JsonValue square(FieldCoordinate coordinate) {
         return FieldCoordinateBounds.FIELD.isInBounds(coordinate)

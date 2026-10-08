@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -10,6 +11,8 @@ import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 final class ActionSource {
     String playerId(Game game, Action action) {
         String sourcePlayerId = game.getActingPlayer().getPlayerId();
+        if ("skill".equals(action.kind) && game.getDialogParameter() instanceof DialogSkillUseParameter)
+            sourcePlayerId = ((DialogSkillUseParameter) game.getDialogParameter()).getPlayerId();
         if ("kickoffMove".equals(action.kind) && action.command instanceof ClientCommandSetupPlayer) {
             sourcePlayerId = ((ClientCommandSetupPlayer) action.command).getPlayerId();
         }

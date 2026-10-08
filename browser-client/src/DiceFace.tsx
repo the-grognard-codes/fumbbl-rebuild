@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { blockFaceLabel } from './dice-presentation.ts';
 import './DiceFace.css';
 
 const ink = '#14283e';
@@ -49,8 +50,7 @@ export function DiceFace({ face, selected = false, rollKey }: { face: string; se
   }, [rollKey, selected]);
 
   const pipSet = Object.hasOwn(pips, face) ? pips[face] : undefined;
-  const blockLabels: Record<string,string> = { SKULL: 'Skull', 'BOTH DOWN': 'Both down', PUSHBACK: 'Push', 'POW/PUSH': 'Stumble', POW: 'Pow' };
-  const label = pipSet ? `D6 ${face}` : Object.hasOwn(blockLabels, face) ? blockLabels[face] : undefined;
+  const label = pipSet ? `D6 ${face}` : blockFaceLabel(face);
   return <svg ref={svg} className={`match-die${selected ? ' selected' : ''}`} data-face={face} viewBox="18 18 88 88" role="img"
     aria-label={label ? `Ivory and cyan die: ${label}` : 'Unknown die face'}>
     <image href={bodyUrl} width="128" height="128"/>

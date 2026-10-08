@@ -17,8 +17,8 @@ GitHub is the canonical tracker. This document is the local design and handoff m
 | T09 | [#193](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/193) | None | Merged in [#213](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/213) |
 | T10 | [#194](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/194) | None | Merged [#215](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/215) |
 | T11 | [#195](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195) | None | Merged [#216](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/216) |
-| T12 | [#196](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) | #195 | Implemented; merge pending |
-| T13 | [#197](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) | #196 | Planned |
+| T12 | [#196](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) | #195 | Merged [#217](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/217) |
+| T13 | [#197](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) | #196 | Implemented; validation and both reviews passed; publication pending |
 
 The existing match checkpoint, transcript, native rules, and canonical pitch remain authoritative. Each ticket delivers behavior through every affected layer and includes focused native/contract/browser verification as appropriate. Add a user-facing change-list entry for user-visible implementation changes. Preserve unaffected rulesets and the existing accepted-input, authorization, revision, and retry safeguards.
 

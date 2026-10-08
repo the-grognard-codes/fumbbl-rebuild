@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { appendMatchLogLines } from './match-log.ts';
 import type { MatchLogLine } from './match-log.ts';
+import { DiceFace } from './DiceFace.tsx';
 import { readMatchLogPreferences, saveMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
@@ -89,6 +90,8 @@ export function MatchEventLog({ records, loading, unavailable }: {
         if (element.scrollHeight - element.scrollTop - element.clientHeight > 36)
           setWindowRange({ first: boundary(lines[first]), last: boundary(lines[last - 1]) }); }}>
       {lines.slice(first, last).map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision}>
+        {line.dice && <span className="match-log-dice">{line.dice.faces.map((face, index) =>
+          <DiceFace key={index} face={face} selected={line.dice?.selected === index}/>)}</span>}
         {line.text}{line.debug && <small className="match-log-debug">{line.debug}</small>}</p>)}
     </div>
     {lines.length > PAGE && <div className="match-log-paging">
