@@ -43,6 +43,12 @@ The revised acceptance unit is the assembled production view: the same pitch cam
 
 No additional always-loaded AGENTS rules are needed. The useful instructions belong in the stadium authoring reference, and mechanical invariants belong in the existing checks.
 
+## Additional CI finding
+
+Java 21 CI exposed an intermittent recovery-fixture failure after the main integration: random Sweltering Heat could leave exhausted players on the roster, while the test helper tried to place every player. Forcing the weather reproduced the failure deterministically. The helper now follows native setup eligibility; the test asserts exhausted players are present and still checks cross-JVM, halftime and completed-match recovery. All six recovery scenarios pass locally, and both review axes approve the correction. Product rules were not relaxed.
+
+This reinforces the verification lesson: fixtures must preserve the engine's availability rules across drive boundaries. A passing isolated run is insufficient evidence for a failure controlled by random weather. Required final-head CI remains a merge condition.
+
 ## Remaining completion conditions
 
 Refresh the local DEV ADC login; rerun authenticated Human-home and Orc-home camera/reconnect/replay journeys against the final code; resolve any fresh findings; require CI on the published head; then merge the renderer slice and update this audit to final.

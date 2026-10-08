@@ -26,6 +26,14 @@ The [before/after review](../../assets/game/references/stadiums/human-reference-
 
 The final camera/motion run follows the independent-review fixes: denser end-bank paintings with natural silhouettes, field-level open bench bays, isolated optional-file failure and shared camera projection/cropping. After preserving the newer movement/chat/log work from main, all 23 interaction drivers, 229 browser units, TypeScript and the production build passed. Canonical asset checks remain 18 passed / 191 matching delivery files. Perspective keeps elevated supporters above field-level bench bays; only the taller pavilion needs a crowd cutout.
 
+## CI recovery-fixture correction
+
+The published 908da21c6 checkpoint passed Static delivery, baseline Java validation, Firebase service, security and CodeQL checks. Its Java 21 target run failed one recovery scenario: the setup helper attempted to place an unavailable player and received ILLEGAL_PLACEMENT at SetupSession.apply:603.
+
+The original focused scenario passed in isolation. Pinning Sweltering Heat reproduced the same placement failure in 6.78 seconds through the real touchdown/recovery path. The fixture now uses the native canBeMovedDuringSetup predicate and explicitly asserts exhaustion before recovery. All six RecoveryScenariosTest tests pass, including cross-JVM restoration, halftime and terminal completed-match equality. Production setup eligibility and game rules are unchanged.
+
+Both independent review axes approved the test-only correction. Required CI must pass on the final published head before merge.
+
 ## Native integration status
 
 The existing isolated server and synthetic Firebase identities were used. Human-home native camera captures, coach/spectator reconnect and first/last completed replay were recorded during the rework. The [native near view](../../assets/game/references/stadiums/human-reference-revision/jigsaw-review/native-human-near.png) shows actual players and HUD.
