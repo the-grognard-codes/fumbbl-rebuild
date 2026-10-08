@@ -826,10 +826,10 @@ public final class SetupSession {
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));
 		Player<?> mover = game.getActingPlayer().getPlayer();
-		if (mover != null && !game.getActingPlayer().isJumping()
+		if (mover != null
 			&& !mover.hasSkillProperty(NamedProperties.movesRandomly)
-			&& available.stream().anyMatch(action -> "move".equals(action.kind))) {
-			JsonObject forecast = new RoutePlanner(state).adjacent(available);
+			&& available.stream().anyMatch(action -> "move".equals(action.kind) || "jump".equals(action.kind))) {
+			JsonObject forecast = new RoutePlanner(state, true).adjacent(available);
 			if (forecast != null) projected.add("movementForecast", forecast);
 		}
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
@@ -887,6 +887,11 @@ public final class SetupSession {
 		if (saved.get("kickoff") == null) current.remove("kickoff");
 		if (saved.get("ballState") == null) current.remove("ballState");
 		if (saved.get("movementForecast") == null) current.remove("movementForecast");
+		else if (saved.get("movementForecast").asObject().getInt("version", -1) == 1) {
+			JsonObject legacy = new RoutePlanner(state).legacyAdjacent(actions());
+			if (legacy == null) return false;
+			current.set("movementForecast", legacy);
+		}
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
@@ -1074,11 +1079,11 @@ public final class SetupSession {
 			declaredRevision = revision;
 			origin = coordinate(preview.get("from").asObject());
 			int version = preview.getInt("routeVersion", 1);
-			if (version != 1 && version != 2) throw new IllegalArgumentException("Unsupported route version");
+			if (version != 1 && version != 2 && version != 3) throw new IllegalArgumentException("Unsupported route version");
 			for (JsonValue value : preview.get("steps").asArray()) {
 				JsonObject step = value.asObject();
-				if (step.size() != (version == 2 ? 6 : 5) || !step.names().containsAll(java.util.Arrays.asList(
-					"x", "y", "dodge", "rush", "reactions")) || (version == 2 && !step.names().contains("dodgeModifier"))) throw new IllegalArgumentException("Invalid route step");
+				if (step.size() != (version == 3 ? 7 : version == 2 ? 6 : 5) || !step.names().containsAll(java.util.Arrays.asList(
+					"x", "y", "dodge", "rush", "reactions")) || (version >= 2 && !step.names().contains("dodgeModifier")) || (version == 3 && !step.names().contains("checks"))) throw new IllegalArgumentException("Invalid route step");
 				steps.add(new FieldCoordinate(step.get("x").asInt(), step.get("y").asInt()));
 			}
 			check();

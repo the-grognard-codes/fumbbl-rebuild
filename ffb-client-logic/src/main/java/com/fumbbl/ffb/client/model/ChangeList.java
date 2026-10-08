@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser movement squares show native pickup and jump targets, ball contact, and possible Diving Tackle, Tentacles, Shadowing and Steady Footing checks")
 			.addImprovement("Browser movement plans color each entered square by native dodge penalties and show native dodge and rush targets")
 			.addImprovement("Human and Orc sprites use reviewed body centerlines and grounded shadows in every pitch view")
 			.addImprovement("Browser balls use crisp pixel artwork and a synchronized, always-visible pulse; carried balls keep their highlight through confirmed movement")
