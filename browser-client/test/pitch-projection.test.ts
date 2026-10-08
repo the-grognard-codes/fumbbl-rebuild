@@ -206,3 +206,42 @@ test('raised plane corners and sprite anchors share a world projection at every 
       }
     }
 });
+
+test('registered source pixels share the production lens and remain clipped inside the viewport',()=>{
+  const origin={x:10,y:3,z:1},across={x:0,y:.02,z:0},down={x:0,y:0,z:.015};
+  const registration=[[1,0,0],[0,1,0],[0,0,1]];
+  for(const end of ends)for(const mode of modes)for(const perspectiveElevation of [30,40,50] as const){
+    const camera=new PitchProjection({width:1280,height:660,end,mode,perspectiveElevation,focus:10});
+    const surface=camera.registeredSurfaceImage(300,200,registration,origin,across,down,{x0:0,y0:0,x1:300,y1:200});
+    if(!surface){assert.equal(mode,'top-down','an edge-on upright plane is correctly omitted');continue;}
+    const css=surface.transform.slice(9,-1).split(',').map(Number);
+    for(const [x,y] of [[150,100],[50,50],[250,150]]) {
+      const expected=camera.projectRaised({x:10,y:3+x*.02},1+y*.015)!;
+      const u=x-surface.left,v=y-surface.top,d=css[3]*u+css[7]*v+css[15];
+      close((css[0]*u+css[4]*v+css[12])/d,expected.x);
+      close((css[1]*u+css[5]*v+css[13])/d,expected.y);
+    }
+  }
+  const camera=new PitchProjection({width:1280,height:660});
+  assert.throws(()=>camera.registeredSurfaceImage(0,10,registration,origin,across,down,{x0:0,y0:0,x1:2,y1:2}),RangeError);
+  assert.throws(()=>camera.registeredSurfaceImage(10,10,registration,origin,across,down,{x0:NaN,y0:0,x1:2,y1:2}),RangeError);
+});
+
+test('affine and registered surfaces share viewport and near-plane clipping',()=>{
+  const identity=[[1,0,0],[0,1,0],[0,0,1]];
+  const origin={x:-100,y:-40,z:0},across={x:.2,y:0,z:0},down={x:0,y:.1,z:0};
+  for(const end of ends)for(const mode of modes)for(const perspectiveElevation of [30,40,50] as const)for(const focus of [0,13,26]) {
+    const camera=new PitchProjection({width:1280,height:660,end,mode,perspectiveElevation,focus});
+    const affine=camera.surfaceImage(1000,1000,origin,across,down)!;
+    const registered=camera.registeredSurfaceImage(1000,1000,identity,origin,across,down,{x0:0,y0:0,x1:1000,y1:1000})!;
+    assert.deepEqual(registered,affine);
+    assert.ok(registered.sourcePolygon.length>=3);
+    assert.ok(registered.width<1000||registered.height<1000,'viewport clips the oversized source');
+    const css=registered.transform.slice(9,-1).split(',').map(Number);
+    for(const p of registered.sourcePolygon) {
+      const u=p.x-registered.left,v=p.y-registered.top,d=css[3]*u+css[7]*v+css[15];
+      const x=(css[0]*u+css[4]*v+css[12])/d,y=(css[1]*u+css[5]*v+css[13])/d;
+      assert.ok(x>=-1e-6&&x<=1280+1e-6&&y>=-1e-6&&y<=660+1e-6);
+    }
+  }
+});

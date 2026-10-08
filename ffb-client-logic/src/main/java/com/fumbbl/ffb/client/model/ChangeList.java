@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser stadiums assemble matching wall, corner and packed Human/Orc crowd pieces, with occasional random section gestures and two locker-room entrances")
 			.addImprovement("Browser Game Log shows block dice faces, native chooser, player skills and resolved pushes and knockdowns")
 			.addImprovement("Browser Game Log preserves native trait thresholds, follow-up checks, reroll sources and skill-test retries in chronological order")
 			.addImprovement("Browser Game Log shows readable declarations, native action results and committed movement, with persistent Debug, Movement and Roll modifiers controls")
