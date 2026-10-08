@@ -18,7 +18,7 @@ test('dodge colors use the native net penalty independently of agility and rush 
   const rush = routeSquarePresentation({ x: 7, y: 5, dodge: 0, rush: 3, reactions: [] });
   assert.equal(clear.band, 'clear');
   assert.equal(clear.color, '#74d6e126', 'Safe squares retain the existing transparent blue');
-  for (const dodgeModifier of [0, -1, -2, -3]) assert.ok(routeSquarePresentation({ x: 7, y: 7, dodge: 4, rush: 0, dodgeModifier, reactions: [] }).color.endsWith('26'), 'Every band shares the established overlay opacity');
+  for (const dodgeModifier of [0, -1, -2, -3]) assert.ok(routeSquarePresentation({ x: 7, y: 7, dodge: 4, rush: 0, dodgeModifier, reactions: [] }).color.endsWith('4d'), 'Risk bands strengthen the established translucent overlay');
   assert.deepEqual(clear.labels, []);
   assert.equal(rush.band, 'rush');
   assert.notEqual(rush.color, clear.color);

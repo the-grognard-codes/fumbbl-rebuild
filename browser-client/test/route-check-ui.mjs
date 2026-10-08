@@ -67,7 +67,7 @@ try {
           const labels = await label.locator('tspan').allTextContents();
           assert.deepEqual(labels, [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
           assert.equal(await indicator.locator('polygon').evaluate(polygon => getComputedStyle(polygon).stroke), 'none');
-          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith('26'), 'Every forecast uses the established transparent overlay alpha');
+          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith(step.dodge || step.rush ? '4d' : '26'), 'Risk bands are stronger while safe squares retain the existing transparent blue');
           const rect = await indicator.locator('polygon').boundingBox();
           assert.ok(rect && rect.width > 10 && rect.height > 5, 'Planned squares remain visible in every camera');
           if (labels.length && step === route.steps.at(-1)) {
@@ -91,7 +91,7 @@ try {
           assert.equal(await indicator.getAttribute('data-route-band'), band);
           assert.deepEqual(await page.locator(`[data-label-square="${step.x},${step.y}"] tspan`).allTextContents(), [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
           assert.equal(await indicator.locator('polygon').evaluate(polygon => getComputedStyle(polygon).stroke), 'none');
-          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith('26'), 'Every forecast uses the established transparent overlay alpha');
+          assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith(step.dodge || step.rush ? '4d' : '26'), 'Risk bands are stronger while safe squares retain the existing transparent blue');
         }
       }
     }
