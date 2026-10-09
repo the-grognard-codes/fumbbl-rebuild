@@ -16,7 +16,7 @@ import './match-adjustments.css';
 import './ui-round-four.css';
 import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
-import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
+import type { MovementPlan, MovementRequest } from './movement-protocol.ts';
 import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
@@ -186,8 +186,8 @@ export function SetupPanel() {
 export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
-  routePreview = null, routeError = '', requestRoutePreview, movementRange = null, movementPlan = null,
-  movementError = '', requestMovementRange, requestMovementPreview, matchControls, setupErrors = [] }: {
+  routePreview = null, routeError = '', requestRoutePreview, movementPlan = null,
+  movementError = '', requestMovementPreview, matchControls, setupErrors = [] }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
   logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
@@ -195,8 +195,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   chatSent?: { text: string; id: string } | null; chatSending?: boolean; sendChat?: (text: string) => void;
   routePreview?: RoutePreview | null; routeError?: string;
   requestRoutePreview?: (points: RoutePoint[]) => void;
-  movementRange?: MovementRange | null; movementPlan?: MovementPlan | null; movementError?: string;
-  requestMovementRange?: (playerId: string | null) => void;
+  movementPlan?: MovementPlan | null; movementError?: string;
   requestMovementPreview?: (intent: MovementRequest | null) => void;
   setupErrors?: string[];
   matchControls?: { fullscreen: boolean; toggleFullscreen: () => void; exitMatch: () => void; reconnect: () => void; error: string };
@@ -224,7 +223,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [waypoints, setWaypoints] = useState<RoutePoint[]>([]);
   const [movementIntent, setMovementIntent] = useState<MovementRequest | null>(null);
   const movementFlow = hosted && !!requestMovementPreview;
-  const rangeRequester = useRef(requestMovementRange); rangeRequester.current = requestMovementRange;
   const recentKey = `ffb.match.more.${view.matchId}.${view.callerRole}`;
   const candidateKey = `${recentKey}.candidate`;
   const [lastUsed, setLastUsed] = useState<{ kind: string; label: string } | null>(() => {
@@ -288,11 +286,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const selectedActions = moreActions(availableActions, view.activePlayerId ?? playerId);
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const canChoose = connected && !pending && !suspended;
-  useEffect(() => {
-    const selected = view.players.find(player => player.id === playerId);
-    rangeRequester.current?.(movementFlow && canChoose && view.phase === 'PLAY' && !kickoffMovement
-      && view.callerRole !== 'spectator' && selected?.x != null && selected.y != null ? playerId : null);
-  }, [movementFlow, playerId, view.matchId, view.revision, view.phase, view.callerRole, kickoffMovement, canChoose]);
   const canMove = canChoose && canPlanMovement(view, availableActions, playerId, 'move');
   const movementReady = canChoose && playerId === movementIntent?.playerId && matchesMovementPlan(movementPlan, movementIntent, view);
   const displayedWaypoints = movementFlow && movementIntent?.kind === 'blitz' && !waypoints.length && movementReady
@@ -704,7 +697,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={diceMoment}
-        movementRange={movementFlow ? !pending && connected && movementRange?.revision === view.revision ? movementRange : null : undefined} onUndoWaypoint={undoWaypoint}
+        onUndoWaypoint={undoWaypoint}
         decision={!playbackActive && decision && ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
         decisionDisabled={!connected || !!pending || suspended}
         onDecisionAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}
@@ -752,8 +745,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           {serverActionPanel || <p>No server options are currently offered to this viewer.</p>}
           <section aria-label="Movement plan details"><h3>Movement plan</h3>
             {reviewedRoute ? <><p>{reviewedRoute.steps.length} squares · {reviewedRoute.remaining} remaining · revision {reviewedRoute.revision}</p>
-              <ol aria-label="Route square checks">{reviewedRoute.steps.map((step, index) => <li key={`${index}-${step.x}-${step.y}`}>
-                {step.x}, {step.y}: {step.dodge ? `dodge ${step.dodge}+` : 'no dodge'} · {step.rush ? `rush ${step.rush}+` : 'no rush'}{step.reactions.length ? ` · possible ${step.reactions.join(', ')}` : ''}
+              <ol aria-label="Route squares">{reviewedRoute.steps.map((step, index) => <li key={`${index}-${step.x}-${step.y}`}>
+                {step.x}, {step.y}
               </li>)}</ol></> : <p>No movement plan is prepared.</p>}
             {routeError && <p role="alert">{routeError}</p>}
           </section>
