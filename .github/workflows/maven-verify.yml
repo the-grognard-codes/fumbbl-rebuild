@@ -8,6 +8,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      full_browser_validation:
+        description: Also run the full browser suite on GitHub for diagnosis
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -17,6 +22,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  full-browser:
+    if: github.event_name == 'workflow_dispatch' && inputs.full_browser_validation
+    uses: ./.github/workflows/browser-validation.yml
+    with:
+      commit: ${{ github.sha }}
+
   local-review-tools:
     name: Local review lifecycle and computer player
     runs-on: ubuntu-24.04
@@ -27,7 +38,7 @@ jobs:
         with:
           node-version: '26'
       - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs tools/test/game-service-start.test.mjs
-      - run: node --test tools/test/validation.test.mjs
+      - run: node --test tools/test/validation.test.mjs tools/test/browser-local.test.mjs tools/test/deploy.test.mjs
       - run: npm test --prefix computer-player
 
   baseline:
@@ -198,63 +209,10 @@ jobs:
       - run: npm run assemble --prefix deployment/firebase -- --environment prod
       - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment prod
 
-  hosted-browser:
-    name: Hosted browser journeys
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: browser-client/package-lock.json
-      - run: npm ci --prefix browser-client
-      - run: npx playwright install --with-deps chromium
-        working-directory: browser-client
-      - run: npm run build --prefix site
-      - run: node tools/validation/browser-suites.mjs --family hosted
-      - uses: actions/upload-artifact@v4
-        with:
-          name: static-browser-hosted
-          overwrite: true
-          path: .tools/validation/hosted-1.json
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 14
-
-  browser-interactions:
-    name: Browser interactions (${{ matrix.shard }}/4)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: browser-client/package-lock.json
-      - run: npm ci --prefix browser-client
-      - run: npx playwright install --with-deps chromium
-        working-directory: browser-client
-      - run: node tools/validation/browser-suites.mjs --family interaction --shard ${{ matrix.shard }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: static-browser-interaction-${{ matrix.shard }}
-          overwrite: true
-          path: .tools/validation/interaction-${{ matrix.shard }}.json
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 14
-
   static-delivery:
-    # Preserve the established required-check context and require every static/browser job.
+    # Keep the check name; browser execution is local for DEV and mandatory in PROD.
     name: Static delivery
-    needs: [static-checks, hosted-browser, browser-interactions]
+    needs: [static-checks]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -263,15 +221,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: static-browser-*
-          path: .tools/validation-reports
-          merge-multiple: true
-      - name: Require successful jobs and complete browser execution
+      - name: Require complete fast checks and registered browser inventory
         env:
           VALIDATION_NEEDS: ${{ toJSON(needs) }}
-        run: node tools/validation/coverage-gate.mjs static .tools/validation-reports
+        run: node tools/validation/static-gate.mjs
 
   game-session:
     name: Firebase game session service

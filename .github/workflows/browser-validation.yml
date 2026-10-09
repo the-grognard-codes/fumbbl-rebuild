@@ -1,0 +1,106 @@
+name: Full browser validation
+
+on:
+  workflow_call:
+    inputs:
+      commit:
+        description: Exact commit to validate
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full commit SHA to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  hosted-browser:
+    name: Hosted browser journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: browser-client/package-lock.json
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - run: npm run build --prefix site
+      - name: Run every hosted suite for the requested commit
+        env:
+          VALIDATION_COMMIT: ${{ inputs.commit }}
+        run: node tools/validation/browser-suites.mjs --family hosted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-hosted
+          overwrite: true
+          path: .tools/validation/hosted-1.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-interactions:
+    name: Browser interactions (${{ matrix.shard }}/4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: browser-client/package-lock.json
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - name: Run the complete assigned interaction shard
+        env:
+          VALIDATION_COMMIT: ${{ inputs.commit }}
+        run: node tools/validation/browser-suites.mjs --family interaction --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-interaction-${{ matrix.shard }}
+          overwrite: true
+          path: .tools/validation/interaction-${{ matrix.shard }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  browser:
+    name: Complete browser coverage
+    needs: [hosted-browser, browser-interactions]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: static-browser-*
+          path: .tools/validation-reports
+          merge-multiple: true
+      - name: Require successful jobs and complete browser execution
+        env:
+          VALIDATION_COMMIT: ${{ inputs.commit }}
+          VALIDATION_NEEDS: ${{ toJSON(needs) }}
+        run: node tools/validation/coverage-gate.mjs browser .tools/validation-reports

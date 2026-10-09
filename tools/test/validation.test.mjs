@@ -141,3 +141,58 @@ test('actual CI gate accepts complete reports and rejects missing artifacts or f
     assert.match(missing.stderr, /missing=native-4.json/);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test('release browser gate uses the release commit and rejects stale, partial, or cancelled execution', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'release-browser-gate-'));
+  try {
+    const manifest = await loadBrowserManifest(root);
+    const groups = [
+      { family: 'interaction', shards: manifest.interactionShards },
+      { family: 'hosted', shards: [manifest.hosted] },
+    ];
+    for (const { family, shards: assigned } of groups) {
+      for (const [index, ids] of assigned.entries()) {
+        await writeFile(join(directory, `${family}-${index + 1}.json`), JSON.stringify({
+          schemaVersion: 1, family, shard: index + 1, commit: 'release', passed: true,
+          suites: ids.map(id => ({ id, tests: 1, durationMs: 0, failures: 0, errors: 0, skipped: 0 })),
+        }));
+      }
+    }
+    const runGate = (commit = 'release', result = 'success') => spawnSync(process.execPath,
+      ['tools/validation/coverage-gate.mjs', 'browser', directory], {
+        cwd: root, encoding: 'utf8', windowsHide: true,
+        env: { ...process.env, GITHUB_SHA: 'workflow-main', VALIDATION_COMMIT: commit, GITHUB_STEP_SUMMARY: '',
+          VALIDATION_NEEDS: JSON.stringify({ 'hosted-browser': { result: 'success' }, 'browser-interactions': { result } }) },
+      });
+    const passed = runGate();
+    assert.equal(passed.status, 0, passed.stderr);
+    assert.match(passed.stdout, /PASS complete browser validation coverage for release/);
+    assert.equal(runGate('workflow-main').status, 1);
+    assert.match(runGate('release', 'cancelled').stderr, /Required job browser-interactions: cancelled/);
+    await rm(join(directory, 'interaction-4.json'));
+    assert.match(runGate().stderr, /missing=interaction-4.json/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('DEV static gate requires actual fast-job success without claiming browser execution', () => {
+  const runGate = needs => spawnSync(process.execPath, ['tools/validation/static-gate.mjs'], {
+    cwd: root, encoding: 'utf8', windowsHide: true,
+    env: { ...process.env, VALIDATION_NEEDS: JSON.stringify(needs) },
+  });
+  const passed = runGate({ 'static-checks': { result: 'success' } });
+  assert.equal(passed.status, 0, passed.stderr);
+  assert.match(passed.stdout, /browser inventory/);
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    assert.match(runGate({ 'static-checks': { result } }).stderr, /Required job static-checks/);
+  }
+  assert.match(runGate({}).stderr, /missing=static-checks/);
+});
+
+test('browser runner refuses a release identity that differs from its checkout', () => {
+  const result = spawnSync(process.execPath, ['tools/validation/browser-suites.mjs', '--family', 'hosted'], {
+    cwd: root, encoding: 'utf8', windowsHide: true,
+    env: { ...process.env, VALIDATION_COMMIT: 'different-commit' },
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Checkout does not match the validation commit/);
+});

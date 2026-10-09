@@ -7,7 +7,19 @@ import { join, parse } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { composeEnvironment, readManagedState, validateComputerPlayer, validateComputerStartup, waitForComputerPlayer } from '../dev-local.mjs';
+import { composeEnvironment, prepareLocalStart, readManagedState, validateComputerPlayer, validateComputerStartup, waitForComputerPlayer } from '../dev-local.mjs';
+
+test('browser failure prevents both start and restart from stopping local services', async () => {
+  for (const restart of [false, true]) {
+    const calls = [];
+    await assert.rejects(prepareLocalStart(restart, {
+      validate: async () => { calls.push('browser'); throw Error('browser failed'); },
+      stopStack: async () => { calls.push('stack stop'); },
+      stopProcesses: async () => { calls.push('process stop'); },
+    }), /browser failed/);
+    assert.deepEqual(calls, ['browser']);
+  }
+});
 
 test('rejects unavailable computer prerequisites before restart can stop the running stack', () => {
   const directory = mkdtempSync(join(tmpdir(), 'dev-local-preflight-test-'));

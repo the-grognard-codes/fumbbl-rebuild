@@ -5,13 +5,15 @@ import { assertDependencies, assertExact, assertShards, loadBrowserManifest, sum
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const [family, directory, ...extra] = process.argv.slice(2);
-if (!['static', 'native'].includes(family) || !directory || extra.length || !process.env.GITHUB_SHA || !process.env.VALIDATION_NEEDS) {
-  throw new Error('Use coverage-gate.mjs static|native report-directory with GITHUB_SHA and VALIDATION_NEEDS');
+const commit = process.env.VALIDATION_COMMIT || process.env.GITHUB_SHA;
+if (!['static', 'browser', 'native'].includes(family) || !directory || extra.length || !commit || !process.env.VALIDATION_NEEDS) {
+  throw new Error('Use coverage-gate.mjs static|browser|native report-directory with a validation commit and VALIDATION_NEEDS');
 }
 const needs = JSON.parse(process.env.VALIDATION_NEEDS);
-assertDependencies(needs, family === 'static' ? ['static-checks', 'hosted-browser', 'browser-interactions'] : ['target-shards']);
+const dependencies = family === 'native' ? ['target-shards'] : ['hosted-browser', 'browser-interactions'];
+assertDependencies(needs, family === 'static' ? ['static-checks', ...dependencies] : dependencies);
 const configurations = [];
-if (family === 'static') {
+if (family !== 'native') {
   const manifest = await loadBrowserManifest(repository);
   configurations.push({ family: 'interaction', shards: manifest.interactionShards }, { family: 'hosted', shards: [manifest.hosted] });
 } else {
@@ -27,7 +29,7 @@ assertExact(files, expected, 'Report files');
 const suites = [];
 for (const config of configurations) {
   const reports = await Promise.all(config.shards.map((_, index) => readFile(join(reportDirectory, `${config.family}-${index + 1}.json`), 'utf8').then(JSON.parse)));
-  suites.push(...validateReports(reports, { ...config, commit: process.env.GITHUB_SHA }));
+  suites.push(...validateReports(reports, { ...config, commit }));
 }
 await summarize(suites, process.env.GITHUB_STEP_SUMMARY);
-console.log(`PASS complete ${family} validation coverage for ${process.env.GITHUB_SHA}`);
+console.log(`PASS complete ${family} validation coverage for ${commit}`);
