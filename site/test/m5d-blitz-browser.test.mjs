@@ -60,17 +60,22 @@ test('real-engine Blitz actions pin and commit once across both players and spec
           if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
           else if (request.type === 'setup' && request.operation === 'load') { loads++; sendState(index, send, request.requestId); }
           else if (request.type === 'watch') sendState(index, send, request.requestId);
-          else if (request.type === 'routePreview') {
+          else if (request.type === 'movementPreview') {
             previews.push({ index, request });
             const snapshot = state(index);
-            const player = snapshot.players.find(item => item.id === snapshot.activePlayerId);
+            const player = snapshot.players.find(item => item.id === request.playerId);
             const from = { x: player.x, y: player.y };
-            const steps = request.waypoints.map(point => ({ ...point, dodge: 0, rush: 0, reactions: [] }));
-            send({ type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
-              route: { routeVersion: 1, playerId: player.id, from, remaining: 8, steps,
-                revision: snapshot.revision, actor: 'home' } });
+            const steps = frames.slice(3, 6).map(frame => {
+              const position = frame.actor.players.find(item => item.id === player.id);
+              return { x: position.x, y: position.y, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] };
+            });
+            send({ type: 'movementPreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
+              plan: { planVersion: 1, kind: 'blitz', targetPlayerId: request.targetPlayerId,
+                waypoints: [{ x: steps.at(-1).x, y: steps.at(-1).y }],
+                route: { routeVersion: 3, playerId: player.id, from, remaining: 8, steps,
+                  revision: snapshot.revision, actor: 'home' } } });
           }
-          else if (request.type === 'setup' && ['action', 'route'].includes(request.operation)) calls.push({ index, request, send });
+          else if (request.type === 'setup' && ['action', 'movement'].includes(request.operation)) calls.push({ index, request, send });
         });
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}${index === 2 ? '&watch=1' : ''}`);
@@ -130,16 +135,20 @@ test('real-engine Blitz actions pin and commit once across both players and spec
         await actor.screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'push-decision-actor.png') });
       }
       await pin();
-      const move = /^\d+:move-(\d+)-(\d+)$/.exec(actionId);
-      if (move) {
+      const blitz = actionId === 'blitz';
+      if (blitz) {
         await actor.waitForFunction(() => document.querySelector('.confirmation-row .commit-action')?.disabled === false);
         const preview = previews.at(-1);
-        assert.equal(preview?.index, 0, 'Only the actor requests route previews');
+        assert.equal(preview?.index, 0, 'Only the actor requests movement previews');
         assert.equal(preview.request.expectedRevision, step);
-        assert.deepEqual(preview.request.waypoints, [{ x: Number(move[1]), y: Number(move[2]) }]);
+        assert.equal(preview.request.kind, 'blitz');
+        assert.equal(preview.request.playerId, 'home1');
+        assert.equal(preview.request.targetPlayerId, 'away1');
+        assert.deepEqual(preview.request.waypoints, []);
+        assert.equal(calls.length, 0, 'Selecting the target and previewing the approach do not commit');
       }
       if (!immediate) assert.equal(await commit.isEnabled(), true, `Pinned action ${actionId} must be ready for an explicit commit`);
-      if (actionId === '2:move-8-7') {
+      if (blitz) {
         const path = actor.getByLabel('Live match pitch').locator('.live-route-line');
         await path.waitFor({ state: 'attached' });
         assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'live-arrow-chase');
@@ -147,10 +156,10 @@ test('real-engine Blitz actions pin and commit once across both players and spec
         assert.equal(await path.evaluate(element => getComputedStyle(element).animationName), 'none');
         await actor.emulateMedia({ reducedMotion: 'no-preference' });
       }
-      if (process.env.M5D_SCREENSHOT_DIR && actionId === '2:move-8-7') {
+      if (process.env.M5D_SCREENSHOT_DIR && blitz) {
         await mkdir(process.env.M5D_SCREENSHOT_DIR, { recursive: true });
-        await actor.getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, `${actionId.startsWith('2:') ? 'blitz-move' : 'push-choice'}-actor.png`) });
-        await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, `${actionId.startsWith('2:') ? 'blitz-move' : 'push-choice'}-spectator.png`) });
+        await actor.getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'blitz-move-actor.png') });
+        await pages[2].getByLabel('Live match pitch').screenshot({ path: resolve(process.env.M5D_SCREENSHOT_DIR, 'blitz-move-spectator.png') });
       }
       if (viaSpace) { const viewport = actor.getByLabel('Pitch action preview'); await viewport.focus(); await viewport.press('Space'); }
       else if (!immediate) await commit.click();
@@ -159,10 +168,12 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls.length, 1, 'One pinned action sends one mutation');
       assert.equal(calls[0].index, 0);
       assert.equal(calls[0].request.expectedRevision, step);
-      if (move) {
-        assert.equal(calls[0].request.operation, 'route');
+      if (blitz) {
+        assert.equal(calls[0].request.operation, 'movement');
         assert.equal(calls[0].request.playerId, 'home1');
-        assert.deepEqual(calls[0].request.waypoints, [{ x: Number(move[1]), y: Number(move[2]) }]);
+        assert.equal(calls[0].request.kind, 'blitz');
+        assert.equal(calls[0].request.targetPlayerId, 'away1');
+        assert.deepEqual(calls[0].request.waypoints, [{ x: 10, y: 7 }]);
       } else {
         assert.equal(calls[0].request.operation, 'action');
         assert.equal(calls[0].request.actionId, actionId);
@@ -171,7 +182,9 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
       assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
       const accepted = calls.shift();
-      step++;
+      // One confirmed Blitz replaces target selection, three moves and the block request.
+      // Publish the same captured post-block checkpoint to every recipient.
+      step = blitz ? 6 : step + 1;
       sendState(0, accepted.send, accepted.request.requestId);
       sendState(1, sockets.get(1)); sendState(2, sockets.get(2));
       for (const page of pages) {
@@ -212,9 +225,7 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     assert.equal(calls.length, 0, 'Stale rejection never resubmits automatically');
     assert.ok(loads >= 3, 'Stale rejection requests a fresh read');
     await submit('0:blitz-home1', async () => { await pinPlayer(0); await actor.getByRole('button', { name: 'Blitz', exact: true }).click(); });
-    await submit('1:target-away1', () => pinPlayer(1));
-    for (const x of [8, 9, 10]) await submit(`${step}:move-${x}-7`, () => pinSquare(x, 7), x === 8);
-    await submit('5:block-away1', () => pinPlayer(1));
+    await submit('blitz', () => pinPlayer(1), true);
     const decision = actor.getByRole('dialog', { name: 'Choose a block die' });
     await decision.waitFor();
     assert.equal(await actor.locator('dialog.match-decision-dialog').count(), 0, 'Block dice use the compact pitch overlay');
