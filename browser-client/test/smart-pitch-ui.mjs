@@ -34,17 +34,16 @@ try {
           type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: frames[0].actor }));
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
-        if (request.type === 'routePreview') queueMicrotask(() => this.emit(request.waypoints[0].y === 6
-          ? { version: 2, type: 'error', requestId: request.requestId, code: 'NO_ROUTE' }
-          : { version: 2, type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
-            route: { routeVersion: 1, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8,
-              steps: [{ x: 8, y: 7, dodge: 0, rush: 0, reactions: [] }, { x: 9, y: 7, dodge: 0, rush: 0, reactions: [] },
-                { x: 10, y: 7, dodge: 0, rush: 0, reactions: [] }], revision: 2, actor: 'home' } }));
+        if (request.type === 'movementPreview') queueMicrotask(() => this.emit({ version: 2,
+          type: 'movementPreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
+          plan: { planVersion: 1, kind: 'blitz', targetPlayerId: 'away1', waypoints: [{ x: 10, y: 7 }],
+            route: { routeVersion: 3, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8,
+              steps: frames.slice(3, 6).map(frame => {
+                const player = frame.actor.players.find(item => item.id === 'home1');
+                return { x: player.x, y: player.y, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] };
+              }), revision: 0, actor: 'home' } } }));
         if (request.type === 'setup' && request.operation !== 'load') {
-          const next = request.actionId?.endsWith('blitz-home1') ? frames[1].actor
-            : request.actionId?.endsWith('target-away1') ? frames[2].actor
-              : request.operation === 'route' ? frames[5].actor
-                : request.actionId?.endsWith('block-away1') ? frames[6].actor : null;
+          const next = request.operation === 'movement' ? frames[6].actor : null;
           if (next) queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
             code: 'ACCEPTED', duplicate: false, state: next }));
         }
@@ -55,20 +54,23 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${matchId}`);
   await page.locator('.live-marker.home').click();
   await page.locator('.live-marker.away').click();
-  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), 0);
+  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load').length), 0);
   await page.getByText('Plan blitz against away1').waitFor();
   await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
-  await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId?.endsWith('target-away1')));
-  await page.getByRole('button', { name: 'Confirmed!' }).waitFor();
-  await page.getByRole('button', { name: 'Confirmed!' }).click();
-  await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId?.endsWith('block-away1')));
+  await page.getByRole('dialog', { name: 'Choose a block die' }).waitFor();
   const sent = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load'));
-  assert.deepEqual(sent.map(request => request.operation === 'route' ? `route:${request.waypoints.at(-1).x},${request.waypoints.at(-1).y}` : request.actionId.split(':')[1]),
-    ['blitz-home1', 'target-away1', 'route:10,7', 'block-away1']);
-  assert.deepEqual(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'routePreview')
-    .map(request => request.waypoints[0])), [{ x: 10, y: 6 }, { x: 10, y: 7 }]);
+  assert.equal(sent.length, 1, 'One confirmation commits the full Blitz');
+  assert.equal(sent[0].operation, 'movement');
+  assert.equal(sent[0].kind, 'blitz');
+  assert.equal(sent[0].playerId, 'home1');
+  assert.equal(sent[0].targetPlayerId, 'away1');
+  assert.equal(sent[0].expectedRevision, 0);
+  assert.deepEqual(sent[0].waypoints, [{ x: 10, y: 7 }]);
+  const previews = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview'));
+  assert.equal(previews.length, 1);
+  assert.deepEqual(previews[0].waypoints, [], 'The server chooses the approach to the selected target');
   assert.deepEqual(errors, []);
-  console.log('PASS: one confirmation declares and targets Blitz; the reviewed server route commits before the offered Block.');
+  console.log('PASS: one confirmation commits the reviewed Blitz approach and block; the required native die choice follows.');
 } finally {
   await browser.close();
   await server.close();
