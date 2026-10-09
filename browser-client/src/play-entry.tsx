@@ -12,6 +12,7 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange } from './movement-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
+import { MatchupTeam } from './MatchupTeam.tsx';
 import { currentMatchStatus } from './current-matches-protocol.ts';
 import type { CurrentMatch } from './current-matches-protocol.ts';
 import { LobbyConcession } from './lobby-concession.ts';
@@ -391,9 +392,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   }
   return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
     {!matchRoute && <div className={resultRoute ? 'match-page-top' : undefined}>
-      <h1>{resultRoute ? 'Match result' : matchRoute ? 'Match' : 'Play or watch'}</h1><p role="status">{preparationTransferred ? 'Match opened in another tab or window' : status}</p>{error && <p role="alert">{error}</p>}
+      <h1>{resultRoute ? 'Match result' : 'Create a game'}</h1>{(resultRoute || !connected || preparationTransferred) && <p role="status">{preparationTransferred ? 'Match opened in another tab or window' : status}</p>}{error && <p role="alert">{error}</p>}
       {!connected && !preparationTransferred && <button onClick={() => connection?.connect()}>Reconnect</button>}
-      {connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
+      {resultRoute && connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
       {preparationTransferred && <button onClick={reconnectPreparation}>Reconnect preparation here</button>}
       {resultRoute && <a href="/play">Match preparation and games</a>}
     </div>}
@@ -402,34 +403,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
-    <section aria-label="Your current games"><h2>Your current games</h2>
-      <button disabled={!connected || currentMatchesLoading} onClick={() => run(() => {
-        currentMatchesBufferRef.current = [];
-        currentMatchesRequestRef.current = connection!.request('currentMatches', { after: null });
-        setCurrentMatchesLoading(true); setCurrentMatchesError('');
-      })}>Refresh games</button>
-      {currentMatchesLoading && <p role="status">Loading your games…</p>}
-      {currentMatchesError && <p role="alert">{currentMatchesError}</p>}
-      {concessionStatus.text && <p role="status">{concessionStatus.text}</p>}
-      {connected && !currentMatchesLoading && !currentMatchesError && currentMatches.length === 0 && <p>You have no unfinished games.</p>}
-      <ul>{currentMatches.map(game => <li key={game.matchId}>
-        <strong>{game.homeTeamName ?? 'Unavailable game'}{game.awayTeamName ? ` vs. ${game.awayTeamName}` : ''}</strong>
-        {game.homeTeamName && <span>{' · '}Your team: {game.callerRole === 'home' ? game.homeTeamName : game.awayTeamName}
-          {' · '}Opponent: {(game.callerRole === 'home' ? game.awayTeamName : game.homeTeamName) ?? 'Waiting for opponent'}</span>}
-        {' · '}{currentMatchStatus(game)}{' · '}
-        {game.lifecycle === 'ACTIVATED' ? <a href={matchUrl(game.matchId, false)}>Resume</a>
-          : game.lifecycle === 'UNAVAILABLE' ? <span>Refresh to try again</span>
-          : <button disabled={busy} onClick={() => run(() => connection!.request('preparedMatch', { operation: 'load', matchId: game.matchId }))}>Continue setup</button>}
-        {game.lifecycle === 'ACTIVATED' && <>
-          {' · '}<button disabled={busy} onClick={() => setConfirmConcession(game.matchId)}>Concede</button>
-          {confirmConcession === game.matchId && <div role="group" aria-label="Confirm concession">
-            <p>Concede this match? This cannot be undone.</p>
-            <button disabled={busy} onClick={() => run(() => { concessionRef.current!.begin(game.matchId, prepared?.document.matchId ?? null); setConfirmConcession(null); })}>Confirm concession</button>
-            <button onClick={() => setConfirmConcession(null)}>Keep playing</button>
-          </div>}
-        </>}
-      </li>)}</ul>
-    </section>
+
     <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
       <option value="human">Play against a human opponent</option>
       <option value="computer">Play against a computer opponent</option>
@@ -464,9 +438,46 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       </>}
       {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a> · <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a></p>}
     </section>
-    {playMode === 'human' && <section aria-label="Watch games"><h2>Games in progress</h2>
-      <p>The game browser has moved to <a href="/spectate">Spectate</a>. Find live match details and replay search there.</p>
-    </section>}
+    <section className="current-games spectate-section" aria-label="Your current games"><div className="spectate-section-heading"><h2>Your current games</h2>
+      <button disabled={!connected || currentMatchesLoading} onClick={() => run(() => {
+        currentMatchesBufferRef.current = [];
+        currentMatchesRequestRef.current = connection!.request('currentMatches', { after: null });
+        setCurrentMatchesLoading(true); setCurrentMatchesError('');
+      })}>Refresh games</button></div>
+      {currentMatchesLoading && <p role="status">Loading your games…</p>}
+      {currentMatchesError && <p role="alert">{currentMatchesError}</p>}
+      {concessionStatus.text && <p role="status">{concessionStatus.text}</p>}
+      {connected && !currentMatchesLoading && !currentMatchesError && currentMatches.length === 0 && <p>You have no unfinished games.</p>}
+      <ul className="spectate-games">{currentMatches.map(game => <li key={game.matchId}>
+        <article className="spectate-game" aria-label={`${game.homeTeamName ?? 'Unavailable game'}${game.awayTeamName ? ` vs. ${game.awayTeamName}` : ''}`}>
+          <div className="spectate-game-top"><strong className="current-game-status">{currentMatchStatus(game)}</strong></div>
+          <div className="spectate-matchup">
+            <MatchupTeam name={game.homeTeamName ?? 'Unavailable game'} side="home">
+              {game.homeTeamName && <p>{game.callerRole === 'home' ? 'Your team' : 'Opponent'}</p>}
+            </MatchupTeam>
+            <div className="spectate-score"><span className="spectate-versus">vs.</span></div>
+            <MatchupTeam name={game.awayTeamName ?? (game.lifecycle === 'UNAVAILABLE' ? 'Unavailable team' : 'Waiting for opponent')} side="away">
+              {game.awayTeamName && <p>{game.callerRole === 'away' ? 'Your team' : 'Opponent'}</p>}
+            </MatchupTeam>
+          </div>
+          <div className="spectate-game-bottom"><div className="spectate-game-meta">
+            {game.homeTeamName && <span>Your team: {game.callerRole === 'home' ? game.homeTeamName : game.awayTeamName}<br/>
+              Opponent: {(game.callerRole === 'home' ? game.awayTeamName : game.homeTeamName) ?? 'Waiting for opponent'}</span>}
+            <details><summary>Game ID</summary><code>{game.matchId}</code></details>
+          </div><div className="current-game-actions">
+            {game.lifecycle === 'ACTIVATED' ? <a className="button" href={matchUrl(game.matchId, false)}>Resume</a>
+              : game.lifecycle === 'UNAVAILABLE' ? <span>Refresh to try again</span>
+              : <button disabled={busy} onClick={() => run(() => connection!.request('preparedMatch', { operation: 'load', matchId: game.matchId }))}>Continue setup</button>}
+            {game.lifecycle === 'ACTIVATED' && <button className="secondary" disabled={busy} onClick={() => setConfirmConcession(game.matchId)}>Concede</button>}
+          </div></div>
+          {game.lifecycle === 'ACTIVATED' && confirmConcession === game.matchId && <div className="current-game-concession" role="group" aria-label="Confirm concession">
+            <p>Concede this match? This cannot be undone.</p>
+            <button disabled={busy} onClick={() => run(() => { concessionRef.current!.begin(game.matchId, prepared?.document.matchId ?? null); setConfirmConcession(null); })}>Confirm concession</button>
+            <button className="secondary" onClick={() => setConfirmConcession(null)}>Keep playing</button>
+          </div>}
+        </article>
+      </li>)}</ul>
+    </section>
     </>}
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       matchControls={{ fullscreen, toggleFullscreen, exitMatch, reconnect: () => connection.connect(), error }}

@@ -280,6 +280,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const decision = hosted ? withProTest(matchDecision(view, availableActions), logRecords, view.revision) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
+  const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
+    : !kickoff && !kickoffMovement && availableActions.length > 0;
   const gameStep = currentGameStep(pitchView);
   const pitchActions = kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions;
@@ -652,8 +654,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
+      {hosted && showConfirmation && <div className="confirmation-row">
+        <button type="button" className="commit-action" onClick={commit} disabled={view.phase === 'SETUP' ? !maySetup : movementIntent ? !movementReady : routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
+        {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
+      </div>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
-        {view.phase === 'SETUP' ? view.actor === view.callerRole ? <div className="setup-confirmation"><div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={!maySetup}><ActionGlyph kind="confirm"/>Confirmed!</button></div></div> : null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
+        {view.phase === 'SETUP' ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
           <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
           <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
             aria-pressed={selected} disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}</div>
@@ -677,8 +683,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" aria-expanded={moreOpen} disabled={!canChoose} onClick={() => setMoreOpen(!moreOpen)}><ActionGlyph kind="other"/>Other action</button>
           <button type="button" className="end-turn-action" onClick={useEndTurn} disabled={!canChoose || !endTurnAction}><ActionGlyph kind="end"/>End Turn</button>
         </div>
-        <div className="confirmation-row"><button type="button" className="commit-action" onClick={commit} disabled={movementIntent ? !movementReady : routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
-          {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}</div>
         {moreOpen && <div className="command-menu" aria-label="Additional actions">
           {additionalActions.map(action => <button key={action.id} type="button" disabled={!canChoose} onClick={() => selectMore(action)}>{shortActionLabel(action, view, playerId)}</button>)}
           {!movementFlow && canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setSmartIntent(null); setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); setMoreOpen(false); }}>Plan path</button>}
@@ -711,19 +715,6 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} reserveDropIds={reserveDropIds} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
         {matchControls?.error && <p role="alert">{matchControls.error}</p>}
-        {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Placement controls">
-          <details><summary>Place players with keyboard or touch</summary>
-            <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}>
-                <option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}
-                  disabled={!canDragSetupPlayer(view, player, availableActions)}>{player.name} #{player.slot}{player.x === null
-                    ? player.offPitch === 'reserve' ? ' reserve' : ` · ${player.status ?? player.state}` : ''}</option>)}</select></label>
-            <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup}/></label>
-            <label>Y <input aria-label="Setup Y" type="number" min="0" max="14" value={y} onChange={event => setY(Number(event.target.value))} disabled={!maySetup}/></label>
-            <button type="button" onClick={() => dropPlayer(playerId, x, y)} disabled={!maySetup || !canDropSetupPlayer(view, playerId, { x, y })}>Place on empty own-half square</button>
-            <button type="button" onClick={() => { if (view.callerRole !== 'spectator') dropReserve(playerId, view.callerRole); }}
-              disabled={!maySetup || !canDropSetupPlayer(view, playerId, null)}>Return selected player to reserve</button>
-          </details>
-        </section>}
         <MatchHistory overlay stacked matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
           homeTeamName={view.homeTeamName} awayTeamName={view.awayTeamName}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
@@ -746,6 +737,18 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {hosted && debugOpen && <section id="match-debug" className="match-debug-panel match-debug-drawer" role="region" aria-label="Match debug">
           <header><strong>Debug</strong><button type="button" aria-label="Close debug panel" onClick={() => setDebugOpen(false)}>×</button></header>
           <div ref={setDebugCameraHost}/>
+        {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Setup placement">
+          <h3>Setup placement</h3>
+            <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}>
+                <option value="">Select</option>{own.map(player => <option key={player.id} value={player.id}
+                  disabled={!canDragSetupPlayer(view, player, availableActions)}>{player.name} #{player.slot}{player.x === null
+                    ? player.offPitch === 'reserve' ? ' reserve' : ` · ${player.status ?? player.state}` : ''}</option>)}</select></label>
+            <label>X <input aria-label="Setup X" type="number" min="0" max="25" value={x} onChange={event => setX(Number(event.target.value))} disabled={!maySetup}/></label>
+            <label>Y <input aria-label="Setup Y" type="number" min="0" max="14" value={y} onChange={event => setY(Number(event.target.value))} disabled={!maySetup}/></label>
+            <button type="button" onClick={() => dropPlayer(playerId, x, y)} disabled={!maySetup || !canDropSetupPlayer(view, playerId, { x, y })}>Place on empty own-half square</button>
+            <button type="button" onClick={() => { if (view.callerRole !== 'spectator') dropReserve(playerId, view.callerRole); }}
+              disabled={!maySetup || !canDropSetupPlayer(view, playerId, null)}>Return selected player to reserve</button>
+        </section>}
           {serverActionPanel || <p>No server options are currently offered to this viewer.</p>}
           <section aria-label="Movement plan details"><h3>Movement plan</h3>
             {reviewedRoute ? <><p>{reviewedRoute.steps.length} squares · {reviewedRoute.remaining} remaining · revision {reviewedRoute.revision}</p>

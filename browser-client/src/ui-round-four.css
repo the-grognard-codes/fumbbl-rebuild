@@ -40,8 +40,6 @@
 .setup-state-message { position: absolute; top: 108px; left: 50%; transform: translateX(-50%); width: min(460px,70%); z-index: 55; background: rgb(9 23 38 / var(--support-panel-opacity,30%)); border: 1px solid #426c9b; padding: 6px; text-align: center; box-sizing: border-box; }
 .setup-state-message strong { display: block; color: #ffcf45; }
 .setup-feedback { position: absolute; top: 162px; left: 50%; transform: translateX(-50%); width: min(460px,70%); z-index: 55; margin: 0; padding: 5px; color: #ffcf45; text-align: center; background: rgb(9 23 38 / var(--support-panel-opacity,30%)); }
-.play-runtime.live-match-page .coach-match.hosted-match .setup-confirmation { display: flex; justify-content: center; }
-.play-runtime.live-match-page .coach-match.hosted-match .setup-confirmation .confirmation-row { position: static; }
 @media(max-width:600px) {
   .play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers { top: calc(var(--away-resource-bottom, 64px) + 6px); right: 8px; gap: 3px; }
   .play-runtime.live-match-page .coach-match.hosted-match .match-menu-triggers > button { font-size: 10px; padding: 3px; }

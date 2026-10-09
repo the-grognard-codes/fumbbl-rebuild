@@ -1,10 +1,10 @@
-.site-header .brand img { width: min(100%, 22rem); height: auto; }
-body.game-focused .site-header { width: min(100% - 2rem, 118rem); margin-top: .35rem; padding: .2rem .6rem; }
-body.game-focused .site-header .brand img { width: 9rem; }
-@media (max-height: 700px) and (min-width: 981px) { body.game-focused .site-header { display: none; } }
-body.game-match { background: #101719; }
-body.game-match::before, body.game-match .site-header { display: none; }
+body.game-focused .site-header { display: none; }
+body.game-match { background: #101719; display: flex; flex-direction: column; height: 100dvh; min-height: 0; }
+body.game-match::before { display: none; }
 body.game-match #play-status { display: none; }
-body.game-match main.play-runtime { width: calc(100% - 2rem); }
+body.game-match #game-root { display: flex; flex-direction: column; flex: 1; min-height: 0; isolation: isolate; }
+body.game-match main.play-runtime.live-match-page { width: calc(100% - 2rem); height: auto; flex: 1; min-height: 0; margin: 1rem auto; }
+body.game-match .game-menu-shade { position: absolute; }
+body.game-match .game-menu-dialog { max-height: 100%; }
 #play-status { max-width: 76rem; margin: 1rem auto; padding: 0 1rem; }
 [hidden] { display: none !important; }

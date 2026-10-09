@@ -19,3 +19,18 @@
 .play-runtime.team-builder fieldset li label { display: inline-block; margin-right: 1rem; vertical-align: top; }
 .play-runtime.team-builder fieldset li input,
 .play-runtime.team-builder fieldset li select { width: min(14rem, 100%); }
+
+.play-runtime .current-games { margin-top: 2rem; padding: clamp(1rem, 3vw, 1.75rem); }
+.play-runtime .current-games .spectate-section-heading button { margin: 0; }
+.play-runtime .current-games h2, .play-runtime .current-games h3 { font-family: 'Spectate Chakra', sans-serif; }
+.play-runtime .current-games button, .play-runtime .current-games .button { font: 700 .9rem/1.4 'Spectate Chakra', sans-serif; padding: .55rem .8rem; margin: 0; border-width: 2px; white-space: nowrap; }
+.play-runtime .current-games .button { background: #e6a83f; color: #101823; }
+.play-runtime .current-games .secondary { background: #172b3e; border-color: #40637e; color: #bdeaff; }
+.current-games .current-game-status { color: #77d8ff; }
+.current-games .spectate-game-bottom { flex-wrap: wrap; }
+.current-games .spectate-game-meta { overflow-wrap: anywhere; max-width: 100%; }
+.current-games .spectate-game-meta > * { min-width: 0; max-width: 100%; }
+.current-game-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.current-game-concession { padding: .75rem 1.1rem; border-top: 1px solid #29465e; background: #0d1b2a; }
+.current-game-concession p { margin: 0 0 .75rem; }
+.play-runtime .current-game-concession button { margin: .3rem .6rem .3rem 0; }

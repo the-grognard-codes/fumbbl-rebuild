@@ -18,12 +18,18 @@ const required = [
   'src/assets/updates.js',
   'updates.json',
   'src/assets/auth-client.js',
+  'src/assets/account-menu.js',
   'src/assets/play.js',
   'src/assets/teambuilder.js'
 ];
 
 for (const file of required) {
   await access(new URL(`../${file}`, import.meta.url));
+  if (file.endsWith('.html') && file !== 'src/updates/index.html') {
+    const html = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    if (!html.includes('<!-- site-header -->') || !html.includes('/assets/account-menu.js'))
+      throw new Error(`The shared site header is missing from ${file}.`);
+  }
 }
 
 const login = await readFile(new URL('../src/login/index.html', import.meta.url), 'utf8');
