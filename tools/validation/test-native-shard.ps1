@@ -113,3 +113,5 @@ $xml.Save($xmlPath)
 Assert-Validation $false 'Native suite has zero tests'
 
 Write-Host "$checks native shard validation checks passed. Fixture: $fixture"
+# GitHub's pwsh wrapper propagates LASTEXITCODE; the final child failure above was expected.
+exit 0

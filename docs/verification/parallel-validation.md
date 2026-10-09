@@ -23,5 +23,16 @@ Baseline: merged PR #237, commit `169f1dc8e05ef6de8454fc74c3c5cc79a293a543`.
 
 - Full local native shard 1 `clean verify` passed all reactor modules and exactly its 13 classes / 67 tests, with zero failures or errors and seven exact allowlisted opt-in skips.
 - The first Ubuntu run caught a PowerShell 7 integer-type difference during manifest validation. The version guard now accepts both JSON integer representations while still requiring version 1. Workflow lint, secret scan, local lifecycle, and static artifacts passed in that run.
+- The next run completed all 12 native tooling checks, then GitHub's PowerShell wrapper propagated the last intentionally failing child process's exit code. The harness now explicitly returns success after checking every expected failure. A local invocation matching GitHub's wrapper verifies the process exit as well as the printed checks.
 
-Independent review and the corrected clean Ubuntu matrix are in progress. Timing comparisons will include setup and aggregate checks.
+## Standards review
+
+No actionable standards violations or material maintainability concerns found in the committed CI sharding diff. The reviewer checked runner/gate behavior and confirmed Hosting assembly still builds the current source. Review-only; tests were not repeated. Verdict: APPROVE; zero findings.
+
+Root review added `overwrite: true` to each uniquely named report upload to support rerunning all jobs without artifact collisions. The standards reviewer independently confirmed this approach.
+
+## Spec review
+
+No actionable requirement gap or unsafe green path found. The baseline browser suites, native source/Surefire checks, exact skip allowances, commit-bound reports, aggregate dependency gates, and full local entry points align with the spec. Review-only; expensive suites were not repeated. The issue API was unavailable in that review sandbox; the reviewer used the checked-in spec and baseline workflow. Verdict: APPROVE; zero findings.
+
+The corrected clean Ubuntu matrix is in progress. Final run links and timings are recorded on [PR #239](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239) and [issue #238](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238). Timing comparisons include setup and aggregate checks.

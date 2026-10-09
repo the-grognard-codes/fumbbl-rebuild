@@ -147,6 +147,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-native-${{ matrix.shard }}
+          overwrite: true
           path: .tools/validation/native-${{ matrix.shard }}.json
           include-hidden-files: true
           if-no-files-found: error
@@ -216,6 +217,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: static-browser-hosted
+          overwrite: true
           path: .tools/validation/hosted-1.json
           include-hidden-files: true
           if-no-files-found: error
@@ -243,6 +245,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: static-browser-interaction-${{ matrix.shard }}
+          overwrite: true
           path: .tools/validation/interaction-${{ matrix.shard }}.json
           include-hidden-files: true
           if-no-files-found: error
