@@ -35,4 +35,18 @@ Root review added `overwrite: true` to each uniquely named report upload to supp
 
 No actionable requirement gap or unsafe green path found. The baseline browser suites, native source/Surefire checks, exact skip allowances, commit-bound reports, aggregate dependency gates, and full local entry points align with the spec. Review-only; expensive suites were not repeated. The issue API was unavailable in that review sandbox; the reviewer used the checked-in spec and baseline workflow. Verdict: APPROVE; zero findings.
 
-The corrected clean Ubuntu matrix is in progress. Final run links and timings are recorded on [PR #239](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239) and [issue #238](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238). Timing comparisons include setup and aggregate checks.
+## Clean Ubuntu execution evidence
+
+[Checks run 37999420965](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/37999420965), code commit `87548c0e625614c05aeddafe215530fd5568edd2`, passed all jobs and both aggregate gates. The independent lint, secret scan, and CodeQL checks also passed.
+
+Downloaded execution reports confirm all 26 interaction suites and all 10 hosted/diagnostic files. Interaction shard durations were 196.2, 199.1, 139.2, and 134.3 seconds; hosted/diagnostic execution took 91.8 seconds. Static delivery's complete dependency chain, including setup and its gate, finished in 4m39s versus the previous 14m11s.
+
+Native reports confirm 43 classes and 248 tests across the four shards, with only the seven existing opt-in skips. State-test class durations summed to 149.7, 104.2, 105.4, and 106.6 seconds respectively. Full native runner durations were 3m09s–4m59s, including setup and repeated full core verification. The original unsharded Java 21 job took 8m01s; the first sharded attempt required the diagnostic retry below, so that attempt is not a clean end-to-end timing comparison.
+
+## Existing intermittent recovery failure
+
+The first attempt's native shard 2 failed the unchanged `SetupSessionMovementTest.pausedBlitzRetainsSelectedTargetAcrossRecoveryAndStopsAfterDeclinedReroll` at checkpoint restore with `RECOVERY_CORRUPT`, before state tests ran. The same full server suite passed on the other three runners and the local run. One explicit failed-job rerun passed the complete reactor, the assigned 10 state-test classes / 50 tests, and the aggregate native coverage gate.
+
+A read-only audit found that the existing fixture uses a fresh `SecureRandom`-seeded recovery dice stream, leaving kickoff/setup paths nondeterministic. Restore hides several validation exceptions behind `RECOVERY_CORRUPT`, so the exact underlying cause remains unconfirmed. This CI change does not alter production recovery, test assertions, dice setup, or automatic retry policy. The observed failure is recorded on issue #238 for follow-up; if it recurs, diagnose the specific restore validation stage without logging recovery artifacts or weakening the test.
+
+Final check links and updated timings are recorded on [PR #239](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239) and [issue #238](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238).

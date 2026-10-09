@@ -1,6 +1,8 @@
 # Parallel validation without reducing coverage
 
 Issue: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238
+Implementation PR: https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239
+Status: implemented; PR open for review.
 
 ## Problem and acceptance criteria
 
