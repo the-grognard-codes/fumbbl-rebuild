@@ -4,6 +4,7 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.IDialogParameter;
+import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
@@ -557,6 +558,24 @@ public final class SetupSession {
 			pendingRoute = new PendingRoute(role, revision, preview);
             movement = narrative.movement(revision, pendingRoute.playerId, pendingRoute.origin);
 			command = null;
+		} else if ("movement".equals(operation)) {
+			JsonObject plan = movementPreview(role, revision, request.getString("playerId", null),
+				request.getString("kind", null), nullableString(request, "targetPlayerId"), request.get("waypoints").asArray());
+			JsonObject preview = plan.get("route").asObject();
+			PendingRoute proposed = new PendingRoute(role, revision, preview, plan.getString("kind", "move"),
+				nullableString(plan, "targetPlayerId"));
+			movement = narrative.movement(revision, proposed.playerId, proposed.origin);
+			Player<?> active = game.getActingPlayer().getPlayer();
+			if (active != null && active.getId().equals(proposed.playerId)) command = null;
+			else {
+				String declaration = "blitz".equals(proposed.kind) ? "blitz-" : "select-";
+				Action offered = actions().stream().filter(action -> (declaration + proposed.playerId).equals(action.id)
+					&& role.equals(action.role)).findFirst().orElse(null);
+				if (offered == null) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+				command = offered.command;
+				logPresentation.set("action", narrative.action(game, offered));
+			}
+			pendingRoute = proposed;
 		} else if ("action".equals(operation)) {
             Action selected = null;
             for (Action action : actions()) if (actionId(action).equals(request.getString("actionId", null))) selected = action;
@@ -1060,6 +1079,103 @@ public final class SetupSession {
 		}
 		return new RoutePlanner(state).preview(waypoints).add("revision", revision).add("actor", role);
 	}
+
+	public JsonObject movementRange(String role, int expectedRevision, String playerId) {
+		movementRead(role, expectedRevision);
+		Game game = state.getGame();
+		Player<?> player = game.getPlayerById(playerId);
+		if (player == null) throw new MatchService.Failure("WRONG_PLAYER");
+		FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
+		if (!FieldCoordinateBounds.FIELD.isInBounds(from)) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		boolean own = ("home".equals(role) ? game.getTeamHome() : game.getTeamAway()).hasPlayer(player);
+		PlayerState status = game.getFieldModel().getPlayerState(player);
+		boolean capable = (status.getBase() == PlayerState.STANDING || status.getBase() == PlayerState.MOVING
+			|| status.getBase() == PlayerState.PRONE) && !status.isPinned()
+			&& !player.hasSkillProperty(NamedProperties.movesRandomly);
+		boolean active = game.getActingPlayer().getPlayer() == player;
+		boolean eligible = !own || (active
+			? game.getActingPlayer().getPlayerAction() != null
+				&& game.getActingPlayer().getPlayerAction().isMoving()
+			: status.isActive());
+		JsonObject range;
+		if (capable && eligible) range = new RoutePlanner(state, player, !own).range();
+		else range = new JsonObject().add("rangeVersion", 1).add("playerId", playerId)
+			.add("from", point(from)).add("remaining", 0).add("steps", new JsonArray());
+		return range.add("revision", revision);
+	}
+
+	public JsonObject movementPreview(String role, int expectedRevision, String playerId, String kind,
+		String targetPlayerId, JsonArray points) {
+		movementRead(role, expectedRevision);
+		if (!role.equals(actor()) || !("move".equals(kind) || "blitz".equals(kind)))
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		Game game = state.getGame();
+		Player<?> player = game.getPlayerById(playerId);
+		if (player == null || !("home".equals(role) ? game.getTeamHome() : game.getTeamAway()).hasPlayer(player))
+			throw new MatchService.Failure("WRONG_PLAYER");
+		Player<?> active = game.getActingPlayer().getPlayer();
+		if (active != null && active != player) throw new MatchService.Failure("WRONG_PLAYER");
+		PlayerAction currentAction = game.getActingPlayer().getPlayerAction();
+		if (active == player && (!("move".equals(kind) && currentAction != null && currentAction.isMoving()
+			|| "blitz".equals(kind) && currentAction == PlayerAction.BLITZ_MOVE)
+			|| "blitz".equals(kind) && game.getActingPlayer().hasBlocked()))
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		if (active == null && actions().stream().noneMatch(action ->
+			(("blitz".equals(kind) ? "blitz-" : "select-") + playerId).equals(action.id)))
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		List<FieldCoordinate> waypoints = routePoints(points, "blitz".equals(kind));
+		RoutePlanner planner = new RoutePlanner(state, player, false);
+		Player<?> target = null;
+		if ("blitz".equals(kind)) {
+			target = game.getPlayerById(targetPlayerId);
+			if (target == null || !game.getOtherTeam(player.getTeam()).hasPlayer(target)
+				|| !game.getFieldModel().getPlayerState(target).canBeBlocked())
+				throw new MatchService.Failure("INVALID_TARGET");
+			FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(target);
+			if (!FieldCoordinateBounds.FIELD.isInBounds(at)) throw new MatchService.Failure("INVALID_TARGET");
+			if (waypoints.isEmpty() && !at.isAdjacent(game.getFieldModel().getPlayerCoordinate(player))) {
+				waypoints.add(planner.approach(at));
+			}
+			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player) : waypoints.get(waypoints.size() - 1);
+			if (!end.isAdjacent(at)) throw new MatchService.Failure("INVALID_TARGET");
+		} else if (targetPlayerId != null || waypoints.isEmpty()) throw new MatchService.Failure("INVALID_ROUTE");
+		JsonObject route = waypoints.isEmpty() ? planner.emptyPreview() : planner.preview(waypoints);
+		if ("blitz".equals(kind) && route.get("steps").asArray().size() > planner.blitzApproachSteps())
+			throw new MatchService.Failure("NO_ROUTE");
+		route.add("revision", revision).add("actor", role);
+		JsonArray canonicalPoints = new JsonArray();
+		for (FieldCoordinate waypoint : waypoints) canonicalPoints.add(point(waypoint));
+		return new JsonObject().add("planVersion", 1).add("kind", kind)
+			.add("targetPlayerId", targetPlayerId == null ? JsonValue.NULL : JsonValue.valueOf(targetPlayerId))
+			.add("waypoints", canonicalPoints).add("route", route);
+	}
+
+	private void movementRead(String role, int expectedRevision) {
+		if (!routeV2 || failed || isComplete() || saveResume && saveResumeState.suspended())
+			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
+		if (expectedRevision != revision) throw new MatchService.Failure("STALE_REVISION");
+		if (!("home".equals(role) || "away".equals(role))) throw new MatchService.Failure("AUTHORIZATION");
+	}
+
+	private List<FieldCoordinate> routePoints(JsonArray points, boolean allowEmpty) {
+		if (points.size() > 20 || !allowEmpty && points.isEmpty()) throw new MatchService.Failure("INVALID_ROUTE");
+		List<FieldCoordinate> result = new ArrayList<>();
+		for (JsonValue value : points) {
+			JsonObject point = value.asObject();
+			if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y"))
+				throw new MatchService.Failure("INVALID_ROUTE");
+			result.add(new FieldCoordinate(point.get("x").asInt(), point.get("y").asInt()));
+		}
+		return result;
+	}
+	private static JsonObject point(FieldCoordinate coordinate) {
+		return new JsonObject().add("x", coordinate.getX()).add("y", coordinate.getY());
+	}
+	private static String nullableString(JsonObject source, String key) {
+		JsonValue value = source.get(key);
+		return value == null || value.isNull() ? null : value.asString();
+	}
+
 	private SetupMechanic mechanic() {
 		MechanicsFactory factory = state.getGame().getFactory(FactoryType.Factory.MECHANIC);
 		return (SetupMechanic) factory.forName(Mechanic.Type.SETUP.name());
@@ -1084,14 +1200,21 @@ public final class SetupSession {
 
 	/** Remaining canonical squares after a route commit, retained through native prompts and recovery. */
 	private static final class PendingRoute {
-		final String actor, playerId;
+		final String actor, playerId, kind, targetPlayerId;
 		final int declaredRevision;
 		final FieldCoordinate origin;
 		final List<FieldCoordinate> steps = new ArrayList<>();
 		int next;
+		boolean targetSelected;
 
 		PendingRoute(String actor, int revision, JsonObject preview) {
+			this(actor, revision, preview, "move", null);
+		}
+
+		PendingRoute(String actor, int revision, JsonObject preview, String kind, String targetPlayerId) {
 			this.actor = actor;
+			this.kind = kind;
+			this.targetPlayerId = targetPlayerId;
 			playerId = preview.get("playerId").asString();
 			declaredRevision = revision;
 			origin = coordinate(preview.get("from").asObject());
@@ -1107,11 +1230,15 @@ public final class SetupSession {
 		}
 
 		PendingRoute(JsonObject saved) {
-			if (saved.size() != 6 || !saved.names().containsAll(java.util.Arrays.asList(
+			if ((saved.size() != 6 && saved.size() != 8 && saved.size() != 9) || !saved.names().containsAll(java.util.Arrays.asList(
 				"actor", "playerId", "declaredRevision", "origin", "steps", "next")))
 				throw new IllegalArgumentException("Invalid pending route shape");
 			actor = saved.get("actor").asString();
 			playerId = saved.get("playerId").asString();
+			kind = saved.size() >= 8 ? saved.get("kind").asString() : "move";
+			targetPlayerId = saved.size() >= 8 && !saved.get("targetPlayerId").isNull()
+				? saved.get("targetPlayerId").asString() : null;
+			targetSelected = saved.size() == 9 && saved.get("targetSelected").asBoolean();
 			declaredRevision = saved.get("declaredRevision").asInt();
 			origin = coordinate(saved.get("origin").asObject());
 			for (JsonValue value : saved.get("steps").asArray()) steps.add(coordinate(value.asObject()));
@@ -1126,15 +1253,21 @@ public final class SetupSession {
 		JsonObject json() {
 			JsonArray path = new JsonArray();
 			for (FieldCoordinate coordinate : steps) path.add(point(coordinate));
-			return new JsonObject().add("actor", actor).add("playerId", playerId)
+			JsonObject result = new JsonObject().add("actor", actor).add("playerId", playerId)
 				.add("declaredRevision", declaredRevision).add("origin", point(origin))
 				.add("steps", path).add("next", next);
+			if ("blitz".equals(kind)) result.add("kind", kind).add("targetPlayerId", targetPlayerId)
+				.add("targetSelected", targetSelected);
+			return result;
 		}
 
 		private void check() {
 			if (!("home".equals(actor) || "away".equals(actor)) || playerId.isEmpty()
 				|| declaredRevision < 0 || !FieldCoordinateBounds.FIELD.isInBounds(origin)
-				|| steps.isEmpty() || steps.size() > 20 || next < 0 || next >= steps.size())
+				|| steps.size() > 20 || next < 0 || next > steps.size()
+				|| steps.isEmpty() && !"blitz".equals(kind)
+				|| !"move".equals(kind) && !"blitz".equals(kind)
+				|| "blitz".equals(kind) && (targetPlayerId == null || targetPlayerId.isEmpty()))
 				throw new IllegalArgumentException("Invalid pending route");
 			FieldCoordinate previous = origin;
 			for (FieldCoordinate coordinate : steps) {
@@ -1164,7 +1297,35 @@ public final class SetupSession {
 			}
 			FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(active);
 			if (!pendingRoute.expectedPosition().equals(current)) {
+				// A native decision can finish the offered step after its original command returned.
+				if (!pendingRoute.complete() && pendingRoute.nextSquare().equals(current)) {
+					pendingRoute.next++;
+					if (pendingRoute.complete() && !"blitz".equals(pendingRoute.kind)) { pendingRoute = null; return; }
+				} else { pendingRoute = null; return; }
+			}
+			if ("blitz".equals(pendingRoute.kind) && !pendingRoute.targetSelected) {
+				Action target = actions().stream().filter(action -> "blitzTarget".equals(action.kind)
+					&& pendingRoute.actor.equals(action.role)
+					&& pendingRoute.targetPlayerId.equals(action.targetPlayerId)).findFirst().orElse(null);
+				if (target != null) {
+					pendingRoute.targetSelected = true;
+					state.handleCommand(new ReceivedCommand(target.command, "home".equals(pendingRoute.actor)));
+					continue;
+				}
+				if (game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET) { pendingRoute = null; return; }
+			}
+			if (pendingRoute.complete()) {
+				if (!"blitz".equals(pendingRoute.kind)) { pendingRoute = null; return; }
+				Action block = actions().stream().filter(action -> "block".equals(action.kind)
+					&& pendingRoute.actor.equals(action.role)
+					&& pendingRoute.targetPlayerId.equals(action.targetPlayerId)).findFirst().orElse(null);
+				if (block == null) {
+					if (game.getDialogParameter() != null || step() != StepId.INIT_MOVING && step() != StepId.INIT_SELECTING) return;
+					pendingRoute = null; return;
+				}
+				String blockActor = pendingRoute.actor;
 				pendingRoute = null;
+				state.handleCommand(new ReceivedCommand(block.command, "home".equals(blockActor)));
 				return;
 			}
 			Action offered = null;
@@ -1185,7 +1346,7 @@ public final class SetupSession {
 				return;
 			}
 			pendingRoute.next++;
-			if (pendingRoute.complete()) pendingRoute = null;
+			if (pendingRoute.complete() && !"blitz".equals(pendingRoute.kind)) pendingRoute = null;
 		}
 	}
 

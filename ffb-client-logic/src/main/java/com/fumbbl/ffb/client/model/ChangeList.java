@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser player selection shows full movement ranges and native Dodge/Rush targets, including next-turn opponent inspection")
+			.addBehaviorChange("Browser movement defaults to Move, plans every destination with waypoint dots, and confirms activation and movement together; right-click undoes while right-button drag pans")
+			.addImprovement("Browser Blitz targeting previews the approach and executes movement and the block with one confirmation")
 			.addBugfix("Local computer match clients run without opening extra console windows on Windows")
 			.addImprovement("Local development startup includes Coach Bugman's computer player service")
 			.addImprovement("Browser stadiums assemble matching wall, corner and packed Human/Orc crowd pieces, with occasional random section gestures and two locker-room entrances")

@@ -30,10 +30,14 @@ export function decodeRoutePreview(json: string): RoutePreviewResponse {
     || typeof response.requestId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(response.requestId)
     || typeof response.matchId !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(response.matchId))
     throw Error('Invalid route response');
-  const route = shape(response.route, ['routeVersion', 'playerId', 'from', 'remaining', 'steps', 'revision', 'actor']);
+  return { ...response, route: decodeRoutePreviewValue(response.route) } as RoutePreviewResponse;
+}
+
+export function decodeRoutePreviewValue(value: unknown, allowEmpty = false): RoutePreview {
+  const route = shape(value, ['routeVersion', 'playerId', 'from', 'remaining', 'steps', 'revision', 'actor']);
   if (![1, 2, 3].includes(route.routeVersion as number) || typeof route.playerId !== 'string' || !route.playerId || route.playerId.length > 200
     || !['home', 'away'].includes(route.actor as string) || !Array.isArray(route.steps)
-    || route.steps.length < 1 || route.steps.length > 20) throw Error('Invalid route preview');
+    || route.steps.length < (allowEmpty ? 0 : 1) || route.steps.length > 20) throw Error('Invalid route preview');
   const from = point(route.from);
   const remaining = integer(route.remaining, 0, 20);
   const revision = integer(route.revision, 0, 8192);
@@ -45,8 +49,8 @@ export function decodeRoutePreview(json: string): RoutePreviewResponse {
     if (Math.max(Math.abs(step.x - previous.x), Math.abs(step.y - previous.y)) !== 1) throw Error('Nonadjacent route step');
     previous = step;
   }
-  return { ...response, route: { routeVersion: route.routeVersion, playerId: route.playerId, from, remaining,
-    steps, revision, actor: route.actor } } as RoutePreviewResponse;
+  return { routeVersion: route.routeVersion, playerId: route.playerId, from, remaining,
+    steps, revision, actor: route.actor } as RoutePreview;
 }
 
 export function decodeRouteStep(value: unknown, version: 1 | 2 | 3 = 2): RouteStep {

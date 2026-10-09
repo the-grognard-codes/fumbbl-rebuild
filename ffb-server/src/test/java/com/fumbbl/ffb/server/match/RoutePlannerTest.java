@@ -5,6 +5,7 @@ import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
+import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.factory.common.GoForItModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
@@ -24,6 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,10 +51,12 @@ class RoutePlannerTest {
 		when(game.getActingPlayer()).thenReturn(acting);
 		doReturn(player).when(acting).getPlayer();
 		when(game.getFieldModel()).thenReturn(field);
+		when(field.getPlayerState(player)).thenReturn(new PlayerState(PlayerState.STANDING));
 		when(field.getPlayerCoordinate(player)).thenReturn(new FieldCoordinate(5, 5));
 		when(player.getMovementWithModifiers()).thenReturn(6);
 		when(player.getSkillsIncludingTemporaryOnes()).thenReturn(Collections.emptySet());
 		when(player.getId()).thenReturn("runner");
+		doReturn(player).when(game).getPlayerById("runner");
 		doReturn(home).when(player).getTeam();
 		when(game.getTeamHome()).thenReturn(home);
 		when(game.getTeamAway()).thenReturn(away);
@@ -95,5 +100,50 @@ class RoutePlannerTest {
 			() -> planner.preview(Collections.singletonList(new FieldCoordinate(6, 5)))).code);
 		assertEquals("NO_ROUTE", assertThrows(MatchService.Failure.class,
 			() -> planner.preview(Collections.singletonList(new FieldCoordinate(25, 14)))).code);
+	}
+
+	@Test void selectedPlayerRangeUsesFullAllowanceWithoutChangingTheNativeActor() {
+		planner();
+		Player<?> inspected = mock(Player.class);
+		when(inspected.getId()).thenReturn("inspected");
+		doReturn(inspected).when(game).getPlayerById("inspected");
+		when(inspected.getMovementWithModifiers()).thenReturn(2);
+		when(inspected.getSkillsIncludingTemporaryOnes()).thenReturn(Collections.emptySet());
+		doReturn(player.getTeam()).when(inspected).getTeam();
+		when(field.getPlayerCoordinate(inspected)).thenReturn(new FieldCoordinate(10, 5));
+		when(field.getPlayerState(inspected)).thenReturn(new PlayerState(PlayerState.STANDING));
+		JsonObject range = new RoutePlanner(state, inspected, true).range();
+		assertEquals("inspected", range.getString("playerId", ""));
+		assertEquals(4, range.getInt("remaining", -1));
+		assertTrue(range.get("steps").asArray().size() > 8);
+		assertFalse(range.get("steps").asArray().toString().contains("\"x\":10,\"y\":5"));
+		assertEquals(player, game.getActingPlayer().getPlayer());
+	}
+
+	@Test void proneRangeDeductsStandingCostUnlessJumpUpIsPresent() {
+		planner();
+		when(field.getPlayerState(player)).thenReturn(new PlayerState(PlayerState.PRONE));
+		assertEquals(5, new RoutePlanner(state, player, true).range().getInt("remaining", -1));
+		when(player.hasSkillProperty(com.fumbbl.ffb.model.property.NamedProperties.canStandUpForFree)).thenReturn(true);
+		assertEquals(8, new RoutePlanner(state, player, true).range().getInt("remaining", -1));
+	}
+
+	@Test void lowMovementPronePlayerCanUseNativeRushAllowanceAfterStanding() {
+		planner();
+		when(player.getMovementWithModifiers()).thenReturn(2);
+		when(field.getPlayerState(player)).thenReturn(new PlayerState(PlayerState.PRONE));
+		JsonObject range = new RoutePlanner(state, player, true).range();
+		assertEquals(2, range.getInt("remaining", -1));
+		assertTrue(range.get("steps").asArray().size() > 8);
+	}
+
+	@Test void blitzApproachReservesOneNativeMovementForTheBlock() {
+		planner();
+		when(player.getMovementWithModifiers()).thenReturn(2);
+		RoutePlanner selected = new RoutePlanner(state, player, true);
+		assertEquals(3, selected.blitzApproachSteps());
+		assertTrue(selected.approach(new FieldCoordinate(9, 5)).isAdjacent(new FieldCoordinate(9, 5)));
+		assertEquals("NO_ROUTE", assertThrows(MatchService.Failure.class,
+			() -> selected.approach(new FieldCoordinate(10, 5))).code);
 	}
 }

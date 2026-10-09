@@ -9,6 +9,7 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.PickupModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
+import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.property.NamedProperties;
@@ -34,25 +35,29 @@ final class MovementChecks {
     private final Player<?> player;
 
     MovementChecks(GameState state) {
+        this(state, state.getGame().getActingPlayer().getPlayer());
+    }
+
+    MovementChecks(GameState state, Player<?> player) {
         this.state = state;
         game = state.getGame();
-        player = game.getActingPlayer().getPlayer();
+        this.player = player;
     }
 
     Forecast at(FieldCoordinate from, FieldCoordinate to, boolean dodging, int rush, MoveSquare jump, boolean ballHandled) {
         Forecast result = new Forecast();
         boolean jumping = jump != null;
-        if ((dodging && UtilPlayer.findEligibleDivingTacklers(game, from, to,
+		if ((dodging && UtilPlayer.findEligibleDivingTacklers(game, player, from, to,
             NamedProperties.canAttemptToTackleDodgingPlayer).length > 0)
             || (jumping && !UtilCards.hasSkillToCancelProperty(player, NamedProperties.canAttemptToTackleJumpingPlayer)
-                && UtilPlayer.findEligibleDivingTacklers(game, from, to, NamedProperties.canAttemptToTackleJumpingPlayer).length > 0))
+				&& UtilPlayer.findEligibleDivingTacklers(game, player, from, to, NamedProperties.canAttemptToTackleJumpingPlayer).length > 0))
             result.reaction("Diving Tackle");
-        if ((dodging || jumping) && UtilPlayer.findAdjacentOpposingPlayersWithProperty(game, from,
-            NamedProperties.canHoldPlayersLeavingTacklezones, false).length > 0) result.reaction("Tentacles");
+		if ((dodging || jumping) && UtilPlayer.findAdjacentOpposingPlayersWithProperty(game, player, from,
+			NamedProperties.canHoldPlayersLeavingTacklezones, false, false).length > 0) result.reaction("Tentacles");
         if (!jumping && game.getTurnMode() != TurnMode.KICKOFF_RETURN
             && !player.hasSkillProperty(NamedProperties.movesRandomly)) {
-            Player<?>[] opponents = UtilPlayer.filterThrower(game, UtilPlayer.findAdjacentOpposingPlayersWithProperty(
-                game, from, NamedProperties.canFollowPlayerLeavingTacklezones, true));
+			Player<?>[] opponents = UtilPlayer.filterThrower(game, UtilPlayer.findAdjacentOpposingPlayersWithProperty(
+				game, player, from, NamedProperties.canFollowPlayerLeavingTacklezones, true, false));
             if (game.getTurnMode() == TurnMode.DUMP_OFF) opponents = UtilPlayer.filterAttackerAndDefender(game, opponents);
             for (Player<?> opponent : opponents) if (opponent.getMovementWithModifiers() > state.shadowingCount(opponent.getId())) {
                 result.reaction("Shadowing"); break;
@@ -68,7 +73,8 @@ final class MovementChecks {
                 PickupModifierFactory modifiers = game.getFactory(FactoryType.Factory.PICKUP_MODIFIER);
                 AgilityMechanic agility = game.getMechanic(Mechanic.Type.AGILITY);
                 Set<PickupModifier> pickupModifiers = modifiers.findModifiers(new PickupContext(game, player, to));
-                int minimum = game.getActingPlayer().getPlayerAction() == PlayerAction.SECURE_THE_BALL
+                ActingPlayer acting = game.getActingPlayer();
+                int minimum = acting.getPlayer() == player && acting.getPlayerAction() == PlayerAction.SECURE_THE_BALL
                     ? agility.minimumRoll(2, pickupModifiers) : agility.minimumRollPickup(player, pickupModifiers);
                 result.pickupTarget = required(minimum);
                 result.add("Pickup", result.pickupTarget, "entry");
