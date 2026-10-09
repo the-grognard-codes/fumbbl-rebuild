@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { squarePosition } from './projected-pitch-helper.mjs';
+import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/movement-interaction-projections.json', import.meta.url), 'utf8'));
 const evidence = process.env.MOVEMENT_FLOW_EVIDENCE;
@@ -35,13 +36,6 @@ async function openJourney(readyState, plan, acceptedState) {
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
-        if (request.type === 'movementRange') {
-          const player = this.state.players.find(player => player.id === request.playerId);
-          const sample = [fixture.ownRange, fixture.opponentRange].find(response => response.range.playerId === request.playerId
-            && response.range.revision === this.state.revision && response.range.from.x === player?.x && response.range.from.y === player?.y);
-          queueMicrotask(() => this.emit(sample ? { ...sample, requestId: request.requestId } : {
-            version: 2, type: 'error', requestId: request.requestId, code: 'ROUTE_UNAVAILABLE' }));
-        }
         if (request.type === 'movementPreview') {
           const full = plan.route.steps;
           const last = request.waypoints.at(-1);
@@ -73,28 +67,46 @@ const clickSquare = async (page, square, button = 'left') => page.locator('.live
   position: await squarePosition(page, square.x, square.y), button });
 
 try {
+  for (const role of ['home', 'away']) {
+    const state = { ...fixture.readyState, callerRole: role };
+    const selection = await openJourney(state, fixture.movePlan.plan, fixture.moveAcceptedState);
+    for (const playerRole of [role === 'home' ? 'away' : 'home', role]) {
+      const player = state.players.find(player => player.role === playerRole && player.x !== null && player.y !== null);
+      await select(selection.page, player.id);
+      await selection.page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), player.id);
+      await assertNoMovementMarkings(selection.page);
+      assert.equal(await selection.page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0,
+        'Either coach can select own or opposing players without requesting range forecasts, including off-turn');
+      assert.deepEqual(await mutations(selection.page), [], 'Selection does not activate a player');
+    }
+    assert.deepEqual(selection.errors, []);
+    await selection.page.close();
+  }
   const { page, errors, confirmed } = await openJourney(fixture.readyState, fixture.movePlan.plan, fixture.moveAcceptedState);
   await select(page, fixture.meta.opponentId);
   await page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), fixture.meta.opponentId);
-  await page.waitForFunction(() => document.querySelectorAll('[data-movement-square]').length > 8);
+  await assertNoMovementMarkings(page);
+  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0, 'Selection does not request a range');
   assert.equal(await confirmed.isDisabled(), true, 'Opponent inspection cannot commit an action');
   assert.deepEqual(await mutations(page), []);
   await select(page, fixture.meta.opponentId);
   await select(page, fixture.meta.playerId);
-  await page.waitForFunction(() => document.querySelectorAll('[data-movement-square]').length > 8);
+  await assertNoMovementMarkings(page);
+  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0, 'Selection does not request a range');
   assert.equal(await page.getByRole('button', { name: 'Move', exact: true }).getAttribute('aria-pressed'), 'true');
   assert.equal(await confirmed.isDisabled(), true, 'Player selection alone cannot activate');
   const end = fixture.movePlan.plan.waypoints.at(-1);
   await clickSquare(page, end);
   await page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.deepEqual(await mutations(page), [], 'Waypoint selection remains read-only');
+  await assertNoMovementMarkings(page);
   assert.equal(await page.locator('.live-route-waypoint circle').count(), 1);
   assert.equal(await page.locator('.live-route-waypoint text').count(), 0);
   if (evidence) await page.screenshot({ path: resolve(evidence, 'move-plan.png') });
   await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByLabel('Perspective angle', { exact: true }).selectOption('30');
   assert.equal(await confirmed.isEnabled(), true, 'Camera changes retain the reviewed plan');
-  assert.equal(await page.getByLabel('Route square checks', { exact: true }).locator('li').count(), fixture.movePlan.plan.route.steps.length);
+  assert.equal(await page.getByLabel('Route squares', { exact: true }).locator('li').count(), fixture.movePlan.plan.route.steps.length);
   const endTurn = fixture.readyState.actions.find(action => action.kind === 'endTurn');
   await page.getByLabel('Server action', { exact: true }).selectOption(endTurn.id);
   assert.equal(await page.locator('.live-route-line').count(), 0, 'Choosing another server action cancels the pending movement');
@@ -130,11 +142,11 @@ try {
   await clickSquare(distant.page, distantPlan.waypoints.at(-1));
   await distant.page.waitForFunction(() => document.querySelectorAll('.live-route-waypoint').length === 2
     && !document.querySelector('.commit-action').disabled);
-  assert.equal(await distant.page.locator('[data-route-square]').count(), distantPlan.route.steps.length);
+  assert.equal(await distant.page.getByLabel('Planned route', { exact: true }).locator('li').count(), distantPlan.route.steps.length);
   await clickSquare(distant.page, distantPlan.waypoints.at(-1), 'right');
   await distant.page.waitForFunction(() => document.querySelectorAll('.live-route-waypoint').length === 1
     && !document.querySelector('.commit-action').disabled);
-  assert.equal(await distant.page.locator('[data-route-square]').count(), 2, 'Undo removes the last generated span');
+  assert.equal(await distant.page.getByLabel('Planned route', { exact: true }).locator('li').count(), 2, 'Undo removes the last generated span');
   await distant.page.locator('.live-pitch-viewport').focus(); await distant.page.keyboard.press('Escape');
   assert.deepEqual(await mutations(distant.page), [], 'Clearing the route does not activate');
   assert.equal(await distant.confirmed.isDisabled(), true);
@@ -151,6 +163,7 @@ try {
   await select(blitz.page, fixture.meta.blitzTargetId);
   await blitz.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.equal(await blitz.page.locator('.live-selection-square').getAttribute('data-selection'), fixture.meta.blitzPlayerId);
+  await assertNoMovementMarkings(blitz.page);
   assert.equal(await blitz.page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange'
     && request.playerId === window.testSocket.state.players.find(player => player.role !== window.testSocket.state.callerRole)?.id).length), 0);
   assert.deepEqual(await mutations(blitz.page), []);
@@ -170,8 +183,9 @@ try {
   await select(approach.page, approachPlan.route.playerId);
   await select(approach.page, approachPlan.targetPlayerId);
   await approach.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
-  assert.equal(await approach.page.locator('[data-route-square]').count(), approachPlan.route.steps.length);
+  assert.equal(await approach.page.getByLabel('Planned route', { exact: true }).locator('li').count(), approachPlan.route.steps.length);
   assert.deepEqual(await mutations(approach.page), []);
+  await assertNoMovementMarkings(approach.page);
   await approach.page.keyboard.press('Space');
   await approach.page.waitForFunction(revision => window.testSocket.state.revision === revision, fixture.distantBlitzAcceptedState.revision);
   assert.equal((await mutations(approach.page)).length, 1);
@@ -183,7 +197,7 @@ try {
     await approach.page.locator('.pitch-decision-overlay').waitFor();
   else await approach.page.getByText('Waiting for the other participant.', { exact: true }).waitFor();
   assert.deepEqual(approach.errors, []); await approach.page.close();
-  console.log('PASS: native-backed own/opponent selection, adjacent/distant Move and Blitz, waypoint-span undo, cancellation, Space and repeated-confirm guards.');
+  console.log('PASS: no range requests or markings on native-backed own/opponent selection, adjacent/distant Move and Blitz, waypoint-span undo, cancellation, Space and repeated-confirm guards.');
 } finally {
   await browser.close(); await server.close();
 }

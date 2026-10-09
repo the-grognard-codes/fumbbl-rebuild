@@ -1,30 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { routeSquarePresentation } from '../src/route-presentation.ts';
 import { decodeRoutePreview } from '../src/route-protocol.ts';
-
-test('dodge colors use the native net penalty independently of agility and rush checks', () => {
-  const bands = [[0, 'dodge-zero'], [1, 'dodge-zero'], [-1, 'dodge-one'], [-2, 'dodge-two'],
-    [-3, 'dodge-three'], [-4, 'dodge-three']] as const;
-  for (const [dodgeModifier, band] of bands) for (const dodge of [2, 4, 6]) {
-    const step = { x: 7, y: 7, dodge, dodgeModifier, rush: 0, reactions: [] };
-    const single = routeSquarePresentation(step), combined = routeSquarePresentation({ ...step, rush: 5 });
-    assert.equal(single.band, band);
-    assert.equal(combined.color, single.color);
-    assert.deepEqual(combined.labels, [`D ${dodge}+`, 'R 5+']);
-    assert.match(combined.description, /Rush 5\+/);
-  }
-  const clear = routeSquarePresentation({ x: 7, y: 6, dodge: 0, rush: 0, reactions: [] });
-  const rush = routeSquarePresentation({ x: 7, y: 5, dodge: 0, rush: 3, reactions: [] });
-  assert.equal(clear.band, 'clear');
-  assert.equal(clear.color, '#74d6e126', 'Safe squares retain the existing transparent blue');
-  for (const dodgeModifier of [0, -1, -2, -3]) assert.ok(routeSquarePresentation({ x: 7, y: 7, dodge: 4, rush: 0, dodgeModifier, reactions: [] }).color.endsWith('4d'), 'Risk bands strengthen the established translucent overlay');
-  assert.deepEqual(clear.labels, []);
-  assert.equal(rush.band, 'rush');
-  assert.notEqual(rush.color, clear.color);
-  assert.deepEqual(rush.labels, ['R 3+']);
-  assert.equal(routeSquarePresentation({ x: 7, y: 7, dodge: 4, rush: 0, reactions: [] }).band, 'unknown');
-});
 
 test('versioned native route decoding requires bounded modifiers and retains legacy previews', () => {
   const response = { version: 2, type: 'routePreview', requestId: 'preview', code: 'ACCEPTED',

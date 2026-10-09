@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { squarePosition } from './projected-pitch-helper.mjs';
+import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
 
 const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-pass-ranges.json', import.meta.url), 'utf8'))
   .sort((a, b) => (a.weather === 'NICE' ? -1 : 0) - (b.weather === 'NICE' ? -1 : 0));
@@ -79,12 +80,9 @@ try {
     assert.deepEqual(await legend.evaluate(element => ({ position: getComputedStyle(element).position,
       zIndex: getComputedStyle(element).zIndex, pointerEvents: getComputedStyle(element).pointerEvents })),
       { position: 'absolute', zIndex: '60', pointerEvents: 'none' }, 'The hosted legend is visible above the pitch without intercepting targets');
-    const nativeMoves = journey.frames[1].actor.actions.filter(action => action.kind === 'move').length;
-    await pitch.locator('.live-available-step').first().waitFor();
-    assert.equal(await pitch.locator('.live-available-step').count(), nativeMoves, 'Every offered move has its native forecast over the pass ranges');
-    assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Confirmed movement forecasts replace generic target outlines');
-    assert.equal(await pitch.locator('.live-available-step polygon').first().evaluate(element => getComputedStyle(element).stroke), 'none', 'Movement squares use a filled highlight during passing');
-    assert.notEqual(await pitch.locator('.live-available-step polygon').first().evaluate(element => getComputedStyle(element).fill), 'none');
+    assert.ok(journey.frames[1].actor.actions.some(action => action.kind === 'move'), 'Native movement remains offered during passing');
+    await assertNoMovementMarkings(page);
+    assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Passing guidance has no overlaid move destination highlights');
     const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
