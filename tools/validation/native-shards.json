@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "shards": [
+    [
+      "com.fumbbl.ffb.server.match.NativeRollPresentationTest",
+      "com.fumbbl.ffb.test.BlockTest",
+      "com.fumbbl.ffb.test.CoreTurnActionsTest",
+      "com.fumbbl.ffb.test.DiceProjectionTest",
+      "com.fumbbl.ffb.test.MatchChatTest",
+      "com.fumbbl.ffb.test.OnTheBallMechanicTest",
+      "com.fumbbl.ffb.test.OnTheBallSkillTest",
+      "com.fumbbl.ffb.test.R5CompletedFixtureGeneratorTest",
+      "com.fumbbl.ffb.test.R5RestoredContinuationTest",
+      "com.fumbbl.ffb.test.RecipientProjectionTest",
+      "com.fumbbl.ffb.test.RecoveryApplicationTest",
+      "com.fumbbl.ffb.test.RecoveryArtifactInspectionTest",
+      "com.fumbbl.ffb.test.V2RuntimeIntegrationTest"
+    ],
+    [
+      "com.fumbbl.ffb.test.BallAndFoulActionsTest",
+      "com.fumbbl.ffb.test.BallPresentationTest",
+      "com.fumbbl.ffb.test.BrowserTeamAdapterTest",
+      "com.fumbbl.ffb.test.kickoff.SwarmingEndTurnTest",
+      "com.fumbbl.ffb.test.RecoverySessionTest",
+      "com.fumbbl.ffb.test.RerollAccountingTest",
+      "com.fumbbl.ffb.test.RerollChoicesTest",
+      "com.fumbbl.ffb.test.RouteForecastTest",
+      "com.fumbbl.ffb.test.skill.move.ShadowingTest",
+      "com.fumbbl.ffb.test.skill.pass.SafePassTest"
+    ],
+    [
+      "com.fumbbl.ffb.test.BrowserChoiceTest",
+      "com.fumbbl.ffb.test.BrowserPreparedMatchAdapterTest",
+      "com.fumbbl.ffb.test.GameStateExecuteStepTest",
+      "com.fumbbl.ffb.test.ManualSkillRerollTest",
+      "com.fumbbl.ffb.test.MatchLogPresentationTest",
+      "com.fumbbl.ffb.test.OnTheBallPassBlockIntegrationTest",
+      "com.fumbbl.ffb.test.PassRangeProjectionTest",
+      "com.fumbbl.ffb.test.PushbackArtworkTest",
+      "com.fumbbl.ffb.test.RecoveryScenariosTest",
+      "com.fumbbl.ffb.test.ServerCommunicationWorkTest"
+    ],
+    [
+      "com.fumbbl.ffb.test.BlockLogPresentationTest",
+      "com.fumbbl.ffb.test.BrowserMatchAdapterTest",
+      "com.fumbbl.ffb.test.CrowdPushTest",
+      "com.fumbbl.ffb.test.DefaultSetupSessionTest",
+      "com.fumbbl.ffb.test.MovementChecksTest",
+      "com.fumbbl.ffb.test.pass.HandOffTurnoverTest",
+      "com.fumbbl.ffb.test.PassWorkflowTest",
+      "com.fumbbl.ffb.test.SetupSessionTest",
+      "com.fumbbl.ffb.test.SpectatorProjectionTest",
+      "com.fumbbl.ffb.test.TeammateActivationTest"
+    ]
+  ],
+  "allowedSkips": {
+    "com.fumbbl.ffb.test.R5CompletedFixtureGeneratorTest": {
+      "createsCurrentCompletedFixtureWithoutChangingPausedFixture": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in current-dev fixture generation only"
+    },
+    "com.fumbbl.ffb.test.R5RestoredContinuationTest": {
+      "reconcilesRetainedRequestThenContinuesPausedDecisionForBothMembers": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in restored-fixture continuation only"
+    },
+    "com.fumbbl.ffb.test.RecoveryApplicationTest": {
+      "isolatedJdbcLifecyclePressure": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated R4 database required",
+      "isolatedJdbcRetentionSerializesLastSlotAndPreservesExistingCheckpoint": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated R4 database required"
+    },
+    "com.fumbbl.ffb.test.RecoveryArtifactInspectionTest": {
+      "retainedArtifactHasNativeAndDecisionParityInAnotherJvm": "org.opentest4j.TestAbortedException: Assumption failed: assumption is not true"
+    },
+    "com.fumbbl.ffb.test.V2RuntimeIntegrationTest": {
+      "twoAccountsAndViewerShareNativeStateAndRecoverWithoutReexecuting": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated marker-6 database required",
+      "uncertainTerminalCommitPublishesOneFinalFrameAfterExactRetry": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated marker-6 database required"
+    }
+  }
+}

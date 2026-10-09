@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: '26'
       - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs tools/test/game-service-start.test.mjs
+      - run: node --test tools/test/validation.test.mjs
       - run: npm test --prefix computer-player
 
   baseline:
@@ -82,10 +83,14 @@ jobs:
         shell: pwsh
         run: ./tools/build.ps1 verify
 
-  target:
-    name: Java 21 target verification
+  target-shards:
+    name: Java 21 state tests (${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Check out repository
@@ -130,15 +135,49 @@ jobs:
             exit 1
           }
 
-      - name: Run target Maven verify
+      - name: Check native validation tooling
         shell: pwsh
-        run: ./tools/target-build.ps1 verify -JavaHome $env:JAVA_HOME
+        run: ./tools/validation/test-native-shard.ps1
 
-  static-delivery:
-    name: Static delivery
+      - name: Run target Maven verify with isolated state-test shard
+        shell: pwsh
+        run: ./tools/validation/native-shard.ps1 -Shard ${{ matrix.shard }} -JavaHome $env:JAVA_HOME
+
+      - name: Upload native execution timings
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-native-${{ matrix.shard }}
+          path: .tools/validation/native-${{ matrix.shard }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  target:
+    # Preserve the established required-check context; all matrix children must pass.
+    name: Java 21 target verification
+    needs: [target-shards]
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
-    # Hosted journeys plus interaction/camera stress checks exceed the old 15-minute budget.
-    timeout-minutes: 30
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: java-native-*
+          path: .tools/validation-reports
+          merge-multiple: true
+      - name: Require successful jobs and complete native execution
+        env:
+          VALIDATION_NEEDS: ${{ toJSON(needs) }}
+        run: node tools/validation/coverage-gate.mjs native .tools/validation-reports
+
+  static-checks:
+    name: Static assets, unit tests and Hosting artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -152,15 +191,84 @@ jobs:
       - run: npm test --prefix browser-client
       - run: npm run check --prefix site
       - run: npm test --prefix site
-      - run: npx playwright install --with-deps chromium
-        working-directory: browser-client
-      - run: node browser-client/test/client-path-ui.mjs
-      - run: npm run test:browser --prefix site
       - run: npm run verify-environment --prefix deployment/firebase
       - run: npm run assemble --prefix deployment/firebase -- --environment dev
       - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment dev
       - run: npm run assemble --prefix deployment/firebase -- --environment prod
       - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment prod
+
+  hosted-browser:
+    name: Hosted browser journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: browser-client/package-lock.json
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - run: npm run build --prefix site
+      - run: node tools/validation/browser-suites.mjs --family hosted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-hosted
+          path: .tools/validation/hosted-1.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-interactions:
+    name: Browser interactions (${{ matrix.shard }}/4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: browser-client/package-lock.json
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - run: node tools/validation/browser-suites.mjs --family interaction --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-interaction-${{ matrix.shard }}
+          path: .tools/validation/interaction-${{ matrix.shard }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  static-delivery:
+    # Preserve the established required-check context and require every static/browser job.
+    name: Static delivery
+    needs: [static-checks, hosted-browser, browser-interactions]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: static-browser-*
+          path: .tools/validation-reports
+          merge-multiple: true
+      - name: Require successful jobs and complete browser execution
+        env:
+          VALIDATION_NEEDS: ${{ toJSON(needs) }}
+        run: node tools/validation/coverage-gate.mjs static .tools/validation-reports
 
   game-session:
     name: Firebase game session service
