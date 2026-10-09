@@ -10,8 +10,12 @@ if (!['static', 'browser', 'native'].includes(family) || !directory || extra.len
   throw new Error('Use coverage-gate.mjs static|browser|native report-directory with a validation commit and VALIDATION_NEEDS');
 }
 const needs = JSON.parse(process.env.VALIDATION_NEEDS);
-const dependencies = family === 'native' ? ['target-shards'] : ['hosted-browser', 'browser-interactions'];
-assertDependencies(needs, family === 'static' ? ['static-checks', ...dependencies] : dependencies);
+const dependencies = {
+  native: ['target-shards'],
+  static: ['static-checks', 'hosted-browser', 'browser-interactions'],
+  browser: ['resolve', 'hosted-browser', 'browser-interactions'],
+};
+assertDependencies(needs, dependencies[family]);
 const configurations = [];
 if (family !== 'native') {
   const manifest = await loadBrowserManifest(repository);
