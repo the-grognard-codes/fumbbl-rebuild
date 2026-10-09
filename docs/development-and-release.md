@@ -216,7 +216,11 @@ For an urgent static rollback, open the PROD Hosting site's **Release history**
 in the Firebase console, select the known-good release, and choose **Roll back**.
 This creates a new release pointing at that prior version without changing the
 tag. For a reproducible code rollback, manually dispatch the PROD workflow with
-the prior approved `moles-v*` tag and approve the `production` environment.
+a prior approved `moles-v*` tag that includes the current browser validation
+tooling, and approve the `production` environment after its tests pass. Legacy
+tags created before this validation split lack compatible runner/gate scripts
+and cannot be redeployed by the new workflow; use Firebase's saved-release
+rollback for those artifacts. The release gate remains mandatory.
 Record the incident and follow up with a new corrective tag; never move or
 reuse a release tag.
 

@@ -47,8 +47,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
       - name: Validate Google Cloud deployment configuration
         shell: bash

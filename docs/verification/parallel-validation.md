@@ -72,3 +72,27 @@ precedes publishing. Source selection and the active working tree are preserved.
 - Full GitHub diagnostic execution, independent review results, merge evidence,
   and actual DEV build/deployment outcomes are recorded on issue #238 and PR #239
   as delivery completes. No PROD release is requested as part of verification.
+
+### Standards review of the split
+
+The independent reviewer identified that historical PROD tags do not contain
+compatible runner/gate scripts. The runbook now explicitly limits code-based
+redeployment to compatible tags and retains Firebase's saved-artifact rollback
+for older tags. Existing generated-site rendering during local builds was
+confirmed to predate this change. Updated review evidence is linked on the issue.
+
+### Spec review of the split
+
+The independent reviewer found no actionable spec gap in the supported CLI and
+PROD release paths. Local DEV execution is an operator trust boundary accepted
+by the user; GitHub independently checks its SHA and fast Checks, while PROD
+requires actual GitHub browser execution.
+
+CodeQL identified default-branch cache risks in the new browser workflow's
+arbitrary direct dispatch. That dispatch was removed; full diagnostic runs go
+through Checks for its own commit. Browser validation and manual DEV deployment
+also omit npm caching, and browser checkouts retain no Git credentials.
+
+The first updated PR run reproduced the unchanged recovery-test failure already
+recorded above. No recovery assertions, production code, or automatic retry
+policy were changed.
