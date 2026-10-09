@@ -91,6 +91,10 @@ does not create or push a tag. Direct dispatch with
 `gh workflow run firebase-deploy-prod.yml --ref main -f release_tag=moles-v1.2.3`
 uses the same mandatory GitHub validation gate.
 
+Legacy tags created before this validation split lack compatible browser
+validation tooling and fail the new release gate. Roll back those versions
+using Firebase Hosting's saved release history; see the release runbook.
+
 ## Build only
 
 To assemble a Hosting artifact locally without publishing it, select the
@@ -139,6 +143,10 @@ Hosting artifact checks, service checks, and security checks. Their `Static
 delivery` result covers those static checks and browser inventory registration;
 it no longer claims that browsers ran. Fewer independent browser validations
 before DEV is an accepted tradeoff; PROD always requires the GitHub suite.
+Local execution is enforced by the supported project CLI. GitHub verifies the
+requested SHA and fast Checks, but does not independently certify a local test
+pass. Direct low-level DEV workflow dispatch is an operator trust boundary,
+rather than the supported publication path.
 
 To request an additional full browser run on GitHub without deploying:
 

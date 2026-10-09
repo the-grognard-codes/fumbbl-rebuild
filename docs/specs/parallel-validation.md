@@ -12,6 +12,8 @@ Preserve every existing suite and case while reducing elapsed time through isola
 
 The user subsequently accepted fewer independent browser validations before DEV. Full browser execution is mandatory locally for DEV local and DEV remote, and on GitHub for PROD releases. PR/main retain all complementary fast checks. DEV publication is explicit through the project CLI so the local preflight precedes publication; merging only runs checks. Source selection, the active branch, and working files remain unchanged. DEV remote validates exact committed main in a temporary detached worktree; PROD validates and deploys the exact resolved release commit. This scope update is recorded on issue #238.
 
+Mandatory DEV local execution is enforced by the supported project CLI. GitHub does not independently certify a developer's local pass, an explicitly accepted trust boundary; direct low-level DEV workflow dispatch is operator-trusted. Historical PROD tags without compatible validation scripts fail the new release gate; Firebase saved-release rollback remains available. The runbook states this limitation rather than silently weakening release validation.
+
 ## Decisions
 
 The Checks workflow uses four Java 21 jobs. The reusable Full browser validation workflow uses four interaction jobs and one hosted job, required by PROD and optionally requested through manual Checks dispatch. Local DEV runs those same manifests sequentially. Shard assignments live in `tools/validation/browser-shards.json` and `native-shards.json`. A large class or suite remains intact. GitHub shards have isolated filesystems, process state, ports, and browser/JVM; suites inside each shard remain sequential.

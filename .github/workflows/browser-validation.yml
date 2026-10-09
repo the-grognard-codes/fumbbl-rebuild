@@ -7,12 +7,6 @@ on:
         description: Exact commit to validate
         required: true
         type: string
-  workflow_dispatch:
-    inputs:
-      commit:
-        description: Full commit SHA to validate
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -26,11 +20,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
       - run: npx playwright install --with-deps chromium
         working-directory: browser-client
@@ -60,11 +53,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
       - run: npx playwright install --with-deps chromium
         working-directory: browser-client
@@ -91,6 +83,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
