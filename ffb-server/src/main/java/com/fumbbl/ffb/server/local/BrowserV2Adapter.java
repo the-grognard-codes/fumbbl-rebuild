@@ -204,6 +204,33 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
 				return;
 			}
+			if ("movementRange".equals(type) || "movementPreview".equals(type)) {
+				boolean preview = "movementPreview".equals(type);
+				if (preview) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
+					"playerId", "kind", "targetPlayerId", "waypoints");
+				else fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "playerId");
+				principal = access.require(principal, ApplicationScope.PLAYER);
+				String id = request.get("matchId").asString();
+				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+					|| request.get("expectedRevision").asInt() < 0
+					|| request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
+				String role = access.playerRole(principal, id);
+				JsonObject result;
+				if (preview) {
+					String kind = request.get("kind").asString();
+					if (!("move".equals(kind) || "blitz".equals(kind))) throw new IllegalArgumentException();
+					String target = request.get("targetPlayerId").isNull() ? null : request.get("targetPlayerId").asString();
+					if (target != null && target.length() > 200) throw new IllegalArgumentException();
+					JsonArray waypoints = request.get("waypoints").asArray();
+					if (waypoints.size() > 20 || "move".equals(kind) && waypoints.isEmpty()) throw new IllegalArgumentException();
+					result = setup.movementPreview(role, id, request.get("expectedRevision").asInt(),
+						request.get("playerId").asString(), kind, target, waypoints);
+				} else result = setup.movementRange(role, id, request.get("expectedRevision").asInt(),
+					request.get("playerId").asString());
+				send(connection, new JsonObject().add("type", type).add("requestId", requestId)
+					.add("code", "ACCEPTED").add("matchId", id).add(preview ? "plan" : "range", result));
+				return;
+			}
 			if ("matchChat".equals(type)) {
 				String operation = request.getString("operation", "");
 				if ("load".equals(operation)) fields(request, "version", "type", "requestId", "operation", "matchId", "from", "limit");

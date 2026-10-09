@@ -179,6 +179,37 @@ class BrowserV2AdapterTest {
 		verify(setup, times(1)).routePreview("home", MATCH, 9, points);
 	}
 
+	@Test void movementReadsAuthorizeBothCoachesAndRejectSpectators() throws Exception {
+		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal away = principal(SECOND, ApplicationScope.PLAYER);
+		AuthenticatedPrincipal spectator = principal("cccccccc-cccc-cccc-cccc-cccccccccccc", ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(home, ApplicationScope.PLAYER)).thenReturn(home);
+		when(access.require(away, ApplicationScope.PLAYER)).thenReturn(away);
+		when(access.require(spectator, ApplicationScope.PLAYER)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
+		when(access.playerRole(home, MATCH)).thenReturn("home");
+		when(access.playerRole(away, MATCH)).thenReturn("away");
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.movementRange("home", MATCH, 9, "p1")).thenReturn(new JsonObject().add("rangeVersion", 1));
+		when(setup.movementRange("away", MATCH, 9, "p1")).thenReturn(new JsonObject().add("rangeVersion", 1));
+		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : "away".equals(bearer) ? away : spectator,
+			access, setup);
+		Connection first = new Connection(), second = new Connection(), viewer = new Connection();
+		adapter.receive(first, authenticate("auth-home", "home").toString());
+		adapter.receive(second, authenticate("auth-away", "away").toString());
+		adapter.receive(viewer, authenticate("auth-viewer", "viewer").toString());
+		JsonObject read = request("movementRange", "range").add("matchId", MATCH)
+			.add("expectedRevision", 9).add("playerId", "p1");
+		adapter.receive(first, read.toString());
+		adapter.receive(second, read.toString());
+		adapter.receive(viewer, read.toString());
+		assertEquals("ACCEPTED", code(first, 1));
+		assertEquals("ACCEPTED", code(second, 1));
+		assertEquals("AUTHORIZATION", code(viewer, 1));
+		verify(setup).movementRange("home", MATCH, 9, "p1");
+		verify(setup).movementRange("away", MATCH, 9, "p1");
+	}
+
 	@Test void authorizedSpectatorReadsBoundedTranscriptWithoutPlayerScope() throws Exception {
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
 		V2MatchAccess access = mock(V2MatchAccess.class);

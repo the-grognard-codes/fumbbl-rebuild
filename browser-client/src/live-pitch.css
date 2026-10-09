@@ -37,7 +37,6 @@
 @keyframes live-arrow-chase { to { stroke-dashoffset: -14; } }
 .live-route-waypoint { pointer-events: none; }
 .live-route-waypoint circle { fill: #10202b; stroke: #fff6c8; stroke-width: 2; }
-.live-route-waypoint text { fill: #fff6c8; font: bold 9px sans-serif; }
 .live-target-line { fill: none; stroke: #a5edf0; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 8 6; pointer-events: none; filter: drop-shadow(0 1px 2px #061c24); }
 .live-target-line { animation: live-path-chase .8s linear infinite; }
 @keyframes live-path-chase { to { stroke-dashoffset: -14; } }

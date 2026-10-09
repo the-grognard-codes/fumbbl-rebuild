@@ -250,6 +250,56 @@ test('an opponent preparation response cannot carry a creator invitation', async
   assert.equal(socket.closed, true); assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
 });
 
+test('opponent range reads are role-safe, correlated and cannot acknowledge retained movement', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const requestId = client.open(match, false);
+  const pitch = { ...state, phase: 'PLAY', actor: 'away', callerRole: 'home', players: [
+    { ...state.players[0], x: 7, y: 7, state: 'is standing' },
+    { ...state.players[0], id: 'p2', role: 'away', x: 9, y: 7, state: 'is standing' },
+  ] };
+  socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId, duplicate: false, state: pitch });
+  const mutation = client.request('setup', { matchId: match, operation: 'movement', expectedRevision: 2,
+    playerId: 'p1', kind: 'move', targetPlayerId: null, waypoints: [{ x: 8, y: 7 }] }, true);
+  const forecast = client.request('movementRange', { matchId: match, expectedRevision: 2, playerId: 'p2' });
+  socket.reply({ type: 'movementRange', requestId: forecast, code: 'ACCEPTED', matchId: match, range: {
+    rangeVersion: 1, playerId: 'p2', from: { x: 9, y: 7 }, remaining: 8, revision: 2,
+    steps: [{ x: 10, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }],
+  } });
+  assert.equal(socket.closed, false);
+  assert.equal(client.pending?.request.requestId, mutation);
+  const original = socket.sent.find(request => request.requestId === mutation);
+  socket.reply({ type: 'error', requestId: mutation, code: 'MATCH_OUTCOME_UNKNOWN' });
+  const retry = await connect(); client.retry();
+  assert.deepEqual(retry.sent.at(-1), original);
+  assert.equal(client.pending?.request.requestId, mutation);
+});
+
+test('preactivation Blitz previews bind origin, target, revision and waypoints to the selected coach', async () => {
+  for (const invalid of [null, 'revision', 'target', 'origin', 'player', 'waypoint']) {
+    const { client, connect, events } = fixture(); const socket = await connect();
+    const requestId = client.open(match, false);
+    const pitch = { ...state, phase: 'PLAY', actor: 'home', callerRole: 'home', players: [
+      { ...state.players[0], x: 7, y: 7, state: 'is standing' },
+      { ...state.players[0], id: 'p2', role: 'away', x: 9, y: 7, state: 'is standing' },
+      { ...state.players[0], id: 'p3', role: 'away', x: 7, y: 8, state: 'is standing' },
+    ] };
+    socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId, duplicate: false, state: pitch });
+    const preview = client.request('movementPreview', { matchId: match, expectedRevision: 2,
+      playerId: 'p1', kind: 'blitz', targetPlayerId: 'p2', waypoints: [{ y: 7, x: 8 }] });
+    const route = { routeVersion: 3, playerId: invalid === 'player' ? 'p2' : 'p1',
+      from: { x: invalid === 'origin' ? 8 : 7, y: 7 }, remaining: 8,
+      revision: invalid === 'revision' ? 1 : 2, actor: 'home',
+      steps: [{ x: 8, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }],
+    };
+    socket.reply({ type: 'movementPreview', requestId: preview, code: 'ACCEPTED', matchId: match,
+      plan: { planVersion: 1, kind: 'blitz', targetPlayerId: invalid === 'target' ? 'p3' : 'p2',
+        waypoints: [{ x: invalid === 'waypoint' ? 9 : 8, y: 7 }], route } });
+    assert.equal(socket.closed, invalid !== null);
+    if (invalid) assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+    else assert.equal(events.at(-1).plan.route.playerId, 'p1');
+  }
+});
+
 class Socket {
   readyState = 1; sent: any[] = []; closed = false;
   onopen: (() => Promise<void>) | null = null; onmessage: ((event: any) => void) | null = null;

@@ -39,6 +39,11 @@ try {
             version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
           if (request.type === 'routePreview') queueMicrotask(() => this.emit({ version: 2, type: 'routePreview',
             requestId: request.requestId, code: 'ACCEPTED', matchId: this.state.matchId, route: journey.route }));
+          if (request.type === 'movementRange') queueMicrotask(() => this.emit({ version: 2, type: 'error',
+            requestId: request.requestId, code: 'ROUTE_UNAVAILABLE' }));
+          if (request.type === 'movementPreview') queueMicrotask(() => this.emit({ version: 2, type: 'movementPreview',
+            requestId: request.requestId, code: 'ACCEPTED', matchId: this.state.matchId,
+            plan: { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: request.waypoints, route: journey.route } }));
           if (request.type === 'setup' && request.operation !== 'load') {
             this.sent.push(request);
             this.state = states[++this.index];
@@ -60,11 +65,18 @@ try {
     await confirmed.click();
     await waitRevision(1);
     if (journey.route) {
-      await page.getByRole('button', { name: 'Other action', exact: true }).click();
-      await page.getByRole('button', { name: 'Plan path', exact: true }).click();
       const point = await squarePosition(page, 11, 7);
       await page.locator('.live-pitch-scene').click({ position: point });
       await page.locator('.live-route-line').waitFor({ state: 'attached', timeout: 5000 });
+      if (journey.frames[1].actor.actions.some(action => action.kind === 'pass')) {
+        await pitch.locator('[data-player-id="mate"]').click();
+        assert.equal(await page.locator('.live-route-line').count(), 0, 'Choosing a pass recipient cancels the unconfirmed movement plan');
+        assert.equal(await confirmed.isEnabled(), true);
+        assert.equal(await page.evaluate(() => window.testSocket.sent.length), 1, 'Switching from a route to a recipient stays read-only');
+        await pitch.locator('[data-player-id="actor"]').click();
+        await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 11, 7) });
+        await page.locator('.live-route-line').waitFor({ state: 'attached', timeout: 5000 });
+      }
       await confirmed.click();
       await waitRevision(2);
       if (journey.mode === 'pickup-reroll') {

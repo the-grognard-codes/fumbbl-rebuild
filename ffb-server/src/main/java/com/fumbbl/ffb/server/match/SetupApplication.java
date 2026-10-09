@@ -426,6 +426,28 @@ public final class SetupApplication {
 		return session.routePreview(role, revision, waypoints);
 	}
 
+	public JsonObject movementRange(String role, String matchId, int revision, String playerId) throws SQLException {
+		return movementSession(role, matchId).movementRange(role, revision, playerId);
+	}
+
+	public JsonObject movementPreview(String role, String matchId, int revision, String playerId,
+		String kind, String targetPlayerId, com.eclipsesource.json.JsonArray waypoints) throws SQLException {
+		return movementSession(role, matchId).movementPreview(role, revision, playerId, kind, targetPlayerId, waypoints);
+	}
+
+	private SetupSession movementSession(String role, String matchId) throws SQLException {
+		MatchDocument document = matches.load(role, matchId).document;
+		if (!role.equals(document.home.owner) && (document.away == null || !role.equals(document.away.owner))
+			|| document.lifecycle != MatchDocument.Lifecycle.ACTIVATED)
+			throw new MatchService.Failure("NOT_FOUND");
+		releaseIdle();
+		if (recovery != null && !sessions.containsKey(matchId)) restore(matchId, document);
+		SetupSession session = sessions.get(matchId);
+		if (session == null || session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+		if (recovery != null) lastAccess.put(matchId, clock.millis());
+		return session;
+	}
+
 	private void validate(JsonObject request) {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };
@@ -445,6 +467,21 @@ public final class SetupApplication {
 				com.eclipsesource.json.JsonArray waypoints = request.get("waypoints").asArray();
 				if (waypoints.size() < 1 || waypoints.size() > 20) throw new IllegalArgumentException();
 				for (JsonValue item : waypoints) {
+					JsonObject point = item.asObject();
+					if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y")) throw new IllegalArgumentException();
+					point.get("x").asInt(); point.get("y").asInt();
+				}
+				break;
+			case "movement":
+				fields.add("playerId"); fields.add("kind"); fields.add("targetPlayerId"); fields.add("waypoints");
+				if (request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
+				String kind = request.get("kind").asString();
+				if (!("move".equals(kind) || "blitz".equals(kind))) throw new IllegalArgumentException();
+				if (request.get("targetPlayerId") != null && !request.get("targetPlayerId").isNull()
+					&& request.get("targetPlayerId").asString().length() > 200) throw new IllegalArgumentException();
+				com.eclipsesource.json.JsonArray movementPoints = request.get("waypoints").asArray();
+				if (movementPoints.size() > 20 || "move".equals(kind) && movementPoints.isEmpty()) throw new IllegalArgumentException();
+				for (JsonValue item : movementPoints) {
 					JsonObject point = item.asObject();
 					if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y")) throw new IllegalArgumentException();
 					point.get("x").asInt(); point.get("y").asInt();

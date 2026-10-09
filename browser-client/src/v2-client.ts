@@ -5,6 +5,7 @@ import { decodePreparedMatch } from './prepared-match-protocol.ts';
 import { decodeMatchResult } from './result-protocol.ts';
 import { decodeTranscript } from './transcript-protocol.ts';
 import { decodeRoutePreview } from './route-protocol.ts';
+import { decodeMovementRange, decodeMovementPreview } from './movement-protocol.ts';
 import { decodeChat } from './chat-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 
@@ -106,7 +107,8 @@ export class V2Client {
   request(type: string, fields: V2Message = {}, mutation = false) {
     if (!this.accountId || this.socket?.readyState !== 1) throw Error('Reconnect before continuing.');
     if (this.requests.size >= 128) throw Error('Too many unanswered requests. Reconnect before continuing.');
-    if (type === 'routePreview' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
+    if (['routePreview', 'movementRange', 'movementPreview'].includes(type)
+      && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
     const browseFields = type === 'browse' && this.options.browseOnly && this.includeBrowseDetails ? { includeDetails: true } : {};
     const request = { ...fields, ...browseFields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
@@ -235,6 +237,37 @@ export class V2Client {
         throw Error('Foreign route preview');
       message.route = decoded.route;
     }
+    if (message.type === 'movementRange' || message.type === 'movementPreview') {
+      const decoded = message.type === 'movementRange' ? decodeMovementRange(raw) : decodeMovementPreview(raw);
+      const route = 'range' in decoded ? decoded.range : decoded.plan.route;
+      if (!request || request.type !== decoded.type || decoded.matchId !== request.matchId
+        || this.selection?.watch || this.selection?.matchId !== decoded.matchId
+        || route.revision !== request.expectedRevision || route.playerId !== request.playerId)
+        throw Error('Foreign movement forecast');
+      if (this.state?.revision === route.revision) {
+        const player = this.state.players.find(player => player.id === route.playerId);
+        if (!player || player.x !== route.from.x || player.y !== route.from.y)
+          throw Error('Foreign movement origin');
+      }
+      if ('plan' in decoded) {
+        const plan = decoded.plan;
+        if (plan.kind !== request.kind || plan.targetPlayerId !== request.targetPlayerId
+          || plan.route.actor !== this.state?.callerRole || !Array.isArray(request.waypoints)
+          || request.waypoints.length && (plan.waypoints.length !== request.waypoints.length
+            || plan.waypoints.some((point, index) => point.x !== request.waypoints[index]?.x || point.y !== request.waypoints[index]?.y)))
+          throw Error('Foreign movement plan');
+        if (this.state?.revision === plan.route.revision) {
+          const player = this.state.players.find(player => player.id === plan.route.playerId);
+          const target = this.state.players.find(player => player.id === plan.targetPlayerId);
+          const end = plan.route.steps.at(-1) ?? plan.route.from;
+          if (player?.role !== this.state.callerRole || plan.kind === 'blitz'
+            && (!target || target.role === player.role || target.x === null || target.y === null
+              || Math.max(Math.abs(target.x - end.x), Math.abs(target.y - end.y)) !== 1))
+            throw Error('Foreign movement player or target');
+        }
+        message.plan = plan;
+      } else message.range = decoded.range;
+    }
     if (message.type === 'matchChat') {
       const decoded = decodeChat(JSON.stringify(message));
       if (this.selection && decoded.matchId !== this.selection.matchId
@@ -269,7 +302,7 @@ export class V2Client {
     }
     if (request) this.requests.delete(message.requestId);
     this.options.onChange(message);
-    if (request?.type === 'setup' && ['action', 'route'].includes(request.operation)
+    if (request?.type === 'setup' && ['action', 'route', 'movement'].includes(request.operation)
       && ['STALE_REVISION', 'WRONG_PHASE', 'WRONG_ACTOR', 'PROMPT_MISMATCH'].includes(message.code)
       && this.selection && !this.selection.watch) {
       this.request('setup', { operation: 'load', matchId: this.selection.matchId });

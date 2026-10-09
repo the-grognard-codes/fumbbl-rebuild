@@ -9,10 +9,10 @@ a { color: #77d8ff; text-decoration-thickness: 2px; text-underline-offset: .2em;
 .site-header { margin-top: 1rem; background: #101c2b; border: 3px solid #4db2ff; box-shadow: 5px 5px 0 #03070c, -3px -3px 0 #24394e; }
 .brand, .kicker, nav a, .button, button { font-family: 'Press Start 2P', monospace; }
 .brand { color: #ffe17b; font-size: .75rem; line-height: 1.7; text-decoration: none; text-shadow: 2px 2px 0 #874a2d; }
-nav { display: flex; flex-wrap: wrap; gap: .7rem; } nav a { color: #c1e9ff; font-size: .62rem; line-height: 1.7; text-decoration: none; } nav a:hover, nav a[aria-current="page"] { color: #ffe17b; text-shadow: 2px 2px 0 #874a2d; }
+nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; } nav a { color: #c1e9ff; font-size: .62rem; line-height: 1.7; text-decoration: none; } nav a:hover, nav a[aria-current="page"] { color: #ffe17b; text-shadow: 2px 2px 0 #874a2d; }
 main { width: min(72rem, calc(100% - 2rem)); margin: 0 auto 3rem; }
-.intro { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(14rem, .7fr); align-items: center; gap: 3rem; padding: 5rem 1.5rem; }
-.intro img { width: 100%; max-width: 19rem; justify-self: end; image-rendering: pixelated; border: 5px solid #ffe17b; box-shadow: 7px 7px 0 #07111d, 11px 11px 0 #4db2ff; }
+.intro { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: clamp(1.5rem, 3vw, 3rem); padding: 5rem 1.5rem; }
+.intro img { display: block; width: 100%; height: auto; max-width: 32rem; justify-self: end; border: 5px solid #ffe17b; box-shadow: 7px 7px 0 #07111d, 11px 11px 0 #4db2ff; }
 .kicker { margin: 0; color: #ffe17b; font-size: .66rem; line-height: 1.8; letter-spacing: .08em; text-transform: uppercase; text-shadow: 2px 2px 0 #874a2d; }
 h1, h2 { font-family: 'Chakra Petch', Inter, sans-serif; font-weight: 700; letter-spacing: .015em; } h1 { max-width: 15ch; font-size: clamp(2rem, 4.8vw, 3.8rem); line-height: 1.08; margin: .75rem 0 1.5rem; color: #f3f8ff; text-shadow: 4px 4px 0 #182c40; } h2 { color: #bdeaff; font-size: clamp(1.25rem, 2.4vw, 1.75rem); line-height: 1.15; }
 .button, button { display: inline-block; appearance: none; border: 3px solid #fff0a8; border-radius: 0; background: #e6a83f; color: #101823; padding: .85rem 1rem; box-shadow: 4px 4px 0 #6b321f; font-size: .68rem; line-height: 1.45; font-weight: 800; text-decoration: none; cursor: pointer; }
@@ -22,4 +22,4 @@ h1, h2 { font-family: 'Chakra Petch', Inter, sans-serif; font-weight: 700; lette
 .notice { border-color: #e6a83f; background: #202235; }.reading { max-width: 52rem; padding: 3rem 1.25rem 0; }.reading h1 { max-width: 18ch; }.date { color: #a9d7ec; font-family: 'Press Start 2P', monospace; font-size: .62rem; }
 hr { border: 0; border-top: 3px dashed #40637e; margin: 2rem 0; } label { display: inline-flex; flex-direction: column; gap: .45rem; color: #bdeaff; font-weight: 700; } input { min-height: 2.7rem; border: 3px solid #40637e; border-radius: 0; background: #07111d; color: #edf5ff; padding: .5rem; font: inherit; }
 footer { margin-bottom: 1rem; border: 3px solid #24394e; background: #0d1724; color: #a9c8da; font-size: .82rem; flex-wrap: wrap; }
-@media (max-width: 42rem) { .intro { grid-template-columns: 1fr; padding: 3rem .5rem; gap: 2rem; }.intro img { justify-self: start; max-width: 14rem; }.site-header { align-items: flex-start; flex-direction: column; }.site-header, footer { padding: 1rem; } }
+@media (max-width: 42rem) { .intro { grid-template-columns: 1fr; padding: 3rem .5rem; gap: 2rem; }.intro img { justify-self: start; }.site-header { align-items: flex-start; flex-direction: column; }.site-header, footer { padding: 1rem; } }

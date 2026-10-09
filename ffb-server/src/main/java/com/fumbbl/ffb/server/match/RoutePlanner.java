@@ -1,9 +1,11 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.Constant;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.MoveSquare;
+import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.factory.DodgeModifierFactory;
 import com.fumbbl.ffb.factory.common.GoForItModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
@@ -48,21 +50,73 @@ final class RoutePlanner {
 	RoutePlanner(GameState state) { this(state, false); }
 
 	RoutePlanner(GameState state, boolean allowJump) {
+		this(state, state.getGame().getActingPlayer().getPlayer(), false, allowJump);
+	}
+
+	/** A player-specific forecast uses a detached acting context and never selects a player in the game. */
+	RoutePlanner(GameState state, Player<?> selected, boolean nextTurn) {
+		this(state, selected, nextTurn, false);
+	}
+
+	private RoutePlanner(GameState state, Player<?> selected, boolean nextTurn, boolean allowJump) {
 		this.state = state;
-		movementChecks = new MovementChecks(state);
 		game = state.getGame();
-		acting = game.getActingPlayer();
-		player = acting.getPlayer();
+		ActingPlayer active = game.getActingPlayer();
+		player = selected;
+		acting = selected != null && active.getPlayer() == selected && !nextTurn ? active : new ActingPlayer(game);
+		if (acting != active && selected != null) acting.setPlayerId(selected.getId());
+		movementChecks = new MovementChecks(state, selected);
 		if (player == null || (acting.isJumping() && !allowJump) || player.hasSkillProperty(NamedProperties.movesRandomly))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		start = game.getFieldModel().getPlayerCoordinate(player);
 		if (!FieldCoordinateBounds.FIELD.isInBounds(start)) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
-		currentMove = acting.getCurrentMove();
+		PlayerState status = game.getFieldModel().getPlayerState(player);
+		int standing = status.getBase() == PlayerState.PRONE && !player.hasSkillProperty(NamedProperties.canStandUpForFree)
+			? Math.min(Constant.MINIMUM_MOVE_TO_STAND_UP, player.getMovementWithModifiers()) : 0;
+		currentMove = (acting == active && !nextTurn ? active.getCurrentMove() : 0) + standing;
 		allowance = player.getMovementWithModifiers() + 2
 			+ (player.hasSkillProperty(NamedProperties.canMakeAnExtraGfi) ? 1 : 0)
 			+ (UtilCards.hasUnusedSkillWithProperty(acting, NamedProperties.canMakeAnExtraGfiOnce) ? 1 : 0);
 		agility = (AgilityMechanic) game.getRules().getFactory(FactoryType.Factory.MECHANIC)
 			.forName(Mechanic.Type.AGILITY.name());
+	}
+
+	JsonObject range() {
+		JsonArray steps = new JsonArray();
+		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
+		Map<String, Node> best = new HashMap<>();
+		Map<String, Node> squares = new HashMap<>();
+		Node root = new Node(start, 0, 0, 0, 0, false, null, null);
+		queue.add(root);
+		best.put(key(root), root);
+		while (!queue.isEmpty()) {
+			Node node = queue.remove();
+			if (best.get(key(node)) != node) continue;
+			if (node.step != null) {
+				String square = node.at.getX() + ":" + node.at.getY();
+				Node prior = squares.get(square);
+				if (prior == null || compare(node, prior) < 0) squares.put(square, node);
+			}
+			if (currentMove + node.used >= allowance) continue;
+			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+				if (x == 0 && y == 0) continue;
+				FieldCoordinate next = node.at.add(x, y);
+				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || next.equals(start) || occupied(next)) continue;
+				Step step = step(node.at, next, node.used, node.ballHandled, false);
+				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
+				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
+				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
+				Node candidate = new Node(next, node.used + 1, reactions, rolls, risk, node.ballHandled || step.checks.ballContact, node, step);
+				String key = key(candidate);
+				Node prior = best.get(key);
+				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
+			}
+		}
+		List<Node> ordered = new ArrayList<>(squares.values());
+		ordered.sort(Comparator.comparingInt((Node node) -> node.at.getY()).thenComparingInt(node -> node.at.getX()));
+		for (Node node : ordered) steps.add(node.step.json());
+		return new JsonObject().add("rangeVersion", 1).add("playerId", player.getId())
+			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove)).add("steps", steps);
 	}
 
 	JsonObject preview(List<FieldCoordinate> waypoints) {
@@ -86,6 +140,47 @@ final class RoutePlanner {
 		return new JsonObject().add("routeVersion", 3).add("playerId", player.getId())
 			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove))
 			.add("steps", steps);
+	}
+
+	JsonObject emptyPreview() {
+		return new JsonObject().add("routeVersion", 3).add("playerId", player.getId())
+			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove))
+			.add("steps", new JsonArray());
+	}
+
+	int blitzApproachSteps() {
+		return player.getMovementWithModifiers() - currentMove
+			+ (player.hasSkillProperty(NamedProperties.canMakeAnExtraGfi) ? 2 : 1);
+	}
+
+	/** Choose one reachable adjacent approach with the same ordering as an ordinary route. */
+	FieldCoordinate approach(FieldCoordinate target) {
+		if (start.isAdjacent(target)) return start;
+		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
+		Map<String, Node> best = new HashMap<>();
+		Node root = new Node(start, 0, 0, 0, 0, false, null, null);
+		queue.add(root);
+		best.put(key(root), root);
+		while (!queue.isEmpty()) {
+			Node node = queue.remove();
+			if (best.get(key(node)) != node) continue;
+			if (node.at.isAdjacent(target)) return node.at;
+			if (node.used >= blitzApproachSteps()) continue;
+			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+				if (x == 0 && y == 0) continue;
+				FieldCoordinate next = node.at.add(x, y);
+				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || next.equals(start) || occupied(next)) continue;
+				Step step = step(node.at, next, node.used, node.ballHandled, false);
+				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
+				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
+				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
+				Node candidate = new Node(next, node.used + 1, reactions, rolls, risk, node.ballHandled || step.checks.ballContact, node, step);
+				String key = key(candidate);
+				Node prior = best.get(key);
+				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
+			}
+		}
+		throw new MatchService.Failure("NO_ROUTE");
 	}
 
 	JsonObject adjacent(List<Action> actions) { return adjacent(actions, false); }
@@ -148,7 +243,7 @@ final class RoutePlanner {
 		boolean inTackleZone = UtilPlayer.findTacklezones(game, player, from) > 0;
 		if (!player.hasSkillProperty(NamedProperties.ignoreTacklezonesWhenMoving) && inTackleZone) {
 			DodgeModifierFactory modifiers = game.getFactory(FactoryType.Factory.DODGE_MODIFIER);
-			Set<DodgeModifier> applicable = modifiers.findModifiers(new DodgeContext(game, acting, from, to));
+			Set<DodgeModifier> applicable = modifiers.findModifiers(new DodgeContext(game, acting, from, to), player);
 			dodgeModifier = -applicable.stream().mapToInt(DodgeModifier::getModifier).sum();
 			dodge = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(agility.minimumRollDodge(game, player, applicable));
 		}

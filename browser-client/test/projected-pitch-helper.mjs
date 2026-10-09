@@ -63,11 +63,11 @@ export async function squarePosition(page, x, y) {
     await page.mouse.move(start.x + delta.x * bounds.width / options.width,
       start.y + delta.y * bounds.height / options.height, { steps: 5 });
     await page.mouse.up({ button: 'right' });
-    await page.waitForFunction(previous => {
+    await page.waitForFunction(expected => {
       const current = document.querySelector('.live-pitch-scene');
-      return Math.abs(Number(current.dataset.focus) - previous.focus) > 1e-6
-        || Math.abs(Number(current.dataset.transverseFocus) - previous.transverseFocus) > 1e-6;
-    }, { focus: options.focus, transverseFocus: options.transverseFocus }, { timeout: 3000 });
+      return Math.abs(Number(current.dataset.focus) - expected.focus) < .05
+        && Math.abs(Number(current.dataset.transverseFocus) - expected.transverseFocus) < .05;
+    }, { focus: expected.focus, transverseFocus: expected.transverseFocus }, { timeout: 3000 });
     options = await readOptions(); camera = new PitchProjection(options);
   }
   const projected = camera.project(point);

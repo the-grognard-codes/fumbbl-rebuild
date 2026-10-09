@@ -10,6 +10,8 @@ const fields: Record<string, string[]> = {
   matchResult: ['code', 'result', 'event'],
   matchTranscript: ['code', 'matchId', 'page'],
   routePreview: ['code', 'matchId', 'route'],
+  movementRange: ['code', 'matchId', 'range'],
+  movementPreview: ['code', 'matchId', 'plan'],
   matchChat: ['code', 'matchId', 'duplicate', 'page'],
   preparedMatch: ['code', 'duplicate', 'callerRole', 'document', 'recoveryMatchId'],
   savedTeam: ['code', 'document', 'versionStatus', 'validation', 'teams'],

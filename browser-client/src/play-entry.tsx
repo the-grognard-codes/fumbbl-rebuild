@@ -9,6 +9,7 @@ import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
+import type { MovementPlan, MovementRange } from './movement-protocol.ts';
 import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
 import { MatchupTeam } from './MatchupTeam.tsx';
@@ -87,6 +88,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [routePreview, setRoutePreview] = useState<RoutePreview | null>(null);
   const [routeError, setRouteError] = useState('');
   const routeRequestRef = useRef<string | null>(null);
+  const [movementRange, setMovementRange] = useState<MovementRange | null>(null);
+  const [movementPlan, setMovementPlan] = useState<MovementPlan | null>(null);
+  const [movementError, setMovementError] = useState('');
+  const rangeRequestRef = useRef<{ id: string; revision: number } | null>(null);
+  const movementRequestRef = useRef<{ id: string; revision: number } | null>(null);
   const logRecordsRef = useRef<TranscriptRecord[]>([]);
   const logRequestRef = useRef<string | null>(null);
   const logUnavailableRef = useRef(false);
@@ -198,6 +204,31 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         chatSendRef.current = null; setChatSendError(message.code.replaceAll('_', ' '));
       }
       const routeFailure = routeRequestRef.current !== null && message.type === 'error' && message.requestId === routeRequestRef.current;
+      const movementFailure = message.type === 'error'
+        && (message.requestId === rangeRequestRef.current?.id || message.requestId === movementRequestRef.current?.id);
+      if (message.type === 'movementRange' && message.requestId === rangeRequestRef.current?.id) {
+        rangeRequestRef.current = null; setMovementRange(message.range);
+      }
+      if (message.type === 'movementPreview' && message.requestId === movementRequestRef.current?.id) {
+        movementRequestRef.current = null; setMovementPlan(message.plan); setMovementError('');
+      }
+      if (message.type === 'error' && message.requestId === rangeRequestRef.current?.id) {
+        rangeRequestRef.current = null; setMovementRange(null);
+      }
+      if (message.type === 'error' && message.requestId === movementRequestRef.current?.id) {
+        movementRequestRef.current = null; setMovementPlan(null); setMovementError(message.code.replaceAll('_', ' '));
+      }
+      if (message.type === 'setupState' && message.state) {
+        const revision = message.state.revision;
+        setMovementRange(range => range?.revision === revision ? range : null);
+        setMovementPlan(plan => plan?.route.revision === revision ? plan : null);
+        if (rangeRequestRef.current?.revision !== revision) rangeRequestRef.current = null;
+        if (movementRequestRef.current?.revision !== revision) movementRequestRef.current = null;
+      }
+      if (message.type === 'status' && message.code === 'DISCONNECTED') {
+        rangeRequestRef.current = null; movementRequestRef.current = null;
+        setMovementRange(null); setMovementPlan(null); setMovementError('');
+      }
       if (message.type === 'routePreview' && message.requestId === routeRequestRef.current) {
         routeRequestRef.current = null; setRoutePreview(message.route); setRouteError('');
       }
@@ -267,6 +298,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       }
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
+        && !movementFailure
         && !currentMatchesFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
@@ -456,6 +488,23 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setChatSendError(''); chatSendRef.current = connection.request('matchChat', { operation: 'send', matchId, text }, true);
       })}
       routePreview={routePreview} routeError={routeError} setupErrors={setupErrors}
+      movementRange={movementRange} movementPlan={movementPlan} movementError={movementError}
+      requestMovementRange={playerId => run(() => {
+        rangeRequestRef.current = null; setMovementRange(null);
+        if (playerId) {
+          const state = connection.state!;
+          const id = connection.request('movementRange', { matchId: state.matchId, expectedRevision: state.revision, playerId });
+          rangeRequestRef.current = { id, revision: state.revision };
+        }
+      })}
+      requestMovementPreview={intent => run(() => {
+        movementRequestRef.current = null; setMovementPlan(null); setMovementError('');
+        if (intent) {
+          const state = connection.state!;
+          const id = connection.request('movementPreview', { matchId: state.matchId, expectedRevision: state.revision, ...intent });
+          movementRequestRef.current = { id, revision: state.revision };
+        }
+      })}
       requestRoutePreview={points => run(() => {
         setRoutePreview(null); setRouteError(''); routeRequestRef.current = null;
         if (points.length) routeRequestRef.current = connection.request('routePreview', {

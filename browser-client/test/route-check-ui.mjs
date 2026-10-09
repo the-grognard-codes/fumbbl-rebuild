@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { decodeRoutePreview } from '../src/route-protocol.ts';
+import { squarePosition } from './projected-pitch-helper.mjs';
 
 const load = name => JSON.parse(readFileSync(new URL(`./fixtures/route-forecast-${name}.json`, import.meta.url), 'utf8'));
 const cases = [...load('dodge'), ...load('rush'), { ...load('safe'), name: 'earlier-risk' }];
@@ -30,7 +31,7 @@ try {
   for (const end of ['home', 'away']) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
     page.on('pageerror', error => errors.push(error.message));
-    await page.addInitScript(input => { window.routeCase = input; }, { ...cases[0], state: { ...cases[0].state, callerRole: end } });
+    await page.addInitScript(input => { window.routeCase = input; window.undoCount = 0; window.squareClicks = 0; }, { ...cases[0], state: { ...cases[0].state, callerRole: end } });
     await page.route('**/route-check-test', route => route.fulfill({ contentType: 'text/html', body: `
       <style>html,body{margin:0;height:100%;background:#101c2b;font-family:system-ui,sans-serif}.play-runtime{height:100%}#app .live-pitch{height:100%;display:flex;flex-direction:column;margin:0;padding:0;box-sizing:border-box}#app .live-pitch-viewport{flex:1;max-height:none;min-height:0;aspect-ratio:auto}</style>
       <div id="app" class="play-runtime"></div><script type="module" src="/test/route-check-harness.tsx"></script>` }));
@@ -38,6 +39,29 @@ try {
     await page.locator('.live-route-step').first().waitFor();
     await page.getByRole('button', { name: 'Reveal selected', exact: true }).click();
     await ensureSprites(page);
+    const frame = await page.locator('.live-pitch-viewport').boundingBox();
+    await page.mouse.click(frame.x + 40, frame.y + 40, { button: 'right' });
+    assert.equal(await page.evaluate(() => window.undoCount), 1, 'A right-button click undoes once on release');
+    await page.mouse.move(frame.x + 50, frame.y + 70);
+    const focusBeforePan = Number(await page.locator('.live-pitch-scene').getAttribute('data-focus'));
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(frame.x + 130, frame.y + 145, { steps: 5 });
+    await page.mouse.up({ button: 'right' });
+    assert.equal(await page.evaluate(() => window.undoCount), 1, 'A held right-button pan does not undo');
+    assert.notEqual(Number(await page.locator('.live-pitch-scene').getAttribute('data-focus')), focusBeforePan, 'Right-button drag pans the pitch');
+    await page.locator('.live-pitch-viewport').evaluate(element => {
+      element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 42, button: 2, clientX: 80, clientY: 80 }));
+      element.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 42, button: 2, clientX: 80, clientY: 80 }));
+    });
+    assert.equal(await page.evaluate(() => window.undoCount), 1, 'Pointer cancellation does not synthesize an undo');
+    await page.locator('.live-pitch-viewport').evaluate(element => {
+      element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 43, button: 2, clientX: 80, clientY: 80 }));
+      element.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, pointerId: 43, button: 2, clientX: 80, clientY: 80 }));
+      element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 43, button: 2, clientX: 80, clientY: 80 }));
+    });
+    assert.equal(await page.evaluate(() => window.undoCount), 1, 'Lost pointer capture does not synthesize an undo');
+    await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 12, 10) });
+    assert.equal(await page.evaluate(() => window.squareClicks), 1, 'A left-click remains available after right-button panning');
     assert.equal(await page.locator('.live-token').count(), 0, 'Visual evidence uses real catalog sprites at native fixture positions');
     assert.ok(await page.locator('.live-movement-label-layer').evaluate(layer => {
       const style = getComputedStyle(layer), markers = [...document.querySelectorAll('.live-marker')];
@@ -56,13 +80,18 @@ try {
         decodeSetupStateValue(input.state);
         const route = decodeRoutePreview(JSON.stringify({ version: 2, type: 'routePreview', requestId: 'forecast',
           code: 'ACCEPTED', matchId: input.state.matchId, route: input.route })).route;
-        await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route });
+        const actor = input.state.players.find(player => player.id === 'actor');
+        const range = { rangeVersion: 1, playerId: 'actor', steps: input.state.movementForecast.steps,
+          from: { x: actor.x, y: actor.y }, remaining: input.state.movementForecast.remaining ?? 0, revision: input.state.revision };
+        await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route, range });
         await ensureSprites(page);
         for (const step of route.steps) {
           const indicator = page.locator(`[data-route-square="${step.x},${step.y}"]`);
           const band = step.dodge ? ['dodge-zero', 'dodge-one', 'dodge-two', 'dodge-three'][Math.min(3, Math.max(0, -step.dodgeModifier))]
             : step.rush ? 'rush' : 'clear';
           assert.equal(await indicator.getAttribute('data-route-band'), band);
+          assert.equal(await page.locator(`[data-movement-square="${step.x},${step.y}"]`).count(), 0,
+            'Planned squares replace matching movement-range squares');
           const label = page.locator(`[data-label-square="${step.x},${step.y}"]`);
           const labels = await label.locator('tspan').allTextContents();
           assert.deepEqual(labels, [...(step.dodge ? [`D ${step.dodge}+`] : []), ...(step.rush ? [`R ${step.rush}+`] : [])]);
@@ -70,20 +99,31 @@ try {
           assert.ok((await indicator.locator('polygon').getAttribute('fill')).endsWith(step.dodge || step.rush ? '4d' : '26'), 'Risk bands are stronger while safe squares retain the existing transparent blue');
           const rect = await indicator.locator('polygon').boundingBox();
           assert.ok(rect && rect.width > 10 && rect.height > 5, 'Planned squares remain visible in every camera');
+          if (step === route.steps.at(-1)) {
+            const dot = page.locator('.live-route-waypoint circle');
+            assert.equal(await dot.getAttribute('cx'), await indicator.getAttribute('data-center-x'), 'Waypoint dot lies on the route center');
+            assert.equal(await dot.getAttribute('cy'), await indicator.getAttribute('data-center-y'), 'Waypoint dot lies on the route center');
+          }
           if (labels.length && step === route.steps.at(-1)) {
             const labelRect = await label.locator('text').boundingBox();
             const badge = await page.locator('.live-route-waypoint circle').boundingBox();
             assert.ok(labelRect && badge && (badge.x + badge.width <= labelRect.x || badge.x >= labelRect.x + labelRect.width
-              || badge.y + badge.height <= labelRect.y || badge.y >= labelRect.y + labelRect.height), 'Waypoint badges leave targets visible');
+              || badge.y + badge.height <= labelRect.y || badge.y >= labelRect.y + labelRect.height),
+            `Waypoint dots leave targets visible: ${input.name}, ${end}, ${angle}, ${JSON.stringify({ labelRect, badge })}`);
+            assert.equal(await page.locator('.live-route-waypoint text').count(), 0, 'Waypoint dots have no route numbers');
           }
         }
         assert.equal(await page.getByLabel('Planned square checks').locator('li').count(), route.steps.length);
         if (evidence && [40, 90].includes(angle) && ['AG4-penalty3', 'drunkardtrue-blizzardtrue-molestrue', 'earlier-risk'].includes(input.name))
           await page.screenshot({ path: `${evidence}/${end}-${angle}-${input.name}.png` });
-        await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route: null });
+        await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route: null, range });
         assert.equal(await page.locator('.live-route-step[data-route-square]').count(), 0);
         const adjacent = input.state.movementForecast.steps;
         assert.equal(await page.locator('.live-available-step').count(), adjacent.length);
+        for (const step of adjacent) {
+          assert.equal(await page.locator(`[data-route-square="${step.x},${step.y}"]`).count(), 0,
+            'A planned route square is rendered once even when it is also in movement range');
+        }
         for (const step of adjacent) {
           const indicator = page.locator(`[data-movement-square="${step.x},${step.y}"]`);
           const band = step.dodge ? ['dodge-zero', 'dodge-one', 'dodge-two', 'dodge-three'][Math.min(3, Math.max(0, -step.dodgeModifier))]
@@ -95,6 +135,11 @@ try {
         }
       }
     }
+    const mismatch = { rangeVersion: 1, playerId: 'other-player', steps: cases[0].state.movementForecast.steps,
+      from: { x: cases[0].state.players.find(player => player.id === 'actor').x, y: cases[0].state.players.find(player => player.id === 'actor').y },
+      remaining: 6, revision: cases[0].state.revision };
+    await page.evaluate(input => window.updateRouteCase(input), { state: { ...cases[0].state, callerRole: end }, route: null, range: mismatch });
+    assert.equal(await page.locator('.live-available-step').count(), 0, 'A range for another player is never shown');
     await page.close();
   }
   assert.deepEqual(errors, []);
