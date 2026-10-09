@@ -50,3 +50,25 @@ The first attempt's native shard 2 failed the unchanged `SetupSessionMovementTes
 A read-only audit found that the existing fixture uses a fresh `SecureRandom`-seeded recovery dice stream, leaving kickoff/setup paths nondeterministic. Restore hides several validation exceptions behind `RECOVERY_CORRUPT`, so the exact underlying cause remains unconfirmed. This CI change does not alter production recovery, test assertions, dice setup, or automatic retry policy. The observed failure is recorded on issue #238 for follow-up; if it recurs, diagnose the specific restore validation stage without logging recovery artifacts or weakening the test.
 
 Final check links and updated timings are recorded on [PR #239](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239) and [issue #238](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238).
+
+## DEV/PROD validation split
+
+The user accepted fewer independent browser validations before DEV and
+authorized implementation, review, merge, branch cleanup, and both DEV builds.
+DEV publication is now explicit through `tools/deploy.mjs` so local preflight
+precedes publishing. Source selection and the active working tree are preserved.
+
+- Focused Node checks: 30/30 passed across validation, local browser, deployment,
+  and local lifecycle tests. They cover release versus workflow commit identity,
+  stale/incomplete reports, skipped/cancelled dependencies, preflight before
+  service stop, exact-main validation, safe worktree cleanup, main movement,
+  passing GitHub Checks, invalid environments/tags, and blocked dispatch.
+- Exercised the exact DEV workflow GitHub API filter against an existing
+  successful main run; it returns the expected successful run count.
+- Root self-review confirmed PROD deployment depends on both the resolved
+  release and complete reusable browser validation; checkout and reports use the
+  same immutable SHA. No option skips validation. Native/core verification,
+  assets/unit/artifact checks, service coverage, and security workflows remain.
+- Full GitHub diagnostic execution, independent review results, merge evidence,
+  and actual DEV build/deployment outcomes are recorded on issue #238 and PR #239
+  as delivery completes. No PROD release is requested as part of verification.

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { startReview } from './match-review-start.mjs';
 import { reviewMountSource } from './review-mount-source.mjs';
 import { ensureReviewCurrentMatchesIndex } from './review-current-matches-index.mjs';
+import { validateLocalBrowser } from './validation/browser-local.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const toolsDirectory = join(root, '.tools');
@@ -215,8 +216,15 @@ async function waitForReviewServer() {
   throw Error('REVIEW_SERVER_UNHEALTHY');
 }
 
-async function start(tokenFile) {
-  await stopLocalProcesses();
+export async function prepareLocalStart(restart, { validate = validateLocalBrowser,
+  stopStack = stop, stopProcesses = stopLocalProcesses } = {}) {
+  await validate(root);
+  if (restart) await stopStack();
+  else await stopProcesses();
+}
+
+async function start(tokenFile, restart = false) {
+  await prepareLocalStart(restart);
   const server = inspect(serverName, 'server');
   const database = inspect(databaseName, 'database');
   const secrets = composeEnvironment(server, database);
@@ -274,8 +282,8 @@ if (invokedDirectly && (!['--start', '--stop', '--restart'].includes(mode) || pr
   try {
     const tokenFile = resolve(process.env.FFB_COMPUTER_SERVICE_TOKEN_FILE || 'C:\\secure\\coach-bugman-token.key');
     if (mode !== '--stop') validateComputerStartup(tokenFile);
-    if (mode === '--stop' || mode === '--restart') await stop();
-    if (mode === '--start' || mode === '--restart') await start(tokenFile);
+    if (mode === '--stop') await stop();
+    if (mode === '--start' || mode === '--restart') await start(tokenFile, mode === '--restart');
   } catch (failure) {
     const safe = /^[A-Z][A-Z_]+$/.test(failure.message) ? failure.message : 'DEV_LOCAL_COMMAND_FAILED';
     console.error(`Dev-local: ${safe}`);

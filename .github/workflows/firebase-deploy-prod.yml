@@ -20,14 +20,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  release:
     runs-on: ubuntu-24.04
-    environment: production
-    env:
-      # Prefer environment variables. The secrets fallback avoids silently dropping
-      # existing repository configuration while these public identifiers are moved.
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      commit: ${{ steps.release.outputs.commit }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,6 +48,33 @@ jobs:
           git merge-base --is-ancestor "$release_commit" origin/main
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
+
+  browser-validation:
+    needs: [release]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/browser-validation.yml
+    with:
+      commit: ${{ needs.release.outputs.commit }}
+
+  deploy:
+    needs: [release, browser-validation]
+    runs-on: ubuntu-24.04
+    environment: production
+    env:
+      # Prefer environment variables. The secrets fallback avoids silently dropping
+      # existing repository configuration while these public identifiers are moved.
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.commit }}
+      - name: Verify checkout matches the browser-validated release commit
+        env:
+          DEPLOY_COMMIT: ${{ needs.release.outputs.commit }}
+        shell: bash
+        run: '[[ "$(git rev-parse HEAD)" == "$DEPLOY_COMMIT" ]]'
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -78,15 +104,16 @@ jobs:
           service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
           create_credentials_file: true
       - run: npm run assemble --prefix deployment/firebase -- --environment prod
+      - run: npm run verify-hosting-artifact --prefix deployment/firebase -- --environment prod
       - name: Deploy the tagged PROD Hosting artifact
         run: >-
           npx --yes firebase-tools@latest deploy --only hosting --config firebase.generated.json
           --project molesunderthepitch-dotorg --non-interactive
-          --message "${{ steps.release.outputs.tag }} ${{ steps.release.outputs.commit }}"
+          --message "${{ needs.release.outputs.tag }} ${{ needs.release.outputs.commit }}"
       - name: Record release identity
         env:
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.release.outputs.commit }}
         shell: bash
         run: |
           {

@@ -70,8 +70,8 @@ async function main() {
   const manifest = await loadBrowserManifest(repository);
   const identity = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repository, encoding: 'utf8', windowsHide: true });
   if (identity.status !== 0) throw new Error('Cannot identify the validation commit');
-  const commit = process.env.GITHUB_SHA || identity.stdout.trim();
-  if (process.env.GITHUB_SHA && commit !== identity.stdout.trim()) throw new Error('Checkout does not match GITHUB_SHA');
+  const commit = process.env.VALIDATION_COMMIT || process.env.GITHUB_SHA || identity.stdout.trim();
+  if (commit !== identity.stdout.trim()) throw new Error('Checkout does not match the validation commit');
   const shards = options.family === 'interaction' ? manifest.interactionShards : [manifest.hosted];
   for (const [index, suites] of shards.entries()) {
     if (options.shard === undefined || options.shard === index + 1) {
