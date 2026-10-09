@@ -36,7 +36,7 @@ function Get-TestSources([string]$Directory) {
     $prefix = (Resolve-Path -LiteralPath $Directory).Path.TrimEnd([char[]]@('/', '\')) + [IO.Path]::DirectorySeparatorChar
     $classes = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
     foreach ($file in Get-ChildItem -LiteralPath $Directory -Recurse -File -Filter '*.java') {
-        if ($file.Name -notmatch '^(Test.+|.+Test|.+Tests|.+TestCase)\.java$') { continue }
+        if ($file.Name -notmatch '^(Test.*|.*Test|.*Tests|.*TestCase)\.java$') { continue }
         $relative = $file.FullName.Substring($prefix.Length)
         $class = $relative.Replace([IO.Path]::DirectorySeparatorChar, '.').Substring(0, $relative.Length - 5)
         Assert-Condition ($classes.Add($class)) "Duplicate native test source: $class"
@@ -48,7 +48,7 @@ function Get-TestSources([string]$Directory) {
 function Read-NativeManifest([string]$Path, [string]$SourceRoot) {
     Assert-Condition (Test-Path -LiteralPath $Path -PathType Leaf) "Missing native shard manifest: $Path"
     $manifest = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
-    Assert-Condition ($manifest.schemaVersion -is [int] -and $manifest.schemaVersion -eq 1) 'Native shard manifest schemaVersion must be 1.'
+    Assert-Condition (($manifest.schemaVersion -is [int] -or $manifest.schemaVersion -is [long]) -and $manifest.schemaVersion -eq 1) 'Native shard manifest schemaVersion must be 1.'
     Assert-Condition ($manifest.shards -is [array] -and $manifest.shards.Count -eq 4) 'Native shard manifest must have four shards.'
     $source = Get-TestSources $SourceRoot
     $registered = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)

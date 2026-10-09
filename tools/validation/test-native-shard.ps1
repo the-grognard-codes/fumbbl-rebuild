@@ -71,6 +71,11 @@ Set-Content -LiteralPath $newSource -Value 'class NewTest {}' -Encoding Ascii
 Assert-Validation $false 'Missing native class registration'
 Remove-Item -LiteralPath $newSource
 
+$newSource = Join-Path $sources 'com/fumbbl/ffb/test/Test.java'
+Set-Content -LiteralPath $newSource -Value 'class Test {}' -Encoding Ascii
+Assert-Validation $false 'Missing native class registration'
+Remove-Item -LiteralPath $newSource
+
 Move-Item -LiteralPath $xmlPath -Destination (Join-Path $fixture 'saved.xml')
 Assert-Validation $false 'No native Surefire XML reports found'
 Move-Item -LiteralPath (Join-Path $fixture 'saved.xml') -Destination $xmlPath
