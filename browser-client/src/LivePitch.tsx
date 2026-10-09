@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
+import type { MovementRange } from './movement-protocol.ts';
 import { routeSquarePresentation } from './route-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
@@ -33,7 +34,7 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
   }).join(' ');
 }
 
-function MovementSquare({ step, camera, planned, index, labelsOnly = false }: { step: RouteStep; camera: PitchProjection; planned: boolean; index: number; labelsOnly?: boolean }) {
+function MovementSquare({ step, camera, planned, index, labelsOnly = false, waypoint = false }: { step: RouteStep; camera: PitchProjection; planned: boolean; index: number; labelsOnly?: boolean; waypoint?: boolean }) {
   const p = camera.project(centerOf(step));
   if (!p) return null;
   const presentation = routeSquarePresentation(step);
@@ -44,7 +45,8 @@ function MovementSquare({ step, camera, planned, index, labelsOnly = false }: { 
   const compact = presentation.labels.length === 2 && height < 34;
   const fontSize = Math.max(7, Math.min(compact ? 11 : 15, p.pixelsPerSquare * .25,
     height / (compact ? 1 : Math.max(1, presentation.labels.length)) * .5));
-  const top = p.y - (compact ? 1 : presentation.labels.length) * fontSize / 2;
+  const rows = compact ? 1 : presentation.labels.length;
+  const top = p.y - (waypoint ? rows * fontSize + 12 : rows * fontSize / 2);
   const badgeRadius = Math.min(4, height * (compact ? .12 : .22), width * .06);
   return <g className={`live-route-step${!labelsOnly && !planned ? ' live-available-step' : ''}`} data-route-square={!labelsOnly && planned ? `${step.x},${step.y}` : undefined}
     data-movement-square={!labelsOnly && !planned ? `${step.x},${step.y}` : undefined} data-label-square={labelsOnly ? `${step.x},${step.y}` : undefined}
@@ -120,11 +122,14 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null,
+  movementRange,
+  onUndoWaypoint,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
+  movementRange?: MovementRange | null; onUndoWaypoint?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
@@ -155,7 +160,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation });
   const cameraRef = useRef(camera); cameraRef.current = camera;
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
-  const drag = useRef<{ x: number; y: number; camera: PitchProjection; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; pointerId: number; camera: PitchProjection; moved: boolean } | null>(null);
   useEffect(() => {
     const element = viewport.current!;
     const observer = new ResizeObserver(([entry]) => setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) }));
@@ -209,13 +214,17 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       if (action.kind === 'move' || action.kind === 'jump') moveSquares.add(key);
     }
   }
-  const availableChecks = view.movementForecast?.steps.filter(step => moveSquares.has(`${step.x},${step.y}`)) ?? [];
-  const checkSteps = routePreview?.steps ?? availableChecks;
+  const selectedMovementRange = movementRange?.playerId === selectedId ? movementRange : null;
+  const rangeSteps = selectedMovementRange?.steps ?? (movementRange === undefined
+    ? view.movementForecast?.steps.filter(step => moveSquares.has(`${step.x},${step.y}`)) ?? [] : []);
+  const plannedSquares = new Set((routePreview?.steps ?? []).map(step => `${step.x},${step.y}`));
+  const availableChecks = rangeSteps.filter(step => !plannedSquares.has(`${step.x},${step.y}`));
+  const checkSteps = [...availableChecks, ...(routePreview?.steps ?? [])];
   const checkKey = [...new Map(checkSteps.flatMap(step => routeSquarePresentation(step).badges).map(badge => [badge.name, badge])).values()];
   const inspectedSquare = hover ?? cursor;
   const inspectedStep = inspectedSquare ? checkSteps.find(step => step.x === inspectedSquare.x && step.y === inspectedSquare.y)
     : checkSteps.find(step => routeSquarePresentation(step).badges.length > 0);
-  const forecastSquares = new Set(availableChecks.map(step => `${step.x},${step.y}`));
+  const forecastSquares = new Set(rangeSteps.map(step => `${step.x},${step.y}`));
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
@@ -272,16 +281,21 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       }}
       onContextMenu={event => event.preventDefault()}
       onAuxClickCapture={event => { if (event.button === 2) { event.preventDefault(); event.stopPropagation(); } }}
-      onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault(); drag.current = { x: event.clientX, y: event.clientY, camera, moved: false }; }}
-      onPointerMove={event => { const start = drag.current; if (!start) { const square = point(event.clientX, event.clientY);
+      onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault();
+        drag.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, camera, moved: false }; }}
+      onPointerMove={event => { const start = drag.current; if (start && start.pointerId !== event.pointerId) return;
+        if (!start) { const square = point(event.clientX, event.clientY);
         setHover(previous => previous?.x === square?.x && previous?.y === square?.y ? previous : square); return; } const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
         if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
-      onPointerUp={event => { drag.current = null;
+      onPointerUp={event => { const start = drag.current;
+        if (start?.pointerId !== event.pointerId) return;
+        drag.current = null;
+        if (event.button === 2 && !start.moved) onUndoWaypoint?.();
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
       onPointerLeave={() => setHover(null)}
-      onLostPointerCapture={() => { drag.current = null; }}
-      onPointerCancel={() => { drag.current = null; }}>
+      onLostPointerCapture={event => { if (drag.current?.pointerId === event.pointerId) drag.current = null; }}
+      onPointerCancel={event => { if (drag.current?.pointerId === event.pointerId) drag.current = null; }}>
       <div ref={scene} className="live-pitch-scene" data-projection={mode} data-elevation={camera.elevation} data-end={end} data-focus={camera.focus}
         data-transverse-focus={camera.transverseFocus} data-zoom={zoom} style={{ width: size.width, height: size.height }}
         onDragOver={event => { if (onDropPlayer) event.preventDefault(); }}
@@ -349,11 +363,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         </svg>
         <svg className="live-movement-label-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           {availableChecks.map((step, index) => <MovementSquare key={`available-label-${step.x},${step.y}`} step={step} camera={camera} planned={false} index={index} labelsOnly/>)}
-          {routePreview?.steps.map((step, index) => <MovementSquare key={`route-label-${index}`} step={step} camera={camera} planned index={index} labelsOnly/>)}
+          {routePreview?.steps.map((step, index) => <MovementSquare key={`route-label-${index}`} step={step} camera={camera} planned index={index} labelsOnly
+            waypoint={waypoints.some(point => point.x === step.x && point.y === step.y)}/>)}
           {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
-            const offset = p && Math.max(24, p.pixelsPerSquare * .55);
-            return p && <g key={index} className="live-route-waypoint"><circle cx={p.x + offset!} cy={p.y - offset!} r="6"/>
-              <text x={p.x + offset!} y={p.y - offset! + 3} textAnchor="middle">{index + 1}</text></g>; })}
+            return p && <g key={index} className="live-route-waypoint" aria-hidden="true"><circle cx={p.x} cy={p.y} r="4"/></g>; })}
         </svg>
         {occupants.map(player => <PlayerMarker failedArt={failedArt} onArtError={onArtError} key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}

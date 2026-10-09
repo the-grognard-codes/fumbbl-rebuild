@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser player selection shows full movement ranges and native Dodge/Rush targets, including next-turn opponent inspection")
+			.addBehaviorChange("Browser movement defaults to Move, plans every destination with waypoint dots, and confirms activation and movement together; right-click undoes while right-button drag pans")
+			.addImprovement("Browser Blitz targeting previews the approach and executes movement and the block with one confirmation")
 			.addBugfix("The site navigation bar is hidden on live match, spectator and result/replay displays")
 			.addBugfix("The site account menu fits short browser windows after the shared logo and fonts load")
 			.addImprovement("Moles Under the Pitch pages share the compact mole-and-wordmark logo in the navigation bar")

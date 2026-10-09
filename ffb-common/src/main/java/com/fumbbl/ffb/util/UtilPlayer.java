@@ -664,7 +664,12 @@ public class UtilPlayer {
 	}
 
 	public static Player<?>[] findEligibleDivingTacklers(Game game, FieldCoordinate from, FieldCoordinate to, ISkillProperty property) {
-		Player<?>[] divingTacklers = findAdjacentOpposingPlayersWithProperty(game, from, property, false);
+		return findEligibleDivingTacklers(game, game.getActingPlayer().getPlayer(), from, to, property);
+	}
+
+	public static Player<?>[] findEligibleDivingTacklers(Game game, Player<?> movingPlayer,
+		FieldCoordinate from, FieldCoordinate to, ISkillProperty property) {
+		Player<?>[] divingTacklers = findAdjacentOpposingPlayersWithProperty(game, movingPlayer, from, property, false, false);
 		divingTacklers = filterThrower(game, divingTacklers);
 		if (game.getTurnMode() == TurnMode.DUMP_OFF) {
 			divingTacklers = filterAttackerAndDefender(game, divingTacklers);

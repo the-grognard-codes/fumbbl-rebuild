@@ -4,7 +4,6 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.RulesCollection.Rules;
-import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -54,19 +53,23 @@ public class DodgeModifierFactory extends GenerifiedModifierFactory<DodgeContext
 
 	@Override
 	public Set<DodgeModifier> findModifiers(DodgeContext context) {
+		return findModifiers(context, context.getGame().getActingPlayer().getPlayer());
+	}
+
+	/** Forecast modifiers for a selected player without changing the game's acting player. */
+	public Set<DodgeModifier> findModifiers(DodgeContext context, Player<?> player) {
 		Set<DodgeModifier> dodgeModifiers = super.findModifiers(context);
 
-		prehensileTailModifier(findNumberOfPrehensileTails(context.getGame(), context.getSourceCoordinate()))
+		prehensileTailModifier(findNumberOfPrehensileTails(context.getGame(), player, context.getSourceCoordinate()))
 			.ifPresent(dodgeModifiers::add);
 
 		return dodgeModifiers;
 	}
 
-	private int findNumberOfPrehensileTails(Game pGame, FieldCoordinate pCoordinateFrom) {
-		ActingPlayer actingPlayer = pGame.getActingPlayer();
-		Team otherTeam = UtilPlayer.findOtherTeam(pGame, actingPlayer.getPlayer());
+	private int findNumberOfPrehensileTails(Game game, Player<?> player, FieldCoordinate from) {
+		Team otherTeam = UtilPlayer.findOtherTeam(game, player);
 		int nrOfPrehensileTails = 0;
-		Player<?>[] opponents = UtilPlayer.findAdjacentPlayersWithTacklezones(pGame, otherTeam, pCoordinateFrom, true);
+		Player<?>[] opponents = UtilPlayer.findAdjacentPlayersWithTacklezones(game, otherTeam, from, true);
 		for (Player<?> opponent : opponents) {
 			if (UtilCards.hasSkillWithProperty(opponent, NamedProperties.makesDodgingHarder)) {
 				nrOfPrehensileTails++;

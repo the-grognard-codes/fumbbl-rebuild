@@ -204,7 +204,7 @@ function decisionLine(record: TranscriptRecord, presentation?: LogPresentation):
   }
   if (operation === 'choice') return ['kick', 'receive', 'heads', 'tails'].includes(String(decision.optionId))
     ? `${team} chooses to ${decision.optionId}.` : null;
-  if (operation === 'place' || operation === 'route') return null;
+  if (operation === 'place' || operation === 'route' || operation === 'movement') return null;
   if (operation === 'confirm') return `${team} confirms setup.`;
   if (operation === 'concede') return `${team} conceded. ${record.actor === 'home' ? matchTeamName(record.state, 'away') : matchTeamName(record.state, 'home')} wins ${record.state.homeScore}–${record.state.awayScore}`;
   return null;
