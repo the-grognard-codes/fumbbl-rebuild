@@ -1,3 +1,9 @@
+# Moles Under the Pitch
+
+An independent HTML5 client and server inspired by the venerable tabletop fantasy-football game.
+
+Built as an independent project and not affiliated with any publisher or existing online service.
+
 # Fantasy Football Server/Client (FFB)
 
 FFB is the Fantasy Football software used by [FUMBBL](https://fumbbl.com)
@@ -10,6 +16,10 @@ Human exhibition catalog: saved teams, invited matches, setup/play, browser reco
 completed results and private replay over the retained Java engine. See
 [local M2/M3 acceptance and M4 limits](.notes/overhaul-analysis/verification/m3e/README.md).
 The diagnostic PixiJS scenario board remains separate from product matches.
+
+The [Moles Under the Pitch public site](site/README.md) and
+[Firebase Hosting assembly](deployment/firebase/README.md) are educational delivery
+components. They do not replace FUMBBL or change its accounts or game behavior.
 
 ## Reproducible build and tests
 

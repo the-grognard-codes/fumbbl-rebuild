@@ -115,8 +115,10 @@ stopped VM cannot run its cron job, so start it manually when needed. Do not
 schedule the stop while a game session may be active: process-local sessions
 end when the VM stops.
 
-`activate.sh` updates an already running VM; it does not start a terminated
-instance. Start the enabled service and wait for its health check with:
+`activate.sh` updates an already running legacy VM; it does not start a terminated
+instance. `start.sh dev` waits for the deployed `/browser/v2` WSS endpoint, while
+`start.sh prod` checks the legacy systemd service over IAP. The DEV check requires
+Node.js and does not require SSH access. Start with:
 
 ```sh
 bash deployment/game-service/start.sh dev
@@ -132,9 +134,9 @@ bash deployment/game-service/stop.sh dev
 bash deployment/game-service/stop.sh all
 ```
 
-The start and shutdown-schedule commands use IAP for the host health check or
-cron installation. All three commands address only the named `moles-game` VM
-in the fixed DEV and PROD projects.
+The PROD start check and shutdown-schedule installer use IAP; the DEV start check
+uses its public WSS endpoint. All three commands address only the named
+`moles-game` VM in the fixed DEV and PROD projects.
 
 ## Runtime identity, TLS and storage
 
