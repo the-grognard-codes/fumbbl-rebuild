@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "interactionShards": [
+    [
+      "browser-client/test/reroll-choices-ui.mjs",
+      "browser-client/test/smart-pitch-ui.mjs",
+      "browser-client/test/push-choice-ui.mjs",
+      "browser-client/test/end-player-action-ui.mjs",
+      "browser-client/test/chat-speaker-ui.mjs",
+      "browser-client/test/match-log-ui.mjs",
+      "browser-client/test/native-check-log-ui.mjs",
+      "browser-client/test/block-log-ui.mjs"
+    ],
+    [
+      "browser-client/test/reroll-accounting-ui.mjs",
+      "browser-client/test/pass-ranges-ui.mjs",
+      "browser-client/test/setup-drag-ui.mjs",
+      "browser-client/test/push-artwork-ui.mjs",
+      "browser-client/test/dice-ui.mjs",
+      "browser-client/test/ball-ui.mjs"
+    ],
+    [
+      "browser-client/test/projected-pitch-ui.mjs",
+      "browser-client/test/movement-checks-ui.mjs",
+      "browser-client/test/coach-hud-ui.mjs",
+      "browser-client/test/game-menu-events-ui.mjs",
+      "browser-client/test/round-four-ui.mjs"
+    ],
+    [
+      "browser-client/test/pass-workflow-ui.mjs",
+      "browser-client/test/movement-flow-ui.mjs",
+      "browser-client/test/confirmation-position-ui.mjs",
+      "browser-client/test/playback-ui.mjs",
+      "browser-client/test/teammate-ui.mjs",
+      "browser-client/test/manual-reroll-ui.mjs",
+      "browser-client/test/route-check-ui.mjs"
+    ]
+  ],
+  "hosted": [
+    "site/test/account-menu-browser.test.mjs",
+    "site/test/play-browser.test.mjs",
+    "site/test/current-games-browser.test.mjs",
+    "site/test/spectate-browser.test.mjs",
+    "site/test/updates-browser.test.mjs",
+    "site/test/builder-browser.test.mjs",
+    "site/test/m5d-blitz-browser.test.mjs",
+    "site/test/m5e-result-browser.test.mjs",
+    "site/test/m5f-keyboard-browser.test.mjs",
+    "browser-client/test/client-path-ui.mjs"
+  ],
+  "standalone": [
+    { "path": "browser-client/test/chat-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
+    { "path": "browser-client/test/dugout-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
+    { "path": "browser-client/test/hud-comments-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
+    { "path": "browser-client/test/match-adjustments-ui.mjs", "reason": "Existing local test:adjustments suite; previously outside CI." },
+    { "path": "browser-client/test/reconnect-ui.mjs", "reason": "Existing local test:reconnect-ui suite; previously outside CI." },
+    { "path": "browser-client/test/pending-recovery-ui.mjs", "reason": "Existing manual Chrome recovery harness; previously outside CI." },
+    { "path": "site/test/m5h-route-browser.test.mjs", "reason": "Existing unregistered legacy route harness; previously outside CI." }
+  ]
+}

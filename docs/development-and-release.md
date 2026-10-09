@@ -88,14 +88,16 @@ fix/<topic>       corrective work
 Open a pull request to `main`. The `Checks` workflow runs Maven baseline and
 Java 21 verification, browser-client installation/tests/production build,
 static-site validation, and DEV/PROD-shaped Hosting artifact validation. The
-workflow currently runs the complete relevant suite rather than relying on
-fragile path inference. `Workflow and secret checks` additionally lints Actions
+workflow retains all Java, service, asset, unit, and artifact checks. Full
+browser execution runs locally for DEV and is required on GitHub for PROD.
+`Workflow and secret checks` additionally lints Actions
 files and scans history for committed secrets.
 
-After a successful merge to `main`, the successful `Checks` run triggers
-`Deploy Firebase Hosting (DEV)`. It checks out the exact validated commit,
-rebuilds the artifact, and deploys only to
-`dev-moles-under-the-pitch-org`. It cannot deploy PROD.
+After merging to `main`, use `node tools/deploy.mjs --environment dev-remote`.
+It validates the exact remote main commit in an isolated local worktree,
+requires successful GitHub `Checks` for that commit, and dispatches DEV Hosting
+deployment. Merges do not automatically publish DEV. See
+[deployment usage](../deployment/README.md) for commands and chat requests.
 
 ## GitHub OIDC and environment setup
 
@@ -201,8 +203,10 @@ git push origin moles-v1.2.3
 ```
 
 The tag starts `Deploy Firebase Hosting (PROD)`. It verifies the tag format and
-that its commit is an ancestor of `main`, then waits for `production`
-environment approval. After approval it rebuilds from the tag, deploys only to
+that its commit is an ancestor of `main`, then runs full hosted and interaction
+browser validation on GitHub for that exact commit. Successful complete coverage
+is required before the deployment job can request `production` environment
+approval. After approval it rebuilds from that commit, deploys only to
 `molesunderthepitch-dotorg`, and records the tag and full commit in both the
 Firebase Hosting release message and GitHub job summary. A maintainer may use
 the workflow's manual dispatch only by naming an existing `moles-v*` tag; it
@@ -212,7 +216,11 @@ For an urgent static rollback, open the PROD Hosting site's **Release history**
 in the Firebase console, select the known-good release, and choose **Roll back**.
 This creates a new release pointing at that prior version without changing the
 tag. For a reproducible code rollback, manually dispatch the PROD workflow with
-the prior approved `moles-v*` tag and approve the `production` environment.
+a prior approved `moles-v*` tag that includes the current browser validation
+tooling, and approve the `production` environment after its tests pass. Legacy
+tags created before this validation split lack compatible runner/gate scripts
+and cannot be redeployed by the new workflow; use Firebase's saved-release
+rollback for those artifacts. The release gate remains mandatory.
 Record the incident and follow up with a new corrective tag; never move or
 reuse a release tag.
 

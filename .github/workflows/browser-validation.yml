@@ -1,0 +1,137 @@
+name: Full browser validation
+
+on:
+  workflow_call:
+    inputs:
+      commit:
+        description: Exact commit to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: Resolve trusted browser commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      commit: ${{ steps.commit.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Accept only workflow source or verified main history
+        id: commit
+        env:
+          BROWSER_COMMIT: ${{ inputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs
+
+  hosted-browser:
+    needs: [resolve]
+    name: Hosted browser journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - run: npm run build --prefix site
+      - name: Run every hosted suite for the requested commit
+        env:
+          VALIDATION_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/browser-suites.mjs --family hosted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-hosted
+          overwrite: true
+          path: .tools/validation/hosted-1.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-interactions:
+    needs: [resolve]
+    name: Browser interactions (${{ matrix.shard }}/4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
+      - run: npm ci --prefix browser-client
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-client
+      - name: Run the complete assigned interaction shard
+        env:
+          VALIDATION_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/browser-suites.mjs --family interaction --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: static-browser-interaction-${{ matrix.shard }}
+          overwrite: true
+          path: .tools/validation/interaction-${{ matrix.shard }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  browser:
+    name: Complete browser coverage
+    needs: [resolve, hosted-browser, browser-interactions]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: static-browser-*
+          path: .tools/validation-reports
+          merge-multiple: true
+      - name: Require successful jobs and complete browser execution
+        env:
+          VALIDATION_COMMIT: ${{ needs.resolve.outputs.commit }}
+          VALIDATION_NEEDS: ${{ toJSON(needs) }}
+        run: node tools/validation/coverage-gate.mjs browser .tools/validation-reports
