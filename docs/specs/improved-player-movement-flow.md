@@ -2,6 +2,10 @@
 
 Reviewed, published and implemented on 2026-10-08. Owner manual validation is pending.
 
+The range and movement-risk presentation below is superseded by the
+[player movement markings rollback](player-movement-markings-removal.md).
+Single-confirmation Move/Blitz, unified routes and waypoint undo remain in effect.
+
 Feature branch: `codex/improve-player-movement-flow`. All five tickets are implemented together as unstaged working-tree changes. Existing unrelated changes are preserved. No staging, commit, push or deployment was performed.
 
 ## Agreed behavior
