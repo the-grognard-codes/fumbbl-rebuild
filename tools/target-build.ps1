@@ -9,6 +9,7 @@ param(
     [string]$JavaHome,
     [string]$Test,
     [string]$Module,
+    [string]$NativeIncludesFile,
     [switch]$Offline
 )
 
@@ -68,6 +69,12 @@ $mavenArguments = @('--batch-mode', '--no-transfer-progress', '--show-version',
     "-P$($manifest.mavenProfile)")
 if ($Offline) { $mavenArguments += '--offline' }
 if (($Test -or $Module) -and $Task -ne 'test') { throw '-Test and -Module are only supported with the test task.' }
+if ($NativeIncludesFile) {
+    if ($Task -ne 'verify') { throw '-NativeIncludesFile is only supported with the verify task.' }
+    $NativeIncludesFile = (Resolve-Path -LiteralPath $NativeIncludesFile).Path
+    if (!(Test-Path -LiteralPath $NativeIncludesFile -PathType Leaf)) { throw "Native includes file is not a file: $NativeIncludesFile" }
+    $mavenArguments += "-Dnative.shard.includesFile=$NativeIncludesFile"
+}
 switch ($Task) {
     'info' { $mavenArguments += '--version' }
     'test' {

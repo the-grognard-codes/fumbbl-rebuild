@@ -16,8 +16,11 @@ Credentials. There are no `FIREBASE_SERVICE_ACCOUNT` or `FIREBASE_TOKEN`
 secrets. GitHub environments supply only their matching WIF provider and
 deploy-service-account identifiers; browser configuration is versioned with the
 corresponding Hosting artifact.
-`main` deploys to DEV only after `Checks` succeeds. An approved `moles-v*` tag
-is the production deployment reference. See
+Use `node tools/deploy.mjs --environment dev-remote` for DEV publication after
+local browser validation and successful GitHub `Checks` of the exact main
+commit. Merges no longer automatically publish DEV. PROD uses an existing
+`moles-v*` tag and requires full browser validation on GitHub before deployment.
+See [deployment usage](../README.md) for CLI and chat examples, and
 [development-and-release.md](../../docs/development-and-release.md) for setup,
 release, and rollback instructions.
 

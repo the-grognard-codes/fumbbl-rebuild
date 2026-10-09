@@ -64,9 +64,10 @@ merging. An implementer can then:
 7. Repeat for the next ready slice until every required technical and
    nontechnical deliverable is complete.
 
-Merging to `main` currently triggers the DEV Hosting deployment after the
-successful `Checks` run; see [development-and-release.md](../development-and-release.md).
-The implementation handoff should name that effect when it authorizes merges.
+Merging runs GitHub checks; DEV Hosting publication is explicit through
+`node tools/deploy.mjs --environment dev-remote`, after local browser validation
+of the exact main commit. See [deployment usage](../../deployment/README.md).
+The implementation handoff should name publication authority separately.
 
 ## Completion
 
@@ -88,8 +89,7 @@ Replace the brackets with the actual scope before starting implementation:
 > Proceed with the approved slices under [spec or issue link]. You may create
 > branches or worktrees, implement and validate changes, stage and commit them,
 > push branches, open and update PRs, and merge passing PRs into `main` after
-> required checks and review requirements are met. I understand that merges to
-> `main` can trigger the automatic DEV Hosting deployment. [Name any further
+> required checks and review requirements are met. [Name any further
 > release or deployment authority, or omit it.] Complete the outcome report
 > and retrospective after the final slice.
 
