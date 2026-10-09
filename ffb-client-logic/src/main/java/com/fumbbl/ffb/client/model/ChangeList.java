@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Hosted diagnostic browser routes and links retain their /play prefix")
+			.addImprovement("Game-service VM startup checks the DEV WebSocket endpoint and bounds PROD SSH readiness checks")
+			.addImprovement("Added a separate educational Moles Under the Pitch project site and browser-client delivery layout without changing FUMBBL accounts or game behavior")
 			.addImprovement("Browser player selection shows full movement ranges and native Dodge/Rush targets, including next-turn opponent inspection")
 			.addBehaviorChange("Browser movement defaults to Move, plans every destination with waypoint dots, and confirms activation and movement together; right-click undoes while right-button drag pans")
 			.addImprovement("Browser Blitz targeting previews the approach and executes movement and the block with one confirmation")
