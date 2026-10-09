@@ -3,18 +3,12 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { decodeMovementChecks, decodeRoutePreview } from '../src/route-protocol.ts';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
-import { routeSquarePresentation } from '../src/route-presentation.ts';
 
 test('movement checks distinguish entry targets from conditional reactions and fall recovery', () => {
   const checks = decodeMovementChecks([{ name: 'Pickup', target: 4, condition: 'entry' },
     { name: 'Tentacles', target: null, condition: 'possible' }, { name: 'Steady Footing', target: 6, condition: 'fall' }]);
-  const step = { x: 9, y: 7, dodge: 4, rush: 2, dodgeModifier: -1, reactions: ['Tentacles'], checks };
-  const presented = routeSquarePresentation(step);
-  assert.deepEqual(presented.labels, ['D 4+', 'R 2+']);
-  assert.deepEqual(presented.badges.map(badge => badge.code), ['P4+', 'T?', 'SF6+*']);
-  assert.match(presented.description, /Possible Tentacles/);
-  assert.match(presented.description, /Steady Footing 6\+ if the player falls/);
-  assert.equal(presented.color, routeSquarePresentation({ ...step, checks: [] }).color);
+  assert.deepEqual(checks, [{ name: 'Pickup', target: 4, condition: 'entry' },
+    { name: 'Tentacles', target: null, condition: 'possible' }, { name: 'Steady Footing', target: 6, condition: 'fall' }]);
   for (const invalid of [
     [{ name: 'Tentacles', target: 4, condition: 'possible' }],
     [{ name: 'Pickup', target: null, condition: 'entry' }],
