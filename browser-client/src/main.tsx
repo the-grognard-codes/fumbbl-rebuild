@@ -9,6 +9,7 @@ import { TeamPanel } from './TeamPanel';
 import { MatchPanel } from './MatchPanel';
 import { SetupPanel } from './SetupPanel';
 import { ResultPanel } from './ResultPanel';
+import { clientPath, clientRoute } from './client-path';
 const PitchPreview = lazy(() => import('./PitchPreview').then(module => ({ default: module.PitchPreview })));
 const PitchParityPreview = lazy(() => import('./PitchParityPreview').then(module => ({ default: module.PitchParityPreview })));
 const DraftV2 = lazy(() => import('./draft-v2/PitchPreview').then(module => ({ default: module.PitchPreview })));
@@ -143,4 +144,16 @@ function App() {
     <h2>Request results</h2><div role="log" className="results">{log.map((entry, index) => <article key={`${entry.requestId}-${index}`} className={entry.status}><strong>{entry.status} · {entry.code}</strong><div>Revision {entry.revision}{entry.duplicate ? ' · duplicate' : ''}</div><small>{entry.requestId ?? 'uncorrelated'}</small></article>)}</div></aside></div>
   </main>;
 }
-createRoot(document.getElementById('root')!).render(window.location.pathname === '/ui-ux-draft-v2' ? <Suspense fallback={<p>Opening UI/UX Draft v2…</p>}><DraftV2/></Suspense> : window.location.pathname === '/pitch-preview' ? <Suspense fallback={<p>Opening MVP preview…</p>}><PitchPreview/></Suspense> : window.location.pathname === '/pitch-parity' ? <Suspense fallback={<p>Opening M5 renderer parity…</p>}><PitchParityPreview/></Suspense> : window.location.pathname === '/setup' ? <SetupPanel/> : window.location.pathname === '/results' ? <ResultPanel/> : window.location.pathname === '/teams' ? <TeamPanel/> : window.location.pathname === '/matches' ? <MatchPanel/> : <><nav><a href="/teams">Team builder</a> · <a href="/matches">Match preparation</a> · <a href="/pitch-preview">UI/UX MVP preview</a> · <a href="/pitch-parity">M5 renderer parity</a> · <a href="/ui-ux-draft-v2">UI/UX Draft v2</a></nav><App/></>);
+const route = clientRoute();
+if (import.meta.env.BASE_URL !== '/') {
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;
+    const anchor = event.target.closest('a[href]');
+    if (!(anchor instanceof HTMLAnchorElement) || anchor.target || anchor.hasAttribute('download')) return;
+    const target = new URL(anchor.href);
+    if (target.origin !== window.location.origin || target.pathname.startsWith('/play/')) return;
+    event.preventDefault();
+    window.location.assign(clientPath(`${target.pathname}${target.search}${target.hash}`));
+  });
+}
+createRoot(document.getElementById('root')!).render(route === '/ui-ux-draft-v2' ? <Suspense fallback={<p>Opening UI/UX Draft v2…</p>}><DraftV2/></Suspense> : route === '/pitch-preview' ? <Suspense fallback={<p>Opening MVP preview…</p>}><PitchPreview/></Suspense> : route === '/pitch-parity' ? <Suspense fallback={<p>Opening M5 renderer parity…</p>}><PitchParityPreview/></Suspense> : route === '/setup' ? <SetupPanel/> : route === '/results' ? <ResultPanel/> : route === '/teams' ? <TeamPanel/> : route === '/matches' ? <MatchPanel/> : <><nav><a href={clientPath('/teams')}>Team builder</a> · <a href={clientPath('/matches')}>Match preparation</a> · <a href={clientPath('/pitch-preview')}>UI/UX MVP preview</a> · <a href={clientPath('/pitch-parity')}>M5 renderer parity</a> · <a href={clientPath('/ui-ux-draft-v2')}>UI/UX Draft v2</a></nav><App/></>);
