@@ -96,3 +96,20 @@ also omit npm caching, and browser checkouts retain no Git credentials.
 The first updated PR run reproduced the unchanged recovery-test failure already
 recorded above. No recovery assertions, production code, or automatic retry
 policy were changed.
+
+[Diagnostic browser run 38004877624](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/38004877624)
+passed all four interaction shards, every hosted/diagnostic suite, and the
+complete browser coverage gate. That is 26 interaction and 10 hosted/diagnostic
+files. A later diagnostic run verifies the final cache configuration; its
+results are recorded on the issue.
+
+Follow-up Standards review approved the documented legacy-tag limitation and
+cache/credential fixes with zero remaining actionable findings. Spec review
+approved the supported DEV CLI and exact-release PROD paths with zero findings.
+Both were read-only reviews. Findings: Standards 0 remaining; Spec 0.
+
+The pre-merge local preflight completed the hosted suites and interaction shard
+1, then was stopped after review commits changed its captured checkout identity.
+It is not recorded as a complete passing local run. Requested DEV rebuilds run
+fresh preflights from the stable merged checkout; their results are recorded on
+the issue with the actual deployment outcome.

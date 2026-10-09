@@ -2,7 +2,7 @@
 
 Issue: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/238
 Implementation PR: https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239
-Status: implemented; validation split undergoing verification and review.
+Status: implemented and reviewed; final delivery evidence tracked on the issue.
 
 ## Problem and acceptance criteria
 
@@ -22,7 +22,7 @@ Each Java job performs full `clean verify` of the target reactor. Only `ffb-stat
 
 Static assets, browser/site unit tests, environment checks, and both DEV and PROD Hosting assembly/verification run in the static checks job. The hosted browser job builds the site and runs all nine previously registered hosted files plus the client-path diagnostic. All 26 existing interaction files run once across the four interaction jobs. Java 8 baseline, local review lifecycle, computer player, game-session service, shell checks, workflow lint, secret scan, and CodeQL coverage remain unchanged.
 
-Dependency caches remain in use. There is no cache of test results or compiled product output. Native shards run on every Checks trigger. All browser shards run for every PROD validation and requested full diagnostic run; there are no path-based shortcuts. Browser installation stays explicit on GitHub. Local runs install lockfile dependencies and ensure matching Chromium, reusing installed browser binaries while creating fresh execution reports.
+Existing dependency caches remain in fast Checks and native jobs. The reusable browser and manual DEV workflow omit npm caching to prevent input-selected source from writing a default-branch cache. There is no cache of test results or compiled product output. Native shards run on every Checks trigger. All browser shards run for every PROD validation and requested full diagnostic run; there are no path-based shortcuts. Browser installation stays explicit on GitHub. Local runs install lockfile dependencies and ensure matching Chromium, reusing installed browser binaries while creating fresh execution reports.
 
 ## Coverage and failure behavior
 
