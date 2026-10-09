@@ -14,6 +14,8 @@ The user subsequently accepted fewer independent browser validations before DEV.
 
 Mandatory DEV local execution is enforced by the supported project CLI. GitHub does not independently certify a developer's local pass, an explicitly accepted trust boundary; direct low-level DEV workflow dispatch is operator-trusted. Historical PROD tags without compatible validation scripts fail the new release gate; Firebase saved-release rollback remains available. The runbook states this limitation rather than silently weakening release validation.
 
+Before selecting browser source, a resolver checks out the workflow's own commit and fetches trusted main history. It permits only the workflow commit itself (for diagnosis) or an exact commit from verified main history (for releases). Browser jobs check out the resolver's trusted output, never the raw input. The full coverage gate also requires resolver success. This preserves exact release identity while preventing arbitrary input-selected code from gaining a default-branch runner/cache context.
+
 ## Decisions
 
 The Checks workflow uses four Java 21 jobs. The reusable Full browser validation workflow uses four interaction jobs and one hosted job, required by PROD and optionally requested through manual Checks dispatch. Local DEV runs those same manifests sequentially. Shard assignments live in `tools/validation/browser-shards.json` and `native-shards.json`. A large class or suite remains intact. GitHub shards have isolated filesystems, process state, ports, and browser/JVM; suites inside each shard remain sequential.

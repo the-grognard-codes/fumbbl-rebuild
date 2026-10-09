@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { assertDependencies, assertShards, loadBrowserManifest, validateReports } from '../validation/coverage.mjs';
 import { executeShard, parseArguments, parseTestSummary, runNode } from '../validation/browser-suites.mjs';
+import { resolveBrowserCommit } from '../validation/resolve-browser-commit.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const shards = [['suite1'], ['suite2'], ['suite3'], ['suite4']];
@@ -14,6 +15,19 @@ const reports = () => shards.map((suites, index) => ({ schemaVersion: 1, family:
   commit: 'current', passed: true, suites: suites.map(id => ({ id, tests: 2, durationMs: 10, failures: 0, errors: 0, skipped: 0 })) }));
 const configuration = { family: 'native', shards, commit: 'current' };
 const tap = '# tests 2\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
+
+test('browser source resolver accepts only its own workflow source or exact verified main history', () => {
+  const workflow = 'a'.repeat(40);
+  const main = 'b'.repeat(40);
+  const ancestor = 'c'.repeat(40);
+  assert.equal(resolveBrowserCommit(workflow, workflow, [main, ancestor]), workflow);
+  assert.equal(resolveBrowserCommit(ancestor, workflow, [main, ancestor]), ancestor);
+  for (const requested of ['d'.repeat(40), 'main', ancestor.slice(0, 8), '', `${main};echo injected`]) {
+    assert.throws(() => resolveBrowserCommit(requested, workflow, [main, ancestor]));
+  }
+  assert.throws(() => resolveBrowserCommit(main, workflow, []));
+  assert.throws(() => resolveBrowserCommit(main, workflow, ['main']));
+});
 
 test('coverage rejects missing, duplicate, misassigned, stale, failed, and empty executions', () => {
   assert.equal(validateReports(reports(), configuration).length, 4);
@@ -162,7 +176,8 @@ test('release browser gate uses the release commit and rejects stale, partial, o
       ['tools/validation/coverage-gate.mjs', 'browser', directory], {
         cwd: root, encoding: 'utf8', windowsHide: true,
         env: { ...process.env, GITHUB_SHA: 'workflow-main', VALIDATION_COMMIT: commit, GITHUB_STEP_SUMMARY: '',
-          VALIDATION_NEEDS: JSON.stringify({ 'hosted-browser': { result: 'success' }, 'browser-interactions': { result } }) },
+          VALIDATION_NEEDS: JSON.stringify({ resolve: { result: 'success' },
+            'hosted-browser': { result: 'success' }, 'browser-interactions': { result } }) },
       });
     const passed = runGate();
     assert.equal(passed.status, 0, passed.stderr);

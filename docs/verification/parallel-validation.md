@@ -58,7 +58,7 @@ authorized implementation, review, merge, branch cleanup, and both DEV builds.
 DEV publication is now explicit through `tools/deploy.mjs` so local preflight
 precedes publishing. Source selection and the active working tree are preserved.
 
-- Focused Node checks: 30/30 passed across validation, local browser, deployment,
+- Focused Node checks: 31/31 passed across validation, local browser, deployment,
   and local lifecycle tests. They cover release versus workflow commit identity,
   stale/incomplete reports, skipped/cancelled dependencies, preflight before
   service stop, exact-main validation, safe worktree cleanup, main movement,
@@ -113,3 +113,11 @@ The pre-merge local preflight completed the hosted suites and interaction shard
 It is not recorded as a complete passing local run. Requested DEV rebuilds run
 fresh preflights from the stable merged checkout; their results are recorded on
 the issue with the actual deployment outcome.
+
+CodeQL's execution alert persisted after configured caches were removed, because
+runner cache access exists independently of cache steps. The final workflow adds
+a trusted-source resolver: only its own workflow SHA or an exact verified main
+ancestor may reach browser checkout. A focused rejection test covers arbitrary
+commits, short refs, malformed identities, and missing trusted history; the full
+coverage gate requires resolver success. Final scan and runtime evidence are
+linked on the issue.
