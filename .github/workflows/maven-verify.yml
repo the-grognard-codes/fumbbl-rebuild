@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '26'
-      - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs
+      - run: node --test tools/test/dev-local.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs tools/test/game-service-start.test.mjs
       - run: npm test --prefix computer-player
 
   baseline:
@@ -154,6 +154,7 @@ jobs:
       - run: npm test --prefix site
       - run: npx playwright install --with-deps chromium
         working-directory: browser-client
+      - run: node browser-client/test/client-path-ui.mjs
       - run: npm run test:browser --prefix site
       - run: npm run verify-environment --prefix deployment/firebase
       - run: npm run assemble --prefix deployment/firebase -- --environment dev
