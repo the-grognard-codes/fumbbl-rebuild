@@ -30,15 +30,27 @@ try {
           if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication', requestId: request.requestId,
             code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
           if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({ version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
-          if (request.type === 'routePreview') {
-            const player = this.state.players.find(player => player.id === this.state.activePlayerId);
+          if (request.type === 'movementRange') {
+            const player = this.state.players.find(player => player.id === request.playerId);
+            const steps = this.state.actions.filter(action => action.kind === 'move' && action.sourcePlayerId === player.id)
+              .map(action => ({ ...action.target, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }));
+            queueMicrotask(() => this.emit({ version: 2, type: 'movementRange', requestId: request.requestId,
+              code: 'ACCEPTED', matchId: this.state.matchId, range: { rangeVersion: 1, playerId: player.id,
+                from: { x: player.x, y: player.y }, remaining: 8, steps, revision: this.state.revision } }));
+          }
+          if (request.type === 'routePreview' || request.type === 'movementPreview') {
+            const player = this.state.players.find(player => player.id === (request.playerId ?? this.state.activePlayerId));
             const from = { x: player.x, y: player.y }; const steps = []; let cursor = from;
             for (const target of request.waypoints) while (cursor.x !== target.x || cursor.y !== target.y) {
               cursor = { x: cursor.x + Math.sign(target.x-cursor.x), y: cursor.y + Math.sign(target.y-cursor.y) };
-              steps.push({ ...cursor, dodge: 0, rush: 0, reactions: [] });
+              steps.push({ ...cursor, dodge: 0, rush: 0, ...(request.type === 'movementPreview' ? { dodgeModifier: 0, checks: [] } : {}), reactions: [] });
             }
-            queueMicrotask(() => this.emit({ version: 2, type: 'routePreview', requestId: request.requestId, code: 'ACCEPTED', matchId: this.state.matchId,
-              route: { routeVersion: 1, playerId: player.id, from, remaining: 8, steps, revision: this.state.revision, actor: this.state.actor } }));
+            const route = { routeVersion: request.type === 'movementPreview' ? 3 : 1, playerId: player.id,
+              from, remaining: 8, steps, revision: this.state.revision, actor: this.state.actor };
+            queueMicrotask(() => this.emit({ version: 2, type: request.type, requestId: request.requestId,
+              code: 'ACCEPTED', matchId: this.state.matchId, ...(request.type === 'movementPreview'
+                ? { plan: { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: request.waypoints, route } }
+                : { route }) }));
           }
           if (request.type === 'setup' && request.operation !== 'load') { this.sent.push(request); this.state = journey.frames[++this.index].actor; }
           if (request.type === 'setup') queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
@@ -68,6 +80,7 @@ try {
       zIndex: getComputedStyle(element).zIndex, pointerEvents: getComputedStyle(element).pointerEvents })),
       { position: 'absolute', zIndex: '60', pointerEvents: 'none' }, 'The hosted legend is visible above the pitch without intercepting targets');
     const nativeMoves = journey.frames[1].actor.actions.filter(action => action.kind === 'move').length;
+    await pitch.locator('.live-available-step').first().waitFor();
     assert.equal(await pitch.locator('.live-available-step').count(), nativeMoves, 'Every offered move has its native forecast over the pass ranges');
     assert.equal(await pitch.locator('.live-target-square').count(), 0, 'Confirmed movement forecasts replace generic target outlines');
     assert.equal(await pitch.locator('.live-available-step polygon').first().evaluate(element => getComputedStyle(element).stroke), 'none', 'Movement squares use a filled highlight during passing');
