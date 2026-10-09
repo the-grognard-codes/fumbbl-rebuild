@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { assertDependencies, assertShards, loadBrowserManifest, validateReports } from '../validation/coverage.mjs';
 import { executeShard, parseArguments, parseTestSummary, runNode } from '../validation/browser-suites.mjs';
-import { resolveBrowserCommit } from '../validation/resolve-browser-commit.mjs';
+import { checkoutBrowserCommit, resolveBrowserCommit } from '../validation/resolve-browser-commit.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const shards = [['suite1'], ['suite2'], ['suite3'], ['suite4']];
@@ -27,6 +27,19 @@ test('browser source resolver accepts only its own workflow source or exact veri
   }
   assert.throws(() => resolveBrowserCommit(main, workflow, []));
   assert.throws(() => resolveBrowserCommit(main, workflow, ['main']));
+});
+
+test('browser checkout occurs only after source validation and uses the verified commit', () => {
+  const workflow = 'a'.repeat(40);
+  const main = 'b'.repeat(40);
+  const checkedOut = [];
+  const checkout = commit => checkedOut.push(commit);
+  assert.throws(() => checkoutBrowserCommit('c'.repeat(40), workflow, [main], checkout));
+  assert.deepEqual(checkedOut, []);
+  assert.equal(checkoutBrowserCommit(main, workflow, [main], checkout), main);
+  assert.deepEqual(checkedOut, [main]);
+  assert.throws(() => checkoutBrowserCommit(main, workflow, [main], () => { throw new Error('checkout failed'); }),
+    /checkout failed/);
 });
 
 test('coverage rejects missing, duplicate, misassigned, stale, failed, and empty executions', () => {

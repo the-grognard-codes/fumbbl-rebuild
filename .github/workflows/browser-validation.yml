@@ -41,11 +41,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
       - run: npm ci --prefix browser-client
       - run: npx playwright install --with-deps chromium
         working-directory: browser-client
@@ -75,11 +80,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
       - run: npm ci --prefix browser-client
       - run: npx playwright install --with-deps chromium
         working-directory: browser-client
@@ -105,11 +115,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - run: git fetch --no-tags origin main
+      - name: Check out verified browser source from trusted workflow tooling
+        env:
+          BROWSER_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: node tools/validation/resolve-browser-commit.mjs --checkout
       - uses: actions/download-artifact@v4
         with:
           pattern: static-browser-*

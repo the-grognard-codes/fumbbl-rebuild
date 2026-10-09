@@ -58,7 +58,7 @@ authorized implementation, review, merge, branch cleanup, and both DEV builds.
 DEV publication is now explicit through `tools/deploy.mjs` so local preflight
 precedes publishing. Source selection and the active working tree are preserved.
 
-- Focused Node checks: 31/31 passed across validation, local browser, deployment,
+- Focused Node checks: 32/32 passed across validation, local browser, deployment,
   and local lifecycle tests. They cover release versus workflow commit identity,
   stale/incomplete reports, skipped/cancelled dependencies, preflight before
   service stop, exact-main validation, safe worktree cleanup, main movement,
@@ -117,7 +117,9 @@ the issue with the actual deployment outcome.
 CodeQL's execution alert persisted after configured caches were removed, because
 runner cache access exists independently of cache steps. The final workflow adds
 a trusted-source resolver: only its own workflow SHA or an exact verified main
-ancestor may reach browser checkout. A focused rejection test covers arbitrary
+ancestor may reach browser checkout. Each job starts from its workflow source
+and runs that trusted resolver before changing its checkout; a job-output SHA
+is never passed directly to the checkout action. Focused rejection tests cover arbitrary
 commits, short refs, malformed identities, and missing trusted history; the full
 coverage gate requires resolver success. Final scan and runtime evidence are
 linked on the issue.
