@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {PitchProjection} from '../src/pitch-projection.ts';
-import {JIGSAW_PIECES,crowdHoles,jigsawModules,registerJigsaw,mapJigsaw,jigsawDepth} from '../src/stadium-jigsaw.ts';
+import {JIGSAW_PIECES,crowdHoles,crowdOutline,jigsawModules,registerJigsaw,mapJigsaw,jigsawDepth} from '../src/stadium-jigsaw.ts';
 import {stadiumPresentation,stadiumGeometry as geometry} from '../src/stadium-presentation.ts';
 
 test('ten replaceable slots cover the bowl exactly once and leave all two-square apron cells empty',()=>{
@@ -83,4 +83,66 @@ test('lens tilt changes row overlap while keeping authored head proportions stab
   const rows=(elevation:30|50)=>jigsawModules(new PitchProjection({width:1280,height:660,perspectiveElevation:elevation}),p.venue,p.home,p.away)
     .filter(m=>m.role==='crowd').map(m=>[m.id,m.bounds]);
   assert.deepEqual(rows(30),rows(50));
+});
+
+test('rounded corners stay inside their slots and join the full side and end banks in either view',()=>{
+  const p=stadiumPresentation({});
+  for(const piece of JIGSAW_PIECES.filter(p=>p.id.endsWith('-corner'))) {
+    const outline=crowdOutline(piece),center=outline[0],b=piece.bounds;
+    assert.equal(outline.length,18);
+    for(const point of outline) {
+      assert.ok(point.x>=b.x0-1e-10&&point.x<=b.x1+1e-10&&point.y>=b.y0-1e-10&&point.y<=b.y1+1e-10);
+      assert.ok(Math.hypot(point.x-center.x,point.y-center.y)<=4+1e-10);
+    }
+    for(const end of ['home','away'] as const) {
+      const camera=new PitchProjection({width:1280,height:660,end,mode:'top-down'});
+      assert.deepEqual(jigsawModules(camera,p.venue,p.home,p.away).find(m=>m.id===piece.id)!.outline,outline);
+    }
+  }
+});
+
+test('retaining caps have real thickness outside the clear apron in perspective and overhead',()=>{
+  const p=stadiumPresentation({});
+  for(const end of ['home','away'] as const)for(const mode of ['perspective','top-down'] as const) {
+    const camera=new PitchProjection({width:1280,height:660,end,mode});
+    const caps=jigsawModules(camera,p.venue,p.home,p.away).filter(m=>m.role===(mode==='perspective'?'wall-rim':'wall'));
+    assert.ok(caps.length>0);
+    for(const cap of caps) {
+      assert.equal(cap.bounds.y1,.24);
+      for(const u of [cap.bounds.x0,cap.bounds.x1])for(const v of [0,.24]) {
+        const x=cap.origin.x+cap.across.x*u+cap.down.x*v,y=cap.origin.y+cap.across.y*u+cap.down.y*v;
+        assert.ok(x<=-2||x>=28||y<=-2||y>=17,'caps leave the two-square apron clear');
+        assert.ok(Number.isFinite(jigsawDepth(cap,camera)));
+      }
+    }
+  }
+});
+
+test('side and corner source pixels keep equal horizontal and vertical scales throughout camera travel',()=>{
+  const p=stadiumPresentation({});
+  for(const end of ['home','away'] as const)for(const elevation of [30,40,50] as const)for(const focus of [0,13,26]) {
+    const camera=new PitchProjection({width:1280,height:660,end,focus,perspectiveElevation:elevation});
+    for(const module of jigsawModules(camera,p.venue,p.home,p.away).filter(m=>m.sourceCrop)) {
+      const crop=module.sourceCrop!,point={x:crop.x+crop.width/2,y:crop.y+crop.height/2};
+      const a=mapJigsaw(module.registration,point),x=mapJigsaw(module.registration,{...point,x:point.x+1}),y=mapJigsaw(module.registration,{...point,y:point.y+1});
+      assert.ok(Math.abs(Math.hypot(x.x-a.x,x.y-a.y)-Math.hypot(y.x-a.x,y.y-a.y))<1e-10,'authored heads retain their aspect ratio');
+    }
+  }
+});
+
+test('towels and spare jerseys follow the participating team and stay within each bench recess',()=>{
+  const human={rosterId:'human',league:'Old World Classic'},orc={rosterId:'orc',league:'Badlands Brawl'};
+  for(const [homeTeamArt,awayTeamArt] of [[human,orc],[orc,human]])for(const end of ['home','away'] as const)for(const mode of ['perspective','top-down'] as const) {
+    const p=stadiumPresentation({homeTeamArt,awayTeamArt}),camera=new PitchProjection({width:1280,height:660,end,mode});
+    const gear=jigsawModules(camera,p.venue,p.home,p.away).filter(m=>m.role==='sideline-gear');
+    assert.equal(gear.length,2);
+    for(const module of gear) {
+      const bench=geometry.benches.find(b=>b.team===module.team)!;
+      assert.equal(module.profile.id,module.team==='home'?p.home.id:p.away.id);
+      for(const u of [module.bounds.x0,module.bounds.x1])for(const v of [module.bounds.y0,module.bounds.y1]) {
+        const x=module.origin.x+module.across.x*u+module.down.x*v,y=module.origin.y+module.across.y*u+module.down.y*v;
+        assert.ok(Math.abs(x-bench.x)<=bench.along/2&&Math.abs(y-bench.y)<=bench.across/2);
+      }
+    }
+  }
 });

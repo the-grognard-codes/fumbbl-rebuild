@@ -4,10 +4,10 @@
   "families": {
     "human": {
       "crowd": {
-        "file": "human-crowd-v2.png",
+        "file": "human-crowd-v3.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "9e7e1ec0e93286ff01810412ccd74565441f3f608db862b9bf8690d7cbee8d52",
+        "sha256": "720946ed7975391c376db7ad9fd6a22e925c427755a07a595af7a4b9d092d534",
         "regions": {
           "north": {
             "x": 30,
@@ -59,10 +59,10 @@
           }
         },
         "gesture": {
-          "file": "human-gesture-v1.png",
+          "file": "human-gesture-v2.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "e1b453174d8bed6d1e6a0060a9b7d575fc0d57927c9505a800543c0b2a5fe3c8",
+          "sha256": "e280832f41b5882a1f7f61a675bd19fb0f9b18e8f7894e6e61ff8f340acd4a7e",
           "zones": {
             "north": {
               "x": 230,
@@ -71,48 +71,56 @@
               "height": 114
             },
             "south": {
-              "x": 938,
-              "y": 430,
-              "width": 68,
-              "height": 123
+              "x": 922,
+              "y": 486,
+              "width": 84,
+              "height": 110
             },
             "home-north-corner": {
-              "x": 493,
-              "y": 39,
-              "width": 92,
-              "height": 165
+              "x": 548,
+              "y": 30,
+              "width": 68,
+              "height": 120
             },
             "away-north-corner": {
-              "x": 377,
-              "y": 320,
-              "width": 81,
-              "height": 133
+              "x": 418,
+              "y": 340,
+              "width": 84,
+              "height": 105
             },
             "home-south-corner": {
-              "x": 726,
-              "y": 506,
-              "width": 74,
-              "height": 145
+              "x": 592,
+              "y": 542,
+              "width": 80,
+              "height": 130
             },
             "away-south-corner": {
-              "x": 747,
-              "y": 812,
-              "width": 51,
-              "height": 137
+              "x": 602,
+              "y": 738,
+              "width": 78,
+              "height": 133
             },
             "away": {
-              "x": 636,
-              "y": 1016,
-              "width": 64,
-              "height": 122
+              "x": 680,
+              "y": 1060,
+              "width": 65,
+              "height": 90
             },
             "home": {
-              "x": 708,
+              "x": 685,
               "y": 1208,
               "width": 78,
               "height": 132
             }
-          }
+          },
+          "frames": [
+            {
+              "file": "human-gesture-mid-v1.png",
+              "width": 1122,
+              "height": 1402,
+              "sha256": "c69bff59d01ef292705d7dd726e1367a143d51d8afcb0b7454029241aadd8f7e"
+            }
+          ]
         }
       },
       "walls": {
@@ -134,10 +142,10 @@
         }
       },
       "overhead": {
-        "file": "human-overhead-v1.png",
+        "file": "human-overhead-v3.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "8dd9db16aeeecd0f2b1ccd91f90066eff3a9413c966e5f9fa10147e05850ae52",
+        "sha256": "f22922ff7c1f9d53d82f2af800d5d05b171a0dc5f0b2f24ee7de875b1590f807",
         "regions": {
           "north": {
             "x": 30,
@@ -189,46 +197,46 @@
           }
         },
         "gesture": {
-          "file": "human-overhead-gesture-v1.png",
+          "file": "human-overhead-gesture-v2.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "c37b7448f9c4c3c3088b4eb81cda9dafce9e73c87cc16b8d40496f2eed4266ec",
+          "sha256": "c26da9332b4f2f296875a0b05f2e3d717ed14048c73a2fb2588fe3e722e9e024",
           "zones": {
             "north": {
-              "x": 138,
-              "y": 260,
-              "width": 65,
-              "height": 113
+              "x": 92,
+              "y": 205,
+              "width": 80,
+              "height": 100
             },
             "south": {
-              "x": 1040,
-              "y": 352,
-              "width": 52,
-              "height": 125
+              "x": 945,
+              "y": 325,
+              "width": 80,
+              "height": 120
             },
             "home-north-corner": {
-              "x": 455,
+              "x": 518,
               "y": 66,
-              "width": 72,
-              "height": 142
+              "width": 74,
+              "height": 125
             },
             "away-north-corner": {
-              "x": 370,
-              "y": 374,
-              "width": 74,
-              "height": 108
+              "x": 388,
+              "y": 335,
+              "width": 78,
+              "height": 120
             },
             "home-south-corner": {
               "x": 677,
-              "y": 520,
-              "width": 82,
-              "height": 152
+              "y": 531,
+              "width": 73,
+              "height": 126
             },
             "away-south-corner": {
-              "x": 745,
+              "x": 677,
               "y": 790,
-              "width": 53,
-              "height": 150
+              "width": 73,
+              "height": 137
             },
             "away": {
               "x": 553,
@@ -237,21 +245,29 @@
               "height": 96
             },
             "home": {
-              "x": 733,
-              "y": 1219,
-              "width": 76,
-              "height": 127
+              "x": 730,
+              "y": 1210,
+              "width": 62,
+              "height": 95
             }
-          }
+          },
+          "frames": [
+            {
+              "file": "human-overhead-gesture-mid-v1.png",
+              "width": 1122,
+              "height": 1402,
+              "sha256": "22ec4a27fb4047387870ce6543dc84817931aa3b1f9e17f5cfdc257fc270c8ad"
+            }
+          ]
         }
       }
     },
     "orc": {
       "crowd": {
-        "file": "orc-crowd-v2.png",
+        "file": "orc-crowd-v3.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "f9e44f78c97ba80295b770cbf04d47a3b6bac18dc88f4e652f73ca7ec365efcb",
+        "sha256": "90d9665010e2054e476cc4ee2d3d796878db91390f9fcfb158b84df1334f0a7e",
         "regions": {
           "north": {
             "x": 30,
@@ -303,22 +319,22 @@
           }
         },
         "gesture": {
-          "file": "orc-gesture-v1.png",
+          "file": "orc-gesture-v2.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "205d3b1f450269dea97aa0b1dc9fe2baa7a03495b2bcae19054b09de7bfcb57e",
+          "sha256": "957e88f25d75eadc54b1745f3618f501d87a38a8f7948d05e0d489e9f09aefa1",
           "zones": {
             "north": {
-              "x": 230,
-              "y": 331,
-              "width": 73,
-              "height": 114
+              "x": 216,
+              "y": 360,
+              "width": 85,
+              "height": 110
             },
             "south": {
-              "x": 938,
-              "y": 418,
-              "width": 68,
-              "height": 135
+              "x": 979,
+              "y": 219,
+              "width": 100,
+              "height": 155
             },
             "home-north-corner": {
               "x": 493,
@@ -327,36 +343,44 @@
               "height": 165
             },
             "away-north-corner": {
-              "x": 368,
-              "y": 320,
-              "width": 96,
-              "height": 135
+              "x": 322,
+              "y": 355,
+              "width": 78,
+              "height": 124
             },
             "home-south-corner": {
-              "x": 722,
-              "y": 508,
-              "width": 78,
-              "height": 142
+              "x": 643,
+              "y": 501,
+              "width": 80,
+              "height": 140
             },
             "away-south-corner": {
-              "x": 747,
-              "y": 812,
-              "width": 51,
-              "height": 137
+              "x": 453,
+              "y": 738,
+              "width": 82,
+              "height": 135
             },
             "away": {
-              "x": 610,
-              "y": 1040,
-              "width": 70,
-              "height": 90
+              "x": 660,
+              "y": 1050,
+              "width": 75,
+              "height": 108
             },
             "home": {
-              "x": 706,
-              "y": 1208,
+              "x": 785,
+              "y": 1235,
               "width": 80,
-              "height": 132
+              "height": 120
             }
-          }
+          },
+          "frames": [
+            {
+              "file": "orc-gesture-mid-v1.png",
+              "width": 1122,
+              "height": 1402,
+              "sha256": "1ade9c19917d80ca5461af7f62bc068dddb33b13f4cc2ab8a7a662869f318ecd"
+            }
+          ]
         }
       },
       "walls": {
@@ -378,10 +402,10 @@
         }
       },
       "overhead": {
-        "file": "orc-overhead-v1.png",
+        "file": "orc-overhead-v2.png",
         "width": 1122,
         "height": 1402,
-        "sha256": "70a21b579f563b470b299139eb314197abdf585ff573e4af4716db054845d8b8",
+        "sha256": "21ad287d4c2ab7a316f585a4b13242df1e0a8509fe4f28f19d6ef531ec6b3209",
         "regions": {
           "north": {
             "x": 30,
@@ -433,60 +457,68 @@
           }
         },
         "gesture": {
-          "file": "orc-overhead-gesture-v1.png",
+          "file": "orc-overhead-gesture-v2.png",
           "width": 1122,
           "height": 1402,
-          "sha256": "28e8d19a909394d58a9bbf4f4693e4a554205f9f1595d19f1a234a00285dbe24",
+          "sha256": "6a63c7274b5905514b4ebdf5b7bd4ac04f348add4d58a1b00a48666b19cc4401",
           "zones": {
             "north": {
-              "x": 132,
-              "y": 256,
-              "width": 71,
-              "height": 119
+              "x": 113,
+              "y": 219,
+              "width": 75,
+              "height": 110
             },
             "south": {
-              "x": 1014,
-              "y": 338,
-              "width": 79,
-              "height": 130
+              "x": 995,
+              "y": 277,
+              "width": 83,
+              "height": 125
             },
             "home-north-corner": {
-              "x": 449,
-              "y": 44,
-              "width": 80,
-              "height": 170
+              "x": 459,
+              "y": 47,
+              "width": 75,
+              "height": 132
             },
             "away-north-corner": {
-              "x": 357,
-              "y": 374,
-              "width": 92,
-              "height": 112
+              "x": 353,
+              "y": 305,
+              "width": 75,
+              "height": 120
             },
             "home-south-corner": {
-              "x": 671,
-              "y": 510,
-              "width": 87,
-              "height": 150
+              "x": 588,
+              "y": 530,
+              "width": 80,
+              "height": 130
             },
             "away-south-corner": {
-              "x": 745,
-              "y": 790,
-              "width": 53,
-              "height": 150
+              "x": 630,
+              "y": 780,
+              "width": 75,
+              "height": 120
             },
             "away": {
-              "x": 548,
-              "y": 1040,
-              "width": 90,
-              "height": 112
+              "x": 505,
+              "y": 1016,
+              "width": 75,
+              "height": 110
             },
             "home": {
-              "x": 669,
-              "y": 1218,
-              "width": 95,
-              "height": 122
+              "x": 676,
+              "y": 1201,
+              "width": 78,
+              "height": 110
             }
-          }
+          },
+          "frames": [
+            {
+              "file": "orc-overhead-gesture-mid-v1.png",
+              "width": 1122,
+              "height": 1402,
+              "sha256": "99347ccd40aa46eb7bc4681aa812a4ad12fd5b3d1d2f221688ffa129266cb3a4"
+            }
+          ]
         }
       }
     }
@@ -494,5 +526,41 @@
   "profiles": {
     "old-world-classic": "human",
     "badlands-brawl": "orc"
+  },
+  "accessories": {
+    "file": "sideline-gear-v1.png",
+    "width": 1254,
+    "height": 1254,
+    "sha256": "8ed2c9165a851917d5308c6afbde0d1ded561db8157feb193bbde606822d3047",
+    "regions": {
+      "human": {
+        "perspective": {
+          "x": 49,
+          "y": 186,
+          "width": 551,
+          "height": 360
+        },
+        "overhead": {
+          "x": 45,
+          "y": 710,
+          "width": 548,
+          "height": 355
+        }
+      },
+      "orc": {
+        "perspective": {
+          "x": 673,
+          "y": 184,
+          "width": 537,
+          "height": 365
+        },
+        "overhead": {
+          "x": 672,
+          "y": 710,
+          "width": 538,
+          "height": 351
+        }
+      }
+    }
   }
 }

@@ -15,6 +15,18 @@
 }
 
 .stadium-gesture { opacity:0; pointer-events:none; }
-.stadium-gesture[data-active="true"] { animation:stadium-local-gesture 2s steps(1,end); }
-@keyframes stadium-local-gesture { 0%,25%,55%,85%,100% { opacity:0; } 10%,40%,70% { opacity:1; } }
+.stadium-gesture-peak[data-active="true"] { animation:stadium-gesture-peak 2s steps(1,end); }
+@keyframes stadium-gesture-peak { 0%,25%,55%,100% { opacity:0; } 25.01%,54.99% { opacity:1; } }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="1"] { animation:stadium-gesture-one 2s steps(1,end); }
+@keyframes stadium-gesture-one { 0%,10%,25%,55%,70%,100% { opacity:0; } 10.01%,24.99%,55.01%,69.99% { opacity:1; } }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="2"][data-frame-index="0"] { animation:stadium-gesture-two-first 2s steps(1,end); }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="2"][data-frame-index="1"] { animation:stadium-gesture-two-second 2s steps(1,end); }
+@keyframes stadium-gesture-two-first { 0%,6%,15%,65%,75%,100% { opacity:0; } 6.01%,14.99%,65.01%,74.99% { opacity:1; } }
+@keyframes stadium-gesture-two-second { 0%,15%,25%,55%,65%,100% { opacity:0; } 15.01%,24.99%,55.01%,64.99% { opacity:1; } }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="3"][data-frame-index="0"] { animation:stadium-gesture-three-first 2s steps(1,end); }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="3"][data-frame-index="1"] { animation:stadium-gesture-three-second 2s steps(1,end); }
+.stadium-gesture-intermediate[data-active="true"][data-frame-count="3"][data-frame-index="2"] { animation:stadium-gesture-three-third 2s steps(1,end); }
+@keyframes stadium-gesture-three-first { 0%,5%,12%,68%,75%,100% { opacity:0; } 5.01%,11.99%,68.01%,74.99% { opacity:1; } }
+@keyframes stadium-gesture-three-second { 0%,12%,19%,61%,68%,100% { opacity:0; } 12.01%,18.99%,61.01%,67.99% { opacity:1; } }
+@keyframes stadium-gesture-three-third { 0%,19%,25%,55%,61%,100% { opacity:0; } 19.01%,24.99%,55.01%,60.99% { opacity:1; } }
 @media (prefers-reduced-motion:reduce) { .stadium-gesture[data-active="true"] { animation:none; opacity:0; } }
