@@ -13,6 +13,11 @@ Run `npm run test:spectate --prefix site` for the focused browser checks.
 Run `npm run check --prefix site` to validate its required pages, or
 `npm run build --prefix site` to create `site/dist/`.
 
+Edit the tracked inputs in `site/src/` and `site/scripts/`. The generated
+`site/dist/` directory stays local and is ignored by Git. A build recreates its
+pages and assets; Firebase Hosting assembly builds the site before copying the
+output and adding the selected environment's public configuration.
+
 The Updates history lives in `site/updates.json`, with one concise entry per
 merged PR, its GitHub URL and merge timestamp, ordered newest first. Add merged
 work there and run `npm run updates:render --prefix site` to regenerate the
