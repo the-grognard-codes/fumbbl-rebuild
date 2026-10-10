@@ -24,6 +24,14 @@ export async function validateJigsawCatalog(catalog,root) {
   if(catalog.version!==1||catalog.rise!==1.4||!catalog.families?.human||!catalog.families?.orc||Object.keys(catalog.families).some(id=>!/^[a-z][a-z0-9-]*$/.test(id)))
     throw Error('Invalid jigsaw families or geometry version');
   if(!catalog.profiles||Object.values(catalog.profiles).some(id=>!Object.hasOwn(catalog.families,id)))throw Error('Unknown jigsaw profile mapping');
+  const accessories=catalog.accessories,gear=await source(accessories,root,'accessories');
+  const accessoryRegions=[];
+  for(const family of Object.keys(catalog.families))for(const view of ['perspective','overhead']) {
+    const rect=accessories.regions?.[family]?.[view];region(rect,gear,'accessories/'+family+'/'+view);
+    visibleBounds(gear,rect);accessoryRegions.push(rect);
+  }
+  for(let i=0;i<accessoryRegions.length;i++)for(let j=i+1;j<accessoryRegions.length;j++)
+    if(overlap(accessoryRegions[i],accessoryRegions[j]))throw Error('Overlapping accessory views');
   let reference;
   for(const [name,family] of Object.entries(catalog.families)) {
     for(const view of ['crowd','overhead']) {
@@ -46,6 +54,25 @@ export async function validateJigsawCatalog(catalog,root) {
         const zone=gesture.zones[key],cell=art.regions[key];region(zone,frame,key+'/gesture');
         if(!overlap(zone,cell)||zone.width*zone.height>cell.width*cell.height*.25)
           throw Error('Gesture must remain local to its section: '+key);
+      }
+      if(gesture.frames!==undefined) {
+        if(!Array.isArray(gesture.frames)||gesture.frames.length>3)
+          throw Error('Invalid jigsaw gesture frames: '+name+'/'+view);
+        const files=new Set([art.file,gesture.file]);
+        for(const [index,entry] of gesture.frames.entries()) {
+          const label=name+'/'+view+'/gesture/frame-'+index;
+          if(!entry||files.has(entry.file))throw Error('Duplicate or invalid jigsaw gesture frame: '+label);
+          files.add(entry.file);
+          const imageFrame=await source(entry,root,label);
+          if(imageFrame.width!==image.width||imageFrame.height!==image.height)
+            throw Error('Incompatible jigsaw gesture frame: '+label);
+          for(const key of keys) {
+            const zone=gesture.zones[key];
+            region(zone,imageFrame,key+'/gesture/frame-'+index);
+            try { visibleBounds(imageFrame,zone); }
+            catch { throw Error('Empty jigsaw gesture zone: '+label+'/'+key); }
+          }
+        }
       }
     }
     const wall=family.walls,image=await source(wall,root,name+'/walls');

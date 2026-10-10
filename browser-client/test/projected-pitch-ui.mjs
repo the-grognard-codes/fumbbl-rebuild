@@ -8,6 +8,7 @@ import { createServer } from 'vite';
 import { squarePosition, travelToFocus } from './projected-pitch-helper.mjs';
 import { resolvePlayerArt } from '../src/player-art.ts';
 import { PitchProjection } from '../src/pitch-projection.ts';
+import { jigsawCatalog } from '../src/generated-stadium-jigsaw.ts';
 
 // Rendering/input regression evidence only; full live acceptance uses real v2.
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
@@ -29,7 +30,8 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   const page = await browser.newPage({ viewport: { width: 1280, height: 660 },
     recordVideo: pitchOptions.recordMotion ? {dir:evidence+'/motion-video',size:{width:1280,height:660}} : undefined });
   page.on('pageerror', error => errors.push(error.message));
-  if (pitchOptions.failGesture) await page.route('**/jigsaw/human-gesture-v1.png', route => route.fulfill({ status: 404, body: '' }));
+  if (pitchOptions.failGesture) await page.route('**/jigsaw/'+jigsawCatalog.families.human.crowd.gesture.file, route => route.fulfill({ status: 404, body: '' }));
+  if (pitchOptions.failIntermediate) await page.route('**/jigsaw/'+jigsawCatalog.families.human.crowd.gesture.frames[0].file, route => route.fulfill({ status: 404, body: '' }));
   if (pitchOptions.failStadium) await page.route('**/stadiums/**/*.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
@@ -347,7 +349,7 @@ try {
         }
         if(mode===90){
           assert.equal(await world.locator('[data-seat][data-art-view="top-down"]').count(),10);
-          assert.ok(await world.locator('[data-seat] img[src*="-overhead-v1.png"]').count()>0);
+          assert.ok(await world.locator('[data-seat] img[src$="'+jigsawCatalog.families.human.overhead.file+'"], [data-seat] img[src$="'+jigsawCatalog.families.orc.overhead.file+'"]').count()>0);
           if(position!=='mid')assert.ok(await world.locator('[data-overhead-pennant="true"]').count()>0);
           assert.equal(await world.locator('[data-stadium-role="pavilionTop"]').count(),1);
           assert.equal(await world.locator('[data-stadium-role="benchTop"]').count(),2);
@@ -441,16 +443,22 @@ try {
   await missing.close();
   assert.deepEqual(errors, []);
   const missingGesture = await open('home',false,null,{failGesture:true,homeTeamArt:humanArt,awayTeamArt:orcArt});
-  await missingGesture.waitForFunction(()=>document.querySelector('[data-jigsaw-piece] img[src$="human-crowd-v2.png"]')?.complete);
+  await missingGesture.waitForFunction(file=>document.querySelector('[data-jigsaw-piece] img[src$="'+file+'"]')?.complete,jigsawCatalog.families.human.crowd.file);
   await missingGesture.locator('[data-gesture-failed="true"]').first().waitFor({state:'attached'});
-  assert.equal(await missingGesture.locator('img[src$="human-gesture-v1.png"]').count(),0,'failed overlay is disabled');
+  assert.equal(await missingGesture.locator('img[src$="'+jigsawCatalog.families.human.crowd.gesture.file+'"]').count(),0,'failed overlay is disabled');
   assert.equal(await missingGesture.locator('[data-art-fallback]').count(),0,'optional gestures cannot hide healthy architecture, props or base crowds');
-  assert.ok(await missingGesture.locator('img[src$="human-crowd-v2.png"]').count()>0);
+  assert.ok(await missingGesture.locator('img[src$="'+jigsawCatalog.families.human.crowd.file+'"]').count()>0);
   assert.ok(await missingGesture.locator('img[src$="human-walls-v1.png"]').count()>0);
   assert.equal(await missingGesture.locator('[data-cell-x]').count(),390);
   await missingGesture.locator('[data-player-id="human"]').click();
   assert.deepEqual(await missingGesture.evaluate(()=>window.intents),[{player:'human'}]);
   await missingGesture.close();
+  const missingIntermediate=await open('home',false,null,{failIntermediate:true,homeTeamArt:humanArt,awayTeamArt:orcArt});
+  await missingIntermediate.waitForFunction(file=>!document.querySelector('img[src$="'+file+'"]'),jigsawCatalog.families.human.crowd.gesture.frames[0].file);
+  assert.ok(await missingIntermediate.locator('img[src$="'+jigsawCatalog.families.human.crowd.gesture.file+'"]').count()>0,'missing middle frame retains the healthy peak gesture');
+  assert.equal(await missingIntermediate.locator('[data-art-fallback]').count(),0);
+  assert.equal(await missingIntermediate.locator('[data-cell-x]').count(),390);
+  await missingIntermediate.close();
   const missingStadium = await open('home',false,null,{failStadium:true});
   await missingStadium.locator('[data-art-fallback="wall"]').first().waitFor({state:'attached'});
   assert.ok(await missingStadium.locator('.pitch-stadium-turf').count() > 0,'failed optional atlas retains healthy turf');

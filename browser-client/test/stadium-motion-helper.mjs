@@ -39,6 +39,7 @@ export async function observeStadiumMotion(page,durationMs=2400) {
     return {durationMs:duration,localGestureChanged:changed('section-gesture'),maxActiveSections:maxSections,
       fireChanged:changed('fire-flicker'),pennantMoved:changed('wind'),
       maxPixelShift:Math.max(0,...samples.map(s=>s.maxShift)),
+      gestureOverlays:world.querySelectorAll('.stadium-gesture').length,
       baseCrowdAnimations:[...world.querySelectorAll('[data-seat]')].reduce((n,e)=>n+e.getAnimations().length,0),
       mutations:changes.length,unexpectedMutations:changes.filter(r=>r.type!=='attributes'||r.attributeName!=='data-active').length,
       anchorsStable:JSON.stringify(beforeAnchors)===JSON.stringify(anchors()),
@@ -52,7 +53,7 @@ export async function observeStadiumMotion(page,durationMs=2400) {
   assert.ok(result.fireChanged&&result.pennantMoved,JSON.stringify(result));
   assert.ok(result.maxPixelShift<=3,JSON.stringify(result));
   assert.equal(result.unexpectedMutations,0,'only occasional section activation changes the DOM');
-  assert.ok(result.mutations<=24,'gesture frames must not cause per-frame DOM writes');
+  assert.ok(result.mutations<=result.gestureOverlays,'gesture frames must not cause per-frame DOM writes');
   assert.ok(result.anchorsStable&&result.seatsStable&&result.commandsStable);
   assert.equal(result.canonicalCells,390);assert.deepEqual(result.intents,[]);
   await page.emulateMedia({reducedMotion:'reduce'});

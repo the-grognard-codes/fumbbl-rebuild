@@ -11,6 +11,7 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addFeature("Selected browser players show translucent blue normal and yellow rush outer perimeters for ordinary movement, with small outlined rush-only warning markers")
+			.addImprovement("Browser league stadiums feature mixed Human/Dwarf/Halfling and Orc/Goblin/Ogre/Troll crowds, gradual local gestures, rounded stands, wall caps and sideline towels and spare jerseys")
 			.addBugfix("Hosted diagnostic browser routes and links retain their /play prefix")
 			.addImprovement("Game-service VM startup checks the DEV WebSocket endpoint and bounds PROD SSH readiness checks")
 			.addImprovement("Added a separate educational Moles Under the Pitch project site and browser-client delivery layout without changing FUMBBL accounts or game behavior")
