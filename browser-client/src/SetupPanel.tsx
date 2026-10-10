@@ -16,7 +16,8 @@ import './match-adjustments.css';
 import './ui-round-four.css';
 import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
-import type { MovementPlan, MovementRequest } from './movement-protocol.ts';
+import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
+import { matchesMovementRange } from './movement-range-read.ts';
 import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
@@ -187,7 +188,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
   routePreview = null, routeError = '', requestRoutePreview, movementPlan = null,
-  movementError = '', requestMovementPreview, matchControls, setupErrors = [] }: {
+  movementError = '', requestMovementPreview, movementRange = null, requestMovementRange, matchControls, setupErrors = [] }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
   logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
@@ -197,6 +198,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   requestRoutePreview?: (points: RoutePoint[]) => void;
   movementPlan?: MovementPlan | null; movementError?: string;
   requestMovementPreview?: (intent: MovementRequest | null) => void;
+  movementRange?: MovementRange | null;
+  requestMovementRange?: (playerId: string | null) => void;
   setupErrors?: string[];
   matchControls?: { fullscreen: boolean; toggleFullscreen: () => void; exitMatch: () => void; reconnect: () => void; error: string };
   mutate: (operation: string, fields?: Request) => void;
@@ -278,6 +281,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const decision = hosted ? withProTest(matchDecision(view, availableActions), logRecords, view.revision) : null;
   const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
   const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
+  // The authoritative endpoint must also have finished local playback. Draft
+  // waypoints and the intermediate animated squares never request a new range.
+  const rangePlayerId = hosted && connected && !requestPending && !suspended && !playbackActive
+    && pitchView.revision === view.revision && view.phase === 'PLAY' && !decision && !kickoffMovement
+    && view.callerRole !== 'spectator' && selectedPlayer?.x != null && selectedPlayer.y != null ? playerId : null;
+  const rangeRequest = useRef(requestMovementRange); rangeRequest.current = requestMovementRange;
+  useEffect(() => { rangeRequest.current?.(rangePlayerId); }, [rangePlayerId, view.matchId, view.revision]);
+  const displayedRange = rangePlayerId && matchesMovementRange(movementRange, view, rangePlayerId) ? movementRange : null;
   const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
     : !kickoff && !kickoffMovement && availableActions.length > 0;
   const gameStep = currentGameStep(pitchView);
@@ -694,6 +705,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
+        movementRange={displayedRange}
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={diceMoment}

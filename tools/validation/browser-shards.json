@@ -29,6 +29,7 @@
     [
       "browser-client/test/pass-workflow-ui.mjs",
       "browser-client/test/movement-flow-ui.mjs",
+      "browser-client/test/movement-range-ui.mjs",
       "browser-client/test/confirmation-position-ui.mjs",
       "browser-client/test/playback-ui.mjs",
       "browser-client/test/teammate-ui.mjs",

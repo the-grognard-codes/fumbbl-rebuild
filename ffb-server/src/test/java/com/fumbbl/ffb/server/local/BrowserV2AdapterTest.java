@@ -190,8 +190,12 @@ class BrowserV2AdapterTest {
 		when(access.playerRole(home, MATCH)).thenReturn("home");
 		when(access.playerRole(away, MATCH)).thenReturn("away");
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.movementRange("home", MATCH, 9, "p1")).thenReturn(new JsonObject().add("rangeVersion", 1));
-		when(setup.movementRange("away", MATCH, 9, "p1")).thenReturn(new JsonObject().add("rangeVersion", 1));
+		JsonObject range = new JsonObject().add("rangeVersion", 2).add("playerId", "p1")
+			.add("from", new JsonObject().add("x", 5).add("y", 5)).add("remaining", 8)
+			.add("normalRemaining", 6).add("normal", new JsonArray()).add("full", new JsonArray())
+			.add("revision", 9);
+		when(setup.movementRange("home", MATCH, 9, "p1")).thenReturn(range);
+		when(setup.movementRange("away", MATCH, 9, "p1")).thenReturn(range);
 		BrowserV2Adapter adapter = adapter(bearer -> "home".equals(bearer) ? home : "away".equals(bearer) ? away : spectator,
 			access, setup);
 		Connection first = new Connection(), second = new Connection(), viewer = new Connection();
@@ -205,6 +209,8 @@ class BrowserV2AdapterTest {
 		adapter.receive(viewer, read.toString());
 		assertEquals("ACCEPTED", code(first, 1));
 		assertEquals("ACCEPTED", code(second, 1));
+		assertEquals(range.toString(), JsonObject.readFrom(first.messages.get(1)).get("range").toString());
+		assertEquals(range.toString(), JsonObject.readFrom(second.messages.get(1)).get("range").toString());
 		assertEquals("AUTHORIZATION", code(viewer, 1));
 		verify(setup).movementRange("home", MATCH, 9, "p1");
 		verify(setup).movementRange("away", MATCH, 9, "p1");
