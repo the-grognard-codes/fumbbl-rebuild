@@ -14,6 +14,8 @@ import { canPlaceReserve } from './setup-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import type { PushChoice } from './push-choice.ts';
 import { passingLegend, passingSquare } from './passing-presentation.ts';
+import type { MovementRange } from './movement-protocol.ts';
+import { movementRangePresentation } from './movement-range-presentation.ts';
 import './live-pitch.css';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
@@ -87,13 +89,13 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 }
 
 /** Presentation only: positions, state, ball and identity come from the server. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], diceMoment = null,
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null,
   onUndoWaypoint,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
-  routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; diceMoment?: DiceMoment | null;
+  routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   onUndoWaypoint?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
@@ -155,6 +157,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     prior.current = { matchId: view.matchId, revision: view.revision, players: view.players };
   }, [view.matchId, view.revision, view.players]);
   const activePlayer = view.players.find(player => player.id === view.activePlayerId), selected = view.players.find(player => player.id === selectedId);
+  const rangeMarkings = movementRange && movementRange.full.length > 0 && movementRange.playerId === selectedId
+    ? movementRangePresentation(movementRange.normal, movementRange.full, movementRange.from, camera,
+      view.players.filter(player => player.x != null && player.y != null).map(player => ({ x: player.x!, y: player.y! }))) : null;
   const passing = view.passing;
   useEffect(() => {
     const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
@@ -278,6 +283,19 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           })}
           <path className="pitch-chalk" d={[chalk({ x: 0, y: 0 }, { x: 26, y: 0 }), chalk({ x: 0, y: 15 }, { x: 26, y: 15 }), ...[0, 1, 13, 25, 26].map(x => chalk({ x, y: 0 }, { x, y: 15 }))].join(' ')}/>
           {[4, 11].map(y => <path key={y} className="pitch-chalk wide" d={chalk({ x: 0, y }, { x: 26, y })}/>) }
+          {rangeMarkings && <g className="live-movement-range" data-range-player={movementRange!.playerId}
+            data-range-from={`${movementRange!.from.x},${movementRange!.from.y}`} data-range-revision={movementRange!.revision} aria-hidden="true">
+            {rangeMarkings.full.map(edge => <path key={`full-${edge.key}`} className="live-range-full"
+              d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
+            {rangeMarkings.normal.map(edge => <path key={`normal-${edge.key}`} className="live-range-normal"
+              d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
+            {rangeMarkings.warnings.map(warning => <g key={`${warning.square.x},${warning.square.y}`}
+              data-rush-warning={`${warning.square.x},${warning.square.y}`}>
+              <path className="live-range-warning-triangle" d={warning.path}/>
+              <text className="live-range-warning-mark" x={warning.center.x} y={warning.center.y}
+                fontSize={warning.size}>!</text>
+            </g>)}
+          </g>}
           {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`}
             className="live-target-square"
             points={points(camera.square(square, .06, true))}/>)}
@@ -335,6 +353,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       </div>
     </div>
     {routePreview && <ol className="sr-only" aria-label="Planned route">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}</li>)}</ol>}
+    {rangeMarkings && movementRange && <p className="sr-only" aria-live="polite">Movement range: {movementRange.normalRemaining} normal movement points remaining,
+      {' '}{movementRange.remaining} including rushes.</p>}
     <output className="sr-only" aria-live="polite">{cursor ? `Square ${cursor.x}, ${cursor.y}` : 'Pitch camera ready'}</output>
   </section>;
 }

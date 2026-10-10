@@ -477,6 +477,12 @@
 .live-player-shadow { fill: #08120966; stroke: none; pointer-events: none; }
 .live-kick-target { fill: #f6dfa840; stroke: #f7e6b4; stroke-width: 3; stroke-dasharray: 8 4; pointer-events: none; }
 .pitch-chalk.wide { stroke-dasharray: 12 10; }
+.live-movement-range { pointer-events: none; }
+.live-range-normal, .live-range-full { fill: none; stroke-width: 2.25; stroke-opacity: .75; stroke-linecap: round; stroke-linejoin: round; }
+.live-range-normal { stroke: #36ddff; }
+.live-range-full { stroke: #ffe17b; }
+.live-range-warning-triangle { fill: none; stroke: #d9e2e6b8; stroke-width: 1; stroke-linejoin: round; }
+.live-range-warning-mark { fill: #d9e2e6b8; font-family: sans-serif; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
 .live-selection-square { fill: #36ddff18; stroke: #36ddff; stroke-width: 3; }
 .live-keyboard-square { fill: #ffe17b18; stroke: #ffe17b; stroke-width: 2; stroke-dasharray: 4 3; }
 .play-runtime .projected-pitch .live-marker { border: 0; border-radius: 0; box-shadow: none; outline: none; transition: none; transform: none; background: transparent; overflow: visible; }

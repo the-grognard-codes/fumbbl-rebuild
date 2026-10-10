@@ -23,7 +23,7 @@ try {
       '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
     await page.addInitScript(journey => {
       window.WebSocket = class {
-        static OPEN = 1; readyState = 1; index = 0; state = journey.frames[0].actor; sent = [];
+        static OPEN = 1; readyState = 1; index = 0; state = journey.frames[0].actor; sent = []; rangeResponses = 0;
         constructor() { window.testSocket = this; queueMicrotask(() => this.onopen?.()); }
         emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
         send(raw) {
@@ -33,11 +33,13 @@ try {
           if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({ version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
           if (request.type === 'movementRange') {
             const player = this.state.players.find(player => player.id === request.playerId);
-            const steps = this.state.actions.filter(action => action.kind === 'move' && action.sourcePlayerId === player.id)
-              .map(action => ({ ...action.target, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }));
-            queueMicrotask(() => this.emit({ version: 2, type: 'movementRange', requestId: request.requestId,
-              code: 'ACCEPTED', matchId: this.state.matchId, range: { rangeVersion: 1, playerId: player.id,
-                from: { x: player.x, y: player.y }, remaining: 8, steps, revision: this.state.revision } }));
+            const squares = this.state.actions.filter(action => action.kind === 'move' && action.sourcePlayerId === player.id)
+              .map(action => ({ x: action.target.x, y: action.target.y }));
+            queueMicrotask(() => { this.emit({ version: 2, type: 'movementRange', requestId: request.requestId,
+              code: 'ACCEPTED', matchId: this.state.matchId, range: { rangeVersion: 2, playerId: player.id,
+                from: { x: player.x, y: player.y }, remaining: 8, normalRemaining: 6,
+                normal: squares, full: squares, revision: this.state.revision } });
+              this.rangeResponses++; });
           }
           if (request.type === 'routePreview' || request.type === 'movementPreview') {
             const player = this.state.players.find(player => player.id === (request.playerId ?? this.state.activePlayerId));
@@ -64,6 +66,10 @@ try {
     const pitch = page.getByLabel('Live match pitch'), confirm = page.getByRole('button', { name: 'Confirmed!', exact: true });
     const cell = (x, y) => pitch.locator(`[data-cell-x="${x}"][data-cell-y="${y}"]`);
     await pitch.locator('[data-player-id="actor"]').click();
+    await page.waitForFunction(() => window.testSocket.rangeResponses > 0, null, { timeout: 5000 });
+    assert.equal(await page.evaluate(() => window.testSocket.readyState), 1,
+      'The movement range response must keep the authenticated pitch connected');
+    assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Range inspection cannot activate the passer');
     assert.equal(await pitch.locator('[data-pass-range]').count(), 0);
     await page.getByRole('button', { name: 'Other action', exact: true }).click();
     await page.getByRole('button', { name: 'Pass', exact: true }).click(); await confirm.click();

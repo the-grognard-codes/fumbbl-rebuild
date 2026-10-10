@@ -9,7 +9,8 @@ import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
-import type { MovementPlan } from './movement-protocol.ts';
+import type { MovementPlan, MovementRange } from './movement-protocol.ts';
+import { MovementRangeRead } from './movement-range-read.ts';
 import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
 import { MatchupTeam } from './MatchupTeam.tsx';
@@ -91,6 +92,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [movementPlan, setMovementPlan] = useState<MovementPlan | null>(null);
   const [movementError, setMovementError] = useState('');
   const movementRequestRef = useRef<{ id: string; revision: number } | null>(null);
+  const [rangeResult, setRangeResult] = useState<{ matchId: string; range: MovementRange } | null>(null);
+  const rangeRead = useRef(new MovementRangeRead());
   const logRecordsRef = useRef<TranscriptRecord[]>([]);
   const logRequestRef = useRef<string | null>(null);
   const logUnavailableRef = useRef(false);
@@ -203,6 +206,18 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       }
       const routeFailure = routeRequestRef.current !== null && message.type === 'error' && message.requestId === routeRequestRef.current;
       const movementFailure = message.type === 'error' && message.requestId === movementRequestRef.current?.id;
+      const rangeFailure = message.type === 'error' && rangeRead.current.isRead(message.requestId);
+      if (message.type === 'movementRange') {
+        const current = rangeRead.current.expects(message.requestId);
+        const range = rangeRead.current.accept({ requestId: message.requestId,
+          matchId: message.matchId, range: message.range }, connection.state);
+        if (current) setRangeResult(range ? { matchId: message.matchId, range } : null);
+      }
+      if (rangeFailure) {
+        const current = rangeRead.current.expects(message.requestId);
+        rangeRead.current.finish(message.requestId);
+        if (current) setRangeResult(null);
+      }
       if (message.type === 'movementPreview' && message.requestId === movementRequestRef.current?.id) {
         movementRequestRef.current = null; setMovementPlan(message.plan); setMovementError('');
       }
@@ -213,10 +228,13 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         const revision = message.state.revision;
         setMovementPlan(plan => plan?.route.revision === revision ? plan : null);
         if (movementRequestRef.current?.revision !== revision) movementRequestRef.current = null;
+        rangeRead.current.invalidate(message.state);
+        setRangeResult(result => result && result.matchId === message.state.matchId && result.range.revision === revision ? result : null);
       }
       if (message.type === 'status' && message.code === 'DISCONNECTED') {
         movementRequestRef.current = null;
         setMovementPlan(null); setMovementError('');
+        rangeRead.current.reset(); setRangeResult(null);
       }
       if (message.type === 'routePreview' && message.requestId === routeRequestRef.current) {
         routeRequestRef.current = null; setRoutePreview(message.route); setRouteError('');
@@ -288,6 +306,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
         && !movementFailure
+        && !rangeFailure
         && !currentMatchesFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
@@ -478,6 +497,18 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       })}
       routePreview={routePreview} routeError={routeError} setupErrors={setupErrors}
       movementPlan={movementPlan} movementError={movementError}
+      movementRange={rangeResult && rangeResult.matchId === connection.state?.matchId ? rangeResult.range : null}
+      requestMovementRange={playerId => {
+        rangeRead.current.clear(); setRangeResult(null);
+        const state = connection.state;
+        if (playerId && state) {
+          try {
+            const id = connection.request('movementRange', { matchId: state.matchId,
+              expectedRevision: state.revision, playerId });
+            rangeRead.current.begin(id, state, playerId);
+          } catch { /* Guidance can be unavailable without interrupting an action. */ }
+        }
+      }}
       requestMovementPreview={intent => run(() => {
         movementRequestRef.current = null; setMovementPlan(null); setMovementError('');
         if (intent) {

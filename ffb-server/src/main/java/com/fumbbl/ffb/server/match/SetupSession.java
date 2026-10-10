@@ -1087,20 +1087,27 @@ public final class SetupSession {
 		if (player == null) throw new MatchService.Failure("WRONG_PLAYER");
 		FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
 		if (!FieldCoordinateBounds.FIELD.isInBounds(from)) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
-		boolean own = ("home".equals(role) ? game.getTeamHome() : game.getTeamAway()).hasPlayer(player);
+		boolean activeTeam = (game.isHomePlaying() ? game.getTeamHome() : game.getTeamAway()).hasPlayer(player);
 		PlayerState status = game.getFieldModel().getPlayerState(player);
 		boolean capable = (status.getBase() == PlayerState.STANDING || status.getBase() == PlayerState.MOVING
 			|| status.getBase() == PlayerState.PRONE) && !status.isPinned()
 			&& !player.hasSkillProperty(NamedProperties.movesRandomly);
 		boolean active = game.getActingPlayer().getPlayer() == player;
-		boolean eligible = !own || (active
+		TurnMode mode = game.getTurnMode();
+		boolean supported = mode == TurnMode.REGULAR || mode == TurnMode.BLITZ
+			|| mode == TurnMode.KICKOFF_RETURN || mode == TurnMode.PASS_BLOCK;
+		boolean special = mode == TurnMode.KICKOFF_RETURN || mode == TurnMode.PASS_BLOCK;
+		boolean eligible = supported && (!activeTeam || (active
 			? game.getActingPlayer().getPlayerAction() != null
-				&& game.getActingPlayer().getPlayerAction().isMoving()
-			: status.isActive());
+				&& (game.getActingPlayer().getPlayerAction().isMoving()
+					|| !special && game.getActingPlayer().getPlayerAction().isStandingUp())
+				&& !game.getActingPlayer().isHeldInPlace()
+			: !special && status.isActive()));
 		JsonObject range;
-		if (capable && eligible) range = new RoutePlanner(state, player, !own).range();
-		else range = new JsonObject().add("rangeVersion", 1).add("playerId", playerId)
-			.add("from", point(from)).add("remaining", 0).add("steps", new JsonArray());
+		if (capable && eligible) range = RoutePlanner.forRange(state, player, !activeTeam).range();
+		else range = new JsonObject().add("rangeVersion", 2).add("playerId", playerId)
+			.add("from", point(from)).add("remaining", 0).add("normalRemaining", 0)
+			.add("normal", new JsonArray()).add("full", new JsonArray());
 		return range.add("revision", revision);
 	}
 

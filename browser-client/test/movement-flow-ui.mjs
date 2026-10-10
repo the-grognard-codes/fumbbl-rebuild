@@ -47,6 +47,16 @@ async function openJourney(readyState, plan, acceptedState) {
               waypoints: request.waypoints.length ? request.waypoints : plan.waypoints,
               route: { ...plan.route, steps, revision: this.state.revision } } }));
         }
+        if (request.type === 'movementRange') {
+          const exported = [fixture.ownRange.range, fixture.opponentRange.range]
+            .find(range => range.playerId === request.playerId);
+          const player = this.state.players.find(player => player.id === request.playerId);
+          const range = exported && exported.from.x === player.x && exported.from.y === player.y ? exported
+            : { rangeVersion: 2, playerId: player.id, from: { x: player.x, y: player.y },
+              remaining: 0, normalRemaining: 0, normal: [], full: [] };
+          queueMicrotask(() => this.emit({ version: 2, type: 'movementRange', requestId: request.requestId,
+            code: 'ACCEPTED', matchId: this.state.matchId, range: { ...range, revision: this.state.revision } }));
+        }
         if (request.type === 'setup') {
           if (request.operation === 'movement') this.state = acceptedState;
           queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
@@ -75,8 +85,8 @@ try {
       await select(selection.page, player.id);
       await selection.page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), player.id);
       await assertNoMovementMarkings(selection.page);
-      assert.equal(await selection.page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0,
-        'Either coach can select own or opposing players without requesting range forecasts, including off-turn');
+      assert.ok(await selection.page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
+        && request.playerId === id), player.id), 'Either coach requests a read-only range, including off-turn');
       assert.deepEqual(await mutations(selection.page), [], 'Selection does not activate a player');
     }
     assert.deepEqual(selection.errors, []);
@@ -86,13 +96,17 @@ try {
   await select(page, fixture.meta.opponentId);
   await page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), fixture.meta.opponentId);
   await assertNoMovementMarkings(page);
-  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0, 'Selection does not request a range');
+  await page.locator('.live-movement-range').waitFor();
+  assert.ok(await page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
+    && request.playerId === id), fixture.meta.opponentId), 'Opponent selection requests its range');
   assert.equal(await confirmed.isDisabled(), true, 'Opponent inspection cannot commit an action');
   assert.deepEqual(await mutations(page), []);
   await select(page, fixture.meta.opponentId);
   await select(page, fixture.meta.playerId);
   await assertNoMovementMarkings(page);
-  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange').length), 0, 'Selection does not request a range');
+  await page.locator('.live-movement-range').waitFor();
+  assert.ok(await page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
+    && request.playerId === id), fixture.meta.playerId), 'Own selection requests its range');
   assert.equal(await page.getByRole('button', { name: 'Move', exact: true }).getAttribute('aria-pressed'), 'true');
   assert.equal(await confirmed.isDisabled(), true, 'Player selection alone cannot activate');
   const end = fixture.movePlan.plan.waypoints.at(-1);
@@ -197,7 +211,7 @@ try {
     await approach.page.locator('.pitch-decision-overlay').waitFor();
   else await approach.page.getByText('Waiting for the other participant.', { exact: true }).waitFor();
   assert.deepEqual(approach.errors, []); await approach.page.close();
-  console.log('PASS: no range requests or markings on native-backed own/opponent selection, adjacent/distant Move and Blitz, waypoint-span undo, cancellation, Space and repeated-confirm guards.');
+  console.log('PASS: read-only own/opponent range selection, adjacent/distant Move and Blitz, waypoint-span undo, cancellation, Space and repeated-confirm guards; no movement risk grades or roll targets.');
 } finally {
   await browser.close(); await server.close();
 }
