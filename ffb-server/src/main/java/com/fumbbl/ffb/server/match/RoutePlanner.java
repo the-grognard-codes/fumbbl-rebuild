@@ -6,6 +6,7 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.DodgeModifierFactory;
 import com.fumbbl.ffb.factory.common.GoForItModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
@@ -20,12 +21,16 @@ import com.fumbbl.ffb.modifiers.GoForItContext;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
+import com.fumbbl.ffb.util.UtilPassing;
+import com.fumbbl.ffb.util.pathfinding.PathFinderWithPassBlockSupport;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,6 +49,7 @@ final class RoutePlanner {
 	private final FieldCoordinate start;
 	private final int allowance;
 	private final int currentMove;
+	private final TurnMode rangeMode;
 	private final AgilityMechanic agility;
 	private final MovementChecks movementChecks;
 
@@ -58,12 +64,18 @@ final class RoutePlanner {
 		this(state, selected, nextTurn, false);
 	}
 
+	static RoutePlanner forRange(GameState state, Player<?> selected, boolean nextTurn) {
+		// A selected jump action does not suppress the ordinary movement forecast.
+		return new RoutePlanner(state, selected, nextTurn, true);
+	}
+
 	private RoutePlanner(GameState state, Player<?> selected, boolean nextTurn, boolean allowJump) {
 		this.state = state;
 		game = state.getGame();
 		ActingPlayer active = game.getActingPlayer();
 		player = selected;
 		acting = selected != null && active.getPlayer() == selected && !nextTurn ? active : new ActingPlayer(game);
+		rangeMode = !nextTurn && active.getPlayer() == selected ? game.getTurnMode() : TurnMode.REGULAR;
 		if (acting != active && selected != null) acting.setPlayerId(selected.getId());
 		movementChecks = new MovementChecks(state, selected);
 		if (player == null || (acting.isJumping() && !allowJump) || player.hasSkillProperty(NamedProperties.movesRandomly))
@@ -82,41 +94,50 @@ final class RoutePlanner {
 	}
 
 	JsonObject range() {
-		JsonArray steps = new JsonArray();
-		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
-		Map<String, Node> best = new HashMap<>();
-		Map<String, Node> squares = new HashMap<>();
-		Node root = new Node(start, 0, 0, 0, 0, false, null, null);
-		queue.add(root);
-		best.put(key(root), root);
+		boolean special = rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK;
+		int remaining = Math.max(0, (special ? 3 : allowance) - currentMove);
+		int normalRemaining = special ? remaining : Math.max(0, player.getMovementWithModifiers() - currentMove);
+		JsonArray normal = new JsonArray(), full = new JsonArray();
+		FieldCoordinateBounds bounds = rangeMode == TurnMode.KICKOFF_RETURN
+			? (game.isHomePlaying() ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY)
+			: FieldCoordinateBounds.FIELD;
+		boolean legacyPassBlock = rangeMode == TurnMode.PASS_BLOCK
+			&& game.getMechanic(Mechanic.Type.ON_THE_BALL) instanceof com.fumbbl.ffb.mechanics.bb2016.OnTheBallMechanic;
+		Set<FieldCoordinate> validPassBlockEnds = legacyPassBlock
+			? UtilPassing.findValidPassBlockEndCoordinates(game) : java.util.Collections.emptySet();
+		Map<FieldCoordinate, Integer> distance = new HashMap<>();
+		ArrayDeque<FieldCoordinate> queue = new ArrayDeque<>();
+		distance.put(start, 0);
+		queue.add(start);
 		while (!queue.isEmpty()) {
-			Node node = queue.remove();
-			if (best.get(key(node)) != node) continue;
-			if (node.step != null) {
-				String square = node.at.getX() + ":" + node.at.getY();
-				Node prior = squares.get(square);
-				if (prior == null || compare(node, prior) < 0) squares.put(square, node);
-			}
-			if (currentMove + node.used >= allowance) continue;
+			FieldCoordinate from = queue.removeFirst();
+			int used = distance.get(from);
+			if (used >= remaining) continue;
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
-				FieldCoordinate next = node.at.add(x, y);
-				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || next.equals(start) || occupied(next)) continue;
-				Step step = step(node.at, next, node.used, node.ballHandled, false);
-				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
-				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
-				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
-				Node candidate = new Node(next, node.used + 1, reactions, rolls, risk, node.ballHandled || step.checks.ballContact, node, step);
-				String key = key(candidate);
-				Node prior = best.get(key);
-				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
+				FieldCoordinate next = from.add(x, y);
+				if (!bounds.isInBounds(next) || occupied(next) || distance.containsKey(next)
+					|| legacyPassBlock && !validPassBlockStep(next, used + 1, remaining, validPassBlockEnds)) continue;
+				distance.put(next, used + 1);
+				queue.addLast(next);
 			}
 		}
-		List<Node> ordered = new ArrayList<>(squares.values());
-		ordered.sort(Comparator.comparingInt((Node node) -> node.at.getY()).thenComparingInt(node -> node.at.getX()));
-		for (Node node : ordered) steps.add(node.step.json());
-		return new JsonObject().add("rangeVersion", 1).add("playerId", player.getId())
-			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove)).add("steps", steps);
+		List<FieldCoordinate> ordered = new ArrayList<>(distance.keySet());
+		ordered.remove(start);
+		ordered.sort(Comparator.comparingInt(FieldCoordinate::getY).thenComparingInt(FieldCoordinate::getX));
+		for (FieldCoordinate square : ordered) {
+			full.add(point(square));
+			if (distance.get(square) <= normalRemaining) normal.add(point(square));
+		}
+		return new JsonObject().add("rangeVersion", 2).add("playerId", player.getId())
+			.add("from", point(start)).add("remaining", remaining).add("normalRemaining", normalRemaining)
+			.add("normal", normal).add("full", full);
+	}
+
+	private boolean validPassBlockStep(FieldCoordinate to, int used, int remaining,
+		Set<FieldCoordinate> validEndCoordinates) {
+		return validEndCoordinates.contains(to) || ArrayTool.isProvided(PathFinderWithPassBlockSupport.INSTANCE
+			.allowPassBlockMove(game, player, to, remaining - used, false, validEndCoordinates));
 	}
 
 	JsonObject preview(List<FieldCoordinate> waypoints) {
