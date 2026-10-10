@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { PitchProjection } from './pitch-projection.ts';
 import {useActiveCrowdSection} from './CrowdGestureProvider.tsx';
 import { registerJigsaw, mapJigsaw, type JigsawModule } from './stadium-jigsaw.ts';
@@ -8,6 +8,7 @@ import { type StadiumProfile } from './stadium-presentation.ts';
 export function JigsawSurface({camera,module,onError,failed,gestureFailed}:{camera:PitchProjection;module:JigsawModule;
   onError:(profile:StadiumProfile,source?:string)=>void;failed:boolean;gestureFailed:boolean}){
   const active=useActiveCrowdSection();
+  const [failedFrames,setFailedFrames]=useState<ReadonlySet<string>>(new Set());
   const surface=camera.registeredSurfaceImage(module.art.width,module.art.height,
     module.registration,module.origin,module.across,module.down,module.bounds);
   const metadata={'data-jigsaw-piece':module.piece??module.id,'data-jigsaw-row':module.piece?module.id:undefined,'data-stadium-role':module.role,
@@ -22,18 +23,28 @@ export function JigsawSurface({camera,module,onError,failed,gestureFailed}:{came
   const inverse=registerJigsaw(source.map(p=>mapJigsaw(module.registration,p)),source);
   const holes=module.holes?.filter(h=>h.x1>module.bounds.x0&&h.x0<module.bounds.x1&&h.y1>module.bounds.y0&&h.y0<module.bounds.y1);
   const style:CSSProperties={width:surface.width,height:surface.height,transform:surface.transform,clipPath:surface.clipPath};
-  const mask=holes?.length?'url("data:image/svg+xml,'+encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="'+module.art.width+'" height="'+module.art.height+'"><path fill="white" fill-rule="evenodd" d="M0 0H'+module.art.width+'V'+module.art.height+'H0Z '+holes.map(h=>[ {x:h.x0,y:h.y0},{x:h.x1,y:h.y0},{x:h.x1,y:h.y1},{x:h.x0,y:h.y1}].map(p=>mapJigsaw(inverse,p)).map((p,i)=>(i?'L':'M')+p.x+' '+p.y).join(' ')+'Z').join(' ')+'"/></svg>')+'")':undefined;
+  const sourcePath=(points:readonly {x:number;y:number}[])=>points.map(p=>mapJigsaw(inverse,p)).map((p,i)=>(i?'L':'M')+p.x+' '+p.y).join(' ')+'Z';
+  const outline=module.outline?sourcePath(module.outline):'M0 0H'+module.art.width+'V'+module.art.height+'H0Z';
+  const mask=module.outline||holes?.length?'url("data:image/svg+xml,'+encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="'+module.art.width+'" height="'+module.art.height+'"><path fill="white" fill-rule="evenodd" d="'+outline+' '+(holes??[]).map(h=>sourcePath([{x:h.x0,y:h.y0},{x:h.x1,y:h.y0},{x:h.x1,y:h.y1},{x:h.x0,y:h.y1}])).join(' ')+'"/></svg>')+'")':undefined;
   const imageStyle:CSSProperties={position:'absolute',left:-surface.left,top:-surface.top,width:module.art.width,height:module.art.height,
     maxWidth:'none',imageRendering:'pixelated',maskImage:mask};
   const z=module.gesture?.zone,gestureVisible=z&&surface.left+surface.width>z.x&&surface.left<z.x+z.width&&surface.top+surface.height>z.y&&surface.top<z.y+z.height;
+  const gestureStyle:CSSProperties=z?{...imageStyle,clipPath:'polygon('+z.x/module.art.width*100+'% '+z.y/module.art.height*100+'%, '+(z.x+z.width)/module.art.width*100+'% '+z.y/module.art.height*100+'%, '+(z.x+z.width)/module.art.width*100+'% '+(z.y+z.height)/module.art.height*100+'%, '+z.x/module.art.width*100+'% '+(z.y+z.height)/module.art.height*100+'%)'}:imageStyle;
+  const frames=module.gesture?.frames??[];
+  const frameError=(file:string)=>{setFailedFrames(previous=>new Set([...previous,file]));onError(module.profile,file);};
   return <div className={'stadium-surface'+(module.role==='crowd'?' pitch-stadium-crowd':'')} {...metadata} style={style}>
     <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
       {failed?<div data-art-fallback={module.role} style={{width:'100%',height:'100%',background:module.profile.palette.stone}}/>:
         <><img src={import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+module.art.file} alt="" style={imageStyle} onError={()=>onError(module.profile,module.art.file)}/>
-          {!gestureFailed&&gestureVisible&&module.gesture?<img className="stadium-gesture" data-active={active===module.piece?'true':'false'} data-motion="section-gesture"
-            src={import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+module.gesture.file} alt="" onError={()=>onError(module.profile,module.gesture!.file)}
-            style={{...imageStyle,clipPath:'polygon('+z.x/module.art.width*100+'% '+z.y/module.art.height*100+'%, '+(z.x+z.width)/module.art.width*100+'% '+z.y/module.art.height*100+'%, '+(z.x+z.width)/module.art.width*100+'% '+(z.y+z.height)/module.art.height*100+'%, '+z.x/module.art.width*100+'% '+(z.y+z.height)/module.art.height*100+'%)'}}/>:null}</>}
+          {!gestureFailed&&gestureVisible&&module.gesture?<>
+            {frames.map((frame,index)=>failedFrames.has(frame.file)?null:<img key={frame.file} className="stadium-gesture stadium-gesture-intermediate"
+              data-active={active===module.piece?'true':'false'} data-motion="section-gesture" data-frame-count={frames.length} data-frame-index={index}
+              src={import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+frame.file} alt="" onError={()=>frameError(frame.file)} style={gestureStyle}/>)}
+            <img className="stadium-gesture stadium-gesture-peak" data-active={active===module.piece?'true':'false'} data-motion="section-gesture"
+              src={import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+module.gesture.file} alt="" onError={()=>onError(module.profile,module.gesture!.file)}
+              style={gestureStyle}/>
+          </>:null}</>}
     </div>
   </div>;
 }

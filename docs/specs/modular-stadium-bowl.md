@@ -4,6 +4,8 @@ Issue: [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211).
 Approved reference and detailed decisions: [art brief](../../assets/game/references/stadiums/human-reference-revision/README.md).
 Fixed starting point: 540804aa3cd08ef2687f2a2356f49c1607a1fb4f.
 
+Current status (2026-10-09): PR #214 merged as bda485f1d9cb07b984687016dd5e3aeaf7fd704d; its draft/expired-ADC statements below are historical checkpoints. The newly requested implementation on `codex/modular-stadium-framework` extends that framework with mixed-race crowd sheets, matching overhead art, intermediate gesture frames, rounded corner outlines, proportional source registration, wall caps and team towels/jerseys. See the [current implementation and verification](../verification/modular-stadium-framework.md). The owner's manual visual review remains separate from these technical checks.
+
 The user accepted the first-iteration material/crowd style, raised bowl, existing-camera geometry study and modular production approach. Reproduce that assembled intent, not the earlier sparse fan groups and open terrace bands.
 
 Delivery slices:
