@@ -5,7 +5,9 @@ import { decodeMovementPreview, decodeMovementRange } from '../src/movement-prot
 
 const step = { x: 8, y: 7, dodge: 3, rush: 2, dodgeModifier: -1, reactions: [], checks: [] };
 const envelope = { version: 2, requestId: 'movement-1', code: 'ACCEPTED', matchId: '12345678-1234-1234-1234-123456789abc' };
-const range = { rangeVersion: 1, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8, steps: [step], revision: 4 };
+const square = { x: 8, y: 7 };
+const range = { rangeVersion: 2, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8,
+  normalRemaining: 6, normal: [square], full: [square, { x: 14, y: 7 }], revision: 4 };
 const route = { routeVersion: 3, playerId: 'home1', from: range.from, remaining: 8, steps: [step], revision: 4, actor: 'home' };
 const plan = { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: [{ x: 8, y: 7 }], route };
 
@@ -28,14 +30,20 @@ test('all exported native movement ranges and plans satisfy the reviewed wire co
   }
 });
 
-test('full range accepts zero allowance but rejects duplicate, unreachable and private squares', () => {
+test('range sets accept zero allowance and enforce budgets, subset membership and public fields', () => {
   const response = { ...envelope, type: 'movementRange', range };
-  assert.equal(decodeMovementRange(JSON.stringify(response)).range.steps[0].rush, 2);
-  assert.deepEqual(decodeMovementRange(JSON.stringify({ ...response, range: { ...range, remaining: 0, steps: [] } })).range.steps, []);
+  assert.deepEqual(decodeMovementRange(JSON.stringify(response)).range.normal, [square]);
+  assert.deepEqual(decodeMovementRange(JSON.stringify({ ...response, range: { ...range, remaining: 0,
+    normalRemaining: 0, normal: [], full: [] } })).range.full, []);
+  assert.deepEqual(decodeMovementRange(JSON.stringify({ ...response, range: { ...range,
+    normalRemaining: 0, normal: [] } })).range.normal, []);
   for (const invalid of [
-    { ...range, steps: [step, step] }, { ...range, remaining: 0 },
-    { ...range, steps: [{ ...step, x: 7 }] }, { ...range, steps: [{ ...step, x: 25 }] },
-    { ...range, steps: [{ ...step, hiddenRoll: 6 }] }, { ...range, hiddenSkillState: [] },
+    { ...range, full: [square, square] }, { ...range, normal: [square, square] },
+    { ...range, remaining: 0 }, { ...range, normalRemaining: 9 }, { ...range, normalRemaining: 0 },
+    { ...range, full: [{ x: 7, y: 7 }] }, { ...range, full: [{ x: 25, y: 7 }] },
+    { ...range, normal: [{ x: 14, y: 7 }] }, { ...range, full: [] },
+    { ...range, full: [{ ...square, dodge: 3 }] }, { ...range, hiddenSkillState: [] },
+    { ...range, rangeVersion: 1 },
   ]) assert.throws(() => decodeMovementRange(JSON.stringify({ ...response, range: invalid })));
   assert.throws(() => decodeMovementRange(JSON.stringify({ ...response, privateAccount: 'secret' })));
 });

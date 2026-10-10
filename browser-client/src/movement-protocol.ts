@@ -1,9 +1,9 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
-import { decodeRoutePreviewValue, decodeRouteStep } from './route-protocol.ts';
-import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
+import { decodeRoutePreviewValue } from './route-protocol.ts';
+import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 
-export type MovementRange = { rangeVersion: 1; playerId: string; from: RoutePoint; remaining: number;
-  steps: RouteStep[]; revision: number };
+export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
+  normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
 export type MovementRequest = { playerId: string; kind: 'move' | 'blitz'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
   waypoints: RoutePoint[]; route: RoutePreview };
@@ -42,19 +42,25 @@ function envelope(json: string, type: string, field: string): Record<string, unk
 
 export function decodeMovementRange(json: string): MovementRangeResponse {
   const response = envelope(json, 'movementRange', 'range');
-  const value = object(response.range, ['rangeVersion', 'playerId', 'from', 'remaining', 'steps', 'revision']);
-  if (value.rangeVersion !== 1 || !Array.isArray(value.steps) || value.steps.length > 389) throw Error('Invalid movement range');
+  const value = object(response.range, ['rangeVersion', 'playerId', 'from', 'remaining', 'normalRemaining', 'normal', 'full', 'revision']);
+  if (value.rangeVersion !== 2) throw Error('Invalid movement range');
   const from = point(value.from), remaining = integer(value.remaining, 20);
-  const steps = value.steps.map(step => decodeRouteStep(step, 3));
-  const squares = new Set<string>();
-  for (const step of steps) {
-    const distance = Math.max(Math.abs(step.x - from.x), Math.abs(step.y - from.y));
-    const key = `${step.x},${step.y}`;
-    if (!distance || distance > remaining || squares.has(key)) throw Error('Invalid reachable square');
-    squares.add(key);
-  }
-  return { ...response, range: { rangeVersion: 1, playerId: playerId(value.playerId), from, remaining,
-    steps, revision: integer(value.revision, 8192) } } as MovementRangeResponse;
+  const normalRemaining = integer(value.normalRemaining, remaining);
+  const destinations = (source: unknown, budget: number) => {
+    if (!Array.isArray(source) || source.length > 389) throw Error('Invalid movement destinations');
+    const squares = new Set<string>();
+    return source.map(value => {
+      const square = point(value), key = `${square.x},${square.y}`;
+      const distance = Math.max(Math.abs(square.x - from.x), Math.abs(square.y - from.y));
+      if (!distance || distance > budget || squares.has(key)) throw Error('Invalid reachable square');
+      squares.add(key); return square;
+    });
+  };
+  const normal = destinations(value.normal, normalRemaining), full = destinations(value.full, remaining);
+  const fullKeys = new Set(full.map(square => `${square.x},${square.y}`));
+  if (normal.some(square => !fullKeys.has(`${square.x},${square.y}`))) throw Error('Normal range outside full range');
+  return { ...response, range: { rangeVersion: 2, playerId: playerId(value.playerId), from, remaining,
+    normalRemaining, normal, full, revision: integer(value.revision, 8192) } } as MovementRangeResponse;
 }
 
 export function decodeMovementPreview(json: string): MovementPreviewResponse {

@@ -262,8 +262,8 @@ test('opponent range reads are role-safe, correlated and cannot acknowledge reta
     playerId: 'p1', kind: 'move', targetPlayerId: null, waypoints: [{ x: 8, y: 7 }] }, true);
   const forecast = client.request('movementRange', { matchId: match, expectedRevision: 2, playerId: 'p2' });
   socket.reply({ type: 'movementRange', requestId: forecast, code: 'ACCEPTED', matchId: match, range: {
-    rangeVersion: 1, playerId: 'p2', from: { x: 9, y: 7 }, remaining: 8, revision: 2,
-    steps: [{ x: 10, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }],
+    rangeVersion: 2, playerId: 'p2', from: { x: 9, y: 7 }, remaining: 8, normalRemaining: 6, revision: 2,
+    normal: [{ x: 10, y: 7 }], full: [{ x: 10, y: 7 }],
   } });
   assert.equal(socket.closed, false);
   assert.equal(client.pending?.request.requestId, mutation);

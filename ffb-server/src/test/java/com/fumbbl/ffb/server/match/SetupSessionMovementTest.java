@@ -4,7 +4,13 @@ import com.fumbbl.ffb.BlockDiceCategory;
 import com.fumbbl.ffb.DiceCategory;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.PlayerAction;
+import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.model.ActingPlayer;
+import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameCache;
@@ -38,6 +44,115 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void specialTurnForecastsAreBoundedAndOtherModesGiveNoGuidance() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject view = fixture.advanceToTurn();
+        String role = view.getString("actor", null);
+        String otherRole = "home".equals(role) ? "away" : "home";
+        int revision = view.getInt("revision", -1);
+        String activeId = null, inactiveId = null;
+        for (JsonValue value : view.get("players").asArray()) {
+            JsonObject candidate = value.asObject();
+            if (!"pitch".equals(candidate.getString("offPitch", null))) continue;
+            if (role.equals(candidate.getString("role", null)) && activeId == null)
+                activeId = candidate.getString("id", null);
+            if (otherRole.equals(candidate.getString("role", null)) && inactiveId == null)
+                inactiveId = candidate.getString("id", null);
+        }
+        Field stateField = SetupSession.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        game.getActingPlayer().setPlayerId(activeId);
+        game.getActingPlayer().setPlayerAction(PlayerAction.MOVE);
+        game.getActingPlayer().setCurrentMove(1);
+        for (TurnMode mode : new TurnMode[] { TurnMode.KICKOFF_RETURN, TurnMode.PASS_BLOCK }) {
+            game.setTurnMode(mode);
+            String checkpoint = fixture.session.recoveryArtifact();
+            JsonObject active = fixture.session.movementRange(otherRole, revision, activeId);
+            JsonObject inactive = fixture.session.movementRange(role, revision, inactiveId);
+            assertEquals(2, active.getInt("remaining", -1));
+            assertEquals(2, active.getInt("normalRemaining", -1));
+            assertEquals(active.get("normal").toString(), active.get("full").toString());
+            assertEquals(8, inactive.getInt("remaining", -1));
+            assertEquals(checkpoint, fixture.session.recoveryArtifact());
+            game.getActingPlayer().setPlayerAction(PlayerAction.STAND_UP);
+            assertEquals(0, fixture.session.movementRange(role, revision, activeId).get("full").asArray().size());
+            game.getActingPlayer().setPlayerAction(PlayerAction.MOVE);
+        }
+        game.setTurnMode(TurnMode.SETUP);
+        assertEquals(0, fixture.session.movementRange(role, revision, activeId).get("full").asArray().size());
+        assertEquals(0, fixture.session.movementRange(otherRole, revision, inactiveId).get("full").asArray().size());
+    }
+
+    @Test void activeStandingUpActionKeepsProneRangeAndSpentStandingBudget() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject view = fixture.advanceToTurn();
+        String role = view.getString("actor", null);
+        String otherRole = "home".equals(role) ? "away" : "home";
+        int revision = view.getInt("revision", -1);
+        String playerId = null;
+        for (JsonValue value : view.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if ("select".equals(action.getString("kind", null))) {
+                playerId = action.get("target").asObject().getString("playerId", null); break;
+            }
+        }
+        Field stateField = SetupSession.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        Player<?> player = game.getPlayerById(playerId);
+        game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.PRONE).changeActive(true));
+        game.getActingPlayer().setPlayerId(playerId);
+        game.getActingPlayer().setPlayerAction(PlayerAction.STAND_UP);
+        String checkpoint = fixture.session.recoveryArtifact();
+        JsonObject prone = fixture.session.movementRange(otherRole, revision, playerId);
+        assertEquals(3, prone.getInt("normalRemaining", -1));
+        assertEquals(5, prone.getInt("remaining", -1));
+        assertEquals(prone.toString(), fixture.session.movementRange(role, revision, playerId).toString());
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+
+        game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.STANDING).changeActive(true));
+        game.getActingPlayer().setCurrentMove(3);
+        JsonObject stood = fixture.session.movementRange(role, revision, playerId);
+        assertEquals(3, stood.getInt("normalRemaining", -1));
+        assertEquals(5, stood.getInt("remaining", -1));
+    }
+
+    @Test void activeAndInactiveTeamEligibilityUsesMatchTurnForEitherViewer() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject view = fixture.advanceToTurn();
+        String activeRole = view.getString("actor", null);
+        String otherRole = "home".equals(activeRole) ? "away" : "home";
+        int revision = view.getInt("revision", -1);
+        String activeId = null, inactiveId = null;
+        for (JsonValue value : view.get("players").asArray()) {
+            JsonObject player = value.asObject();
+            if (!"pitch".equals(player.getString("offPitch", null))) continue;
+            if (activeRole.equals(player.getString("role", null)) && activeId == null)
+                activeId = player.getString("id", null);
+            if (otherRole.equals(player.getString("role", null)) && inactiveId == null)
+                inactiveId = player.getString("id", null);
+        }
+        Field stateField = SetupSession.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        Player<?> active = game.getPlayerById(activeId), inactive = game.getPlayerById(inactiveId);
+        game.getFieldModel().setPlayerState(active, new PlayerState(PlayerState.STANDING));
+        game.getFieldModel().setPlayerState(inactive, new PlayerState(PlayerState.STANDING));
+        String checkpoint = fixture.session.recoveryArtifact();
+        JsonObject finished = fixture.session.movementRange(otherRole, revision, activeId);
+        JsonObject forecast = fixture.session.movementRange(activeRole, revision, inactiveId);
+        assertEquals(0, finished.get("full").asArray().size());
+        assertTrue(forecast.get("full").asArray().size() > 0);
+        assertEquals(forecast.toString(), fixture.session.movementRange(otherRole, revision, inactiveId).toString());
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+
+        game.getFieldModel().setPlayerState(inactive, new PlayerState(PlayerState.STANDING).changeRooted(true));
+        assertEquals(0, fixture.session.movementRange(activeRole, revision, inactiveId).get("full").asArray().size());
+        game.getFieldModel().setPlayerState(inactive, new PlayerState(PlayerState.STUNNED));
+        assertEquals(0, fixture.session.movementRange(otherRole, revision, inactiveId).get("full").asArray().size());
+    }
+
     @Test void pausedBlitzRetainsSelectedTargetAcrossRecoveryAndStopsAfterDeclinedReroll() throws Exception {
         Fixture fixture = new Fixture(1);
         JsonObject ready = fixture.advanceToTurn();
@@ -192,14 +307,30 @@ class SetupSessionMovementTest {
         JsonObject state = fixture.advanceToTurn();
         String role = state.getString("actor", null);
         JsonObject selectable = null;
+        JsonObject destination = null;
+        int revision = state.getInt("revision", -1);
         for (JsonValue value : state.get("actions").asArray()) {
             JsonObject action = value.asObject();
-            if ("select".equals(action.getString("kind", null))) { selectable = action; break; }
+            if (!"select".equals(action.getString("kind", null))) continue;
+            String candidateId = action.get("target").asObject().getString("playerId", null);
+            JsonObject candidateSource = fixture.player(state, candidateId);
+            JsonObject candidateRange = fixture.session.movementRange(role, revision, candidateId);
+            for (JsonValue squareValue : candidateRange.get("normal").asArray()) {
+                JsonObject square = squareValue.asObject();
+                if (Math.abs(square.getInt("x", -1) - candidateSource.getInt("x", -1)) > 1
+                    || Math.abs(square.getInt("y", -1) - candidateSource.getInt("y", -1)) > 1) continue;
+                JsonArray candidate = new JsonArray().add(new JsonObject().add("x", square.getInt("x", -1))
+                    .add("y", square.getInt("y", -1)));
+                JsonObject proposal = fixture.session.movementPreview(role, revision, candidateId, "move", null, candidate);
+                if (safe(proposal.get("route").asObject().get("steps").asArray())) {
+                    selectable = action; destination = square; break;
+                }
+            }
+            if (selectable != null) break;
         }
         assertTrue(selectable != null, state.toString());
         String playerId = selectable.get("target").asObject().getString("playerId", null);
         assertTrue(playerId != null, selectable.toString());
-        int revision = state.getInt("revision", -1);
         String checkpoint = fixture.session.recoveryArtifact();
         JsonObject own = fixture.session.movementRange(role, revision, playerId);
         JsonObject opponent = null;
@@ -213,23 +344,17 @@ class SetupSessionMovementTest {
         JsonObject other = fixture.session.movementRange(role, revision, opponent.getString("id", null));
         String offTurnRole = "home".equals(role) ? "away" : "home";
         JsonObject offTurnOwn = fixture.session.movementRange(offTurnRole, revision, opponent.getString("id", null));
-        assertEquals(1, own.getInt("rangeVersion", -1));
-        assertEquals(1, other.getInt("rangeVersion", -1));
+        JsonObject offTurnActive = fixture.session.movementRange(offTurnRole, revision, playerId);
+        assertEquals(2, own.getInt("rangeVersion", -1));
+        assertEquals(2, other.getInt("rangeVersion", -1));
         assertEquals(other.getInt("remaining", -1), offTurnOwn.getInt("remaining", -1));
-        assertEquals(other.get("steps").asArray().size(), offTurnOwn.get("steps").asArray().size());
-        assertTrue(offTurnOwn.get("steps").asArray().size() > 0);
+        assertEquals(other.get("normal").toString(), offTurnOwn.get("normal").toString());
+        assertEquals(other.get("full").toString(), offTurnOwn.get("full").toString());
+        assertEquals(own.toString(), offTurnActive.toString());
+        assertTrue(offTurnOwn.get("full").asArray().size() > 0);
         assertEquals(checkpoint, fixture.session.recoveryArtifact());
         assertEquals(revision, fixture.session.spectatorView().getInt("revision", -1));
 
-        JsonObject destination = null;
-        JsonObject source = fixture.player(state, playerId);
-        for (JsonValue value : own.get("steps").asArray()) {
-            JsonObject square = value.asObject();
-            if (square.getInt("dodge", -1) == 0 && square.getInt("rush", -1) == 0
-                && square.get("reactions").asArray().size() == 0
-                && Math.abs(square.getInt("x", -1) - source.getInt("x", -1)) <= 1
-                && Math.abs(square.getInt("y", -1) - source.getInt("y", -1)) <= 1) { destination = square; break; }
-        }
         assertTrue(destination != null, own.toString());
         JsonArray waypoints = new JsonArray().add(new JsonObject().add("x", destination.getInt("x", -1))
             .add("y", destination.getInt("y", -1)));
@@ -246,6 +371,21 @@ class SetupSessionMovementTest {
         assertEquals(destination.getInt("x", -1), moved.getInt("x", -1));
         assertEquals(destination.getInt("y", -1), moved.getInt("y", -1));
         JsonObject acceptedState = accepted.get("state").asObject();
+        JsonObject postMoveRange = fixture.session.movementRange(role, acceptedState.getInt("revision", -1), playerId);
+        assertEquals(destination.getInt("x", -1), postMoveRange.get("from").asObject().getInt("x", -1));
+        assertEquals(destination.getInt("y", -1), postMoveRange.get("from").asObject().getInt("y", -1));
+        assertEquals(own.getInt("remaining", -1) - 1, postMoveRange.getInt("remaining", -1));
+        Field stateField = SetupSession.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        ActingPlayer nativeActor = ((GameState) stateField.get(fixture.session)).getGame().getActingPlayer();
+        nativeActor.setHeldInPlace(true);
+        assertEquals(0, fixture.session.movementRange(offTurnRole, acceptedState.getInt("revision", -1), playerId)
+            .get("full").asArray().size());
+        nativeActor.setHeldInPlace(false);
+        nativeActor.setJumping(true);
+        assertTrue(fixture.session.movementRange(role, acceptedState.getInt("revision", -1), playerId)
+            .get("full").asArray().size() > 0);
+        nativeActor.setJumping(false);
         String opponentId = opponent.getString("id", null);
         assertThrows(MatchService.Failure.class, () -> fixture.session.movementPreview(role,
             acceptedState.getInt("revision", -1), playerId, "blitz", opponentId, new JsonArray()));
@@ -342,7 +482,7 @@ class SetupSessionMovementTest {
             String sourceId = action.get("target").asObject().getString("playerId", null);
             JsonObject range = distantMove.session.movementRange(distantMoveRole,
                 distantMoveReady.getInt("revision", -1), sourceId);
-            for (JsonValue value : range.get("steps").asArray()) {
+            for (JsonValue value : range.get("full").asArray()) {
                 JsonObject square = value.asObject();
                 JsonArray waypoint = new JsonArray().add(new JsonObject().add("x", square.getInt("x", -1))
                     .add("y", square.getInt("y", -1)));
@@ -366,6 +506,10 @@ class SetupSessionMovementTest {
         JsonObject distantMoved = distantMove.player(distantMoveAccepted.get("state").asObject(), distantMoverId);
         assertEquals(last.getInt("x", -1), distantMoved.getInt("x", -1));
         assertEquals(last.getInt("y", -1), distantMoved.getInt("y", -1));
+        JsonObject postDistantMoveRange = distantMove.session.movementRange(distantMoveRole,
+            distantMoveAccepted.get("state").asObject().getInt("revision", -1), distantMoverId);
+        assertEquals(distantSteps.size(), distantMovePlan.get("route").asObject().getInt("remaining", -1)
+            - postDistantMoveRange.getInt("remaining", -1));
 
         String fixturePath = System.getProperty("movement.fixture");
         if (fixturePath != null) {
@@ -379,6 +523,7 @@ class SetupSessionMovementTest {
                 .add("readyState", state).add("blitzReadyState", blitzReady)
                 .add("ownRange", response("movementRange", "own-range", "range", own, fixture.document.matchId))
                 .add("opponentRange", response("movementRange", "opponent-range", "range", other, fixture.document.matchId))
+                .add("postMoveRange", response("movementRange", "post-move-range", "range", postMoveRange, fixture.document.matchId))
                 .add("movePlan", response("movementPreview", "move-plan", "plan", plan, fixture.document.matchId))
                 .add("moveAcceptedState", accepted.get("state"))
                 .add("blitzPlan", response("movementPreview", "blitz-plan", "plan", blitzPlan, blitz.document.matchId))
@@ -386,6 +531,7 @@ class SetupSessionMovementTest {
                 .add("distantMoveReadyState", distantMoveReady)
                 .add("distantMovePlan", response("movementPreview", "distant-move-plan", "plan", distantMovePlan, distantMove.document.matchId))
                 .add("distantMoveAcceptedState", distantMoveAccepted.get("state"))
+                .add("postDistantMoveRange", response("movementRange", "post-distant-move-range", "range", postDistantMoveRange, distantMove.document.matchId))
                 .add("distantBlitzReadyState", distantReady)
                 .add("distantBlitzPlan", response("movementPreview", "distant-blitz-plan", "plan", distantPlan, distant.document.matchId))
                 .add("distantBlitzAcceptedState", distantAccepted.get("state"));

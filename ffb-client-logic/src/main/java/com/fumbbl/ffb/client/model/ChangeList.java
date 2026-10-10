@@ -10,10 +10,11 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Selected browser players show translucent blue normal and yellow rush outer perimeters for ordinary movement, with small outlined rush-only warning markers")
 			.addBugfix("Hosted diagnostic browser routes and links retain their /play prefix")
 			.addImprovement("Game-service VM startup checks the DEV WebSocket endpoint and bounds PROD SSH readiness checks")
 			.addImprovement("Added a separate educational Moles Under the Pitch project site and browser-client delivery layout without changing FUMBBL accounts or game behavior")
-			.addBehaviorChange("Browser pitch no longer shows player movement ranges or movement risk colors and roll targets; route planning, right-click undo and single-confirmation Move and Blitz remain available")
+			.addBehaviorChange("Browser pitch no longer shows movement risk colors or roll targets; route planning, right-click undo and single-confirmation Move and Blitz remain available")
 			.addBehaviorChange("Browser movement defaults to Move, plans every destination with waypoint dots, and confirms activation and movement together; right-click undoes while right-button drag pans")
 			.addImprovement("Browser Blitz targeting previews the approach and executes movement and the block with one confirmation")
 			.addBugfix("The site navigation bar is hidden on live match, spectator and result/replay displays")
