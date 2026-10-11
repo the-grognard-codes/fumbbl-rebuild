@@ -4,6 +4,8 @@ Date: 2026-10-11.
 Branch: `feature/game-phase-tracker`, created from local `main` with a clean working tree.
 Status: approved and implemented on 2026-10-11. Automated validation and self-review passed. The owner approved committing, opening a PR and merging after required checks pass. Manual UI validation is owned by the user; no deployment is included.
 
+Delivery: [PR #255](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/255). [Outcome and acceptance evidence](game-phase-tracker-outcome.md). GitHub records the current check, merge and issue states.
+
 - [#252 Base drive tracker](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/252) — no blockers.
 - [#253 Automatic drive checks](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/253) — blocked by #252.
 - [#254 Interactive kickoff rows](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/254) — blocked by #252, independent of #253.
