@@ -1,0 +1,295 @@
+{
+  "verdict": "technical checks passed; owner wall-art review pending",
+  "cases": [
+    {
+      "name": "walls-default",
+      "angle": "40",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 154,
+      "props": 24
+    },
+    {
+      "name": "walls-40-home-0",
+      "angle": "40",
+      "end": "home",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 134,
+      "props": 24
+    },
+    {
+      "name": "walls-40-home-13",
+      "angle": "40",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 154,
+      "props": 24
+    },
+    {
+      "name": "walls-40-home-26",
+      "angle": "40",
+      "end": "home",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 60,
+      "props": 22
+    },
+    {
+      "name": "walls-90-home-0",
+      "angle": "90",
+      "end": "home",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 28,
+      "props": 18
+    },
+    {
+      "name": "walls-90-home-13",
+      "angle": "90",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 46,
+      "props": 18
+    },
+    {
+      "name": "walls-90-home-26",
+      "angle": "90",
+      "end": "home",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 32,
+      "props": 18
+    },
+    {
+      "name": "walls-30-home-0",
+      "angle": "30",
+      "end": "home",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 244,
+      "props": 24
+    },
+    {
+      "name": "walls-30-home-13",
+      "angle": "30",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 190,
+      "props": 24
+    },
+    {
+      "name": "walls-30-home-26",
+      "angle": "30",
+      "end": "home",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 86,
+      "props": 20
+    },
+    {
+      "name": "walls-50-home-0",
+      "angle": "50",
+      "end": "home",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 92,
+      "props": 24
+    },
+    {
+      "name": "walls-50-home-13",
+      "angle": "50",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 94,
+      "props": 24
+    },
+    {
+      "name": "walls-50-home-26",
+      "angle": "50",
+      "end": "home",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 38,
+      "props": 24
+    },
+    {
+      "name": "walls-40-away-0",
+      "angle": "40",
+      "end": "away",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 62,
+      "props": 22
+    },
+    {
+      "name": "walls-40-away-13",
+      "angle": "40",
+      "end": "away",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 154,
+      "props": 24
+    },
+    {
+      "name": "walls-40-away-26",
+      "angle": "40",
+      "end": "away",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 134,
+      "props": 24
+    },
+    {
+      "name": "walls-90-away-0",
+      "angle": "90",
+      "end": "away",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 32,
+      "props": 18
+    },
+    {
+      "name": "walls-90-away-13",
+      "angle": "90",
+      "end": "away",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 46,
+      "props": 18
+    },
+    {
+      "name": "walls-90-away-26",
+      "angle": "90",
+      "end": "away",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 28,
+      "props": 18
+    },
+    {
+      "name": "walls-30-away-0",
+      "angle": "30",
+      "end": "away",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 86,
+      "props": 20
+    },
+    {
+      "name": "walls-30-away-13",
+      "angle": "30",
+      "end": "away",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 190,
+      "props": 24
+    },
+    {
+      "name": "walls-30-away-26",
+      "angle": "30",
+      "end": "away",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 244,
+      "props": 24
+    },
+    {
+      "name": "walls-50-away-0",
+      "angle": "50",
+      "end": "away",
+      "focus": "0",
+      "zoom": "1",
+      "faces": 38,
+      "props": 24
+    },
+    {
+      "name": "walls-50-away-13",
+      "angle": "50",
+      "end": "away",
+      "focus": "13",
+      "zoom": "1",
+      "faces": 94,
+      "props": 24
+    },
+    {
+      "name": "walls-50-away-26",
+      "angle": "50",
+      "end": "away",
+      "focus": "26",
+      "zoom": "1",
+      "faces": 92,
+      "props": 24
+    },
+    {
+      "name": "walls-close",
+      "angle": "40",
+      "end": "home",
+      "focus": "13",
+      "zoom": "1.25",
+      "faces": 72,
+      "props": 24
+    },
+    {
+      "name": "walls-scrolled",
+      "angle": "40",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1",
+      "faces": 148,
+      "props": 24
+    },
+    {
+      "name": "walls-zoom",
+      "angle": "40",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1.2",
+      "faces": 90,
+      "props": 24
+    },
+    {
+      "name": "walls-compact-30",
+      "angle": "30",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1.2",
+      "faces": 154,
+      "props": 24
+    },
+    {
+      "name": "walls-compact-40",
+      "angle": "40",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1.2",
+      "faces": 102,
+      "props": 24
+    },
+    {
+      "name": "walls-compact-50",
+      "angle": "50",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1.2",
+      "faces": 36,
+      "props": 24
+    },
+    {
+      "name": "walls-compact-90",
+      "angle": "90",
+      "end": "home",
+      "focus": "15.124616552254054",
+      "zoom": "1.2",
+      "faces": 0,
+      "props": 18
+    }
+  ],
+  "errors": [],
+  "missing": []
+}

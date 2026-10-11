@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Stadium development study adds crowd-free modular side walls with original-style stonework, timber, torches and banners")
 			.addImprovement("Stadium development study restores the original painted stone walls and crowd as its default perspective preview")
 			.addImprovement("Added a development-only Human stadium side-and-corner study with raised geometry, intact crowd groups and camera comparisons")
 			.addBugfix("Browser matches recover reliably when players have temporary stat modifiers from Dodgy Snack")
