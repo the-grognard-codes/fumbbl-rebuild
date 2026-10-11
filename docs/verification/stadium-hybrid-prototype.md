@@ -4,11 +4,24 @@ Workstream: [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/2
 Branch: `feature/stadium-hybrid-prototype`.
 Base: `3a9a27d78` (main). This is a limited development prototype, awaiting visual review.
 
-## Latest revision: original-style modular walls without crowd
+## Latest decision: restore original artwork and defer modular walls
+
+On 2026-10-11 the owner rejected the modular wall rendition and requested restoring
+the original artwork. The default preview is again `study=original`, with the
+unchanged `stadium-v1.png` walls, crowd, torches and banners. Original artwork is
+the first comparison option. The wall-only assets, prompts, code and captures remain
+available at `study=walls` for future revision; they have not received visual acceptance.
+
+This restores the isolated development preview. The production match renderer is unchanged.
+Validation passed after restoration: TypeScript/Vite build, 210 synchronized assets,
+and 61 browser review cases, including the default selection, original-art scrolling,
+zoom and camera views. The source painting retains its recorded SHA-256.
+
+## Earlier revision: original-style modular walls without crowd
 
 The owner approved the original wall's color, depth, style, torches and banners and
 requested reproducing it for both modular sidelines with spectators removed for now.
-The default preview is now `study=walls`. See [the wall art study](stadium-wall-art-study.md)
+This introduced the optional `study=walls` experiment. See [the wall art study](stadium-wall-art-study.md)
 for its dedicated material/accessory atlases, source prompts, dimensions, captures and
 verification. The original and earlier hybrid renders remain comparison variants.
 
@@ -112,7 +125,7 @@ npm.cmd run dev:stadium
 ```
 
 Open `http://localhost:5174/pitch-preview?variant=stadium-hybrid`.
-The default is `study=walls`. Use `study=original`, `study=hybrid`, `study=structure`,
+The default is `study=original`. Use `study=walls`, `study=hybrid`, `study=structure`,
 or `study=current` for shareable comparison URLs.
 Drag or press Up/Down to scroll, use the wheel or slider to zoom, switch viewing ends and
 camera angles, choose **Inspect join** for a closer view, and enable group bounds to

@@ -17,7 +17,7 @@ const crowdUrl = asset('pitch/stadiums/prototype/human-groups-v1.png');
 const presentation = stadiumPresentation({ homeTeamArt: { rosterId: 'human', league: 'Old World Classic' },
   awayTeamArt: { rosterId: 'orc', league: 'Badlands Brawl' } });
 const faces = hybridFaces(), groups = hybridGroups();
-const variantNames = ['walls', 'original', 'hybrid', 'structure', 'current'] as const;
+const variantNames = ['original', 'walls', 'hybrid', 'structure', 'current'] as const;
 type Variant = typeof variantNames[number];
 const points = (p: Point[]) => p.map(v => v.x + ',' + v.y).join(' ');
 
@@ -114,7 +114,7 @@ function Prop({ camera, role, x, y, z, width }: { camera: PitchProjection; role:
 
 export function StadiumHybridPrototype() {
   const params = new URLSearchParams(window.location.search);
-  const initialVariant = variantNames.includes(params.get('study') as Variant) ? params.get('study') as Variant : 'walls';
+  const initialVariant = variantNames.includes(params.get('study') as Variant) ? params.get('study') as Variant : 'original';
   const [variant, setVariant] = useState<Variant>(initialVariant);
   const [end, setEnd] = useState<'home'|'away'>(params.get('end')==='away'?'away':'home');
   const [elevation, setElevation] = useState<30|40|50|90>(40);

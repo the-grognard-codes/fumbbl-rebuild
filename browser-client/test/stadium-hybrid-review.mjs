@@ -32,7 +32,7 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:960}});
   page.on('pageerror',error=>errors.push(error.message));
   page.on('response',response=>{if(response.status()>=400)missing.push(response.url());});
-  await page.goto(server.resolvedUrls.local[0]+'pitch-preview?variant=stadium-hybrid&study=original');
+  await page.goto(server.resolvedUrls.local[0]+'pitch-preview?variant=stadium-hybrid');
   await page.getByTestId('hybrid-stage').waitFor();
   await page.waitForFunction(()=>[...document.images].every(image=>image.complete));
   const capture=async name=>{
@@ -62,7 +62,7 @@ try {
     assert.ok(ratios.every(error=>error<.002),'uniform scaling preserves each entire group aspect ratio');
     cases.push({name,...state});
   };
-  assert.equal(await page.getByTestId('hybrid-stage').getAttribute('data-study'),'original','restored artwork remains available for comparison');
+  assert.equal(await page.getByTestId('hybrid-stage').getAttribute('data-study'),'original','restored artwork is the default preview');
   for(const end of ['home','away'])for(const angle of [40,30,50,90])for(const [focus,button] of [[0,'Home end'],[13,'Midfield'],[26,'Away end']]) {
     await page.getByLabel('Viewing end',{exact:true}).selectOption(end);
     await page.getByLabel('Camera angle',{exact:true}).selectOption(String(angle));

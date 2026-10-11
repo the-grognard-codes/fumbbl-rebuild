@@ -17,6 +17,7 @@ runtime errors or failed requests. Additional captures remain locally under
 `.tools/stadium-wall-review/` in the feature worktree. See
 [requirements, source assets and prompts](../../../../../docs/verification/stadium-wall-art-study.md).
 
-The original painting is the approved wall-style authority. These modular assets need
-the owner's visual review before production integration. End/corner pieces, entrances,
+The original painting is the approved wall-style authority. The owner rejected this
+modular rendition and deferred further work; it is retained at `study=walls` as an
+experiment, while the original painting is restored as the default. End/corner pieces, entrances,
 sideline equipment and animated spectators are outside this wall-only revision.
