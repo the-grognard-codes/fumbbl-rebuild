@@ -2,7 +2,9 @@
 
 Canonical prototype PNGs live here; the normal `assets:sync` workflow copies them to
 `browser-client/public/assets/game/pitch/stadiums/prototype/`. These remain development
-study assets pending the owner's visual review.
+study assets. The owner rejected the current modular wall rendition and deferred
+further work; the preview again defaults to the original `stadium-v1.png` painting.
+The wall assets remain available explicitly at `study=walls`.
 
 ## Original-style walls without crowd
 
@@ -26,5 +28,6 @@ and [actual browser captures](../../../references/stadiums/modular-wall-review/R
 ## Earlier crowd experiment
 
 `human-groups-v1.png` and `provenance.json` retain the earlier intact-group crowd test.
-That artwork is available only through its historical comparison variant; the latest
-wall-only default does not mount any spectators.
+That artwork is available only through its historical comparison variant. The optional
+wall-only study does not mount spectators; the restored default uses the original
+painting's static crowd.

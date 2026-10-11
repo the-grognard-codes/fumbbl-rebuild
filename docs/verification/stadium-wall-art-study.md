@@ -8,12 +8,15 @@ Branch: `feature/stadium-hybrid-prototype`; isolated development preview.
 The owner approved the original `stadium-v1.png` **wall art style**, specifically its
 color, depth, styling, torches and banners, and requested matching artwork for the
 left and right sides of the modular design with the crowd removed entirely for now.
-This is approval of the reference style; the new generated assets still await visual review.
+This was approval of the reference style, not acceptance of the generated assets.
+On 2026-10-11 the owner rejected this rendition, deferred further modular wall work,
+and requested restoration of the original artwork. The preview defaults to
+`study=original` again; `study=walls` explicitly opens this archived experiment.
 The [earlier study](stadium-hybrid-prototype.md) retains the longer requirements and attempts.
 
 ## Wall-only revision
 
-The preview now defaults to `study=walls`, centered at midfield, 40° perspective and
+The optional `study=walls` view is centered at midfield, 40° perspective and
 zoom 1. Both long sidelines use the same modular construction and measured source atlas.
 The shared 26 × 15 pitch, chalk, player layer and input camera remain unchanged.
 

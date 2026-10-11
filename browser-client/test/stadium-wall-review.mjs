@@ -34,7 +34,7 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:960}});
   page.on('pageerror',error=>errors.push(error.message));
   page.on('response',response=>{if(response.status()>=400)missing.push(response.url());});
-  await page.goto(server.resolvedUrls.local[0]+'pitch-preview?variant=stadium-hybrid');
+  await page.goto(server.resolvedUrls.local[0]+'pitch-preview?variant=stadium-hybrid&study=walls');
   const stage=page.getByTestId('hybrid-stage');await stage.waitFor();
   assert.equal(await stage.getAttribute('data-study'),'walls');
   await page.emulateMedia({reducedMotion:'reduce'});
