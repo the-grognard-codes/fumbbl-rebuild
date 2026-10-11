@@ -4,7 +4,15 @@ Workstream: [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/2
 Branch: `feature/stadium-hybrid-prototype`.
 Base: `3a9a27d78` (main). This is a limited development prototype, awaiting visual review.
 
-## Latest revision: restore the original artwork
+## Latest revision: original-style modular walls without crowd
+
+The owner approved the original wall's color, depth, style, torches and banners and
+requested reproducing it for both modular sidelines with spectators removed for now.
+The default preview is now `study=walls`. See [the wall art study](stadium-wall-art-study.md)
+for its dedicated material/accessory atlases, source prompts, dimensions, captures and
+verification. The original and earlier hybrid renders remain comparison variants.
+
+## Earlier revision: restore the original artwork
 
 On 2026-10-11 the owner requested further revision of the group-card study and asked to
 apply the wall and crowd from the earlier live-match screenshot. The exact source remains
@@ -104,8 +112,8 @@ npm.cmd run dev:stadium
 ```
 
 Open `http://localhost:5174/pitch-preview?variant=stadium-hybrid`.
-The default is `study=original`. Use `study=hybrid`, `study=structure`, or `study=current`
-for shareable comparison URLs.
+The default is `study=walls`. Use `study=original`, `study=hybrid`, `study=structure`,
+or `study=current` for shareable comparison URLs.
 Drag or press Up/Down to scroll, use the wheel or slider to zoom, switch viewing ends and
 camera angles, choose **Inspect join** for a closer view, and enable group bounds to
 inspect image scale and registration.

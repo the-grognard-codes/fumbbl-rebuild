@@ -1,0 +1,47 @@
+{
+  "workstream": "https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211",
+  "tool": "built-in image_gen.imagegen",
+  "reference": "assets/game/pitch/stadium-v1.png",
+  "supportingReference": "assets/game/pitch/stadiums/prototype/reference-wall-materials-v1.png",
+  "reference_sha256": "ce5bfcc65cb95ff167914b1c58a18e572a7b09398af50441996e8f87389a0112",
+  "decision": "Approved original wall art style; reproduce stone/timber, torches and banners for modular left/right sidelines; no crowd.",
+  "alpha": "Generated RGBA8 preserved without resizing, recoloring, background removal or pixel edits.",
+  "used_in": "browser-client/src/StadiumWallStudy.tsx",
+  "limitations": "Development wall study; owner review of generated art pending. Side walls only; crowd and end/corner/entrance work excluded from this revision.",
+  "pixels": {
+    "width": 1254,
+    "height": 1254
+  },
+  "regions": {
+    "blueBanner": {
+      "x": 167,
+      "y": 64,
+      "width": 350,
+      "height": 466,
+      "pivotX": 342
+    },
+    "redBanner": {
+      "x": 736,
+      "y": 64,
+      "width": 352,
+      "height": 466,
+      "pivotX": 912
+    },
+    "torch": {
+      "x": 271,
+      "y": 560,
+      "width": 175,
+      "height": 631,
+      "pivotX": 322
+    },
+    "post": {
+      "x": 875,
+      "y": 622,
+      "width": 160,
+      "height": 569,
+      "pivotX": 923
+    }
+  },
+  "source": "C:/Users/jaken/.codex/generated_images/01a117cc-bb24-7853-bd5e-06c5b4d9ddbc/exec-907967c7-ade6-4870-b34c-7cf5dbcd4590.png",
+  "prompt": "Use-case: stylized-concept, fantasy-football modular stadium accessory atlas.\nSTYLE REFERENCE 1 is the owner's exact approved stadium painting. STYLE REFERENCE 2 is the already generated matching stone material sheet. Match the first image's aged timber, iron bands, blue/ivory and rust-red/gold banners, orange-yellow wall torch flames, crisp chunky connected fantasy pixel-art clusters, sober mature palette. This is production art for a wall-only modular stadium, not a new art direction.\nTASK: create ONLY four isolated reusable accessory sprites on a genuinely transparent alpha background, square 1024 x 1024 asset sheet arranged in an exact 2 x 2 grid. Each sprite is entirely inside its 512 x 512 cell with at least 32 pixels transparent gutters. NO PEOPLE, NO CROWD, NO HEADS, no stadium, grass, stone walls, floor, UI, text, labels or checkerboard.\nTOP LEFT: the hanging blue cloth pennant from the left side of reference 1, faded royal/steel blue cloth with ivory stylized cross/sword-like crest, muted gold edge, pointed fringed lower end, attached to a short dark aged-timber horizontal hanging rod with simple iron fixtures. Show the cloth nearly straight-on, slight natural folds and pixel shading, complete silhouette, approximately 260 pixels wide x 420 pixels high. No vertical mast, no extra scenery.\nTOP RIGHT: matching hanging deep rust-red cloth pennant from reference 1's right side, a burnt-orange stylized horned orc/skull crest, muted gold edge, pointed/fringed lower end, same short dark wood hanging rod and iron fixtures. Identical footprint and design language to blue banner. Approximately 260 x 420.\nBOTTOM LEFT: a COMPLETE slim stadium timber upright with a mounted burning wall torch, as seen in reference 1. A tall weathered dark brown squared timber shaft with iron bands near upper and lower parts, a small dark iron torch cup/bracket attached near the top and clear orange/yellow/ivory chunky pixel flames above it. Total about 440 pixels tall; shaft 65 pixels wide, maximum flame/bracket width 120. Entire isolated upright and flame must fit in the cell. Restrained warm light on wood immediately below the flame, no transparent glow halo extending far beyond the silhouette.\nBOTTOM RIGHT: the same tall weathered timber upright WITHOUT a torch, with iron rings/bands and squared cap, about 440 pixels tall and 70 pixels wide. Add the short pitch-facing support bracket near the upper portion matching reference 1. It is architectural timber, not a bench.\nGEOMETRY: intact upright silhouettes for screen-aligned sprite placement on real wall anchors. Mostly frontal, subtle 40-degree raised-camera top edges only; do not bake a sloping sideline or ground perspective. No long cast shadows or shadow floor.\nSTYLE: the approved connected pixel art exactly, sturdy hand-built objects, rich dark creases, worn brown grain, warm muted gold accents, brilliant small flames. Do not simplify to flat vector icons or smooth photorealistic illustration. True alpha outside the four silhouettes.\nOUTPUT only this four-sprite atlas."
+}
