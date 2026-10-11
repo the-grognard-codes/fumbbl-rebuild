@@ -6,6 +6,9 @@ See [the study and requirements](../../../../../docs/verification/stadium-hybrid
 
 | Capture | What to inspect |
 | --- | --- |
+| [Restored original, home view](original-40-home-13.png) | Exact original wall/crowd pixels at midfield; now the default preview |
+| [Restored original, away view](original-40-away-13.png) | Original painting remains upright, with blue/red sides reversing |
+| [Restored original, compact 30°](original-compact-30.png) | Source clipping remains operable above the ground-plane horizon |
 | [Hybrid, home view](01-hybrid-40-home-near.png) | Intact upper bodies, raised ranks, side/corner join and pitch-side bench |
 | [Inspect the join](07-inspect-join.png) | Closer view of spectator silhouettes, row overlap and the corner transition |
 | [Structure only](02-structure-40-home-near.png) | Matching terrace levels, wall thickness, coping and doorway |
@@ -15,13 +18,19 @@ See [the study and requirements](../../../../../docs/verification/stadium-hybrid
 | [Local gesture](05-local-gesture.png) | One group changes gesture while the remaining crowd and geometry stay fixed |
 | [Compact 30° stress check](compact-30.png) | The prototype remains visible on a 689 × 605 viewport |
 
-[Machine-readable results](review-results.json) cover 34 camera/comparison/scroll/zoom
+[Machine-readable results](review-results.json) now cover 61 camera/comparison/scroll/zoom
 cases, source-ratio preservation, 390 pitch cells, gesture states 1 and 2, and reduced
 motion during an active gesture. No runtime errors or failed asset requests were observed.
 All case captures are available locally under `.tools/stadium-hybrid-review/` in the
 prototype worktree; only representative images are stored in this gallery.
 
-The rendering study preserves proportions substantially better than the sliced bank.
+The latest owner review requested further revision and restoration of the original
+`stadium-v1.png` walls and crowd. **Original artwork** is now the default perspective
+preview. That painting is static and includes the old repeated-plate/tiled-crowd
+limitations; its overhead selection explicitly falls back to existing overhead art.
+The restored original captures reuse that file without generation or pixel changes.
+
+The hybrid rendering study preserves proportions substantially better than the sliced bank.
 The source sheet repeats six people and some terrace floor remains exposed. This is
 temporary test artwork, not acceptance of the final standing-room crowd illustration.
 The next production decision remains subject to the owner's visual review.
