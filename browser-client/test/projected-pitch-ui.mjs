@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { observeStadiumMotion } from './stadium-motion-helper.mjs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { squarePosition, travelToFocus } from './projected-pitch-helper.mjs';
 import { resolvePlayerArt } from '../src/player-art.ts';
 import { PitchProjection } from '../src/pitch-projection.ts';

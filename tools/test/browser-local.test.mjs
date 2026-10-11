@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { localValidationEnvironment, validateLocalBrowser } from '../validation/browser-local.mjs';
+import { localBrowserWorkers, localValidationEnvironment, validateLocalBrowser } from '../validation/browser-local.mjs';
 
 const sha = 'c'.repeat(40);
 
@@ -42,7 +42,14 @@ test('local browser validation runs all shards, validates five fresh reports, an
     }
     return '';
   };
-  const first = await validateLocalBrowser(root, { run, env: { GITHUB_SHA: 'wrong', VALIDATION_COMMIT: 'wrong', KEEP: 'yes' } });
+  let active = 0, peak = 0;
+  const runShard = async (...args) => {
+    active++; peak = Math.max(peak, active);
+    await new Promise(done => setTimeout(done, 15));
+    run(...args); active--;
+  };
+  const first = await validateLocalBrowser(root, { run, runShard,
+    env: { GITHUB_SHA: 'wrong', VALIDATION_COMMIT: 'wrong', KEEP: 'yes', FFB_BROWSER_TEST_WORKERS: '2' } });
   assert.equal(first.commit, sha);
   assert.equal(readdirSync(first.reportDirectory).length, 5);
   assert.equal(calls.filter(call => call.args.some(arg => arg.endsWith('browser-suites.mjs'))).length, 5);
@@ -50,7 +57,12 @@ test('local browser validation runs all shards, validates five fresh reports, an
   assert.ok(calls.every(call => call.options.env.KEEP === 'yes'));
   assert.ok(calls.findIndex(call => call.args.includes('ci')) < calls.findIndex(call => call.args.includes('install')));
   assert.ok(calls.findIndex(call => call.args.includes('install')) < calls.findIndex(call => call.args.includes('build')));
-  const second = await validateLocalBrowser(root, { run });
+  assert.equal(peak, 2, 'Shard execution overlaps without exceeding the configured limit');
+  const shardCalls = calls.filter(call => call.args.some(arg => arg.endsWith('browser-suites.mjs')));
+  assert.ok(calls.findIndex(call => call.args.includes('build')) < calls.indexOf(shardCalls[0]));
+  assert.equal(new Set(shardCalls.map(call => call.options.env.FFB_BROWSER_TEST_CACHE_DIR)).size, 5);
+  assert.ok(shardCalls.every(call => call.options.env.FFB_BROWSER_TEST_CACHE_DIR.startsWith(join(first.reportDirectory, 'vite-cache'))));
+  const second = await validateLocalBrowser(root, { run, runShard, env: { FFB_BROWSER_TEST_WORKERS: '1' } });
   assert.notEqual(first.reportDirectory, second.reportDirectory);
 });
 
@@ -63,9 +75,9 @@ test('missing, stale, or incomplete reports fail; an install failure prevents br
     if (args.some(arg => arg.endsWith('browser-suites.mjs'))) suites++;
     return '';
   };
-  await assert.rejects(validateLocalBrowser(root, { run }), /npm ci failed/);
+  await assert.rejects(validateLocalBrowser(root, { run, runShard: run, env: {} }), /npm ci failed/);
   assert.equal(suites, 0);
-  await assert.rejects(validateLocalBrowser(root, { run: file => file === 'git' ? sha : '' }), /ENOENT/);
+  await assert.rejects(validateLocalBrowser(root, { run: file => file === 'git' ? sha : '', runShard: () => '', env: {} }), /ENOENT/);
   const reportRun = (hostedCommit, hostedSuites) => (file, args) => {
     if (file === 'git') return sha;
     if (args.some(arg => arg.endsWith('browser-suites.mjs'))) {
@@ -80,8 +92,45 @@ test('missing, stale, or incomplete reports fail; an install failure prevents br
     }
     return '';
   };
-  await assert.rejects(validateLocalBrowser(root, { run: reportRun('stale', hosted) }), /invalid, failed, or stale report/);
-  await assert.rejects(validateLocalBrowser(root, { run: reportRun(sha, []) }), /hosted shard 1 execution/);
+  const stale = reportRun('stale', hosted), incomplete = reportRun(sha, []);
+  await assert.rejects(validateLocalBrowser(root, { run: stale, runShard: stale, env: {} }), /invalid, failed, or stale report/);
+  await assert.rejects(validateLocalBrowser(root, { run: incomplete, runShard: incomplete, env: {} }), /hosted shard 1 execution/);
+});
+
+test('worker defaults respect available processors and invalid limits fail before preparation', async t => {
+  assert.equal(localBrowserWorkers({}, 1), 1); assert.equal(localBrowserWorkers({}, 2), 2);
+  assert.equal(localBrowserWorkers({}, 16), 4);
+  assert.equal(localBrowserWorkers({ FFB_BROWSER_TEST_WORKERS: '1' }, 16), 1);
+  const { root } = fixture(t);
+  for (const value of ['0', '5', '2.5', '', ' 2', 'all']) {
+    let calls = 0;
+    await assert.rejects(validateLocalBrowser(root, { run: () => { calls++; },
+      env: { FFB_BROWSER_TEST_WORKERS: value } }), /FFB_BROWSER_TEST_WORKERS/);
+    assert.equal(calls, 0);
+  }
+});
+
+test('real child failure stops queued shards and waits for active children before returning', async t => {
+  const { root } = fixture(t);
+  const trace = join(root, 'trace.jsonl');
+  writeFileSync(join(root, 'tools', 'validation', 'browser-suites.mjs'), `
+    import { appendFileSync } from 'node:fs';
+    const args = process.argv.slice(2), shard = Number(args[args.indexOf('--shard') + 1]);
+    const record = event => appendFileSync(${JSON.stringify(trace)}, JSON.stringify({event, shard,
+      cache: process.env.FFB_BROWSER_TEST_CACHE_DIR, pid: process.pid})+'\\n');
+    record('start');
+    await new Promise(done => setTimeout(done, shard === 1 ? 10 : 400));
+    record('end');
+    process.exitCode = shard === 1 ? 7 : 0;
+  `);
+  await assert.rejects(validateLocalBrowser(root, { run: file => file === 'git' ? sha : '',
+    env: { ...process.env, FFB_BROWSER_TEST_WORKERS: '2' } }), /Browser shard failed.*exit 7/);
+  const records = readFileSync(trace, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(records.filter(record => record.event === 'start').map(record => record.shard).sort(), [1, 2]);
+  assert.deepEqual(records.filter(record => record.event === 'end').map(record => record.shard).sort(), [1, 2],
+    'Validation waits for the successful active child to finish');
+  assert.equal(new Set(records.map(record => record.pid)).size, 2);
+  assert.equal(new Set(records.map(record => record.cache)).size, 2);
 });
 
 test('local validation child environment removes inherited CI identity', () => {

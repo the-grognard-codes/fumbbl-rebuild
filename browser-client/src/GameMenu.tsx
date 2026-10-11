@@ -5,8 +5,10 @@ import { MatchEventLog } from './MatchEventLog.tsx';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
+import { useThreatPreferences } from './use-threat-preferences.ts';
+import { stripeSkillControls, type ThreatPreferences } from './threat-preferences.ts';
 
-type Tab = 'Game Options' | 'Interface' | 'Key Bindings' | 'Game Log';
+type Tab = 'Game Options' | 'Game Settings' | 'Interface' | 'Key Bindings' | 'Game Log';
 
 export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls }: {
   view: SetupState; connected: boolean; pending: boolean; mutate: (operation: string, fields?: Record<string, unknown>) => void;
@@ -16,6 +18,9 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('Game Options');
   const [confirmConcede, setConfirmConcede] = useState(false);
+  const { preferences, change } = useThreatPreferences();
+  const threatControl = (name: keyof ThreatPreferences, label: string) =>
+    <label key={name}><input type="checkbox" checked={preferences[name]} onChange={event => change(name, event.target.checked)}/>{label}</label>;
   const opener = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const close = () => { setOpen(false); setConfirmConcede(false); opener.current?.focus(); };
@@ -38,9 +43,20 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       }}>
         <header><h2>Game Menu</h2><button type="button" aria-label="Close Game Menu" onClick={close}>×</button></header>
-        <nav role="tablist" aria-label="Game Menu tabs">{(['Game Options', 'Interface', 'Key Bindings', 'Game Log'] as Tab[]).map(item =>
+        <nav role="tablist" aria-label="Game Menu tabs">{(['Game Options', 'Game Settings', 'Interface', 'Key Bindings', 'Game Log'] as Tab[]).map(item =>
           <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item}</button>)}</nav>
         <div role="tabpanel" className="game-menu-content">
+          {tab === 'Game Settings' && <section className="threat-settings"><h3>Opposing player threats</h3>
+            <p>Show threats when selecting an unfinished friendly player during your turn or Charge!.</p>
+            <div role="group" aria-label="Threat markings">
+              {threatControl('enabled', 'Show opposing player threats')}
+              {threatControl('zoneColors', 'Tackle-zone colors')}
+              {threatControl('tackle', 'Tackle warnings')}
+              {threatControl('otherSkills', 'Other-skill markings')}
+            </div>
+            <div role="group" aria-label="Movement skills">{stripeSkillControls.map(([name, label]) => threatControl(name, label))}</div>
+            <p>Colors show overlapping zones: green 1, yellow 2, orange 3, red 4+. Skill markings show skill presence.</p>
+          </section>}
           {tab === 'Game Options' && <>
             <section><h3>Request Match Pause</h3>
               {!saved && <p>Pause is unavailable for this match.</p>}

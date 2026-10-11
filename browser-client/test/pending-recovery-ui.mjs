@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const matchId = '3b551645-5774-4d99-a28e-b0e37cafc5ad';

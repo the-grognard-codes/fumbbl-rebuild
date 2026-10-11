@@ -4,6 +4,7 @@ import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { PlayerHoverCard } from './PlayerHoverCard.tsx';
 import { GameMenu } from './GameMenu.tsx';
+import { useThreatPreferences } from './use-threat-preferences.ts';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
 import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { MatchHistory } from './MatchHistory.tsx';
@@ -207,6 +208,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [playerId, setPlayerId] = useState('');
   const [pitchZoom, setPitchZoom] = useState(1);
   const { opacity, changeOpacity } = useHudOpacity();
+  const { preferences: threatPreferences } = useThreatPreferences();
   const [debugOpen, setDebugOpen] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<{ x: number; width: number } | null>(null);
   const [actionId, setActionId] = useState('');
@@ -350,7 +352,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (routeMode && !movementFlow) { setRouteMode(false); updateWaypoints([]); }
     if (canChoose && kickoff) {
       const choice = kickoff.players.find(({ action }) => action.target && 'playerId' in action.target && action.target.playerId === id);
-      if (choice) { mutate('action', { actionId: choice.action.id }); return; }
+      if (choice) {
+        if (view.kickoff?.event === 'CHARGE') {
+          if (!choice.selected) { setPlayerId(id); setTargetFocus('player'); }
+          else if (playerId === id) { setPlayerId(''); setTargetFocus(null); }
+        }
+        mutate('action', { actionId: choice.action.id }); return;
+      }
     }
     if (kickoffMovement) {
       if (!canChoose || !availableActions.some(action => action.kind === 'kickoffMove' && action.sourcePlayerId === id)) return;
@@ -666,7 +674,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         {view.phase === 'SETUP' ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
           <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
           <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
-            aria-pressed={selected} disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}</div>
+            aria-pressed={selected} disabled={!canChoose} onClick={() => {
+              if (view.kickoff?.event === 'CHARGE' && action.target && 'playerId' in action.target) selectPlayer(action.target.playerId);
+              else mutate('action', { actionId: action.id });
+            }}>{action.label}</button>)}</div>
           <div className="kickoff-command-confirm">{kickoff.decline && <button type="button" disabled={!canChoose}
             onClick={() => mutate('action', { actionId: kickoff.decline!.id })}>{kickoff.decline.label}</button>}
             <button type="button" disabled={!canChoose || !kickoff.confirm}
@@ -706,6 +717,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
         movementRange={displayedRange}
+        threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !suspended && !playbackActive
+          && pitchView.revision === view.revision && !decision}
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={diceMoment}

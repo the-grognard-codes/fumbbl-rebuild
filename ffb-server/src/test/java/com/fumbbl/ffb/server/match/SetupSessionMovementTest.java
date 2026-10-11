@@ -44,6 +44,42 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void liveThreatGuidanceOnlyDecoratesCurrentCoachPlayState() {
+        Fixture fixture = new Fixture();
+        JsonObject view = fixture.advanceToTurn();
+        String role = view.getString("actor", null);
+        String checkpoint = fixture.session.recoveryArtifact();
+        assertTrue(view.get("threats") == null);
+        JsonObject live = fixture.session.decorateSaveResumeState(JsonObject.readFrom(view.toString()));
+        assertEquals(1, live.get("threats").asObject().getInt("version", -1));
+        assertTrue(live.get("threats").asObject().get("eligiblePlayerIds").asArray().size() > 0);
+
+        JsonObject stale = JsonObject.readFrom(view.toString());
+        stale.set("revision", view.getInt("revision", -1) - 1);
+        assertTrue(fixture.session.decorateSaveResumeState(stale).get("threats") == null);
+        JsonObject spectator = JsonObject.readFrom(view.toString());
+        spectator.set("callerRole", "spectator");
+        assertTrue(fixture.session.decorateSaveResumeState(spectator).get("threats") == null);
+        JsonObject reaction = JsonObject.readFrom(view.toString());
+        reaction.set("actor", "home".equals(role) ? "away" : "home");
+        assertTrue(fixture.session.decorateSaveResumeState(reaction).get("threats") == null);
+        JsonObject legacy = JsonObject.readFrom(view.toString());
+        legacy.set("projectionVersion", 3);
+        assertTrue(fixture.session.decorateSaveResumeState(legacy).get("threats") == null);
+        JsonObject setup = JsonObject.readFrom(view.toString());
+        setup.set("phase", "SETUP");
+        assertTrue(fixture.session.decorateSaveResumeState(setup).get("threats") == null);
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+        assertTrue(fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject().get("threats") == null);
+
+        JsonObject proposed = fixture.session.saveResume(role, fixture.request("saveRequest", "pause", view), 1000);
+        String proposalId = fixture.session.decorateSaveResume(proposed).get("state").asObject()
+            .get("saveResume").asObject().getString("proposalId", null);
+        fixture.session.saveResume("home".equals(role) ? "away" : "home",
+            fixture.request("saveAccept", "pause-accept", view).add("proposalId", proposalId), 1001);
+        assertTrue(fixture.session.decorateSaveResumeState(JsonObject.readFrom(view.toString())).get("threats") == null);
+    }
+
     @Test void specialTurnForecastsAreBoundedAndOtherModesGiveNoGuidance() throws Exception {
         Fixture fixture = new Fixture();
         JsonObject view = fixture.advanceToTurn();

@@ -123,3 +123,54 @@ is never passed directly to the checkout action. Focused rejection tests cover a
 commits, short refs, malformed identities, and missing trusted history; the full
 coverage gate requires resolver success. Final scan and runtime evidence are
 linked on the issue.
+
+## Local browser parallelism follow-up
+
+The owner requested parallel browser execution after seeing the full sequential
+preflight delay in `dev-local`. Local validation now starts up to four asynchronous
+shard processes, capped by available CPU count. `FFB_BROWSER_TEST_WORKERS=1..4`
+overrides the limit. Installation and the site build still finish before any shard
+starts; interaction shards are queued before the shorter hosted group. Each shard
+keeps its original suite order and receives a private Vite dependency cache under
+the fresh report directory through `browser-test-server.mjs`. Direct local starts,
+restarts and remote DEV validation use the same controller.
+
+A failure stops queued work and waits for active children to close normally before
+rejecting. The existing exact-inventory, checkout-identity and no-skip report checks
+still validate all five reports before success. There is no CLI bypass or passing
+result reuse. The completion message includes browser-suite elapsed time.
+
+Focused validation passed 34 tests across browser-local, validation, local lifecycle
+and deployment selectors. Tests cover actual overlap and the worker ceiling,
+separate cache paths, preparation ordering, invalid limits, fresh/stale/incomplete
+reports, and a real failing child with active-child draining and no later dispatch.
+Independent read-only review found no actionable concurrency, cleanup, isolation or
+coverage defect. Full four-worker browser verification reused installed dependencies
+and the built site while the owner's existing build continued; it did not reinstall
+dependencies, rebuild shared artifacts or restart services. All browser suites still
+ran and produced fresh reports through the production controller and coverage gate.
+
+The initial parallel trial, overlapping the owner's sequential browser preflight,
+failed the existing reroll-choice assertion: two sends were observed where one was
+expected. Active shards drained and the queued hosted shard did not start. Focused
+block-success runs (including repeated cases and delayed second Enter presses) did
+not reproduce it. A failure-only assertion message now records the fixture, sent
+requests and page errors; expected counts and production behavior remain unchanged.
+The failure's cause is unproven and is not claimed fixed.
+
+The subsequent four-worker run passed all 38 registered browser suites, with zero
+failures and zero skips, in 406.8 seconds (6m47s). All five fresh reports passed the
+existing coverage gate for checkout `39af2fd3c8278d90b091c3b84d89778858028a18` and are
+stored in `.tools/validation/local-browser-45pKVq/`; the timing summary is in
+`.tools/parallel-local-browser-result.json`. This includes all 56 reroll-choice
+cases, the combined rushing/Tackle marker refinement, and the client-path suite
+that previously timed out for the owner. All five shards used separate Vite caches.
+
+The earlier complete sequential run in `.tools/validation/client-path-diagnosis/`
+recorded 881.5 seconds (14m41s) across the same 38 suites. The observed browser phase
+took approximately 54% less time with four workers. These are separate local runs
+with different background load, not a controlled benchmark or an estimate for the
+entire build. Dependency installation, site preparation and native/service builds
+are excluded from the parallel timer. Temporary probe/verification scripts were
+removed; no commit, push, service restart or deployment was performed for this
+follow-up.

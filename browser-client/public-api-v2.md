@@ -291,6 +291,27 @@ restart, backup, expiry and deletion limits.
 
 Projection version 4 optionally carries the paired public fields `homeTeamArt` and `awayTeamArt`, each exactly `{ rosterId: string, league: string | null }`. Both appear or both are absent. The native projection reads League from the Match’s frozen resolved team catalog, even when no player has coordinates. Home League selects venue art; each roster selects its independent supporter and bench art. Viewer role, active player and halftime do not select themes. Older retained v4 views without these fields remain loadable; replay validates present identity against the frozen Match teams. Strict older browser bundles require coordinated rollout with the new server.
 
+### Selected-player threat guidance
+
+Current live `projectionVersion:4` coach states may include
+`threats:{version:1,eligiblePlayerIds:[...],zonePlayerIds:[...]}`. IDs refer to
+on-pitch public players. `eligiblePlayerIds` contains the acting coach's unfinished
+players during their regular turn or Charge!; Charge selection uses the native
+event's eligible participants. `zonePlayerIds` contains players from both teams
+whose native state currently grants tackle zones, including rooted players and
+excluding distracted, prone, stunned and off-pitch players. The browser filters
+opposing sources and composes empty-square colors, Tackle symbols and the four
+approved movement-skill patterns from existing public skill names.
+
+This optional live decoration is absent from stored checkpoints, request history,
+transcript/replay snapshots, spectators, nonacting coaches and paused states.
+Retained states without it remain accepted and show no threat markings. Payloads
+with unknown, duplicate, off-pitch or wrongly owned eligible IDs are rejected.
+The field conveys skill presence and raw zone counts, not movement legality or
+roll odds; selection and preference changes send no additional gameplay request.
+Rebuild the Java service and browser together: older strict browser decoders
+reject the new field, while a new browser against an older service omits threats.
+
 ### Selected-player movement reads and commit
 
 Authenticated match coaches may read `{version:2,type:"movementRange",requestId,matchId,expectedRevision,playerId}`. The accepted response is `{version:2,type:"movementRange",requestId,code:"ACCEPTED",matchId,range}`. `range` has `rangeVersion:2`, `playerId`, `from:{x,y}`, integer `remaining` and `normalRemaining`, unique canonical destination arrays `normal` and `full` containing `{x,y}`, and `revision`. The origin is excluded from both arrays, and `normal` is a subset of `full`. Membership includes every valid native ordinary movement path within the respective allowance, regardless of roll difficulty. Leap, Jump and Pogo paths are excluded from this forecast; there are no step risks or roll targets in this response. The match's active team uses current activation eligibility and movement spent, while the inactive team forecasts its next activation with current posture and restrictions. Both coaches see the same forecast for a selected player. Finished active-team and immobile players have empty sets. Native special movement limits apply to Kickoff Return and Pass Block; other special modes omit ordinary range guidance. Reads do not select an actor, roll dice, change a revision, or grant mutation rights. Rebuild the browser and Java game service together when updating this range contract.

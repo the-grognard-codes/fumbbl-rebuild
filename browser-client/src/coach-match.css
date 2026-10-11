@@ -114,6 +114,10 @@
 .play-runtime .coach-match.hosted-match .game-menu-dialog h2 { color: #49e6ff; font: 700 24px/1.2 MUTP,sans-serif; text-transform: uppercase; }
 .play-runtime .coach-match.hosted-match .game-menu-dialog h3 { color: #ffe17b; font: 700 16px/1.3 MUTP,sans-serif; text-transform: uppercase; }
 .play-runtime .coach-match.hosted-match .game-menu-dialog nav { border-color: #426c9b; gap: 6px; }
+.threat-settings [role=group] { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.play-runtime .game-menu-dialog .threat-settings label { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; font: inherit; text-align: left; }
+.play-runtime .game-menu-dialog .threat-settings input[type=checkbox] { flex: 0 0 16px; width: 16px; height: 16px; min-width: 0; min-height: 0; padding: 0; margin: 0; accent-color: #49e6ff; }
+.play-runtime .game-menu-dialog .threat-settings input:focus-visible { outline: 2px solid #49e6ff; outline-offset: 2px; }
 .play-runtime .coach-match.hosted-match .game-menu-dialog button,
 .play-runtime .coach-match.hosted-match .game-menu-dialog select { color: #b7c9da; font-family: MUTP,sans-serif; font-weight: 700; border-color: #355c7a; border-radius: 3px; background: #101f32; box-shadow: inset 0 0 0 1px #152e46; }
 .play-runtime .coach-match.hosted-match .game-menu-dialog button { margin: 0; padding: 5px 8px; }
