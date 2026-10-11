@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 
 const base = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const players = [{ ...base.players[0], id: 'reserve-home', name: 'Home Reserve', role: 'home', x: null, y: null, offPitch: 'reserve' },

@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { squarePosition } from './projected-pitch-helper.mjs';
 
 const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-pass-workflow.json', import.meta.url), 'utf8'));

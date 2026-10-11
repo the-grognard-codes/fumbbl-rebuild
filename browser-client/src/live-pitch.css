@@ -478,6 +478,12 @@
 .live-kick-target { fill: #f6dfa840; stroke: #f7e6b4; stroke-width: 3; stroke-dasharray: 8 4; pointer-events: none; }
 .pitch-chalk.wide { stroke-dasharray: 12 10; }
 .live-movement-range { pointer-events: none; }
+.live-threats { pointer-events: none; }
+.live-threat-fill { stroke: none; }
+.live-threat-hatch { fill: none; stroke: #d9e2e6b8; stroke-width: 1; }
+.live-threats .live-threat-tackle-triangle { stroke: #ffffffd9; }
+.live-threats .live-threat-tackle-mark { fill: #f24646; }
+.live-threats .live-threat-warning-separator { fill: #ffffffd9; }
 .live-range-normal, .live-range-full { fill: none; stroke-width: 2.25; stroke-opacity: .75; stroke-linecap: round; stroke-linejoin: round; }
 .live-range-normal { stroke: #36ddff; }
 .live-range-full { stroke: #ffe17b; }

@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Local browser validation runs test shards in parallel with isolated dependency caches and a configurable worker limit")
+			.addImprovement("Squares with both rushing and Tackle warnings center the two markers with a slash between them")
+			.addFeature("Selected unfinished friendly browser players show opposing tackle-zone colors, Tackle warnings and movement-skill markings during regular turns and Charge!, with persistent Game Settings controls")
 			.addFeature("Selected browser players show translucent blue normal and yellow rush outer perimeters for ordinary movement, with small outlined rush-only warning markers")
 			.addImprovement("Browser league stadiums feature mixed Human/Dwarf/Halfling and Orc/Goblin/Ogre/Troll crowds, gradual local gestures, rounded stands, wall caps and sideline towels and spare jerseys")
 			.addBugfix("Hosted diagnostic browser routes and links retain their /play prefix")
