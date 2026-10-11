@@ -21,7 +21,11 @@ class RecoveryNativeJsonTest {
 	private JsonObject fixture(boolean reverse) {
 		JsonArray categories = reverse ? new JsonArray().add("strength").add("agility") : new JsonArray().add("agility").add("strength");
 		JsonObject position = new JsonObject().add("skillCategoriesNormal", categories).add("skillCategoriesDouble", categories);
-		JsonObject team = new JsonObject().add("roster", new JsonObject().add("positionArray", new JsonArray().add(position)));
+		JsonArray modifiers = reverse ? new JsonArray().add("MA-decrement").add("AV-decrement")
+			: new JsonArray().add("AV-decrement").add("MA-decrement");
+		JsonObject player = new JsonObject().add("temporaryModifiersMap", new JsonObject().add("Dodgy Snack", modifiers));
+		JsonObject team = new JsonObject().add("roster", new JsonObject().add("positionArray", new JsonArray().add(position)))
+			.add("playerArray", new JsonArray().add(player));
 		JsonObject a = new JsonObject().add("gameOptionId", "A").add("gameOptionValue", true);
 		JsonObject b = new JsonObject().add("gameOptionId", "B").add("gameOptionValue", false);
 		JsonObject game = new JsonObject().add("teamHome", team).add("teamAway", JsonObject.readFrom(team.toString()))

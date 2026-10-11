@@ -232,7 +232,9 @@ public final class SetupSession {
 			if (revision < 0 || drive < 1) throw new IllegalArgumentException("Invalid recovery counters");
 			recoveryDice = new RecoveryDice(payload.get("dice").asObject());
 			state.getDiceRoller().setRecoveryRoll(recoveryDice::roll);
-			state.initFrom(server.getFactorySource(), payload.get("native"));
+			// Existing checkpoints may retain either iteration order for native sets.
+			JsonObject nativeSnapshot = new RecoveryNativeJson().normalize(payload.get("native").asObject());
+			state.initFrom(server.getFactorySource(), nativeSnapshot);
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
 			if (r53 && payload.get("clock") != null) {
