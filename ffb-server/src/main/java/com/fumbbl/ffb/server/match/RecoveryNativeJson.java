@@ -44,6 +44,12 @@ public final class RecoveryNativeJson {
 			// These property names are the native InducementSet map and BlockRoll source set.
 			for (JsonObject.Member member : value.asObject()) normalizeNamedSets(member.getValue());
 			sortMember(value.asObject(), "inducementArray"); sortMember(value.asObject(), "reRollSources");
+			// Each enhancement source maps to an unordered set of temporary stat modifiers.
+			JsonValue temporaryModifiers = value.asObject().get("temporaryModifiersMap");
+			if (temporaryModifiers != null) {
+				JsonObject sources = temporaryModifiers.asObject();
+				for (String source : sources.names()) sortMember(sources, source);
+			}
 		} else if (value.isArray()) for (JsonValue item : value.asArray()) normalizeNamedSets(item);
 	}
 
