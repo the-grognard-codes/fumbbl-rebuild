@@ -22,6 +22,14 @@ The original block dice remain visible during a Pro-test retry, with the Pro d6 
 
 Local screenshot evidence is retained under `.tools/fifth-round-evidence/T05/`. Inspection confirms the original dice remain readable and the separate Pro d6 does not become a selectable block outcome. The fixture's clock values and UUIDs come from isolated test sessions; no private match data is included.
 
+## Pending keyboard input follow-up (2026-10-11)
+
+The reroll browser fixture acknowledged mutations after a fixed 200 ms. On a busy machine, that reply could arrive between two automated Enter presses, focus the next block-die decision, and produce a valid second action at the new revision. A 350 ms delay between presses reproduced the reported `2 !== 1` failure consistently; holding the reply prevented it.
+
+The fixture now queues mutation replies until pending input and any exact retry have been exercised. It asserts that the decision is busy, its buttons are disabled, and only one reply is queued before releasing the acknowledgement. Production input handling and game behavior are unchanged.
+
+The pinned-delay reproduction passed after the fix. All 56 reroll-choice cases and all 22 accounting cases passed, including both coaches, read-only viewers, reconnects, and exact retries. Self-review and whitespace checks passed; temporary instrumentation was removed.
+
 ## Review and practical limit
 
 Independent Standards and Spec reviews approve. The spec review found an early gap in generic Pro ordering; the final implementation handles that path through the BB2025 native mechanic. Import ordering was corrected and checked. IDE-generated test bytecode briefly contained unresolved types; rebuilding the disposable test classes restored meaningful native verification. Clean CI remains the publication gate.

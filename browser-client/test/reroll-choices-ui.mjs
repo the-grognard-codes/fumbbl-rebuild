@@ -28,7 +28,7 @@ try {
     await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
       '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
     await page.addInitScript(journey => {
-      const transport = { state: journey.viewer ? journey[journey.viewer] : journey.offered, sent: [], receipts: new Map(), consumptions: 0 };
+      const transport = { state: journey.viewer ? journey[journey.viewer] : journey.offered, sent: [], receipts: new Map(), consumptions: 0, replies: [] };
       window.testTransport = transport;
       window.WebSocket = class {
         static OPEN = 1;
@@ -66,7 +66,11 @@ try {
             }
             if (transport.dropReply) { transport.dropReply = false; this.close(); return; }
           }
-          setTimeout(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate, state: transport.state }), request.operation === 'load' ? 0 : 200);
+          const reply = { version: 2, type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate, state: transport.state };
+          // Keep the request pending until duplicate input/retries have been exercised.
+          // A timed reply can focus the next decision between the two Enter presses.
+          if (request.type === 'setup' && request.operation !== 'load') transport.replies.push(reply);
+          else setTimeout(() => this.emit(reply), 0);
         }
         close() { this.readyState = 3; this.onclose?.(); }
       };
@@ -141,11 +145,17 @@ try {
     if (loseReply) await page.evaluate(() => { window.testTransport.dropReply = true; });
     if (group) { await button.click(); await page.getByRole('button', { name: selected.label, exact: true }).focus(); }
     await page.keyboard.press('Enter');
+    if (!loseReply) {
+      assert.equal(await page.getByRole('dialog').getAttribute('aria-busy'), 'true', 'Duplicate input is tested while the request is pending');
+      assert.equal(await page.getByRole('dialog').evaluate(dialog => [...dialog.querySelectorAll('button')].every(choice => choice.disabled)), true);
+    }
     await page.keyboard.press('Enter');
     if (loseReply) {
       await page.getByRole('button', { name: 'Reconnect', exact: true }).click();
       await page.getByRole('button', { name: 'Repeat retained request', exact: true }).click();
     }
+    assert.equal(await page.evaluate(() => window.testTransport.replies.length), 1, 'Only the original action or its exact retry awaits a reply');
+    await page.evaluate(() => { for (const reply of window.testTransport.replies.splice(0)) window.testSocket.emit(reply); });
     await page.getByTestId('setup-status').filter({ hasText: `Revision ${journey.accepted.revision} ` }).waitFor({ state: 'attached' });
     await page.waitForTimeout(250);
     if (accounting) {

@@ -878,6 +878,8 @@ public final class SetupSession {
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
+		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
+		if (driveTracker != null) projected.add("driveTracker", driveTracker);
 		return projected;
 	}
 	private JsonObject resources(Team team, int apothecaries) {
@@ -928,6 +930,7 @@ public final class SetupSession {
 		// Existing checkpoints predate this optional, independently versioned public guidance.
 		if (saved.get("passing") == null) current.remove("passing");
 		if (saved.get("kickoff") == null) current.remove("kickoff");
+		if (saved.get("driveTracker") == null) current.remove("driveTracker");
 		if (saved.get("ballState") == null) current.remove("ballState");
 		if (saved.get("movementForecast") == null) current.remove("movementForecast");
 		else if (saved.get("movementForecast").asObject().getInt("version", -1) == 1) {
