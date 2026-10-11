@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser matches recover reliably when players have temporary stat modifiers from Dodgy Snack")
 			.addImprovement("Local browser validation runs test shards in parallel with isolated dependency caches and a configurable worker limit")
 			.addImprovement("Squares with both rushing and Tackle warnings center the two markers with a slash between them")
 			.addFeature("Selected unfinished friendly browser players show opposing tackle-zone colors, Tackle warnings and movement-skill markings during regular turns and Charge!, with persistent Game Settings controls")
