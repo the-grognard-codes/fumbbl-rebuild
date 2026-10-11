@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { squarePosition } from './projected-pitch-helper.mjs';
 
 // Presentation and submitted-intent evidence, paired with TeammateActivationTest.

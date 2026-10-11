@@ -138,6 +138,28 @@ Chromium is available, builds the site, and runs all suites with fresh coverage
 reports. Installed browsers are reused; passing results are never reused. Linux
 developers must also have Playwright's system dependencies installed.
 
+Local browser validation runs up to four shard processes concurrently, limited
+by the available CPU count. Dependency installation and site building finish
+before the workers start. Each shard retains sequential suites and its own Vite
+dependency cache, browser contexts, ephemeral ports and fresh report. A failed
+shard stops queued work; active shards finish before validation fails, so local
+services are not restarted and remote publication remains blocked. The completion
+message reports the elapsed browser-suite time.
+
+On a smaller machine, reduce the worker count (use `1` for serial execution):
+
+```powershell
+$env:FFB_BROWSER_TEST_WORKERS = '2'
+node tools/dev-local.mjs --restart
+```
+
+The supported override is `1` through `4`; an invalid value fails before setup.
+Remove the override to restore the CPU-based default:
+
+```powershell
+Remove-Item Env:FFB_BROWSER_TEST_WORKERS
+```
+
 PR and `main` GitHub checks retain Java, native state tests, assets, unit tests,
 Hosting artifact checks, service checks, and security checks. Their `Static
 delivery` result covers those static checks and browser inventory registration;

@@ -83,3 +83,16 @@ Approved 2026-10-07. [Scope and acceptance criteria](docs/specs/adr0003-fifth-ui
 - [ ] [#195 Streamline action and committed-movement logs with persistent Game Log controls](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/195).
 - [ ] [#196 Log activation checks, follow-up rolls, and reroll attempts chronologically](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/196) — blocked by #195.
 - [ ] [#197 Explain block dice choices, skill use, pushes, and knockdowns in the log](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/197) — blocked by #196.
+
+## Opposing player threat markings
+
+Approved 2026-10-10. [Scope, decisions, screenshot, and acceptance criteria](docs/specs/opposing-player-threat-ticket-plan.md).
+Branch: `feature/opposing-player-threat-tickets`. Implementation, focused checks and code self-review are complete. Owner manual validation accepted the original feature; the combined rushing/Tackle marker refinement passed automated checks and awaits owner recheck. The owner authorized one delivery PR for all three tickets, including the parallel local browser runner, with merge after passing checks. The delivery PR closes these tickets; GitHub records their final state and PR link. [Verification and manual-review handoff](docs/verification/opposing-player-threat-markings.md).
+
+- [ ] [#247 Show opposing tackle-zone colors with Game Settings controls](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/247) — no blockers.
+- [ ] [#248 Mark opposing Tackle zones with rounded T warnings](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/248) — blocked by #247.
+- [ ] [#249 Stripe opposing movement-skill zones with per-skill controls](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/249) — blocked by #247 and #248.
+
+Markings appear during the selecting coach's regular turn or Charge! kickoff event.
+The stripe skills are Prehensile Tail, Diving Tackle, Tentacles, and Shadowing; Tackle uses a hollow white triangle with a red T. Arm Bar is excluded.
+Use one shared diagonal pattern, neutral hatching when colors are off, and persistent controls enabled by default.

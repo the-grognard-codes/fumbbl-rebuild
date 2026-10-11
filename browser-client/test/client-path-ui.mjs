@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -12,7 +12,12 @@ try {
     await server.listen();
     const page = await browser.newPage();
     const errors = [];
+    const failedResources = [];
     page.on('pageerror', error => errors.push(error.message));
+    page.on('requestfailed', request => failedResources.push({ path: new URL(request.url()).pathname, error: request.failure()?.errorText }));
+    page.on('response', response => {
+      if (response.status() >= 400) failedResources.push({ path: new URL(response.url()).pathname, status: response.status() });
+    });
     const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
     try {
       await page.goto(`${origin}${base}teams`);
@@ -37,6 +42,10 @@ try {
       await page.getByRole('heading', { name: 'Match result and replay', exact: true }).waitFor();
       assert.deepEqual(errors, []);
       console.log(`Diagnostic routes and cross-panel links passed with base ${base}`);
+    } catch (error) {
+      // Keep loading failures visible when a heading wait fails before the final assertion.
+      console.error('Diagnostic route failed:', { base, path: new URL(page.url()).pathname, errors, failedResources });
+      throw error;
     } finally {
       await page.close();
       await server.close();

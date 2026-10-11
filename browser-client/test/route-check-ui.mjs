@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { decodeRoutePreview } from '../src/route-protocol.ts';
 import { squarePosition } from './projected-pitch-helper.mjs';
