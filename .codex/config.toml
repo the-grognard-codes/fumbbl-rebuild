@@ -1,0 +1,20 @@
+# Project settings inherit the existing user-level toolchain permissions.
+default_permissions = "fumbbl-project"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+
+[permissions.fumbbl-project]
+description = "MUTP workspace edits, builds, GitHub access, and deployment with writable Git metadata and build caches."
+extends = "cross-project-toolchains"
+
+[permissions.fumbbl-project.filesystem]
+# Linked worktrees also write their shared Git directory in the main checkout.
+'C:\Users\jaken\Git-Hub\fumbbl-rebuild\.git' = "write"
+'C:\Users\jaken\AppData\Local\npm-cache' = "write"
+'C:\Users\jaken\AppData\Local\ms-playwright' = "write"
+
+[permissions.fumbbl-project.filesystem.":workspace_roots"]
+".git" = "write"
+
+[permissions.fumbbl-project.network]
+enabled = true
