@@ -1,0 +1,26 @@
+# The legacy Windows sandbox still protects .git despite explicit profile grants.
+# These exceptions support Git workflows authorized in the current task.
+prefix_rule(
+    pattern=["git", ["add", "commit", "switch", "fetch", "pull", "push", "tag", "worktree"]],
+    decision="allow",
+    justification="Allow authorized Git workflows for this trusted project without repeated sandbox prompts.",
+    match=["git switch -c feature/example", "git add .codex/config.toml", "git push origin HEAD"],
+    not_match=["git reset --hard", "git clean -fdx", "git config --global core.editor code"],
+)
+
+# Each supported deployment script validates the target environment itself.
+prefix_rule(
+    pattern=["node", "tools/deploy.mjs", "--environment", ["dev-local", "dev-remote", "prod"]],
+    decision="allow",
+    justification="Allow the project's validated deployment entry point when deployment is requested.",
+    match=["node tools/deploy.mjs --environment dev-remote", "node tools/deploy.mjs --environment prod --release-tag moles-v1.2.3"],
+    not_match=["node tools/deploy.mjs --environment unknown", "node other-script.mjs"],
+)
+
+prefix_rule(
+    pattern=["node", "tools/dev-local.mjs", ["--start", "--restart", "--stop"]],
+    decision="allow",
+    justification="Allow the established local review stack lifecycle when requested.",
+    match=["node tools/dev-local.mjs --restart"],
+    not_match=["node tools/dev-local.mjs --rebuild"],
+)
