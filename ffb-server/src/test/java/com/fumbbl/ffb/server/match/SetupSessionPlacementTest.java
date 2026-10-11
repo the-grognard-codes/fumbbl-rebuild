@@ -29,6 +29,47 @@ import static org.mockito.Mockito.when;
 
 class SetupSessionPlacementTest {
     @Test
+    void driveTrackerFollowsBothNativeSetupDecisionsAndRestoresOlderCheckpoint() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject initial = fixture.session.spectatorView();
+        assertTrue(initial.get("driveTracker") == null);
+        JsonObject kicking = fixture.setup();
+        JsonObject first = kicking.get("driveTracker").asObject();
+        assertEquals("KICKING_SETUP", first.getString("phase", null));
+        String receiving = "home".equals(kicking.getString("actor", null)) ? "away" : "home";
+        assertEquals(receiving, first.getString("receivingRole", null));
+        assertEquals(first, fixture.session.spectatorView().get("driveTracker"));
+
+        SetupSession recovered = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+        assertEquals(first, recovered.spectatorView().get("driveTracker"));
+        JsonObject legacy = JsonObject.readFrom(fixture.session.recoveryArtifact());
+        removeField(legacy.get("payload"), "driveTracker");
+        StringBuilder checksum = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(legacy.get("payload").toString()
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8))) checksum.append(String.format("%02x", value & 255));
+        legacy.set("sha256", checksum.toString());
+        assertEquals(first, new SetupSession(fixture.server, fixture.document, legacy.toString())
+            .spectatorView().get("driveTracker"));
+
+        JsonObject receivingSetup = fixture.session.apply(kicking.getString("actor", null),
+            fixture.request("confirm", "first-setup", kicking)).get("state").asObject();
+        assertEquals("RECEIVING_SETUP", receivingSetup.get("driveTracker").asObject().getString("phase", null));
+        assertEquals(receiving, receivingSetup.get("driveTracker").asObject().getString("receivingRole", null));
+        JsonObject kickTarget = fixture.session.apply(receivingSetup.getString("actor", null),
+            fixture.request("confirm", "second-setup", receivingSetup)).get("state").asObject();
+        assertEquals("KICK_TARGET", kickTarget.get("driveTracker").asObject().getString("phase", null));
+        assertEquals(receiving, kickTarget.get("driveTracker").asObject().getString("receivingRole", null));
+    }
+
+    private void removeField(JsonValue value, String field) {
+        if (value.isObject()) {
+            JsonObject object = value.asObject();
+            object.remove(field);
+            for (JsonObject.Member member : object) removeField(member.getValue(), field);
+        } else if (value.isArray()) for (JsonValue child : value.asArray()) removeField(child, field);
+    }
+
+    @Test
     void projectsFrozenTeamArtAndRestoresLegacyCheckpointsWithoutPresentationFields() throws Exception {
         Fixture fixture = new Fixture();
         JsonObject view = fixture.setup();

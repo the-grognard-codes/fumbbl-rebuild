@@ -23,6 +23,7 @@
       "browser-client/test/projected-pitch-ui.mjs",
       "browser-client/test/movement-checks-ui.mjs",
       "browser-client/test/coach-hud-ui.mjs",
+      "browser-client/test/drive-phase-tracker-ui.mjs",
       "browser-client/test/game-menu-events-ui.mjs",
       "browser-client/test/round-four-ui.mjs"
     ],
