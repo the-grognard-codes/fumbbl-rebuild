@@ -6,6 +6,7 @@ import { hybridFaces, hybridGroups, hybridFaceCenter, hybridDepth, hybridViewRow
 import { stadiumPresentation } from './stadium-presentation.ts';
 import { jigsawModules, jigsawDepth } from './stadium-jigsaw.ts';
 import { JigsawSurface } from './StadiumJigsaw.tsx';
+import { OriginalStadiumStudy } from './OriginalStadiumStudy.tsx';
 import { initialPlayers, spriteUrl } from './pitch-demo.ts';
 import './stadium-hybrid-prototype.css';
 import './pitch-scenery.css';
@@ -15,7 +16,7 @@ const crowdUrl = asset('pitch/stadiums/prototype/human-groups-v1.png');
 const presentation = stadiumPresentation({ homeTeamArt: { rosterId: 'human', league: 'Old World Classic' },
   awayTeamArt: { rosterId: 'orc', league: 'Badlands Brawl' } });
 const faces = hybridFaces(), groups = hybridGroups();
-const variantNames = ['hybrid', 'structure', 'current'] as const;
+const variantNames = ['original', 'hybrid', 'structure', 'current'] as const;
 type Variant = typeof variantNames[number];
 const points = (p: Point[]) => p.map(v => v.x + ',' + v.y).join(' ');
 
@@ -112,10 +113,11 @@ function Prop({ camera, role, x, y, z, width }: { camera: PitchProjection; role:
 
 export function StadiumHybridPrototype() {
   const params = new URLSearchParams(window.location.search);
-  const [variant, setVariant] = useState<Variant>(variantNames.includes(params.get('study') as Variant) ? params.get('study') as Variant : 'hybrid');
+  const initialVariant = variantNames.includes(params.get('study') as Variant) ? params.get('study') as Variant : 'original';
+  const [variant, setVariant] = useState<Variant>(initialVariant);
   const [end, setEnd] = useState<'home'|'away'>(params.get('end')==='away'?'away':'home');
   const [elevation, setElevation] = useState<30|40|50|90>(40);
-  const [focus, setFocus] = useState(0), [zoom, setZoom] = useState(.75);
+  const [focus, setFocus] = useState(initialVariant === 'original' ? 13 : 0), [zoom, setZoom] = useState(initialVariant === 'original' ? 1 : .75);
   const [transverseFocus,setTransverseFocus]=useState(7.5);
   const [motion, setMotion] = useState(true), [inspect, setInspect] = useState(false);
   const [active, setActive] = useState<{id:string;frame:number}|null>(null);
@@ -158,22 +160,22 @@ export function StadiumHybridPrototype() {
       {id:'torch-left',role:'torch',x:4.5,y:-2.3,z:.6,width:.22},{id:'torch-right',role:'torch',x:7.3,y:-2.3,z:.6,width:.22}] as const)
       .map(prop=>({id:prop.id,depth:hybridDepth(prop,camera),node:<Prop camera={camera} {...prop}/>}))
   ].sort((a,b)=>b.depth-a.depth);
-  const current = variant==='current' ? jigsawModules(camera,presentation.venue,presentation.home,presentation.away)
-    .filter(m=>m.piece==='north-home'||m.piece==='home-north-corner'||m.edge==='north'&&m.role!=='crowd')
+  const current = variant==='current'||variant==='original'&&camera.mode==='top-down' ? jigsawModules(camera,presentation.venue,presentation.home,presentation.away)
+    .filter(m=>variant==='original'||m.piece==='north-home'||m.piece==='home-north-corner'||m.edge==='north'&&m.role!=='crowd')
     .sort((a,b)=>jigsawDepth(b,camera)-jigsawDepth(a,camera)) : [];
-  const frameGroup=()=>{setFocus(0);setTransverseFocus(7.5);setEnd('home');setZoom(.75);setElevation(40);};
+  const frameGroup=()=>{setFocus(variant==='original'?13:0);setTransverseFocus(7.5);setEnd('home');setZoom(variant==='original'?1:.75);setElevation(40);};
   const inspectJoin=()=>{setFocus(0);setTransverseFocus(0);setEnd('home');setZoom(1.25);setElevation(40);};
   return <main className="hybrid-prototype">
-    <header><div><span className="hybrid-eyebrow">STADIUM STUDY · HUMAN SIDE + CORNER</span><h1>One joined section</h1></div>
+    <header><div><span className="hybrid-eyebrow">STADIUM STUDY</span><h1>{variant==='original'?'Original wall and crowd':'One joined section'}</h1></div>
       <p>26 × 15 pitch · shared game camera · development prototype</p></header>
     <div className="hybrid-controls">
       <label>View<select aria-label="Camera angle" value={elevation} onChange={e=>setElevation(Number(e.target.value) as typeof elevation)}>
         <option value="40">40° perspective</option><option value="90">Overhead</option><option value="30">30° stress check</option><option value="50">50° stress check</option></select></label>
       <label>Viewing end<select aria-label="Viewing end" value={end} onChange={e=>setEnd(e.target.value as typeof end)}><option value="home">Home</option><option value="away">Away</option></select></label>
-      <button onClick={()=>setFocus(0)}>Home end</button><button onClick={()=>setFocus(13)}>Midfield</button><button onClick={()=>setFocus(26)}>Away end</button><button onClick={inspectJoin}>Inspect join</button><button onClick={frameGroup}>Reset view</button>
+      <button onClick={()=>setFocus(0)}>Home end</button><button onClick={()=>setFocus(13)}>Midfield</button><button onClick={()=>setFocus(26)}>Away end</button><button disabled={variant==='original'} onClick={inspectJoin}>Inspect join</button><button onClick={frameGroup}>Reset view</button>
       <label>Zoom<input aria-label="Zoom" type="range" min=".5" max="1.8" step=".05" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
-      <label><input type="checkbox" checked={motion} onChange={e=>setMotion(e.target.checked)}/>Local gestures</label>
-      <label><input type="checkbox" checked={inspect} onChange={e=>setInspect(e.target.checked)}/>Show group bounds</label>
+      <label><input type="checkbox" checked={motion&&variant==='hybrid'} disabled={variant!=='hybrid'} onChange={e=>setMotion(e.target.checked)}/>Local gestures</label>
+      <label><input type="checkbox" checked={inspect&&variant==='hybrid'} disabled={variant!=='hybrid'} onChange={e=>setInspect(e.target.checked)}/>Show group bounds</label>
     </div>
     <div ref={stage} className="hybrid-stage" data-testid="hybrid-stage" data-study={variant} data-camera-end={end} data-camera-angle={elevation}
       data-camera-focus={focus} data-camera-zoom={zoom} data-transverse-focus={transverseFocus} tabIndex={0} aria-label="Stadium test field: drag to scroll, use the wheel to zoom" role="group"
@@ -182,16 +184,20 @@ export function StadiumHybridPrototype() {
       onPointerMove={e=>{if(!drag.current)return;const next=camera.panPixels({x:e.clientX-drag.current.x,y:e.clientY-drag.current.y});setFocus(next.focus);setTransverseFocus(next.transverseFocus);drag.current={x:e.clientX,y:e.clientY};}}
       onWheel={e=>setZoom(v=>Math.max(.5,Math.min(1.8,v-e.deltaY*.001)))}
       onKeyDown={e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();setFocus(v=>Math.max(0,Math.min(26,v+(e.key==='ArrowUp'?1:-1)*(end==='home'?1:-1))));}}}>
-      <Ground camera={camera}/><Pitch camera={camera}/>
-      {variant==='current'?current.map(m=><JigsawSurface key={m.id} module={m} camera={camera} failed={false} gestureFailed={false} onError={()=>{}}/>):objects.map(o=><div className="hybrid-object" key={o.id}>{o.node}</div>)}
+      <Ground camera={camera}/>
+      {variant==='original' && (camera.mode==='top-down'
+        ? current.map(m=><JigsawSurface key={m.id} module={m} camera={camera} failed={false} gestureFailed={false} onError={()=>{}}/>)
+        : <OriginalStadiumStudy camera={camera}/>)}
+      <Pitch camera={camera}/>
+      {variant==='original'?null:variant==='current'?current.map(m=><JigsawSurface key={m.id} module={m} camera={camera} failed={false} gestureFailed={false} onError={()=>{}}/>):objects.map(o=><div className="hybrid-object" key={o.id}>{o.node}</div>)}
       {initialPlayers.map(player=>{const p=camera.project({x:player.x+.5,y:player.y+.5});return p?<img key={player.name} className="hybrid-player" src={spriteUrl(player.sprite,player.team)} alt={player.name}
         style={{left:p.x-p.pixelsPerSquare*.5,top:p.y-p.pixelsPerSquare*.85,width:p.pixelsPerSquare}}/>:null;})}
       <div className="hybrid-state" role="status">{elevation}° · {end} view · focus {focus.toFixed(1)} / 26 · zoom {zoom.toFixed(2)}<br/>
-        {variant==='hybrid'?'42 intact groups on 3 raised ranks':variant==='structure'?'Geometry and pitch-side props':'Current bank and corner rendering'}<br/>
+        {variant==='original'?(camera.mode==='top-down'?'Modular overhead walls/crowd · original has no overhead art':'Original stadium-v1 painting · static crowd'):variant==='hybrid'?'42 intact groups on 3 raised ranks':variant==='structure'?'Geometry and pitch-side props':'Current bank and corner rendering'}<br/>
         {active ? active.id+' · gesture '+active.frame : 'Rest'} · drag / ↑ ↓ to scroll</div>
     </div>
     <nav className="hybrid-switcher" aria-label="Prototype comparison">
-      {variantNames.map(v=><button key={v} aria-pressed={variant===v} onClick={()=>setVariant(v)}>{v==='hybrid'?'Hybrid crowd':v==='structure'?'Structure only':'Current rendering'}</button>)}
+      {variantNames.map(v=><button key={v} aria-pressed={variant===v} onClick={()=>{setVariant(v);if(v==='original'){setFocus(13);setTransverseFocus(7.5);setZoom(1);}}}>{v==='original'?'Original artwork':v==='hybrid'?'Hybrid crowd':v==='structure'?'Structure only':'Current rendering'}</button>)}
     </nav>
   </main>;
 }

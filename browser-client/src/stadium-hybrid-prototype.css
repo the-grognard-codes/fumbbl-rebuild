@@ -8,6 +8,7 @@
 .hybrid-prototype button,.hybrid-prototype select { padding:6px 10px; border:1px solid #667262; border-radius:4px; background:#28393a; color:#eee0bd; font-size:12px; cursor:pointer; width:auto; }
 .hybrid-controls input[type=range] { width:85px; }
 .hybrid-controls input[type=checkbox] { width:auto; }
+.hybrid-prototype button:disabled,.hybrid-controls input:disabled { cursor:default; opacity:.5; }
 .hybrid-stage { position:relative; flex:1; min-height:180px; overflow:hidden; background:#131c20; cursor:grab; touch-action:none; outline-offset:-3px; }
 .hybrid-stage:active { cursor:grabbing; }
 .hybrid-pitch { position:absolute; inset:0; pointer-events:none; }
@@ -16,6 +17,7 @@
 .hybrid-group svg,.hybrid-prop { display:block; overflow:hidden; image-rendering:pixelated; }
 .hybrid-group.inspected { outline:1px solid #e4be5c; background:#e4be5c18; }
 .hybrid-face svg { image-rendering:pixelated; }
+.original-stadium-study { position:absolute; inset:0; pointer-events:none; }
 .hybrid-player { image-rendering:pixelated; }
 .hybrid-prop.torch { animation:hybrid-torch 1.4s steps(3,end) infinite; }
 @keyframes hybrid-torch { 0%,100%{filter:brightness(.9)} 35%{filter:brightness(1.2)} 65%{filter:brightness(1.04)} }

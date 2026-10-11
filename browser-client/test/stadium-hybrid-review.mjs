@@ -10,7 +10,8 @@ import { HYBRID_ATLAS } from '../src/stadium-hybrid-prototype.ts';
 const evidence = fileURLToPath(new URL('../../.tools/stadium-hybrid-review/', import.meta.url));
 const gallery = fileURLToPath(new URL('../../assets/game/references/stadiums/hybrid-prototype-review/', import.meta.url));
 const selected = new Set(['01-hybrid-40-home-near','02-structure-40-home-near','03-current-40-home-near','05-local-gesture',
-  'camera-40-away-0','camera-90-home-0','compact-30','07-inspect-join']);
+  'camera-40-away-0','camera-90-home-0','compact-30','07-inspect-join',
+  'original-40-home-13','original-40-away-13','original-compact-30']);
 await mkdir(evidence, { recursive: true });
 await mkdir(gallery, { recursive: true });
 const atlas = await readRgbaPng(fileURLToPath(new URL('../../assets/game/pitch/stadiums/prototype/human-groups-v1.png', import.meta.url)));
@@ -34,16 +35,26 @@ try {
   await page.goto(server.resolvedUrls.local[0]+'pitch-preview?variant=stadium-hybrid');
   await page.getByTestId('hybrid-stage').waitFor();
   await page.waitForFunction(()=>[...document.images].every(image=>image.complete));
-  await page.getByLabel('Local gestures').uncheck();
   const capture=async name=>{
     await page.screenshot({path:evidence+'/'+name+'.png'});
     if(selected.has(name))await copyFile(evidence+'/'+name+'.png',gallery+'/'+name+'.png');
     const state=await page.getByTestId('hybrid-stage').evaluate(stage=>({width:stage.clientWidth,height:stage.clientHeight,
       study:stage.dataset.study,end:stage.dataset.cameraEnd,angle:stage.dataset.cameraAngle,focus:stage.dataset.cameraFocus,zoom:stage.dataset.cameraZoom,transverseFocus:stage.dataset.transverseFocus,
       cells:stage.querySelectorAll('[data-cell-x]').length,groups:stage.querySelectorAll('[data-hybrid-group]').length,
-      faces:stage.querySelectorAll('[data-hybrid-face]').length}));
+      faces:stage.querySelectorAll('[data-hybrid-face]').length,originalPlates:stage.querySelectorAll('.original-stadium-plate').length}));
     assert.equal(state.cells,390);
-    if(Number(state.focus)===0 && state.study!=='current') assert.ok(state.faces>0,'the near section cannot disappear as a whole');
+    if(Number(state.focus)===0 && ['hybrid','structure'].includes(state.study)) assert.ok(state.faces>0,'the near section cannot disappear as a whole');
+    if(state.study==='original') {
+      assert.equal(state.groups,0);assert.equal(state.faces,0);
+      assert.equal(await page.getByLabel('Local gestures').isEnabled(),false,'static original painting has no gesture controls');
+      if(Number(state.angle)!==90) {
+        assert.ok(state.originalPlates>0,'original wall/crowd painting remains visible');
+        assert.ok(await page.locator('.original-stadium-plate image').evaluateAll(images=>images.every(image=>image.href.baseVal.endsWith('/assets/game/pitch/stadium-v1.png'))));
+        assert.ok(await page.locator('.original-stadium-plate').evaluateAll(plates=>plates.every(plate=>!plate.style.transform.match(/NaN|Infinity/))));
+        const ids=await page.locator('.original-stadium-study [id]').evaluateAll(elements=>elements.map(element=>element.id));
+        assert.equal(new Set(ids).size,ids.length,'each repeated painting owns its mask/pattern identifiers');
+      } else assert.equal(state.originalPlates,0,'do not flatten baked perspective art into the overhead view');
+    }
     const ratios=await page.locator('[data-hybrid-group]').evaluateAll(elements=>elements.map(element=>{
       const svg=element.querySelector('svg'),source=svg.viewBox.baseVal;
       return Math.abs(parseFloat(element.style.width)/parseFloat(element.style.height)-source.width/source.height);
@@ -51,6 +62,28 @@ try {
     assert.ok(ratios.every(error=>error<.002),'uniform scaling preserves each entire group aspect ratio');
     cases.push({name,...state});
   };
+  assert.equal(await page.getByTestId('hybrid-stage').getAttribute('data-study'),'original','restored artwork is the default preview');
+  for(const end of ['home','away'])for(const angle of [40,30,50,90])for(const [focus,button] of [[0,'Home end'],[13,'Midfield'],[26,'Away end']]) {
+    await page.getByLabel('Viewing end',{exact:true}).selectOption(end);
+    await page.getByLabel('Camera angle',{exact:true}).selectOption(String(angle));
+    await page.getByRole('button',{name:button,exact:true}).click();
+    await capture('original-'+angle+'-'+end+'-'+focus);
+  }
+  await page.getByRole('button',{name:'Reset view',exact:true}).click();
+  const originalBox=await page.getByTestId('hybrid-stage').boundingBox();
+  await page.mouse.move(originalBox.x+originalBox.width/2,originalBox.y+originalBox.height/2);await page.mouse.down();
+  await page.mouse.move(originalBox.x+originalBox.width/2,originalBox.y+originalBox.height/2+80,{steps:4});await page.mouse.up();
+  assert.ok(Math.abs(Number(await page.getByTestId('hybrid-stage').getAttribute('data-camera-focus'))-13)>.2);
+  await capture('original-scrolled');
+  await page.mouse.wheel(0,-200);await page.waitForTimeout(100);
+  assert.ok(Number(await page.getByTestId('hybrid-stage').getAttribute('data-camera-zoom'))>1);
+  await capture('original-zoom');
+  await page.setViewportSize({width:689,height:605});
+  await page.getByLabel('Camera angle',{exact:true}).selectOption('30');await capture('original-compact-30');
+  await page.setViewportSize({width:1440,height:960});
+  await page.getByRole('button',{name:'Hybrid crowd',exact:true}).click();
+  await page.getByRole('button',{name:'Reset view',exact:true}).click();
+  await page.getByLabel('Local gestures').uncheck();
   await capture('01-hybrid-40-home-near');
   await page.getByRole('button',{name:'Inspect join',exact:true}).click();await capture('07-inspect-join');
   await page.getByRole('button',{name:'Reset view',exact:true}).click();

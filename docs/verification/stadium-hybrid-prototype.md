@@ -4,6 +4,44 @@ Workstream: [#211](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/2
 Branch: `feature/stadium-hybrid-prototype`.
 Base: `3a9a27d78` (main). This is a limited development prototype, awaiting visual review.
 
+## Latest revision: restore the original artwork
+
+On 2026-10-11 the owner requested further revision of the group-card study and asked to
+apply the wall and crowd from the earlier live-match screenshot. The exact source remains
+at `assets/game/pitch/stadium-v1.png` (1672 × 941); SHA-256
+`ce5bfcc65cb95ff167914b1c58a18e572a7b09398af50441996e8f87389a0112` matches its recorded provenance.
+The source pixels were not regenerated or edited.
+
+The development preview now defaults to **Original artwork**, centered at midfield with
+40° perspective and zoom 1. It restores the full painted stone/timber walls, packed
+spectators, blue/red banners and torches. Source registration, half-plate longitudinal
+overlap and outer crowd extensions were recovered from the original renderer in
+`e8cb1fb7c`. The restored plates use the current camera's source-space clipping so an
+above-horizon viewport edge does not make the whole stadium disappear. Pitch lines,
+390 cells and sample players remain independent layers using the shared game camera.
+
+This restores an appearance baseline. The old scene is baked perspective artwork with
+static spectators; it does not supply interchangeable Human/Orc crowd sections, separate
+props, new stair entrances or crowd animation frames. Repeated paintings and outer crowd
+tiles remain visible, and projecting painted depth at a different camera angle can still
+distort it. Those are limitations of the original incarnation, not solved by restoring it.
+An overhead selection uses existing modular overhead walls/crowds and labels that fallback,
+rather than flattening the perspective painting. Gesture/group controls are disabled for
+the static source. The hybrid, structure and current-rendering comparisons remain available.
+
+The group-card art has not received owner acceptance. Future modular work must preserve
+the original painting's material, connected pixel clusters and spectator character while
+addressing the previously recorded raised-bowl, upper-body visibility and local-motion
+requirements. This revision remains in the isolated feature preview; it does not alter
+the live match renderer or merge the prototype into main.
+
+Build and TypeScript passed after this revision. The expanded browser review passed
+61 cases, including 27 original-art camera/scroll/zoom cases, both ends, all supported
+angles, compact 30°, unique repeated-plate mask identifiers and the explicit overhead
+fallback. All 390 pitch cells remained present, with no runtime errors or failed asset
+requests. Hybrid local gestures and reduced-motion checks also passed. The production
+JavaScript bundle contains neither development study renderer.
+
 ## Question
 
 Can a painted Human side section joined to one rounded corner retain intact spectator
@@ -66,7 +104,8 @@ npm.cmd run dev:stadium
 ```
 
 Open `http://localhost:5174/pitch-preview?variant=stadium-hybrid`.
-Use `study=hybrid`, `study=structure`, or `study=current` for shareable comparison URLs.
+The default is `study=original`. Use `study=hybrid`, `study=structure`, or `study=current`
+for shareable comparison URLs.
 Drag or press Up/Down to scroll, use the wheel or slider to zoom, switch viewing ends and
 camera angles, choose **Inspect join** for a closer view, and enable group bounds to
 inspect image scale and registration.
@@ -97,7 +136,7 @@ remain separate from main until its rendering and visual result are reviewed.
   `import.meta.env.DEV` and is omitted from the production JavaScript bundle.
 - All 27 canonical art checks and 206 synchronized asset checks pass.
 - All 29 focused camera, scenery, jigsaw and gesture regression tests pass.
-- `npm.cmd run review:stadium` records 34 browser camera/comparison/scroll/zoom cases:
+- The initial `npm.cmd run review:stadium` recorded 34 browser camera/comparison/scroll/zoom cases:
   both ends, 40° and overhead, 30°/50° stress checks, focus 0/13/26, and compact
   689 × 605 viewports. It preserves 390 cells and source aspect ratios, verifies drag
   and wheel behavior, and observes no runtime errors or failed requests.
