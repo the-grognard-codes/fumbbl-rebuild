@@ -8,6 +8,7 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -30,8 +31,10 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -187,6 +190,39 @@ class SetupSessionMovementTest {
         assertEquals(0, fixture.session.movementRange(activeRole, revision, inactiveId).get("full").asArray().size());
         game.getFieldModel().setPlayerState(inactive, new PlayerState(PlayerState.STUNNED));
         assertEquals(0, fixture.session.movementRange(otherRole, revision, inactiveId).get("full").asArray().size());
+    }
+
+    @Test void dodgySnackModifiersRecoverFromEitherStoredOrderWithoutChangingEffects() throws Exception {
+        Fixture fixture = new Fixture();
+        Field stateField = SetupSession.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        Player<?> player = game.getTeamHome().getPlayers()[0];
+        String source = KickoffResult.DODGY_SNACK.getName();
+        game.getFieldModel().addEnhancements(player, source);
+        assertEquals(player.getMovement() - 1, player.getMovementWithModifiers(game));
+        assertEquals(player.getArmour() - 1, player.getArmourWithModifiers(game));
+
+        String checkpoint = fixture.session.recoveryArtifact();
+        for (boolean reverse : new boolean[] {false, true}) {
+            JsonObject envelope = JsonObject.readFrom(checkpoint);
+            JsonObject payload = envelope.get("payload").asObject();
+            JsonObject modifiers = payload.get("native").asObject().get("game").asObject()
+                .get("teamHome").asObject().get("playerArray").asArray().get(0).asObject()
+                .get("temporaryModifiersMap").asObject();
+            JsonArray stored = modifiers.get(source).asArray();
+            assertEquals(2, stored.size());
+            if (reverse) modifiers.set(source, new JsonArray().add(stored.get(1)).add(stored.get(0)));
+            envelope.set("sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(payload.toString().getBytes(StandardCharsets.UTF_8))));
+
+            SetupSession recovered = new SetupSession(fixture.server, fixture.document, envelope.toString());
+            Game restoredGame = ((GameState) stateField.get(recovered)).getGame();
+            Player<?> restored = restoredGame.getPlayerById(player.getId());
+            assertEquals(player.getMovementWithModifiers(game), restored.getMovementWithModifiers(restoredGame));
+            assertEquals(player.getArmourWithModifiers(game), restored.getArmourWithModifiers(restoredGame));
+            assertEquals(checkpoint, recovered.recoveryArtifact());
+        }
     }
 
     @Test void pausedBlitzRetainsSelectedTargetAcrossRecoveryAndStopsAfterDeclinedReroll() throws Exception {
