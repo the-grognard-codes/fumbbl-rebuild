@@ -496,10 +496,17 @@ public final class SetupSession {
 		return response;
 	}
 
-	/** Spectators receive only public suspension and clock status, never checkpoint details. */
+	/** Public live decorations only; coach threat guidance never enters frozen snapshots. */
 	public JsonObject decorateSaveResumeState(JsonObject state) {
 		if (saveResume) state.add("saveResume", saveResumeState.publicJson());
 		if (chatV1) state.add("clock", clockProjection());
+		if (state.getInt("projectionVersion", -1) == 4 && state.getInt("revision", -1) == revision
+			&& "PLAY".equals(state.getString("phase", null))
+			&& state.getString("actor", "").equals(state.getString("callerRole", null))
+			&& (!saveResume || !saveResumeState.suspended() && !saveResumeState.abandoned)) {
+			JsonObject threats = new ThreatPresentation().project(this.state, state.getString("callerRole", null), kickoffSelection);
+			if (threats != null) state.add("threats", threats);
+		}
 		return state;
 	}
 

@@ -16,6 +16,8 @@ import type { PushChoice } from './push-choice.ts';
 import { passingLegend, passingSquare } from './passing-presentation.ts';
 import type { MovementRange } from './movement-protocol.ts';
 import { movementRangePresentation } from './movement-range-presentation.ts';
+import { defaultThreatPreferences, type ThreatPreferences } from './threat-preferences.ts';
+import { projectThreatSquare, threatOpacity, threatSquares } from './threat-presentation.ts';
 import './live-pitch.css';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
@@ -90,12 +92,14 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null,
+  threatPreferences = defaultThreatPreferences, allowThreats = true,
   onUndoWaypoint,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
+  threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onUndoWaypoint?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
@@ -160,6 +164,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const rangeMarkings = movementRange && movementRange.full.length > 0 && movementRange.playerId === selectedId
     ? movementRangePresentation(movementRange.normal, movementRange.full, movementRange.from, camera,
       view.players.filter(player => player.x != null && player.y != null).map(player => ({ x: player.x!, y: player.y! }))) : null;
+  const threatMarkings = (allowThreats && !readOnly && !playback ? threatSquares(view, selectedId, threatPreferences) : []).map(square => {
+    const sharesRush = !!rangeMarkings?.warnings.some(warning => warning.square.x === square.x && warning.square.y === square.y);
+    return { square, projected: projectThreatSquare(square, camera, threatPreferences.zoneColors, sharesRush) };
+  });
   const passing = view.passing;
   useEffect(() => {
     const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
@@ -269,6 +277,25 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             data-pass-range={guidance?.code} fill={guidance?.color ?? (square.x === 0 ? '#37669166' : square.x === 25 ? '#874a2d66' : (square.x + square.y) % 2 ? '#18392222' : '#b1c46a0b')}
             stroke="#21371e" strokeOpacity=".5">{guidance && <title>{guidance.description}</title>}</polygon>;
           }) }
+          {allowThreats && !readOnly && !playback && <g className="live-threats" data-threat-player={selectedId}>
+            {threatMarkings.map(({ square, projected }) => {
+              return <g key={`${square.x},${square.y}`} data-threat-square={`${square.x},${square.y}`} data-threat-count={square.count}
+                data-threat-striped={square.striped}>
+                {projected.fills.map((polygon, index) => <polygon key={index} className="live-threat-fill" points={points(polygon)}
+                  fill={projected.color} fillOpacity={threatOpacity}/>)}
+                {projected.hatches.map(edge => <path key={edge.key} className="live-threat-hatch"
+                  d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
+                {projected.warning && <g data-tackle-warning={`${square.x},${square.y}`}>
+                  <path className="live-range-warning-triangle live-threat-tackle-triangle" d={projected.warning.path}/>
+                  <text className="live-range-warning-mark live-threat-tackle-mark" x={projected.warning.center.x} y={projected.warning.center.y}
+                    fontSize={projected.warning.size}>T</text>
+                </g>}
+                {projected.separator && <text className="live-range-warning-mark live-threat-warning-separator"
+                  data-warning-separator={`${square.x},${square.y}`} x={projected.separator.center.x} y={projected.separator.center.y}
+                  fontSize={projected.separator.size}>/</text>}
+              </g>;
+            })}
+          </g>}
           {occupants.map(player => {
             const center = centerOf({ x: player.x!, y: player.y! });
             const body = resolvePlayerArt(player, { end, facing: facings[player.id], setupPerspective, topDown: mode === 'top-down' })?.body;
@@ -289,12 +316,17 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
               d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
             {rangeMarkings.normal.map(edge => <path key={`normal-${edge.key}`} className="live-range-normal"
               d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
-            {rangeMarkings.warnings.map(warning => <g key={`${warning.square.x},${warning.square.y}`}
-              data-rush-warning={`${warning.square.x},${warning.square.y}`}>
-              <path className="live-range-warning-triangle" d={warning.path}/>
-              <text className="live-range-warning-mark" x={warning.center.x} y={warning.center.y}
-                fontSize={warning.size}>!</text>
-            </g>)}
+            {rangeMarkings.warnings.map(warning => {
+              const paired = threatMarkings.find(({ square, projected }) => projected.separator
+                && square.x === warning.square.x && square.y === warning.square.y);
+              const rush = paired ? paired.projected.rushWarning : warning;
+              return rush && <g key={`${warning.square.x},${warning.square.y}`}
+                data-rush-warning={`${warning.square.x},${warning.square.y}`}>
+                <path className="live-range-warning-triangle" d={rush.path}/>
+                <text className="live-range-warning-mark" x={rush.center.x} y={rush.center.y}
+                  fontSize={rush.size}>!</text>
+              </g>;
+            })}
           </g>}
           {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`}
             className="live-target-square"

@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { matchDecision } from '../src/match-decision.ts';
 
 const accounting = Boolean(process.env.REROLL_FIXTURE);
@@ -159,7 +159,8 @@ try {
     }
     const transport = await page.evaluate(() => ({ sent: window.testTransport.sent, consumptions: window.testTransport.consumptions }));
     assert.equal(transport.consumptions, 1, 'Pending keyboard clicks and an exact retry spend only once');
-    assert.equal(transport.sent.length, loseReply ? 2 : 1);
+    assert.equal(transport.sent.length, loseReply ? 2 : 1,
+      JSON.stringify({ role: journey.role, mode: journey.mode, sent: transport.sent, errors }));
     assert.equal(transport.sent[0].actionId, journey.selectedId);
     if (loseReply) assert.deepEqual(transport.sent[0], transport.sent[1], 'Reconnect reuses the complete retained request');
     assert.deepEqual(errors, []);

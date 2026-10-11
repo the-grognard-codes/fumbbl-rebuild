@@ -83,24 +83,29 @@ export function projectRangeWarnings(full: readonly RoutePoint[], normal: readon
   camera: PitchProjection): RangeWarning[] {
   const normalCells = new Set(normal.map(keyOf));
   const warnings: RangeWarning[] = [];
-  const orientation = camera.end === 'home' ? 1 : -1;
   for (const square of full) {
     if (!inPitch(square) || normalCells.has(keyOf(square))) continue;
-    const x = square.x + .5, y = square.y + .5;
-    const center = camera.project({ x, y });
-    if (!center || !camera.isVisible({ x, y })) continue;
-    const triangle = camera.polygon([
-      { x: x + orientation * .105, y },
-      { x: x - orientation * .075, y: y + .10 },
-      { x: x - orientation * .075, y: y - .10 },
-    ], true);
-    if (triangle.length >= 3) {
-      const height = Math.max(...triangle.map(point => point.y)) - Math.min(...triangle.map(point => point.y));
-      warnings.push({ square, triangle, path: roundedWarningPath(triangle), center,
-        size: Math.min(6, height * .65) });
-    }
+    const warning = projectWarning(square, camera);
+    if (warning) warnings.push(warning);
   }
   return warnings;
+}
+
+/** Shared geometry keeps Tackle and rushing caution signs the same size and shape. */
+export function projectWarning(square: RoutePoint, camera: PitchProjection, transverseOffset = 0): RangeWarning | null {
+  if (!inPitch(square)) return null;
+  const orientation = camera.end === 'home' ? 1 : -1;
+  const x = square.x + .5, y = square.y + .5 + orientation * transverseOffset;
+  const center = camera.project({ x, y });
+  if (!center || !camera.isVisible({ x, y })) return null;
+  const triangle = camera.polygon([
+    { x: x + orientation * .105, y },
+    { x: x - orientation * .075, y: y + .10 },
+    { x: x - orientation * .075, y: y - .10 },
+  ], true);
+  if (triangle.length < 3) return null;
+  const height = Math.max(...triangle.map(point => point.y)) - Math.min(...triangle.map(point => point.y));
+  return { square, triangle, path: roundedWarningPath(triangle), center, size: Math.min(6, height * .65) };
 }
 
 function roundedWarningPath(polygon: Point[]): string {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createServer } from './browser-test-server.mjs';
 import { matchLogLines } from '../src/match-log.ts';
 
 const read = name => JSON.parse(readFileSync(new URL(`./fixtures/match-log-block-${name}.json`, import.meta.url), 'utf8'));
