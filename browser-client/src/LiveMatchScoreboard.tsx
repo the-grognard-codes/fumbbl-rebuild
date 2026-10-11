@@ -1,5 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
+import { DrivePhaseTracker } from './DrivePhaseTracker.tsx';
+import './drive-phase-tracker.css';
 import { hudResources, turnSlots } from './hud-model.ts';
 import type { HudResource } from './hud-model.ts';
 import { clockValues, formatClock } from './match-clock.ts';
@@ -144,5 +146,6 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
       <span>{weather.label}</span>
     </div>
     <TurnTrack role="away" teamName={awayName} half={view.half} teamTurn={view.awayTurn} phase={view.phase}/>
+    {view.driveTracker && <DrivePhaseTracker tracker={view.driveTracker}/>}
   </div>;
 }

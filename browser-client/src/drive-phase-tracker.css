@@ -1,0 +1,36 @@
+/* Start-of-drive bars share the turn counter's font, border, fade and highlight. */
+.play-runtime .coach-match.hosted-match .live-match-scoreboard > .drive-phase-tracker {
+  position: absolute; width: min(220px,18vw); height: auto;
+  max-height: max(42px,calc(100dvh - var(--drive-tracker-top) - var(--history-panel-height,152px) - var(--history-panel-bottom,16px) - 28px));
+  display: flex; flex-direction: column; gap: 3px; list-style: none; margin: 0; padding: 0;
+  border: 0; background: none; box-shadow: none; overflow: auto; scrollbar-width: thin;
+  font: 700 14px/1.35 MUTP,sans-serif;
+}
+.play-runtime .coach-match.hosted-match .drive-phase-tracker.home { left: 0; }
+.play-runtime .coach-match.hosted-match .drive-phase-tracker.away { right: 0; }
+.play-runtime .coach-match.hosted-match .drive-phase-tracker li {
+  flex: none; padding: 4px 6px; border: 1px solid #426c9b; border-radius: 2px;
+  background: #091726bb; color: #b7c9da; overflow-wrap: anywhere;
+}
+.play-runtime .coach-match.hosted-match .drive-phase-tracker li.past { opacity: .18; }
+.play-runtime .coach-match.hosted-match .drive-phase-tracker li[aria-current=step] {
+  border-color: #edb644; color: #ffe17b; background: #583d0fd1;
+}
+.play-runtime .coach-match.hosted-match .drive-phase-tracker.home .kickoff-event { margin-left: 12px; }
+.play-runtime .coach-match.hosted-match .drive-phase-tracker.away .kickoff-event { margin-right: 12px; }
+@media(max-width:900px) {
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard > .drive-phase-tracker { width: min(150px,22vw); font-size: 11px; }
+}
+@media(max-width:600px) {
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard > .drive-phase-tracker { width: min(112px,30vw); font-size: 10px; }
+  .play-runtime .coach-match.hosted-match .drive-phase-tracker li { padding: 2px 4px; line-height: 1.1; }
+  /* Keep the existing instruction readable beside the stack in narrow windows. */
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker) .match-game-step,
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker) .setup-feedback {
+    width: calc(100% - min(112px,30vw) - 36px); max-width: none; transform: none;
+  }
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker.home) .match-game-step,
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker.home) .setup-feedback { left: auto; right: 12px; }
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker.away) .match-game-step,
+  .play-runtime .coach-match.hosted-match:has(.drive-phase-tracker.away) .setup-feedback { left: 12px; right: auto; }
+}
