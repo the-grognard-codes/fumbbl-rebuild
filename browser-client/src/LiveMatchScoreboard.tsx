@@ -29,7 +29,7 @@ function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName:
       <button type="button" className={`live-resource ${item.kind}`} title={`${item.label}: ${item.count} available`}
         aria-label={`${item.label}: ${item.count} available`} aria-describedby={`${id}-${item.kind}`} style={{ cursor: 'help' }}>
         {item.kind === 'reroll' ? <img src={`${import.meta.env.BASE_URL}assets/game/ui/reroll-v1.png`} alt=""/>
-          : item.kind === 'apothecary' ? <MatchArt name="apothecary"/>
+          : item.kind === 'apothecary' || item.kind === 'bribe' ? <MatchArt name={item.kind}/>
             : <span aria-hidden="true" className="live-resource-glyph">{item.kind === 'assistantCoach' ? 'AC' : 'CL'}</span>}
         <b>{item.count}</b>
       </button>

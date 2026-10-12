@@ -20,7 +20,7 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
 import { matchesMovementRange } from './movement-range-read.ts';
 import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts';
-import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack } from './action-ribbon.ts';
+import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { withProTest } from './reroll-presentation.ts';
 import { pitchPushChoices } from './push-choice.ts';
@@ -367,6 +367,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (touchback) { setPlayerId(id); setActionId(touchback.id); setSmartIntent(null); return; }
     const player = view.players.find(item => item.id === id);
+    const flightTarget = teammateTargetForPlayer(view, availableActions, id);
+    if (canChoose && flightTarget && player?.x != null && player.y != null) {
+      if (movementFlow) clearMovement();
+      setPlayerId(view.activePlayerId!); setTargetPlayerId(id); setTargetFocus('square');
+      setX(player.x); setY(player.y); setSmartIntent(null); setActionId(flightTarget.id);
+      return;
+    }
     const teammate = availableActions.find(action => (action.kind === 'liftTeamMate' || action.kind === 'kickMate')
       && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (canChoose && hosted && view.phase === 'PLAY' && teammate) {
@@ -396,6 +403,19 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       if (selectedPlayer?.role !== view.callerRole) return;
       const explicitOtherAction = pinnedAction && !['select', 'stand', 'blitz'].includes(pinnedAction.kind);
       if (!explicitOtherAction) {
+        const attack = smartAttack(view, availableActions, playerId, id, explicitBlitz);
+        if (canChoose && attack?.kind === 'block') {
+          clearMovement(); setTargetPlayerId(id); setTargetFocus('player'); setActionId(attack.action.id);
+          setSmartIntent(attack.action.kind === 'selectBlock'
+            ? { kind: 'block', playerId, targetId: id, stage: 'planned', revision: view.revision } : null);
+          return;
+        }
+        const adjacent = selectedPlayer.x != null && selectedPlayer.y != null
+          && Math.max(Math.abs(selectedPlayer.x - player.x), Math.abs(selectedPlayer.y - player.y)) === 1;
+        if (adjacent && !explicitBlitz) {
+          clearMovement(); setActionId(''); setSmartIntent(null);
+          return;
+        }
         if (canChoose && canPlanMovement(view, availableActions, playerId, 'blitz')) {
           setTargetPlayerId(id); setTargetFocus('player'); previewMovement('blitz', id, []);
         }
@@ -722,7 +742,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={diceMoment}
-        onUndoWaypoint={undoWaypoint}
+        onRightClick={() => {
+          if (decision || playbackActive || requestPending) return;
+          if (routeMode && displayedWaypoints.length) { undoWaypoint(); return; }
+          cancelProposal(); setPlayerId('');
+        }}
         decision={!playbackActive && decision && ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
         decisionDisabled={!connected || !!pending || suspended}
         onDecisionAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}

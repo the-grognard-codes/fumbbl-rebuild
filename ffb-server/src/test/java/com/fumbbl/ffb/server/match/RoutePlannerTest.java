@@ -107,6 +107,57 @@ class RoutePlannerTest {
 		assertEquals(8, route.getInt("remaining", -1));
 	}
 
+	@Test void unobstructedRoutesStayStraightAcrossRowsColumnsAndDiagonals() {
+		RoutePlanner planner = planner();
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))),
+			new FieldCoordinate(6, 5), new FieldCoordinate(7, 5), new FieldCoordinate(8, 5), new FieldCoordinate(9, 5));
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(5, 9))),
+			new FieldCoordinate(5, 6), new FieldCoordinate(5, 7), new FieldCoordinate(5, 8), new FieldCoordinate(5, 9));
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(9, 9))),
+			new FieldCoordinate(6, 6), new FieldCoordinate(7, 7), new FieldCoordinate(8, 8), new FieldCoordinate(9, 9));
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(1, 5))),
+			new FieldCoordinate(4, 5), new FieldCoordinate(3, 5), new FieldCoordinate(2, 5), new FieldCoordinate(1, 5));
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(5, 1))),
+			new FieldCoordinate(5, 4), new FieldCoordinate(5, 3), new FieldCoordinate(5, 2), new FieldCoordinate(5, 1));
+	}
+
+	@Test void equivalentObliqueRoutesLimitDirectionChangesAndDetourAroundOccupancy() {
+		RoutePlanner planner = planner();
+		JsonArray oblique = planner.preview(Collections.singletonList(new FieldCoordinate(9, 7))).get("steps").asArray();
+		assertEquals(4, oblique.size());
+		int turns = 0, fromX = 5, fromY = 5, priorX = 0, priorY = 0;
+		for (int i = 0; i < oblique.size(); i++) {
+			int nextX = oblique.get(i).asObject().getInt("x", -1);
+			int nextY = oblique.get(i).asObject().getInt("y", -1);
+			int dx = nextX - fromX, dy = nextY - fromY;
+			if (i > 0 && (dx != priorX || dy != priorY)) turns++;
+			fromX = nextX; fromY = nextY; priorX = dx; priorY = dy;
+		}
+		assertEquals(1, turns);
+		Player<?> blocker = mock(Player.class);
+		doReturn(blocker).when(field).getPlayer(new FieldCoordinate(7, 5));
+		JsonArray detour = planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))).get("steps").asArray();
+		assertEquals(4, detour.size());
+		for (int i = 0; i < detour.size(); i++)
+			assertFalse(detour.get(i).asObject().getInt("x", -1) == 7 && detour.get(i).asObject().getInt("y", -1) == 5);
+	}
+
+	@Test void explicitWaypointKeepsEachUnobstructedSegmentStraight() {
+		RoutePlanner planner = planner();
+		assertRoute(planner.preview(Arrays.asList(new FieldCoordinate(8, 5), new FieldCoordinate(8, 8))),
+			new FieldCoordinate(6, 5), new FieldCoordinate(7, 5), new FieldCoordinate(8, 5),
+			new FieldCoordinate(8, 6), new FieldCoordinate(8, 7), new FieldCoordinate(8, 8));
+	}
+
+	private void assertRoute(JsonObject route, FieldCoordinate... expected) {
+		JsonArray steps = route.get("steps").asArray();
+		assertEquals(expected.length, steps.size());
+		for (int i = 0; i < expected.length; i++) {
+			assertEquals(expected[i].getX(), steps.get(i).asObject().getInt("x", -1), "step " + i + " x");
+			assertEquals(expected[i].getY(), steps.get(i).asObject().getInt("y", -1), "step " + i + " y");
+		}
+	}
+
 	@Test void occupiedWaypointAndExhaustedAllowanceAreRejected() {
 		RoutePlanner planner = planner();
 		Player<?> blocker = mock(Player.class);

@@ -24,6 +24,7 @@ try {
         onclose = null;
         onerror = null;
         constructor() {
+          window.__reconnectSocket = this;
           attempt++;
           window.__reconnectTrace.push(`socket ${attempt}`);
           queueMicrotask(() => { this.readyState = 1; this.onopen?.(); });
@@ -44,9 +45,15 @@ try {
     try { await page.getByRole('alert').filter({ hasText: 'AUTHENTICATION FAILED' }).waitFor({ timeout: 5000 }); }
     catch (error) { throw new Error(`${view} did not reach the initial rejection: ${JSON.stringify({ pageErrors, trace: await page.evaluate(() => window.__reconnectTrace), body: (await page.locator('body').innerText()).slice(0, 500) })}`, { cause: error }); }
     await page.getByRole('button', { name: 'Reconnect' }).click();
-    await page.getByRole('status').filter({ hasText: 'Connected' }).waitFor();
+    try { await (view === 'play' ? page.getByRole('heading', { name: 'Create a game', exact: true }) : page.getByRole('status').filter({ hasText: 'Connected' })).waitFor({ timeout: 5000 }); }
+    catch (error) { throw new Error(`${view} did not reconnect: ${JSON.stringify({ pageErrors, trace: await page.evaluate(() => window.__reconnectTrace), body: (await page.locator('body').innerText()).slice(0, 500) })}`, { cause: error }); }
     assert.equal(await page.getByRole('alert').filter({ hasText: 'AUTHENTICATION FAILED' }).count(), 0,
       `${view} must clear the earlier authentication error after successful reconnect`);
+    if (view === 'play') {
+      await page.evaluate(() => window.__reconnectSocket.onmessage?.({ data: '{"version":2,"type":"unsupported"}' }));
+      await page.getByRole('alert').filter({ hasText: 'INVALID RESPONSE' }).waitFor({ timeout: 3000 });
+      await page.getByRole('status').filter({ hasText: 'Disconnected' }).waitFor();
+    }
     assert.deepEqual(pageErrors, [], `${view} has no uncaught page errors`);
     await page.close();
   }

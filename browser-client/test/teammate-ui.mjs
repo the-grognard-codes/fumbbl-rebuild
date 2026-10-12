@@ -56,16 +56,45 @@ try {
     assert.deepEqual(await intents(), [{ operation: 'action', fields: { actionId: 'second-choice' } }]);
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
     const landed = { ...state, revision: 3, actions: [action('landing', kicked ? 'kickMateTo' : 'throwTeamMate', { x: 14, y: 7 })],
-      players: state.players.map(player => player.id === 'second' ? { ...player, state: 'is picked up' } : player) };
+      players: [...state.players.map(player => player.id === 'second' ? { ...player, state: 'is picked up' } : player),
+        { ...state.players[0], id: 'occupied-target', name: 'occupied target', x: 14, y: 7,
+          role: role === 'home' ? role : 'home', skills: [] }] };
+    const ranges = Array.from({ length: 26 }, () => '-'.repeat(15));
+    ranges[14] = '-------Q-------'; ranges[18] = '-------S-------';
+    landed.passing = { version: 2, playerId: 'actor', from: { x: 12, y: 7 }, weatherPenalty: 0,
+      rangeLimited: false, action: kicked ? 'kickMateTo' : 'throwTeamMate', ranges,
+      targets: ranges.map(row => [...row].map(code => code === '-' ? null : code === 'Q' ? 2 : 3)) };
     await page.evaluate(state => window.publishHud(state), landed);
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 3' }).waitFor({ state: 'attached' });
     await page.getByRole('button', { name: 'Other action', exact: true }).click({ trial: true });
+    const legend = page.getByRole('note', { name: kicked ? 'Kick Team Mate distances' : 'Throw Team Mate distances' });
+    await legend.waitFor();
+    assert.match(await legend.textContent(), /Quick Pass: 2\+.*Short Pass: 3\+.*limited to Quick or Short/s);
+    assert.equal(await page.locator('[data-pass-range]').count(), 390);
+    assert.equal(await page.locator('[data-pass-range="Q"]').count(), 1);
+    assert.equal(await page.locator('[data-pass-range="S"]').count(), 1);
+    assert.equal(await page.locator('[data-pass-range="L"], [data-pass-range="B"]').count(), 0);
+    await page.getByRole('button', { name: 'Debug', exact: true }).click();
+    for (const angle of [30, 50, 40]) {
+      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      assert.equal(await page.locator('[data-cell-x="14"][data-cell-y="7"][data-pass-range="Q"]').count(), 1);
+    }
+    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    assert.equal(await page.locator('[data-pass-range]').count(), 390);
+    await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+    await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
+    await choose('occupied-target');
+    assert.match(await page.locator('.command-preview').textContent(), /landing/, 'Keyboard selection targets the occupied square');
     const at = await squarePosition(page, 14, 7); await page.mouse.click(at.x, at.y);
     assert.match(await page.locator('.command-preview').textContent(), /landing/);
+    assert.match(await page.locator('.live-pass-target-detail').textContent(), /Quick Pass; 2\+/);
+    if (evidence) { await mkdir(evidence, { recursive: true }); await page.screenshot({ path: `${evidence}/${role}-${kicked ? 'kick' : 'throw'}-ranges.png` }); }
     await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
     assert.equal((await intents()).at(-1).fields.actionId, 'landing');
     await page.evaluate(state => window.publishHud({ ...state, revision: 4, callerRole: 'spectator', actions: [] }), state);
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 4' }).waitFor({ state: 'attached' });
+    await page.locator('.live-pass-legend').waitFor({ state: 'detached' });
+    assert.equal(await page.locator('[data-pass-range]').count(), 0, 'Ending flight targeting clears guidance');
     await choose('second'); assert.equal((await intents()).length, 2);
   }
   assert.deepEqual(errors, []);

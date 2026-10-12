@@ -8,6 +8,40 @@ and add its URL here alongside the local notes.
 
 # season 3
 
+## MUTP site and match fixes
+
+Owner observations from 2026-10-11. Ten tickets, one per reported item,
+are prepared on `fix/mutp-site-match-issues` in
+[the ticket plan](docs/specs/mutp-site-match-fixes-ticket-plan.md).
+The original nine drafts are approved and the owner requested the additional
+adjacent-Block/distant-Blitz ticket. All ten GitHub issues are published with
+`ready-for-agent` and have no ticket blockers. Confirmed scope includes a fifteen-minute idle window in local and
+deployed environments and permanent removal of obsolete saved teams across all
+environments while preserving current valid teams and existing match records.
+
+Implementation and self-validation are recorded in the
+[manual validation handoff](docs/verification/mutp-site-match-fixes.md).
+The owner accepted the changes on 2026-10-12 and requested a scoped commit,
+pull request and merge after successful GitHub checks. The completed items below
+record that acceptance; GitHub tickets close with the merging pull request.
+The saved-team cleanup completed in the actual local-review database on
+2026-10-12: 36 obsolete teams deleted, five current teams preserved, and all
+non-target table checksums unchanged. The owner's hosted DEV and PROD inventories
+both found zero saved teams, so no hosted deletion is needed. Current-team
+selection and match resume/replay remain for manual UI validation. Timeout
+deployment and the live fifteen-minute boundary also remain for runtime validation.
+
+- [ ] [#256 Show sign-in state as one account link in the MUTP top bar](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/256).
+- [ ] [#257 Fit every Game Menu option without horizontal scrolling](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/257).
+- [ ] [#258 Award and display both Get the Ref kickoff bribes](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/258).
+- [ ] [#259 Allow Throw Team Mate targets on occupied squares](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/259).
+- [ ] [#260 Prefer straight movement routes when paths are equivalent](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/260).
+- [ ] [#261 Extend idle match connections to fifteen minutes](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/261).
+- [ ] [#262 Permanently remove obsolete saved teams from earlier scaffolds](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/262).
+- [ ] [#263 Deselect a player with right click while preserving waypoint undo and pitch travel](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/263).
+- [ ] [#264 Show Throw Team Mate and Kick Team Mate difficulty ranges](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/264).
+- [ ] [#265 Default adjacent opponent targets to Block in the streamlined declaration flow](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/265).
+
 ## Re-Rolls
 - Team Captain
 - Mascot (with optional TRR)

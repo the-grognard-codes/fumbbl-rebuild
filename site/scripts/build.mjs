@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderSiteHeader } from './site-header.mjs';
+import { versionSiteAssets } from './version-assets.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const source = new URL('../src/', import.meta.url);
@@ -25,4 +26,5 @@ async function renderHeaders(directory) {
 await renderHeaders(output);
 await cp(new URL('../../browser-client/dist-play/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
 await cp(new URL('../../browser-client/public/assets/game/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
+await versionSiteAssets(output);
 console.log(`Built static site from ${root}src to ${root}dist`);

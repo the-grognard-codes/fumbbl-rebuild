@@ -4,7 +4,7 @@ body.game-match::before { display: none; }
 body.game-match #play-status { display: none; }
 body.game-match #game-root { display: flex; flex-direction: column; flex: 1; min-height: 0; isolation: isolate; }
 body.game-match main.play-runtime.live-match-page { width: calc(100% - 2rem); height: auto; flex: 1; min-height: 0; margin: 1rem auto; }
-body.game-match .game-menu-shade { position: absolute; }
-body.game-match .game-menu-dialog { max-height: 100%; }
+body.game-match .game-menu-shade { position: fixed; }
+body.game-match .game-menu-dialog { max-height: min(680px, calc(100dvh - 24px)); }
 #play-status { max-width: 76rem; margin: 1rem auto; padding: 0 1rem; }
 [hidden] { display: none !important; }

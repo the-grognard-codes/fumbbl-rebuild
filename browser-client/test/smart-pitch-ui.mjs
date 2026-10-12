@@ -23,6 +23,7 @@ try {
       static OPEN = 1;
       readyState = 1;
       sent = [];
+      adjacentState = null;
       constructor() { window.testSocket = this; queueMicrotask(() => this.onopen?.()); }
       emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
       send(raw) {
@@ -36,14 +37,17 @@ try {
           version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));
         if (request.type === 'movementPreview') queueMicrotask(() => this.emit({ version: 2,
           type: 'movementPreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
-          plan: { planVersion: 1, kind: 'blitz', targetPlayerId: 'away1', waypoints: [{ x: 10, y: 7 }],
+          plan: { planVersion: 1, kind: 'blitz', targetPlayerId: 'away1', waypoints: this.adjacentState ? [] : [{ x: 10, y: 7 }],
             route: { routeVersion: 3, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8,
-              steps: frames.slice(3, 6).map(frame => {
+              steps: this.adjacentState ? [] : frames.slice(3, 6).map(frame => {
                 const player = frame.actor.players.find(item => item.id === 'home1');
                 return { x: player.x, y: player.y, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] };
-              }), revision: 0, actor: 'home' } } }));
+              }), revision: this.adjacentState ? 100 : 0, actor: 'home' } } }));
         if (request.type === 'setup' && request.operation !== 'load') {
-          const next = request.operation === 'movement' ? frames[6].actor : null;
+          const next = request.operation === 'movement' ? frames[6].actor : request.actionId === 'select-block-home1'
+            ? { ...this.adjacentState, revision: 101, activePlayerId: 'home1', actions: [{ id: 'block-away1', kind: 'block',
+              label: 'Block away1', actor: 'home', sourcePlayerId: 'home1', target: { playerId: 'away1' } }] }
+            : request.actionId === 'block-away1' ? { ...this.adjacentState, revision: 102, activePlayerId: 'home1', actions: [] } : null;
           if (next) queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
             code: 'ACCEPTED', duplicate: false, state: next }));
         }
@@ -69,6 +73,42 @@ try {
   const previews = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview'));
   assert.equal(previews.length, 1);
   assert.deepEqual(previews[0].waypoints, [], 'The server chooses the approach to the selected target');
+  const adjacentState = { ...frames[0].actor, revision: 100,
+    players: frames[0].actor.players.map(player => player.id === 'away1' ? { ...player, x: 8, y: 7 } : player),
+    actions: [{ id: 'select-block-home1', kind: 'selectBlock', label: 'Block with home1', actor: 'home', sourcePlayerId: 'home1', target: { playerId: 'home1' } },
+      { id: 'blitz-home1', kind: 'blitz', label: 'Blitz with home1', actor: 'home', sourcePlayerId: 'home1', target: { playerId: 'home1' } }] };
+  await page.evaluate(state => {
+    window.testSocket.adjacentState = state;
+    window.testSocket.sent = [];
+    window.testSocket.emit({ version: 2, type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state });
+  }, adjacentState);
+  await page.getByTestId('setup-status').filter({ hasText: 'Revision 100' }).waitFor({ state: 'attached' });
+  await page.locator('.live-marker.home').click();
+  await page.locator('.live-marker.away').click();
+  assert.match(await page.locator('.command-preview').textContent(), /Block with home1/, 'An adjacent opponent defaults to Block');
+  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview').length), 0,
+    'An adjacent Block needs no Blitz route preview');
+  await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
+  await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId === 'block-away1'));
+  await page.getByTestId('setup-status').filter({ hasText: 'Revision 102' }).waitFor({ state: 'attached' });
+  assert.deepEqual(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load')
+    .map(request => request.actionId)), ['select-block-home1', 'block-away1'], 'One confirmation declares and performs the native Block');
+  for (const blockAvailable of [true, false]) {
+    const diagonal = { ...adjacentState, revision: blockAvailable ? 200 : 201,
+      players: adjacentState.players.map(player => player.id === 'away1' ? { ...player, y: 8 } : player),
+      actions: adjacentState.actions.filter(action => blockAvailable ? action.kind === 'selectBlock' : action.kind === 'blitz') };
+    await page.evaluate(state => {
+      window.testSocket.adjacentState = state; window.testSocket.sent = [];
+      window.testSocket.emit({ version: 2, type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state });
+    }, diagonal);
+    await page.getByTestId('setup-status').filter({ hasText: `Revision ${diagonal.revision}` }).waitFor({ state: 'attached' });
+    await page.locator('.live-marker.home').click(); await page.locator('.live-marker.away').click();
+    if (blockAvailable) assert.match(await page.locator('.command-preview').textContent(), /Block with home1/);
+    else assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
+    assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview').length), 0,
+      'Diagonal adjacency never invents an automatic Blitz');
+    assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load').length), 0);
+  }
   assert.deepEqual(errors, []);
   console.log('PASS: one confirmation commits the reviewed Blitz approach and block; the required native die choice follows.');
 } finally {
