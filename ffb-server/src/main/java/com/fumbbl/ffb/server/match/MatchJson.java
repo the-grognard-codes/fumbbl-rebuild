@@ -206,7 +206,11 @@ public final class MatchJson {
             shortText(state.get("homeTeamName")); shortText(state.get("awayTeamName"));
             for (String field : Arrays.asList("homeResources", "awayResources")) {
                 JsonObject resources = state.get(field).asObject();
-                exact(resources, "apothecaries", "assistantCoaches", "cheerleaders");
+                if (resources.get("bribes") == null) exact(resources, "apothecaries", "assistantCoaches", "cheerleaders");
+                else {
+                    exact(resources, "apothecaries", "assistantCoaches", "cheerleaders", "bribes");
+                    bounded(resources.get("bribes"), 0, 100);
+                }
                 bounded(resources.get("apothecaries"), 0, 20);
                 bounded(resources.get("assistantCoaches"), 0, 20);
                 bounded(resources.get("cheerleaders"), 0, 20);

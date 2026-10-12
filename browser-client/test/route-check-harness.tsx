@@ -20,6 +20,6 @@ function App() {
   const display = { ...input.state, players: input.state.players.map(player => ({ ...player,
     art: player.art ?? { rosterId: player.role === 'home' ? 'human' : 'orc', positionId: player.role === 'home' ? 'lineman' : 'orc-lineman' } })) };
   return <LivePitch view={display} selectedId="actor" actions={input.state.actions} routePreview={input.route} waypoints={input.route?.steps.length ? [input.route.steps.at(-1)!] : []}
-    onUndoWaypoint={() => { window.undoCount++; }} onSelectPlayer={() => {}} onSquare={() => { window.squareClicks++; }}/>;
+    onRightClick={() => { window.undoCount++; }} onSelectPlayer={() => {}} onSquare={() => { window.squareClicks++; }}/>;
 }
 createRoot(document.getElementById('app')!).render(<App/>);

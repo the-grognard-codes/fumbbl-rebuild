@@ -282,6 +282,13 @@ class MatchServiceTest {
 			.add("homeResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0))
 			.add("awayResources", new JsonObject().add("apothecaries", 0).add("assistantCoaches", 0).add("cheerleaders", 0));
 		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		state.get("homeResources").asObject().add("bribes", 2);
+		state.get("awayResources").asObject().add("bribes", 1);
+		json.validateCompletion(new CompletedMatch(artifact.toString()), document);
+		state.get("homeResources").asObject().set("bribes", -1);
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.validateCompletion(new CompletedMatch(artifact.toString()), document)).code);
+		state.get("homeResources").asObject().set("bribes", 2);
 		state.add("homeTeamArt", new MatchTeamArt().project(document.home.team))
             .add("awayTeamArt", new MatchTeamArt().project(document.away.team));
         json.validateCompletion(new CompletedMatch(artifact.toString()), document);

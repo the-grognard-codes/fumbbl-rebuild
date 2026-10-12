@@ -45,7 +45,8 @@ test('version-four match details are strict and role-consistent', () => {
   assert.equal(decoded.players[0].offPitch, 'pitch');
   assert.equal(decoded.actions.find(action => action.kind === 'blitz')?.sourcePlayerId, decoded.players[0].id);
   assert.throws(() => decodeSetupStateValue({ ...live, homeTeamName: '' }));
-  assert.throws(() => decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, bribes: 1 } }));
+  assert.equal(decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, bribes: 1 } }).homeResources?.bribes, 1);
+  assert.throws(() => decodeSetupStateValue({ ...live, homeResources: { ...live.homeResources, secret: 1 } }));
   assert.throws(() => decodeSetupStateValue({ ...live, players: [{ ...live.players[0], offPitch: 'reserve' }, ...live.players.slice(1)] }));
   assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: live.players[1].id }, ...live.actions.slice(1)] }));
   assert.throws(() => decodeSetupStateValue({ ...live, actions: [{ ...live.actions[0], sourcePlayerId: 'missing' }, ...live.actions.slice(1)] }));

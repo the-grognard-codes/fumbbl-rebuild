@@ -179,7 +179,7 @@ final class RoutePlanner {
 		if (start.isAdjacent(target)) return start;
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
-		Node root = new Node(start, 0, 0, 0, 0, false, null, null);
+		Node root = new Node(start, 0, 0, 0, 0, false, 0, 0, 0, 0, null, null);
 		queue.add(root);
 		best.put(key(root), root);
 		while (!queue.isEmpty()) {
@@ -195,7 +195,7 @@ final class RoutePlanner {
 				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
 				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
 				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
-				Node candidate = new Node(next, node.used + 1, reactions, rolls, risk, node.ballHandled || step.checks.ballContact, node, step);
+				Node candidate = nextNode(node, next, step, reactions, rolls, risk, start, target);
 				String key = key(candidate);
 				Node prior = best.get(key);
 				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
@@ -229,7 +229,7 @@ final class RoutePlanner {
 		if (remaining <= 0) return null;
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
-		Node root = new Node(from, used, 0, 0, 0, ballHandled, null, null);
+		Node root = new Node(from, used, 0, 0, 0, ballHandled, 0, 0, 0, 0, null, null);
 		queue.add(root);
 		best.put(key(root), root);
 		while (!queue.isEmpty()) {
@@ -249,7 +249,7 @@ final class RoutePlanner {
 				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
 				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
 				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
-				Node candidate = new Node(next, node.used + 1, reactions, rolls, risk, node.ballHandled || step.checks.ballContact, node, step);
+				Node candidate = nextNode(node, next, step, reactions, rolls, risk, from, target);
 				String key = key(candidate);
 				Node prior = best.get(key);
 				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
@@ -293,7 +293,20 @@ final class RoutePlanner {
 		Player<?> occupant = game.getFieldModel().getPlayer(coordinate);
 		return occupant != null && occupant != player;
 	}
-	private static String key(Node node) { return node.at.getX() + ":" + node.at.getY() + ":" + node.used + ":" + node.ballHandled; }
+	private static Node nextNode(Node previous, FieldCoordinate next, Step step, int reactions, int rolls,
+		double risk, FieldCoordinate origin, FieldCoordinate target) {
+		int dx = next.getX() - previous.at.getX();
+		int dy = next.getY() - previous.at.getY();
+		int turns = previous.turns + (previous.previous != null && (previous.dx != dx || previous.dy != dy) ? 1 : 0);
+		long deviation = previous.deviation + Math.abs((long) (target.getX() - origin.getX()) * (next.getY() - origin.getY())
+			- (long) (target.getY() - origin.getY()) * (next.getX() - origin.getX()));
+		return new Node(next, previous.used + 1, reactions, rolls, risk,
+			previous.ballHandled || step.checks.ballContact, turns, deviation, dx, dy, previous, step);
+	}
+	private static String key(Node node) {
+		return node.at.getX() + ":" + node.at.getY() + ":" + node.used + ":" + node.ballHandled
+			+ ":" + node.dx + ":" + node.dy;
+	}
 	private static int compare(Node first, Node second) {
 		boolean firstSafe = first.rolls == 0 && first.reactions == 0;
 		boolean secondSafe = second.rolls == 0 && second.reactions == 0;
@@ -306,6 +319,10 @@ final class RoutePlanner {
 		if (rolls != 0) return rolls;
 		int distance = Integer.compare(first.used, second.used);
 		if (distance != 0) return distance;
+		int turns = Integer.compare(first.turns, second.turns);
+		if (turns != 0) return turns;
+		int deviation = Long.compare(first.deviation, second.deviation);
+		if (deviation != 0) return deviation;
 		int x = Integer.compare(first.at.getX(), second.at.getX());
 		return x != 0 ? x : Integer.compare(first.at.getY(), second.at.getY());
 	}
@@ -317,14 +334,17 @@ final class RoutePlanner {
 	}
 	private static final class Node {
 		final FieldCoordinate at;
-		final int used, reactions, rolls;
+		final int used, reactions, rolls, turns, dx, dy;
+		final long deviation;
 		final double risk;
 		final boolean ballHandled;
 		final Node previous;
 		final Step step;
-		Node(FieldCoordinate at, int used, int reactions, int rolls, double risk, boolean ballHandled, Node previous, Step step) {
+		Node(FieldCoordinate at, int used, int reactions, int rolls, double risk, boolean ballHandled,
+			int turns, long deviation, int dx, int dy, Node previous, Step step) {
 			this.at = at; this.used = used; this.reactions = reactions; this.rolls = rolls;
-			this.risk = risk; this.ballHandled = ballHandled; this.previous = previous; this.step = step;
+			this.risk = risk; this.ballHandled = ballHandled; this.turns = turns; this.deviation = deviation;
+			this.dx = dx; this.dy = dy; this.previous = previous; this.step = step;
 		}
 	}
 	private static final class Step {

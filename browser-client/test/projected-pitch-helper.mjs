@@ -59,15 +59,29 @@ export async function squarePosition(page, x, y) {
     if (right <= left || bottom <= top) throw Error('Pitch viewport is outside the visible page');
     const start = { x: (left + right) / 2, y: (top + bottom) / 2 };
     await page.mouse.move(start.x, start.y);
+    // Fit/ResizeObserver can finish after the first authoritative frame. Do
+    // not start a drag calculated for a camera that has already changed.
+    const ready = await readOptions();
+    if (Object.keys(options).some(key => ready[key] !== options[key])) {
+      options = ready; camera = new PitchProjection(options); continue;
+    }
     await page.mouse.down({ button: 'right' });
     await page.mouse.move(start.x + delta.x * bounds.width / options.width,
       start.y + delta.y * bounds.height / options.height, { steps: 5 });
     await page.mouse.up({ button: 'right' });
-    await page.waitForFunction(expected => {
+    await page.waitForFunction(({ before, expected }) => {
       const current = document.querySelector('.live-pitch-scene');
+      const geometryChanged = parseFloat(current.style.width) !== before.width
+        || parseFloat(current.style.height) !== before.height
+        || Number(current.dataset.zoom) !== before.zoom
+        || current.dataset.projection !== before.mode || current.dataset.end !== before.end
+        || Number(current.dataset.elevation) !== (before.mode === 'perspective' ? before.perspectiveElevation : 90);
+      // A resize during the gesture invalidates the old numeric destination.
+      // Reproject the target using the actual rendered camera on the next pass.
+      if (geometryChanged) return true;
       return Math.abs(Number(current.dataset.focus) - expected.focus) < .05
         && Math.abs(Number(current.dataset.transverseFocus) - expected.transverseFocus) < .05;
-    }, { focus: expected.focus, transverseFocus: expected.transverseFocus }, { timeout: 3000 });
+    }, { before: options, expected: { focus: expected.focus, transverseFocus: expected.transverseFocus } }, { timeout: 3000 });
     options = await readOptions(); camera = new PitchProjection(options);
   }
   const projected = camera.project(point);

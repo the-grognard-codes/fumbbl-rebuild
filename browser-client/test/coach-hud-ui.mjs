@@ -126,6 +126,14 @@ try {
     }
     if (evidence) await page.screenshot({ path: `${evidence}/hud-${width}-${height}.png` });
   }
+  await page.evaluate(state => window.publishHud({ ...state,
+    homeResources: { ...state.homeResources, bribes: 2 }, awayResources: { ...state.awayResources, bribes: 1 } }), state);
+  await page.locator('.live-resource.bribe').first().waitFor();
+  assert.equal(await page.locator('.live-resource.bribe').count(), 2);
+  assert.match(await page.locator('.live-resource.bribe').first().getAttribute('aria-label'), /Bribes.*2/);
+  await page.evaluate(state => window.publishHud({ ...state,
+    homeResources: { ...state.homeResources, bribes: 0 }, awayResources: { ...state.awayResources, bribes: 0 } }), state);
+  await page.locator('.live-resource.bribe').first().waitFor({ state: 'detached' });
   assert.deepEqual(errors, []);
   console.log('PASS: authoritative HUD resources/clocks/turns, one opposite-side inspector, reviewed End Turn, editable chat draft, three log sizes, Other dugout access and responsive full-window layout.');
 } finally { if (errors.length) console.error(errors); await browser.close(); await server.close(); }

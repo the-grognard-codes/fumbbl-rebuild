@@ -6,11 +6,16 @@ if (header) {
     navigation.setAttribute('aria-label', 'Account navigation');
     header.append(navigation);
   }
+  const signInLink = document.createElement('a');
+  signInLink.className = 'account-sign-in-link';
+  signInLink.href = '/login';
+  signInLink.innerHTML = `<svg class="account-avatar" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M3 23v-4a9 9 0 0 1 18 0v4Z"/></svg><span>Sign in</span>`;
   const menu = document.createElement('details');
   menu.className = 'account-menu';
-  menu.innerHTML = `<summary aria-label="My account" aria-describedby="account-identity" aria-controls="account-options">
+  menu.hidden = true;
+  menu.innerHTML = `<summary aria-controls="account-options">
     <svg class="account-avatar" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M3 23v-4a9 9 0 0 1 18 0v4Z"/></svg>
-    <span class="account-label"><span>My account</span><span id="account-identity" class="account-identity">Sign in</span></span>
+    <span id="account-identity" class="account-identity">Signed in</span>
   </summary>
   <div id="account-options" class="account-options">
     <ul aria-label="Account options">
@@ -20,12 +25,12 @@ if (header) {
       <li><button type="button" disabled>Match history</button></li>
       <li><button type="button" disabled>Preferences</button></li>
     </ul>
-    <a class="account-sign-in" href="/login">Sign in</a>
-    <button class="account-sign-out" type="button" hidden>Sign out</button>
+    <button class="account-sign-out" type="button">Sign out</button>
     <p class="account-message" role="status"></p>
   </div>`;
   const oldSignIn = navigation.querySelector('a[href="/login"]');
-  if (oldSignIn) oldSignIn.replaceWith(menu); else navigation.append(menu);
+  if (oldSignIn) oldSignIn.replaceWith(signInLink); else navigation.append(signInLink);
+  navigation.append(menu);
   const summary = menu.querySelector('summary');
   const options = menu.querySelector('.account-options');
   const fitOptions = () => {
@@ -49,7 +54,6 @@ if (header) {
   });
   summary.setAttribute('aria-expanded', 'false');
   const identity = menu.querySelector('.account-identity');
-  const signIn = menu.querySelector('.account-sign-in');
   const signOutButton = menu.querySelector('.account-sign-out');
   const message = menu.querySelector('.account-message');
   async function observeAccount() {
@@ -59,8 +63,16 @@ if (header) {
       ]);
       const { auth } = authentication();
       onAuthStateChanged(auth, user => {
-        identity.textContent = user ? user.email || 'Signed in' : 'Sign in';
-        signIn.hidden = !!user; signOutButton.hidden = !user; message.textContent = '';
+        const signedIn = !!user;
+        const accountHadFocus = menu.contains(document.activeElement);
+        const signInHadFocus = document.activeElement === signInLink;
+        identity.textContent = user?.email || 'Signed in';
+        summary.title = user?.email || '';
+        signInLink.hidden = signedIn;
+        menu.hidden = !signedIn;
+        if (signedIn && signInHadFocus) summary.focus();
+        if (!signedIn) { close(); if (accountHadFocus) signInLink.focus(); }
+        message.textContent = '';
       });
       signOutButton.addEventListener('click', async () => {
         signOutButton.disabled = true; message.textContent = '';

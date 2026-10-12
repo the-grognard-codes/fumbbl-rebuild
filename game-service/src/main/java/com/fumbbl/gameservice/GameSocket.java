@@ -55,7 +55,7 @@ public final class GameSocket extends WebSocketAdapter {
 					});
 				}
 			});
-			session.setIdleTimeout(Duration.ofMinutes(5));
+			session.setIdleTimeout(Duration.ofMinutes(15));
 			authenticationTimeout = TIMEOUTS.schedule(() -> {
 				synchronized (MUTATION_LOCK) { if (account == null) close(4001, "rejected"); }
 			}, 10, TimeUnit.SECONDS);

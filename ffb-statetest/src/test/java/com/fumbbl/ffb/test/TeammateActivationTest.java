@@ -1,13 +1,23 @@
 package com.fumbbl.ffb.test;
 
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.PassingDistance;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.Weather;
+import com.fumbbl.ffb.factory.PassModifierFactory;
+import com.fumbbl.ffb.mechanics.Mechanic;
+import com.fumbbl.ffb.mechanics.PassMechanic;
+import com.fumbbl.ffb.mechanics.TtmMechanic;
+import com.fumbbl.ffb.modifiers.PassContext;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CorePromptActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.match.PassingProjection;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
+
+import com.eclipsesource.json.JsonObject;
 
 import java.util.List;
 
@@ -15,11 +25,58 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TeammateActivationTest {
 
 	private final BrowserActionEvidence evidence = new BrowserActionEvidence();
+
+	@Test void occupiedTeammateLandingTargetsRemainNativeLegalForEitherCoachAndAction() throws Exception {
+		for (boolean home : new boolean[] { true, false }) for (boolean kicked : new boolean[] { false, true }) {
+			GameState state = fixture(home, kicked, "", true);
+			state.getGame().getFieldModel().setPlayerCoordinate(state.getGame().getPlayerById("opponent"), new FieldCoordinate(11, 7));
+			TestRolls.on(state).general(6, 3, 3, 3, 6, 6, 6);
+			perform(state, declaration(kicked));
+			perform(state, selection(kicked));
+			performId(state, (kicked ? "kick-mate-to-" : "throw-mate-") + "11-7");
+			assertTrue(kicked ? state.getGame().getTurnData().isKtmUsed() : state.getGame().getTurnData().isTtmUsed());
+			assertFalse(state.getGame().getFieldModel().getPlayerState(state.getGame().getPlayerById("mate")).getBase() == PlayerState.PICKED_UP);
+		}
+	}
+
+	@Test void teammateFlightProjectsNativeReducedRangesAndDifficultyForBothActionsAndCoaches() throws Exception {
+		for (Weather weather : new Weather[] { Weather.NICE, Weather.VERY_SUNNY, Weather.BLIZZARD }) {
+			for (boolean home : new boolean[] { true, false }) for (boolean kicked : new boolean[] { false, true }) {
+				GameState state = fixture(home, kicked, "Strong Arm", true);
+				state.getGame().getFieldModel().setWeather(weather);
+				perform(state, declaration(kicked));
+				assertNull(new PassingProjection().project(state.getGame()), "No flight guidance before a teammate is selected");
+				perform(state, selection(kicked));
+				JsonObject guidance = new PassingProjection().project(state.getGame());
+				assertNotNull(guidance, "Selecting a teammate must expose its native targeting guidance");
+				assertEquals(2, guidance.getInt("version", -1));
+				assertEquals(landing(kicked), guidance.getString("action", null));
+				PassMechanic pass = state.getGame().getMechanic(Mechanic.Type.PASS);
+				TtmMechanic ttm = state.getGame().getMechanic(Mechanic.Type.TTM);
+				PassModifierFactory modifiers = state.getGame().getFactory(FactoryType.Factory.PASS_MODIFIER);
+				FieldCoordinate from = new FieldCoordinate(7, 7);
+				for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
+					PassingDistance distance = pass.findPassingDistance(state.getGame(), from, new FieldCoordinate(x, y), true);
+					boolean available = distance != null && (x != 7 || y != 7);
+					assertEquals(available ? distance.getShortcut() : '-', guidance.get("ranges").asArray().get(x).asString().charAt(y));
+					if (!available) assertTrue(guidance.get("targets").asArray().get(x).asArray().get(y).isNull());
+					else {
+						assertTrue(distance == PassingDistance.QUICK_PASS || distance == PassingDistance.SHORT_PASS);
+						PassContext context = new PassContext(state.getGame(), state.getGame().getActingPlayer().getPlayer(), distance, true);
+						assertEquals(Math.max(2, ttm.minimumRoll(distance, modifiers.findModifiers(context))),
+							guidance.get("targets").asArray().get(x).asArray().get(y).asInt());
+					}
+				}
+			}
+		}
+	}
 
 	@Test void applicableTraitsResolveOnDeclarationBeforeMovementForEitherCoachAndAction() throws Exception {
 		for (String trait : new String[] { "Bone Head", "Really Stupid", "Take Root", "Unchannelled Fury", "Animal Savagery", "Bloodlust" }) {

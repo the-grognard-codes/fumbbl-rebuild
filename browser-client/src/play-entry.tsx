@@ -205,7 +205,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         chatSendRef.current = null; setChatSendError(message.code.replaceAll('_', ' '));
       }
       const routeFailure = routeRequestRef.current !== null && message.type === 'error' && message.requestId === routeRequestRef.current;
-      const movementFailure = message.type === 'error' && message.requestId === movementRequestRef.current?.id;
+      const movementFailure = movementRequestRef.current !== null && message.type === 'error' && message.requestId === movementRequestRef.current.id;
       const rangeFailure = message.type === 'error' && rangeRead.current.isRead(message.requestId);
       if (message.type === 'movementRange') {
         const current = rangeRead.current.expects(message.requestId);
