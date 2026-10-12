@@ -42,3 +42,26 @@ test('passing projection rejects unknown versions, private data, mismatched coor
   const legacy = { ...view }; delete legacy.passing;
   assert.equal(decodeSetupStateValue(legacy).passing, undefined);
 });
+
+test('teammate guidance decodes native reduced ranges and roll targets without allowing long throws', () => {
+  const view = structuredClone(journeys.find(journey => journey.weather === 'NICE').frames[1].actor);
+  delete view.movementForecast;
+  for (const action of ['throwTeamMate', 'kickMateTo']) {
+    const ranges = Array.from({ length: 26 }, () => '-'.repeat(15));
+    ranges[11] = '-------Q-------'; ranges[14] = '-------S-------';
+    const targets = ranges.map(row => [...row].map(code => code === '-' ? null : code === 'Q' ? 2 : 3));
+    const flight = { ...view, actions: [], passing: { ...view.passing, version: 2, action, ranges, targets } };
+    const guidance = decodeSetupStateValue(flight).passing!;
+    assert.match(passingSquare(guidance, 14, 7).description, /Short Pass.*3\+/);
+    assert.match(passingSquare(guidance, 25, 14).description, /unavailable.*teammate/);
+    assert.deepEqual(passingLegend(guidance).map(item => item.text), ['Quick Pass: 2+', 'Short Pass: 3+']);
+    assert.deepEqual(decodeSetupStateValue({ ...flight, callerRole: 'spectator' }, true).passing, guidance);
+    for (const change of [{ action: 'pass' }, { private: true }, { targets: targets.slice(1) },
+      { targets: targets.map(row => row.map(target => target === 3 ? 1 : target)) },
+      { targets: targets.map(row => row.map(target => target === 3 ? null : target)) },
+      { ranges: ranges.map(row => row.replace('S', 'L')) }]) {
+      assert.throws(() => decodeSetupStateValue({ ...flight, passing: { ...flight.passing, ...change } }));
+    }
+    assert.throws(() => decodeSetupStateValue({ ...flight, actions: [{ ...view.actions[0], kind: action, sourcePlayerId: flight.passing.playerId, target: { x: 25, y: 14 } }] }));
+  }
+});

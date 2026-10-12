@@ -40,7 +40,8 @@ for (const [config, other] of [[dev, prod], [prod, dev]]) {
   assert.equal(config.gameWebSocketUrl, config.environment === 'dev' ? 'wss://game-dev.molesunderthepitch.org/browser/v2' : 'wss://game.molesunderthepitch.org/browser/v2',
     'Only the authorized exact endpoint for the selected environment may be enabled');
   const policy = hostingConfiguration({ hosting: { headers: [] } }, config);
-  const csp = policy.hosting.headers[0].headers[0].value;
+  const csp = policy.hosting.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy')?.value;
+  assert.equal(typeof csp, 'string', 'The selected hosted profile must have a Content-Security-Policy');
   assert.deepEqual(new Set(directiveSources(csp, 'connect-src')), expectedPublicConnectSources(config));
   assert.ok(!config.authEmulatorUrl);
 }

@@ -145,8 +145,8 @@ public class BrowserJettyContractTest {
 			socket.sendFrame(0x1, true, false, true, "{}".getBytes(StandardCharsets.UTF_8));
 			assertTrue(received.await(5, TimeUnit.SECONDS));
 			Session session = session(connection.get());
-			assertEquals(Duration.ofMinutes(5), session.getIdleTimeout());
-			// Keep production's five-minute contract, but shorten this real session so
+			assertEquals(Duration.ofMinutes(15), session.getIdleTimeout());
+			// Keep production's fifteen-minute contract, but shorten this real session so
 			// the test verifies Jetty's idle close and adapter cleanup promptly.
 			session.setIdleTimeout(Duration.ofMillis(100));
 			assertEquals(0x8, socket.readFrame().opcode);

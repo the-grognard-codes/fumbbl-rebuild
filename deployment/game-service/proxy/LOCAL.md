@@ -61,7 +61,7 @@ membership, legality and single-worker mutation remain Java responsibilities.
 
 Logs contain only status, byte count and elapsed time. Request error logging is
 disabled to avoid raw URL/credential leakage. Do not enable request/debug logs.
-The WS timeout remains 360 seconds, above the existing Java idle policy. No new
+The WS read timeout is 960 seconds, above Java's fifteen-minute idle policy. No new
 heartbeat, abandonment or recovery semantics are introduced.
 
 ## Checks

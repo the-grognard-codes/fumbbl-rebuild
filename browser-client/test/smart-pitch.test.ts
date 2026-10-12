@@ -31,6 +31,22 @@ test('a clicked prone opponent prepares the offered Foul from adjacent or distan
   assert.equal(smartAttack(active, [offered('foul', 'home1', { playerId: 'someone-else' })], 'home1', 'away1'), null);
 });
 
+test('both coaches infer diagonal Block with a used Blitz and reject unavailable adjacent attacks', () => {
+  for (const role of ['home', 'away'] as const) {
+    const view: SetupState = { ...ready, callerRole: role, actor: role,
+      players: ready.players.map(player => ({ ...player,
+        role: player.id === 'home1' ? role : role === 'home' ? 'away' : 'home',
+        ...(player.id === 'away1' ? { x: 8, y: 8 } : {}) })) };
+    const block = { ...offered('selectBlock', 'home1'), actor: role };
+    assert.equal(smartAttack(view, [block], 'home1', 'away1')?.kind, 'block');
+    assert.equal(smartAttack(view, [{ ...offered('blitz', 'home1'), actor: role }], 'home1', 'away1'), null);
+    const active = { ...view, activePlayerId: 'home1' };
+    const direct = { ...offered('block', 'home1', { playerId: 'away1' }), actor: role };
+    assert.equal(smartAttack(active, [direct], 'home1', 'away1')?.action, direct);
+    assert.equal(smartAttack(active, [block], 'home1', 'away1'), null);
+  }
+});
+
 test('a selected Blitz target remains tied to the server-offered target, then approaches an empty square', () => {
   const declared = frames[1].actor as SetupState;
   assert.equal(smartAttack(declared, declared.actions, 'home1', 'away1')?.action.kind, 'blitzTarget');

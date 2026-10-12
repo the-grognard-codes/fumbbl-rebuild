@@ -32,6 +32,16 @@ export function passTargetForPlayer(view: SetupState, actions: SetupAction[], pl
     && action.target && 'x' in action.target && action.target.x === target.x && action.target.y === target.y);
 }
 
+/** During teammate flight targeting, an occupant identifies its offered square. */
+export function teammateTargetForPlayer(view: SetupState, actions: SetupAction[], targetId: string): SetupAction | undefined {
+  if (view.phase !== 'PLAY' || view.actor !== view.callerRole || !view.activePlayerId) return undefined;
+  const target = view.players.find(player => player.id === targetId);
+  if (target?.x == null || target.y == null) return undefined;
+  return actions.find(action => ['throwTeamMate', 'kickMateTo'].includes(action.kind)
+    && action.actor === view.callerRole && action.sourcePlayerId === view.activePlayerId
+    && action.target && 'x' in action.target && action.target.x === target.x && action.target.y === target.y);
+}
+
 export type SmartAttack = { kind: 'block' | 'blitz' | 'foul'; action: SetupAction; targetId: string };
 
 /** Resolve a clicked opponent only through the actions offered for the selected player. */

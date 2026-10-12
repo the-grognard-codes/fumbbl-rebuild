@@ -3,6 +3,10 @@ import { validateTransportConfiguration } from '../../../site/src/assets/transpo
 export function hostingConfiguration(base, config) {
   validateTransportConfiguration(config);
   const result = structuredClone(base);
+  for (const source of ['/play', '/play/match', '/play/result', '/spectate', '/teambuilder',
+    '/play/index.html', '/spectate/index.html', '/teambuilder/index.html']) {
+    result.hosting.headers.push({ source, headers: [{ key: 'Cache-Control', value: 'no-cache' }] });
+  }
   if (config.environment === 'local' || config.environment === 'local-dev') return result;
   const game = config.gameWebSocketUrl ? new URL(config.gameWebSocketUrl) : null;
   if (game && game.protocol !== 'wss:') throw new Error('Hosted game transport must use WSS.');

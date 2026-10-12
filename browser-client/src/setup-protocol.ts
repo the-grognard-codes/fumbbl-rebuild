@@ -9,10 +9,11 @@ export type SetupPrompt = { id: string; actor: MatchRole; kind: 'coin' | 'receiv
 export type ActionTarget = { playerId: string } | { x: number; y: number };
 export type SetupAction = { id: string; label: string; actor: MatchRole; kind: string; target?: ActionTarget | null; sourcePlayerId?: string | null };
 export type MatchTeamArt = { rosterId: string; league: string | null };
-export type TeamResources = { apothecaries: number; assistantCoaches: number; cheerleaders: number };
+export type TeamResources = { apothecaries: number; assistantCoaches: number; cheerleaders: number; bribes?: number };
 export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED' | 'RESUME_PENDING' | 'ABANDONED'; proposalId: string | null; proposer: MatchRole | null; expiresAt: number | null };
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
-export type PassingRanges = { version: 1; playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
+type RangeGuidance = { playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
+export type PassingRanges = RangeGuidance & ({ version: 1 } | { version: 2; action: 'throwTeamMate' | 'kickMateTo'; targets: (number | null)[][] });
 export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number };
 export type DriveTrackerPresentation = { version: 1; receivingRole: MatchRole; phase: 'KICKING_SETUP' | 'RECEIVING_SETUP' | 'KICK_TARGET' | 'KICKOFF'; secretWeapons: boolean; knockouts: boolean; event: KickoffPresentation['event'] | null; eventComplete: boolean };
 export type MovementForecast = { version: 1 | 2; playerId: string; steps: RouteStep[] };
@@ -57,7 +58,16 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	if (new Set(players.map(player => player.id)).size !== players.length) throw Error('Repeated player');
 	if (!Array.isArray(result.actions) || result.actions.length > 8192) throw Error('Invalid actions');
 	const actions = result.actions.map(value => { const action = object(value, targetsV3 ? ['id','label','actor','kind','target', ...(detailsV4 ? ['sourcePlayerId'] : [])] : ['id','label','actor','kind']); text(action.id, 200); text(action.label, 200); role(action.actor); text(action.kind, 60); if (targetsV3 && action.target !== null) { if (typeof action.target !== 'object' || Array.isArray(action.target)) throw Error('Invalid target'); const target = action.target as Record<string, unknown>; if (Object.hasOwn(target, 'playerId')) { const player = object(target, ['playerId']); text(player.playerId); if (!players.some(value => value.id === player.playerId)) throw Error('Unknown target player'); } else { const square = object(target, ['x','y']); integer(square.x, 25); integer(square.y, 14); } } if (detailsV4 && action.sourcePlayerId !== null && (typeof action.sourcePlayerId !== 'string' || !players.some(player => player.id === action.sourcePlayerId && player.role === action.actor))) throw Error('Invalid action source'); return action as SetupAction; });
-	if (detailsV4) { text(result.homeTeamName, 100); text(result.awayTeamName, 100); for (const key of ['homeResources','awayResources']) { const resources = object(result[key], ['apothecaries','assistantCoaches','cheerleaders']); integer(resources.apothecaries, 20); integer(resources.assistantCoaches, 20); integer(resources.cheerleaders, 20); } }
+	if (detailsV4) {
+		text(result.homeTeamName, 100); text(result.awayTeamName, 100);
+		for (const key of ['homeResources','awayResources']) {
+			const resourceValue = result[key];
+			const hasBribes = !!resourceValue && typeof resourceValue === 'object' && Object.hasOwn(resourceValue, 'bribes');
+			const resources = object(resourceValue, ['apothecaries','assistantCoaches','cheerleaders', ...(hasBribes ? ['bribes'] : [])]);
+			integer(resources.apothecaries, 20); integer(resources.assistantCoaches, 20); integer(resources.cheerleaders, 20);
+			if (hasBribes) integer(resources.bribes, 100);
+		}
+	}
 	if (new Set(actions.map(action => action.id)).size !== actions.length) throw Error('Repeated action');
 	let ball: { x: number; y: number } | null = null;
 	if (result.ball !== null) { const value = object(result.ball, ['x','y']); integer(value.x, 25); integer(value.y, 14); ball = value as { x: number; y: number }; }
@@ -127,16 +137,30 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 		}
 	}
 	if (Object.hasOwn(result, 'passing')) {
-		const value = object(result.passing, ['version','playerId','from','weatherPenalty','rangeLimited','ranges']);
+		const teammate = !!result.passing && typeof result.passing === 'object' && (result.passing as Record<string, unknown>).version === 2;
+		const value = object(result.passing, ['version','playerId','from','weatherPenalty','rangeLimited','ranges', ...(teammate ? ['action','targets'] : [])]);
 		const from = object(value.from, ['x','y']); integer(from.x, 25); integer(from.y, 14);
 		integer(value.weatherPenalty, 1);
 		const passer = players.find(player => player.id === value.playerId);
-		if (value.version !== 1 || typeof value.rangeLimited !== 'boolean' || result.phase !== 'PLAY' || !passer
+		if (!teammate && value.version !== 1 || typeof value.rangeLimited !== 'boolean' || result.phase !== 'PLAY' || !passer
 			|| passer.id !== result.activePlayerId || passer.x !== from.x || passer.y !== from.y
 			|| !Array.isArray(value.ranges) || value.ranges.length !== 26
 			|| !value.ranges.every(row => typeof row === 'string' && /^[QSLBR-]{15}$/.test(row))
 			|| value.ranges[from.x][from.y] !== '-') throw Error('Invalid passing ranges');
-		for (const action of actions) if (action.kind === 'pass' && (action.sourcePlayerId !== passer.id
+		if (teammate) {
+			if (!['throwTeamMate','kickMateTo'].includes(value.action as string)
+				|| !value.ranges.every(row => /^[QS-]{15}$/.test(row))
+				|| !Array.isArray(value.targets) || value.targets.length !== 26) throw Error('Invalid teammate ranges');
+			for (let x = 0; x < 26; x++) {
+				const row = value.targets[x];
+				if (!Array.isArray(row) || row.length !== 15) throw Error('Invalid teammate targets');
+				for (let y = 0; y < 15; y++) {
+					if ((value.ranges[x][y] === '-') !== (row[y] === null)) throw Error('Unavailable teammate difficulty');
+					if (row[y] !== null) { integer(row[y], 64); if (row[y] < 2) throw Error('Invalid teammate difficulty'); }
+				}
+			}
+		}
+		for (const action of actions) if (action.kind === (teammate ? value.action : 'pass') && (action.sourcePlayerId !== passer.id
 			|| !action.target || !('x' in action.target) || value.ranges[action.target.x][action.target.y] === '-')) throw Error('Unavailable pass target');
 		passing = value as PassingRanges;
 	}

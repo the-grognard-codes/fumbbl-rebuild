@@ -11,6 +11,19 @@ const end = source.indexOf('export function startPlay');
 const policyImport = `import { validateTransportConfiguration } from '${new URL('../src/assets/transport-policy.js', import.meta.url).href}';\n`;
 const { gameEndpoint } = await import(`data:text/javascript,${encodeURIComponent(policyImport + source.slice(start, end))}`);
 
+test('game entry documents revalidate before loading versioned client assets in every environment', () => {
+  for (const environment of ['local', 'local-dev', 'dev', 'prod']) {
+    const config = resolveEnvironment(['--environment', environment]);
+    const immutable = { source: '/play/assets/**', headers: [{ key: 'Cache-Control', value: 'public,max-age=31536000,immutable' }] };
+    const base = { hosting: { headers: [immutable] } };
+    const hosting = hostingConfiguration(base, config);
+    for (const source of ['/play', '/play/match', '/play/result', '/spectate', '/teambuilder'])
+      assert.deepEqual(hosting.hosting.headers.find(header => header.source === source)?.headers, [{ key: 'Cache-Control', value: 'no-cache' }]);
+    assert.deepEqual(hosting.hosting.headers[0], immutable);
+    assert.equal(base.hosting.headers.length, 1);
+  }
+});
+
 test('local DEV and PROD endpoints are exact and mutually isolated', () => {
   const config = resolveEnvironment(['--environment', 'local-dev']);
   const page = new URL('http://localhost:5000/play');
