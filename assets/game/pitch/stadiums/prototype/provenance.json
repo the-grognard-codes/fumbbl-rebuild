@@ -1,0 +1,33 @@
+{
+  "tool": "built-in image_gen",
+  "purpose": "Human crowd hybrid side-and-corner rendering prototype",
+  "originalFilename": "exec-c05e9cc3-8e73-4183-be24-4efe1db10b12.png",
+  "output": "human-groups-v1.png",
+  "width": 1122,
+  "height": 1402,
+  "reference": "assets/game/references/stadiums/human-reference-revision/live-behavior-target.png",
+  "prompt": "Use case: stylized-concept. Asset type: transparent crowd group directional sprite atlas for a modular fantasy-football stadium prototype.\nReference image is ART STYLE ONLY: rich late-16-bit hand-painted pixel-art spectators, navy/ivory cloaks, leather, warm natural faces, medieval humans, a few dwarfs and halflings. NOT head-only crops.\nCreate ONE precisely aligned 3-column by 5-row atlas on a transparent 1536 by 1920 canvas. Every cell is 512 by 384 pixels. NO labels, no dividers, no backdrop, no stands, no wall, no ground. Keep every group entirely inside its cell with 24px transparent margins. Use actual alpha transparency.\nEvery cell contains the SAME cohesive group of SIX standing spectators viewed from waist up (head, chest, shoulders and arms clearly visible), naturally overlapping a little but with all upper bodies intact. Different heights, adult men and women, one short dwarf, one halfling. Same navy/ivory costumes, same identities and fixed positions across columns. Leave breathing room among shoulders. Style must closely match the reference's charming painted pixel art.\nColumns are animation states: column 1 REST (watching); column 2 ANTICIPATION (one spectator raising a fist, a second raising an ale mug); column 3 CHEER (that fist held high, that mug at the mouth drinking, one open mouth shouting). Everyone else exactly unchanged; no whole-group movement, preserve all positions and sizes.\nRows are camera views of the same group: row 1 FRONT from 40 degree downward elevation; row 2 BACK from 40 degree downward elevation, backs of heads and cloaks; row 3 LEFT THREE-QUARTER profile from 40 degree downward elevation; row 4 RIGHT THREE-QUARTER profile from 40 degree downward elevation; row 5 TRUE VERTICAL OVERHEAD looking straight down on all six heads, shoulders and visible raised arms.\nUse orthographic capture, equal spectator scale, no vanishing point or baked near-to-far size gradient. Groups in perspective rows sit in a short horizontal arc but only one main rank; no stacked rows of heads. Center groups in cells, group bottom at y=350 within each cell, safe padding. Overhead row centered in cells. Maintain fixed camera, framing, identity and registration between animation columns. NO text, watermark, badges, floating items or black backing rectangles.\nOutput is a usable game atlas, not a mockup.",
+  "measuredRows": [
+    {
+      "y": 20,
+      "height": 270
+    },
+    {
+      "y": 290,
+      "height": 270
+    },
+    {
+      "y": 590,
+      "height": 270
+    },
+    {
+      "y": 880,
+      "height": 270
+    },
+    {
+      "y": 1170,
+      "height": 222
+    }
+  ],
+  "cellWidth": 374
+}

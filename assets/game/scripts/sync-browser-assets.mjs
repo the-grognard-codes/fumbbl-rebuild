@@ -2,10 +2,11 @@ import './build-stadium-jigsaw.mjs';
 import './build-modular-stadium-catalog.mjs';
 import './build-stadium-catalog.mjs';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readRgbaPng, visibleBounds } from './png-art.mjs';
+import { AssetOutput } from './asset-output.mjs';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const deliveryRoot = fileURLToPath(new URL('../../../browser-client/public/assets/game/', import.meta.url));
@@ -154,11 +155,12 @@ if (check) {
   }
   console.log(`Checked ${expected.size} browser game assets.`);
 } else {
-  await writeFile(generatedCatalogPath, generatedCatalog);
-  await rm(deliveryRoot, { recursive: true, force: true });
+  const output = new AssetOutput();
+  await output.write(generatedCatalogPath, generatedCatalog);
+  await mkdir(deliveryRoot, { recursive: true });
   for (const [target, source] of expected) {
-    await mkdir(resolve(target, '..'), { recursive: true });
-    await cp(source, target);
+    await output.write(target, await readFile(source));
   }
+  for (const target of await filesUnder(deliveryRoot)) if (!expected.has(target)) await rm(target);
   console.log(`Synced ${expected.size} browser game assets.`);
 }
