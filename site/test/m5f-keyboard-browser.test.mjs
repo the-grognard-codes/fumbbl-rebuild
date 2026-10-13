@@ -18,7 +18,9 @@ const base = { projectionVersion: 3, matchId, revision: 1, callerRole: 'home', p
     ...Array.from({ length: 12 }, (_, index) => ({ id: `1:other-move-${index}`, label: `Other move ${index}`, actor: 'home', kind: 'move', target: null }))],
   turn: 1, turnMode: 'PLAY', ball: { x: 1, y: 1 }, activePlayerId: 'p1', half: 1, homeTurn: 1, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 
-test('pitch keyboard focus shows player cards and commits only a selected coach action', async () => {
+for (const delayInitialMeasurement of [false, true]) test(delayInitialMeasurement
+  ? 'pitch keyboard focus waits for the initial pitch size before camera travel'
+  : 'pitch keyboard focus shows player cards and commits only a selected coach action', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
     if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
@@ -34,6 +36,24 @@ test('pitch keyboard focus shows player cards and commits only a selected coach 
     const pages = [];
     for (const [index, role] of ['home', 'spectator'].entries()) {
       const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage(); pages.push(page);
+      if (delayInitialMeasurement && !index) await page.addInitScript(() => {
+        const NativeResizeObserver = window.ResizeObserver;
+        let pending = true;
+        const deliveries = [];
+        // Reproduce a mounted pitch whose initial ResizeObserver delivery is still pending.
+        addEventListener('load', () => setTimeout(() => {
+          pending = false;
+          for (const deliver of deliveries) deliver();
+        }, 3000), { once: true });
+        window.ResizeObserver = class extends NativeResizeObserver {
+          constructor(callback) {
+            super((entries, observer) => {
+              if (pending) deliveries.push(() => callback(entries, observer));
+              else callback(entries, observer);
+            });
+          }
+        };
+      });
       await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
       await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
       await page.routeWebSocket('**/browser/v2', socket => {
