@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": { "node": ">=26 <27" },
   "description": "Static public site for the Moles Under the Pitch educational project.",
   "scripts": {
     "build": "node scripts/render-updates.mjs && npm --prefix ../browser-client run build:play && node scripts/build.mjs",

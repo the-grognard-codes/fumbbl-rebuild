@@ -134,7 +134,7 @@ export function validateComputerStartup(tokenFile, nodeVersion = process.version
   try { token = readFileSync(tokenFile, 'utf8').trim(); }
   catch { throw Error('COMPUTER_TOKEN_FILE_UNAVAILABLE'); }
   if (!token) throw Error('COMPUTER_TOKEN_FILE_INVALID');
-  if (Number(nodeVersion.split('.')[0]) < 26) throw Error('COMPUTER_NODE_VERSION_UNSUPPORTED');
+  if (Number(nodeVersion.split('.')[0]) !== 26) throw Error('COMPUTER_NODE_VERSION_UNSUPPORTED');
 }
 
 async function portFree(port) {

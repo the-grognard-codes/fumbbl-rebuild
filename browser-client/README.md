@@ -36,7 +36,7 @@ npm ci
 npm run dev
 ```
 
-Toolchain used: Node 24.19.0, npm 11.17.0; exact package versions and transitive
+Supported toolchain: Node 26.x (setup pin 26.7.0), npm 11.19.0; exact package versions and transitive
 integrity hashes are in `package-lock.json`. Java stays on the established Java 8
 baseline. Node serves/develops the UI only; it is not a second game server.
 Vite binds `127.0.0.1:5173`; Compose publishes the JVM only on `127.0.0.1:22227`.

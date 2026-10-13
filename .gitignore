@@ -5,6 +5,7 @@
 **/pom.xml.versionsBackup
 
 # Browser-client build output
+/node_modules/
 browser-client/node_modules/
 browser-client/dist/
 browser-client/dist-play/

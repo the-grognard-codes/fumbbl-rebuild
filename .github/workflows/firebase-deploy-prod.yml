@@ -77,7 +77,7 @@ jobs:
         run: '[[ "$(git rev-parse HEAD)" == "$DEPLOY_COMMIT" ]]'
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: '26'
           cache: npm
           cache-dependency-path: browser-client/package-lock.json
       - run: npm ci --prefix browser-client
