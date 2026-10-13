@@ -52,26 +52,43 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
   const scene = page.locator('.live-pitch-scene');
   const rendered = await scene.evaluate(element => {
     const ball = element.querySelector('.live-ball-marker');
-    const pulse = element.querySelector('.live-ball-highlight');
+    const highlight = element.querySelector('.live-ball-highlight');
+    const ring = element.querySelector('.live-ball-outer');
+    const ground = new DOMMatrix(getComputedStyle(highlight).transform);
+    const corners = [[0,0], [32,0], [32,32], [0,32]].map(([x,y]) => {
+      const p = ground.transformPoint(new DOMPoint(x,y));
+      return { x: p.x / p.w, y: p.y / p.w };
+    });
+    const rect = highlight.getBoundingClientRect(), sceneRect = element.getBoundingClientRect();
     const structure = element.querySelector('.pitch-stadium-structure');
     return { width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height),
       focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
-      zoom: Number(element.dataset.zoom), transform: ball.getAttribute('transform'),
-      pointerEvents: getComputedStyle(ball).pointerEvents, animation: getComputedStyle(pulse).animationName,
-      pulseFrames: pulse.getAnimations()[0]?.effect?.getKeyframes().map(frame => frame.transform),
+      zoom: Number(element.dataset.zoom), center: { x: parseFloat(ball.style.left), y: parseFloat(ball.style.top) }, corners,
+      bounds: { x: rect.x - sceneRect.x, y: rect.y - sceneRect.y, width: rect.width, height: rect.height },
+      pointerEvents: getComputedStyle(ball).pointerEvents, animation: getComputedStyle(ring).animationName,
+      rotationFrames: ring.getAnimations()[0]?.effect?.getKeyframes().map(frame => frame.transform),
       arrowFill: getComputedStyle(element.querySelector('.live-ball-arrow')).fill,
       structureDisplay: getComputedStyle(structure).display };
   });
-  const expected = new PitchProjection({ width: rendered.width, height: rendered.height, focus: rendered.focus,
+  const camera = new PitchProjection({ width: rendered.width, height: rendered.height, focus: rendered.focus,
     transverseFocus: rendered.transverseFocus, zoom: rendered.zoom, end: role, mode,
-    perspectiveElevation: angle }).project({ x: ball.x + .5, y: ball.y + .5 });
-  const actual = /^translate\(([-\d.]+) ([-\d.]+)\)$/.exec(rendered.transform);
-  assert.ok(actual && expected, 'ball marker has a projected transform');
-  assert.ok(Math.abs(Number(actual[1]) - expected.x) < .02 && Math.abs(Number(actual[2]) - expected.y) < .02,
+    perspectiveElevation: angle });
+  const expected = camera.project({ x: ball.x + .5, y: ball.y + .5 });
+  assert.ok(expected, 'ball marker has a projected center');
+  assert.ok(Math.abs(rendered.center.x - expected.x) < .02 && Math.abs(rendered.center.y - expected.y) < .02,
     'ball marker uses canonical square center');
+  const square = camera.square(ball);
+  for (let index = 0; index < 4; index++) assert.ok(Math.hypot(rendered.corners[index].x - square[index].x,
+    rendered.corners[index].y - square[index].y) < .02, 'marker plane matches the square perspective at every corner');
+  const width = Math.max(...square.map(p => p.x)) - Math.min(...square.map(p => p.x));
+  const height = Math.max(...square.map(p => p.y)) - Math.min(...square.map(p => p.y));
+  assert.ok(Math.abs(rendered.bounds.x - Math.min(...square.map(p => p.x))) < .1
+    && Math.abs(rendered.bounds.y - Math.min(...square.map(p => p.y))) < .1
+    && Math.abs(rendered.bounds.width - width) < .1 && Math.abs(rendered.bounds.height - height) < .1,
+    'browser paints the marker inside the projected square');
   assert.equal(rendered.pointerEvents, 'none');
-  assert.equal(rendered.animation, 'live-ball-inward');
-  assert.deepEqual(rendered.pulseFrames, ['scale(0.78)', 'scale(1.18)', 'scale(0.78)']);
+  assert.equal(rendered.animation, 'live-ball-rotate');
+  assert.deepEqual(rendered.rotationFrames, ['rotate(0deg)', 'rotate(360deg)']);
   assert.notEqual(rendered.arrowFill, 'none');
   assert.equal(rendered.structureDisplay, 'block');
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
@@ -309,7 +326,8 @@ try {
     assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'top-down opposing art ignores movement facing');
     await assertProjectedBallAndStands(setup, role, 'top-down', 50);
     await setup.emulateMedia({ reducedMotion: 'reduce' });
-    assert.equal(await setup.locator('.live-ball-highlight').evaluate(element => getComputedStyle(element).animationName), 'none');
+    assert.deepEqual(await setup.locator('.live-ball-outer, .live-ball-inner').evaluateAll(elements =>
+      elements.map(element => getComputedStyle(element).animationName)), ['none', 'none']);
     if (evidence) await setup.screenshot({ path: `${evidence}/setup-top-down-${role}.png` });
     await setup.close();
   }

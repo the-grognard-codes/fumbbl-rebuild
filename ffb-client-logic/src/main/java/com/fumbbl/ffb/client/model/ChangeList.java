@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Ground footballs and their shadows scale with pitch zoom and distance, keeping a consistent proportion inside the ball marker")
+			.addImprovement("Ground balls appear larger and centered in their square, stand at a slight angle and cast a small shadow beneath the football")
+			.addImprovement("Browser ball markers use pixel-art rings that follow the pitch perspective, stay inside their square and rotate opposite their inner arrows; carried balls show only the player and marker")
 			.addBugfix("Stadium development preview returns to the original wall and crowd artwork by default; modular wall art remains an optional study")
 			.addImprovement("Stadium development study adds crowd-free modular side walls with original-style stonework, timber, torches and banners")
 			.addImprovement("Stadium development study restores the original painted stone walls and crowd as its default perspective preview")
