@@ -10,10 +10,10 @@ The schema bootstrap creates no coach/account/team rows. It accepts only the ded
 
 Real DEV Firebase custom tokens use a dedicated `coach-ui-acceptance` signing account with no project roles. The owner approved a custom role containing only `iam.serviceAccounts.signBlob`, bound on that account to the administrator. This replaces the attempted Firebase-admin signer. ADC and tokens stay outside tracked files. The current standard ADC is verified and carries the DEV quota project; the older review-mounted credential is not rewritten.
 
-Prerequisites: Docker, the repository's supported Java/Maven toolchain, Node 24 for browser tooling, system Node 26 for the computer process, refreshed DEV ADC and the scoped signer permission. The existing review containers provide verified read-only local secret-file locations; no records are copied from their database.
+Prerequisites: Docker, the repository's supported Java/Maven toolchain, Node 26.x for browser tooling and the computer process, refreshed DEV ADC and the scoped signer permission. The existing review containers provide verified read-only local secret-file locations; no records are copied from their database. The evidence ledger below records the versions used for the original acceptance run; current tooling uses one Node runtime.
 
 ```powershell
-# With Node 24 first in PATH:
+# With Node 26 first in PATH:
 node tools/acceptance-local-server.mjs --start
 node tools/coach-match-acceptance.mjs --start-browser
 $env:COACH_ACCEPTANCE_TOKENS_FILE = (Resolve-Path .tools/coach-oriented-match-ui/coach-tokens.json).Path

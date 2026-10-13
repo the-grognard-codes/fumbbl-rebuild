@@ -1,7 +1,12 @@
-# Project settings inherit the existing user-level toolchain permissions.
+# Project settings merge user-level toolchain permissions when available.
 default_permissions = "fumbbl-project"
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
+
+# Keep this parent defined so fresh machines can resolve the project profile.
+# Machine-specific filesystem grants remain in the user's config.toml.
+[permissions.cross-project-toolchains]
+extends = ":workspace"
 
 [permissions.fumbbl-project]
 description = "MUTP workspace edits, builds, GitHub access, and deployment with writable Git metadata and build caches."

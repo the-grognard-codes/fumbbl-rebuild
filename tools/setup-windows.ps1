@@ -15,7 +15,7 @@ $jdkVersion = if ($target.java.runtimeVersion -match '^(\d+\.\d+\.\d+)\+(\d+)-LT
 } else {
     throw "Cannot derive winget JDK version from $($target.java.runtimeVersion)."
 }
-$nodeVersion = '24.19.0' # Matches browser-client/README.md; package.json requires Node 24.
+$nodeVersion = '26.7.0' # Matches browser-client/.node-version; all Node tooling uses 26.x.
 
 function Find-Executable([string[]]$Names, [string[]]$Paths = @()) {
     foreach ($name in $Names) {
@@ -81,7 +81,7 @@ function Get-ToolStatus {
         [pscustomobject]@{ Requirement = "Temurin $($target.java.runtimeVersion)"; Status = if (Test-TargetJava) { 'ready' } else { 'missing or wrong patch/vendor' } }
         [pscustomobject]@{ Requirement = 'Maven 3.9.9 (project local)'; Status = if ($mavenReady) { 'ready' } else { 'run bootstrap' } }
         [pscustomobject]@{ Requirement = 'Temurin 8u504 (project local)'; Status = if ($java8Ready) { 'ready' } else { 'run bootstrap' } }
-        [pscustomobject]@{ Requirement = 'Node.js 24 / npm'; Status = if ($nodeIdentity -match '^v24\.') { $nodeIdentity } else { "missing or wrong major: $nodeIdentity" } }
+        [pscustomobject]@{ Requirement = 'Node.js 26 / npm'; Status = if ($nodeIdentity -match '^v26\.') { $nodeIdentity } else { "missing or wrong major: $nodeIdentity" } }
         [pscustomobject]@{ Requirement = 'Browser npm packages'; Status = if ($installed) { 'ready' } else { 'run npm ci' } }
         [pscustomobject]@{ Requirement = 'Firebase CLI'; Status = if (Find-Executable @('firebase.cmd', 'firebase.exe') @($appDataNpm)) { 'found' } else { 'missing' } }
         [pscustomobject]@{ Requirement = 'Google Cloud CLI'; Status = if (Find-Executable @('gcloud.cmd') @($localCloud, $machineCloud)) { 'found' } else { 'missing' } }
@@ -122,14 +122,14 @@ if (!(Test-TargetJava)) {
 }
 
 $node = Find-Executable @('node.exe') @((Join-Path $env:ProgramFiles 'nodejs/node.exe'))
-if (!$node -or ((& $node --version 2>&1 | Out-String) -notmatch '^v24\.')) {
-    Install-WingetPackage 'OpenJS.NodeJS.LTS' $nodeVersion
+if (!$node -or ((& $node --version 2>&1 | Out-String) -notmatch '^v26\.')) {
+    Install-WingetPackage 'OpenJS.NodeJS' $nodeVersion
 }
 
 Refresh-Path
 $node = Find-Executable @('node.exe') @((Join-Path $env:ProgramFiles 'nodejs/node.exe'))
-if (!$node -or ((& $node --version 2>&1 | Out-String) -notmatch '^v24\.')) {
-    throw 'Node.js 24 is not available after winget. Open a new terminal; check other Node installations on PATH.'
+if (!$node -or ((& $node --version 2>&1 | Out-String) -notmatch '^v26\.')) {
+    throw 'Node.js 26 is not available after winget. Open a new terminal; check other Node installations on PATH.'
 }
 if (!(Test-TargetJava)) {
     throw "The exact JDK is missing at $jdkHome. Check the winget installation."

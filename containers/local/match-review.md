@@ -25,7 +25,7 @@ It refuses to take over an unrelated process on port 5000 or 22232.
 
 Complete either the laptop-copy provisioning below or the fresh-PC empty-database
 setup before using the daily command.
-Docker Desktop, Node.js 26 or newer, the Firebase CLI, and the local nginx binary must be
+Docker Desktop, Node.js 26.x, the Firebase CLI, and the local nginx binary must be
 installed. The command reuses the existing mounted secret files; it does not
 print or copy their contents into the repository. A Google sign-in opens only
 if both the mounted ADC and standard gcloud ADC need renewal. A normal local
@@ -89,6 +89,41 @@ Existing open sockets must reconnect after the proxy switch. The previous
 runtime and volumes remain available on 22231. This review stack is local and
 does not change the hosted DEV or PROD service. Never run the provision script
 against a populated target or point the new container at the retained database.
+
+## Clear games after version drift
+
+Tracked in [issue #271](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/271).
+See [maintenance and Node 26 verification](../../docs/verification/dev-local-maintenance-node26.md)
+for decisions and acceptance evidence.
+
+To discard all games in dev-local without opening an incompatible match or
+conceding through the browser, run from the repository root:
+
+```powershell
+node tools/dev-local-clear-games.mjs --dry-run
+node tools/dev-local-clear-games.mjs --apply
+```
+
+The default (no argument) is also a dry run. It prints table counts without
+changing data. `--apply` permanently deletes every prepared, active and completed
+match, including results/replays stored in match documents, checkpoints, consent,
+invitations, request records, membership and legacy database game snapshots.
+It requires the existing review database to be running at schema marker 7.
+No build, Firebase login or matching game/client version is required.
+
+The script verifies the local Docker endpoint, exact review containers, Compose
+labels, loopback database port and isolated database volume before making changes.
+It stops a running game server to drain pending writes and clear its cached matches,
+deletes the game records in one transaction, checks that the tables are empty and
+account/team/settings counts are unchanged, then starts the same server container
+if it was running. A stopped server stays stopped. On failure after stopping,
+it leaves the server stopped for inspection. Close old match tabs and reload Play
+afterward; the existing proxy, Hosting and computer daemon can remain running.
+
+Accounts, identities, scopes, saved teams, settings, credentials, schema and ID
+counters are preserved. The separate backup volume and its archived legacy replay
+files are retained. This only clears games in the `ffb-match-review` database;
+retained local stacks and hosted DEV/PROD are outside its scope.
 
 ## Fresh PC with an empty database
 

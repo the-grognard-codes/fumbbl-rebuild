@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Development setup and browser validation use Node 26 alongside the computer player, avoiding conflicting Node version requirements")
+			.addImprovement("Local development games can be cleared with a guarded maintenance script when game versions have drifted, preserving accounts and saved teams")
 			.addBugfix("Ground footballs and their shadows scale with pitch zoom and distance, keeping a consistent proportion inside the ball marker")
 			.addImprovement("Ground balls appear larger and centered in their square, stand at a slight angle and cast a small shadow beneath the football")
 			.addImprovement("Browser ball markers use pixel-art rings that follow the pitch perspective, stay inside their square and rotate opposite their inner arrows; carried balls show only the player and marker")
