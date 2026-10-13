@@ -26,7 +26,8 @@ import java.util.List;
 /** Browser intent projection for the frozen Human catalog, using native range and trait mechanics. */
 public final class BallAndFoulActions {
     public void declarations(Game game, Player<?> player, String role, List<Action> actions) {
-        if (game.getTurnMode() != TurnMode.REGULAR) return;
+        TurnMode mode = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET ? game.getLastTurnMode() : game.getTurnMode();
+        if (mode != TurnMode.REGULAR) return;
         if (UtilPlayer.isBallAvailable(game, player)) {
             if (!game.getTurnData().isPassUsed()) declare(actions, player, role, "declarePass", "Pass", PlayerAction.PASS_MOVE);
             if (!game.getTurnData().isHandOverUsed()) declare(actions, player, role, "declareHandOff", "Hand off", PlayerAction.HAND_OVER_MOVE);

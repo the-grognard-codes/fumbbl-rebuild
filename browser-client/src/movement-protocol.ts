@@ -4,7 +4,7 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 
 export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
-export type MovementRequest = { playerId: string; kind: 'move' | 'blitz'; targetPlayerId: string | null; waypoints: RoutePoint[] };
+export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
   waypoints: RoutePoint[]; route: RoutePreview };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
@@ -66,12 +66,12 @@ export function decodeMovementRange(json: string): MovementRangeResponse {
 export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const response = envelope(json, 'movementPreview', 'plan');
   const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route']);
-  if (value.planVersion !== 1 || !['move', 'blitz'].includes(value.kind as string)
+  if (value.planVersion !== 1 || !['move', 'blitz', 'foul'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
-  const targetPlayerId = kind === 'blitz' ? playerId(value.targetPlayerId) : null;
+  const targetPlayerId = kind !== 'move' ? playerId(value.targetPlayerId) : null;
   if (kind === 'move' && value.targetPlayerId !== null) throw Error('Unexpected movement target');
-  const route = decodeRoutePreviewValue(value.route, kind === 'blitz');
+  const route = decodeRoutePreviewValue(value.route, kind !== 'move');
   if (route.routeVersion !== 3 || targetPlayerId === route.playerId) throw Error('Invalid movement plan route');
   const waypoints = value.waypoints.map(point);
   const end = route.steps.at(-1) ?? route.from, last = waypoints.at(-1);

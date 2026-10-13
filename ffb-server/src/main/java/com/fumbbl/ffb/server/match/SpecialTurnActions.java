@@ -30,11 +30,12 @@ import java.util.List;
 /** Native BB2025 special declarations and their server-validated target commands. */
 final class SpecialTurnActions {
     void declarations(Game game, Player<?> player, PlayerState status, String role, List<Action> actions) {
-        if (game.getTurnMode() != TurnMode.REGULAR) return;
+        TurnMode mode = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET ? game.getLastTurnMode() : game.getTurnMode();
+        if (mode != TurnMode.REGULAR) return;
         GameMechanic rules = game.getMechanic(Mechanic.Type.GAME);
         if (rules.isGazeActionAllowed(game, player) && UtilPlayer.canGaze(game, player))
             declare(actions, player, role, "declareGaze", "Hypnotic gaze", PlayerAction.GAZE_MOVE);
-        if (rules.isBombActionAllowed(game.getTurnMode()) && !game.getTurnData().isBombUsed()
+        if (rules.isBombActionAllowed(mode) && !game.getTurnData().isBombUsed()
             && !game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
             && !status.isProneOrStunned() && player.hasSkillProperty(NamedProperties.enableThrowBombAction))
             declare(actions, player, role, "declareBomb", "Throw bomb", PlayerAction.THROW_BOMB);

@@ -296,12 +296,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const gameStep = currentGameStep(pitchView);
   const pitchActions = kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions;
-  const selectedActions = moreActions(availableActions, view.activePlayerId ?? playerId);
+  const selectedActions = moreActions(availableActions, selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '');
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const canChoose = connected && !pending && !suspended;
-  const canMove = canChoose && canPlanMovement(view, availableActions, playerId, 'move');
-  const movementReady = canChoose && playerId === movementIntent?.playerId && matchesMovementPlan(movementPlan, movementIntent, view);
-  const displayedWaypoints = movementFlow && movementIntent?.kind === 'blitz' && !waypoints.length && movementReady
+  const canMove = canChoose && !decision && canPlanMovement(view, availableActions, playerId, 'move');
+  const movementReady = canChoose && !decision && playerId === movementIntent?.playerId && matchesMovementPlan(movementPlan, movementIntent, view);
+  const displayedWaypoints = movementFlow && movementIntent?.kind !== 'move' && !waypoints.length && movementReady
     ? movementPlan!.waypoints : waypoints;
   const previewMovement = (kind: MovementRequest['kind'], targetId: string | null, points: RoutePoint[]) => {
     const intent = { playerId, kind, targetPlayerId: targetId, waypoints: points };
@@ -367,6 +367,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (touchback) { setPlayerId(id); setActionId(touchback.id); setSmartIntent(null); return; }
     const player = view.players.find(item => item.id === id);
+    if (hosted && view.phase === 'PLAY' && player?.role === view.callerRole && id !== playerId
+      && id === targetPlayerId && pinnedAction
+      && ['pass', 'handOff', 'liftTeamMate', 'kickMate', 'throwTeamMate', 'kickMateTo'].includes(pinnedAction.kind)) {
+      cancelProposal(); setPlayerId(id); setTargetFocus('player'); return;
+    }
     const flightTarget = teammateTargetForPlayer(view, availableActions, id);
     if (canChoose && flightTarget && player?.x != null && player.y != null) {
       if (movementFlow) clearMovement();
@@ -396,12 +401,17 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       return;
     }
     if (movementFlow && view.phase === 'PLAY' && !decision && id === playerId) { cancelProposal(); return; }
-    if (movementFlow && view.phase === 'PLAY' && player?.x != null && player.y != null) {
+    if (movementFlow && view.phase === 'PLAY' && !decision && player?.x != null && player.y != null) {
       if (!playerId) {
         cancelProposal(); setPlayerId(id); setTargetFocus('player'); return;
       }
       if (selectedPlayer?.role !== view.callerRole) return;
       const explicitOtherAction = pinnedAction && !['select', 'stand', 'blitz'].includes(pinnedAction.kind);
+      const foul = smartAttack(view, availableActions, playerId, id, explicitBlitz);
+      if (canChoose && foul?.kind === 'foul' && (!explicitOtherAction || pinnedAction.kind === 'declareFoul')
+        && canPlanMovement(view, availableActions, playerId, 'foul')) {
+        setTargetPlayerId(id); setTargetFocus('player'); previewMovement('foul', id, []); return;
+      }
       if (!explicitOtherAction) {
         const attack = smartAttack(view, availableActions, playerId, id, explicitBlitz);
         if (canChoose && attack?.kind === 'block') {
@@ -708,7 +718,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
             disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}
         </div> : availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
-          {movementIntent && <span>{movementIntent.kind === 'blitz' ? `Plan blitz against ${view.players.find(player => player.id === movementIntent.targetPlayerId)?.name ?? 'target'}` : 'Plan move'}</span>}
+          {movementIntent && <span>{movementIntent.kind === 'move' ? 'Plan move'
+            : `Plan ${movementIntent.kind} against ${view.players.find(player => player.id === movementIntent.targetPlayerId)?.name ?? 'target'}`}</span>}
           {(smartIntent?.stage === 'planned' || pinnedAction) && <span>{smartIntent?.stage === 'planned' ? `Plan ${smartIntent.kind}${smartIntent.targetId ? ` against ${view.players.find(player => player.id === smartIntent.targetId)?.name ?? 'target'}` : smartIntent.destination ? ` to ${smartIntent.destination.x}, ${smartIntent.destination.y}` : ''}`
             : pinnedAction?.label}</span>}</div>
         <div className="command-buttons" role="group" aria-label="Player actions">
@@ -725,7 +736,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           <button type="button" onClick={() => setDebugOpen(true)}>Show server options</button>
         </div>}
         {routeMode && <p className="sr-only" aria-live="polite">Click squares to add waypoints. Right-click or Backspace undoes; Escape clears; Confirm commits.</p>}
-        <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.' : 'Confirm moves along the path.' : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
+        <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
+          : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.' : 'Confirm moves along the path.'
+          : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
           {movementIntent && movementError && <span role="status">{movementError}</span>}
           </div></> :
         <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.phase === 'PLAY' && view.actions.length === 0 ? 'Waiting for an engine decision. Reconnect if the match appears stuck.' : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}

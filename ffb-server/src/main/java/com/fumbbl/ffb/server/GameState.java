@@ -57,6 +57,9 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 	/** Application-owned sessions provide their own durability boundary. */
 	public boolean usesLegacyPersistence() { return true; }
 
+	/** Whether the application commits limited actions when the player declares them. */
+	public boolean consumesDeclaredActions() { return false; }
+
 	private Game fGame;
 	private final GameLog fGameLog;
 	private GameStatus fStatus;

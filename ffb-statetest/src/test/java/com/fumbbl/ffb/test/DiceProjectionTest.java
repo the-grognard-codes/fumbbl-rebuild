@@ -63,6 +63,10 @@ class DiceProjectionTest {
 						if (id.equals("blockRoll") || id.equals("blockChoice") || id.equals("pickUpRoll")) reports.add(report);
 					}
 			assertEquals(2, reports.size(), reportIds.toString());
+			if (count == 0) for (JsonValue report : reports)
+				assertEquals(new JsonObject().add("x", 9).add("y", 7),
+					report.asObject().get("logRoll").asObject().get("square"),
+					"The pickup roll and its reroll belong to the destination square for either coach");
 			journeys.add(new JsonObject().add("role", role).add("count", count).add("offered", offered).add("spectator", normalize(spectator)).add("chosen", chosen).add("reports", reports));
 		}
 		Files.createDirectories(Paths.get("target"));
