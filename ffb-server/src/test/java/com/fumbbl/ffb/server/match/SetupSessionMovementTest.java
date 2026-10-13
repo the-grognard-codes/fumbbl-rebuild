@@ -85,6 +85,9 @@ class SetupSessionMovementTest {
         Game game = nativeState(fixture.session).getGame();
         Player<?>[] own = game.getActingTeam().getPlayers();
         Player<?>[] opponents = game.getOtherTeam(game.getActingTeam()).getPlayers();
+        // This sequence uses six-MA linemen; random kickoff stat penalties are outside its setup.
+        for (Player<?> player : own)
+            game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
         UtilBox.putAllPlayersIntoBox(game);
         place(game, own[0], 4, 2, PlayerState.STANDING);
         place(game, own[1], 4, 5, PlayerState.STANDING);
