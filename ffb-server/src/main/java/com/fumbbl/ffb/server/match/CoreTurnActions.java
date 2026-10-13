@@ -36,7 +36,12 @@ import java.util.List;
 /** Read-only projection of native core turn targets. No dice or state mutation. */
 public final class CoreTurnActions {
     private final GameState state;
-    public CoreTurnActions(GameState state) { this.state = state; }
+    private final boolean allowActivationSwitch;
+    public CoreTurnActions(GameState state) { this(state, false); }
+    CoreTurnActions(GameState state, boolean allowActivationSwitch) {
+        this.state = state;
+        this.allowActivationSwitch = allowActivationSwitch;
+    }
     String legacyMovementLabel(FieldCoordinate target, boolean jumping) {
         for (MoveSquare square : state.getGame().getFieldModel().getMoveSquares())
             if (square.getCoordinate().equals(target)) return movementLabel(square, jumping, false);
@@ -64,6 +69,7 @@ public final class CoreTurnActions {
                 if (!at.isAdjacent(from) && (path == null || path.length == 0)) continue;
                 result.add(new Action("target-" + target.getId(), "blitzTarget", "Blitz " + target.getName(), role, new ClientCommandTargetSelected(target.getId()), target.getId()));
             }
+            if (allowActivationSwitch) declarations(game, role, result);
             return result;
         }
         boolean consumedKickoffChoice = game.getDialogParameter() instanceof DialogPlayerChoiceParameter
@@ -76,34 +82,8 @@ public final class CoreTurnActions {
             || (game.getDialogParameter() != null && !consumedKickoffChoice)
             || (game.getTurnMode() != TurnMode.REGULAR && game.getTurnMode() != TurnMode.BLITZ)) return result;
         result.add(new Action("end-turn", "endTurn", "End turn", role, new ClientCommandEndTurn(game.getTurnMode(), null)));
-        if (acting.getPlayer() == null) {
-            for (Player<?> player : game.getActingTeam().getPlayers()) {
-                PlayerState status = game.getFieldModel().getPlayerState(player);
-                FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
-                if (!FieldCoordinateBounds.FIELD.isInBounds(at) || !status.isActive()) continue;
-                new SpecialTurnActions().declarations(game, player, status, role, result);
-                if (!status.isAbleToMove()) continue;
-                boolean prone = status.getBase() == PlayerState.PRONE;
-                if (!prone && UtilGameOption.isOptionEnabled(game, GameOptionId.ENABLE_STALLING_CHECK))
-                    result.add(new Action("forgo-" + player.getId(), "forgo", "Forgo activation of " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), PlayerAction.FORGO, false), player.getId()));
-                new BallAndFoulActions().declarations(game, player, role, result);
-                result.add(new Action("select-" + player.getId(), prone ? "stand" : "select", (prone ? "Stand up " : "Move ") + player.getName(), role,
-                    new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP : PlayerAction.MOVE, false), player.getId()));
-                if (!game.getTurnData().isBlitzUsed())
-                    result.add(new Action("blitz-" + player.getId(), "blitz", "Start blitz with " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false), player.getId()));
-                boolean canBlock = !prone && game.getTurnMode() == TurnMode.REGULAR
-                    && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction)
-                    && UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at).length > 0;
-                if (canBlock)
-                    result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,
-                        new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false), player.getId()));
-                new MultipleBlockActions().declaration(game, player, status, role, result);
-                new SpecialBlockActions().declarations(player, status, canBlock, role, result);
-            }
-            return result;
-        }
+        if (acting.getPlayer() == null || allowActivationSwitch) declarations(game, role, result);
+        if (acting.getPlayer() == null) return result;
         String id = acting.getPlayerId();
         FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(acting.getPlayer());
         result.add(new Action("end-action", "endAction", "End player action", role, new ClientCommandActingPlayer(null, null, false)));
@@ -139,6 +119,40 @@ public final class CoreTurnActions {
             }
         }
         return result;
+    }
+    private void declarations(Game game, String role, List<Action> result) {
+        TurnMode mode = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET ? game.getLastTurnMode() : game.getTurnMode();
+        for (Player<?> player : game.getActingTeam().getPlayers()) {
+            PlayerState status = game.getFieldModel().getPlayerState(player);
+            FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(player);
+            if (player == game.getActingPlayer().getPlayer()
+                || !FieldCoordinateBounds.FIELD.isInBounds(at) || !status.isActive()) continue;
+            new SpecialTurnActions().declarations(game, player, status, role, result);
+            if (!status.isAbleToMove()) continue;
+            boolean prone = status.getBase() == PlayerState.PRONE;
+            if (!prone && UtilGameOption.isOptionEnabled(game, GameOptionId.ENABLE_STALLING_CHECK))
+                result.add(new Action("forgo-" + player.getId(), "forgo", "Forgo activation of " + player.getName(), role,
+                    new ClientCommandActingPlayer(player.getId(), PlayerAction.FORGO, false), player.getId()));
+            new BallAndFoulActions().declarations(game, player, role, result);
+            result.add(new Action("select-" + player.getId(), prone ? "stand" : "select", (prone ? "Stand up " : "Move ") + player.getName(), role,
+                new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP : PlayerAction.MOVE, false), player.getId()));
+            if (!game.getTurnData().isBlitzUsed())
+                result.add(new Action("blitz-" + player.getId(), "blitz", "Start blitz with " + player.getName(), role,
+                    new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false), player.getId()));
+            boolean canBlock = !prone && mode == TurnMode.REGULAR
+                && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction)
+                && UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at).length > 0;
+            if (canBlock)
+                result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,
+                    new ClientCommandActingPlayer(player.getId(), PlayerAction.BLOCK, false), player.getId()));
+            new MultipleBlockActions().declaration(game, player, status, role, result);
+            new SpecialBlockActions().declarations(player, status, canBlock, role, result);
+        }
+        if (allowActivationSwitch) {
+            PlayerActivation activation = new PlayerActivation(state);
+            result.removeIf(action -> action.command instanceof ClientCommandActingPlayer
+                && activation.reserves(((ClientCommandActingPlayer) action.command).getPlayerAction()));
+        }
     }
     private FieldCoordinate oriented(FieldCoordinate coordinate, String role) { return "home".equals(role) ? coordinate : coordinate.transform(); }
     public static final class Action {

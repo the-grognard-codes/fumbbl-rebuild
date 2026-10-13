@@ -65,3 +65,10 @@ test('an adjacent Blitz can review a zero-step path without permitting an empty 
   assert.throws(() => decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview', plan: { ...zero, kind: 'move', targetPlayerId: null } })));
   assert.throws(() => decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview', plan: { ...zero, targetPlayerId: 'home1' } })));
 });
+
+test('an adjacent Foul can review an empty approach and requires a target', () => {
+  const foul = { ...plan, kind: 'foul', targetPlayerId: 'away1', waypoints: [], route: { ...route, steps: [] } };
+  assert.equal(decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview', plan: foul })).plan.kind, 'foul');
+  assert.throws(() => decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview',
+    plan: { ...foul, targetPlayerId: null } })));
+});

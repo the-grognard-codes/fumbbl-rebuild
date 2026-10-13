@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser Other action keeps the active player's special actions available when inspecting an opponent")
+			.addImprovement("Browser coaches can plan another player's activation without ending the current one; confirming switches players and keeps declared limited actions spent")
+			.addImprovement("Browser fouls preview their approach and resolve movement and the foul with one confirmation")
 			.addImprovement("Local review environments can initialize an empty database on a new development PC")
 			.addBugfix("Browser game updates load fresh assets so teammate selection does not disconnect a cached client")
 			.addBugfix("Browser connection errors remain visible when no movement preview is pending")

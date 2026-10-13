@@ -176,6 +176,10 @@ final class RoutePlanner {
 
 	/** Choose one reachable adjacent approach with the same ordering as an ordinary route. */
 	FieldCoordinate approach(FieldCoordinate target) {
+		return approach(target, true);
+	}
+
+	FieldCoordinate approach(FieldCoordinate target, boolean blitz) {
 		if (start.isAdjacent(target)) return start;
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
@@ -186,7 +190,7 @@ final class RoutePlanner {
 			Node node = queue.remove();
 			if (best.get(key(node)) != node) continue;
 			if (node.at.isAdjacent(target)) return node.at;
-			if (node.used >= blitzApproachSteps()) continue;
+			if (node.used >= (blitz ? blitzApproachSteps() : allowance - currentMove)) continue;
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
 				FieldCoordinate next = node.at.add(x, y);
