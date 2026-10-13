@@ -1,13 +1,30 @@
 import { PitchProjection } from '../src/pitch-projection.ts';
 
+async function readCameraOptions(page) {
+  // LivePitch renders with a provisional size until ResizeObserver measures it.
+  // A drag computed from that size will never reach the expected camera focus.
+  await page.waitForFunction(() => {
+    const scene = document.querySelector('.live-pitch-scene');
+    const viewport = scene?.closest('.live-pitch-viewport');
+    if (!viewport) return false;
+    const style = getComputedStyle(viewport);
+    const width = viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const height = viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    return width > 0 && height > 0 && Math.abs(parseFloat(scene.style.width) - width) < 1
+      && Math.abs(parseFloat(scene.style.height) - height) < 1;
+  }, null, { timeout: 5000 });
+  return page.locator('.live-pitch-scene').first().evaluate(element => ({
+    width: parseFloat(element.style.width), height: parseFloat(element.style.height),
+    focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
+    mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
+    perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40
+  }));
+}
+
 export async function travelToFocus(page, focus) {
-  const scene = page.locator('.live-pitch-scene').first();
   const frame = page.locator('.live-pitch-viewport').first();
   for (let attempt = 0; attempt < 8; attempt++) {
-    const options = await scene.evaluate(element => ({ width: parseFloat(element.style.width), height: parseFloat(element.style.height),
-      focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
-      mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
-      perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
+    const options = await readCameraOptions(page);
     if (Math.abs(options.focus - focus) < .05) return;
     const camera = new PitchProjection(options);
     const nextFocus = camera.focus + Math.max(-8, Math.min(8, focus - camera.focus));
@@ -32,10 +49,7 @@ export async function travelToFocus(page, focus) {
 export async function squarePosition(page, x, y) {
   const scene = page.locator('.live-pitch-scene').first();
   const viewport = page.locator('.live-pitch-viewport').first();
-  const readOptions = () => scene.evaluate(element => ({ width: parseFloat(element.style.width), height: parseFloat(element.style.height),
-    focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
-    mode: element.dataset.projection, end: element.dataset.end, zoom: Number(element.dataset.zoom),
-    perspectiveElevation: element.dataset.projection === 'perspective' ? Number(element.dataset.elevation) : 40 }));
+  const readOptions = () => readCameraOptions(page);
   let options = await readOptions();
   let camera = new PitchProjection(options);
   const point = { x: x + .5, y: y + .5 };
