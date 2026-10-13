@@ -5,6 +5,7 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
+import { BallMarker } from './BallMarker.tsx';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
@@ -338,25 +339,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
           {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
-          {view.ball && view.ballState?.inPlay !== false && (() => {
-            const p = camera.project(centerOf(view.ball!));
-            if (!p) return null;
-            const radius = Math.max(12, p.pixelsPerSquare * .38);
-            const ballScale = Math.max(.65, Math.min(1.1, p.pixelsPerSquare / 50));
-            return <g className="live-ball-marker" data-ball-x={view.ball.x} data-ball-y={view.ball.y}
-              transform={`translate(${p.x} ${p.y})`}>
-              <g className="live-ball-highlight">
-              <circle className="live-ball-pulse" r={radius}/>
-              <circle className="live-ball-ring" r={radius * .62}/>
-              {[0, 90, 180, 270].map(degrees => <path key={degrees} className="live-ball-arrow"
-                d={`M0 ${-radius * .86} L${-radius * .17} ${-radius * 1.16} L${radius * .17} ${-radius * 1.16}Z`}
-                transform={`rotate(${degrees})`}/>)}
-              </g>
-              {view.ballState?.carrierPlayerId === null && <image className="live-ball-football" href={`${import.meta.env.BASE_URL}assets/game/ui/ball-v1.svg`}
-                x={-8 * ballScale} y={-10 * ballScale} width={16 * ballScale} height={20 * ballScale}/>}
-            </g>;
-          })()}
         </svg>
+        {view.ball && <BallMarker ball={view.ball} state={view.ballState} camera={camera}/>}
         <svg className="live-route-waypoint-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
             return p && <g key={index} className="live-route-waypoint" aria-hidden="true"><circle cx={p.x} cy={p.y} r="4"/></g>; })}

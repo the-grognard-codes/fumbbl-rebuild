@@ -17,7 +17,8 @@
       "browser-client/test/setup-drag-ui.mjs",
       "browser-client/test/push-artwork-ui.mjs",
       "browser-client/test/dice-ui.mjs",
-      "browser-client/test/ball-ui.mjs"
+      "browser-client/test/ball-ui.mjs",
+      "browser-client/test/ball-zoom-ui.mjs"
     ],
     [
       "browser-client/test/projected-pitch-ui.mjs",
