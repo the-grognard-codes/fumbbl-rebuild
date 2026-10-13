@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Ground footballs and their shadows scale with pitch zoom and distance, keeping a consistent proportion inside the ball marker")
+			.addImprovement("Ground balls appear larger and centered in their square, stand at a slight angle and cast a small shadow beneath the football")
+			.addImprovement("Browser ball markers use pixel-art rings that follow the pitch perspective, stay inside their square and rotate opposite their inner arrows; carried balls show only the player and marker")
 			.addBugfix("Browser Other action keeps the active player's special actions available when inspecting an opponent")
 			.addImprovement("Browser coaches can plan another player's activation without ending the current one; confirming switches players and keeps declared limited actions spent")
 			.addImprovement("Browser fouls preview their approach and resolve movement and the foul with one confirmation")
