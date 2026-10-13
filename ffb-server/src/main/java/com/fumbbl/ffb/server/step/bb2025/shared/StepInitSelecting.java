@@ -240,7 +240,11 @@ public final class StepInitSelecting extends AbstractStep {
 				case CLIENT_FOUL:
 					ClientCommandFoul foulCommand = (ClientCommandFoul) pReceivedCommand.getCommand();
 					if (UtilServerSteps.checkCommandWithActingPlayer(getGameState(), foulCommand)
-						&& (!game.getTurnData().isFoulUsed() || actingPlayer.getPlayer().hasSkillProperty(NamedProperties.allowsAdditionalFoul))) {
+						&& (!game.getTurnData().isFoulUsed()
+							// A committed declaration reserves the allowance before a stationary foul is performed.
+							|| getGameState().consumesDeclaredActions()
+								&& actingPlayer.getPlayerAction() == PlayerAction.FOUL_MOVE && !actingPlayer.hasFouled()
+							|| actingPlayer.getPlayer().hasSkillProperty(NamedProperties.allowsAdditionalFoul))) {
 						publishParameter(new StepParameter(StepParameterKey.FOUL_DEFENDER_ID, foulCommand.getDefenderId()));
 						publishParameter(new StepParameter(StepParameterKey.USING_CHAINSAW, foulCommand.isUsingChainsaw()));
 						UtilServerSteps.changePlayerAction(this, actingPlayer.getPlayerId(), PlayerAction.FOUL, false);

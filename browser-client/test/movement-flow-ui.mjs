@@ -215,7 +215,58 @@ try {
     await approach.page.locator('.pitch-decision-overlay').waitFor();
   else await approach.page.getByText('Waiting for the other participant.', { exact: true }).waitFor();
   assert.deepEqual(approach.errors, []); await approach.page.close();
-  console.log('PASS: read-only own/opponent range selection, adjacent/distant Move and Blitz, waypoint-span undo, cancellation, Space and repeated-confirm guards; no movement risk grades or roll targets.');
+
+  const activePlayerId = fixture.moveAcceptedState.activePlayerId;
+  const teammateId = fixture.readyState.players.find(player => player.role === 'home' && player.x === 11 && player.y === 9).id;
+  const teammate = fixture.readyState.players.find(player => player.id === teammateId);
+  const selectTeammate = fixture.readyState.actions.find(action => action.kind === 'select' && action.sourcePlayerId === teammateId);
+  const passTeammate = fixture.readyState.actions.find(action => action.kind === 'declarePass' && action.sourcePlayerId === teammateId);
+  const activeWithTeammate = { ...fixture.moveAcceptedState, actions: [...fixture.moveAcceptedState.actions, selectTeammate, passTeammate] };
+  const destination = { x: 10, y: 8 };
+  const teammatePlan = { ...fixture.movePlan.plan, waypoints: [destination], route: {
+    ...fixture.movePlan.plan.route, playerId: teammateId, from: { x: teammate.x, y: teammate.y },
+    steps: [{ ...fixture.movePlan.plan.route.steps[0], ...destination }], revision: activeWithTeammate.revision } };
+  const teammateAccepted = { ...activeWithTeammate, revision: activeWithTeammate.revision + 1,
+    activePlayerId: teammateId, players: activeWithTeammate.players.map(player => player.id === teammateId
+      ? { ...player, ...destination } : player) };
+  const switchJourney = await openJourney(activeWithTeammate, teammatePlan, teammateAccepted);
+  await select(switchJourney.page, activePlayerId);
+  await select(switchJourney.page, teammateId);
+  await switchJourney.page.getByRole('button', { name: 'Other action', exact: true }).click();
+  assert.equal(await switchJourney.page.getByLabel('Additional actions').getByRole('button', { name: 'Pass', exact: true }).count(), 1,
+    'Other actions belong to the selected teammate');
+  await clickSquare(switchJourney.page, destination);
+  await switchJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  assert.deepEqual(await mutations(switchJourney.page), [], 'Teammate preview does not end the active player action');
+  await select(switchJourney.page, activePlayerId);
+  assert.equal(await switchJourney.confirmed.isDisabled(), true, 'Returning to the active player cancels the teammate plan');
+  await select(switchJourney.page, teammateId);
+  await clickSquare(switchJourney.page, destination);
+  await switchJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  await switchJourney.confirmed.click();
+  await switchJourney.page.waitForFunction(revision => window.testSocket.state.revision === revision, teammateAccepted.revision);
+  assert.deepEqual((await mutations(switchJourney.page)).map(request => [request.operation, request.playerId, request.kind]),
+    [['movement', teammateId, 'move']]);
+  assert.deepEqual(switchJourney.errors, []); await switchJourney.page.close();
+
+  const proneId = fixture.readyState.players.find(player => player.role === 'away' && player.x === 14 && player.y === 9).id;
+  const foulState = { ...activeWithTeammate, players: activeWithTeammate.players.map(player => player.id === proneId
+    ? { ...player, x: 12, y: 9, state: 'Prone' } : player), actions: [...activeWithTeammate.actions,
+      { ...selectTeammate, id: `${selectTeammate.id}-foul`, kind: 'declareFoul', label: `Foul with ${teammate.name}` }] };
+  const foulPlan = { ...teammatePlan, kind: 'foul', targetPlayerId: proneId, waypoints: [],
+    route: { ...teammatePlan.route, steps: [] } };
+  const foulAccepted = { ...foulState, revision: foulState.revision + 1, activePlayerId: teammateId };
+  const foulJourney = await openJourney(foulState, foulPlan, foulAccepted);
+  await select(foulJourney.page, teammateId);
+  await select(foulJourney.page, proneId);
+  await foulJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  assert.deepEqual(await mutations(foulJourney.page), [], 'Foul preview is read-only');
+  await foulJourney.confirmed.click();
+  await foulJourney.page.waitForFunction(revision => window.testSocket.state.revision === revision, foulAccepted.revision);
+  assert.deepEqual((await mutations(foulJourney.page)).map(request => [request.operation, request.playerId,
+    request.kind, request.targetPlayerId, request.waypoints]), [['movement', teammateId, 'foul', proneId, []]]);
+  assert.deepEqual(foulJourney.errors, []); await foulJourney.page.close();
+  console.log('PASS: read-only range and teammate selection, Move, Blitz, adjacent Foul, waypoint undo, cancellation, Space and repeated-confirm guards.');
 } finally {
   await browser.close(); await server.close();
 }

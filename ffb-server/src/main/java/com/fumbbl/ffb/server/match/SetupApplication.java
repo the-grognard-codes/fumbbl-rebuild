@@ -476,7 +476,7 @@ public final class SetupApplication {
 				fields.add("playerId"); fields.add("kind"); fields.add("targetPlayerId"); fields.add("waypoints");
 				if (request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
 				String kind = request.get("kind").asString();
-				if (!("move".equals(kind) || "blitz".equals(kind))) throw new IllegalArgumentException();
+				if (!("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind))) throw new IllegalArgumentException();
 				if (request.get("targetPlayerId") != null && !request.get("targetPlayerId").isNull()
 					&& request.get("targetPlayerId").asString().length() > 200) throw new IllegalArgumentException();
 				com.eclipsesource.json.JsonArray movementPoints = request.get("waypoints").asArray();
