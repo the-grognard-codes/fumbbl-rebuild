@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { AssetOutput } from './asset-output.mjs';
 import { readRgbaPng, visibleBounds, isolatedBounds } from './png-art.mjs';
 
 const root = new URL('../pitch/stadiums/', import.meta.url);
@@ -39,5 +40,5 @@ const code = '// Generated from canonical stadium catalog and PNG bounds. Run as
   + 'export const stadiumTeams: Readonly<Record<string, keyof typeof stadiumAtlases>> = ' + JSON.stringify(catalog.teams, null, 2) + ';\n';
 if (process.argv.includes('--check')) {
   if (await readFile(output, 'utf8') !== code) throw Error('Stadium catalog is out of sync. Run assets:sync.');
-} else await writeFile(output, code);
+} else await new AssetOutput().write(output, code);
 console.log('Validated stadium venues:', Object.keys(catalog.venues).join(', '));

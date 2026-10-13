@@ -10,7 +10,9 @@ import { MatchPanel } from './MatchPanel';
 import { SetupPanel } from './SetupPanel';
 import { ResultPanel } from './ResultPanel';
 import { clientPath, clientRoute } from './client-path';
-const PitchPreview = lazy(() => import('./PitchPreview').then(module => ({ default: module.PitchPreview })));
+const PitchPreview = lazy(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('variant') === 'stadium-hybrid'
+  ? import('./StadiumHybridPrototype').then(module => ({ default: module.StadiumHybridPrototype }))
+  : import('./PitchPreview').then(module => ({ default: module.PitchPreview })));
 const PitchParityPreview = lazy(() => import('./PitchParityPreview').then(module => ({ default: module.PitchParityPreview })));
 const DraftV2 = lazy(() => import('./draft-v2/PitchPreview').then(module => ({ default: module.PitchPreview })));
 
