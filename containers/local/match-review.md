@@ -23,7 +23,8 @@ instances from any checkout of this repository. It also recognizes the former
 `.tools/dev-local-state.json` file when upgrading an already running session.
 It refuses to take over an unrelated process on port 5000 or 22232.
 
-The one-time review stack provisioning below must already have been completed.
+Complete either the laptop-copy provisioning below or the fresh-PC empty-database
+setup before using the daily command.
 Docker Desktop, Node.js 26 or newer, the Firebase CLI, and the local nginx binary must be
 installed. The command reuses the existing mounted secret files; it does not
 print or copy their contents into the repository. A Google sign-in opens only
@@ -88,6 +89,36 @@ Existing open sockets must reconnect after the proxy switch. The previous
 runtime and volumes remain available on 22231. This review stack is local and
 does not change the hosted DEV or PROD service. Never run the provision script
 against a populated target or point the new container at the retained database.
+
+## Fresh PC with an empty database
+
+Generate local secrets with `powershell.exe -NoProfile -ExecutionPolicy Bypass
+-File containers/local/setup.ps1`. Configure ADC with `gcloud auth
+application-default login` and `gcloud auth application-default
+set-quota-project dev-moles-under-the-pitch-org`.
+
+In PowerShell at the repository root:
+
+```powershell
+$env:M6_ADC_FILE = "$env:APPDATA\gcloud\application_default_credentials.json"
+$env:M6_DB_PASSWORD_FILE = "$PWD\containers\local\.secrets\db_password"
+$env:M6_DB_ROOT_PASSWORD_FILE = "$PWD\containers\local\.secrets\db_root_password"
+$env:M6_ADMIN_PASSWORD_FILE = "$PWD\containers\local\.secrets\admin_password"
+$env:M6_COACH_PASSWORD_FILE = "$PWD\containers\local\.secrets\coach_password"
+docker compose -f containers/local/compose.match-review.yaml config --quiet
+docker compose -f containers/local/compose.match-review.yaml build server
+docker compose -f containers/local/compose.match-review.yaml up -d --wait database
+docker compose -f containers/local/compose.match-review.yaml run --rm schema-bootstrap
+docker compose -f containers/local/compose.match-review.yaml up -d --wait server
+node tools/match-review-adc-check.mjs
+node tools/dev-local.mjs --start
+```
+
+The explicit bootstrap creates schema marker 7 without importing accounts,
+teams or matches. It rejects populated older schemas and never targets the
+retained current-dev database. Do not run the laptop-copy provisioning script
+for this path. The computer-player token file must match the SHA-256 configured
+in `server.match-review.ini`; daily startup also requires Firebase CLI and nginx.
 
 ## Authentication preflight
 

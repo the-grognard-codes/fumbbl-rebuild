@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "node": "^26.7.0",
+    "nvm": "^0.0.4"
+  },
+  "allowScripts": {
+    "node@26.7.0": true
+  }
+}

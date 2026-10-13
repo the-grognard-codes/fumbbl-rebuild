@@ -48,6 +48,22 @@ services:
       timeout: 5s
       retries: 12
     networks: [loopback]
+  schema-bootstrap:
+    image: ffb-server:match-review
+    profiles: [bootstrap]
+    depends_on:
+      database:
+        condition: service_healthy
+    entrypoint: ["java", "-cp", "FantasyFootballServer.jar:lib/*", "com.fumbbl.ffb.server.local.LocalAcceptanceBootstrap", "/config/server.ini"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    secrets: [db_password]
+    volumes:
+      - ./server.match-review.ini:/config/server.ini:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [loopback]
 networks:
   loopback:
 volumes:

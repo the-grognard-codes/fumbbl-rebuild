@@ -18,3 +18,6 @@ extends = "cross-project-toolchains"
 
 [permissions.fumbbl-project.network]
 enabled = true
+
+[permissions.cross-project-toolchains]
+extends = ":workspace"

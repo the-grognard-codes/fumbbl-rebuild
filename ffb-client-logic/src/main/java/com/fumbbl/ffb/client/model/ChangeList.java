@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Local review environments can initialize an empty database on a new development PC")
 			.addBugfix("Browser game updates load fresh assets so teammate selection does not disconnect a cached client")
 			.addBugfix("Browser connection errors remain visible when no movement preview is pending")
 			.addBugfix("MUTP navigation shows one account link: Sign in or the signed-in email")
