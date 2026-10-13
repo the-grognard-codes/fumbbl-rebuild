@@ -1,0 +1,46 @@
+{
+  "workstream": "https://github.com/the-grognard-codes/fumbbl-rebuild/issues/211",
+  "tool": "built-in image_gen.imagegen",
+  "reference": "assets/game/pitch/stadium-v1.png",
+  "reference_sha256": "ce5bfcc65cb95ff167914b1c58a18e572a7b09398af50441996e8f87389a0112",
+  "decision": "Approved original wall art style; reproduce stone/timber, torches and banners for modular left/right sidelines; no crowd.",
+  "alpha": "Generated RGBA8 preserved without resizing, recoloring, background removal or pixel edits.",
+  "used_in": "browser-client/src/StadiumWallStudy.tsx",
+  "limitations": "Development wall study; owner review of generated art pending. Side walls only; crowd and end/corner/entrance work excluded from this revision.",
+  "pixels": {
+    "width": 1536,
+    "height": 1024
+  },
+  "regions": {
+    "face": [
+      {
+        "x": 43,
+        "y": 123,
+        "width": 682,
+        "height": 444
+      },
+      {
+        "x": 812,
+        "y": 123,
+        "width": 681,
+        "height": 444
+      }
+    ],
+    "coping": [
+      {
+        "x": 44,
+        "y": 706,
+        "width": 681,
+        "height": 159
+      },
+      {
+        "x": 812,
+        "y": 707,
+        "width": 681,
+        "height": 158
+      }
+    ]
+  },
+  "source": "C:/Users/jaken/.codex/generated_images/01a117cc-bb24-7853-bd5e-06c5b4d9ddbc/exec-ad1a5e69-6729-4867-a1d2-f0ebe9a6fb19.png",
+  "prompt": "Use-case: stylized-concept, production fantasy-football modular stadium material atlas.\nREFERENCE IMAGE: the supplied stadium-v1.png is the exact approved STYLE and COLOR reference. The owner specifically approved its stadium wall stone colors, masonry depth, dark mortar, warm worn coping highlights, mature chunky connected pixel clusters, and aged timber setting. Reproduce that stone artwork faithfully rather than changing its art direction.\nTASK: generate a genuinely transparent-background landscape PNG asset sheet, 1536 x 1024, for REAL 3D wall planes. NO CROWD, NO PEOPLE, NO HEADS, NO CHARACTERS anywhere. NO grass, stadium scene, pitch, UI, lettering or labels.\nLAYOUT: exactly a 2-column by 2-row grid of 768 x 512 cells, generous transparent gaps between all four separate material panels.\nTOP LEFT and TOP RIGHT: two different but compatible bare wall-face material panels. Each is a perfectly rectangular, straight-on orthographic elevation, roughly 704 pixels wide and 384 pixels high, centered inside its cell. Five staggered horizontal courses of substantial irregular cut grey flagstone blocks. Grey-blue shadow faces, warm taupe/light desaturated tan planes, almost-black mortar seams, chipped projecting edges and slight differences in individual stone surface depth, matching the reference. All stones contained inside the rectangular panel. NO pillars, torches, banners, frame or cap attached: those are independent assets.\nBOTTOM LEFT and BOTTOM RIGHT: two compatible coping/top-surface material panels viewed EXACTLY from above. Each rectangular, roughly 704 pixels wide and 224 pixels high, centered inside its cell. Broad worn grey/taupe coping slabs laid across the wall thickness, rich chunky stone grain, uneven joints and gently chipped edges, slightly warmer/light top color than the vertical faces. Flat texture coordinates, NO perspective, no visible vertical fronts, no isometric edges, no modeled/cast drop shadows.\nCRITICAL GEOMETRY: material pixels will be mapped onto separate vertical and horizontal real world planes. Do not bake a diagonal stadium perspective into any of these panels. They must have straight horizontal and vertical rectangular edges and aligned course heights. Actual wall depth will be supplied by geometry.\nSTYLE: painterly SNES-era fantasy pixel art, crisp chunky connected clusters with dark creases and deliberate stone highlights like the reference, no smooth digital painting or photorealism. Restrained grey-blue/aged warm grey palette from the approved wall. Ambient lighting compatible with both opposite sides. True transparent alpha outside the four rectangular panels; do not paint a checkerboard.\nOUTPUT: only the four isolated stone material panels. No other objects."
+}

@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
+import {AssetOutput} from './asset-output.mjs';
 import {readRgbaPng,isolatedBounds} from './png-art.mjs';
 import {validateStadiumGeometry} from './stadium-geometry.mjs';
 const root=new URL('../pitch/stadiums/',import.meta.url);
@@ -34,5 +35,5 @@ const code='// Generated from modular stadium originals and measured transparent
   +'export const modularStadiumVenues: Readonly<Record<string, keyof typeof stadiumModules>> = '+JSON.stringify(catalog.venues)+';\n'
   +'export const modularStadiumTeams: Readonly<Record<string, keyof typeof stadiumModules>> = '+JSON.stringify(catalog.teams)+';\n';
 if(process.argv.includes('--check')){if(await readFile(output,'utf8')!==code)throw Error('Modular stadium catalog is stale. Run assets:sync.');}
-else await writeFile(output,code);
+else await new AssetOutput().write(output,code);
 console.log('Validated modular stadiums:',Object.keys(profiles).join(', '));
