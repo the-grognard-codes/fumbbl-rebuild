@@ -25,7 +25,7 @@ opt_root="$HOME/.local/opt"
 local_bin="$HOME/.local/bin"
 java8_home="$opt_root/temurin-8u504-b01"
 java21_home="$opt_root/temurin-21.0.11+10"
-node_home="$opt_root/node-v24.19.0-linux-x64"
+node_home="$opt_root/node-v26.7.0-linux-x64"
 gcloud_home="$opt_root/google-cloud-sdk"
 export PATH="$node_home/bin:$gcloud_home/bin:$local_bin:$PATH"
 
@@ -146,8 +146,8 @@ install_jdk "$java21_home" \
 
 if [[ ! -x "$node_home/bin/node" ]]; then
   archive="$temp_dir/node.tar.xz"
-  download 'https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz' "$archive"
-  verify_sha256 "$archive" '14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647'
+  download 'https://nodejs.org/dist/v26.7.0/node-v26.7.0-linux-x64.tar.xz' "$archive"
+  verify_sha256 "$archive" '982aa24dd8be4c889c6a8ab337ddff3b0896645b20f4239356e80552c16277ee'
   tar -xJf "$archive" -C "$opt_root"
 fi
 
@@ -165,8 +165,9 @@ if ! native_command firebase >/dev/null; then
   npm_config_prefix="$HOME/.local" npm install --global firebase-tools
 fi
 
-profile_line='export PATH="$HOME/.local/opt/node-v24.19.0-linux-x64/bin:$HOME/.local/opt/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"'
-if ! grep -Fq '# fumbbl-rebuild WSL toolchain' "$HOME/.bashrc" 2>/dev/null; then
+profile_line='export PATH="$HOME/.local/opt/node-v26.7.0-linux-x64/bin:$HOME/.local/opt/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"'
+# Append the new path on upgrades as well, so it takes precedence over an older pin.
+if ! grep -Fxq "$profile_line" "$HOME/.bashrc" 2>/dev/null; then
   printf '\n# fumbbl-rebuild WSL toolchain\n%s\n' "$profile_line" >> "$HOME/.bashrc"
 fi
 

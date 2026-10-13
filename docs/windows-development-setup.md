@@ -23,12 +23,30 @@ terminal afterward so newly installed commands are on `PATH`.
 | Git and GitHub CLI | Checkout, issues and pull requests; Git Bash can run shell scripts | winget `Git.Git`, `GitHub.cli` |
 | Temurin JDK 21.0.11+10 | Current server and game service; `target-build.ps1` requires this exact runtime at the manifest's Windows path | winget `EclipseAdoptium.Temurin.21.JDK` version `21.0.11.10` |
 | Temurin JDK 8u504-b01 and Maven 3.9.9 | Frozen Java 8 reference and project Maven launchers | `tools/bootstrap.ps1` downloads and checksum-checks them under `.tools/` |
-| Node.js 24 and npm | Browser client, site and Firebase artifact assembly; `browser-client/package.json` requires `>=24 <25` | winget `OpenJS.NodeJS.LTS` version `24.19.0` |
+| Node.js 26.x and npm | Browser client, site, Firebase artifact assembly and computer player; package engines require `>=26 <27` | winget `OpenJS.NodeJS` version `26.7.0` |
 | Browser packages and Chromium | Browser builds and Playwright tests | `npm ci --prefix browser-client`, then Playwright's Chromium installer |
 | Firebase CLI | Local emulators or manual Hosting operations | `npm install -g firebase-tools` |
 | Google Cloud CLI | Google Cloud administration, game-service deployment and local Application Default Credentials when needed | winget `Google.CloudSDK` |
 | Azure CLI | Future Microsoft Entra OAuth administration; Microsoft sign-in is currently deferred | winget `Microsoft.AzureCLI` |
 | Docker Desktop with Linux engine and WSL 2 | Local Java/database stack and Compose acceptance | winget `Docker.DockerDesktop`; Windows WSL setup |
+
+All Node tooling uses the same 26.x runtime. Setup pins 26.7.0, while existing
+26.x installations are accepted. Use the same Node installation for browser
+builds and the computer player. After upgrading, reopen the terminal and check
+`node --version` and `npm.cmd --version`. In Windows PowerShell, use `npm.cmd`
+if execution policy blocks the installed `npm.ps1` wrapper; no policy change is needed.
+
+If setup reports another major, run `where.exe node` to find older installations
+on `PATH`. To install the pinned version directly:
+
+```powershell
+winget install --id OpenJS.NodeJS --exact --version 26.7.0 --source winget
+```
+
+There is no root npm application. Install packages with
+`npm.cmd ci --prefix browser-client`; the root `package.json`, lockfile and
+`node_modules` created by `npm install nvm` are unnecessary. The npm `nvm`
+package is a placeholder, not a Node version manager.
 
 The batch job uses the [Java 8 and Maven manifest](../tools/build-toolchain.json)
 and [Java 21 target manifest](../tools/target-build-toolchain.json). Do not use a
@@ -80,6 +98,27 @@ See the [development and release guide](development-and-release.md) for the
 full build and deployment checks, and the [local container guide](../containers/local/README.md)
 for Compose startup. A working checkout does not require the cloud CLIs or
 Docker until those workflows are used.
+
+## Codex permission profiles
+
+The repo's `.codex/config.toml` defines `fumbbl-project` and its parent
+`cross-project-toolchains`. The parent extends the built-in `:workspace` profile,
+so opening the repo does not require a pre-existing user profile. Machine-specific
+tool and cache grants under `[permissions.cross-project-toolchains.filesystem]`
+in your user-level `~/.codex/config.toml` merge into the parent when present.
+See the [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions).
+
+If an older checkout reports that `fumbbl-project` extends an undefined profile,
+apply the updated repo config or add this parent definition to that repo config:
+
+```toml
+[permissions.cross-project-toolchains]
+extends = ":workspace"
+```
+
+The name is `cross-project-toolchains` (plural). Reopen the project after updating
+the configuration. Check filesystem grants against each PC's actual paths;
+linked worktrees also need write access to the main checkout's shared Git directory.
 
 Installer details: [Firebase CLI](https://firebase.google.com/docs/cli),
 [Google Cloud CLI](https://docs.cloud.google.com/sdk/docs/install-sdk),

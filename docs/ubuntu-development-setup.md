@@ -47,6 +47,8 @@ Linux libraries. The job can be rerun; it verifies publisher SHA256 checksums
 for the pinned downloads where published. If Google updates its unversioned
 archive, the checksum check will stop the job until the pinned value is updated.
 Open a new Ubuntu shell after setup to load the tool paths from `~/.bashrc`.
+Rerunning setup after a Node upgrade appends the new managed path if needed,
+so Node 26 takes precedence over an older Node 24 setup entry.
 
 | Tool | Why it is present | Installation command or source |
 | --- | --- | --- |
@@ -55,7 +57,7 @@ Open a new Ubuntu shell after setup to load the tool paths from `~/.bashrc`.
 | PowerShell 7 | Repository `*.ps1` build launchers and local stack scripts | Direct `powershell_7.6.6-1.deb_amd64.deb` from [Microsoft's Ubuntu instructions](https://learn.microsoft.com/en-us/powershell/scripting/install/install-ubuntu) |
 | Temurin JDK 8u504-b01 | Frozen Java 8 reference | Direct [Adoptium archive](https://github.com/adoptium/temurin8-binaries/releases/tag/jdk8u504-b01) under `~/.local/opt`; project's `bootstrap.ps1` pins Maven 3.9.9 |
 | Temurin JDK 21.0.11+10 | Current server and game service | Direct [Adoptium archive](https://github.com/adoptium/temurin21-binaries/releases/tag/jdk-21.0.11%2B10) under `~/.local/opt` |
-| Node.js 24.19.0 and npm | Browser client, site, Firebase assembly | Direct [Node release archive](https://nodejs.org/download/release/v24.19.0/) under `~/.local/opt`; browser packages via `npm ci --prefix browser-client` |
+| Node.js 26.x and npm (setup pin 26.7.0) | Browser client, site, Firebase assembly and computer player | Direct [Node release archive](https://nodejs.org/download/release/v26.7.0/) under `~/.local/opt`; browser packages via `npm ci --prefix browser-client` |
 | Playwright Chromium and Linux libraries | Browser tests | `browser-client/node_modules/.bin/playwright install --with-deps chromium` |
 | Firebase CLI | Emulators and manual Hosting operations | `npm_config_prefix="$HOME/.local" npm install --global firebase-tools` ([Firebase CLI instructions](https://firebase.google.com/docs/cli)) |
 | Google Cloud CLI | Cloud administration and local Google credentials | Direct [Google CLI archive](https://docs.cloud.google.com/sdk/docs/downloads-versioned-archives) under `~/.local/opt` |

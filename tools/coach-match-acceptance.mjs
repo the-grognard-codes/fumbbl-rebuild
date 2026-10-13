@@ -11,7 +11,6 @@ import { randomUUID } from 'node:crypto';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = join(root, '.tools', 'coach-oriented-match-ui');
 const stateFile = join(directory, 'acceptance-services.json');
-const node26 = process.env.COACH_ACCEPTANCE_NODE26 ?? (process.platform === 'win32' ? 'C:/Program Files/nodejs/node.exe' : process.execPath);
 const run = (file, args, options = {}) => execFileSync(file, args, { cwd: root, encoding: 'utf8', windowsHide: true, maxBuffer: 2 ** 20, ...options });
 const mode = process.argv[2];
 
@@ -33,10 +32,8 @@ async function start() {
   if (existsSync(stateFile) || !await available(5000) || !await available(22232)) throw Error('Acceptance browser services or unmanaged ports are already present');
   await mkdir(directory, { recursive: true });
   const nodeVersion = run(process.execPath, ['--version']).trim();
-  if (!nodeVersion.startsWith('v24.')) throw Error('Run browser acceptance with the supported Node 24 runtime');
-  // npm is installed beside system Node on Windows. Browser build scripts use
-  // PATH's Node 24, while the assembler itself has no browser engine dependency.
-  run(node26, ['deployment/firebase/scripts/assemble.mjs', '--environment', 'local-dev'], { stdio: 'inherit' });
+  if (!nodeVersion.startsWith('v26.')) throw Error('Run browser acceptance with the supported Node 26 runtime');
+  run(process.execPath, ['deployment/firebase/scripts/assemble.mjs', '--environment', 'local-dev'], { stdio: 'inherit' });
   const nginx = process.env.NGINX_LOCAL_BINARY ?? join(root, '.tools', 'nginx-1.30.5', 'nginx.exe');
   const output = run(process.execPath, ['deployment/game-service/proxy/start-local.mjs'], { env: { ...process.env, NGINX_LOCAL_BINARY: nginx, LOCAL_GAME_BACKEND_PORT: '22235' } });
   const prefix = output.match(/^Instance prefix: (.+)$/m)?.[1]?.trim();

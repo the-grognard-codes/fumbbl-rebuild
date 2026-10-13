@@ -36,6 +36,7 @@ test('rejects unavailable computer prerequisites before restart can stop the run
     assert.throws(() => validateComputerStartup(tokenFile, '26.7.0'), /COMPUTER_TOKEN_FILE_INVALID/);
     writeFileSync(tokenFile, 'synthetic-test-token');
     assert.throws(() => validateComputerStartup(tokenFile, '24.0.0'), /COMPUTER_NODE_VERSION_UNSUPPORTED/);
+    assert.throws(() => validateComputerStartup(tokenFile, '27.0.0'), /COMPUTER_NODE_VERSION_UNSUPPORTED/);
     validateComputerStartup(tokenFile, '26.7.0');
   } finally {
     try { unlinkSync(tokenFile); } catch (error) { if (error.code !== 'ENOENT') throw error; }
