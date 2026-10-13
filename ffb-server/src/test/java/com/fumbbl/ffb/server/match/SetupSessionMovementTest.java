@@ -565,6 +565,15 @@ class SetupSessionMovementTest {
         Fixture fixture = new Fixture();
         JsonObject state = fixture.advanceToTurn();
         String role = state.getString("actor", null);
+        Game rangeGame = nativeState(fixture.session).getGame();
+        Player<?> rangeOpponent = rangeGame.getOtherTeam(rangeGame.getActingTeam()).getPlayers()[0];
+        // Range and retry assertions need movable players, regardless of kickoff casualties or positions.
+        UtilBox.putAllPlayersIntoBox(rangeGame);
+        place(rangeGame, rangeGame.getActingTeam().getPlayers()[0], 7, 7, PlayerState.STANDING);
+        place(rangeGame, rangeOpponent, 20, 7, PlayerState.STANDING);
+        rangeGame.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        rangeGame.getFieldModel().setBallMoving(true);
+        state = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
         JsonObject selectable = null;
         JsonObject destination = null;
         int revision = state.getInt("revision", -1);
