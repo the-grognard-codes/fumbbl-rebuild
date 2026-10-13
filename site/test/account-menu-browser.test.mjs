@@ -45,22 +45,44 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.evaluate(() => document.fonts.ready);
     const menu = page.locator('.account-menu');
-    const summary = page.getByLabel('My account', { exact: true });
-    await summary.waitFor();
+    const summary = menu.locator('summary');
+    const signInLink = page.locator('.site-header .account-sign-in-link');
+    await signInLink.waitFor();
     await page.waitForFunction(() => typeof window.__setAccount === 'function');
+    assert.equal(await menu.isVisible(), false, 'signed-out account options are hidden');
+    assert.equal(await signInLink.getByText('Sign in').isVisible(), true);
+    if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR) {
+      await mkdir(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, { recursive: true });
+      await page.locator('.site-header').screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, 'header-signed-out.png') });
+    }
+    await signInLink.press('Enter');
+    await page.waitForURL(/\/login\/?$/);
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.waitForFunction(() => typeof window.__setAccount === 'function');
+    await page.evaluate(() => window.__setAccount({ email: 'coach@example.test' }));
+    await summary.waitFor({ state: 'visible' });
     await summary.press('Enter');
-    await menu.getByRole('link', { name: 'Sign in', exact: true }).waitFor();
-    assert.equal(await menu.getByRole('link').count(), 1, 'placeholders are buttons, never fake navigation links');
+    assert.equal(await menu.getByRole('link').count(), 0, 'placeholders are buttons, never fake navigation links');
     for (const name of ['Account Settings', 'My games', 'My teams', 'Match history', 'Preferences'])
       assert.equal(await menu.getByRole('button', { name, exact: true }).isEnabled(), false);
-    await menu.getByRole('link', { name: 'Sign in', exact: true }).press('Escape');
+    await menu.getByRole('button', { name: 'Sign out', exact: true }).press('Escape');
     assert.equal(await menu.getAttribute('open'), null);
     assert.equal(await summary.evaluate(element => element === document.activeElement), true);
     await summary.click(); await page.getByRole('heading', { level: 1 }).click();
     assert.equal(await menu.getAttribute('open'), null);
-    await page.evaluate(() => window.__setAccount({ email: 'coach@example.test' }));
     await menu.getByText('coach@example.test', { exact: true }).waitFor();
-    assert.equal(await summary.evaluate(element => document.getElementById(element.getAttribute('aria-describedby')).textContent), 'coach@example.test', 'the focusable account control announces its current identity');
+    assert.equal(await summary.evaluate(element => element.textContent.trim()), 'coach@example.test', 'the focusable account control announces its current identity');
+    assert.equal(await page.evaluate(() => {
+      const account = getComputedStyle(document.querySelector('.account-identity'));
+      const neighbor = getComputedStyle(document.querySelector('.site-header nav > a'));
+      return ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight'].every(property => account[property] === neighbor[property]);
+    }), true, 'email uses neighboring navigation typography');
+    await page.evaluate(() => window.__setAccount({ email: 'very.long.synthetic.coach.identity.for.header@example.test' }));
+    assert.equal(await summary.getAttribute('title'), 'very.long.synthetic.coach.identity.for.header@example.test');
+    assert.equal(await summary.evaluate(element => element.scrollWidth <= element.clientWidth), true);
+    if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR)
+      await page.locator('.site-header').screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, 'header-long-email.png') });
+    await page.evaluate(() => window.__setAccount({ email: 'coach@example.test' }));
     await summary.click();
     await menu.getByRole('button', { name: 'Sign out', exact: true }).waitFor();
     const highlight = locator => locator.evaluate(element => {
@@ -78,7 +100,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
       assert.deepEqual(await highlight(row), expectedHighlight, `${name} highlights like Sign out`);
       assert.equal(await row.isEnabled(), false, 'highlighting does not activate placeholders');
     }
-    assert.equal(await menu.getByRole('link', { name: 'Sign in', exact: true }).isVisible(), false);
+    assert.equal(await signInLink.isVisible(), false);
     assert.equal(await page.evaluate(async () => { const { authentication } = await import('/assets/auth-client.js'); return authentication() === authentication() && window.__initializations === 1; }), true);
     if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR) {
       await mkdir(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, { recursive: true });
@@ -90,8 +112,11 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
     assert.equal(await menu.getByRole('button', { name: 'Sign out', exact: true }).isEnabled(), true);
     await page.evaluate(() => { window.__rejectSignOut = false; });
     await menu.getByRole('button', { name: 'Sign out', exact: true }).click();
-    await menu.getByText('Sign in', { exact: true }).first().waitFor();
+    await signInLink.waitFor({ state: 'visible' });
     assert.equal(await menu.getAttribute('open'), null);
+    assert.equal(await signInLink.evaluate(element => element === document.activeElement), true, 'sign out returns focus to the account link');
+    await page.evaluate(() => window.__setAccount({ email: 'coach@example.test' }));
+    await summary.waitFor({ state: 'visible' });
     await page.setViewportSize({ width: 360, height: 800 });
     await summary.click();
     const bounds = await page.locator('.account-options').boundingBox();
@@ -112,7 +137,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
           assert.equal(await header.isVisible(), false, `${route} hides the site bar for the game display at ${width}px`);
           continue;
         }
-        await page.getByLabel('My account', { exact: true }).waitFor();
+        await page.locator('.account-menu summary').waitFor({ state: 'visible' });
         await page.evaluate(() => document.fonts.ready);
         assert.equal(await header.isVisible(), true, `${route} shows the shared bar`);
         const logo = header.getByRole('img', { name: 'Moles Under the Pitch', exact: true });
@@ -125,7 +150,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
         const logoBounds = await logo.boundingBox();
         assert.ok(logoBounds.width <= 240 && logoBounds.height <= 70, 'The existing logo is scaled down for navigation');
         const navigation = header.getByRole('navigation', { name: 'Primary navigation' });
-        assert.deepEqual(await navigation.locator(':scope > a').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
+        assert.deepEqual(await navigation.locator(':scope > a:not([hidden])').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
           [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/updates', 'Updates']]);
         const active = ['/teambuilder', '/play', '/spectate', '/updates'].find(path => route === path || route.startsWith(path + '/'));
         assert.deepEqual(await navigation.locator('[aria-current="page"]').evaluateAll(links => links.map(link => link.getAttribute('href'))), active ? [active] : []);
@@ -142,7 +167,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
         assert.equal(await header.evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Logo and navigation fit the shared header');
         if (process.env.ACCOUNT_MENU_SCREENSHOT_DIR && ['/', '/play'].includes(route))
           await header.screenshot({ path: resolve(process.env.ACCOUNT_MENU_SCREENSHOT_DIR, `header-${route === '/' ? 'home' : 'play'}-${width}.png`) });
-        await page.getByLabel('My account', { exact: true }).click();
+        await page.locator('.account-menu summary').click();
         const options = await page.locator('.account-options').boundingBox();
         assert.ok(options.x >= 0 && options.x + options.width <= width, `${route} keeps account options within the screen`);
       }
@@ -150,7 +175,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
     for (const width of [1224, 360]) {
       await page.setViewportSize({ width, height: 330 });
       await page.goto(`http://127.0.0.1:${server.address().port}/`);
-      await page.getByLabel('My account', { exact: true }).click();
+      await page.locator('.account-menu summary').click();
       await page.evaluate(() => document.fonts.ready);
       const options = await page.locator('.account-options').boundingBox();
       assert.ok(options.y >= 0 && options.y + options.height <= 330, `account options fit a short ${width}px viewport: ${JSON.stringify(options)}`);
@@ -167,7 +192,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.evaluate(() => document.fonts.ready);
     await page.evaluate(() => scrollTo(0, 64));
-    await page.getByLabel('My account', { exact: true }).click();
+    await page.locator('.account-menu summary').click();
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
     await page.evaluate(() => scrollTo(0, 0));
     await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));

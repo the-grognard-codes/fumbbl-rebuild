@@ -93,14 +93,14 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
-  onUndoWaypoint,
+  onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
-  onUndoWaypoint?: () => void;
+  onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
@@ -186,7 +186,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
     else if (action.target && 'x' in action.target && !['push', 'move', 'jump'].includes(action.kind)
-      && !(passing && action.kind === 'pass')) {
+      && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
     }
@@ -227,9 +227,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     </div>;
   return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     {debugOpen && (cameraControlsHost === undefined ? cameraControls : cameraControlsHost && createPortal(cameraControls, cameraControlsHost))}
-    {passing && <div className="live-pass-legend" role="note" aria-label="Passing distances">
+    {passing && <div className="live-pass-legend" role="note" aria-label={passing.version === 2 ? passing.action === 'throwTeamMate' ? 'Throw Team Mate distances' : 'Kick Team Mate distances' : 'Passing distances'}>
       {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}
-      <span>Shaded: unavailable{passing.rangeLimited ? '; weather limits passes to Quick or Short' : ''}</span>
+      <span>Shaded: unavailable{passing.version === 2 ? '; teammate flights are limited to Quick or Short' : passing.rangeLimited ? '; weather limits passes to Quick or Short' : ''}</span>
       {passing.weatherPenalty > 0 && <span>weather +{passing.weatherPenalty} passing penalty; range names stay the same</span>}
       {(pinnedTarget?.x != null && pinnedTarget.y != null || cursor) && <output className="live-pass-target-detail" aria-live="polite">
         {passingSquare(passing, pinnedTarget?.x ?? cursor!.x, pinnedTarget?.y ?? cursor!.y).description}
@@ -256,7 +256,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onPointerUp={event => { const start = drag.current;
         if (start?.pointerId !== event.pointerId) return;
         drag.current = null;
-        if (event.button === 2 && !start.moved) onUndoWaypoint?.();
+        if (!readOnly && event.button === 2 && !start.moved) onRightClick?.();
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
       onPointerLeave={() => setHover(null)}
       onLostPointerCapture={event => { if (drag.current?.pointerId === event.pointerId) drag.current = null; }}

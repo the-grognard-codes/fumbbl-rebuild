@@ -61,13 +61,14 @@ public class BrowserMatchSocketTest {
 		for (int index = 0; index < 32; index++) {
 			Session broken = mock(Session.class);
 			when(broken.isOpen()).thenReturn(true);
-			doThrow(new IllegalStateException("closed during setup")).when(broken).setIdleTimeout(java.time.Duration.ofMinutes(5));
+			doThrow(new IllegalStateException("closed during setup")).when(broken).setIdleTimeout(java.time.Duration.ofMinutes(15));
 			new BrowserMatchSocket(server, adapter, transport).onConnect(broken);
 		}
 		assertEquals(0, transport.getMetrics().toJson().getLong("activeConnections", -1));
 		Session healthy = mock(Session.class);
 		when(healthy.isOpen()).thenReturn(true);
 		new BrowserMatchSocket(server, adapter, transport).onConnect(healthy);
+		verify(healthy).setIdleTimeout(java.time.Duration.ofMinutes(15));
 		assertEquals(1, transport.getMetrics().toJson().getLong("activeConnections", -1));
 		assertEquals(0, transport.getMetrics().toJson().getLong("admissionRejected", -1));
 		transport.destroy();

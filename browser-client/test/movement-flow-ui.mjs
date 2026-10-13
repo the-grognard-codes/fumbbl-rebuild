@@ -88,6 +88,9 @@ try {
       assert.ok(await selection.page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
         && request.playerId === id), player.id), 'Either coach requests a read-only range, including off-turn');
       assert.deepEqual(await mutations(selection.page), [], 'Selection does not activate a player');
+      await selection.page.locator(`.live-marker[data-player-id="${player.id}"]`).click({ button: 'right' });
+      assert.equal(await selection.page.locator('.live-selection-square').count(), 0, 'A short right click deselects without a waypoint');
+      assert.deepEqual(await mutations(selection.page), [], 'Right-click deselection does not change the native match');
     }
     assert.deepEqual(selection.errors, []);
     await selection.page.close();
@@ -174,6 +177,7 @@ try {
 
   const blitz = await openJourney(fixture.blitzReadyState, fixture.blitzPlan.plan, fixture.blitzAcceptedState);
   await select(blitz.page, fixture.meta.blitzPlayerId);
+  await blitz.page.getByRole('button', { name: 'Blitz', exact: true }).click();
   await select(blitz.page, fixture.meta.blitzTargetId);
   await blitz.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.equal(await blitz.page.locator('.live-selection-square').getAttribute('data-selection'), fixture.meta.blitzPlayerId);

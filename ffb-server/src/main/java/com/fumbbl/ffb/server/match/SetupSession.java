@@ -10,11 +10,14 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
+import com.fumbbl.ffb.inducement.Inducement;
+import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommand;
@@ -864,8 +867,8 @@ public final class SetupSession {
 			.add("homeTeamName", game.getTeamHome().getName()).add("awayTeamName", game.getTeamAway().getName())
 			.add("homeTeamArt", new MatchTeamArt().project(document.home.team))
 			.add("awayTeamArt", new MatchTeamArt().project(document.away.team))
-			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome().getApothecaries()))
-			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway().getApothecaries()));
+			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome()))
+			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway()));
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));
 		Player<?> mover = game.getActingPlayer().getPlayer();
@@ -878,11 +881,19 @@ public final class SetupSession {
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
+		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
+		if (driveTracker != null) projected.add("driveTracker", driveTracker);
 		return projected;
 	}
-	private JsonObject resources(Team team, int apothecaries) {
-		return new JsonObject().add("apothecaries", apothecaries)
+	private JsonObject resources(Team team, TurnData turnData) {
+		int bribes = 0;
+		for (Inducement inducement : turnData.getInducementSet().getInducements()) {
+			if (inducement.getType().hasUsage(Usage.AVOID_BAN)) bribes += inducement.getUsesLeft();
+		}
+		JsonObject resources = new JsonObject().add("apothecaries", turnData.getApothecaries())
 			.add("assistantCoaches", team.getAssistantCoaches()).add("cheerleaders", team.getCheerleaders());
+		if (bribes > 0) resources.add("bribes", bribes);
+		return resources;
 	}
 	private String positionName(Player<?> player) {
 		String name = player.getPosition().getName();
@@ -927,7 +938,12 @@ public final class SetupSession {
 		JsonObject current = view(role);
 		// Existing checkpoints predate this optional, independently versioned public guidance.
 		if (saved.get("passing") == null) current.remove("passing");
+		for (String resources : new String[] { "homeResources", "awayResources" }) {
+			if (saved.get(resources) != null && saved.get(resources).asObject().get("bribes") == null)
+				current.get(resources).asObject().remove("bribes");
+		}
 		if (saved.get("kickoff") == null) current.remove("kickoff");
+		if (saved.get("driveTracker") == null) current.remove("driveTracker");
 		if (saved.get("ballState") == null) current.remove("ballState");
 		if (saved.get("movementForecast") == null) current.remove("movementForecast");
 		else if (saved.get("movementForecast").asObject().getInt("version", -1) == 1) {

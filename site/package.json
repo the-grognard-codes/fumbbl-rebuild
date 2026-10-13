@@ -8,7 +8,7 @@
     "build": "node scripts/render-updates.mjs && npm --prefix ../browser-client run build:play && node scripts/build.mjs",
     "updates:render": "node scripts/render-updates.mjs",
     "check": "node scripts/check.mjs",
-    "test": "node --test test/play-client.test.mjs test/updates.test.mjs",
+    "test": "node --test test/play-client.test.mjs test/updates.test.mjs test/asset-version.test.mjs",
     "test:updates": "npm run build && node --test test/updates-browser.test.mjs",
     "test:spectate": "npm run build && node --test test/spectate-browser.test.mjs",
     "test:browser": "npm run build && node ../tools/validation/browser-suites.mjs --family hosted && npm --prefix ../browser-client run test:interaction"
