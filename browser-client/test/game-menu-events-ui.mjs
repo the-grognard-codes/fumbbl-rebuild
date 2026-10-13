@@ -27,19 +27,25 @@ try {
   await page.route('**/menu-events-test', route => route.fulfill({ contentType: 'text/html', body:
     '<style>html,body{margin:0;background:#101c2b}</style><main id="app" class="play-runtime live-match-page"></main><script type="module" src="/test/coach-hud-harness.tsx"></script>' }));
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/menu-events-test`);
+  await page.addStyleTag({ content: readFileSync(new URL('../../site/src/assets/play.css', import.meta.url), 'utf8') });
+  await page.evaluate(() => document.body.classList.add('game-match'));
   await page.locator('.coach-match').waitFor(); await page.evaluate(() => document.fonts.ready);
   if (evidence) await mkdir(evidence, { recursive: true });
   const menu = page.getByRole('dialog', { name: 'Game Menu', exact: true });
   const opener = page.getByRole('button', { name: 'Game Menu', exact: true });
   const liveLog = page.locator('.match-history-log');
   assert.equal(await liveLog.getByRole('group', { name: 'Game Log settings' }).count(), 0, 'Live log leaves preferences in Game Menu');
-  for (const [width, height] of [[1237,617], [640,330], [375,300]]) {
+  for (const [width, height] of [[1237,617], [640,330], [375,300], [320,300]]) {
     await page.setViewportSize({ width, height });
     await opener.click();
     assert.equal(await menu.getByRole('button', { name: 'Close Game Menu' }).evaluate(element => element === document.activeElement), true);
-    for (const tab of ['Game Options', 'Interface', 'Key Bindings', 'Game Log']) {
+    for (const tab of ['Game Options', 'Game Settings', 'Interface', 'Key Bindings', 'Game Log']) {
       const selected = menu.getByRole('tab', { name: tab, exact: true });
       await selected.click();
+      if (tab === 'Game Log') await menu.locator('.match-event-scroll').evaluate(element => {
+        const entry = document.createElement('p'); entry.className = 'long-content-probe';
+        entry.textContent = 'ExtraLongMatchLogEntry'.repeat(12); element.append(entry);
+      });
       assert.equal(await selected.getAttribute('aria-selected'), 'true');
       assert.deepEqual(await menu.evaluate(element => {
         const css = getComputedStyle(element);
@@ -53,7 +59,21 @@ try {
         return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
           && element.scrollWidth <= element.clientWidth;
       }), true, `${tab}: dialog fits and scrolls vertically in short viewports`);
+      const overflow = await menu.evaluate(element => [...element.querySelectorAll('*')]
+        .filter(child => child.scrollWidth > child.clientWidth + 3 && getComputedStyle(child).overflowX !== 'hidden')
+        .map(child => `${child.tagName.toLowerCase()}.${child.className || ''}:${child.scrollWidth}/${child.clientWidth}`));
+      assert.deepEqual(overflow, [], `${tab} at ${width}×${height}: all controls and content fit without horizontal scrolling`);
+      if (tab === 'Game Options') {
+        await menu.getByRole('button', { name: 'Concede match', exact: true }).click();
+        const confirmation = menu.getByRole('button', { name: 'Confirm concession', exact: true });
+        await confirmation.evaluate(element => element.scrollIntoView({ block: 'nearest' }));
+        const bounds = await confirmation.boundingBox();
+        assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= height, 'vertical scrolling exposes confirmation controls');
+        await menu.getByRole('button', { name: 'Keep playing', exact: true }).click();
+      }
+      if (tab === 'Game Log') await menu.locator('.match-event-scroll').evaluate(element => { element.scrollTop = element.scrollHeight; });
       if (evidence) await page.screenshot({ path: `${evidence}/menu-${tab.replaceAll(' ', '-').toLowerCase()}-${width}-${height}.png` });
+      if (tab === 'Game Log') await menu.locator('.long-content-probe').evaluate(element => element.remove());
     }
     for (const [size, pixels] of [['Small',12], ['Medium',14], ['Large',18]]) {
       await menu.getByRole('button', { name: `${size} log text` }).click();
@@ -136,5 +156,5 @@ try {
   assert.equal(await menu.getByRole('button', { name: 'Concede match', exact: true }).isDisabled(), true);
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Presentation checks submitted no game actions');
   assert.deepEqual(errors, []);
-  console.log('PASS: MUTP menu across four tabs/three viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');
+  console.log('PASS: MUTP menu across five tabs/four viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');
 } finally { await browser.close(); await server.close(); }

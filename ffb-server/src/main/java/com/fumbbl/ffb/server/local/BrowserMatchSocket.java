@@ -41,7 +41,7 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 			return;
 		}
 		try {
-			session.setIdleTimeout(java.time.Duration.ofMinutes(5));
+			session.setIdleTimeout(java.time.Duration.ofMinutes(15));
 			delivery = new BrowserMatchDelivery(new SessionSink(session), transport.getMetrics(),
 				BrowserMatchTransport.MAX_OUTBOUND_MESSAGES, BrowserMatchTransport.MAX_OUTBOUND_BYTES);
 		} catch (RuntimeException exception) {

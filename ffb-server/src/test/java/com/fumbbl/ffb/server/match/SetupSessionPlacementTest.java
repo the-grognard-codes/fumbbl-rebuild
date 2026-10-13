@@ -5,14 +5,26 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.factory.InducementTypeFactory;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.inducement.Inducement;
+import com.fumbbl.ffb.inducement.InducementType;
+import com.fumbbl.ffb.inducement.Usage;
+import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
+import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameCache;
+import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ServerCommunication;
+import com.fumbbl.ffb.server.step.StepParameter;
+import com.fumbbl.ffb.server.step.StepParameterKey;
+import com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+import com.fumbbl.ffb.server.util.UtilServerInducementUse;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,6 +40,83 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionPlacementTest {
+	@Test
+	void getTheRefBribesAppearForBothTeamsAndSurviveUseAndRecovery() throws Exception {
+		Fixture fixture = new Fixture();
+		Field field = SetupSession.class.getDeclaredField("state");
+		field.setAccessible(true);
+		GameState nativeState = (GameState) field.get(fixture.session);
+		Game game = nativeState.getGame();
+		InducementType type = ((InducementTypeFactory) game.getFactory(FactoryType.Factory.INDUCEMENT_TYPE))
+			.allTypes().stream().filter(candidate -> candidate.hasUsage(Usage.AVOID_BAN)).findFirst().get();
+		game.getTurnDataHome().getInducementSet().addInducement(new Inducement(type, 2));
+		game.getTurnDataAway().getInducementSet().addInducement(new Inducement(type, 1));
+		StepApplyKickoffResult kickoff = new StepApplyKickoffResult(nativeState);
+		kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, KickoffResult.GET_THE_REF));
+		kickoff.start();
+		assertEquals(3, game.getTurnDataHome().getInducementSet().get(type).getUsesLeft());
+		assertEquals(2, game.getTurnDataAway().getInducementSet().get(type).getUsesLeft());
+		for (String role : new String[] { "home", "away", "spectator" }) {
+			JsonObject view = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+			assertEquals(3, view.get("homeResources").asObject().getInt("bribes", -1));
+			assertEquals(2, view.get("awayResources").asObject().getInt("bribes", -1));
+		}
+		assertTrue(UtilServerInducementUse.useInducement(nativeState, game.getTeamHome(), type, 1));
+		assertEquals(2, fixture.session.spectatorView().get("homeResources").asObject().getInt("bribes", -1));
+		SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+		assertEquals(2, restored.spectatorView().get("homeResources").asObject().getInt("bribes", -1));
+		assertEquals(2, restored.spectatorView().get("awayResources").asObject().getInt("bribes", -1));
+		JsonObject legacy = JsonObject.readFrom(fixture.session.recoveryArtifact());
+		removeField(legacy.get("payload"), "bribes");
+		StringBuilder checksum = new StringBuilder();
+		for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(legacy.get("payload").toString()
+			.getBytes(java.nio.charset.StandardCharsets.UTF_8))) checksum.append(String.format("%02x", value & 255));
+		legacy.set("sha256", checksum.toString());
+		SetupSession oldCheckpoint = new SetupSession(fixture.server, fixture.document, legacy.toString());
+		assertEquals(2, oldCheckpoint.spectatorView().get("homeResources").asObject().getInt("bribes", -1));
+		assertEquals(2, oldCheckpoint.spectatorView().get("awayResources").asObject().getInt("bribes", -1));
+	}
+    @Test
+    void driveTrackerFollowsBothNativeSetupDecisionsAndRestoresOlderCheckpoint() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject initial = fixture.session.spectatorView();
+        assertTrue(initial.get("driveTracker") == null);
+        JsonObject kicking = fixture.setup();
+        JsonObject first = kicking.get("driveTracker").asObject();
+        assertEquals("KICKING_SETUP", first.getString("phase", null));
+        String receiving = "home".equals(kicking.getString("actor", null)) ? "away" : "home";
+        assertEquals(receiving, first.getString("receivingRole", null));
+        assertEquals(first, fixture.session.spectatorView().get("driveTracker"));
+
+        SetupSession recovered = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+        assertEquals(first, recovered.spectatorView().get("driveTracker"));
+        JsonObject legacy = JsonObject.readFrom(fixture.session.recoveryArtifact());
+        removeField(legacy.get("payload"), "driveTracker");
+        StringBuilder checksum = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(legacy.get("payload").toString()
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8))) checksum.append(String.format("%02x", value & 255));
+        legacy.set("sha256", checksum.toString());
+        assertEquals(first, new SetupSession(fixture.server, fixture.document, legacy.toString())
+            .spectatorView().get("driveTracker"));
+
+        JsonObject receivingSetup = fixture.session.apply(kicking.getString("actor", null),
+            fixture.request("confirm", "first-setup", kicking)).get("state").asObject();
+        assertEquals("RECEIVING_SETUP", receivingSetup.get("driveTracker").asObject().getString("phase", null));
+        assertEquals(receiving, receivingSetup.get("driveTracker").asObject().getString("receivingRole", null));
+        JsonObject kickTarget = fixture.session.apply(receivingSetup.getString("actor", null),
+            fixture.request("confirm", "second-setup", receivingSetup)).get("state").asObject();
+        assertEquals("KICK_TARGET", kickTarget.get("driveTracker").asObject().getString("phase", null));
+        assertEquals(receiving, kickTarget.get("driveTracker").asObject().getString("receivingRole", null));
+    }
+
+    private void removeField(JsonValue value, String field) {
+        if (value.isObject()) {
+            JsonObject object = value.asObject();
+            object.remove(field);
+            for (JsonObject.Member member : object) removeField(member.getValue(), field);
+        } else if (value.isArray()) for (JsonValue child : value.asArray()) removeField(child, field);
+    }
+
     @Test
     void projectsFrozenTeamArtAndRestoresLegacyCheckpointsWithoutPresentationFields() throws Exception {
         Fixture fixture = new Fixture();

@@ -409,12 +409,23 @@ class SetupSessionTest {
     }
     @Test void everyKickoffResultCanProgressToRegularTurn() throws Exception {
         for (int total = 2; total <= 12; total++) {
-            SetupSession session = readySession();
+            SetupSession session = readySession(true);
+            JsonObject ready = view(session).get("driveTracker").asObject();
+            assertEquals("KICK_TARGET", ready.getString("phase", null));
+            String receivingRole = ready.getString("receivingRole", null);
             int first = Math.min(6, total - 1), second = total - first;
             TestRolls.on(engine(session)).general(1, 1, first, second);
             for (int i = 0; i < 100; i++) TestRolls.on(engine(session)).general(3);
             submit(session, view(session).get("actions").asArray().get(82).asObject());
             for (int i = 0; i < 15 && !"REGULAR".equals(view(session).getString("turnMode", null)); i++) {
+                JsonObject snapshot = view(session);
+                JsonObject tracker = snapshot.get("driveTracker").asObject();
+                assertEquals("KICKOFF", tracker.getString("phase", null), "Kickoff " + total);
+                assertEquals(receivingRole, tracker.getString("receivingRole", null), "Kickoff side " + total);
+                if (snapshot.get("kickoff") != null) {
+                    assertEquals(snapshot.get("kickoff").asObject().getString("event", null), tracker.getString("event", null));
+                    assertTrue(!tracker.getBoolean("eventComplete", true));
+                }
                 JsonObject chosen = null;
                 for (JsonValue value : view(session).get("actions").asArray()) {
                     JsonObject action = value.asObject();
@@ -424,6 +435,7 @@ class SetupSessionTest {
                 submit(session, chosen);
             }
             assertEquals("REGULAR", view(session).getString("turnMode", null), "Kickoff " + total);
+            assertTrue(view(session).get("driveTracker") == null, "Hide before the first ordinary action: " + total);
         }
     }
     @Test void selectedSolidDefencePlayerCanBeRedeployedAndConfirmed() throws Exception {

@@ -43,11 +43,7 @@ public final class LocalAcceptanceBootstrap {
 		if (args.length != 1) throw new IllegalArgumentException("Expected acceptance server properties file");
 		Properties properties = new Properties();
 		try (InputStream input = Files.newInputStream(Paths.get(args[0]))) { properties.load(input); }
-		LocalServerMain.validateProfile(properties);
-		if (!LocalServerMain.ACCEPTANCE_DB_URL.equals(properties.getProperty("db.url"))
-			|| !"true".equals(properties.getProperty("local.browser.v2.enabled"))) {
-			throw new IllegalArgumentException("Schema bootstrap requires the dedicated v2 acceptance profile");
-		}
+		validateBootstrapProfile(properties);
 		String password = readSecret(properties, "db.password.file");
 		Class.forName(properties.getProperty("db.driver"));
 		FantasyFootballServer server = new FantasyFootballServer(ServerMode.STANDALONE, properties);
@@ -58,6 +54,16 @@ public final class LocalAcceptanceBootstrap {
 		manager.setDbType("mariadb");
 		bootstrap(manager);
 		System.out.println("Acceptance database schema verified at marker 7; no records were imported.");
+	}
+
+	static void validateBootstrapProfile(Properties properties) {
+		LocalServerMain.validateProfile(properties);
+		String databaseUrl = properties.getProperty("db.url");
+		if ((!LocalServerMain.ACCEPTANCE_DB_URL.equals(databaseUrl)
+			&& !LocalServerMain.REVIEW_DB_URL.equals(databaseUrl))
+			|| !"true".equals(properties.getProperty("local.browser.v2.enabled"))) {
+			throw new IllegalArgumentException("Schema bootstrap requires the isolated review or acceptance profile");
+		}
 	}
 
 	static void bootstrap(DbConnectionManager manager) throws SQLException {

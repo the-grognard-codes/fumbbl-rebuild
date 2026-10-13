@@ -206,7 +206,11 @@ public final class MatchJson {
             shortText(state.get("homeTeamName")); shortText(state.get("awayTeamName"));
             for (String field : Arrays.asList("homeResources", "awayResources")) {
                 JsonObject resources = state.get(field).asObject();
-                exact(resources, "apothecaries", "assistantCoaches", "cheerleaders");
+                if (resources.get("bribes") == null) exact(resources, "apothecaries", "assistantCoaches", "cheerleaders");
+                else {
+                    exact(resources, "apothecaries", "assistantCoaches", "cheerleaders", "bribes");
+                    bounded(resources.get("bribes"), 0, 100);
+                }
                 bounded(resources.get("apothecaries"), 0, 20);
                 bounded(resources.get("assistantCoaches"), 0, 20);
                 bounded(resources.get("cheerleaders"), 0, 20);
@@ -223,6 +227,39 @@ public final class MatchJson {
             bounded(ball.get("x"), 0, 25); bounded(ball.get("y"), 0, 14);
         }
         JsonArray players = state.get("players").asArray(); if (players.size() > 32) throw new IllegalArgumentException();
+        if (state.get("kickoff") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonObject kickoff = state.get("kickoff").asObject();
+            exact(kickoff, "version", "event", "actor", "stage", "allowed", "completed", "selected");
+            if (kickoff.getInt("version", -1) != 1
+                || !Arrays.asList("HIGH_KICK", "SOLID_DEFENCE", "QUICK_SNAP", "CHARGE").contains(kickoff.getString("event", null))
+                || !("home".equals(kickoff.getString("actor", null)) || "away".equals(kickoff.getString("actor", null)))
+                || !Arrays.asList("selection", "movement").contains(kickoff.getString("stage", null))) throw new IllegalArgumentException();
+            bounded(kickoff.get("allowed"), 0, 16);
+            bounded(kickoff.get("completed"), 0, 16);
+            bounded(kickoff.get("selected"), 0, 16);
+        }
+        if (state.get("driveTracker") != null) {
+            if (!detailsV4 || "PRE_MATCH".equals(state.getString("phase", null))
+                || "FULL_TIME".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonObject tracker = state.get("driveTracker").asObject();
+            exact(tracker, "version", "receivingRole", "phase", "secretWeapons", "knockouts", "event", "eventComplete");
+            if (tracker.getInt("version", -1) != 1
+                || !("home".equals(tracker.getString("receivingRole", null)) || "away".equals(tracker.getString("receivingRole", null)))
+                || !Arrays.asList("KICKING_SETUP", "RECEIVING_SETUP", "KICK_TARGET", "KICKOFF")
+                    .contains(tracker.getString("phase", null))) throw new IllegalArgumentException();
+            String trackerPhase = tracker.getString("phase", null), publicPhase = state.getString("phase", null);
+            if (!("SETUP".equals(publicPhase) && ("KICKING_SETUP".equals(trackerPhase) || "RECEIVING_SETUP".equals(trackerPhase))
+                || "READY_FOR_KICKOFF".equals(publicPhase) && "KICK_TARGET".equals(trackerPhase)
+                || "PLAY".equals(publicPhase) && "KICKOFF".equals(trackerPhase))) throw new IllegalArgumentException();
+            tracker.get("secretWeapons").asBoolean(); tracker.get("knockouts").asBoolean();
+            boolean complete = tracker.get("eventComplete").asBoolean();
+            if (tracker.get("event").isNull()) {
+                if (complete) throw new IllegalArgumentException();
+            } else if (!Arrays.asList("HIGH_KICK", "SOLID_DEFENCE", "QUICK_SNAP", "CHARGE")
+                .contains(tracker.getString("event", null)) || !"KICKOFF".equals(tracker.getString("phase", null)))
+                throw new IllegalArgumentException();
+        }
         if (state.get("ballState") != null) {
             if (!detailsV4) throw new IllegalArgumentException();
             JsonObject ballState = state.get("ballState").asObject(); exact(ballState, "version", "carrierPlayerId", "inPlay", "moving");
@@ -563,6 +600,8 @@ public final class MatchJson {
         if (home) { extended.add("homeTeamArt"); extended.add("awayTeamArt"); }
         if (object.get("ballState") != null) extended.add("ballState");
         if (object.get("movementForecast") != null) extended.add("movementForecast");
+        if (object.get("kickoff") != null) extended.add("kickoff");
+        if (object.get("driveTracker") != null) extended.add("driveTracker");
         exact(object, extended.toArray(new String[0]));
     }
 

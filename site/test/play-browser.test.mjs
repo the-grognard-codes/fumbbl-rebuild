@@ -14,7 +14,7 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   players: [{ id: 'p1', name: 'Lineman', slot: 1, role: 'home', x: 3, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'lineman' } }, { id: 'p2', name: 'Lineman', slot: 1, role: 'away', x: 22, y: 4, state: 'standing', art: { rosterId: 'human', positionId: 'blitzer' } }],
   weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
-async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor(); }
+async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor({ timeout: 5000 }); }
 
 test('fresh signed-in direct links resume the same account and show genuine membership denials', async () => {
   const server = createServer(async (request, response) => {
@@ -31,6 +31,9 @@ test('fresh signed-in direct links resume the same account and show genuine memb
   try {
     for (const [index, account] of [accounts[0], accounts[0], accounts[2], accounts[0]].entries()) {
       const context = await browser.newContext(); contexts.push(context);
+      // A prior release may still be cached at either unversioned entry point.
+      await context.route('**/assets/play.js', route => route.fulfill({ contentType: 'text/javascript', body: 'throw Error("Cached Play bootstrap");' }));
+      await context.route('**/assets/game/game.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function mountPlay(){}' }));
       await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
       await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>"synthetic-direct-resume"}));return()=>{};}' }));
       await context.routeWebSocket('**/browser/v2', socket => {

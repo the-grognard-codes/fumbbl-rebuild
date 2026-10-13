@@ -21,56 +21,74 @@ const beforeFinalDecision = { ...fullTime, revision: 1, phase: 'PLAY', turnMode:
 const result = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025', catalogVersion: 'bb2025-human-2026-09-08.1',
   presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 2, eventCount: 3 };
 
-test('active player keeps Blitz - Stab in More actions after selecting the defender', async () => {
-  const server = createServer(async (request, response) => {
-    const path = new URL(request.url, 'http://local').pathname;
-    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
-    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
-    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
-    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
-    catch { response.writeHead(404).end(); }
-  });
-  await new Promise(done => server.listen(0, '127.0.0.1', done));
-  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  try {
-    const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
-    const submitted = [];
-    const block = { ...beforeFinalDecision, activePlayerId: 'p1', turnMode: 'REGULAR',
-      players: [beforeFinalDecision.players[0], { ...beforeFinalDecision.players[1], x: 4, y: 4, offPitch: 'pitch', state: 'standing' }], actions: [
-      { id: '1:block-p2', label: 'Block Blitzer', actor: 'home', kind: 'block', target: { playerId: 'p2' }, sourcePlayerId: 'p1' },
-      { id: '1:blockStab-p2', label: 'Blitz - Stab Blitzer', actor: 'home', kind: 'blockStab', target: { playerId: 'p2' }, sourcePlayerId: 'p1' }
-    ] };
-    await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
-    await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
-    await page.routeWebSocket('**/browser/v2', socket => {
-      const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
-      socket.onMessage(raw => {
-        const request = JSON.parse(raw);
-        if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
-        if (request.type === 'setup') {
-          if (request.operation === 'action') submitted.push([request.actionId, request.expectedRevision]);
-          send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: submitted.length ? fullTime : block });
-        }
-      });
+for (const reflowTiming of ['before drag', 'during drag']) {
+  test(`active player keeps Blitz - Stab in More actions after selecting the defender (${reflowTiming} reflow)`, async () => {
+    const server = createServer(async (request, response) => {
+      const path = new URL(request.url, 'http://local').pathname;
+      if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+      const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+      if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+      try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+      catch { response.writeHead(404).end(); }
     });
-    await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
-    await page.getByLabel('Live match pitch').waitFor();
-    assert.equal(await page.getByLabel('Selected player').count(), 0);
-    const defender = page.locator('.live-marker[data-player-id="p2"]');
-    await revealPlayer(page, defender);
-    await defender.click();
-    assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
-    await page.getByRole('button', { name: 'Other action' }).click();
-    assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
-    if (process.env.SPECIAL_CAPTURE_DIR) {
-      await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });
-      await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
-    }
-    await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
-    await page.getByRole('button', { name: 'Confirmed!' }).click();
-    assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
-  } finally { await browser.close(); await new Promise(done => server.close(done)); }
-});
+    await new Promise(done => server.listen(0, '127.0.0.1', done));
+    const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
+    try {
+      const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
+      const submitted = [];
+      const block = { ...beforeFinalDecision, activePlayerId: 'p1', turnMode: 'REGULAR',
+        players: [beforeFinalDecision.players[0], { ...beforeFinalDecision.players[1], x: 4, y: 4, offPitch: 'pitch', state: 'standing' }], actions: [
+        { id: '1:block-p2', label: 'Block Blitzer', actor: 'home', kind: 'block', target: { playerId: 'p2' }, sourcePlayerId: 'p1' },
+        { id: '1:blockStab-p2', label: 'Blitz - Stab Blitzer', actor: 'home', kind: 'blockStab', target: { playerId: 'p2' }, sourcePlayerId: 'p1' }
+      ] };
+      await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+      await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
+      await page.routeWebSocket('**/browser/v2', socket => {
+        const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+        socket.onMessage(raw => {
+          const request = JSON.parse(raw);
+          if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+          if (request.type === 'setup') {
+            if (request.operation === 'action') submitted.push([request.actionId, request.expectedRevision]);
+            send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: submitted.length ? fullTime : block });
+          }
+        });
+      });
+      await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
+      await page.getByLabel('Live match pitch').waitFor();
+      assert.equal(await page.getByLabel('Selected player').count(), 0);
+      const defender = page.locator('.live-marker[data-player-id="p2"]');
+      // Reproduce responsive reflow while the helper prepares or performs a drag.
+      // It must reread the rendered camera before continuing its travel.
+      const move = page.mouse.move.bind(page.mouse);
+      let reflowed = false;
+      let moves = 0;
+      page.mouse.move = async (...args) => {
+        if (++moves < (reflowTiming === 'before drag' ? 1 : 2)) return move(...args);
+        page.mouse.move = move;
+        const height = await page.locator('.live-pitch-scene').evaluate(element => parseFloat(element.style.height));
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await page.waitForFunction(height => parseFloat(document.querySelector('.live-pitch-scene').style.height) > height + 50, height);
+        reflowed = true;
+        return move(...args);
+      };
+      try { await revealPlayer(page, defender); }
+      finally { page.mouse.move = move; }
+      assert.equal(reflowed, true, 'The camera-travel check exercises a responsive reflow during its drag');
+      await defender.click();
+      assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
+      await page.getByRole('button', { name: 'Other action' }).click();
+      assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
+      if (process.env.SPECIAL_CAPTURE_DIR) {
+        await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });
+        await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
+      }
+      await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
+      await page.getByRole('button', { name: 'Confirmed!' }).click();
+      assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
+    } finally { await browser.close(); await new Promise(done => server.close(done)); }
+  });
+}
 
 test('hosted kickoff player choices toggle in one click and confirm separately', async () => {
   const server = createServer(async (request, response) => {

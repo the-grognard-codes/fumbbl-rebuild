@@ -11,6 +11,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Collections;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,6 +23,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class LocalAcceptanceBootstrapTest {
+	@Test
+	void bootstrapPermitsReviewAndAcceptanceButRejectsRetainedDatabase() {
+		Properties properties = new Properties();
+		properties.setProperty("server.local", "true");
+		properties.setProperty("local.browser.v2.enabled", "true");
+		properties.setProperty("db.user", LocalServerMain.MARKER6_DB_USER);
+		properties.setProperty("local.browser.v2.firebase.project", BrowserV2TransportPolicy.PROJECT);
+		properties.setProperty("server.base", "http://127.0.0.1:22234");
+		properties.setProperty("db.url", LocalServerMain.REVIEW_DB_URL);
+		assertDoesNotThrow(() -> LocalAcceptanceBootstrap.validateBootstrapProfile(properties));
+		properties.setProperty("server.base", "http://127.0.0.1:22235");
+		properties.setProperty("db.url", LocalServerMain.ACCEPTANCE_DB_URL);
+		assertDoesNotThrow(() -> LocalAcceptanceBootstrap.validateBootstrapProfile(properties));
+		properties.setProperty("server.base", "http://127.0.0.1:22231");
+		properties.setProperty("db.url", LocalServerMain.MARKER6_DB_URL);
+		assertThrows(IllegalArgumentException.class, () -> LocalAcceptanceBootstrap.validateBootstrapProfile(properties));
+	}
+
 	@Test
 	void onlyExactMarkerInventoriesAreAccepted() {
 		assertDoesNotThrow(() -> LocalAcceptanceBootstrap.requireInventory(

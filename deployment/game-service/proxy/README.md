@@ -86,8 +86,8 @@ One worker and 512 worker connections bound the candidate; each proxied socket
 uses both a client and upstream connection, so 512 does not mean 512 players.
 Java's existing connection/queue limits still apply.
 
-Proxy buffering is disabled. The 360-second upstream read timeout is above
-Java's existing five-minute idle timeout; no new heartbeat or abandonment policy
+Proxy buffering is disabled. The 960-second upstream read timeout is above
+Java's fifteen-minute idle timeout; no new heartbeat or abandonment policy
 is introduced. Reconnect still reauthenticates and reloads server-authoritative
 state. Test long idle sessions and reconnect through the Linux proxy before
 activation. Graceful reloads can retain old workers for live sockets; account for
