@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser Other action keeps the active player's special actions available when inspecting an opponent")
+			.addImprovement("Browser coaches can plan another player's activation without ending the current one; confirming switches players and keeps declared limited actions spent")
+			.addImprovement("Browser fouls preview their approach and resolve movement and the foul with one confirmation")
 			.addBugfix("Stadium development preview returns to the original wall and crowd artwork by default; modular wall art remains an optional study")
 			.addImprovement("Stadium development study adds crowd-free modular side walls with original-style stonework, timber, torches and banners")
 			.addImprovement("Stadium development study restores the original painted stone walls and crowd as its default perspective preview")

@@ -30,6 +30,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BallAndFoulActionsTest {
     private static final BrowserActionEvidence evidence = new BrowserActionEvidence();
     @AfterAll static void writeBrowserEvidence() throws Exception { evidence.write(); }
+    @Test void legacySelectionCannotRepeatASpentFoulByRedeclaringIt() throws Exception {
+        GameState state = fixture(true, false);
+        Game game = state.getGame();
+        game.getFieldModel().setPlayerCoordinate(game.getPlayerById("opponent"), new FieldCoordinate(8, 7));
+        game.getFieldModel().setPlayerState(game.getPlayerById("opponent"), new PlayerState(PlayerState.PRONE));
+        perform(state, "declareFoul");
+        game.getTurnData().setFoulUsed(true);
+        assertFalse(state.consumesDeclaredActions());
+        perform(state, "foul");
+        assertEquals(0, game.getGameResult().getPlayerResult(game.getPlayerById("actor")).getFouls());
+    }
     @Test void interceptionIsOwnedByDefendingTeamAndMayBeDeclined() throws Exception {
         for (boolean intercept : new boolean[] {true, false}) {
             GameState state = fixture(true, false);

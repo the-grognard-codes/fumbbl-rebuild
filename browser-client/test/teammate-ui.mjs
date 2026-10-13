@@ -35,6 +35,13 @@ try {
     await choose('actor'); await choose('first');
     assert.match(await page.locator('.command-preview').textContent(), /first-choice/);
     assert.deepEqual(await intents(), []);
+    await choose('first');
+    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'first',
+      'A second click on the selected teammate switches player selection');
+    assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
+    assert.deepEqual(await intents(), []);
+    await choose('actor'); await choose('first');
+    assert.match(await page.locator('.command-preview').textContent(), /first-choice/);
     await choose('second');
     await page.getByRole('button', { name: 'Cancel teammate selection' }).waitFor();
     assert.match(await page.locator('.command-preview').textContent(), /second-choice/);
@@ -55,10 +62,12 @@ try {
     await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
     assert.deepEqual(await intents(), [{ operation: 'action', fields: { actionId: 'second-choice' } }]);
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
-    const landed = { ...state, revision: 3, actions: [action('landing', kicked ? 'kickMateTo' : 'throwTeamMate', { x: 14, y: 7 })],
+    const landed = { ...state, revision: 3, actions: [action('landing', kicked ? 'kickMateTo' : 'throwTeamMate', { x: 14, y: 7 }),
+      action('landing-own', kicked ? 'kickMateTo' : 'throwTeamMate', { x: 18, y: 7 })],
       players: [...state.players.map(player => player.id === 'second' ? { ...player, state: 'is picked up' } : player),
         { ...state.players[0], id: 'occupied-target', name: 'occupied target', x: 14, y: 7,
-          role: role === 'home' ? role : 'home', skills: [] }] };
+          role: role === 'home' ? 'away' : 'home', skills: [] },
+        { ...state.players[0], id: 'own-target', name: 'own target', x: 18, y: 7, role, skills: [] }] };
     const ranges = Array.from({ length: 26 }, () => '-'.repeat(15));
     ranges[14] = '-------Q-------'; ranges[18] = '-------S-------';
     landed.passing = { version: 2, playerId: 'actor', from: { x: 12, y: 7 }, weatherPenalty: 0,
@@ -83,7 +92,15 @@ try {
     assert.equal(await page.locator('[data-pass-range]').count(), 390);
     await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
-    await choose('occupied-target');
+    await choose('own-target');
+    assert.match(await page.locator('.command-preview').textContent(), /landing-own/,
+      'The first click targets the own player at the offered flight square');
+    await choose('own-target');
+    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'own-target',
+      'A second click on a flight target switches player selection');
+    assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
+    assert.equal((await intents()).length, 1);
+    await choose('actor'); await choose('occupied-target');
     assert.match(await page.locator('.command-preview').textContent(), /landing/, 'Keyboard selection targets the occupied square');
     const at = await squarePosition(page, 14, 7); await page.mouse.click(at.x, at.y);
     assert.match(await page.locator('.command-preview').textContent(), /landing/);

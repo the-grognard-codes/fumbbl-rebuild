@@ -4,14 +4,17 @@ import com.fumbbl.ffb.BlockDiceCategory;
 import com.fumbbl.ffb.DiceCategory;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.factory.SkillFactory;
 import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameCache;
@@ -20,6 +23,7 @@ import com.fumbbl.ffb.server.net.ServerCommunication;
 import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+import com.fumbbl.ffb.util.UtilBox;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -40,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,6 +52,191 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void anotherPlayerCanDeclareWithoutExplicitlyEndingTheCurrentActivation() {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        JsonObject first = null, second = null;
+        for (JsonValue value : ready.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if (!"select".equals(action.getString("kind", null))) continue;
+            if (first == null) first = action;
+            else { second = action; break; }
+        }
+        assertTrue(first != null && second != null);
+        JsonObject active = fixture.session.apply(role, fixture.request("action", "first-player", ready)
+            .add("actionId", first.get("id"))).get("state").asObject();
+        String nextId = second.getString("sourcePlayerId", null);
+        assertTrue(active.get("actions").asArray().values().stream().anyMatch(value ->
+            "select".equals(value.asObject().getString("kind", null))
+                && nextId.equals(value.asObject().getString("sourcePlayerId", null))),
+            "The next player must be offered without an explicit End player action");
+        String firstId = active.getString("activePlayerId", null);
+        JsonObject next = perform(fixture, active, "select", nextId);
+        assertEquals(nextId, next.getString("activePlayerId", null));
+        assertFalse(next.get("actions").asArray().values().stream().anyMatch(value ->
+            firstId.equals(value.asObject().getString("sourcePlayerId", null))));
+    }
+
+    @Test void movementBlitzAndFoulSequenceCommitsOnlyOnConfirmation() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        Game game = nativeState(fixture.session).getGame();
+        Player<?>[] own = game.getActingTeam().getPlayers();
+        Player<?>[] opponents = game.getOtherTeam(game.getActingTeam()).getPlayers();
+        // This sequence uses six-MA linemen; random kickoff stat penalties are outside its setup.
+        for (Player<?> player : own)
+            game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, own[0], 4, 2, PlayerState.STANDING);
+        place(game, own[1], 4, 5, PlayerState.STANDING);
+        place(game, own[2], 10, 8, PlayerState.STANDING);
+        place(game, own[3], 10, 12, PlayerState.STANDING);
+        place(game, opponents[0], 12, 8, PlayerState.STANDING);
+        place(game, opponents[1], 12, 12, PlayerState.PRONE);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        game.getFieldModel().setBallMoving(true);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        JsonObject afterA = movement(fixture, ready, own[0].getId(), "move", null, points(9, 2));
+        assertEquals(1, normalRemaining(fixture, afterA, own[0].getId()));
+        JsonObject afterB = movement(fixture, afterA, own[1].getId(), "move", null, points(8, 5));
+        assertEquals(2, normalRemaining(fixture, afterB, own[1].getId()));
+        assertFalse(game.getFieldModel().getPlayerState(own[0]).isActive());
+        forceBlockRolls(fixture.session);
+        forceGeneralRolls(fixture.session, 6, 6, 6, 6);
+        JsonObject blitz = movement(fixture, afterB, own[2].getId(), "blitz", opponents[0].getId(), new JsonArray());
+        assertTrue(blockStarted(blitz, opponents[0].getId()));
+        assertFalse(game.getFieldModel().getPlayerState(own[1]).isActive());
+        assertTrue(game.getTurnData().isBlitzUsed());
+        assertFalse(hasAction(blitz, "select"), "A block decision cannot be bypassed by switching players");
+        // Resolve the pinned push result, including the native push and follow-up decisions.
+        for (int decision = 0; decision < 8 && !hasAction(blitz, "move"); decision++) {
+            JsonObject chosen = null;
+            for (JsonValue value : blitz.get("actions").asArray()) {
+                JsonObject action = value.asObject();
+                String kind = action.getString("kind", "");
+                if ("blockDie".equals(kind) || "push".equals(kind) || "followUp".equals(kind)
+                    || "reroll".equals(kind) && action.getString("id", "").endsWith(":none")) {
+                    chosen = action; break;
+                }
+            }
+            assertTrue(chosen != null, blitz.get("actions").toString());
+            blitz = fixture.session.apply(chosen.getString("actor", null), fixture.request("action", "block-" + decision, blitz)
+                .add("actionId", chosen.get("id"))).get("state").asObject();
+        }
+        assertTrue(hasAction(blitz, "move"));
+        JsonObject step = blitz.get("actions").asArray().values().stream()
+            .map(JsonValue::asObject).filter(action -> "move".equals(action.getString("kind", null))).findFirst().get();
+        JsonObject target = step.get("target").asObject();
+        JsonObject continued = movement(fixture, blitz, own[2].getId(), "move", null,
+            points(target.getInt("x", -1), target.getInt("y", -1)));
+        assertEquals(3, normalRemaining(fixture, continued, own[2].getId()));
+        forceGeneralRolls(fixture.session, 2, 3);
+        JsonObject foul = movement(fixture, continued, own[3].getId(), "foul", opponents[1].getId(), new JsonArray());
+        assertEquals(1, game.getGameResult().getPlayerResult(own[3]).getFouls(),
+            "Fouler: " + fixture.player(foul, own[3].getId())
+                + "; native step: " + nativeState(fixture.session).getCurrentStep().getId());
+        assertFalse(game.getFieldModel().getPlayerState(own[2]).isActive());
+        assertFalse(game.getFieldModel().getPlayerState(own[3]).isActive());
+        assertEquals(continued.getInt("revision", -1) + 1, foul.getInt("revision", -1));
+    }
+
+    @Test void unperformedLimitedDeclarationsRemainSpentAfterSwitchingAndRecovery() throws Exception {
+        for (String kind : new String[] { "declarePass", "declareHandOff", "blitz", "declareFoul", "declareThrowTeamMate", "declareKickTeamMate", "declareBomb" }) {
+            Fixture fixture = new Fixture();
+            JsonObject ready = fixture.advanceToTurn();
+            String role = ready.getString("actor", null);
+            Game game = nativeState(fixture.session).getGame();
+            Player<?> first = game.getActingTeam().getPlayers()[0];
+            Player<?> next = game.getActingTeam().getPlayers()[1];
+            Player<?> opponent = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
+            UtilBox.putAllPlayersIntoBox(game);
+            place(game, first, 7, 7, PlayerState.STANDING);
+            place(game, next, 4, 4, PlayerState.STANDING);
+            place(game, opponent, 10, 7, "declareFoul".equals(kind) ? PlayerState.PRONE : PlayerState.STANDING);
+            SkillFactory skills = game.getFactory(FactoryType.Factory.SKILL);
+            ((RosterPlayer) first).addSkill(skills.forName("Throw Team-Mate"));
+            ((RosterPlayer) first).addSkill(skills.forName("Kick Team-Mate"));
+            ((RosterPlayer) first).addSkill(skills.forName("Bombardier"));
+            ((RosterPlayer) next).addSkill(skills.forName("Right Stuff"));
+            game.getFieldModel().setBallCoordinate(new FieldCoordinate(5, 5));
+            game.getFieldModel().setBallMoving(true);
+            ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+            JsonObject declared = perform(fixture, ready, kind, first.getId());
+            assertFalse(hasAction(declared, kind), kind + " is spent on declaration");
+            JsonObject switched = movement(fixture, declared, next.getId(), "move", null, points(4, 5));
+            assertEquals(JsonValue.valueOf(next.getId()), switched.get("activePlayerId"), kind + ": " + switched.get("actions"));
+            assertFalse(game.getFieldModel().getPlayerState(first).isActive(), kind);
+            assertFalse(hasAction(switched, kind), kind + " must not be refunded");
+            SetupSession recovered = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+            assertFalse(hasAction(recovered.reply("load", "ACCEPTED", false, role).get("state").asObject(), kind));
+        }
+    }
+
+    @Test void legacyActiveCheckpointLoadsAndReservesItsUnperformedDeclaration() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        JsonObject offered = ready.get("actions").asArray().values().stream().map(JsonValue::asObject)
+            .filter(action -> "declarePass".equals(action.getString("kind", null))).findFirst().get();
+        JsonObject active = perform(fixture, ready, "declarePass", offered.getString("sourcePlayerId", null));
+        nativeState(fixture.session).getGame().getTurnData().setPassUsed(false);
+        Field sequencing = SetupSession.class.getDeclaredField("activationSequencing");
+        sequencing.setAccessible(true);
+        sequencing.set(fixture.session, false);
+        JsonObject envelope = JsonObject.readFrom(fixture.session.recoveryArtifact());
+        JsonObject payload = envelope.get("payload").asObject();
+        payload.remove("activationVersion");
+        envelope.set("sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+            .digest(payload.toString().getBytes(StandardCharsets.UTF_8))));
+        SetupSession restored = new SetupSession(fixture.server, fixture.document, envelope.toString());
+        JsonObject recovered = restored.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(active.get("activePlayerId"), recovered.get("activePlayerId"));
+        assertTrue(hasAction(recovered, "select"), "Old checkpoints gain tentative player switching");
+        assertFalse(hasAction(recovered, "declarePass"), "An old active declaration still reserves its limited action");
+    }
+
+    private JsonObject perform(Fixture fixture, JsonObject view, String kind, String playerId) {
+        JsonObject action = view.get("actions").asArray().values().stream().map(JsonValue::asObject)
+            .filter(value -> kind.equals(value.getString("kind", null)) && playerId.equals(value.getString("sourcePlayerId", null)))
+            .findFirst().orElseThrow(() -> new AssertionError("Missing " + kind + " for " + playerId + ": " + view.get("actions")));
+        return fixture.session.apply(view.getString("actor", null), fixture.request("action", "declare-" + view.getInt("revision", -1), view)
+            .add("actionId", action.get("id"))).get("state").asObject();
+    }
+
+    private JsonObject movement(Fixture fixture, JsonObject view, String playerId, String kind, String target, JsonArray waypoints) {
+        String role = view.getString("actor", null);
+        String checkpoint = fixture.session.recoveryArtifact();
+        JsonObject plan = fixture.session.movementPreview(role, view.getInt("revision", -1), playerId, kind, target, waypoints);
+        assertEquals(checkpoint, fixture.session.recoveryArtifact(), "Planning another player must preserve the active player and dice");
+        JsonObject request = fixture.request("movement", "movement-" + view.getInt("revision", -1), view)
+            .add("playerId", playerId).add("kind", kind).add("targetPlayerId", target == null ? JsonValue.NULL : JsonValue.valueOf(target))
+            .add("waypoints", plan.get("waypoints"));
+        JsonObject accepted = fixture.session.apply(role, request);
+        assertEquals("ACCEPTED", accepted.getString("code", null));
+        assertTrue(fixture.session.apply(role, request).getBoolean("duplicate", false), "Switch and movement retry only once");
+        return accepted.get("state").asObject();
+    }
+
+    private int normalRemaining(Fixture fixture, JsonObject view, String playerId) {
+        return fixture.session.movementRange(view.getString("actor", null), view.getInt("revision", -1), playerId)
+            .getInt("normalRemaining", -1);
+    }
+
+    private GameState nativeState(SetupSession session) throws Exception {
+        Field field = SetupSession.class.getDeclaredField("state");
+        field.setAccessible(true);
+        return (GameState) field.get(session);
+    }
+
+    private void place(Game game, Player<?> player, int x, int y, int base) {
+        game.getFieldModel().setPlayerCoordinate(player, new FieldCoordinate(x, y));
+        game.getFieldModel().setPlayerState(player, new PlayerState(base).changeActive(true));
+    }
+
+    private JsonArray points(int x, int y) { return new JsonArray().add(new JsonObject().add("x", x).add("y", y)); }
+
     @Test void liveThreatGuidanceOnlyDecoratesCurrentCoachPlayState() {
         Fixture fixture = new Fixture();
         JsonObject view = fixture.advanceToTurn();
@@ -378,6 +568,15 @@ class SetupSessionMovementTest {
         Fixture fixture = new Fixture();
         JsonObject state = fixture.advanceToTurn();
         String role = state.getString("actor", null);
+        Game rangeGame = nativeState(fixture.session).getGame();
+        Player<?> rangeOpponent = rangeGame.getOtherTeam(rangeGame.getActingTeam()).getPlayers()[0];
+        // Range and retry assertions need movable players, regardless of kickoff casualties or positions.
+        UtilBox.putAllPlayersIntoBox(rangeGame);
+        place(rangeGame, rangeGame.getActingTeam().getPlayers()[0], 7, 7, PlayerState.STANDING);
+        place(rangeGame, rangeOpponent, 20, 7, PlayerState.STANDING);
+        rangeGame.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        rangeGame.getFieldModel().setBallMoving(true);
+        state = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
         JsonObject selectable = null;
         JsonObject destination = null;
         int revision = state.getInt("revision", -1);
@@ -642,7 +841,7 @@ class SetupSessionMovementTest {
         return false;
     }
 
-    private static final class Fixture {
+    static final class Fixture {
         final FantasyFootballServer server = mock(FantasyFootballServer.class);
         final MatchDocument document;
         final SetupSession session;
