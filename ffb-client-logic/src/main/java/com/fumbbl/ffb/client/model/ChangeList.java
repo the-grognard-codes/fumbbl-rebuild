@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser block dice continue hovering through confirmation, blend opposing diagonal turns in one smooth 310ms tumble and settle head-on near screen center-right")
+			.addFeature("Browser block and blitz proposals preview floating polygon dice, roll naturally into matching polygon results and show soft shadows or red uphill glows around dice and reroll icons")
 			.addImprovement("MUTP apothecary decisions show named injury icons and stat, niggling injury and recovery details while preserving existing rules")
 			.addImprovement("Kick decisions allow pitch panning while smooth ball markers rotate around the football")
 			.addBehaviorChange("New browser matches offer Kick after deviation so both possible landing squares can be compared")

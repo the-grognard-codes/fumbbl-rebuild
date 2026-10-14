@@ -397,7 +397,12 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     assert.equal(await page.getByText('Final play').count(), 0);
     await page.getByRole('button', { name: 'Last', exact: true }).click();
     await page.getByText('Final play').waitFor();
-    assert.equal(await page.getByLabel('Read-only replay pitch').locator('.live-dice-overlay .match-die').count(), 2);
+    // Dice are screen-positioned in a portal rather than inside the pitch.
+    const replayDice = page.getByRole('status', { name: 'Block die selected: SKULL, POW', exact: true });
+    await replayDice.waitFor();
+    assert.deepEqual(await replayDice.locator('.match-die').evaluateAll(dice => dice.map(die => die.dataset.face)), ['SKULL', 'POW']);
+    assert.equal(await replayDice.locator('.match-die.selected').getAttribute('data-face'), 'POW');
+    assert.equal(await replayDice.getByRole('button').count(), 0, 'Replay dice remain read-only');
     await page.getByRole('tab', { name: 'Log' }).click();
     const log = page.getByRole('log');
     await log.getByText(/chooses die 2 \(Pow\).*dice Skull, Pow/).waitFor();

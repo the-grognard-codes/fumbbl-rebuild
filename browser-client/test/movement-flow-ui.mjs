@@ -16,13 +16,13 @@ await server.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 
-async function openJourney(readyState, plan, acceptedState) {
+async function openJourney(readyState, plan, acceptedState, replyDelay = 0, actionStates = {}) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
     '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
-  await page.addInitScript(({ fixture, readyState, plan, acceptedState }) => {
+  await page.addInitScript(({ fixture, readyState, plan, acceptedState, replyDelay, actionStates }) => {
     window.WebSocket = class {
       static OPEN = 1;
       readyState = 1;
@@ -58,14 +58,19 @@ async function openJourney(readyState, plan, acceptedState) {
             code: 'ACCEPTED', matchId: this.state.matchId, range: { ...range, revision: this.state.revision } }));
         }
         if (request.type === 'setup') {
-          if (request.operation === 'movement') this.state = acceptedState;
-          queueMicrotask(() => this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
-            code: 'ACCEPTED', duplicate: false, state: this.state }));
+          const reply = () => {
+            if (request.operation === 'movement') this.state = acceptedState;
+            if (request.operation === 'action' && actionStates[request.actionId]) this.state = actionStates[request.actionId];
+            this.emit({ version: 2, type: 'setupState', requestId: request.requestId,
+              code: 'ACCEPTED', duplicate: false, state: this.state });
+          };
+          if (replyDelay && request.operation !== 'load') setTimeout(reply, replyDelay);
+          else queueMicrotask(reply);
         }
       }
       close() { this.readyState = 3; this.onclose?.(); }
     };
-  }, { fixture, readyState, plan, acceptedState });
+  }, { fixture, readyState, plan, acceptedState, replyDelay, actionStates });
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${readyState.matchId}`);
   await page.getByLabel('Live match pitch').waitFor();
   return { page, errors, confirmed: page.getByRole('button', { name: 'Confirmed!', exact: true }) };
@@ -77,6 +82,71 @@ const clickSquare = async (page, square, button = 'left') => page.locator('.live
   position: await squarePosition(page, square.x, square.y), button });
 
 try {
+  // Presentation forecasts are controlled here; native calculations are tested in the server suite.
+  const blocker = fixture.readyState.players.find(player => player.id === fixture.meta.blitzPlayerId);
+  const targets = fixture.readyState.players.filter(player => player.role !== blocker.role && player.x !== null
+    && Math.max(Math.abs(player.x - blocker.x), Math.abs(player.y - blocker.y)) === 1);
+  const blockState = { ...fixture.readyState, blockPreview: { version: 1, rolls: targets.map((target, index) =>
+    ({ playerId: blocker.id, targetPlayerId: target.id, dice: index ? 3 : -2 })) } };
+  const proposal = await openJourney(blockState, fixture.movePlan.plan, fixture.moveAcceptedState);
+  await select(proposal.page, blocker.id);
+  await select(proposal.page, targets[0].id);
+  const potential = proposal.page.locator('.block-dice-surface[role="status"]');
+  await potential.waitFor();
+  assert.equal(await potential.locator('.block-die.potential').count(), 2);
+  assert.match(await potential.getAttribute('class'), /uphill/);
+  assert.match(await potential.getAttribute('aria-label'), /opponent chooses/);
+  assert.ok(await potential.locator('.block-die-cube').first().evaluate(el => el.getAnimations().length > 0));
+  assert.deepEqual(await mutations(proposal.page), [], 'Proposing a block never rolls or sends an action');
+  await select(proposal.page, targets[1].id);
+  assert.equal(await potential.locator('.block-die.potential').count(), 3, 'Changing targets updates the native forecast');
+  assert.doesNotMatch(await potential.getAttribute('class'), /uphill/);
+  await select(proposal.page, targets[1].id);
+  assert.equal(await potential.count(), 0, 'Clicking the proposed target again clears potential dice');
+  await select(proposal.page, blocker.id);
+  await select(proposal.page, targets[0].id);
+  await proposal.page.locator('.live-pitch-viewport').focus(); await proposal.page.keyboard.press('Escape');
+  assert.equal(await potential.count(), 0);
+  assert.deepEqual(await mutations(proposal.page), []);
+  assert.deepEqual(proposal.errors, []); await proposal.page.close();
+
+  // A normal block declares the attacker before rolling. Keep its preview
+  // motion through both replies and tumble only when the native result arrives.
+  const declaration = blockState.actions.find(action => action.kind === 'selectBlock' && action.sourcePlayerId === blocker.id);
+  const attack = { id: '6:block-preview-target', kind: 'block', label: 'Block target', actor: blockState.actor,
+    sourcePlayerId: blocker.id, target: { playerId: targets[0].id } };
+  const declared = { ...blockState, revision: 6, activePlayerId: blocker.id, actions: [attack] };
+  const block = await openJourney(blockState, fixture.movePlan.plan, fixture.blitzAcceptedState, 550,
+    { [declaration.id]: declared, [attack.id]: fixture.blitzAcceptedState });
+  await select(block.page, blocker.id);
+  await select(block.page, targets[0].id);
+  await block.page.evaluate(() => {
+    window.blockCube = document.querySelector('.block-die-cube'); window.blockAnimations = [];
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function(...args) {
+      const animation = animate.apply(this, args);
+      if (this.classList.contains('block-die-cube')) window.blockAnimations.push({
+        phase: this.closest('.block-die').className, duration: animation.effect.getTiming().duration,
+        iterations: animation.effect.getTiming().iterations });
+      return animation;
+    };
+  });
+  await block.confirmed.click();
+  await block.page.locator('.block-die.awaiting').first().waitFor();
+  assert.equal(await block.page.locator('.block-die.awaiting').count(), 2, 'Slow block confirmation retains the forecast dice');
+  await block.page.getByRole('dialog').waitFor();
+  await block.page.waitForFunction(() => document.querySelectorAll('.block-die.rolling').length === 0);
+  assert.deepEqual((await mutations(block.page)).map(request => request.actionId), [declaration.id, attack.id]);
+  const blockMotion = await block.page.evaluate(() => ({
+    sameCube: document.querySelector('.block-die-cube') === window.blockCube, animations: window.blockAnimations }));
+  assert.equal(blockMotion.sameCube, true, 'Normal block keeps the same cube through declaration and result');
+  assert.deepEqual(blockMotion.animations.filter(animation => /awaiting/.test(animation.phase))
+    .map(({ duration, iterations }) => ({ duration, iterations })),
+    [], 'Confirmation continues the preview motion without an extra roll across both replies');
+  assert.deepEqual(blockMotion.animations.filter(animation => /rolling/.test(animation.phase)).map(animation => animation.duration),
+    [310], 'The normal block uses one short result animation');
+  assert.deepEqual(block.errors, []); await block.page.close();
+
   for (const role of ['home', 'away']) {
     const state = { ...fixture.readyState, callerRole: role };
     const selection = await openJourney(state, fixture.movePlan.plan, fixture.moveAcceptedState);
@@ -175,25 +245,53 @@ try {
   assert.deepEqual((await mutations(distant.page))[0].waypoints, distantPlan.waypoints);
   assert.deepEqual(distant.errors, []); await distant.page.close();
 
-  const blitz = await openJourney(fixture.blitzReadyState, fixture.blitzPlan.plan, fixture.blitzAcceptedState);
+  const blitz = await openJourney(fixture.blitzReadyState, { ...fixture.blitzPlan.plan, blockDice: -3 }, fixture.blitzAcceptedState, 450);
   await select(blitz.page, fixture.meta.blitzPlayerId);
   await blitz.page.getByRole('button', { name: 'Blitz', exact: true }).click();
   await select(blitz.page, fixture.meta.blitzTargetId);
   await blitz.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  assert.equal(await blitz.page.locator('.block-dice-surface .block-die.potential').count(), 3);
+  assert.match(await blitz.page.locator('.block-dice-surface[role="status"]').getAttribute('class'), /uphill/);
   assert.equal(await blitz.page.locator('.live-selection-square').getAttribute('data-selection'), fixture.meta.blitzPlayerId);
   await assertNoMovementMarkings(blitz.page);
   assert.equal(await blitz.page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange'
     && request.playerId === window.testSocket.state.players.find(player => player.role !== window.testSocket.state.callerRole)?.id).length), 0);
   assert.deepEqual(await mutations(blitz.page), []);
   if (evidence) await blitz.page.screenshot({ path: resolve(evidence, 'blitz-plan.png') });
+  await blitz.page.evaluate(() => {
+    window.handoffCube = document.querySelector('.block-die-cube'); window.handoffFrames = []; window.observeHandoff = true;
+    window.blitzResultDurations = [];
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function(...args) {
+      const animation = animate.apply(this, args);
+      if (this.classList.contains('block-die-cube') && this.closest('.block-die.rolling'))
+        window.blitzResultDurations.push(animation.effect.getTiming().duration);
+      return animation;
+    };
+    const frame = () => {
+      const cube = document.querySelector('.block-die-cube'), panel = cube?.closest('.live-dice-overlay');
+      window.handoffFrames.push(!!cube && cube === window.handoffCube && getComputedStyle(panel).visibility === 'visible');
+      if (window.observeHandoff) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
   await blitz.confirmed.click();
+  await blitz.page.locator('.block-die.awaiting').first().waitFor();
+  assert.equal(await blitz.page.locator('.block-die.awaiting').count(), 3, 'Pending confirmation keeps the proposed dice visible');
   await blitz.page.waitForFunction(revision => window.testSocket.state.revision === revision, fixture.blitzAcceptedState.revision);
   const attacks = await mutations(blitz.page);
   assert.equal(attacks.length, 1);
   assert.equal(attacks[0].operation, 'movement');
   assert.equal(attacks[0].kind, 'blitz');
   assert.equal(attacks[0].targetPlayerId, fixture.meta.blitzTargetId);
-  await blitz.page.locator('.pitch-decision-overlay').waitFor();
+  await blitz.page.getByRole('dialog').waitFor();
+  await blitz.page.waitForFunction(() => document.querySelectorAll('.block-die.rolling').length === 0);
+  assert.deepEqual(await blitz.page.evaluate(() => window.blitzResultDurations), [310],
+    'Blitz and ordinary block use the same short result duration');
+  assert.ok(await blitz.page.evaluate(() => {
+    window.observeHandoff = false; return window.handoffFrames.length > 10 && window.handoffFrames.every(Boolean);
+  }), 'Every rendered frame preserves the first preview cube through the pending request and native roll');
+  assert.equal(await blitz.page.locator('.block-die.potential').count(), 0, 'Confirmed blitz replaces potential dice with native choices');
   assert.deepEqual(blitz.errors, []); await blitz.page.close();
 
   const approachPlan = fixture.distantBlitzPlan.plan;

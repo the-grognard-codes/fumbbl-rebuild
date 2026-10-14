@@ -16,7 +16,7 @@ const pips: Record<string, [number, number][]> = {
 const skull = 'M5 2H11V3H13V5H14V10H12V12H11V15H5V12H4V10H2V5H3V3H5Z M4 6V9H7V6Z M9 6V9H12V6Z M7 10V12H9V10Z M6 13V15H7V13Z M9 13V15H10V13Z';
 const burst = 'M7 0H10L11 4L15 2L13 6L16 8L12 10L14 14L10 12L8 16L6 12L2 14L4 10L0 8L4 6L2 2L6 4Z';
 
-function BlockMark({ face }: { face: string }) {
+export function BlockMark({ face }: { face: string }) {
   if (face === 'SKULL') return <path d={skull} fillRule="evenodd"/>;
   if (face === 'BOTH DOWN') return <>
     <path d={burst}/>

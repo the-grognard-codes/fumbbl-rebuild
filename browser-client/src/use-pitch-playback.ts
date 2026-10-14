@@ -83,7 +83,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       // A coach may pause before choosing a reroll or skill. Keep the revealed
       // result with that prompt until an accepted revision resolves it.
       const pendingRoll = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
-      if (dice) showDice({ ...dice, rollKey: !reduced && dice.selected === null ? `${view.revision}:response` : undefined },
+      if (dice) showDice({ ...dice, revision: view.revision, rollKey: !reduced && dice.selected === null ? `${view.revision}:response` : undefined },
         sequenceKey(view), pendingRoll);
       else clearDice();
       return;
@@ -140,7 +140,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         const beat = beats[index];
         if (beat.kind === 'dice') {
           diceRevision.current = record.revision;
-          showDice({ ...beat.dice, rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
+          showDice({ ...beat.dice, revision: record.revision, rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
             sequenceKey(record.state), false, true);
           continue;
         }

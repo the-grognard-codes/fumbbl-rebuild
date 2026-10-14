@@ -6,7 +6,7 @@ export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoin
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
 export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
-  waypoints: RoutePoint[]; route: RoutePreview };
+  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
   code: 'ACCEPTED'; matchId: string; range: MovementRange };
 export type MovementPreviewResponse = { version: 2; type: 'movementPreview'; requestId: string;
@@ -65,10 +65,12 @@ export function decodeMovementRange(json: string): MovementRangeResponse {
 
 export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const response = envelope(json, 'movementPreview', 'plan');
-  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route']);
+  const hasDice = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockDice');
+  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : [])]);
   if (value.planVersion !== 1 || !['move', 'blitz', 'foul'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
+  if (hasDice && (kind !== 'blitz' || ![1, 2, 3, -2, -3].includes(value.blockDice as number))) throw Error('Invalid blitz dice');
   const targetPlayerId = kind !== 'move' ? playerId(value.targetPlayerId) : null;
   if (kind === 'move' && value.targetPlayerId !== null) throw Error('Unexpected movement target');
   const route = decodeRoutePreviewValue(value.route, kind !== 'move');
@@ -83,5 +85,6 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
     if (cursor === route.steps.length) throw Error('Waypoint absent from movement path');
     cursor++;
   }
-  return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route } } as MovementPreviewResponse;
+  return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route,
+    ...(hasDice ? { blockDice: value.blockDice as number } : {}) } } as MovementPreviewResponse;
 }

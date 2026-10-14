@@ -16,6 +16,7 @@ await server.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
+await page.clock.install();
 const errors = []; page.on('pageerror', error => errors.push(error.message));
 const publish = input => page.evaluate(input => window.publishPlayback(input), { enabled: true, mode: 'live', ...input });
 const wait = (revision, x) => page.waitForFunction(({revision,x}) => { const out = document.querySelector('#playback-state'); return Number(out.dataset.revision) === revision && Number(out.dataset.x) === x && out.dataset.active === 'false'; }, {revision,x});
@@ -25,17 +26,32 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/playback-test`);
   await wait(0,7);
   const rolled = record(1,7,[{ reportList: { reports:[dice] } }]);
+  // Inspect the brief roll without racing real-time browser commands.
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view: { ...state(1), actions: [{ id:'choice',kind:'blockDie',actor:'home',label:'Choose POW (die 3)',sourcePlayerId:'home1',target:null }] }, records:[record(0),rolled] });
   await page.locator('#required-choice').waitFor();
   assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'false', 'Dice decoration cannot hold the mandatory response');
   const shown = page.locator('.live-dice-overlay .match-die');
   assert.equal(await shown.count(),3);
   assert.deepEqual(await shown.evaluateAll(elements => elements.map(element => element.dataset.face)), ['SKULL','PUSHBACK','POW']);
-  const animations = await shown.evaluateAll(elements => elements.flatMap(element => element.getAnimations().map(animation => ({ duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes() }))));
-  assert.equal(animations.length,3); assert.ok(animations.every(animation => animation.duration === 440));
+  const animations = await shown.locator('.block-die-cube').evaluateAll(elements => elements.flatMap(element => element.getAnimations().map(animation => ({ duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes() }))));
+  assert.equal(animations.length,3,'Each native block die has one tumble animation');
+  assert.ok(animations.every(animation => animation.duration === 310),'Symbolic block rolls finish in 310ms');
+  assert.ok(animations.every(animation => animation.frames.length === 2), 'Each roll blends both diagonals in one continuous animation');
+  const turns = animations.map(animation => animation.frames.map(frame =>
+    [...frame.transform.matchAll(/rotate3d\(([^)]+),\s*(-?\d+)deg\)/g)]));
+  assert.ok(turns.every(frames => frames.every(rotations => rotations.length === 2)), 'Dice use two diagonal rotation axes');
+  assert.ok(turns.every(([start,end]) => start.every((rotation,index) => rotation[1] === end[index][1]
+    && Number(rotation[2]) === 0 && Math.abs(Number(end[index][2])) === 180)),
+    'Two blended half-turns preserve the previous total rotation and speed');
+  assert.ok(turns.every(([start]) => Number(start[0][1].split(',')[1]) * Number(start[1][1].split(',')[1]) < 0),
+    'The second diagonal opposes the first');
+  assert.notEqual(turns[0][1][0][2], turns[1][1][0][2], 'Adjacent dice tumble in opposite directions');
   assert.ok(animations.every(animation => animation.frames.every(frame => !frame.transform || !/translate\([^)]*[4-9]px/.test(frame.transform))));
   // A newer accepted board takes effect while old dice are still spinning.
-  await publish({ view: state(2,8), records:[record(0),rolled,record(2,8)] }); await wait(2,8);
+  await publish({ view: state(2,8), records:[record(0),rolled,record(2,8)] });
+  await page.clock.resume();
+  await wait(2,8);
   assert.equal(await page.locator('.live-dice-overlay').count(),0);
   const moves = record(3,11,[{ modelChangeList: { modelChangeArray:[change(9),change(10),change(11)] } }]);
   await page.evaluate(() => { window.playbackFrames = []; });
@@ -63,7 +79,7 @@ try {
   await wait(10,24);
   assert.deepEqual(await page.evaluate(()=>window.playbackFrames.map(frame=>frame.x).filter((x,index,all)=>!index||all[index-1]!==x)),[22,23,24], 'Reduced motion exposes every ordered discrete square');
   assert.equal(await page.locator('#playback-state').getAttribute('data-roll-key'),'');
-  assert.equal(await page.locator('.live-dice-overlay .match-die').evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0);
+  assert.equal(await page.locator('.live-dice-overlay .match-die').evaluateAll(elements=>elements.flatMap(element=>element.getAnimations({subtree:true})).length),0);
   // A mandatory prompt must stay reachable even when its transcript is late.
   await publish({view:{...state(11,22),prompt:{id:'coin',actor:'home',kind:'coin',options:['heads','tails']}},records:[]}); await wait(11,22);
   // The result remains beside a pending reroll after its decorative animation ends.

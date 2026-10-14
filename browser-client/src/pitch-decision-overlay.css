@@ -7,6 +7,19 @@
   align-items: center;
   gap: 5px;
 }
+.live-dice-overlay.pitch-decision-overlay .pitch-dice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 5px;
+  padding: 8px 4px;
+  overflow: auto;
+}
+.live-dice-overlay.pitch-decision-overlay .pitch-skill-choices button { pointer-events: auto; }
 .live-dice-overlay.pitch-decision-overlay .pitch-decision-roll {
   display: flex;
   flex-wrap: wrap;

@@ -4,7 +4,7 @@ import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
-import { DiceFace } from './DiceFace.tsx';
+import type { PotentialBlockDice } from './block-dice-presentation.ts';
 import { BallMarker } from './BallMarker.tsx';
 import { kickoffMarkerPosition } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
@@ -93,7 +93,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 }
 
 /** Presentation only: positions, state, ball and identity come from the server. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null,
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
@@ -101,6 +101,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
+  potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -227,8 +228,6 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const depthOrder = new Map([...occupants].sort((a, b) =>
     (camera.project(centerOf({ x: b.x!, y: b.y! }))?.depth ?? 0) - (camera.project(centerOf({ x: a.x!, y: a.y! }))?.depth ?? 0) || a.id.localeCompare(b.id))
     .map((player, index) => [player.id, index]));
-  const diceX = camera.width * .25;
-  const diceY = Math.min(camera.height - 130, Math.max(20, camera.height * .38));
   const chalk = (from: Point, to: Point) => routePath([{ x: from.x - .5, y: from.y - .5 }, { x: to.x - .5, y: to.y - .5 }], camera);
   const cameraControls = <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
       <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
@@ -386,12 +385,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(p.y - from.y, p.x - from.x) * 180 / Math.PI}deg)` }}><path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/></svg>
           </button>;
         })}
-        {decision && <PitchDecisionOverlay key={decision.key} decision={decision}
-          diceMoment={decision.kind === 'reroll' || decision.kind === 'skill' ? diceMoment : null}
-          disabled={decisionDisabled} viewport={viewport} scene={scene} x={diceX} y={diceY} onAction={onDecisionAction}/>}
-        {!decision && diceMoment && <div className="live-dice-overlay" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`} style={{ left: diceX, top: diceY }}><strong className="sr-only">{diceMoment.label}</strong><div>{diceMoment.faces.map((face, index) =>
-          <span key={index} title={diceMoment.rolls?.[index]?.label ?? diceMoment.label}><DiceFace face={face} selected={diceMoment.selected === index}
-            rollKey={diceMoment.rolls?.[index]?.rollKey ?? diceMoment.rollKey}/></span>)}</div></div>}
+        <PitchDecisionOverlay decision={decision} diceMoment={diceMoment}
+          potentialDice={(!readOnly && !playback || diceAwaiting) ? potentialDice : null} awaiting={diceAwaiting}
+          attackerRole={activePlayer?.role} chooserRole={view.callerRole === 'spectator' ? undefined : view.callerRole}
+          disabled={decisionDisabled} viewport={viewport} onAction={onDecisionAction}/>
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>

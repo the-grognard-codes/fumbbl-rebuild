@@ -1,5 +1,5 @@
 import type { MatchDecision } from './match-decision.ts';
-import { blockFace } from './dice-presentation.ts';
+import { blockFace, reportedDice } from './dice-presentation.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
 /** Keep actual block outcomes separate from the current native Pro test report. */
@@ -13,6 +13,7 @@ export function withProTest(decision: MatchDecision | null, records: TranscriptR
   if (!pro || !Number.isInteger(pro.roll) || Number(pro.roll) < 1 || Number(pro.roll) > 6 || typeof pro.successful !== 'boolean') return decision;
   let originalFaces: string[] | undefined;
   let originalLabel: string | undefined;
+  let uphill: boolean | undefined;
   if (decision.kind === 'proTestReroll') {
     const block = decision.options.some(option => option.id.includes(':block-pro-test:'));
     for (let index = records.length - 1; index >= 0; index--) {
@@ -23,11 +24,13 @@ export function withProTest(decision: MatchDecision | null, records: TranscriptR
       if (block && Array.isArray(original.blockRoll)) {
         const faces = original.blockRoll.map(value => blockFace(Number(value)));
         if (faces.every(face => face !== null)) originalFaces = faces as string[];
+        uphill = reportedDice(original, records[index].state.players)?.uphill;
       } else if (!block && Number(original.roll) >= 1 && Number(original.roll) <= 6) {
         originalFaces = [String(original.roll)]; originalLabel = 'Original action roll';
       }
       break;
     }
   }
-  return { ...decision, originalFaces, originalLabel, proTest: { face: String(pro.roll), successful: pro.successful } };
+  return { ...decision, originalFaces, originalLabel, ...(uphill !== undefined ? { uphill } : {}),
+    proTest: { face: String(pro.roll), successful: pro.successful } };
 }

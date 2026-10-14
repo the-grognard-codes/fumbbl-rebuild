@@ -5,7 +5,7 @@ import { injuryIcon } from './injury-presentation.ts';
 export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; playerName?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
   playerName?: string; instruction?: string;
-  originalFaces?: string[]; originalLabel?: string; proTest?: { face: string; successful: boolean } };
+  originalFaces?: string[]; originalLabel?: string; uphill?: boolean; proTest?: { face: string; successful: boolean } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
 // rerolls have no offered action and therefore never acquire a manual button.
