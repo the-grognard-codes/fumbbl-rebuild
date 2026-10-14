@@ -1010,6 +1010,9 @@ public final class SetupSession {
 			// Old kickoff checkpoints omitted the moved player's source, but retained its exact target and action ID.
 			if ("kickoffMove".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("sourcePlayerId")))
 				now.set("sourcePlayerId", JsonValue.NULL);
+			// Follow-up targets are presentation metadata added after existing checkpoints were saved.
+			if ("followUp".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("target")))
+				now.set("target", JsonValue.NULL);
 		}
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;

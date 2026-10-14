@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser follow-up decisions stay near screen center without obscuring the block initiator, preview the destination with a pushback arrow and allow pitch panning while deciding")
 			.addImprovement("Browser block dice continue hovering through confirmation, blend opposing diagonal turns in one smooth 310ms tumble and settle head-on near screen center-right")
 			.addFeature("Browser block and blitz proposals preview floating polygon dice, roll naturally into matching polygon results and show soft shadows or red uphill glows around dice and reroll icons")
 			.addImprovement("MUTP apothecary decisions show named injury icons and stat, niggling injury and recovery details while preserving existing rules")

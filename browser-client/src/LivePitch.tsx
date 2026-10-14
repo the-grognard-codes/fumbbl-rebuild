@@ -164,6 +164,13 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     prior.current = { matchId: view.matchId, revision: view.revision, players: view.players };
   }, [view.matchId, view.revision, view.players]);
   const activePlayer = view.players.find(player => player.id === view.activePlayerId), selected = view.players.find(player => player.id === selectedId);
+  const followUpAction = !readOnly && !playback ? actions.find(action => action.kind === 'followUp'
+    && action.actor === view.callerRole && action.target && 'x' in action.target) : undefined;
+  const followUpTarget = followUpAction?.target && 'x' in followUpAction.target ? followUpAction.target : null;
+  const followUpPlayer = view.players.find(player => player.id === (followUpAction?.sourcePlayerId ?? view.activePlayerId));
+  const followUpTo = followUpTarget && camera.project(centerOf(followUpTarget));
+  const followUpFrom = followUpPlayer?.x != null && followUpPlayer.y != null
+    ? camera.project(centerOf({ x: followUpPlayer.x, y: followUpPlayer.y })) : null;
   const rangeMarkings = movementRange && movementRange.full.length > 0 && movementRange.playerId === selectedId
     ? movementRangePresentation(movementRange.normal, movementRange.full, movementRange.from, camera,
       view.players.filter(player => player.x != null && player.y != null).map(player => ({ x: player.x!, y: player.y! }))) : null;
@@ -203,7 +210,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target && !['push', 'move', 'jump', 'kickoff'].includes(action.kind)
+    else if (action.target && 'x' in action.target && !['push', 'followUp', 'move', 'jump', 'kickoff'].includes(action.kind)
       && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
@@ -376,6 +383,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
           onSelect={() => onSelectPlayer(player.id)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }
+        {followUpTarget && followUpTo && followUpFrom && <div className="live-push-choice live-follow-up-preview" role="img"
+          aria-label={`Follow-up destination: ${followUpTarget.x}, ${followUpTarget.y}`}
+          data-x={followUpTarget.x} data-y={followUpTarget.y}
+          style={{ left: followUpTo.x - followUpTo.pixelsPerSquare / 2, top: followUpTo.y - followUpTo.pixelsPerSquare / 2,
+            width: followUpTo.pixelsPerSquare, height: followUpTo.pixelsPerSquare }}>
+          <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(followUpTo.y - followUpFrom.y, followUpTo.x - followUpFrom.x) * 180 / Math.PI}deg)` }}>
+            <path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/>
+          </svg>
+        </div>}
         {pushChoices.map(choice => {
           const p = camera.project(centerOf({ x: choice.x, y: choice.y })), from = camera.project(centerOf({ x: choice.fromX, y: choice.fromY }));
           if (!p || !from) return null;

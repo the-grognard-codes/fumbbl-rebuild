@@ -37,6 +37,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecaries;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
 import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
 import com.fumbbl.ffb.util.UtilPassing;
@@ -193,7 +194,10 @@ public final class CorePromptActions {
 		ActingPlayer acting = game.getActingPlayer();
 		String role = acting == null ? null : roleForPlayer(game, acting.getPlayer());
 		if (role == null) return;
-		add(result, "follow-up:yes", "followUp", "Follow up", role, new ClientCommandFollowupChoice(true));
+		FieldCoordinate destination = state.getCurrentStep() == null ? null
+			: IServerJsonOption.DEFENDER_POSITION.getFrom(null, state.getCurrentStep().toJsonValue());
+		result.add(new CoreTurnActions.Action("follow-up:yes", "followUp", "Follow up", role,
+			new ClientCommandFollowupChoice(true), destination));
 		add(result, "follow-up:no", "followUp", "Do not follow up", role, new ClientCommandFollowupChoice(false));
 	}
 
