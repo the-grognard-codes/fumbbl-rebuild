@@ -44,7 +44,7 @@ export function playbackBeats(record: TranscriptRecord): PlaybackBeat[] {
     const reports = (sync.reportList as { reports?: unknown[] } | undefined)?.reports;
     if (Array.isArray(reports)) for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-      const dice = reportedDice(value as Record<string, unknown>);
+      const dice = reportedDice(value as Record<string, unknown>, record.state.players);
       if (dice) beats.push({ kind: 'dice', dice });
     }
     const changes = (sync.modelChangeList as { modelChangeArray?: unknown[] } | undefined)?.modelChangeArray;

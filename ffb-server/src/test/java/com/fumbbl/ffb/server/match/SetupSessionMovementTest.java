@@ -52,6 +52,113 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void nativeBlockPreviewIncludesAssistsAndBlitzEndpointWithoutChangingLiveState() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        Game game = nativeState(fixture.session).getGame();
+        Player<?> attacker = game.getActingTeam().getPlayers()[0];
+        Player<?> helper = game.getActingTeam().getPlayers()[1];
+        Player<?> defender = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
+        clearBlockPreviewKickoffEffects(nativeState(fixture.session));
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, attacker, 7, 7, PlayerState.STANDING);
+        place(game, helper, 9, 8, PlayerState.STANDING);
+        place(game, defender, 8, 7, PlayerState.STANDING);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(1, 14));
+        game.getFieldModel().setBallMoving(true);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(2, blockPreviewDice(ready, attacker.getId(), defender.getId()));
+        String checkpoint = fixture.session.recoveryArtifact();
+        String nativeBefore = nativeState(fixture.session).toJsonValue(true, 0).toString();
+        fixture.session.spectatorView();
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+        assertEquals(nativeBefore, nativeState(fixture.session).toJsonValue(true, 0).toString());
+
+        place(game, helper, 20, 8, PlayerState.STANDING);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(1, blockPreviewDice(ready, attacker.getId(), defender.getId()));
+
+        place(game, attacker, 6, 7, PlayerState.STANDING);
+        place(game, helper, 9, 8, PlayerState.STANDING);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        checkpoint = fixture.session.recoveryArtifact();
+        nativeBefore = nativeState(fixture.session).toJsonValue(true, 0).toString();
+        JsonObject plan = fixture.session.movementPreview(role, ready.getInt("revision", -1), attacker.getId(),
+            "blitz", defender.getId(), points(7, 7));
+        assertEquals(2, plan.getInt("blockDice", 0));
+        assertEquals(new FieldCoordinate(6, 7), game.getFieldModel().getPlayerCoordinate(attacker));
+        assertEquals(checkpoint, fixture.session.recoveryArtifact());
+        assertEquals(nativeBefore, nativeState(fixture.session).toJsonValue(true, 0).toString());
+        JsonObject move = fixture.session.movementPreview(role, ready.getInt("revision", -1), attacker.getId(),
+            "move", null, points(7, 7));
+        assertFalse(move.names().contains("blockDice"));
+    }
+
+    private int blockPreviewDice(JsonObject state, String attackerId, String defenderId) {
+        for (JsonValue value : state.get("blockPreview").asObject().get("rolls").asArray()) {
+            JsonObject roll = value.asObject();
+            if (attackerId.equals(roll.getString("playerId", null))
+                && defenderId.equals(roll.getString("targetPlayerId", null))) return roll.getInt("dice", 0);
+        }
+        throw new AssertionError("Missing block preview for " + attackerId + " against " + defenderId);
+    }
+
+    private void clearBlockPreviewKickoffEffects(GameState state) {
+        Game game = state.getGame();
+        // These fixtures count on-pitch assists only, independently of random kickoff bonuses.
+        state.removeAdditionalAssist(game.getTeamHome().getId());
+        state.removeAdditionalAssist(game.getTeamAway().getId());
+        game.getTurnDataHome().setCheeringFansBlockAssist(0);
+        game.getTurnDataAway().setCheeringFansBlockAssist(0);
+        for (Player<?> player : game.getPlayers())
+            game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
+    }
+
+    @Test void blockPreviewKeepsThreeDiceAndOpponentChoiceSigned() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        Game game = nativeState(fixture.session).getGame();
+        Player<?>[] own = game.getActingTeam().getPlayers();
+        Player<?>[] opponents = game.getOtherTeam(game.getActingTeam()).getPlayers();
+        clearBlockPreviewKickoffEffects(nativeState(fixture.session));
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, own[0], 7, 7, PlayerState.STANDING);
+        place(game, opponents[0], 8, 7, PlayerState.STANDING);
+        int[][] attackingAssists = { { 9, 6 }, { 9, 7 }, { 9, 8 }, { 8, 6 } };
+        for (int i = 0; i < attackingAssists.length; i++)
+            place(game, own[i + 1], attackingAssists[i][0], attackingAssists[i][1], PlayerState.STANDING);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(3, blockPreviewDice(ready, own[0].getId(), opponents[0].getId()));
+
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, own[0], 7, 7, PlayerState.STANDING);
+        place(game, opponents[0], 8, 7, PlayerState.STANDING);
+        int[][] defendingAssists = { { 6, 6 }, { 6, 7 }, { 6, 8 }, { 7, 6 }, { 7, 8 }, { 8, 8 } };
+        for (int i = 0; i < defendingAssists.length; i++)
+            place(game, opponents[i + 1], defendingAssists[i][0], defendingAssists[i][1], PlayerState.STANDING);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(-3, blockPreviewDice(ready, own[0].getId(), opponents[0].getId()));
+
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, own[0], 7, 7, PlayerState.STANDING);
+        place(game, opponents[0], 8, 7, PlayerState.STANDING);
+        place(game, opponents[1], 6, 7, PlayerState.STANDING);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(-2, blockPreviewDice(ready, own[0].getId(), opponents[0].getId()));
+
+        // Cheering Fans supplies the extra attacking assist that turns this uphill block into one die.
+        GameState nativeGame = nativeState(fixture.session);
+        nativeGame.setTeamIdsAdditionalAssist(Collections.singleton(game.getActingTeam().getId()));
+        game.getTurnData().setCheeringFansBlockAssist(1);
+        String checkpoint = fixture.session.recoveryArtifact();
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertEquals(1, blockPreviewDice(ready, own[0].getId(), opponents[0].getId()));
+        assertEquals(1, nativeGame.getAdditionalAssist(game.getActingTeam().getId()));
+        assertEquals(checkpoint, fixture.session.recoveryArtifact(), "Previewing must not consume the kickoff assist");
+    }
+
     @Test void anotherPlayerCanDeclareWithoutExplicitlyEndingTheCurrentActivation() {
         Fixture fixture = new Fixture();
         JsonObject ready = fixture.advanceToTurn();

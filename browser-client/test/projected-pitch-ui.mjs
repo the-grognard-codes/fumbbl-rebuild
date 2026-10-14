@@ -439,8 +439,9 @@ try {
         `${role} ${angle}° ${faces.length} dice fit horizontally`);
       assert.ok(diceRect.y >= viewportRect.y && diceRect.y + diceRect.height <= viewportRect.y + viewportRect.height,
         `${role} ${angle}° ${faces.length} dice fit vertically`);
-      assert.ok(Math.abs(diceRect.x + diceRect.width / 2 - (viewportRect.x + viewportRect.width / 2)) < viewportRect.width * .25,
-        `${role} ${angle}° ${faces.length} dice remain near viewport center`);
+      const screenWidth = await dice.evaluate(() => innerWidth);
+      assert.ok(Math.abs(diceRect.x + diceRect.width / 2 - screenWidth * .65) < 2,
+        `${role} ${angle}° ${faces.length} dice remain at screen center-right`);
     }
     await dice.close();
   }

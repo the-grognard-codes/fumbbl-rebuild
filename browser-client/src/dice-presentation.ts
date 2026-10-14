@@ -1,7 +1,8 @@
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import type { SetupPlayer } from './setup-protocol.ts';
 
 export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null;
-  rollKey?: string; rolls?: { label: string; face: string; rollKey?: string }[] };
+  rollKey?: string; revision?: number; uphill?: boolean; rolls?: { label: string; face: string; rollKey?: string }[] };
 
 /** Combine actual d6 reports for one actor's ongoing action; block choices remain discrete. */
 export function accumulateDiceMoment(previous: DiceMoment | null, next: DiceMoment): DiceMoment {
@@ -21,7 +22,7 @@ export function blockFaceLabel(face: string): string | undefined {
 }
 
 /** Only values written by native reports become visible dice; no roll is generated in the browser. */
-export function reportedDice(report: Record<string, unknown>): DiceMoment | null {
+export function reportedDice(report: Record<string, unknown>, players: SetupPlayer[] = []): DiceMoment | null {
   const id = report.reportId;
   if (typeof id !== 'string') return null;
   const subjectId = typeof report.playerId === 'string' ? report.playerId
@@ -31,7 +32,12 @@ export function reportedDice(report: Record<string, unknown>): DiceMoment | null
     if (!faces.length || faces.some(face => face === null)) return null;
     const selected = id === 'blockChoice' && Number.isInteger(report.diceIndex)
       && (report.diceIndex as number) >= 0 && (report.diceIndex as number) < faces.length ? report.diceIndex as number : null;
-    return { label: id === 'blockChoice' ? 'Block die selected' : id === 'blockReRoll' ? 'Block dice rerolled' : 'Block dice rolled', faces: faces as string[], subjectId, selected };
+    const block = report.logBlock as { attackerId?: string; chooser?: string } | undefined;
+    const attacker = players.find(player => player.id === block?.attackerId);
+    const uphill = attacker && ['home', 'away'].includes(block?.chooser ?? '')
+      ? faces.length > 1 && attacker.role !== block?.chooser : undefined;
+    return { label: id === 'blockChoice' ? 'Block die selected' : id === 'blockReRoll' ? 'Block dice rerolled' : 'Block dice rolled', faces: faces as string[], subjectId, selected,
+      ...(uphill !== undefined ? { uphill } : {}) };
   }
   if (typeof report.roll === 'number' && Number.isInteger(report.roll) && report.roll >= 1 && report.roll <= 6) {
     const name = id === 'goForItRoll' ? 'Rush' : id.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/ Roll$/, '').replace(/^./, letter => letter.toUpperCase());
@@ -49,7 +55,7 @@ export function recordDice(record: TranscriptRecord): DiceMoment[] {
     if (!Array.isArray(reports)) continue;
     for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-      const moment = reportedDice(value as Record<string, unknown>);
+      const moment = reportedDice(value as Record<string, unknown>, record.state.players);
       if (moment) moments.push(moment);
     }
   }
