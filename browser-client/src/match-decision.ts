@@ -23,11 +23,11 @@ export function decisionIcon(label: string): string | undefined {
 }
 
 const promptTitles: Record<string, string> = {
-  blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
+  kickSkill: 'Use the Kick skill?', blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
   apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?',
   interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square'
 };
-const promptOrder = ['rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
+const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
 export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {

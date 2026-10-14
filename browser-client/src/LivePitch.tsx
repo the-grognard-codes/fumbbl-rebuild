@@ -6,6 +6,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import { DiceFace } from './DiceFace.tsx';
 import { BallMarker } from './BallMarker.tsx';
+import { kickoffMarkerPosition } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
@@ -183,10 +184,25 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.();
     }
   }, [decision?.key]);
+  const kickPreview = view.kickPreview && { deviation: kickoffMarkerPosition(view.kickPreview.deviation),
+    withKick: kickoffMarkerPosition(view.kickPreview.withKick) };
+  useEffect(() => {
+    const preview = kickPreview;
+    if (!preview) return;
+    const positions = [centerOf(preview.deviation), centerOf(preview.withKick)];
+    const current = cameraRef.current;
+    if (positions.every(position => current.isVisible(position, 48))) return;
+    // Deviation may move past the visible turf or off the pitch. Keep both
+    // authoritative alternatives visible instead of silently clipping markers.
+    const next = current.with({ focus: (positions[0].x + positions[1].x) / 2,
+      transverseFocus: (positions[0].y + positions[1].y) / 2 });
+    setTravel({ focus: next.focus, transverseFocus: next.transverseFocus });
+  }, [view.matchId, view.revision, view.kickPreview?.deviation.x, view.kickPreview?.deviation.y,
+    view.kickPreview?.withKick.x, view.kickPreview?.withKick.y, size.width, size.height, end, mode, perspectiveElevation, zoom]);
   const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target && !['push', 'move', 'jump'].includes(action.kind)
+    else if (action.target && 'x' in action.target && !['push', 'move', 'jump', 'kickoff'].includes(action.kind)
       && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
@@ -197,8 +213,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
   const kickTarget = pinnedAction?.kind === 'kickoff' && pinnedTarget?.x != null && pinnedTarget.y != null
     ? { x: pinnedTarget.x, y: pinnedTarget.y }
-    : view.phase === 'READY_FOR_KICKOFF' && hover && actions.some(action => action.kind === 'kickoff'
-      && action.target && 'x' in action.target && action.target.x === hover.x && action.target.y === hover.y) ? hover : null;
+    : view.phase === 'READY_FOR_KICKOFF' && (hover ?? cursor) && actions.some(action => action.kind === 'kickoff'
+      && action.target && 'x' in action.target && action.target.x === (hover ?? cursor)!.x && action.target.y === (hover ?? cursor)!.y) ? (hover ?? cursor) : null;
   if (pinnedAction?.kind === 'pass' && pinnedTarget?.x != null && pinnedTarget.y != null) {
     const recipient = view.players.find(player => player.x === pinnedTarget.x && player.y === pinnedTarget.y);
     if (recipient) targetPlayers.add(recipient.id);
@@ -332,15 +348,26 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {[...targetSquares.values()].map(square => <polygon key={`target-${square.x},${square.y}`}
             className="live-target-square"
             points={points(camera.square(square, .06, true))}/>)}
-          {kickTarget && <polygon className="live-kick-target" data-kick-target={`${kickTarget.x},${kickTarget.y}`}
-            points={points(camera.square(kickTarget, .08, true))}/>}
+          {kickPreview && (() => {
+            const from = camera.project(centerOf(kickPreview.deviation)), to = camera.project(centerOf(kickPreview.withKick));
+            if (!from || !to || from.x === to.x && from.y === to.y) return null;
+            const angle = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+            return <g className="live-kick-arrow" data-kick-arrow="true">
+              <path className="live-push-shaft" d={`M${from.x} ${from.y} L${to.x} ${to.y}`}/>
+              <path className="live-push-head" d="m-7 -7 7 7-7 7" transform={`translate(${to.x} ${to.y}) rotate(${angle})`}/>
+            </g>;
+          })()}
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
           {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
         </svg>
-        {view.ball && <BallMarker ball={view.ball} state={view.ballState} camera={camera}/>}
+        {kickTarget ? <BallMarker ball={kickTarget} state={{ version: 1, inPlay: true, moving: true, carrierPlayerId: null }} camera={camera}/>
+          : (kickPreview?.deviation ?? view.ball) && <BallMarker ball={(kickPreview?.deviation ?? view.ball)!} allowOffPitch={!!view.kickPreview}
+            state={view.kickPreview || view.driveTracker?.phase === 'KICKOFF' || view.actions.some(action => action.kind === 'kickSkill') ? { version: 1, inPlay: true, moving: true, carrierPlayerId: null } : view.ballState} camera={camera}/>}
+        {kickPreview && <BallMarker ball={kickPreview.withKick} variant="kick" allowOffPitch
+          state={{ version: 1, inPlay: true, moving: true, carrierPlayerId: null }} camera={camera}/>}
         <svg className="live-route-waypoint-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           {waypoints.map((square, index) => { const p = camera.project(centerOf(square));
             return p && <g key={index} className="live-route-waypoint" aria-hidden="true"><circle cx={p.x} cy={p.y} r="4"/></g>; })}
