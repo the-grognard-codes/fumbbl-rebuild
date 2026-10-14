@@ -8,6 +8,7 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
+import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.inducement.Inducement;
@@ -154,6 +155,7 @@ public final class SetupSession {
 		game.getOptions().addOption(new GameOptionBoolean(GameOptionId.USE_PREDEFINED_INDUCEMENTS).setValue(true));
 		game.getOptions().addOption(new GameOptionBoolean(GameOptionId.INDUCEMENT_PRAYERS_AVAILABLE_FOR_UNDERDOG).setValue(false));
 		game.getOptions().addOption(new GameOptionBoolean(GameOptionId.OVERTIME).setValue(false));
+		game.getOptions().addOption(new GameOptionBoolean(GameOptionId.ASK_FOR_KICK_AFTER_ROLL).setValue(true));
 		game.initializeRules();
 		state.initRulesDependentMembers();
 		UtilSkillBehaviours.registerBehaviours(game, server.getDebugLog());
@@ -880,7 +882,9 @@ public final class SetupSession {
                 .add("label", action.label).add("actor", action.role).add("target", target)
                 .add("sourcePlayerId", sourcePlayerId == null ? JsonValue.NULL : JsonValue.valueOf(sourcePlayerId)));
         }
-        FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
+        FieldCoordinate ball = new KickoffBallPresentation().coordinate(state);
+        DialogKickSkillParameter kickChoice = game.getDialogParameter() instanceof DialogKickSkillParameter
+            ? (DialogKickSkillParameter) game.getDialogParameter() : null;
         JsonObject projected = new JsonObject().add("projectionVersion", 4).add("half", Math.max(1, Math.min(2, game.getHalf()))).add("drive", drive)
             .add("homeScore", homeScore()).add("awayScore", awayScore())
             .add("homeTurn", game.getTurnDataHome().getTurnNr()).add("awayTurn", game.getTurnDataAway().getTurnNr())
@@ -899,6 +903,13 @@ public final class SetupSession {
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway()));
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));
+        if (kickChoice != null) {
+            FieldCoordinate alternate = kickChoice.getBallCoordinateWithKick();
+            FieldCoordinate deviation = kickChoice.getBallCoordinate();
+            projected.add("kickPreview", new JsonObject()
+                .add("deviation", new JsonObject().add("x", deviation.getX()).add("y", deviation.getY()))
+                .add("withKick", new JsonObject().add("x", alternate.getX()).add("y", alternate.getY())));
+        }
 		Player<?> mover = game.getActingPlayer().getPlayer();
 		if (mover != null
 			&& !mover.hasSkillProperty(NamedProperties.movesRandomly)
@@ -973,6 +984,7 @@ public final class SetupSession {
 		if (saved.get("kickoff") == null) current.remove("kickoff");
 		if (saved.get("driveTracker") == null) current.remove("driveTracker");
 		if (saved.get("ballState") == null) current.remove("ballState");
+		if (saved.get("kickPreview") == null) current.remove("kickPreview");
 		if (saved.get("movementForecast") == null) current.remove("movementForecast");
 		else if (saved.get("movementForecast").asObject().getInt("version", -1) == 1) {
 			JsonObject legacy = new RoutePlanner(state).legacyAdjacent(actions());

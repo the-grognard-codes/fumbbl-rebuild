@@ -76,3 +76,11 @@ test('drive metadata rejects unknown fields, malformed flags, invalid versions a
     assert.throws(() => decodeSetupStateValue({ ...state, phase, driveTracker: tracker }));
   assert.throws(() => decodeSetupStateValue({ ...state, projectionVersion: 3, driveTracker: tracker }));
 });
+
+
+test('Kick landing previews preserve off-pitch deviation and reject malformed squares', () => {
+  const preview = { deviation: { x: 28, y: -2 }, withKick: { x: 25, y: 1 } };
+  assert.deepEqual(decodeSetupStateValue({ ...state, kickPreview: preview }).kickPreview, preview);
+  for (const square of [{ x: 32, y: 1 }, { x: 2.5, y: 1 }, { x: 1, y: -7 }, { x: 1, y: 1, extra: true }])
+    assert.throws(() => decodeSetupStateValue({ ...state, kickPreview: { ...preview, deviation: square } }));
+});

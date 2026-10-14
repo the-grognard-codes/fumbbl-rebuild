@@ -260,6 +260,15 @@ public final class MatchJson {
                 .contains(tracker.getString("event", null)) || !"KICKOFF".equals(tracker.getString("phase", null)))
                 throw new IllegalArgumentException();
         }
+        if (state.get("kickPreview") != null) {
+            if (!detailsV4) throw new IllegalArgumentException();
+            JsonObject preview = state.get("kickPreview").asObject(); exact(preview, "deviation", "withKick");
+            for (String key : new String[] {"deviation", "withKick"}) {
+                JsonObject square = preview.get(key).asObject(); exact(square, "x", "y");
+                int x = square.getInt("x", -100), y = square.getInt("y", -100);
+                if (x < -6 || x > 31 || y < -6 || y > 20) throw new IllegalArgumentException();
+            }
+        }
         if (state.get("ballState") != null) {
             if (!detailsV4) throw new IllegalArgumentException();
             JsonObject ballState = state.get("ballState").asObject(); exact(ballState, "version", "carrierPlayerId", "inPlay", "moving");
@@ -599,6 +608,7 @@ public final class MatchJson {
         List<String> extended = new ArrayList<>(Arrays.asList(fields));
         if (home) { extended.add("homeTeamArt"); extended.add("awayTeamArt"); }
         if (object.get("ballState") != null) extended.add("ballState");
+        if (object.get("kickPreview") != null) extended.add("kickPreview");
         if (object.get("movementForecast") != null) extended.add("movementForecast");
         if (object.get("kickoff") != null) extended.add("kickoff");
         if (object.get("driveTracker") != null) extended.add("driveTracker");

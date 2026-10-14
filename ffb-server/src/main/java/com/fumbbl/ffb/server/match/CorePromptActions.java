@@ -13,6 +13,7 @@ import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
 import com.fumbbl.ffb.dialog.DialogFollowupChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
+import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
@@ -20,6 +21,8 @@ import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.property.NamedProperties;
+import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandApothecaryChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
@@ -69,12 +72,22 @@ public final class CorePromptActions {
 			reroll(result, game, (DialogReRollPropertiesParameter) dialog);
 		} else if (dialog instanceof DialogFollowupChoiceParameter) {
 			followUp(result, game);
-		} else if (dialog instanceof DialogSkillUseParameter) {
+		} else if (dialog instanceof DialogKickSkillParameter) {
+            DialogKickSkillParameter choice = (DialogKickSkillParameter) dialog;
+            Player<?> player = game.getPlayerById(choice.getPlayerId());
+            String role = roleForPlayer(game, player);
+            Skill skill = player == null ? null : player.getSkillWithProperty(NamedProperties.canReduceKickDistance);
+            if (role != null && skill != null) {
+                for (boolean use : new boolean[] {true, false}) add(result, "kick-skill:" + use, "kickSkill",
+                    use ? "Yes" : "No", role, new ClientCommandUseSkill(skill, use, player.getId(), null, false));
+            }
+        } else if (dialog instanceof DialogSkillUseParameter) {
             DialogSkillUseParameter choice = (DialogSkillUseParameter) dialog;
             String role = roleForPlayer(game, game.getPlayerById(choice.getPlayerId()));
             if (role != null) {
-                for (boolean use : new boolean[] {false, true}) add(result, "skill:" + use, "skill",
-                    use ? "Use " + choice.getSkill().getName() : "Decline skills", role,
+                boolean kick = choice.getSkill().hasSkillProperty(NamedProperties.canReduceKickDistance);
+                for (boolean use : new boolean[] {false, true}) add(result, "skill:" + use, kick ? "kickSkill" : "skill",
+                    kick ? (use ? "Yes" : "No") : use ? "Use " + choice.getSkill().getName() : "Decline skills", role,
                     new ClientCommandUseSkill(choice.getSkill(), use, choice.getPlayerId(), null, false));
                 if (choice.getModifyingSkill() != null) add(result, "skill:modify", "skill", "Use " + choice.getModifyingSkill().getName(), role,
                     new ClientCommandUseSkill(choice.getModifyingSkill(), true, choice.getPlayerId(), null, false));

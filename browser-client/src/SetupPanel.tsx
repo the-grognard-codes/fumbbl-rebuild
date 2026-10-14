@@ -349,6 +349,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setMovementIntent(null); requestMovementPreview?.(null);
   };
   const selectPlayer = (id: string) => {
+    const kickOccupant = view.players.find(player => player.id === id);
+    if (view.phase === 'READY_FOR_KICKOFF' && kickOccupant?.x != null && kickOccupant.y != null) {
+      selectSquare(kickOccupant.x, kickOccupant.y); return;
+    }
     if (routeMode && !movementFlow) { setRouteMode(false); updateWaypoints([]); }
     if (canChoose && kickoff) {
       const choice = kickoff.players.find(({ action }) => action.target && 'playerId' in action.target && action.target.playerId === id);
@@ -455,6 +459,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     }
     const kick = availableActions.find(action => ['kickoff', 'touchback'].includes(action.kind)
       && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+    if (kick?.kind === 'kickoff') { if (canChoose) mutate('action', { actionId: kick.id }); return; }
     if (kick) { setX(column); setY(row); setTargetFocus('square'); setActionId(kick.id); setSmartIntent(null); return; }
     if (movementFlow && view.phase === 'PLAY' && !view.players.some(player => player.x === column && player.y === row)) {
       if (canChoose && movementIntent) {
