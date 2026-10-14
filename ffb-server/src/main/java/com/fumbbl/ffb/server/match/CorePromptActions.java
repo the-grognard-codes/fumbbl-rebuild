@@ -7,6 +7,7 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
+import com.fumbbl.ffb.bb2020.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
@@ -17,6 +18,7 @@ import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
+import com.fumbbl.ffb.dialog.DialogUseApothecariesParameter;
 import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
@@ -32,6 +34,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
+import com.fumbbl.ffb.net.commands.ClientCommandUseApothecaries;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
@@ -39,6 +42,7 @@ import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
 import com.fumbbl.ffb.util.UtilPassing;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Read-only command catalog for native decision dialogs that have no browser-specific rule implementation. */
@@ -94,23 +98,47 @@ public final class CorePromptActions {
                 else if (choice.isShowNeverUse()) add(result, "skill:never", "skill", "Do not use for this action", role,
                     new ClientCommandUseSkill(choice.getSkill(), false, choice.getPlayerId(), null, true));
             }
+        } else if (dialog instanceof DialogUseApothecariesParameter) {
+            DialogUseApothecariesParameter choice = (DialogUseApothecariesParameter) dialog;
+            String role = roleForTeam(game, choice.getTeamId());
+            if (role != null) {
+                InjuryPresentation presentation = new InjuryPresentation();
+                result.add(new CoreTurnActions.Action("apothecaries:no", "apothecary", "Accept all injuries", role,
+                    new ClientCommandUseApothecaries(Collections.emptyList())));
+                for (InjuryDescription injury : choice.getInjuryDescriptions()) {
+                    for (ApothecaryType type : injury.getApothecaryTypes()) {
+                        result.add(new CoreTurnActions.Action("apothecaries:" + injury.getPlayerId() + ":" + type.name(),
+                            "apothecary", presentation.treatment(type) + ": " + presentation.injury(injury.getPlayerState(), injury.getSeriousInjury()), role,
+                            new ClientCommandUseApothecary(injury.getPlayerId(), true, type, injury.getSeriousInjury(), injury.getPlayerState()),
+                            injury.getPlayerId()));
+                    }
+                }
+            }
         } else if (dialog instanceof DialogUseApothecaryParameter) {
             DialogUseApothecaryParameter choice = (DialogUseApothecaryParameter) dialog;
             String role = roleForPlayer(game, game.getPlayerById(choice.getPlayerId()));
             if (role != null) {
-                add(result, "apothecary:no", "apothecary", "Decline apothecary", role,
-                    new ClientCommandUseApothecary(choice.getPlayerId(), false, null, null));
-                for (ApothecaryType type : choice.getApothecaryTypes()) add(result, "apothecary:" + type.name(), "apothecary",
-                    "Use " + type.name(), role, new ClientCommandUseApothecary(choice.getPlayerId(), true, type, null));
+                InjuryPresentation presentation = new InjuryPresentation();
+                result.add(new CoreTurnActions.Action("apothecary:no", "apothecary",
+                    "Accept " + presentation.injury(choice.getPlayerState(), choice.getSeriousInjury()), role,
+                    new ClientCommandUseApothecary(choice.getPlayerId(), false, null, null), choice.getPlayerId()));
+                for (ApothecaryType type : choice.getApothecaryTypes()) result.add(new CoreTurnActions.Action(
+                    "apothecary:" + type.name(), "apothecary", presentation.treatment(type), role,
+                    new ClientCommandUseApothecary(choice.getPlayerId(), true, type, null), choice.getPlayerId()));
             }
         } else if (dialog instanceof DialogApothecaryChoiceParameter) {
             DialogApothecaryChoiceParameter choice = (DialogApothecaryChoiceParameter) dialog;
             String role = roleForPlayer(game, game.getPlayerById(choice.getPlayerId()));
             if (role != null) {
-                add(result, "injury:old", "apothecary", "Keep " + choice.getPlayerStateOld().getDescription() + " " + choice.getSeriousInjuryOld(), role,
-                    new ClientCommandApothecaryChoice(choice.getPlayerId(), choice.getPlayerStateOld(), choice.getSeriousInjuryOld(), choice.getPlayerStateOld()));
-                add(result, "injury:new", "apothecary", "Choose " + choice.getPlayerStateNew().getDescription() + " " + choice.getSeriousInjuryNew(), role,
-                    new ClientCommandApothecaryChoice(choice.getPlayerId(), choice.getPlayerStateNew(), choice.getSeriousInjuryNew(), choice.getPlayerStateOld()));
+                InjuryPresentation presentation = new InjuryPresentation();
+                result.add(new CoreTurnActions.Action("injury:old", "apothecary",
+                    "Keep " + presentation.injury(choice.getPlayerStateOld(), choice.getSeriousInjuryOld()), role,
+                    new ClientCommandApothecaryChoice(choice.getPlayerId(), choice.getPlayerStateOld(), choice.getSeriousInjuryOld(), choice.getPlayerStateOld()),
+                    choice.getPlayerId()));
+                result.add(new CoreTurnActions.Action("injury:new", "apothecary",
+                    "Choose " + presentation.injury(choice.getPlayerStateNew(), choice.getSeriousInjuryNew()), role,
+                    new ClientCommandApothecaryChoice(choice.getPlayerId(), choice.getPlayerStateNew(), choice.getSeriousInjuryNew(), choice.getPlayerStateOld()),
+                    choice.getPlayerId()));
             }
 		} else if (dialog instanceof DialogConfirmEndActionParameter) {
             String role = roleForTeam(game, ((DialogConfirmEndActionParameter) dialog).getTeamId());

@@ -1,8 +1,10 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
+import { injuryIcon } from './injury-presentation.ts';
 
-export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; choices?: DecisionOption[] };
+export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; playerName?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
+  playerName?: string; instruction?: string;
   originalFaces?: string[]; originalLabel?: string; proTest?: { face: string; successful: boolean } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
@@ -44,21 +46,37 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   if (!kind) return null;
   const rollKinds = ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'];
   const choices = ownActions.filter(action => action.kind === kind || rollKinds.includes(kind) && rollKinds.includes(action.kind));
+  const multipleInjuries = kind === 'apothecary' && choices.some(action => /(?:^|:)apothecaries:/.test(action.id));
   const options: DecisionOption[] = choices.map(action => {
       const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
-      return { id: action.id, label, kind: 'action', face, icon: rollKinds.includes(kind) ? decisionIcon(label) : undefined };
+      const option: DecisionOption = { id: action.id, label, kind: 'action', face, icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
+      if (multipleInjuries && action.target && 'playerId' in action.target) {
+        const playerId = action.target.playerId;
+        option.playerName = view.players.find(player => player.id === playerId)?.name;
+      }
+      return option;
     });
   const grouped: DecisionOption[] = [];
   for (const option of options) {
     // Resource alternatives retain their native accounting choices; only skill
     // variants share a single source icon and a local, explicit choice list.
-    const existing = option.icon && option.icon !== 'resource' ? grouped.find(item => item.icon === option.icon) : undefined;
+    const existing = kind !== 'apothecary' && option.icon && option.icon !== 'resource' ? grouped.find(item => item.icon === option.icon) : undefined;
     if (existing) {
       existing.choices ??= [{ ...existing }]; existing.choices.push(option);
       const name = skillNames.find(name => decisionIcon(`Use ${name}`) === existing.icon);
       existing.label = name ? `Use ${name}` : existing.label.replace(/ on dice? .*/, '');
     } else grouped.push({ ...option });
+  }
+  if (kind === 'apothecary') {
+    const choosingInjury = choices.some(action => /(?:^|:)injury:(?:old|new)$/.test(action.id));
+    const target = choices.find(action => action.target && 'playerId' in action.target)?.target;
+    return { title: choosingInjury ? 'Choose Apothecary Result' : 'Use Apothecary?',
+      key: `${view.revision}:${kind}`, kind, options: grouped,
+      playerName: !multipleInjuries && target && 'playerId' in target ? view.players.find(player => player.id === target.playerId)?.name : undefined,
+      instruction: choosingInjury ? 'Choose the injury to apply. The apothecary has been spent.'
+        : multipleInjuries ? 'Choose a player to treat, or accept all injuries to preserve your available staff.'
+        : 'Accept the injury to save your apothecary, or use an available apothecary.' };
   }
   return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind, options: grouped };
 }
