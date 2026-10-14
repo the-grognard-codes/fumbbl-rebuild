@@ -27,6 +27,7 @@
 .live-placement-square { fill: #79d48e25; stroke: #9ee5a9; stroke-width: 1.5; pointer-events: none; }
 .play-runtime .live-push-choice { position: absolute; z-index: 500; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; cursor: pointer; }
 .live-push-choice svg { width: 70%; height: 70%; overflow: visible; fill: none; stroke: #f0f2ec; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 2px #071014); }
+.play-runtime .live-follow-up-preview { pointer-events: none; cursor: default; }
 .live-push-shaft { stroke-dasharray: 5 9; animation: live-arrow-chase .7s linear infinite; }
 .play-runtime .live-push-choice:hover, .play-runtime .live-push-choice:focus-visible { outline: none; background: transparent; border: 0; box-shadow: none; }
 .play-runtime .live-push-choice:hover svg, .play-runtime .live-push-choice:focus-visible svg { stroke: #fff; filter: drop-shadow(0 0 4px #f3e9b7); }
