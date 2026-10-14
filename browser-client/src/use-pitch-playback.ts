@@ -6,7 +6,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
+const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
 const DICE_RETENTION_MS = 1000;
 
 function sequenceKey(view: SetupState): string {
@@ -82,7 +82,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
       // A coach may pause before choosing a reroll or skill. Keep the revealed
       // result with that prompt until an accepted revision resolves it.
-      const pendingRoll = view.actions.some(action => ['blockDie', 'reroll', 'skill'].includes(action.kind));
+      const pendingRoll = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
       if (dice) showDice({ ...dice, rollKey: !reduced && dice.selected === null ? `${view.revision}:response` : undefined },
         sequenceKey(view), pendingRoll);
       else clearDice();

@@ -4,9 +4,13 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.Weather;
+import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.option.GameOptionId;
+import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -23,6 +27,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Recovery checkpoints at transitions that retain native step-local state. */
 class RecoveryScenariosTest {
 	@Test void prematchCheckpointRestoresInAnotherJvm() throws Exception { restore(recoverable()); }
+	@Test void nativePostDeviationKickProjectsBothLandingSquares() throws Exception {
+        SetupSession session = recoverable();
+        Game game = engine(session).getGame();
+        ready(session);
+        assertTrue(UtilGameOption.isOptionEnabled(game, GameOptionId.ASK_FOR_KICK_AFTER_ROLL));
+        for (Team team : new Team[] {game.getTeamHome(), game.getTeamAway()}) {
+            for (Player<?> player : team.getPlayers()) {
+                ((RosterPlayer) player).addSkill(game.getRules().getSkillFactory().forName("Kick"));
+            }
+        }
+        engine(session).getDiceRoller().clearTestRolls();
+        TestRolls.on(engine(session)).general(1, 4, 3, 3, 3, 3, 3, 3);
+        JsonObject target = view(session, "home").get("actions").asArray().get(82).asObject();
+        submit(session, target, unique("kick-preview"));
+        JsonObject projected = view(session, "home");
+        assertTrue(hasAction(session, "kickSkill"), projected.toString());
+        DialogKickSkillParameter choice = (DialogKickSkillParameter) game.getDialogParameter();
+        JsonObject preview = projected.get("kickPreview").asObject();
+        assertEquals(choice.getBallCoordinate().getX(), preview.get("deviation").asObject().getInt("x", -100));
+        assertEquals(choice.getBallCoordinateWithKick().getX(), preview.get("withKick").asObject().getInt("x", -100));
+        assertEquals(choice.getBallCoordinate().getY(), preview.get("deviation").asObject().getInt("y", -100));
+        assertEquals(choice.getBallCoordinateWithKick().getY(), preview.get("withKick").asObject().getInt("y", -100));
+        assertEquals(preview, view(session, "away").get("kickPreview"));
+        assertEquals(preview, session.spectatorView().get("kickPreview"));
+        submit(session, action(session, "kickSkill"), unique("decide-kick"));
+        assertEquals(null, view(session, "home").get("kickPreview"));
+    }
 	private int requestNumber;
 	@Test
 	void quickSnapCountsAcceptedPlayersAndRestoresLimitsAndEarlyFinish() throws Exception {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import '../../site/src/assets/site.css';
 import '../src/play-brand.css';
@@ -18,7 +19,10 @@ function App() {
   const [view, setView] = useState(window.threatState);
   const [connected, setConnected] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
-  window.publishThreat = (state, connected = true, pending = null) => { setView(state); setConnected(connected); setPending(pending); };
+  // A published fixture must be committed before Playwright sends the next input.
+  window.publishThreat = (state, connected = true, pending = null) => flushSync(() => {
+    setView(state); setConnected(connected); setPending(pending);
+  });
   return <GameView hosted view={view} connected={connected} pending={pending} logRecords={[]} movementRange={{ ...window.threatRange, revision: view.revision }}
     mutate={(operation, fields) => window.threatIntents.push({ operation, fields })}
     matchControls={{ fullscreen: false, error: '', toggleFullscreen() {}, exitMatch() {}, reconnect() {} }}/>

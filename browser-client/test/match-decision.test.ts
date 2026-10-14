@@ -140,3 +140,16 @@ test('coin and receive choices use the server prompt identity', () => {
   assert.deepEqual(decision?.options.map(option => option.label), ['Heads', 'Tails']);
   assert.equal(matchDecision({ ...prompt, callerRole: 'spectator' }, []), null);
 });
+
+
+test('Kick uses a binary dialog with the original revision-bound action IDs', () => {
+  const frame = frames[6].actor as SetupState;
+  const actions = [true, false].map(use => ({ id: `12:kick-skill:${use}`, actor: frame.callerRole as 'home',
+    kind: 'kickSkill', label: use ? 'Yes' : 'No' }));
+  const decision = matchDecision({ ...frame, actions }, actions)!;
+  assert.equal(decision.title, 'Use the Kick skill?');
+  assert.equal(decision.kind, 'kickSkill');
+  assert.deepEqual(decision.options, actions.map(action => ({ id: action.id, label: action.label, kind: 'action', face: undefined, icon: undefined })));
+  assert.equal(matchDecision({ ...frame, callerRole: 'spectator' }, actions), null);
+  assert.equal(matchDecision({ ...frame, callerRole: frame.callerRole === 'home' ? 'away' : 'home' }, actions), null);
+});

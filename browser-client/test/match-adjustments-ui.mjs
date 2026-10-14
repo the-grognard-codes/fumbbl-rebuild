@@ -60,11 +60,90 @@ try {
       actions: [action('kick-15-7', 'kickoff', null, { x: 15, y: 7 }, 'Kick to 15, 7')] });
     await page.locator('[data-player-id="p1"]').focus(); await page.keyboard.press('Enter');
     const square = await squarePosition(page, 15, 7), rect = await page.locator('.live-pitch-scene').boundingBox();
+    await page.mouse.move(rect.x + square.x, rect.y + square.y);
+    const ball = page.locator('.live-ball-marker[data-ball-x="15"][data-ball-y="7"]');
+    await ball.waitFor({ state: 'attached' });
+    await ball.locator('.live-ball-football').waitFor();
+    assert.equal(await ball.locator('.live-ball-football').count(), 1);
+    assert.equal(await ball.locator('.live-ball-highlight').count(), 1);
+    assert.equal(await page.locator('.live-target-square').count(), 0);
+    await page.mouse.move(rect.x + square.x + 1, rect.y + square.y + 1);
+    await ball.waitFor({ state: 'attached' });
+    await ball.locator('.live-ball-football').waitFor();
+    const centerBefore = await ball.evaluate(element => [element.style.left, element.style.top]);
+    await page.mouse.move(rect.x + square.x, rect.y + square.y);
+    assert.deepEqual(await ball.evaluate(element => [element.style.left, element.style.top]), centerBefore,
+      'Movement inside one square keeps the ball snapped to its center');
     await page.mouse.click(rect.x + square.x, rect.y + square.y);
-    assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true,
-      'A kick target is selectable even after inspecting a player');
-    await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
-    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), [{ operation: 'action', fields: { actionId: '1:kick-15-7' } }]);
+    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), [{ operation: 'action', fields: { actionId: '1:kick-15-7' } }],
+      'A single click submits the exact offered kick without confirmation');
+    await page.mouse.click(rect.x + square.x, rect.y + square.y);
+    assert.equal(await page.evaluate(() => window.adjustmentIntents.length), 1, 'Pending kicks cannot submit twice');
+    await open({ ...base, phase: 'READY_FOR_KICKOFF', turnMode: 'KICKOFF',
+      actions: [action('kick-17-9', 'kickoff', null, { x: 17, y: 9 }, 'Kick to 17, 9')] });
+    await page.locator('[data-player-id="p3"]').click();
+    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), [{ operation: 'action', fields: { actionId: '1:kick-17-9' } }],
+      'Clicking an occupying player places the kick on that square');
+  });
+  await run('kick-preview', async () => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await open({ ...base, phase: 'READY_FOR_KICKOFF', ball: null, actions: [] });
+    const preview = { deviation: { x: 15, y: 7 }, withKick: { x: 13, y: 7 } };
+    await page.evaluate(state => window.publishAdjustment(state), { ...base, revision: 2, phase: 'PLAY', turnMode: 'KICKOFF',
+      ball: null, ballState: { version: 1, inPlay: false, moving: false, carrierPlayerId: null }, kickPreview: preview,
+      actions: [action('kick-skill:true', 'kickSkill', 'p1', null, 'Yes'), action('kick-skill:false', 'kickSkill', 'p1', null, 'No')] });
+    await page.getByRole('heading', { name: 'Use the Kick skill?', exact: true }).waitFor();
+    await page.locator('.live-ball-marker[data-ball-x="15"][data-ball-y="7"] .live-ball-football').waitFor({ timeout: 500 });
+    await page.locator('.live-ball-kick-preview[data-ball-x="13"][data-ball-y="7"] .live-ball-football').waitFor();
+    assert.equal(await page.locator('[data-kick-arrow]').count(), 1);
+    const rotation = await page.locator('.live-ball-outer, .live-ball-inner').evaluateAll(groups => groups.map(group => group.transform.animVal.numberOfItems ? group.transform.animVal.getItem(0).matrix.b : 0));
+    await page.waitForFunction(previous => Array.from(document.querySelectorAll('.live-ball-outer, .live-ball-inner'))
+      .every((group, index) => Math.abs((group.transform.animVal.numberOfItems ? group.transform.animVal.getItem(0).matrix.b : 0) - previous[index]) > .01), rotation);
+    assert.equal(rotation.length, 4, 'Both ball markers rotate their outer arcs and inner arrows');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForFunction(() => document.querySelectorAll('.live-ball-highlight animateTransform').length === 0);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.waitForFunction(() => document.querySelectorAll('.live-ball-highlight animateTransform').length === 4);
+    const scene = page.locator('.live-pitch-scene'), viewport = page.locator('.live-pitch-viewport');
+    const focus = Number(await scene.getAttribute('data-focus'));
+    const area = await viewport.boundingBox();
+    await page.mouse.move(area.x + area.width * .5, area.y + area.height * .5);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(area.x + area.width * .5, area.y + area.height * .5 + 70, { steps: 6 });
+    await page.mouse.up({ button: 'right' });
+    await page.waitForFunction(focus => Number(document.querySelector('.live-pitch-scene').dataset.focus) !== focus, focus,
+      { timeout: 1500 });
+    assert.equal(await page.getByRole('heading', { name: 'Use the Kick skill?', exact: true }).isVisible(), true);
+    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), []);
+    await page.getByRole('button', { name: 'Yes', exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), [{ operation: 'action', fields: { actionId: '1:kick-skill:true' } }]);
+    await open({ ...base, phase: 'PLAY', turnMode: 'KICKOFF', ball: { x: 15, y: 7 },
+      ballState: { version: 1, inPlay: false, moving: false, carrierPlayerId: null },
+      actions: [action('skill:true', 'kickSkill', 'p1', null, 'Yes'), action('skill:false', 'kickSkill', 'p1', null, 'No')] });
+    await page.getByRole('heading', { name: 'Use the Kick skill?', exact: true }).waitFor();
+    await page.locator('.live-ball-marker[data-ball-x="15"][data-ball-y="7"] .live-ball-football').waitFor();
+    assert.equal(await page.locator('.live-ball-kick-preview').count(), 0, 'No alternate square is invented before deviation');
+  });
+  await run('kick-edge-preview', async () => {
+    for (const role of ['home', 'away']) for (const [deviation, withKick, display] of [
+      [{ x: 18, y: -2 }, { x: 18, y: 0 }, { x: 18, y: -1 }],
+      [{ x: 28, y: 7 }, { x: 25, y: 7 }, { x: 26, y: 7 }],
+      [{ x: -3, y: 7 }, { x: 0, y: 7 }, { x: -1, y: 7 }],
+      [{ x: 8, y: 18 }, { x: 8, y: 14 }, { x: 8, y: 15 }],
+    ]) {
+      await open({ ...base, callerRole: role, actor: role, phase: 'PLAY', turnMode: 'KICKOFF', ball: null,
+        ballState: { version: 1, inPlay: false, moving: false, carrierPlayerId: null },
+        kickPreview: { deviation, withKick }, actions: [
+          { ...action('kick-skill:true', 'kickSkill', 'p1', null, 'Yes'), actor: role },
+          { ...action('kick-skill:false', 'kickSkill', 'p1', null, 'No'), actor: role }] });
+      await page.getByRole('heading', { name: 'Use the Kick skill?', exact: true }).waitFor();
+      await page.locator('.live-ball-kick-preview .live-ball-football').waitFor();
+      const normal = page.locator('.live-ball-marker:not(.live-ball-kick-preview)');
+      await normal.locator('.live-ball-football').waitFor();
+      assert.equal(await normal.getAttribute('data-ball-x'), String(display.x));
+      assert.equal(await normal.getAttribute('data-ball-y'), String(display.y));
+      assert.equal(await page.locator('[data-kick-arrow]').count(), 1);
+    }
   });
   await run('quick-snap', async () => {
     const move = action('event-p1-13-5', 'kickoffMove', 'p1', { x: 13, y: 5 }, 'Alice to 13, 5');
