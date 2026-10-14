@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.test;
 
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.server.GameState;
@@ -18,6 +19,7 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -71,7 +73,11 @@ class PushbackArtworkTest {
 				perform(session, "push");
 			}
 			capture(session, frames, "pushed");
+			Action followUp = actions(state).stream().filter(action -> "follow-up:yes".equals(action.id)).findFirst().get();
+			assertEquals(new FieldCoordinate(11, 7), followUp.targetSquare, "Block initiator follows into the original defender square, including chain pushes");
+			assertLegacyFollowUpView(session);
 			perform(session, "followUp");
+			assertEquals(followUp.targetSquare, state.getGame().getFieldModel().getPlayerCoordinate(state.getGame().getPlayerById("home:1")));
 			assertEquals(PlayerState.PRONE, state.getGame().getFieldModel().getPlayerState(
 				state.getGame().getPlayerById("away:1")).getBase());
 			capture(session, frames, "resolved");
@@ -81,6 +87,19 @@ class PushbackArtworkTest {
 		Files.write(Paths.get("target", "adr0003-push-artwork.json"), journeys.toString().getBytes(StandardCharsets.UTF_8));
 		assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures",
 			"adr0003-push-artwork.json")), StandardCharsets.UTF_8), journeys.toString());
+	}
+
+	private void assertLegacyFollowUpView(SetupSession session) throws Exception {
+		Method matches = SetupSession.class.getDeclaredMethod("matchesRecoveredView", JsonObject.class, String.class);
+		matches.setAccessible(true);
+		Method ordered = SetupSession.class.getDeclaredMethod("ordered", JsonValue.class);
+		ordered.setAccessible(true);
+		JsonObject saved = (JsonObject) ordered.invoke(session, session.reply("load", "ACCEPTED", false, "home").get("state").asObject());
+		JsonObject yes = saved.get("actions").asArray().get(0).asObject();
+		yes.set("target", JsonValue.NULL);
+		assertEquals(true, matches.invoke(session, saved, "home"), "Older checkpoints without the preview still recover");
+		yes.set("target", new JsonObject().add("x", 12).add("y", 6));
+		assertEquals(false, matches.invoke(session, saved, "home"), "Present preview targets must match the engine");
 	}
 
 	private FrozenTeam frozen(RosterCatalog catalog, String role, String roster) {
