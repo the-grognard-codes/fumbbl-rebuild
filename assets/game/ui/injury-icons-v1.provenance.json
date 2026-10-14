@@ -1,0 +1,8 @@
+{
+  "created": "2026-10-14",
+  "asset": "injury-icons-v1.svg",
+  "source": "Original hand-authored repo-native SVG pictograms",
+  "style": "48x48 navy and cyan shield badges with ivory anatomy, gold accents, and muted red injury marks; follows the local skill icon palette without copying licensed Blood Bowl artwork",
+  "scope": "Presentation only; one distinctive anatomy-based symbol for each supported injury name and a medical bag symbol for the apothecary action",
+  "runtimeCopy": "browser-client/public/assets/game/ui/injury-icons-v1.svg"
+}
