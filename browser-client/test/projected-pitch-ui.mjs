@@ -50,10 +50,19 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
 }
 async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x: 12, y: 8 }) {
   const scene = page.locator('.live-pitch-scene');
+  if (await scene.locator('.live-ball-football').count()) {
+    const tip = await scene.locator('.live-ball-football').evaluate(image => {
+      const style = getComputedStyle(image), width = parseFloat(style.width), height = parseFloat(style.height);
+      const offset = new DOMMatrix(style.transform).transformPoint(new DOMPoint(0, height * .45));
+      return { x: parseFloat(style.left) + width / 2 + offset.x,
+        y: parseFloat(style.top) + height / 2 + offset.y, rendering: style.imageRendering };
+    });
+    assert.ok(Math.abs(tip.x) < .02 && Math.abs(tip.y) < .02, `${role} ${mode} football tip shares the arrows' ground anchor`);
+    assert.equal(tip.rendering, 'pixelated');
+  }
   const rendered = await scene.evaluate(element => {
     const ball = element.querySelector('.live-ball-marker');
     const highlight = element.querySelector('.live-ball-highlight');
-    const ring = element.querySelector('.live-ball-outer');
     const ground = new DOMMatrix(getComputedStyle(highlight).transform);
     const corners = [[0,0], [32,0], [32,32], [0,32]].map(([x,y]) => {
       const p = ground.transformPoint(new DOMPoint(x,y));
@@ -65,8 +74,8 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
       focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
       zoom: Number(element.dataset.zoom), center: { x: parseFloat(ball.style.left), y: parseFloat(ball.style.top) }, corners,
       bounds: { x: rect.x - sceneRect.x, y: rect.y - sceneRect.y, width: rect.width, height: rect.height },
-      pointerEvents: getComputedStyle(ball).pointerEvents, animation: getComputedStyle(ring).animationName,
-      rotationFrames: ring.getAnimations()[0]?.effect?.getKeyframes().map(frame => frame.transform),
+      pointerEvents: getComputedStyle(ball).pointerEvents, rotations: Array.from(element.querySelectorAll('.live-ball-highlight animateTransform')).map(animation => ({
+        from: animation.getAttribute('from'), to: animation.getAttribute('to'), duration: animation.getAttribute('dur'), mode: animation.getAttribute('calcMode') })),
       arrowFill: getComputedStyle(element.querySelector('.live-ball-arrow')).fill,
       structureDisplay: getComputedStyle(structure).display };
   });
@@ -87,8 +96,10 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
     && Math.abs(rendered.bounds.width - width) < .1 && Math.abs(rendered.bounds.height - height) < .1,
     'browser paints the marker inside the projected square');
   assert.equal(rendered.pointerEvents, 'none');
-  assert.equal(rendered.animation, 'live-ball-rotate');
-  assert.deepEqual(rendered.rotationFrames, ['rotate(0deg)', 'rotate(360deg)']);
+  assert.deepEqual(rendered.rotations, [
+    { from: '0 16 16', to: '360 16 16', duration: '24s', mode: 'linear' },
+    { from: '0 16 16', to: '-360 16 16', duration: '18s', mode: 'linear' },
+  ]);
   assert.notEqual(rendered.arrowFill, 'none');
   assert.equal(rendered.structureDisplay, 'block');
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
@@ -406,7 +417,12 @@ try {
   await readonly.close();
   const kickAction = { id: 'kick:10:9', label: 'Kick to 10,9', kind: 'kickoff', actor: 'home', target: { x: 10, y: 9 } };
   const kickoff = await open('home', false, null, { phase: 'READY_FOR_KICKOFF', actions: [kickAction], pinnedAction: kickAction });
-  assert.equal(await kickoff.locator('[data-kick-target]').getAttribute('data-kick-target'), '10,9');
+  const kickBall = kickoff.locator('.live-ball-marker[data-ball-x="10"][data-ball-y="9"]');
+  await kickBall.waitFor({ state: 'attached' });
+  await kickBall.locator('.live-ball-football').waitFor();
+  assert.equal(await kickBall.locator('.live-ball-football').count(), 1);
+  assert.equal(await kickBall.locator('.live-ball-highlight').count(), 1);
+  assert.equal(await kickoff.locator('.live-target-square').count(), 0, 'Kick placement must not highlight every legal square');
   const kickPoint = await squarePosition(kickoff, 10, 9);
   await kickoff.locator('.live-pitch-scene').click({ position: kickPoint });
   assert.deepEqual(await kickoff.evaluate(() => window.intents.at(-1)), { x: 10, y: 9 });

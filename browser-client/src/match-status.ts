@@ -30,6 +30,6 @@ export function currentGameStep(view: SetupState): CurrentGameStep | null {
   if (event === 'TOUCHBACK') return { title: 'Touchback!', instruction: 'Receiving coach: assign the ball to an eligible player.' + waiting };
   if (view.phase === 'SETUP') return { title: 'Team setup', instruction: 'Set up the ' + view.actor + ' team, then confirm.' + waiting };
   if (view.phase === 'READY_FOR_KICKOFF' || view.actions.some(action => action.kind === 'kickoff'))
-    return { title: 'Kickoff!', instruction: 'Kicking coach: select the kick location on the pitch, then confirm.' + waiting };
+    return { title: 'Kickoff!', instruction: 'Kicking coach: click the kick location on the pitch.' + waiting };
   return null;
 }
