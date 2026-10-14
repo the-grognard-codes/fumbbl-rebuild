@@ -64,12 +64,24 @@ try {
   await page.evaluate(state => window.publishHud({...state,prompt:null,actions:[{id:'choose-pow',kind:'blockDie',label:'Choose POW (die 1)',actor:'home',sourcePlayerId:null,target:null}]}),state);
   const dice = page.locator('.live-dice-overlay.interactive'); await dice.waitFor();
   const diceBox = await dice.boundingBox();
-  assert.ok(Math.abs(diceBox.x+diceBox.width/2-320)<15,'Dice box center sits halfway from field center to left edge');
-  assert.equal(await dice.evaluate(el => getComputedStyle(el).backgroundColor),'rgb(9, 23, 38)','Portal dice share HUD opacity');
+  const screenWidth = await page.evaluate(() => innerWidth);
+  assert.ok(Math.abs(diceBox.x+diceBox.width/2-screenWidth*.65)<2,'Dice surface sits at 65% of the screen width');
+  const diceRow = await dice.locator('.pitch-block-dice').boundingBox();
+  assert.ok(Math.abs(diceRow.y+diceRow.height/2-360)<2,'Result dice are vertically centered on screen');
+  const diceStyle = await dice.evaluate(el => ({ background: getComputedStyle(el).backgroundColor,
+    border: getComputedStyle(el).borderTopWidth, glow: getComputedStyle(el, '::before').backgroundImage,
+    opacity: getComputedStyle(el).opacity }));
+  assert.equal(diceStyle.background,'rgba(0, 0, 0, 0)','Block dice remain unboxed at full HUD opacity');
+  assert.equal(diceStyle.border,'0px','Block dice have no surrounding border');
+  assert.match(diceStyle.glow,/radial-gradient/,'Block dice retain their diffuse glow');
+  assert.equal(diceStyle.opacity,'1','Block faces stay opaque');
   assert.equal(await dice.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight),true,'Dice need no scrollbars at normal size');
+  await page.evaluate(state => window.publishHud({...state,prompt:null,actions:[{id:'generic-team-reroll',kind:'reroll',label:'Use team reroll',actor:'home',sourcePlayerId:null,target:null}]}),state);
+  const reroll = page.locator('.live-dice-overlay.interactive:not(.block-dice-surface)'); await reroll.waitFor();
+  assert.equal(await reroll.evaluate(el => getComputedStyle(el).backgroundColor),'rgb(9, 23, 38)','Ordinary portal reroll panels still share HUD opacity');
   assert.equal(await page.locator('.match-log-count').count(),0,'HUD log counter removed');
   await page.evaluate(state => window.publishHud({...state,phase:'PLAY',turnMode:'SOLID_DEFENCE',prompt:null,actions:[]},['Minimum of 3 players on the Line of Scrimmage.']),state);
   assert.match(await page.getByRole('alert').innerText(),/Minimum of 3 players/,'Native redeployment errors remain visible during kickoff setup');
-  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices and boxed quarter-field dice.');
+  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices, unboxed center-right block dice and ordinary reroll panel opacity.');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); await server.close(); }

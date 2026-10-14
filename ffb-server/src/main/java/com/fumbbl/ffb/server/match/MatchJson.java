@@ -227,6 +227,24 @@ public final class MatchJson {
             bounded(ball.get("x"), 0, 25); bounded(ball.get("y"), 0, 14);
         }
         JsonArray players = state.get("players").asArray(); if (players.size() > 32) throw new IllegalArgumentException();
+        if (state.get("blockPreview") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonObject preview = state.get("blockPreview").asObject();
+            exact(preview, "version", "rolls");
+            if (preview.getInt("version", -1) != 1) throw new IllegalArgumentException();
+            JsonArray rolls = preview.get("rolls").asArray();
+            if (rolls.isEmpty() || rolls.size() > 256) throw new IllegalArgumentException();
+            Set<String> pairs = new HashSet<>();
+            for (JsonValue item : rolls) {
+                JsonObject roll = item.asObject();
+                exact(roll, "playerId", "targetPlayerId", "dice");
+                shortText(roll.get("playerId")); shortText(roll.get("targetPlayerId"));
+                int dice = roll.get("dice").asInt();
+                if (dice != 1 && dice != 2 && dice != 3 && dice != -2 && dice != -3
+                    || !pairs.add(roll.getString("playerId", "") + "\n" + roll.getString("targetPlayerId", "")))
+                    throw new IllegalArgumentException();
+            }
+        }
         if (state.get("kickoff") != null) {
             if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
             JsonObject kickoff = state.get("kickoff").asObject();
@@ -600,6 +618,7 @@ public final class MatchJson {
         if (home) { extended.add("homeTeamArt"); extended.add("awayTeamArt"); }
         if (object.get("ballState") != null) extended.add("ballState");
         if (object.get("movementForecast") != null) extended.add("movementForecast");
+        if (object.get("blockPreview") != null) extended.add("blockPreview");
         if (object.get("kickoff") != null) extended.add("kickoff");
         if (object.get("driveTracker") != null) extended.add("driveTracker");
         exact(object, extended.toArray(new String[0]));

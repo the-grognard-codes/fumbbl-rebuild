@@ -3,7 +3,7 @@ import { pitchPushChoices } from './push-choice.ts';
 
 export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
-  originalFaces?: string[]; originalLabel?: string; proTest?: { face: string; successful: boolean } };
+  originalFaces?: string[]; originalLabel?: string; uphill?: boolean; proTest?: { face: string; successful: boolean } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
 // rerolls have no offered action and therefore never acquire a manual button.

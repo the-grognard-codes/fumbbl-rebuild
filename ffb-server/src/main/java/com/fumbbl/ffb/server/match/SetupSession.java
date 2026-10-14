@@ -907,6 +907,10 @@ public final class SetupSession {
 			if (forecast != null) projected.add("movementForecast", forecast);
 		}
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
+		if ("PLAY".equals(projected.getString("phase", null))) {
+			JsonObject blockPreview = new BlockPreviewPresentation(state).project(available);
+			if (blockPreview != null) projected.add("blockPreview", blockPreview);
+		}
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
 		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
@@ -979,6 +983,7 @@ public final class SetupSession {
 			if (legacy == null) return false;
 			current.set("movementForecast", legacy);
 		}
+		if (saved.get("blockPreview") == null) current.remove("blockPreview");
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
@@ -1215,9 +1220,16 @@ public final class SetupSession {
 		route.add("revision", revision).add("actor", role);
 		JsonArray canonicalPoints = new JsonArray();
 		for (FieldCoordinate waypoint : waypoints) canonicalPoints.add(point(waypoint));
-		return new JsonObject().add("planVersion", 1).add("kind", kind)
+		JsonObject plan = new JsonObject().add("planVersion", 1).add("kind", kind)
 			.add("targetPlayerId", targetPlayerId == null ? JsonValue.NULL : JsonValue.valueOf(targetPlayerId))
 			.add("waypoints", canonicalPoints).add("route", route);
+		if ("blitz".equals(kind)) {
+			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player)
+				: waypoints.get(waypoints.size() - 1);
+			plan.add("blockDice", new BlockPreviewPresentation(state).blitzDice(playerId, targetPlayerId, end,
+				active == player, !route.get("steps").asArray().isEmpty()));
+		}
+		return plan;
 	}
 
 	private String movementDeclaration(String kind) {

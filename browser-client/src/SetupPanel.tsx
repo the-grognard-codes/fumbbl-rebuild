@@ -20,6 +20,9 @@ import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
 import { matchesMovementRange } from './movement-range-read.ts';
 import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts';
+import { potentialBlockDice } from './block-dice-presentation.ts';
+import type { PotentialBlockDice } from './block-dice-presentation.ts';
+import { blockFaceLabel } from './dice-presentation.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { withProTest } from './reroll-presentation.ts';
@@ -221,6 +224,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [draggingPlayerId, setDraggingPlayerId] = useState('');
   const [solidDrop, setSolidDrop] = useState<{ playerId: string; to: RoutePoint; revision: number } | null>(null);
   const [targetPlayerId, setTargetPlayerId] = useState('');
+  const [confirmedDice, setConfirmedDice] = useState<{ preview: PotentialBlockDice; matchId: string;
+    playerId: string; revision: number; pendingSeen: boolean } | null>(null);
   const autoActionRef = useRef('');
   const [explicitBlitz, setExplicitBlitz] = useState(false);
   const [confirmEndTurn, setConfirmEndTurn] = useState(false);
@@ -337,12 +342,33 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const pinnedAction = availableActions.find(action => action.id === actionId);
+  const potentialDice = connected && !requestPending && !suspended && !playbackActive && !decision
+    ? potentialBlockDice(view, playerId, targetPlayerId, pinnedAction,
+      movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
+  useLayoutEffect(() => {
+    if (!confirmedDice) return;
+    const revealed = decision?.options.some(option => !!option.face)
+      || (diceMoment?.revision ?? -1) > confirmedDice.revision && diceMoment?.faces.some(face => blockFaceLabel(face));
+    const stopped = !connected || suspended || confirmedDice.matchId !== view.matchId || view.phase !== 'PLAY'
+      || !requestPending && !playbackActive && confirmedDice.pendingSeen && !revealed
+        && (view.revision === confirmedDice.revision
+          || view.actor !== view.callerRole || view.activePlayerId !== confirmedDice.playerId);
+    if (revealed || stopped) setConfirmedDice(null);
+    else if (requestPending && !confirmedDice.pendingSeen) setConfirmedDice({ ...confirmedDice, pendingSeen: true });
+  }, [confirmedDice, requestPending, playbackActive, decision, diceMoment, connected, suspended,
+    view.matchId, view.revision, view.phase, view.actor, view.callerRole, view.activePlayerId]);
+  const retainConfirmedDice = () => {
+    if (potentialDice) setConfirmedDice({ preview: potentialDice, matchId: view.matchId, playerId,
+      revision: view.revision, pendingSeen: false });
+  };
+  const visibleDiceMoment = confirmedDice && (diceMoment?.revision ?? -1) <= confirmedDice.revision ? null : diceMoment;
   const teammateProposal = pinnedAction?.kind === 'liftTeamMate' || pinnedAction?.kind === 'kickMate';
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
   const additionalActions = [...selectedActions, ...targetChoices.filter(action =>
     !['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && !selectedActions.some(item => item.id === action.id))];
   const cancelProposal = () => {
+    if (!requestPending) setConfirmedDice(null);
     setPlayerId(teammateProposal ? view.activePlayerId ?? playerId : ''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
     setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false);
     setTargetFocus(null); setRouteMode(false); setWaypoints([]); requestRoutePreview?.([]); blurPlayer();
@@ -367,6 +393,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (touchback) { setPlayerId(id); setActionId(touchback.id); setSmartIntent(null); return; }
     const player = view.players.find(item => item.id === id);
+    if (canChoose && id === targetPlayerId && player?.role !== view.callerRole
+      && (movementIntent?.kind === 'blitz' || smartIntent?.kind === 'block' || smartIntent?.kind === 'blitz'
+        || pinnedAction && ['block', 'blitzTarget'].includes(pinnedAction.kind))) {
+      cancelProposal(); return;
+    }
     if (hosted && view.phase === 'PLAY' && player?.role === view.callerRole && id !== playerId
       && id === targetPlayerId && pinnedAction
       && ['pass', 'handOff', 'liftTeamMate', 'kickMate', 'throwTeamMate', 'kickMateTo'].includes(pinnedAction.kind)) {
@@ -528,10 +559,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const commit = () => {
     if (view.phase === 'SETUP') { if (maySetup) mutate('confirm'); return; }
     if (movementFlow && movementIntent) {
-      if (movementReady && movementPlan) mutate('movement', {
+      if (movementReady && movementPlan) {
+        retainConfirmedDice();
+        mutate('movement', {
         playerId: movementIntent.playerId, kind: movementIntent.kind,
         targetPlayerId: movementIntent.targetPlayerId, waypoints: movementPlan.waypoints,
       });
+      }
       return;
     }
     if (routeMode) {
@@ -547,6 +581,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       setConfirmEndTurn(true); return;
     }
     setConfirmEndTurn(false);
+    retainConfirmedDice();
     if (smartIntent?.stage === 'planned') setSmartIntent({ ...smartIntent,
       stage: pinnedAction.kind === 'blitzTarget' ? 'targeting' : 'declaring', revision: view.revision });
     if (pinnedAction.id === moreActionId) {
@@ -749,12 +784,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
+        potentialDice={confirmedDice?.preview ?? potentialDice} diceAwaiting={!!confirmedDice}
         movementRange={displayedRange}
         threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !suspended && !playbackActive
           && pitchView.revision === view.revision && !decision}
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
-        routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={diceMoment}
+        routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment}
         onRightClick={() => {
           if (decision || playbackActive || requestPending) return;
           if (routeMode && displayedWaypoints.length) { undoWaypoint(); return; }

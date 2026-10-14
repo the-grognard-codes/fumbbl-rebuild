@@ -31,6 +31,8 @@ test('fresh signed-in direct links resume the same account and show genuine memb
   try {
     for (const [index, account] of [accounts[0], accounts[0], accounts[2], accounts[0]].entries()) {
       const context = await browser.newContext(); contexts.push(context);
+      // External font availability must not hold up local navigation checks.
+      await context.route('https://fonts.googleapis.com/**', route => route.abort());
       // A prior release may still be cached at either unversioned entry point.
       await context.route('**/assets/play.js', route => route.fulfill({ contentType: 'text/javascript', body: 'throw Error("Cached Play bootstrap");' }));
       await context.route('**/assets/game/game.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function mountPlay(){}' }));
@@ -96,6 +98,7 @@ test('start defaults to the current tab and supports explicit windows with block
       const pages = []; const contexts = [];
       for (let index = 0; index < 2; index++) {
         const context = await browser.newContext(); contexts.push(context);
+        await context.route('https://fonts.googleapis.com/**', route => route.abort());
         const page = await context.newPage(); pages.push(page);
         if (popupBlocked && index === 1) await page.addInitScript(() => { window.open = () => null; });
         await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
@@ -230,6 +233,7 @@ test('two players and spectator use one board; updates, read-only controls and r
     const pages = [];
     for (let index = 0; index < 3; index++) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } }); const page = await context.newPage(); pages.push(page);
+      await context.route('https://fonts.googleapis.com/**', route => route.abort());
       // Inspect bounded synthetic console events in memory; never print their text,
       // capture WebSocket frames, enable tracing, or export a HAR.
       page.on('console', message => {

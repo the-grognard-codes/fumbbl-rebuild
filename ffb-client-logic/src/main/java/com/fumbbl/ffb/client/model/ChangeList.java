@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser block dice continue hovering through confirmation, blend opposing diagonal turns in one smooth 310ms tumble and settle head-on near screen center-right")
+			.addFeature("Browser block and blitz proposals preview floating polygon dice, roll naturally into matching polygon results and show soft shadows or red uphill glows around dice and reroll icons")
 			.addImprovement("Development setup and browser validation use Node 26 alongside the computer player, avoiding conflicting Node version requirements")
 			.addImprovement("Local development games can be cleared with a guarded maintenance script when game versions have drifted, preserving accounts and saved teams")
 			.addBugfix("Ground footballs and their shadows scale with pitch zoom and distance, keeping a consistent proportion inside the ball marker")
