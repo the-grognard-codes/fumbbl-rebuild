@@ -3,6 +3,7 @@
   "interactionShards": [
     [
       "browser-client/test/reroll-choices-ui.mjs",
+      "browser-client/test/apothecary-decision-ui.mjs",
       "browser-client/test/smart-pitch-ui.mjs",
       "browser-client/test/push-choice-ui.mjs",
       "browser-client/test/end-player-action-ui.mjs",

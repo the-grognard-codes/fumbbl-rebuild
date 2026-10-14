@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("MUTP apothecary decisions show named injury icons and stat, niggling injury and recovery details while preserving existing rules")
 			.addImprovement("Kick decisions allow pitch panning while smooth ball markers rotate around the football")
 			.addBehaviorChange("New browser matches offer Kick after deviation so both possible landing squares can be compared")
 			.addImprovement("Browser kickoff placement uses a smooth snapping ball marker around the pixel football, with Kick landing previews and a yes/no choice")
