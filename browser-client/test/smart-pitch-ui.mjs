@@ -59,7 +59,10 @@ try {
   await page.locator('.live-marker.home').click();
   await page.locator('.live-marker.away').click();
   assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load').length), 0);
-  await page.getByText('Plan blitz against away1').waitFor();
+  await page.getByRole('button', { name: 'Blitz', exact: true }).and(page.locator('[aria-pressed="true"]')).waitFor();
+  await page.locator('.commit-action:enabled').waitFor();
+  assert.match(await page.locator('.command-preview').textContent(), /Confirm moves and blocks\./,
+    'The reviewed Blitz is highlighted and ready for confirmation');
   await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
   await page.getByRole('dialog', { name: 'Choose a block die' }).waitFor();
   const sent = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load'));

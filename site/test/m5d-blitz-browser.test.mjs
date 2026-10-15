@@ -88,8 +88,22 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     await actor.waitForFunction(() => Math.abs(document.querySelector('.live-pitch-scene').getBoundingClientRect().bottom
       - document.querySelector('.live-pitch-viewport').getBoundingClientRect().bottom) < 1);
     assert.equal(await actor.locator('.live-chess-clock.home.urgent').count(), 1, 'The active turn pulses during its last 15 seconds');
-    assert.equal(await actor.locator('.live-chess-clock').evaluateAll(elements => elements.every(element => element.scrollHeight <= element.clientHeight + 1)), true,
-      'Both clocks fit beside the team plates');
+    assert.equal(await actor.locator('.live-chess-clock').count(), 2);
+    assert.equal(await actor.locator('.live-chess-clock').evaluateAll(elements => elements.every(element => {
+      const bounds = element.getBoundingClientRect();
+      return [...element.querySelectorAll(':scope > span')].every(line => {
+        const text = line.getBoundingClientRect();
+        return text.top >= bounds.top && text.bottom <= bounds.bottom
+          && text.left >= bounds.left && text.right <= bounds.right;
+      });
+    })), true, 'Both clock text lines fit inside their timer panels');
+    const clock = await actor.locator('.live-chess-clock.home').boundingBox();
+    const endTurn = await actor.getByRole('button', { name: 'End Turn', exact: true }).boundingBox();
+    assert.ok(endTurn.y > clock.y + clock.height && endTurn.y < clock.y + clock.height + 10,
+      'End Turn is directly beneath the controlling coach timer');
+    assert.ok(Math.abs(endTurn.x + endTurn.width / 2 - clock.x - clock.width / 2) < 1,
+      'End Turn is centered beneath its own timer');
+    assert.equal(await pages[1].getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
     const layout = await actor.evaluate(() => {
       const box = selector => document.querySelector(selector)?.getBoundingClientRect();
       const bar = box('.match-command-bar'), confirm = box('.confirmation-row .commit-action');
@@ -109,8 +123,8 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     assert.ok(Math.abs(layout.sceneTop - layout.pitchTop) < 1 && Math.abs(layout.sceneBottom - layout.pitchBottom) < 1);
     assert.equal(layout.panelAlpha, 'rgba(9, 23, 38, 0.3)');
     const commit = actor.getByRole('button', { name: 'Confirmed!', exact: true });
-    assert.equal(await actor.getByRole('button', { name: 'Move', exact: true }).isDisabled(), true);
-    assert.equal(await actor.getByRole('button', { name: 'Block', exact: true }).isDisabled(), true);
+    assert.equal(await actor.getByRole('group', { name: 'Player actions', exact: true }).count(), 0,
+      'Player action icons appear only after selecting a player');
     await actor.getByRole('button', { name: 'End Turn', exact: true }).click();
     assert.equal(await commit.isEnabled(), true);
     assert.match(await actor.locator('.command-preview').textContent(), /Unactivated players remain/);
@@ -195,10 +209,9 @@ test('real-engine Blitz actions pin and commit once across both players and spec
       assert.equal(calls.length, 0, 'Duplicate projection does not create a new mutation');
     };
     await pinPlayer(0);
-    await actor.getByRole('button', { name: 'Other action', exact: true }).click();
-    await actor.getByLabel('Additional actions').getByRole('button', { name: 'Forgo activation' }).click();
-    assert.equal(await commit.isEnabled(), true, 'More actions pins a commit-ready server choice');
-    assert.equal(calls.length, 0, 'More actions only pins a server-issued choice');
+    await actor.getByRole('group', { name: 'Player actions', exact: true }).getByRole('button', { name: 'Forgo Activation', exact: true }).click();
+    assert.equal(await commit.isEnabled(), true, 'The action icon pins a commit-ready server choice');
+    assert.equal(calls.length, 0, 'Selecting an action icon only pins its server-issued choice');
     await actor.getByLabel('Pitch action preview').focus();
     await actor.keyboard.press('Escape');
     assert.equal(await commit.isDisabled(), true, 'Escape cancels the pending proposal');

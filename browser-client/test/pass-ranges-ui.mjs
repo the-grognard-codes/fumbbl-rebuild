@@ -71,7 +71,6 @@ try {
       'The movement range response must keep the authenticated pitch connected');
     assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Range inspection cannot activate the passer');
     assert.equal(await pitch.locator('[data-pass-range]').count(), 0);
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
     await page.getByRole('button', { name: 'Pass', exact: true }).click(); await confirm.click();
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 1 ' }).waitFor({ state: 'attached', timeout: 5000 });
     if (evidence && ['NICE', 'VERY_SUNNY', 'BLIZZARD'].includes(journey.weather)) await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.weather}.png`) });
@@ -118,8 +117,7 @@ try {
       assert.equal(await cell(14, 7).getAttribute('fill'), '#eed24b80', 'A native weather change refreshes colors with the accepted revision');
       assert.match(await page.locator('.live-pass-legend').innerText(), /weather \+1 passing penalty/);
     }
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
-    await page.getByRole('button', { name: 'End player action', exact: true }).click();
+    await page.getByRole('button', { name: 'End Activation', exact: true }).click();
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 3 ' }).waitFor({ state: 'attached', timeout: 5000 });
     assert.equal(await pitch.locator('[data-pass-range]').count(), 0);
     assert.equal(await page.locator('.live-pass-legend').count(), 0);

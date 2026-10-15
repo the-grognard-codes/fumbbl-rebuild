@@ -165,7 +165,8 @@ try {
     assert.deepEqual(selection.errors, []);
     await selection.page.close();
   }
-  const { page, errors, confirmed } = await openJourney(fixture.readyState, fixture.movePlan.plan, fixture.moveAcceptedState);
+  const { page, errors, confirmed } = await openJourney(fixture.readyState, fixture.movePlan.plan,
+    { ...fixture.moveAcceptedState, activePlayerAction: 'move' });
   await select(page, fixture.meta.opponentId);
   await page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), fixture.meta.opponentId);
   await assertNoMovementMarkings(page);
@@ -180,9 +181,26 @@ try {
   await page.locator('.live-movement-range').waitFor();
   assert.ok(await page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
     && request.playerId === id), fixture.meta.playerId), 'Own selection requests its range');
-  assert.equal(await page.getByRole('button', { name: 'Move', exact: true }).getAttribute('aria-pressed'), 'true');
+  const moveButton = page.getByRole('button', { name: 'Move', exact: true });
+  assert.equal(await page.locator('.player-action-icons [aria-pressed="true"]').count(), 0,
+    'Selecting an undeclared player leaves every action unhighlighted');
   assert.equal(await confirmed.isDisabled(), true, 'Player selection alone cannot activate');
   const end = fixture.movePlan.plan.waypoints.at(-1);
+  await clickSquare(page, end);
+  await page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'true', 'The first destination implicitly selects Move');
+  await clickSquare(page, end, 'right');
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'false', 'Undoing the last implicit waypoint clears the highlight');
+  await moveButton.click();
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'true', 'Move can be explicitly selected before planning');
+  assert.equal(await confirmed.isDisabled(), true, 'Explicit selection waits for a destination');
+  await clickSquare(page, end);
+  await page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  await clickSquare(page, end, 'right');
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'true', 'Explicit Move survives removal of its last waypoint');
+  await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
+  await select(page, fixture.meta.playerId);
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'false', 'Cancellation clears explicit Move');
   await clickSquare(page, end);
   await page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.deepEqual(await mutations(page), [], 'Waypoint selection remains read-only');
@@ -196,6 +214,7 @@ try {
   assert.equal(await page.getByLabel('Route squares', { exact: true }).locator('li').count(), fixture.movePlan.plan.route.steps.length);
   const endTurn = fixture.readyState.actions.find(action => action.kind === 'endTurn');
   await page.getByLabel('Server action', { exact: true }).selectOption(endTurn.id);
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'false', 'Replacing Move clears its highlight');
   assert.equal(await page.locator('.live-route-line').count(), 0, 'Choosing another server action cancels the pending movement');
   assert.deepEqual(await mutations(page), []);
   await page.getByRole('button', { name: 'Move', exact: true }).click();
@@ -210,6 +229,10 @@ try {
   await page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Space');
   await page.waitForFunction(revision => window.testSocket.state.revision === revision, fixture.moveAcceptedState.revision);
+  await page.waitForFunction(() => document.querySelector('.player-action-icons [aria-label="Move"]')?.getAttribute('aria-pressed') === 'true');
+  await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
+  await select(page, fixture.meta.playerId);
+  assert.equal(await moveButton.getAttribute('aria-pressed'), 'true', 'A declared Move stays highlighted without a draft route');
   const moved = await mutations(page);
   assert.deepEqual(moved.map(request => request.operation), ['movement']);
   assert.equal(moved[0].kind, 'move');
@@ -330,9 +353,8 @@ try {
   const switchJourney = await openJourney(activeWithTeammate, teammatePlan, teammateAccepted);
   await select(switchJourney.page, activePlayerId);
   await select(switchJourney.page, teammateId);
-  await switchJourney.page.getByRole('button', { name: 'Other action', exact: true }).click();
-  assert.equal(await switchJourney.page.getByLabel('Additional actions').getByRole('button', { name: 'Pass', exact: true }).count(), 1,
-    'Other actions belong to the selected teammate');
+  assert.equal(await switchJourney.page.getByRole('group', { name: 'Player actions', exact: true }).getByRole('button', { name: 'Pass', exact: true }).count(), 1,
+    'Action icons belong to the selected teammate');
   await clickSquare(switchJourney.page, destination);
   await switchJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.deepEqual(await mutations(switchJourney.page), [], 'Teammate preview does not end the active player action');
