@@ -194,12 +194,23 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   }, [decision?.key]);
   const kickPreview = view.kickPreview && { deviation: kickoffMarkerPosition(view.kickPreview.deviation),
     withKick: kickoffMarkerPosition(view.kickPreview.withKick) };
+  const beforeKickPreview = useRef<{ matchId: string; transverseFocus: number } | null>(null);
   useEffect(() => {
     const preview = kickPreview;
-    if (!preview) return;
+    if (!preview) {
+      const previous = beforeKickPreview.current;
+      beforeKickPreview.current = null;
+      // Off-pitch landing markers temporarily need sideways travel. Restore
+      // the prior framing afterwards, retaining any lengthwise camera travel.
+      if (previous?.matchId === view.matchId)
+        setTravel(current => ({ ...current, transverseFocus: previous.transverseFocus }));
+      return;
+    }
     const positions = [centerOf(preview.deviation), centerOf(preview.withKick)];
     const current = cameraRef.current;
     if (positions.every(position => current.isVisible(position, 48))) return;
+    if (beforeKickPreview.current?.matchId !== view.matchId)
+      beforeKickPreview.current = { matchId: view.matchId, transverseFocus: current.transverseFocus };
     // Deviation may move past the visible turf or off the pitch. Keep both
     // authoritative alternatives visible instead of silently clipping markers.
     const next = current.with({ focus: (positions[0].x + positions[1].x) / 2,

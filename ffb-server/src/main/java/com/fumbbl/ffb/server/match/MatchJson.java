@@ -216,6 +216,24 @@ public final class MatchJson {
                 bounded(resources.get("cheerleaders"), 0, 20);
             }
         }
+        if (state.get("playerActionMenu") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonArray menu = state.get("playerActionMenu").asArray();
+            if (menu.size() > 1024) throw new IllegalArgumentException();
+            Set<String> entries = new HashSet<>();
+            Set<String> playerIds = new HashSet<>();
+            for (JsonValue value : state.get("players").asArray()) playerIds.add(value.asObject().getString("id", ""));
+            for (JsonValue value : menu) {
+                JsonObject entry = value.asObject(); exact(entry, "playerId", "kind", "spent");
+                String playerId = entry.getString("playerId", ""), kind = entry.getString("kind", "");
+                if (!playerIds.contains(playerId) || kind.isEmpty() || kind.length() > 60
+                    || !entries.add(playerId + "\n" + kind) || !entry.get("spent").isBoolean()) throw new IllegalArgumentException();
+            }
+        }
+        if (state.get("activePlayerAction") != null) {
+            if (!detailsV4) throw new IllegalArgumentException();
+            shortText(state.get("activePlayerAction"));
+        }
         for (String field : Arrays.asList("homeScore", "awayScore", "homeRerolls", "awayRerolls")) bounded(state.get(field), 0, 100);
         bounded(state.get("half"), 1, 2); bounded(state.get("drive"), 1, 100);
         bounded(state.get("homeTurn"), 0, 8); bounded(state.get("awayTurn"), 0, 8); bounded(state.get("turn"), 0, 8);
@@ -631,6 +649,8 @@ public final class MatchJson {
         if (object.get("blockPreview") != null) extended.add("blockPreview");
         if (object.get("kickoff") != null) extended.add("kickoff");
         if (object.get("driveTracker") != null) extended.add("driveTracker");
+        if (object.get("playerActionMenu") != null) extended.add("playerActionMenu");
+        if (object.get("activePlayerAction") != null) extended.add("activePlayerAction");
         exact(object, extended.toArray(new String[0]));
     }
 

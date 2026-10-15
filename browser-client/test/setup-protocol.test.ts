@@ -118,7 +118,7 @@ test('frozen team art is a paired optional v4 identity even with no pitch player
   const live = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
   const homeTeamArt = { rosterId: 'human', league: 'Old World Classic' };
   const awayTeamArt = { rosterId: 'orc', league: 'Badlands Brawl' };
-  const empty = { ...live, players: [], actions: [], activePlayerId: null };
+  const empty = { ...live, players: [], actions: [], playerActionMenu: [], activePlayerId: null };
   delete empty.homeTeamArt; delete empty.awayTeamArt; // Retained legacy v4 form.
   assert.equal(decodeSetupStateValue(empty).homeTeamArt, undefined);
   assert.deepEqual(decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt }).awayTeamArt, awayTeamArt);

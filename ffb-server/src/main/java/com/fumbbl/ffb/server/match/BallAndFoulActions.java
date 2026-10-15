@@ -26,36 +26,56 @@ import java.util.List;
 /** Browser intent projection for the frozen Human catalog, using native range and trait mechanics. */
 public final class BallAndFoulActions {
     public void declarations(Game game, Player<?> player, String role, List<Action> actions) {
+        declarations(game, player, role, actions, false);
+    }
+
+    void declarations(Game game, Player<?> player, String role, List<Action> actions, boolean menu) {
         TurnMode mode = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET ? game.getLastTurnMode() : game.getTurnMode();
         if (mode != TurnMode.REGULAR) return;
-        if (UtilPlayer.isBallAvailable(game, player)) {
-            if (!game.getTurnData().isPassUsed()) declare(actions, player, role, "declarePass", "Pass", PlayerAction.PASS_MOVE);
-            if (!game.getTurnData().isHandOverUsed()) declare(actions, player, role, "declareHandOff", "Hand off", PlayerAction.HAND_OVER_MOVE);
+        boolean passSpent = game.getTurnData().isPassUsed();
+        boolean handOverSpent = game.getTurnData().isHandOverUsed();
+        if (game.getFieldModel().isBallInPlay()) {
+            if (menu || !passSpent) declare(actions, player, role, "declarePass", "Pass", PlayerAction.PASS_MOVE, menu, passSpent);
+            if (menu || !handOverSpent) declare(actions, player, role, "declareHandOff", "Hand off", PlayerAction.HAND_OVER_MOVE, menu, handOverSpent);
         }
-        if (!game.getTurnData().isFoulUsed()) {
-            for (Player<?> opponent : game.getOtherTeam(player.getTeam()).getPlayers()) {
-                if (onPitch(game, opponent) && game.getFieldModel().getPlayerState(opponent).canBeFouled()) {
-                    declare(actions, player, role, "declareFoul", "Foul", PlayerAction.FOUL_MOVE);
-                    break;
+        boolean foulSpent = game.getTurnData().isFoulUsed();
+        if (menu || !foulSpent) {
+            if (menu) {
+                declare(actions, player, role, "declareFoul", "Foul", PlayerAction.FOUL_MOVE, true, foulSpent);
+            } else {
+                for (Player<?> opponent : game.getOtherTeam(player.getTeam()).getPlayers()) {
+                    if (onPitch(game, opponent) && game.getFieldModel().getPlayerState(opponent).canBeFouled()) {
+                        declare(actions, player, role, "declareFoul", "Foul", PlayerAction.FOUL_MOVE, false, foulSpent);
+                        break;
+                    }
                 }
             }
         }
         TtmMechanic ttm = game.getMechanic(Mechanic.Type.TTM);
-        if (ttm.isTtmAvailable(game.getTurnData()) && ttm.canThrow(game, player)) {
-            for (Player<?> mate : player.getTeam().getPlayers()) {
-                if (onPitch(game, mate) && ttm.canBeThrown(game, mate)) {
-                    declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE);
-                    break;
+        boolean ttmSpent = game.getTurnData().isTtmUsed();
+        if ((menu || ttm.isTtmAvailable(game.getTurnData())) && ttm.canThrow(game, player)) {
+            if (menu) {
+                declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE, true, ttmSpent);
+            } else {
+                for (Player<?> mate : player.getTeam().getPlayers()) {
+                    if (onPitch(game, mate) && ttm.canBeThrown(game, mate)) {
+                        declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE, false, ttmSpent);
+                        break;
+                    }
                 }
             }
         }
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
-        if (game.getFieldModel().isBallInPlay() && game.getFieldModel().isBallMoving()
-            && FieldCoordinateBounds.FIELD.isInBounds(ball) && !game.getTurnData().isSecureTheBallUsed()
-            && !player.hasSkillProperty(NamedProperties.preventSecureTheBallAction)
-            && !player.getPosition().getKeywords().contains(Keyword.BIG_GUY)
+        boolean secureEligible = !player.hasSkillProperty(NamedProperties.preventSecureTheBallAction)
+            && !player.getPosition().getKeywords().contains(Keyword.BIG_GUY);
+        if (menu && secureEligible) {
+            declare(actions, player, role, "secureBall", "Secure the ball with", PlayerAction.SECURE_THE_BALL,
+                true, game.getTurnData().isSecureTheBallUsed());
+        } else if (!menu && game.getFieldModel().isBallInPlay() && game.getFieldModel().isBallMoving()
+            && FieldCoordinateBounds.FIELD.isInBounds(ball) && !game.getTurnData().isSecureTheBallUsed() && secureEligible
             && UtilPlayer.findPlayersWithTackleZonesTwoSquaresAway(game, game.getOtherTeam(player.getTeam()), ball).length == 0) {
-            declare(actions, player, role, "secureBall", "Secure the ball with", PlayerAction.SECURE_THE_BALL);
+            declare(actions, player, role, "secureBall", "Secure the ball with", PlayerAction.SECURE_THE_BALL,
+                false, false);
         }
     }
 
@@ -124,8 +144,10 @@ public final class BallAndFoulActions {
         return verb + " " + at.getX() + ", " + at.getY() + (target == null ? " (empty square)" : " (" + target.getName() + ")");
     }
     private FieldCoordinate oriented(FieldCoordinate at, String role) { return "home".equals(role) ? at : at.transform(); }
-    private void declare(List<Action> actions, Player<?> player, String role, String kind, String label, PlayerAction action) {
+    private void declare(List<Action> actions, Player<?> player, String role, String kind, String label,
+                         PlayerAction action, boolean menu, boolean spent) {
+        if (spent && !menu) return;
         actions.add(new Action(kind + "-" + player.getId(), kind, label + " " + player.getName(), role,
-            new ClientCommandActingPlayer(player.getId(), action, false), player.getId()));
+            new ClientCommandActingPlayer(player.getId(), action, false), player.getId(), spent));
     }
 }

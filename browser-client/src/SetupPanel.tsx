@@ -11,6 +11,8 @@ import { MatchHistory } from './MatchHistory.tsx';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import { usePitchPlayback } from './use-pitch-playback.ts';
+import { playerActionMenu, activeMenuAction, endTurnNeedsConfirmation, isEndTurnShortcut } from './player-action-menu.ts';
+import type { PlayerMenuItem } from './player-action-menu.ts';
 import { ActionGlyph } from './ActionGlyph.tsx';
 import './coach-match.css';
 import './match-adjustments.css';
@@ -23,7 +25,7 @@ import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts'
 import { potentialBlockDice } from './block-dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
 import { blockFaceLabel } from './dice-presentation.ts';
-import { actionForPlayer, assistedTarget, attackApproaches, hasUnactivatedPlayers, moreActions, passTargetForPlayer, recentActionLabel, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
+import { actionForPlayer, assistedTarget, attackApproaches, passTargetForPlayer, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
 import { withProTest } from './reroll-presentation.ts';
 import { pitchPushChoices } from './push-choice.ts';
@@ -36,6 +38,7 @@ import { canDragSetupPlayer, canDropSetupPlayer, solidDefenceDrop } from './setu
 import { decodeRetainedSetup, setupOutcomeUncertain, setupRetryKey } from './setup-recovery.ts';
 import type { RetainedSetup } from './setup-recovery.ts';
 import './SetupPanel.css';
+import './player-action-menu.css';
 
 type Request = Record<string, unknown>;
 function shortActionLabel(action: SetupAction, state: SetupState, selectedPlayerId: string): string {
@@ -216,9 +219,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [selectedScreen, setSelectedScreen] = useState<{ x: number; width: number } | null>(null);
   const [actionId, setActionId] = useState('');
   const [actionFilter, setActionFilter] = useState('');
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [menuChoices, setMenuChoices] = useState<SetupAction[]>([]);
   const [debugCameraHost, setDebugCameraHost] = useState<HTMLDivElement | null>(null);
-  const [moreActionId, setMoreActionId] = useState('');
   const [targetAssist, setTargetAssist] = useState(true);
   const [smartIntent, setSmartIntent] = useState<SmartIntent | null>(null);
   const [draggingPlayerId, setDraggingPlayerId] = useState('');
@@ -228,17 +230,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     playerId: string; revision: number; pendingSeen: boolean } | null>(null);
   const autoActionRef = useRef('');
   const [explicitBlitz, setExplicitBlitz] = useState(false);
+  const [explicitMove, setExplicitMove] = useState(false);
   const [confirmEndTurn, setConfirmEndTurn] = useState(false);
   const [routeMode, setRouteMode] = useState(false);
   const [waypoints, setWaypoints] = useState<RoutePoint[]>([]);
   const [movementIntent, setMovementIntent] = useState<MovementRequest | null>(null);
   const movementFlow = hosted && !!requestMovementPreview;
-  const recentKey = `ffb.match.more.${view.matchId}.${view.callerRole}`;
-  const candidateKey = `${recentKey}.candidate`;
-  const [lastUsed, setLastUsed] = useState<{ kind: string; label: string } | null>(() => {
-    try { const value = JSON.parse(sessionStorage.getItem(recentKey) ?? 'null'); return typeof value?.kind === 'string' && typeof value?.label === 'string' ? value : null; }
-    catch { return null; }
-  });
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [hoverPlayer, setHoverPlayer] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -256,25 +253,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useLayoutEffect(() => {
     if (displayedRevision.current === view.revision) return;
     displayedRevision.current = view.revision;
-    setActionId(''); setActionFilter(''); setMoreOpen(false); setMoreActionId(''); setExplicitBlitz(false); setConfirmEndTurn(false);
+    setActionId(''); setActionFilter(''); setMenuChoices([]); setExplicitBlitz(false); setConfirmEndTurn(false);
     setRouteMode(false); setWaypoints([]);
+    setExplicitMove(false);
     setMovementIntent(null);
   }, [view.revision]);
-  useEffect(() => {
-    if (!acceptedActionId) return;
-    try {
-      const candidate = JSON.parse(sessionStorage.getItem(candidateKey) ?? 'null');
-      if (candidate?.id !== acceptedActionId || candidate.revision >= view.revision) return;
-      const recent = { kind: candidate.kind, label: candidate.label };
-      sessionStorage.setItem(recentKey, JSON.stringify(recent));
-      sessionStorage.removeItem(candidateKey);
-      setLastUsed(recent);
-    } catch { /* Last used is a convenience; match state is authoritative. */ }
-  }, [acceptedActionId, candidateKey, recentKey, view.revision]);
-  useEffect(() => {
-    try { const value = JSON.parse(sessionStorage.getItem(recentKey) ?? 'null'); setLastUsed(typeof value?.kind === 'string' && typeof value?.label === 'string' ? value : null); }
-    catch { setLastUsed(null); }
-  }, [recentKey]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
   const saved = view.saveResume;
@@ -301,20 +284,25 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const gameStep = currentGameStep(pitchView);
   const pitchActions = kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions;
-  const selectedActions = moreActions(availableActions, selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '');
+  const menuPlayerId = selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '';
+  const menuItems = playerActionMenu(view, menuPlayerId);
+  const activeMenuKey = activeMenuAction(view, menuPlayerId);
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
+  const showEndTurn = hosted && view.phase === 'PLAY' && view.actor === view.callerRole && !!endTurnAction && !kickoff && !kickoffMovement;
   const canChoose = connected && !pending && !suspended;
   const canMove = canChoose && !decision && canPlanMovement(view, availableActions, playerId, 'move');
   const movementReady = canChoose && !decision && playerId === movementIntent?.playerId && matchesMovementPlan(movementPlan, movementIntent, view);
   const displayedWaypoints = movementFlow && movementIntent?.kind !== 'move' && !waypoints.length && movementReady
     ? movementPlan!.waypoints : waypoints;
   const previewMovement = (kind: MovementRequest['kind'], targetId: string | null, points: RoutePoint[]) => {
+    if (kind !== 'move') setExplicitMove(false);
     const intent = { playerId, kind, targetPlayerId: targetId, waypoints: points };
     setMovementIntent(intent); setRouteMode(true); setWaypoints(points); setSmartIntent(null); setActionId('');
-    setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false);
+    setConfirmEndTurn(false);
     requestMovementPreview?.(intent);
   };
-  const clearMovement = () => {
+  const clearMovement = (keepExplicitMove = false) => {
+    if (!keepExplicitMove) setExplicitMove(false);
     setMovementIntent(null); setRouteMode(false); setWaypoints([]); requestMovementPreview?.(null);
   };
   const canRoute = hosted && !!requestRoutePreview && canChoose && view.phase === 'PLAY'
@@ -333,7 +321,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const updateWaypoints = (points: RoutePoint[]) => {
     if (movementFlow && movementIntent) {
-      if (!points.length) clearMovement();
+      if (!points.length) clearMovement(movementIntent.kind === 'move');
       else previewMovement(movementIntent.kind, movementIntent.targetPlayerId, points);
       return;
     }
@@ -365,16 +353,16 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const teammateProposal = pinnedAction?.kind === 'liftTeamMate' || pinnedAction?.kind === 'kickMate';
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
-  const additionalActions = [...selectedActions, ...targetChoices.filter(action =>
-    !['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && !selectedActions.some(item => item.id === action.id))];
   const cancelProposal = () => {
     if (!requestPending) setConfirmedDice(null);
     setPlayerId(teammateProposal ? view.activePlayerId ?? playerId : ''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
-    setMoreActionId(''); setMoreOpen(false); setConfirmEndTurn(false); setExplicitBlitz(false);
+    setConfirmEndTurn(false); setExplicitBlitz(false);
+    setExplicitMove(false);
     setTargetFocus(null); setRouteMode(false); setWaypoints([]); requestRoutePreview?.([]); blurPlayer();
     setMovementIntent(null); requestMovementPreview?.(null);
   };
   const selectPlayer = (id: string) => {
+    setMenuChoices([]);
     const kickOccupant = view.players.find(player => player.id === id);
     if (view.phase === 'READY_FOR_KICKOFF' && kickOccupant?.x != null && kickOccupant.y != null) {
       selectSquare(kickOccupant.x, kickOccupant.y); return;
@@ -582,17 +570,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       return;
     }
     if (!mayAct || !pinnedAction) return;
-    if (pinnedAction.kind === 'endTurn' && hasUnactivatedPlayers(availableActions) && !confirmEndTurn) {
+    if (pinnedAction.kind === 'endTurn' && endTurnNeedsConfirmation(availableActions) && !confirmEndTurn) {
       setConfirmEndTurn(true); return;
     }
     setConfirmEndTurn(false);
     retainConfirmedDice();
     if (smartIntent?.stage === 'planned') setSmartIntent({ ...smartIntent,
       stage: pinnedAction.kind === 'blitzTarget' ? 'targeting' : 'declaring', revision: view.revision });
-    if (pinnedAction.id === moreActionId) {
-      try { sessionStorage.setItem(candidateKey, JSON.stringify({ id: pinnedAction.id, kind: pinnedAction.kind, label: recentActionLabel(pinnedAction), revision: view.revision })); }
-      catch { /* A failed local shortcut never blocks a legal game action. */ }
-    }
     mutate('action', { actionId: pinnedAction.id });
   };
   useEffect(() => {
@@ -641,11 +625,16 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || !(event.target instanceof Element)) return;
+      if (isEndTurnShortcut(event) && showEndTurn && canChoose
+        && !event.target.closest('input,textarea,select,[contenteditable],[role="textbox"],[role="dialog"],dialog')
+        && !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')) {
+        event.preventDefault(); useEndTurn(); return;
+      }
       if (event.key === 'Escape' && event.target.closest('.hosted-match .live-pitch-viewport')) {
         cancelProposal();
         return;
       }
-      if (event.code === 'Space' && !event.repeat && (movementIntent ? movementReady : routeMode ? routeReady : mayAct)
+      if (event.code === 'Space' && !event.repeat && pinnedAction?.kind !== 'endTurn' && (movementIntent ? movementReady : routeMode ? routeReady : mayAct)
         && (event.target.classList.contains('live-pitch-viewport') || movementIntent && !!event.target.closest('.live-marker'))) {
         event.preventDefault(); commit();
       }
@@ -660,32 +649,52 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   }, {});
   const selectCommon = (kind: string) => {
     if (movementFlow && ['select', 'stand'].includes(kind) && canMove) {
-      clearMovement(); setSmartIntent(null); setActionId(''); setExplicitBlitz(false); setMoreActionId(''); return;
+      clearMovement(); setExplicitMove(true); setSmartIntent(null); setActionId(''); setExplicitBlitz(false); setConfirmEndTurn(false); return;
     }
     const action = actionForPlayer(availableActions, playerId, kind);
     if (!action || !canChoose) return;
     if (movementFlow) clearMovement();
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
-    setSmartIntent(null); setActionId(action.id); setMoreActionId(''); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
+    setSmartIntent(null); setActionId(action.id); setExplicitBlitz(kind === 'blitz'); setConfirmEndTurn(false);
   };
   const selectMore = (action: typeof availableActions[number]) => {
     if (!canChoose) return;
     if (movementFlow) clearMovement();
     if (routeMode) { setRouteMode(false); updateWaypoints([]); }
     if (action.kind === 'endAction') {
-      setSmartIntent(null); setMoreOpen(false); setActionId(''); setMoreActionId(''); setConfirmEndTurn(false);
-      try { sessionStorage.setItem(candidateKey, JSON.stringify({ id: action.id, kind: action.kind, label: recentActionLabel(action), revision: view.revision })); }
-      catch { /* A failed local shortcut never blocks a legal game action. */ }
+      setSmartIntent(null); setActionId(''); setConfirmEndTurn(false);
       mutate('action', { actionId: action.id });
       return;
     }
-    setSmartIntent(null); setActionId(action.id); setMoreActionId(action.id); setMoreOpen(false); setConfirmEndTurn(false);
+    setSmartIntent(null); setActionId(action.id); setConfirmEndTurn(false);
   };
   const useEndTurn = () => {
     if (!endTurnAction || !canChoose) return;
     if (movementFlow) clearMovement();
-    setSmartIntent(null); setRouteMode(false); updateWaypoints([]); setMoreOpen(false);
-    setActionId(endTurnAction.id); setConfirmEndTurn(hasUnactivatedPlayers(availableActions));
+    setSmartIntent(null); setRouteMode(false); updateWaypoints([]); setMenuChoices([]);
+    if (endTurnNeedsConfirmation(availableActions)) {
+      setActionId(endTurnAction.id); setConfirmEndTurn(true);
+    } else {
+      setActionId(''); setConfirmEndTurn(false);
+      mutate('action', { actionId: endTurnAction.id });
+    }
+  };
+  const selectMenuItem = (item: PlayerMenuItem) => {
+    if (!canChoose || item.spent) return;
+    setMenuChoices([]);
+    if (item.key === 'move' && menuPlayerId === playerId && movementFlow && canMove) {
+      selectCommon(actionForPlayer(availableActions, playerId, 'select') ? 'select' : 'stand'); return;
+    }
+    if (item.key === 'move' && !movementFlow && canRoute && menuPlayerId === view.activePlayerId) {
+      setSmartIntent(null); setRouteMode(true); updateWaypoints([]); setActionId(''); setConfirmEndTurn(false); return;
+    }
+    const targetActions = item.actions.filter(action => action.target && 'playerId' in action.target
+      && action.target.playerId === targetPlayerId);
+    const choices = targetActions.length ? targetActions : item.actions;
+    if (choices.length === 1) {
+      if (menuPlayerId === playerId && ['select', 'stand', 'selectBlock', 'blitz'].includes(choices[0].kind)) selectCommon(choices[0].kind);
+      else selectMore(choices[0]);
+    } else if (choices.length > 1) setMenuChoices(choices);
   };
   const selectServerAction = (id: string) => {
     if (movementFlow) clearMovement();
@@ -722,12 +731,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   </section>;
   return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined} style={{ ['--support-panel-opacity' as string]: `${opacity}%` }} onKeyDown={event => {
     if (!routeMode || (movementIntent ? !canChoose : !canRoute) || !(event.target instanceof HTMLElement) || !event.target.closest('.live-pitch') || event.target.closest('input,textarea,select,[contenteditable]')) return;
-    if (event.key === 'Backspace') { event.preventDefault(); undoWaypoint(); }
     if (event.key === 'Escape') { event.preventDefault(); setRouteMode(false); updateWaypoints([]); setSmartIntent(null); }
   }}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? `${matchTeamName(view, 'home')} / ${matchTeamName(view, 'away')}` : view.callerRole === 'home' ? `${matchTeamName(view, 'home')}: You / ${matchTeamName(view, 'away')}: Opponent` : `${matchTeamName(view, 'home')}: Opponent / ${matchTeamName(view, 'away')}: You`}</p>
-      {hosted && <LiveMatchScoreboard view={view}/>}
+      {hosted && <LiveMatchScoreboard view={view} endTurn={showEndTurn ? { onClick: useEndTurn, disabled: !canChoose } : undefined}/>}
       {hosted && gameStep && <div className="match-game-step" role="status" aria-label="Current game step" aria-live="polite">
         <strong>{gameStep.title}</strong><span>{gameStep.instruction}</span>{gameStep.progress && <small>{gameStep.progress}</small>}
       </div>}
@@ -737,6 +745,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && showConfirmation && <div className="confirmation-row">
+        {view.phase === 'PLAY' && <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
+          : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.' : 'Confirm moves along the path.'
+          : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
+          {movementIntent && movementError && <span role="status">{movementError}</span>}
+        </div>}
         <button type="button" className="commit-action" onClick={commit} disabled={view.phase === 'SETUP' ? !maySetup : movementIntent ? !movementReady : routeMode ? !canRoute || !routeReady : !mayAct}><ActionGlyph kind="confirm"/>Confirmed!</button>
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
       </div>}
@@ -757,30 +770,23 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           {availableActions.filter(action => action.kind === 'kickoffChoice').map(action => <button key={action.id} type="button"
             disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}
         </div> : availableActions.length > 0 ? <>
-        <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong>
-          {movementIntent && <span>{movementIntent.kind === 'move' ? 'Plan move'
-            : `Plan ${movementIntent.kind} against ${view.players.find(player => player.id === movementIntent.targetPlayerId)?.name ?? 'target'}`}</span>}
-          {(smartIntent?.stage === 'planned' || pinnedAction) && <span>{smartIntent?.stage === 'planned' ? `Plan ${smartIntent.kind}${smartIntent.targetId ? ` against ${view.players.find(player => player.id === smartIntent.targetId)?.name ?? 'target'}` : smartIntent.destination ? ` to ${smartIntent.destination.x}, ${smartIntent.destination.y}` : ''}`
-            : pinnedAction?.label}</span>}</div>
-        <div className="command-buttons" role="group" aria-label="Player actions">
-          <button type="button" aria-pressed={movementFlow ? canMove && !pinnedAction && (!movementIntent || movementIntent.kind === 'move') : !!pinnedAction && ['select', 'stand'].includes(pinnedAction.kind)} disabled={movementFlow ? !canMove : !canChoose || !playerId || !availableActions.some(action => action.sourcePlayerId === playerId && ['select', 'stand'].includes(action.kind))} onClick={() => selectCommon(actionForPlayer(availableActions, playerId, 'select') ? 'select' : 'stand')}><ActionGlyph kind="move"/>Move</button>
-          <button type="button" aria-pressed={pinnedAction?.kind === 'selectBlock'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'selectBlock')} onClick={() => selectCommon('selectBlock')}><ActionGlyph kind="block"/>Block</button>
-          <button type="button" aria-pressed={movementIntent?.kind === 'blitz' || pinnedAction?.kind === 'blitz'} disabled={!canChoose || !actionForPlayer(availableActions, playerId, 'blitz')} onClick={() => selectCommon('blitz')}><ActionGlyph kind="blitz"/>Blitz</button>
-          <button type="button" aria-expanded={moreOpen} disabled={!canChoose} onClick={() => setMoreOpen(!moreOpen)}><ActionGlyph kind="other"/>Other action</button>
-          <button type="button" className="end-turn-action" onClick={useEndTurn} disabled={!canChoose || !endTurnAction}><ActionGlyph kind="end"/>End Turn</button>
-        </div>
-        {moreOpen && <div className="command-menu" aria-label="Additional actions">
-          {additionalActions.map(action => <button key={action.id} type="button" disabled={!canChoose} onClick={() => selectMore(action)}>{shortActionLabel(action, view, playerId)}</button>)}
-          {!movementFlow && canRoute && <button type="button" aria-pressed={routeMode} onClick={() => { setSmartIntent(null); setRouteMode(!routeMode); updateWaypoints([]); setActionId(''); setMoreOpen(false); }}>Plan path</button>}
-          <button type="button" className="last-used-action" title={lastUsed?.label} disabled={!canChoose || !lastUsed || !additionalActions.some(action => action.kind === lastUsed.kind)} onClick={() => { const action = additionalActions.find(item => item.kind === lastUsed?.kind); if (action) selectMore(action); }}>Last used{lastUsed ? `: ${lastUsed.label}` : ''}</button>
-          <button type="button" onClick={() => setDebugOpen(true)}>Show server options</button>
+        <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong></div>
+        {menuItems.length > 0 && <div className="command-buttons player-action-icons" role="group" aria-label="Player actions"
+          style={{ ['--action-count' as string]: menuItems.length }}>
+          {menuItems.map(item => <button key={item.key} type="button" className={item.spent ? 'spent' : undefined}
+            aria-label={item.label} title={`${item.label}${item.spent ? ' - Used' : ''}${!item.actions.length && !item.spent ? ' - Unavailable now' : ''}`}
+            aria-pressed={!!pinnedAction && item.kinds.includes(pinnedAction.kind) || movementIntent?.kind === item.key
+              || !pinnedAction && !movementIntent && !confirmEndTurn && (explicitMove ? item.key === 'move' : activeMenuKey === item.key)}
+            disabled={!canChoose || item.spent || !item.actions.length}
+            onClick={() => selectMenuItem(item)}><ActionGlyph kind={item.icon}/></button>)}
         </div>}
-        {routeMode && <p className="sr-only" aria-live="polite">Click squares to add waypoints. Right-click or Backspace undoes; Escape clears; Confirm commits.</p>}
-        <div className="command-preview">{(routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
-          : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.' : 'Confirm moves along the path.'
-          : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
-          {movementIntent && movementError && <span role="status">{movementError}</span>}
-          </div></> :
+        {menuChoices.length > 0 && <div className="action-target-choices" role="group" aria-label="Action targets">
+          {menuChoices.map(action => <button key={action.id} type="button" disabled={!canChoose}
+            onClick={() => { setMenuChoices([]); selectMore(action); }}>{shortActionLabel(action, view, menuPlayerId)}</button>)}
+          <button type="button" onClick={() => setMenuChoices([])}>Cancel target selection</button>
+        </div>}
+        {routeMode && <p className="sr-only" aria-live="polite">Click squares to add waypoints. Right-click undoes; Escape clears; Confirm commits.</p>}
+        </> :
         <p>{view.phase === 'FULL_TIME' ? <>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</> : view.phase === 'PLAY' && view.actions.length === 0 ? 'Waiting for an engine decision. Reconnect if the match appears stuck.' : view.callerRole === 'spectator' ? 'Watching match · coach decisions appear here when resolved.' : view.actor === view.callerRole ? 'Waiting for the next server decision.' : 'Waiting for the other participant.'}</p>}
       </div>}
       {!hosted && view.phase === 'FULL_TIME' && <p>Match finished. {results && <a href={resultUrl ?? `/results?matchId=${encodeURIComponent(view.matchId)}`}>Open final result and replay</a>}</p>}
@@ -826,7 +832,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
               <button type="button" aria-pressed={pitchZoom === 2} onClick={() => setPitchZoom(2)}>2×</button>
             </div>
             <label className="hud-opacity-control">Panel background opacity <input type="range" min="0" max="100" step="1" value={opacity} onChange={event => changeOpacity(Number(event.target.value))}/><output>{opacity}%</output></label>
-            <p>Right-button drag travels along the field; the wheel zooms. Click pitch squares to add movement waypoints; Confirmed or Space commits. Right-click or Backspace undoes a waypoint; Escape clears the route. Top-down preserves the camera position.</p></>}/></div>
+            <p>Right-button drag travels along the field; the wheel zooms. Click pitch squares to add movement waypoints; Confirmed or Space commits. Right-click undoes a waypoint; Escape clears the route. Top-down preserves the camera position.</p></>}/></div>
       </aside></div></>}
       {hosted && hoverPlayer && (() => { const player = view.players.find(item => item.id === hoverPlayer.id);
         return player ? <PlayerHoverCard player={player} anchor={hoverPlayer.anchor} dock={selectedScreen && selectedScreen.x < selectedScreen.width / 2 - 1 ? 'right' : 'left'} teamName={matchTeamName(view, player.role)}/> : null; })()}

@@ -22,7 +22,7 @@ const result = { formatVersion: 1, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', rule
   presetId: 'human-exhibition-1150', presetVersion: 'bb2025-human-2026-09-08.1', matchId, homeScore: 2, awayScore: 1, finalRevision: 2, eventCount: 3 };
 
 for (const reflowTiming of ['before drag', 'during drag']) {
-  test(`active player keeps Blitz - Stab in More actions after selecting the defender (${reflowTiming} reflow)`, async () => {
+  test(`active player's Stab icon offers Blitz - Stab after selecting the defender (${reflowTiming} reflow)`, async () => {
     const server = createServer(async (request, response) => {
       const path = new URL(request.url, 'http://local').pathname;
       if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
@@ -77,13 +77,14 @@ for (const reflowTiming of ['before drag', 'during drag']) {
       assert.equal(reflowed, true, 'The camera-travel check exercises a responsive reflow during its drag');
       await defender.click();
       assert.equal(await page.getByLabel('Actions at selected target').count(), 0);
-      await page.getByRole('button', { name: 'Other action' }).click();
-      assert.equal(await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).count(), 1);
+      const stab = page.getByRole('button', { name: 'Stab', exact: true });
+      assert.equal(await stab.count(), 1, 'The selected active player exposes its theoretical Stab action as an icon');
       if (process.env.SPECIAL_CAPTURE_DIR) {
         await mkdir(process.env.SPECIAL_CAPTURE_DIR, { recursive: true });
         await page.screenshot({ path: resolve(process.env.SPECIAL_CAPTURE_DIR, 'blitz-stab-menu.png') });
       }
-      await page.getByLabel('Additional actions').getByRole('button', { name: 'Blitz - Stab Blitzer' }).click();
+      await stab.click();
+      await page.getByText('Ready: Blitz - Stab Blitzer', { exact: true }).waitFor();
       await page.getByRole('button', { name: 'Confirmed!' }).click();
       assert.deepEqual(submitted, [['1:blockStab-p2', 1]]);
     } finally { await browser.close(); await new Promise(done => server.close(done)); }
@@ -276,9 +277,8 @@ test('hosted final decision leads to participant result and read-only replay aft
     await page.setViewportSize({ width: 1280, height: 660 });
     await checkViewport();
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
-    assert.equal(completed, false, 'Staging End Turn does not submit it');
-    await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
     await page.getByRole('link', { name: 'Open final result and replay' }).waitFor();
+    assert.equal(completed, true, 'End Turn submits immediately when no activation declaration remains');
     const offPitch = page.getByLabel('away dugout').getByRole('button', { name: /Blitzer/ });
     await offPitch.focus();
     await page.getByRole('tooltip', { name: /Blitzer player card/ }).waitFor();

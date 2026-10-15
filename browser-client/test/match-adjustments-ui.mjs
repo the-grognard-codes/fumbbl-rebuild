@@ -145,6 +145,28 @@ try {
       assert.equal(await page.locator('[data-kick-arrow]').count(), 1);
     }
   });
+  await run('kick-camera-recovery', async () => {
+    for (const role of ['home', 'away']) {
+      await open({ ...base, callerRole: role, actor: role });
+      await page.waitForFunction(() => document.querySelector('.live-pitch-scene').clientWidth === innerWidth);
+      const scene = page.locator('.live-pitch-scene');
+      const before = await scene.getAttribute('data-transverse-focus');
+      await page.evaluate(state => window.publishAdjustment(state), { ...base, revision: 2, callerRole: role, actor: role,
+        turnMode: 'KICKOFF', kickPreview: { deviation: { x: -5, y: 19 }, withKick: { x: -2, y: 16 } },
+        actions: [action('kick-skill:true', 'kickSkill', 'p1', null, 'Yes'), action('kick-skill:false', 'kickSkill', 'p1', null, 'No')]
+          .map(item => ({ ...item, actor: role })) });
+      await page.waitForFunction(() => document.querySelector('.live-pitch-scene').dataset.transverseFocus === '15');
+      await page.mouse.move(600, 300); await page.mouse.down({ button: 'right' });
+      await page.mouse.move(600, 370, { steps: 5 }); await page.mouse.up({ button: 'right' });
+      const focus = await scene.getAttribute('data-focus');
+      await page.evaluate(state => window.publishAdjustment(state), { ...base, revision: 3, callerRole: role, actor: role });
+      await page.locator('.live-ball-kick-preview').waitFor({ state: 'detached' });
+      assert.equal(await scene.getAttribute('data-transverse-focus'), before,
+        'Finishing an off-pitch Kick preview restores the full-width pitch instead of leaving it shifted sideways');
+      assert.equal(await scene.getAttribute('data-focus'), focus, 'Lengthwise panning during Kick remains intact');
+      assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), []);
+    }
+  });
   await run('quick-snap', async () => {
     const move = action('event-p1-13-5', 'kickoffMove', 'p1', { x: 13, y: 5 }, 'Alice to 13, 5');
     await open({ ...base, turnMode: 'QUICK_SNAP', kickoff: { version: 1, event: 'QUICK_SNAP', actor: 'home', stage: 'movement', allowed: 5, completed: 2, selected: 0 },

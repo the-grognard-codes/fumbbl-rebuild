@@ -52,6 +52,74 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void passAndHandOffCanBeDeclaredBeforeTheLooseBallIsPickedUp() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        Game game = nativeState(fixture.session).getGame();
+        Player<?> passer = game.getActingTeam().getPlayers()[0];
+        Player<?> next = game.getActingTeam().getPlayers()[1];
+        Player<?> opponent = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, passer, 7, 7, PlayerState.STANDING);
+        place(game, next, 4, 4, PlayerState.STANDING);
+        place(game, opponent, 16, 7, PlayerState.STANDING);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(5, 5));
+        game.getFieldModel().setBallMoving(false);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+
+        JsonObject pass = offered(ready, "declarePass", passer.getId());
+        assertTrue(pass != null, ready.toString());
+        assertTrue(offered(ready, "declareHandOff", passer.getId()) != null, ready.toString());
+        JsonObject accepted = fixture.session.apply(role, fixture.request("action", "pass-before-pickup", ready)
+            .add("actionId", pass.getString("id", null)));
+        assertEquals("ACCEPTED", accepted.getString("code", null));
+        JsonObject active = accepted.get("state").asObject();
+        assertTrue(active.getString("activePlayerAction", "").length() > 0, active.toString());
+        assertTrue(menuHas(active, passer.getId(), "declarePass", true), active.toString());
+        game.getTurnData().setPassUsed(false);
+        JsonObject reserved = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        assertTrue(menuHas(reserved, passer.getId(), "declarePass", true), reserved.toString());
+        assertTrue(menuHas(reserved, next.getId(), "declarePass", true), reserved.toString());
+        assertFalse(hasAction(reserved, "declarePass"));
+        assertThrows(MatchService.Failure.class, () -> fixture.session.apply(role,
+            fixture.request("action", "reserved-pass-rejected", reserved).add("actionId", reserved.getInt("revision", -1)
+                + ":declarePass-" + next.getId())));
+    }
+
+    @Test void playerActionMenuMarksSpentDeclarationsAndKeepsThemOutOfExecutableActions() throws Exception {
+        Fixture fixture = new Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        Game game = nativeState(fixture.session).getGame();
+        Player<?> player = game.getActingTeam().getPlayers()[0];
+        Player<?> opponent = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, player, 7, 7, PlayerState.STANDING);
+        place(game, opponent, 15, 7, PlayerState.STANDING);
+        game.getFieldModel().setBallCoordinate(new FieldCoordinate(5, 5));
+        game.getFieldModel().setBallMoving(false);
+        game.getTurnData().setBlitzUsed(true);
+        game.getTurnData().setPassUsed(true);
+        game.getTurnData().setHandOverUsed(true);
+        game.getTurnData().setFoulUsed(true);
+        ready = fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+
+        assertTrue(menuHas(ready, player.getId(), "blitz", true), ready.toString());
+        assertTrue(menuHas(ready, player.getId(), "declarePass", true), ready.toString());
+        assertTrue(menuHas(ready, player.getId(), "declareHandOff", true), ready.toString());
+        assertTrue(menuHas(ready, player.getId(), "declareFoul", true), ready.toString());
+        assertTrue(menuHas(ready, player.getId(), "selectBlock", false), ready.toString());
+        assertFalse(hasAction(ready, "blitz"));
+        assertFalse(hasAction(ready, "declarePass"));
+        assertFalse(hasAction(ready, "declareHandOff"));
+        assertFalse(hasAction(ready, "declareFoul"));
+        JsonObject spentState = ready;
+        assertThrows(MatchService.Failure.class, () -> fixture.session.apply(role,
+            fixture.request("action", "spent-pass-rejected", spentState).add("actionId", spentState.getInt("revision", -1)
+                + ":declarePass-" + player.getId())));
+    }
+
     @Test void nativeBlockPreviewIncludesAssistsAndBlitzEndpointWithoutChangingLiveState() throws Exception {
         Fixture fixture = new Fixture();
         JsonObject ready = fixture.advanceToTurn();
@@ -935,6 +1003,24 @@ class SetupSessionMovementTest {
     private boolean hasAction(JsonObject state, String kind) {
         for (JsonValue value : state.get("actions").asArray())
             if (kind.equals(value.asObject().getString("kind", null))) return true;
+        return false;
+    }
+
+    private JsonObject offered(JsonObject state, String kind, String playerId) {
+        for (JsonValue value : state.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if (kind.equals(action.getString("kind", null)) && playerId.equals(action.getString("sourcePlayerId", null))) return action;
+        }
+        return null;
+    }
+
+    private boolean menuHas(JsonObject state, String playerId, String kind, boolean spent) {
+        JsonArray menu = state.get("playerActionMenu").asArray();
+        for (JsonValue value : menu) {
+            JsonObject action = value.asObject();
+            if (playerId.equals(action.getString("playerId", null)) && kind.equals(action.getString("kind", null))
+                && spent == action.getBoolean("spent", false)) return true;
+        }
         return false;
     }
 

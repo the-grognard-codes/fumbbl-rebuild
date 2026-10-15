@@ -192,8 +192,7 @@ async function routeUI(view, action) {
   const player = view.players.find(player => player.id === action.sourcePlayerId);
   await squarePosition(page, player.x, player.y);
   await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
-  await page.getByRole('button', { name: 'Other action', exact: true }).click();
-  await page.getByRole('button', { name: 'Plan path', exact: true }).click();
+  await page.getByRole('button', { name: 'Move', exact: true }).click();
   const waypoint = async () => {
     const position = await squarePosition(page, target.x, target.y);
     await page.locator('.live-pitch-scene').click({ position });
@@ -222,8 +221,7 @@ async function routeUI(view, action) {
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), false, 'Reconnect discards an uncommitted route instead of sending it');
   await squarePosition(page, player.x, player.y);
   await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
-  await page.getByRole('button', { name: 'Other action', exact: true }).click();
-  await page.getByRole('button', { name: 'Plan path', exact: true }).click();
+  await page.getByRole('button', { name: 'Move', exact: true }).click();
   await waypoint();
   view = await advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
   record('Real server-bound route preview, Undo/Clear, camera-preserved proposal, reconnect and confirmed native route');

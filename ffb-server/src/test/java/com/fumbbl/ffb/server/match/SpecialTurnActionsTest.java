@@ -11,6 +11,7 @@ import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.FieldModel;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
@@ -36,6 +37,50 @@ class SpecialTurnActionsTest {
     private final TurnData turn = mock(TurnData.class);
     private final GameMechanic rules = mock(GameMechanic.class);
     private final TtmMechanic ttm = mock(TtmMechanic.class);
+
+    @Test void menuKeepsGazeDeclarationWithoutAnAdjacentTarget() {
+        when(game.getTurnMode()).thenReturn(TurnMode.REGULAR);
+        when(game.getTurnData()).thenReturn(turn);
+        when(game.getMechanic(Mechanic.Type.GAME)).thenReturn(rules);
+        when(game.getMechanic(Mechanic.Type.TTM)).thenReturn(ttm);
+        when(rules.isGazeActionAllowed(game, player)).thenReturn(true);
+        when(player.getId()).thenReturn("p1");
+        when(player.hasSkillProperty(NamedProperties.inflictsConfusion)).thenReturn(true);
+        when(player.isUsed(NamedProperties.inflictsConfusion)).thenReturn(false);
+        List<Action> menu = new ArrayList<>();
+
+        projection.declarations(game, player, new PlayerState(PlayerState.STANDING), "home", menu, true);
+
+        assertTrue(menu.stream().anyMatch(action -> action.kind.equals("declareGaze")));
+    }
+
+    @Test void menuRetainsEligiblePuntAndKickTeamMateWithoutBallOrKickableTargets() {
+        Team own = mock(Team.class);
+        when(game.getTurnMode()).thenReturn(TurnMode.REGULAR);
+        when(game.getFieldModel()).thenReturn(field);
+        when(game.getTurnData()).thenReturn(turn);
+        when(game.getMechanic(Mechanic.Type.GAME)).thenReturn(rules);
+        when(game.getMechanic(Mechanic.Type.TTM)).thenReturn(ttm);
+        when(rules.isKickTeamMateActionAllowed(TurnMode.REGULAR)).thenReturn(true);
+        when(ttm.isKtmAvailable(turn)).thenReturn(true);
+        when(player.getId()).thenReturn("p1");
+        when(player.getName()).thenReturn("Thrower");
+        when(player.getTeam()).thenReturn(own);
+        when(own.getPlayers()).thenReturn(new Player<?>[] { player });
+        when(player.hasSkillProperty(NamedProperties.canPunt)).thenReturn(true);
+        when(player.hasSkillProperty(NamedProperties.canKickTeamMates)).thenReturn(true);
+        when(field.getPlayerCoordinate(player)).thenReturn(new FieldCoordinate(-1, -1));
+        PlayerState standing = new PlayerState(PlayerState.STANDING).changeActive(true);
+        List<Action> menu = new ArrayList<>();
+        List<Action> executable = new ArrayList<>();
+
+        projection.declarations(game, player, standing, "home", menu, true);
+        projection.declarations(game, player, standing, "home", executable);
+
+        assertTrue(menu.stream().anyMatch(action -> action.kind.equals("declarePunt") && !action.spent));
+        assertTrue(menu.stream().anyMatch(action -> action.kind.equals("declareKickTeamMate") && !action.spent));
+        assertTrue(executable.isEmpty());
+    }
 
     @Test void bombAndRecoverDeclarationsUseNativeActionsOnlyWhileEligible() {
         when(game.getTurnMode()).thenReturn(TurnMode.REGULAR);

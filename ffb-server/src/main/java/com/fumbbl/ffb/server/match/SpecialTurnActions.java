@@ -30,32 +30,41 @@ import java.util.List;
 /** Native BB2025 special declarations and their server-validated target commands. */
 final class SpecialTurnActions {
     void declarations(Game game, Player<?> player, PlayerState status, String role, List<Action> actions) {
+        declarations(game, player, status, role, actions, false);
+    }
+
+    void declarations(Game game, Player<?> player, PlayerState status, String role, List<Action> actions, boolean menu) {
         TurnMode mode = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET ? game.getLastTurnMode() : game.getTurnMode();
         if (mode != TurnMode.REGULAR) return;
         GameMechanic rules = game.getMechanic(Mechanic.Type.GAME);
-        if (rules.isGazeActionAllowed(game, player) && UtilPlayer.canGaze(game, player))
+        if (rules.isGazeActionAllowed(game, player) && (menu
+            ? player.hasSkillProperty(NamedProperties.inflictsConfusion) && !player.isUsed(NamedProperties.inflictsConfusion)
+            : UtilPlayer.canGaze(game, player)))
             declare(actions, player, role, "declareGaze", "Hypnotic gaze", PlayerAction.GAZE_MOVE);
-        if (rules.isBombActionAllowed(mode) && !game.getTurnData().isBombUsed()
+        boolean bombSpent = game.getTurnData().isBombUsed();
+        if (rules.isBombActionAllowed(mode) && (menu || !bombSpent)
             && !game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
             && !status.isProneOrStunned() && player.hasSkillProperty(NamedProperties.enableThrowBombAction))
-            declare(actions, player, role, "declareBomb", "Throw bomb", PlayerAction.THROW_BOMB);
-        if (!game.getTurnData().isPuntUsed() && player.hasSkillProperty(NamedProperties.canPunt)
+            declare(actions, player, role, "declareBomb", "Throw bomb", PlayerAction.THROW_BOMB, menu, bombSpent);
+        boolean puntSpent = game.getTurnData().isPuntUsed();
+        if ((menu || !puntSpent) && player.hasSkillProperty(NamedProperties.canPunt)
             && !player.hasSkillProperty(NamedProperties.preventPuntAction)
-            && (status.isAbleToMove() || UtilPlayer.hasBall(game, player))
+            && (status.isAbleToMove() || menu && canMoveWithoutActivationFlag(status) || UtilPlayer.hasBall(game, player))
             && (status.getBase() != PlayerState.PRONE
                 || UtilGameOption.isOptionEnabled(game, GameOptionId.ALLOW_SPECIAL_ACTIONS_FROM_PRONE))
-            && UtilPlayer.isBallAvailable(game, player))
-            declare(actions, player, role, "declarePunt", "Punt", PlayerAction.PUNT_MOVE);
+            && (menu || UtilPlayer.isBallAvailable(game, player)))
+            declare(actions, player, role, "declarePunt", "Punt", PlayerAction.PUNT_MOVE, menu, puntSpent);
         TtmMechanic ttm = game.getMechanic(Mechanic.Type.TTM);
-        if (rules.isKickTeamMateActionAllowed(game.getTurnMode()) && ttm.isKtmAvailable(game.getTurnData())
+        boolean ktmSpent = game.getTurnData().isKtmUsed();
+        if (rules.isKickTeamMateActionAllowed(game.getTurnMode()) && (menu || ttm.isKtmAvailable(game.getTurnData()))
             && player.hasSkillProperty(NamedProperties.canKickTeamMates)
             && !game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
             && !player.hasSkillProperty(NamedProperties.preventKickTeamMateAction)) {
             for (Player<?> mate : player.getTeam().getPlayers()) {
-                if (FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mate))
-                    && ttm.canBeKicked(game, mate)) {
-                    if (status.isAbleToMove() || ttm.findKickableTeamMates(game, player).length > 0)
-                        declare(actions, player, role, "declareKickTeamMate", "Kick team-mate", PlayerAction.KICK_TEAM_MATE_MOVE);
+                    if (menu || FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mate))
+                        && ttm.canBeKicked(game, mate)) {
+                    if (menu || status.isAbleToMove() || ttm.findKickableTeamMates(game, player).length > 0)
+                        declare(actions, player, role, "declareKickTeamMate", "Kick team-mate", PlayerAction.KICK_TEAM_MATE_MOVE, menu, ktmSpent);
                     break;
                 }
             }
@@ -120,9 +129,20 @@ final class SpecialTurnActions {
     }
 
     private void declare(List<Action> actions, Player<?> player, String role, String kind, String label, PlayerAction action) {
+        declare(actions, player, role, kind, label, action, false, false);
+    }
+
+    private void declare(List<Action> actions, Player<?> player, String role, String kind, String label,
+                         PlayerAction action, boolean menu, boolean spent) {
+        if (spent && !menu) return;
         actions.add(new Action(kind + "-" + player.getId(), kind, label + " with " + player.getName(), role,
-            new ClientCommandActingPlayer(player.getId(), action, false), player.getId()));
+            new ClientCommandActingPlayer(player.getId(), action, false), player.getId(), spent));
     }
 
     private FieldCoordinate oriented(FieldCoordinate at, String role) { return "home".equals(role) ? at : at.transform(); }
+
+    private boolean canMoveWithoutActivationFlag(PlayerState status) {
+        int base = status.getBase();
+        return (base == PlayerState.STANDING || base == PlayerState.MOVING || base == PlayerState.PRONE) && !status.isPinned();
+    }
 }
