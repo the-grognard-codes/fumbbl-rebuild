@@ -36,6 +36,7 @@
       "browser-client/test/movement-range-ui.mjs",
       "browser-client/test/threat-ui.mjs",
       "browser-client/test/confirmation-position-ui.mjs",
+      "browser-client/test/player-action-menu-ui.mjs",
       "browser-client/test/playback-ui.mjs",
       "browser-client/test/teammate-ui.mjs",
       "browser-client/test/manual-reroll-ui.mjs",

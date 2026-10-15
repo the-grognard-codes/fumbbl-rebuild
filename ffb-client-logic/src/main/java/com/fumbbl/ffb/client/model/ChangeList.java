@@ -10,6 +10,11 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser confirmation sits lower with clear action text and no duplicate plan heading")
+			.addImprovement("Browser Move highlights only after explicit selection, route planning or declaration; selecting a player leaves actions unhighlighted")
+			.addBugfix("Browser pitch restores its sideways framing after off-pitch Kick previews instead of remaining shifted during player actions")
+			.addImprovement("Browser action menus use detailed MUTP player-action sprites in translucent tiles, with full action names on hover")
+			.addImprovement("Browser player actions use a compact icon menu with eligible declarations, faded spent actions and animated yellow selection; End Turn appears beneath your timer and Backspace uses the same confirmation flow")
 			.addImprovement("Browser follow-up decisions stay near screen center without obscuring the block initiator, preview the destination with a pushback arrow and allow pitch panning while deciding")
 			.addImprovement("Browser block dice continue hovering through confirmation, blend opposing diagonal turns in one smooth 310ms tumble and settle head-on near screen center-right")
 			.addFeature("Browser block and blitz proposals preview floating polygon dice, roll naturally into matching polygon results and show soft shadows or red uphill glows around dice and reroll icons")

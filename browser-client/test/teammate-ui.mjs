@@ -52,8 +52,7 @@ try {
     await choose('first');
     await page.evaluate(state => window.publishHud({ ...state, revision: 2, actions: state.actions.filter(action => action.id !== 'first-choice') }), state);
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 2' }).waitFor({ state: 'attached' });
-    await page.getByRole('button', { name: 'Other action', exact: true }).waitFor();
-    await page.getByRole('button', { name: 'Other action', exact: true }).click({ trial: true });
+    await page.getByRole('button', { name: 'End Activation', exact: true }).click({ trial: true });
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true, 'A new revision clears the proposal');
     await choose('ineligible');
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
@@ -75,7 +74,6 @@ try {
       targets: ranges.map(row => [...row].map(code => code === '-' ? null : code === 'Q' ? 2 : 3)) };
     await page.evaluate(state => window.publishHud(state), landed);
     await page.getByTestId('setup-status').filter({ hasText: 'Revision 3' }).waitFor({ state: 'attached' });
-    await page.getByRole('button', { name: 'Other action', exact: true }).click({ trial: true });
     const legend = page.getByRole('note', { name: kicked ? 'Kick Team Mate distances' : 'Throw Team Mate distances' });
     await legend.waitFor();
     assert.match(await legend.textContent(), /Quick Pass: 2\+.*Short Pass: 3\+.*limited to Quick or Short/s);

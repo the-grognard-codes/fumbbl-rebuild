@@ -90,6 +90,7 @@ const inputs = [
   ['ui/fonts', 'ui/fonts'],
   ['ui/mvp-art/match-ui-icon-atlas-v1.png', 'ui/match-ui-icon-atlas-v1.png'],
   ['ui/reroll-v1.png', 'ui/reroll-v1.png'],
+  ['ui/player-action-icons-v1.png', 'ui/player-action-icons-v1.png'],
   ['ui/skill-icons-v1.svg', 'ui/skill-icons-v1.svg'],
   ['ui/injury-icons-v1.svg', 'ui/injury-icons-v1.svg'],
   ['ui/ball-v1.svg', 'ui/ball-v1.svg'],

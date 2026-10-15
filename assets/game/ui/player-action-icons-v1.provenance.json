@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "tool": "built-in image_gen",
+  "asset": "player-action-icons-v1.png",
+  "approvedReference": "source/player-action-menu-approved-v1.png",
+  "sourceDimensions": [
+    1536,
+    1024
+  ],
+  "transparentBackground": true,
+  "layout": "24 sprites, six columns by four rows; exact isolated rectangles in browser-client/src/action-icon-art.ts",
+  "displayedSize": [
+    28,
+    28
+  ],
+  "prompt": "Use case: background-extraction / precise-object-edit. PRODUCTION ASSET EXTRACTION FROM APPROVED ARTWORK. The reference is the approved sprite artwork. Extract ONLY the24 icon artworks from the LOWER FOUR-ROW CATALOGUE. Preserve each exact approved cool-grey pixel-art sprite, its proportions, shade details and limited accent colors. DO NOT redesign, embellish, change subjects or repaint as smooth artwork. Discard ALL screenshot HUD, title text, tile boxes, borders, navy tile backgrounds and grass. Output ONE TRANSPARENT RGBA PNG SPRITE ATLAS on a strictly regular SIX COLUMNS BY FOUR ROWS grid. Canvas landscape1536x1024, each cell256x256. Each sprite centered geometrically in its own cell and scaled to fit inside an approximately180x180 central area, with at least38px transparent margin. No visible grid lines, no text, no box, no background, no grass, no labels; GENUINE transparent alpha between and around icons. All24 sprites separate and do not overlap or cross cell boundaries. Exact row-major order matching the approved lower catalogue: row1 Move=four-direction arrows, Block=fist inside shield, Blitz=lightning plusfist, Foul=boot steppinghelmethead withsmallimpactbolts, HandOff=twohands transferringfootball, Pass=flyingfootballwitharc. row2 Chainsaw=motorhandleandchainteeth, Stab=daggerwithimpactmarks, Vomit=goblinfacegreenstream, Fire=smallcreaturemouthflame, Chomp=metalgreyjawsteeth, Gaze=eyeandspiralpupil. row3 Bomb=greyroundbombfusespark, TTM=handtossingtinyhelmetedhumanoidandarrow, KTM=bootkickingtinyhelmetedhumanoidandarrow, MultipleBlock=twofistsimpactmarks, SecureBall=handsfootballlock, Punt=bootkickingfootball. row4 Jump=humanoidleapingobstacle, Recover=helmetconfusionstarsrecoveryarrow, Forgo=openpalmscrossedcircle, Star=silverstarfootball, EndActivation=openstoppalmfinishflag, Confirm=blue-greycheckmark. Actual smoothness and pixel detail must match the APPROVED LOWER ICONS, not the tiny schematic toolbar. No shadows beyond original sprite silhouette. All sprites shown neutral/unselected at fullopacity; the app applies used/selected effects later. Exactly24 icons in equal256pixelcells, centered, preserve crisp pixel edges and do not generate an illustration of a sprite sheet with a checkerboard: actual transparent image.",
+  "scope": "Unlabeled refined-original sprite artwork approved by the user. Runtime supplies translucent MUTP tile backgrounds, selected/used effects and full-name hover tooltips. The approved reference is retained as authoring evidence and is not delivered to the browser."
+}

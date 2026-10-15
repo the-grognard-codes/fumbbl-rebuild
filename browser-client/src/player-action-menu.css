@@ -1,0 +1,52 @@
+/* The menu shares the turn track's palette, fade and selected state. Its intrinsic
+   width stays centered on the fixed confirmation anchor as declarations vary. */
+.play-runtime .coach-match.hosted-match > .match-command-bar:has(.command-heading):not(:has(.player-action-icons)) {
+  border: 0; background: none; box-shadow: none;
+}
+.play-runtime .coach-match.hosted-match > .match-command-bar:has(.player-action-icons) {
+  left: calc(var(--command-bar-left) + var(--command-bar-width) / 2);
+  transform: translateX(-50%); width: max-content;
+  max-width: calc(100% - 24px); border-width: 1px; border-radius: 2px;
+}
+.play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons {
+  display: grid; grid-template-columns: repeat(var(--action-count),minmax(0,42px)); gap: 3px;
+}
+.play-runtime .coach-match.hosted-match .player-action-icons > button {
+  width: 42px; max-width: 100%; height: 42px; padding: 5px; border: 1px solid #426c9b;
+  border-radius: 2px; background: #091726bb; color: #b7c9da; box-shadow: none;
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out, color 180ms ease-out;
+}
+.play-runtime .coach-match.hosted-match .player-action-icons > button > svg { width: 28px; height: 28px; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button:disabled { opacity: .5; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button.spent { opacity: .18; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button[aria-pressed=true] {
+  transform: translateY(-12%); border-color: #edb644; color: #ffe17b; background: #583d0fd1;
+  box-shadow: 0 0 7px 1px #45e7ff24; opacity: 1;
+}
+.play-runtime .coach-match.hosted-match .player-action-icons > button:focus-visible { outline: 2px solid #45e7ff; outline-offset: 2px; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button[aria-pressed=true] .action-glyph {
+  filter: sepia(1) saturate(4) hue-rotate(352deg) brightness(1.3);
+}
+.play-runtime .coach-match.hosted-match .action-target-choices {
+  position: absolute; bottom: calc(100% + 84px); left: 50%; transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 5px; width: min(360px,80vw);
+  max-height: 30dvh; overflow: auto; border: 1px solid #426c9b; background: #091726f2;
+}
+.play-runtime .coach-match.hosted-match .live-chess-clock .clock-end-turn {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  width: max-content; margin: 0; padding: 3px 8px; font: 12px MUTP,sans-serif;
+}
+@media(max-width:900px) {
+  .play-runtime .coach-match.hosted-match .live-chess-clock { position: relative; inset: auto; }
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard:has(.live-chess-clock.home .clock-end-turn) > .live-turn-track.home,
+  .play-runtime .coach-match.hosted-match .live-match-scoreboard:has(.live-chess-clock.away .clock-end-turn) > .live-turn-track.away { top: 86px; }
+}
+@media(max-width:600px) {
+  .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { grid-template-columns: repeat(var(--action-count),minmax(0,32px)); }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button { width: 32px; height: 36px; padding: 3px; }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button > svg { width: 24px; height: 24px; }
+  .play-runtime .coach-match.hosted-match .live-chess-clock .clock-end-turn { padding: 2px 3px; font-size: 9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .play-runtime .coach-match.hosted-match .player-action-icons > button { transition: none; }
+}

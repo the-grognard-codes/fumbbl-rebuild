@@ -38,7 +38,7 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Exit match', exact: true }).count(), 0);
   assert.equal(await page.locator('.live-chess-clock').evaluateAll(elements => elements.every(element => {
     const box = element.getBoundingClientRect();
-    return [...element.children].every(child => { const r = child.getBoundingClientRect(); return r.left >= box.left && r.right <= box.right && r.top >= box.top && r.bottom <= box.bottom; });
+    return [...element.querySelectorAll(':scope > span')].every(child => { const r = child.getBoundingClientRect(); return r.left >= box.left && r.right <= box.right && r.top >= box.top && r.bottom <= box.bottom; });
   })), true, 'Clock lines remain inside their aligned boxes');
   const confirm = page.getByRole('button', { name: 'Confirmed!', exact: true });
   const player = id => page.locator(`.live-marker[data-player-id="${id}"]`);
@@ -86,6 +86,8 @@ try {
     kickoff: { version: 1, event: 'CHARGE', actor: 'home', stage: 'selection', allowed: 4, completed: 0, selected: 1 } }), state);
   assert.match(await banner.textContent(), /Charge!.*Blitz.*Throw teammate.*Kick Teammate/s);
   assert.equal(await banner.evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Long required instructions wrap within the narrower banner');
+  await page.evaluate(state => window.publishHud(state), state);
+  await player('home1').click();
   if (evidence) await mkdir(evidence, { recursive: true });
   for (const [width, height] of [[1224,604],[1920,1080],[640,330],[375,660],[375,300]]) {
     await page.setViewportSize({ width, height });

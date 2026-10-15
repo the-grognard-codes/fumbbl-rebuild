@@ -59,7 +59,6 @@ try {
     const confirmed = page.getByRole('button', { name: 'Confirmed!', exact: true });
     const waitRevision = revision => page.getByTestId('setup-status').filter({ hasText: `Revision ${revision} ` }).waitFor({ state: 'attached', timeout: 5000 });
     await pitch.locator('[data-player-id="actor"]').click();
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
     await page.getByRole('button', { name: 'Pass', exact: true }).click();
     assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Declaration is reviewed before it is sent');
     await confirmed.click();
