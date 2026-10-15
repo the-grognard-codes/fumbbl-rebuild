@@ -4,6 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { verifyDiceStream } from './dice-stream-checks.mjs';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const pickupReport = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8'))[0].reports[0];
@@ -88,14 +89,19 @@ try {
     { id:'decline',kind:'reroll',actor:'home',label:'Do not re-roll Pick Up',sourcePlayerId:'home1',target:null },
     { id:'team',kind:'reroll',actor:'home',label:'Use team re-roll for Pick Up',sourcePlayerId:'home1',target:null }
   ] };
-  await publish({ view: pending, interactive: true, records: Array.from({length:13},(_,revision)=>record(revision,22,
-    revision===12?[{reportList:{reports:[pickupReport]}}]:[])) });
+  const pendingHistory = Array.from({length:13},(_,revision)=>record(revision,22,
+    revision===12?[{reportList:{reports:[pickupReport]}}]:[]));
+  await publish({ view: pending, interactive: true, records: pendingHistory });
   await wait(12,22);
   const promptDice = page.getByRole('dialog').getByRole('status').locator('.match-die');
   await promptDice.waitFor(); await page.waitForTimeout(500);
-  assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after 440ms');
-  assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after 440ms');
+  assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after 310ms');
+  assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after 310ms');
   assert.equal(await promptDice.evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0, 'Retaining the result does not extend the animation');
+  await publish({ view: pending, interactive: true, records: pendingHistory, enabled: false }); await wait(12,22);
+  await publish({ view: pending, interactive: true, records: pendingHistory }); await promptDice.waitFor();
+  assert.equal(await page.locator('#playback-state').getAttribute('data-roll-key'), '', 'Reconnect restores a pending numeric result without rolling it again');
+  assert.equal(await promptDice.locator('.polygon-die-body').evaluateAll(bodies => bodies.flatMap(body => body.getAnimations()).length), 0);
   await publish({ view:state(13,22),interactive:true,records:[] }); await wait(13,22);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(),0, 'Accepted prompt resolution clears the old result');
   const success = record(14,24,[5,4,6,2].map((roll,index) => ({
@@ -105,20 +111,20 @@ try {
   await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
     revision===14?success:record(revision,22)) });
   const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');
-  await page.waitForFunction(() => document.querySelector('#playback-state')?.dataset.active === 'true'
-    && document.querySelectorAll('.live-dice-overlay[role="status"] .match-die').length === 4);
+  await wait(14,24);
+  await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay[role="status"] .match-die').length === 4);
   assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2'],
-    'Three dodges and one rush accumulate across movement playback');
+    'Three dodges and one rush stream in across movement playback');
   const continuation = record(15,25,[{reportList:{reports:[{reportId:'goForItRoll',roll:3,successful:true,playerId:'home1'}]},
     modelChangeList:{modelChangeArray:[change(25)]}}]);
   await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
     revision===15?continuation:revision===14?success:record(revision,22)) });
   await wait(15,25);
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2','3'],
-    'A later authoritative revision extends the same active-player sequence');
-  await page.waitForTimeout(700);
-  assert.equal(await successfulDice.count(),5, 'Retention starts after the final roll and movement');
-  await successfulDice.first().waitFor({state:'detached',timeout:1000});
+  await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
+  const continuedFaces = await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face));
+  assert.equal(continuedFaces.at(-1), '3', 'A later authoritative revision joins the same stream');
+  assert.ok(continuedFaces.includes('2'), 'The preceding rush stays visible for its own interval');
+  await page.waitForFunction(() => !document.querySelector('.live-dice-overlay[role="status"] .match-die'));
   await publish({view:state(15,25),records:[],enabled:false}); await wait(15,25);
   await publish({view:state(15,25),records:[]}); await wait(15,25);
   assert.equal(await successfulDice.count(),0, 'Reconnect does not replay stale retained dice');
@@ -135,5 +141,6 @@ try {
   assert.equal(await page.locator('.live-ball-football').count(),0, 'Carried ball keeps the highlight without a loose sprite');
   if (process.env.DICE_EVIDENCE_DIR) { await mkdir(process.env.DICE_EVIDENCE_DIR,{recursive:true}); await page.locator('#dice-specimens').screenshot({path:`${process.env.DICE_EVIDENCE_DIR}/ivory-cyan.png`}); }
   assert.deepEqual(errors,[]);
+  await verifyDiceStream(browser, `http://127.0.0.1:${server.httpServer.address().port}`);
   console.log('PASS: exact authoritative dice, short nonblocking animation, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');
 } finally { await browser.close(); await server.close(); }

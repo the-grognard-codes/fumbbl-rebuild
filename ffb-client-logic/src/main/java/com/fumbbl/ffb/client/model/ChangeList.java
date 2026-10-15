@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser dice remain visible longer and stream in labelled roll groups, keeping armour and injury easy to follow")
+			.addBugfix("Browser D16 rolls no longer briefly show scrollbars while tumbling")
+			.addImprovement("Browser D6, D8 and D16 rolls use physical polygon dice, the shared block-dice motion and diffuse backing around dice and reroll choices")
 			.addImprovement("Browser follow-up decisions stay near screen center without obscuring the block initiator, preview the destination with a pushback arrow and allow pitch panning while deciding")
 			.addImprovement("Browser block dice continue hovering through confirmation, blend opposing diagonal turns in one smooth 310ms tumble and settle head-on near screen center-right")
 			.addFeature("Browser block and blitz proposals preview floating polygon dice, roll naturally into matching polygon results and show soft shadows or red uphill glows around dice and reroll icons")

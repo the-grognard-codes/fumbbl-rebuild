@@ -3,6 +3,7 @@
   "shards": [
     [
       "com.fumbbl.ffb.server.match.NativeRollPresentationTest",
+      "com.fumbbl.ffb.server.match.NumericDicePresentationTest",
       "com.fumbbl.ffb.test.BlockTest",
       "com.fumbbl.ffb.test.CoreTurnActionsTest",
       "com.fumbbl.ffb.test.DiceProjectionTest",

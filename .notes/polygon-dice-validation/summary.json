@@ -1,0 +1,8 @@
+{
+  "interactionScripts": 32,
+  "hostedSuites": 10,
+  "hostedCases": 19,
+  "inventoryComplete": true,
+  "failures": 0,
+  "unexpectedSkips": 0
+}

@@ -96,7 +96,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
+  const { pitchView, playbackActive, diceMoment, diceSnapshot } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
   const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
   const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);
@@ -104,14 +104,18 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   useEffect(clearHover, [pitchView.revision, clearHover]);
   useEffect(() => { onBusy(playbackActive); onRevision(pitchView.revision); }, [playbackActive, pitchView.revision]);
   const moments = records[pitchView.revision] ? recordDice(records[pitchView.revision]) : [];
-  const visibleDice = diceMoment ?? (playbackActive ? null : moments.at(-1) ?? null);
+  // New polyhedra belong to the main pitch. Keep the compact summary's existing artwork.
+  const summaryMoments = moments.filter(moment => !moment.rolls?.some(roll => roll.kind && roll.kind !== 'd6'));
+  // Static seeks/skip retain their inspection result. Completed decorative
+  // groups must not reappear as one combined roll when the stream expires.
+  const visibleDice = diceMoment ?? (!playbackActive && (skipAnimations || diceSnapshot) ? moments.at(-1) ?? null : null);
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
       onSelectPlayer={() => {}} onSquare={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/>
     <div className="replay-dugouts"><LiveDugouts players={pitchView.players} homeName={matchTeamName(pitchView, 'home')}
       awayName={matchTeamName(pitchView, 'away')} onSelect={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/></div>
     {hover && hoveredPlayer && <PlayerHoverCard player={hoveredPlayer} anchor={hover.anchor} teamName={matchTeamName(pitchView, hoveredPlayer.role)}/>}</div>
-    {moments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{moments.map((moment, index) =>
+    {summaryMoments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{summaryMoments.map((moment, index) =>
       <div key={index}><span>{moment.label}</span>{moment.faces.map((face, faceIndex) => <DiceFace key={faceIndex} face={face} selected={moment.selected === faceIndex}/>)}</div>)}</div>}
   </>;
 }

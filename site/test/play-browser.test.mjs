@@ -16,6 +16,54 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor({ timeout: 5000 }); }
 
+test('hosted native numeric results retain D8 and D16 types on the main pitch', async () => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined) });
+  try {
+    const page = await browser.newPage({ reducedMotion: 'reduce' });
+    await page.route('https://fonts.googleapis.com/**', route => route.abort());
+    await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+    await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>"synthetic-dice"}));return()=>{};}' }));
+    const reports = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/numeric-dice.json', import.meta.url), 'utf8'));
+    let revision = 0, deliver;
+    const state = index => ({ ...base, revision: index, callerRole: 'home', phase: 'PLAY', turnMode: 'REGULAR', actions: [], activePlayerId: 'p1' });
+    const records = [0, 1, 2].map(index => ({ index, revision: index, kind: index ? 'ACTION' : 'START', actor: index ? 'home' : 'system',
+      at: index + 1000, decision: index ? { operation: 'action', actionId: `native:${index}` } : null,
+      native: index ? [{ commandNr: index, reportList: { reports: [{ ...reports[index - 1], playerId: 'p1' }] } }] : [], state: state(index) }));
+    await page.routeWebSocket('**/browser/v2', socket => {
+      const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+      deliver = index => { revision = index; send({ type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state: state(index) }); };
+      socket.onMessage(raw => {
+        const request = JSON.parse(raw);
+        if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[0] });
+        if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
+        if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
+        if (request.type === 'setup') send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state(revision) });
+        if (request.type === 'matchTranscript') send({ type: 'matchTranscript', requestId: request.requestId, code: 'ACCEPTED', matchId,
+          page: { formatVersion: 2, from: request.from, next: revision + 1, total: revision + 1, records: records.slice(request.from, revision + 1) } });
+      });
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
+    await openGrid(page);
+    for (const [index, kinds] of [[1, ['d6', 'd8']], [2, ['d16', 'd6']]]) {
+      deliver(index);
+      // Earlier groups retain their own lifetime while this native group arrives.
+      const dice = page.locator('.live-dice-overlay .pitch-roll-group').last().locator('.numeric-die');
+      await page.locator(`.live-dice-overlay [data-die-kind="${kinds[0]}"]`).waitFor();
+      assert.deepEqual(await dice.evaluateAll(dice => dice.map(die => die.dataset.dieKind)), kinds);
+      assert.equal(await page.locator('.live-dice-overlay').evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
+    }
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
 test('fresh signed-in direct links resume the same account and show genuine membership denials', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;

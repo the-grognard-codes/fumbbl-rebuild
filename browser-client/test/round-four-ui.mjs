@@ -77,11 +77,13 @@ try {
   assert.equal(diceStyle.opacity,'1','Block faces stay opaque');
   assert.equal(await dice.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight),true,'Dice need no scrollbars at normal size');
   await page.evaluate(state => window.publishHud({...state,prompt:null,actions:[{id:'generic-team-reroll',kind:'reroll',label:'Use team reroll',actor:'home',sourcePlayerId:null,target:null}]}),state);
-  const reroll = page.locator('.live-dice-overlay.interactive:not(.block-dice-surface)'); await reroll.waitFor();
-  assert.equal(await reroll.evaluate(el => getComputedStyle(el).backgroundColor),'rgb(9, 23, 38)','Ordinary portal reroll panels still share HUD opacity');
+  const reroll = page.getByRole('dialog', { name: 'Use a re-roll?', exact: true }); await reroll.waitFor();
+  assert.equal(await reroll.evaluate(el => getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','Numeric reroll choices use the shared unboxed surface');
+  assert.equal(await reroll.evaluate(el => getComputedStyle(el).borderTopWidth),'0px');
+  assert.match(await reroll.evaluate(el => getComputedStyle(el, '::before').backgroundImage),/radial-gradient/);
   assert.equal(await page.locator('.match-log-count').count(),0,'HUD log counter removed');
   await page.evaluate(state => window.publishHud({...state,phase:'PLAY',turnMode:'SOLID_DEFENCE',prompt:null,actions:[]},['Minimum of 3 players on the Line of Scrimmage.']),state);
   assert.match(await page.getByRole('alert').innerText(),/Minimum of 3 players/,'Native redeployment errors remain visible during kickoff setup');
-  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices, unboxed center-right block dice and ordinary reroll panel opacity.');
+  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices, and unboxed center-right block dice and numeric reroll choices.');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); await server.close(); }

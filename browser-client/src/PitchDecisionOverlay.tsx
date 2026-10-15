@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
-import { DiceFace } from './DiceFace.tsx';
-import { BlockDie } from './BlockDie.tsx';
+import { PolygonDie } from './PolygonDie.tsx';
 import { blockFaceLabel } from './dice-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
@@ -29,15 +28,14 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const [bounds, setBounds] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const active = !!(decision || diceMoment || potentialDice);
   const blockOptions = decision?.options.filter(option => option.face) ?? [];
-  const momentIsBlock = (!potentialDice || awaiting) && !!diceMoment?.faces.length && diceMoment.faces.every(face => blockFaceLabel(face));
+  const momentIsBlock = (!potentialDice || awaiting) && (!diceMoment?.groups || !!potentialDice)
+    && !!diceMoment?.faces.length && diceMoment.faces.every(face => blockFaceLabel(face));
   const resultFaces = blockOptions.length ? blockOptions.map(option => option.face!)
     : momentIsBlock && !decision?.proTest ? diceMoment!.faces : [];
   const preview = resultFaces.length ? null : potentialDice;
   const primaryFaces: (string | undefined)[] = resultFaces.length ? resultFaces
     : preview ? Array.from({ length: Math.abs(preview.dice) }, () => undefined) : [];
   const otherOptions = decision?.options.filter(option => !option.face) ?? [];
-  const blockSurface = primaryFaces.length > 0 || decision?.originalFaces?.some(face => blockFaceLabel(face))
-    || decision?.options.some(option => /:block-/.test(option.id));
   const uphill = decision?.uphill ?? diceMoment?.uphill ?? (preview ? preview.dice < 0
     : blockOptions.length > 1 && attackerRole !== undefined && chooserRole !== undefined && chooserRole !== attackerRole
       || !!diceMoment && diceMoment.faces.length > 1 && !!decision?.options.some(option => /opponent chooses/i.test(option.label)));
@@ -70,7 +68,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
       const maxHeight = Math.max(1, bottom - top);
       const height = Math.min(element.getBoundingClientRect().height, maxHeight);
       setScrollable(!!content && content.scrollHeight > content.clientHeight);
-      const diceRow = element.querySelector<HTMLElement>('.pitch-block-dice');
+      const diceRow = element.querySelector<HTMLElement>('.pitch-block-dice, .pitch-decision-roll');
       const centerOffset = diceRow ? diceRow.getBoundingClientRect().top - element.getBoundingClientRect().top
         + diceRow.getBoundingClientRect().height / 2 : height / 2;
       const next = { left: Math.max(left, Math.min(window.innerWidth * .65 - width / 2, right - width)),
@@ -105,31 +103,38 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     return () => { if (prior?.isConnected) prior.focus({ preventScroll: true }); };
   }, [decision?.key, ready]);
   if (!active) return null;
-  return createPortal(<div ref={panel} className={`live-dice-overlay interactive pitch-decision-overlay${blockSurface ? ' block-dice-surface' : ''}${uphill ? ' uphill' : ''}`} role={decision ? 'dialog' : 'status'} aria-label={label} aria-busy={!!decision && disabled || awaiting}
+  return createPortal(<div ref={panel} className={`live-dice-overlay interactive pitch-decision-overlay block-dice-surface${uphill ? ' uphill' : ''}`} role={decision ? 'dialog' : 'status'} aria-label={label} aria-busy={!!decision && disabled || awaiting}
     style={{ position: 'fixed', ...bounds, visibility: ready ? 'visible' : 'hidden' }}
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
-    <div className="pitch-dice-content" style={{ maxHeight: bounds ? Math.max(1, bounds.maxHeight - (blockSurface ? 24 : 10)) : undefined,
+    <div className="pitch-dice-content" style={{ maxHeight: bounds ? Math.max(1, bounds.maxHeight - 24) : undefined,
       pointerEvents: scrollable ? 'auto' : undefined }}>
     <strong className={diceMoment || primaryFaces.length ? 'sr-only' : undefined}>{label}</strong>
     {decision?.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={decision.originalLabel ?? 'Original block dice'}>
-      {decision.originalFaces.map((face, index) => blockFaceLabel(face)
-        ? <BlockDie key={index} face={face} index={index}/> : <DiceFace key={index} face={face}/>)}</div>}
+      {decision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
+        kind={decision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}
     {decision?.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${decision.proTest.face}, ${decision.proTest.successful ? 'success' : 'failure'}`}>
-      <span>Pro</span><DiceFace face={decision.proTest.face}/></div>}
+      <span>Pro</span><PolygonDie kind="d6" face={decision.proTest.face} rollKey={diceMoment?.rollKey ? decision.proTest.rollKey : undefined}/></div>}
     {primaryFaces.length > 0 && <div className="live-dice-choices pitch-block-dice">{primaryFaces.map((face, index) => {
       const option = blockOptions[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
         disabled={!option || disabled} tabIndex={option ? undefined : -1} role={option ? undefined : 'presentation'}
         aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}>
-        <BlockDie face={face} potential={!!preview && !awaiting} awaiting={!!preview && awaiting} index={index}
+        <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!preview && !awaiting} awaiting={!!preview && awaiting} index={index}
           selected={!option && diceMoment?.selected === index} rollKey={option ? optionRollKey : diceMoment?.rollKey}/>
         <span className="sr-only">{option?.label}</span>
       </button>;
     })}</div>}
-    {diceMoment && !decision?.proTest && (!primaryFaces.length || !momentIsBlock) && <div className="pitch-decision-roll" role="status" aria-label={`${diceMoment.label}: ${diceMoment.faces.join(', ')}`}>
-      {diceMoment.faces.map((face, index) => <span key={index} title={diceMoment.rolls?.[index]?.label ?? diceMoment.label}>{blockFaceLabel(face)
-        ? <BlockDie face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rollKey} index={index}/>
-        : <DiceFace face={face} selected={diceMoment.selected === index} rollKey={diceMoment.rolls?.[index]?.rollKey ?? diceMoment.rollKey}/>}</span>)}</div>}
+    {diceMoment && !decision?.proTest && !primaryFaces.length && (diceMoment.groups ?? [{ ...diceMoment, key: 'result' }]).map(group =>
+      <div className="pitch-roll-group" key={group.key}>
+        {diceMoment.groups && <span className="pitch-roll-caption">{group.label}</span>}
+        <div className="pitch-decision-roll" role={decision || (diceMoment.groups?.length ?? 0) > 1 ? 'status' : undefined}
+          aria-label={`${group.label}: ${group.faces.join(', ')}`}>
+          {group.faces.map((face, index) => <span key={index} title={group.rolls?.[index]?.label ?? group.label}>
+            <PolygonDie kind={group.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')} face={face}
+              selected={group.selected === index} index={index}
+              rollKey={group.rolls?.[index]?.rollKey ?? group.rollKey}/></span>)}
+        </div>
+      </div>)}
     {otherOptions.length > 0 && <div className="live-dice-choices">{otherOptions.map(option => <button key={option.id} type="button"
       className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}
       disabled={disabled} aria-label={option.label} title={option.choices ? option.choices.map(choice => choice.label).join('\n') : disabled ? `${option.label} (pending)` : option.label}
