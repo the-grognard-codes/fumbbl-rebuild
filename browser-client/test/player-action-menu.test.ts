@@ -28,7 +28,7 @@ test('theoretical actions survive consumption without granting executable action
 });
 
 test('special declaration and targeting commands share icons while star abilities share the star glyph', () => {
-  const view = { ...base, actions: [action('declareChainsaw'), action('blockChainsaw'), action('declareBomb'),
+  const view = { ...base, playerActionMenu: [], actions: [action('declareChainsaw'), action('blockChainsaw'), action('declareBomb'),
     action('declareThrowTeamMate'), action('declareKickTeamMate'), action('declareTreacherous'), action('endAction')] };
   const menu = playerActionMenu(view, playerId);
   assert.equal(menu.find(item => item.key === 'chainsaw')?.actions.length, 2);
@@ -59,7 +59,7 @@ test('selection follows the native declaration across revisions and stays with i
 });
 
 test('native contextual controls retain access without the Other action disclosure', () => {
-  const menu = playerActionMenu({ ...base, actions: ['jumpMode', 'puntNow', 'foulChainsaw', 'multiBlock'].map(kind => action(kind)) }, playerId);
+  const menu = playerActionMenu({ ...base, playerActionMenu: [], actions: ['jumpMode', 'puntNow', 'foulChainsaw', 'multiBlock'].map(kind => action(kind)) }, playerId);
   assert.deepEqual(menu.map(item => item.key), ['chainsaw', 'multipleBlock', 'punt', 'jump']);
   assert.equal(menu.flatMap(item => item.actions).length, 4);
 });
