@@ -1,11 +1,14 @@
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
 import { injuryIcon } from './injury-presentation.ts';
+import type { DieKind } from './die-geometry.ts';
+import type { PresentedRoll } from './dice-presentation.ts';
 
-export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; icon?: string; playerName?: string; choices?: DecisionOption[] };
+export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
   playerName?: string; instruction?: string;
-  originalFaces?: string[]; originalLabel?: string; uphill?: boolean; proTest?: { face: string; successful: boolean } };
+  originalFaces?: string[]; originalRolls?: PresentedRoll[]; originalLabel?: string; uphill?: boolean;
+  proTest?: { face: string; successful: boolean; rollKey?: string } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
 // rerolls have no offered action and therefore never acquire a manual button.
@@ -50,7 +53,7 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   const options: DecisionOption[] = choices.map(action => {
       const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
-      const option: DecisionOption = { id: action.id, label, kind: 'action', face, icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
+      const option: DecisionOption = { id: action.id, label, kind: 'action', face, ...(face ? { dieKind: 'block' as const } : {}), icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
       if (multipleInjuries && action.target && 'playerId' in action.target) {
         const playerId = action.target.playerId;
         option.playerName = view.players.find(player => player.id === playerId)?.name;

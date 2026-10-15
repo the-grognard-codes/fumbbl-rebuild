@@ -37,6 +37,7 @@ import java.util.Map;
 /** Public roll facts frozen from the resident native game, without executing it again. */
 final class NativeRollPresentation {
     private final NativeBlockPresentation blocks;
+    private final NumericDicePresentation numericDice;
     private final Map<String, Integer> agility = new HashMap<>();
     private final Map<String, Integer> passing = new HashMap<>();
     private final Map<String, Integer> strength = new HashMap<>();
@@ -56,6 +57,7 @@ final class NativeRollPresentation {
             || state.getCurrentStep() instanceof StepBlockRoll
             && "pro-test".equals(((StepBlockRoll) state.getCurrentStep()).getBlockRerollPhase());
         RollMechanic mechanic = (RollMechanic) game.getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.ROLL.name());
+        numericDice = new NumericDicePresentation(mechanic);
         pro = mechanic.minimumProRoll();
         movingPlayerId = game.getActingPlayer().getPlayerId();
         for (Team team : new Team[] {game.getTeamHome(), game.getTeamAway()}) for (Player<?> player : team.getPlayers()) {
@@ -90,6 +92,7 @@ final class NativeRollPresentation {
         for (int index = 0; index < reports.length; index++) {
             IReport report = reports[index];
             JsonObject publicReport = publicReports.get(index).asObject();
+            numericDice.decorate(publicReport);
             if (report instanceof ReportReRoll) {
                 ReportReRoll reroll = (ReportReRoll) report;
                 Integer minimum = reroll.getReRollSource() == ReRollSources.PRO ? Integer.valueOf(pro)

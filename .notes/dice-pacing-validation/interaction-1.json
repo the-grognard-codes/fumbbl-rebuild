@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 1,
+  "commit": "bb9b7eb2af324b79bd10031dc647b64808fbe500",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/reroll-choices-ui.mjs",
+      "durationMs": 372409.824,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/apothecary-decision-ui.mjs",
+      "durationMs": 6438.758600000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/smart-pitch-ui.mjs",
+      "durationMs": 11009.336100000015,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/push-choice-ui.mjs",
+      "durationMs": 8683.713199999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/end-player-action-ui.mjs",
+      "durationMs": 8252.009900000005,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/chat-speaker-ui.mjs",
+      "durationMs": 8258.640399999975,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/match-log-ui.mjs",
+      "durationMs": 5503.001400000008,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/native-check-log-ui.mjs",
+      "durationMs": 5387.278300000005,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/block-log-ui.mjs",
+      "durationMs": 5686.152900000045,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

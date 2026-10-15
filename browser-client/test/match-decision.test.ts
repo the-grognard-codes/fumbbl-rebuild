@@ -27,7 +27,12 @@ test('a Pro test has its own d6 while original block outcomes remain visible', (
     { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: {}, state: frame,
       native: [{ reportList: { reports: [{ reportId: 'reRoll', reRollSource: 'Pro', roll: 1, successful: false }] } }] }];
   assert.deepEqual(withProTest(decision, records, 1)?.originalFaces, ['SKULL', 'BOTH DOWN']);
-  assert.deepEqual(withProTest(decision, records, 1)?.proTest, { face: '1', successful: false });
+  assert.deepEqual(withProTest(decision, records, 1)?.proTest, { face: '1', successful: false, rollKey: '1:pro' });
+  const selectiveRecord = { ...records[1], native: [{ reportList: { reports: [
+    { reportId: 'reRoll', reRollSource: 'Pro', roll: 6, successful: true },
+    { reportId: 'blockReRoll', blockRoll: [1, 2] }] } }] };
+  assert.equal(withProTest({ ...decision, kind: 'rerollDie' }, [records[0], selectiveRecord], 1)?.proTest?.face, '6',
+    'A native block reroll announcement retains Pro while the coach chooses which die to reroll');
   assert.equal(withProTest(decision, records, 2)?.proTest, undefined, 'Earlier Pro results cannot leak into a new decision');
 });
 
@@ -44,6 +49,16 @@ test('a single-die Pro retry shows its original action d6 instead of an earlier 
   assert.deepEqual(withProTest(decision, records, 2)?.originalFaces, ['1']);
   assert.equal(withProTest(decision, records, 2)?.originalLabel, 'Original action roll');
   assert.equal(withProTest(decision, records, 2)?.proTest?.face, '2');
+  const skillRecords = records.map(record => record.revision === 1 ? { ...record,
+    native: [{ reportList: { reports: [{ reportId: 'allYouCanEat', roll: 1 }] } }] } : record);
+  assert.deepEqual(withProTest(decision, skillRecords, 2)?.originalFaces, ['1'],
+    'Native skill report IDs do not need a Roll suffix to retain their original D6');
+  const resolved = { ...records[2], native: [{ reportList: { reports: [
+    { reportId: 'reRoll', reRollSource: 'Pro', roll: 6, successful: true },
+    { reportId: 'pickUpRoll', roll: 1, successful: false }] } }] };
+  const nextDecision = { ...decision, kind: 'reroll' };
+  assert.equal(withProTest(nextDecision, [...records.slice(0, 2), resolved], 2), nextDecision,
+    'Once Pro has produced the action reroll, its test does not replace the newly offered result');
 });
 
 test('real block dice become pitch choices while push squares stay on the pitch', () => {

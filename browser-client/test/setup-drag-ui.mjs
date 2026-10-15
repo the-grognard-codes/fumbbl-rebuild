@@ -10,6 +10,8 @@ const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.
 const reserve = { ...frame.players[0], id: 'reserve', name: 'Reserve', slot: 2, number: 2,
   x: null, y: null, state: 'is reserve', offPitch: 'reserve' };
 const setup = { ...frame, phase: 'SETUP', actions: [], players: [...frame.players, reserve] };
+// Native PLAY fixtures include a menu that the protocol correctly forbids in SETUP.
+delete setup.playerActionMenu;
 const solid = { ...frame, phase: 'PLAY', turnMode: 'SOLID_DEFENCE', actions: [
   { id: '0:event-pick:home1', label: 'Reposition home1', kind: 'kickoffChoice', actor: 'home',
     sourcePlayerId: null, target: { playerId: 'home1' } }

@@ -298,9 +298,14 @@ try {
     };
     requestAnimationFrame(frame);
   });
+  // Hold the short native response window independently of browser-command latency.
+  await blitz.page.clock.install();
+  await blitz.page.clock.pauseAt(await blitz.page.evaluate(() => Date.now() + 100));
   await blitz.confirmed.click();
   await blitz.page.locator('.block-die.awaiting').first().waitFor();
   assert.equal(await blitz.page.locator('.block-die.awaiting').count(), 3, 'Pending confirmation keeps the proposed dice visible');
+  await blitz.page.clock.runFor(450);
+  await blitz.page.clock.resume();
   await blitz.page.waitForFunction(revision => window.testSocket.state.revision === revision, fixture.blitzAcceptedState.revision);
   const attacks = await mutations(blitz.page);
   assert.equal(attacks.length, 1);

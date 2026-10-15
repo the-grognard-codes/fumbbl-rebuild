@@ -16,7 +16,7 @@
   box-sizing: border-box;
   width: 100%;
   gap: 5px;
-  padding: 8px 4px;
+  padding: 16px;
   overflow: auto;
 }
 .live-dice-overlay.pitch-decision-overlay .pitch-skill-choices button { pointer-events: auto; }
@@ -84,5 +84,7 @@
   .live-dice-overlay.pitch-decision-overlay .live-dice-choices button.pitch-dice-icon-choice svg { width: 38px; height: 38px; }
 }
 .pitch-pro-test { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 8px 0; border-top: 1px solid #426c9b; padding-top: 8px; }
+.pitch-roll-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pitch-roll-caption { font-size: 12px; line-height: 1.2; color: #f4e6bd; }
 .pitch-pro-test .match-die { width: 38px; height: 38px; }
 .pitch-skill-choices { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }

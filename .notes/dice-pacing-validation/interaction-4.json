@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 4,
+  "commit": "bb9b7eb2af324b79bd10031dc647b64808fbe500",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/pass-workflow-ui.mjs",
+      "durationMs": 46148.42630000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-flow-ui.mjs",
+      "durationMs": 30265.4631,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-range-ui.mjs",
+      "durationMs": 26783.22009999999,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/threat-ui.mjs",
+      "durationMs": 25527.2368,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/confirmation-position-ui.mjs",
+      "durationMs": 40627.98829999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/playback-ui.mjs",
+      "durationMs": 21906.5772,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/teammate-ui.mjs",
+      "durationMs": 43632.8407,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/manual-reroll-ui.mjs",
+      "durationMs": 16631.062999999995,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/route-check-ui.mjs",
+      "durationMs": 26843.136599999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}
