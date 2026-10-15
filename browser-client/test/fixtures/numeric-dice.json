@@ -1,0 +1,54 @@
+[
+  {
+    "reportId": "apothecaryRoll",
+    "playerId": "target",
+    "casualtyRoll": [
+      3,
+      2
+    ],
+    "playerState": 9,
+    "seriousInjury": null,
+    "numericDice": {
+      "version": 1,
+      "dice": [
+        {
+          "sides": 6,
+          "value": 3,
+          "label": "Casualty"
+        },
+        {
+          "sides": 8,
+          "value": 2,
+          "label": "Casualty"
+        }
+      ]
+    }
+  },
+  {
+    "reportId": "apothecaryRoll",
+    "playerId": "target",
+    "casualtyRoll": [
+      3,
+      2
+    ],
+    "playerState": 9,
+    "seriousInjury": null,
+    "seriousInjuryOld": null,
+    "casualtyModifiers": [],
+    "numericDice": {
+      "version": 1,
+      "dice": [
+        {
+          "sides": 16,
+          "value": 3,
+          "label": "Casualty"
+        },
+        {
+          "sides": 6,
+          "value": 2,
+          "label": "Casualty"
+        }
+      ]
+    }
+  }
+]

@@ -368,7 +368,9 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     const snapshots = [0, 1, 2].map(revision => ({ ...fullTime, revision }));
     const records = snapshots.map((state, index) => ({ index, revision: index, kind: index === 0 ? 'START' : index === 2 ? 'FULL_TIME' : 'ACTION',
       actor: index === 0 ? 'system' : 'home', at: 1000 + index, decision: index === 0 ? null : { operation: 'action', actionId: `action-${index}` },
-      native: index === 1 ? [{ commandNr: 1, reportList: { reports: [{ reportId: 'goForItRoll', roll: 3, minimumRoll: 2, successful: true, playerId: 'p1' }] } }]
+      native: index === 1 ? [{ commandNr: 1, reportList: { reports: [{ reportId: 'goForItRoll', roll: 3, minimumRoll: 2, successful: true, playerId: 'p1' },
+        { reportId: 'apothecaryRoll', playerId: 'p2', casualtyRoll: [3, 2], numericDice: { version: 1, dice: [
+          { sides: 16, value: 3, label: 'Casualty' }, { sides: 6, value: 2, label: 'Casualty' }] } }] } }]
         : index === 2 ? [{ commandNr: 2, reportList: { reports: [{ reportId: 'blockChoice', blockRoll: [1, 6], diceIndex: 1, defenderId: 'p2' }] } }] : [], state }));
     const messages = [{ index: 0, at: 1001, revision: 1, authorId: owner, role: 'home', text: 'First turn' },
       { index: 1, at: 1002, revision: 2, authorId: spectator, role: 'spectator', text: 'Final play' }];
@@ -392,6 +394,10 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await page.getByLabel('Event', { exact: true }).fill('2');
     await page.getByRole('button', { name: 'Seek', exact: true }).click();
     await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
+    const numericDice = page.locator('.live-dice-overlay[role="status"][aria-label="Casualty: 3, 2"]');
+    await numericDice.waitFor();
+    assert.deepEqual(await numericDice.locator('.numeric-die').evaluateAll(dice => dice.map(die => [die.dataset.dieKind, die.dataset.face])), [['d16', '3'], ['d6', '2']]);
+    assert.equal(await numericDice.getByRole('button').count(), 0, 'Numeric replay results remain read-only');
     await page.getByRole('tab', { name: 'Chat' }).click();
     await page.getByText('First turn').waitFor();
     assert.equal(await page.getByText('Final play').count(), 0);
@@ -408,5 +414,25 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await log.getByText(/chooses die 2 \(Pow\).*dice Skull, Pow/).waitFor();
     assert.equal(await log.locator('svg.match-die').count(), 2);
     assert.equal(await log.locator('svg.match-die.selected').getAttribute('aria-label'), 'Ivory and cyan die: Pow');
+    // Animated replay streams groups once; static inspection remains available.
+    await page.clock.install();
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    await page.getByRole('button', { name: 'First', exact: true }).click();
+    await page.getByRole('heading', { name: /Event 1 of 3/ }).waitFor();
+    await page.getByLabel('Skip animations', { exact: true }).uncheck();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
+    const streamed = page.locator('.live-dice-overlay .match-die');
+    assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.face)), ['3']);
+    await page.clock.runFor(350);
+    assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.dieKind)), ['d6', 'd16', 'd6']);
+    await page.clock.runFor(1200);
+    assert.equal(await streamed.count(), 0, 'Expired replay groups do not return through the static fallback');
+    await page.clock.runFor(1000);
+    assert.equal(await streamed.count(), 0);
+    await page.getByLabel('Skip animations', { exact: true }).check();
+    await numericDice.waitFor();
+    await page.clock.runFor(3000);
+    assert.equal(await numericDice.locator('.numeric-die').count(), 2, 'Static replay keeps its inspection result');
   } finally { await browser?.close(); await new Promise(done => server.close(done)); }
 });

@@ -10,6 +10,9 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser dice remain visible longer and stream in labelled roll groups, keeping armour and injury easy to follow")
+			.addBugfix("Browser D16 rolls no longer briefly show scrollbars while tumbling")
+			.addImprovement("Browser D6, D8 and D16 rolls use physical polygon dice, the shared block-dice motion and diffuse backing around dice and reroll choices")
 			.addImprovement("Browser confirmation sits lower with clear action text and no duplicate plan heading")
 			.addImprovement("Browser Move highlights only after explicit selection, route planning or declaration; selecting a player leaves actions unhighlighted")
 			.addBugfix("Browser pitch restores its sideways framing after off-pitch Kick previews instead of remaining shifted during player actions")

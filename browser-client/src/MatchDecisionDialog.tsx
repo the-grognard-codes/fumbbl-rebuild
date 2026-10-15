@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
-import { DiceFace } from './DiceFace.tsx';
+import { PolygonDie } from './PolygonDie.tsx';
 import './match-decision.css';
 
 const injuryIcons = `${import.meta.env.BASE_URL}assets/game/ui/injury-icons-v1.svg`;
@@ -55,7 +55,7 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
     {decision.instruction && <p>{decision.instruction}</p>}
     <div className="match-decision-options">{decision.options.map(option => <button key={option.id} type="button" disabled={disabled}
       onClick={() => option.choices ? setSkillChoices(option) : option.kind === 'choice' ? onChoice(option.id) : onAction(option.id)}>
-      {option.face && <DiceFace face={option.face}/>}
+      {option.face && <PolygonDie kind={option.dieKind ?? 'block'} face={option.face}/>}
       {option.icon?.startsWith('injury:') && <svg className="injury-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
         <use href={`${injuryIcons}#${option.icon.slice(7)}`}/>
       </svg>}

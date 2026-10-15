@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { verifyNumericDice } from './numeric-dice-checks.mjs';
 
 const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8')).sort((a, b) => b.count - a.count);
 const evidence = process.env.DICE_UI_EVIDENCE;
@@ -28,8 +29,8 @@ try {
     const assertUnboxed = async element => assert.deepEqual(await element.evaluate(element => ({
       background: getComputedStyle(element).backgroundColor, border: getComputedStyle(element).borderTopWidth,
       shadow: getComputedStyle(element).boxShadow })), { background: 'rgba(0, 0, 0, 0)', border: '0px', shadow: 'none' });
-    assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), journey.count ? 'rgba(0, 0, 0, 0)' : 'rgba(9, 23, 38, 0.3)');
-    assert.equal(await dialog.evaluate(el => getComputedStyle(el).borderTopWidth), journey.count ? '0px' : '1px');
+    assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
+    assert.equal(await dialog.evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
     assert.equal(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth),true,'Dice surface has no horizontal scrollbar');
     assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'none', 'Empty overlay space does not intercept pitch input');
     const offered = journey.offered.actions.filter(action => action.kind === 'blockDie');
@@ -66,7 +67,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const report of journey.reports) for (const mode of ['coach', 'spectator', 'replay']) {
       await publish({ view: mode === 'coach' ? journey.chosen : journey.spectator, report, readOnly: true, replay: mode === 'replay' });
-      const roll = page.locator('.live-dice-overlay[role="status"]'); await roll.waitFor(); assert.equal(await roll.evaluate(el => getComputedStyle(el).backgroundColor), journey.count ? 'rgba(0, 0, 0, 0)' : 'rgba(9, 23, 38, 0.3)'); assert.equal(await roll.evaluate(el => getComputedStyle(el).borderTopWidth), journey.count ? '0px' : '1px');
+      const roll = page.locator('.live-dice-overlay[role="status"]'); await roll.waitFor(); assert.equal(await roll.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)'); assert.equal(await roll.evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
       const expected = report.blockRoll ? report.blockRoll.map(value => ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'][value - 1]) : [String(report.roll)];
       assert.deepEqual(await roll.locator('.match-die').evaluateAll(elements => elements.map(element => element.dataset.face)), expected);
       if (journey.count) {
@@ -102,8 +103,7 @@ try {
     assert.equal(await preview.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
     assert.ok(await preview.locator('.block-die-cube').first().evaluate(el => el.getAnimations().length > 0));
     const before = await preview.locator('.block-die-cube').first().evaluate(el => getComputedStyle(el).transform);
-    await animatedPage.waitForTimeout(80);
-    assert.notEqual(await preview.locator('.block-die-cube').first().evaluate(el => getComputedStyle(el).transform), before);
+    await animatedPage.waitForFunction(before => getComputedStyle(document.querySelector('.block-die.potential .block-die-cube')).transform !== before, before);
     await animatedPage.emulateMedia({ reducedMotion: 'reduce' });
     await animatedPage.waitForFunction(() => [...document.querySelectorAll('.potential .block-die-cube')].every(cube => cube.getAnimations().length === 0));
     assert.equal(await preview.locator('.block-die-cube').first().evaluate(el => el.getAnimations().length), 0);
@@ -139,7 +139,7 @@ try {
     [16000, 16000, 16000], 'The server wait uses only gentle preview motion');
   const beforeReply = await awaiting.first().evaluate(cube => getComputedStyle(cube).transform);
   await awaiting.evaluateAll(cubes => cubes.forEach(cube => cube.getAnimations()[0].play()));
-  await animatedPage.waitForTimeout(80);
+  await animatedPage.waitForFunction(before => getComputedStyle(document.querySelector('.block-die.awaiting .block-die-cube')).transform !== before, beforeReply);
   assert.notEqual(await awaiting.first().evaluate(cube => getComputedStyle(cube).transform), beforeReply,
     'Preview motion continues while waiting for the server');
   const report = { reportId: 'blockRoll', blockRoll: [1, 5, 6], logBlock: {
@@ -244,5 +244,6 @@ try {
     assert.equal(await choice.isDisabled(), true);
     assert.deepEqual(errors, []); await page.close();
   }
-  console.log('PASS: native d6 and 1/2/3 block faces, unboxed block dice with diffuse backing, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
+  await verifyNumericDice(browser, `http://127.0.0.1:${server.httpServer.address().port}`, journeys.find(journey => journey.count === 0).offered, evidence);
+  console.log('PASS: native D6/D8/D16 and block faces, all landing orientations, shared motion, continuity, diffuse backing, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
 } finally { await browser.close(); await server.close(); }

@@ -38,6 +38,8 @@ try {
   await page.waitForFunction(() => document.querySelector('.live-pitch-scene').clientWidth === innerWidth);
   await page.mouse.move(600, 300); await page.mouse.down({ button: 'right' });
   await page.mouse.move(500, 370, { steps: 5 }); await page.mouse.up({ button: 'right' });
+  // Commit the final pointer-move render before sampling the strict menu baseline.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const pitchBeforeMenu = await pitchPosition();
   await page.locator('.live-marker[data-player-id="' + actor.id + '"]').click();
   assert.deepEqual(await pitchPosition(), pitchBeforeMenu, 'Showing and centering the action menu must preserve the panned pitch');

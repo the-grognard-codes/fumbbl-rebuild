@@ -1,13 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, withConfirmedBallChanges, withConfirmedMove } from './pitch-playback.ts';
-import { accumulateDiceMoment, recordDice } from './dice-presentation.ts';
+import { recordDice } from './dice-presentation.ts';
+import { DiceStream } from './dice-stream.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
 const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
-const DICE_RETENTION_MS = 1000;
 
 function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');
@@ -24,30 +24,19 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const completed = useRef(view.revision), generation = useRef(0);
   const running = useRef(false), waiting = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const diceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diceStream = useRef<DiceStream | null>(null);
+  if (!diceStream.current) diceStream.current = new DiceStream(setDiceMoment);
   const diceRevision = useRef(view.revision);
-  const displayedDice = useRef<DiceMoment | null>(null);
-  const displayedSequence = useRef<string | null>(null);
   const pinnedDice = useRef(false);
   const responseDiceKey = useRef<string | null>(null);
+  const snapshotRevision = useRef(view.revision);
   latest.current = view;
-  const clearDice = () => { displayedDice.current = null; displayedSequence.current = null; pinnedDice.current = false; setDiceMoment(null); };
-  const scheduleDiceClear = () => {
-    diceTimer.current = setTimeout(() => { diceTimer.current = null; clearDice(); }, DICE_RETENTION_MS);
-  };
-  const showDice = (dice: DiceMoment, key: string, pinned = false, deferClear = false) => {
-    if (diceTimer.current) clearTimeout(diceTimer.current);
-    const combined = displayedSequence.current === key && !pinned
-      ? accumulateDiceMoment(displayedDice.current, dice) : accumulateDiceMoment(null, dice);
-    displayedSequence.current = key; displayedDice.current = combined; pinnedDice.current = pinned; setDiceMoment(combined);
-    diceTimer.current = null;
-    if (!pinned && !deferClear) scheduleDiceClear();
-  };
+  const clearDice = () => { pinnedDice.current = false; diceStream.current!.clear(); };
   const cancel = () => {
     generation.current += 1;
     if (timer.current) clearTimeout(timer.current);
-    if (diceTimer.current) clearTimeout(diceTimer.current);
-    timer.current = null; diceTimer.current = null; running.current = false; waiting.current = false;
+    clearDice();
+    timer.current = null; running.current = false; waiting.current = false;
   };
   useEffect(() => () => cancel(), []);
   useLayoutEffect(() => {
@@ -57,13 +46,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     // establish a snapshot. No stale timer may write over that snapshot.
     if (!enabled || previous.matchId !== view.matchId || view.revision < previous.revision
       || mode === 'replay' && Math.abs(view.revision - previous.revision) > 1) {
+      snapshotRevision.current = view.revision;
       cancel(); completed.current = view.revision;
       responseDiceKey.current = null;
       presented.current = view; setPitchView(view); clearDice(); setActive(false);
       return;
     }
-    // A resolved response releases its pinned roll. A timer-free roll during
-    // movement is still being presented and must survive a newer revision.
+    // A resolved response releases its pinned roll. Ordinary groups keep their
+    // individual lifetimes across newer revisions of the same action.
     if (view.revision > diceRevision.current && pinnedDice.current) clearDice();
     const responseKey = `${view.matchId}:${view.revision}`;
     const finalRecord = records[view.revision];
@@ -83,8 +73,11 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       // A coach may pause before choosing a reroll or skill. Keep the revealed
       // result with that prompt until an accepted revision resolves it.
       const pendingRoll = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
-      if (dice) showDice({ ...dice, revision: view.revision, rollKey: !reduced && dice.selected === null ? `${view.revision}:response` : undefined },
-        sequenceKey(view), pendingRoll);
+      // Restoring a snapshot exposes its result without replaying an old numeric roll.
+      pinnedDice.current = pendingRoll;
+      if (dice) diceStream.current!.enqueue({ ...dice, revision: view.revision, rollKey: !reduced && dice.selected === null
+        && view.revision > snapshotRevision.current ? `${view.revision}:response` : undefined },
+        sequenceKey(view), pendingRoll, view.revision <= snapshotRevision.current);
       else clearDice();
       return;
     }
@@ -115,10 +108,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (waiting.current && timer.current) clearTimeout(timer.current);
     waiting.current = false; timer.current = null;
     const beats = playbackBeats(record);
-    if (displayedSequence.current === sequenceKey(record.state) && beats.some(beat => beat.kind === 'dice') && diceTimer.current) {
-      clearTimeout(diceTimer.current);
-      diceTimer.current = null;
-    }
     const token = generation.current;
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const safeSpeed = Number.isFinite(speed) && speed > 0 ? speed : 1;
@@ -130,7 +119,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       } as SetupState;
       presented.current = final; setPitchView(final); completed.current = record.revision;
       running.current = false; timer.current = null;
-      if (displayedDice.current && !diceTimer.current) scheduleDiceClear();
       setActive(completed.current < latest.current.revision);
       setTick(value => value + 1);
     };
@@ -140,8 +128,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         const beat = beats[index];
         if (beat.kind === 'dice') {
           diceRevision.current = record.revision;
-          showDice({ ...beat.dice, revision: record.revision, rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
-            sequenceKey(record.state), false, true);
+          diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
+            sequenceKey(record.state));
           continue;
         }
         const current = presented.current;
@@ -158,5 +146,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     };
     advance(0);
   }, [view, records, enabled, tick, speed, mode]);
-  return { pitchView, playbackActive: active, diceMoment };
+  return { pitchView, playbackActive: active, diceMoment,
+    diceSnapshot: pitchView.revision === snapshotRevision.current };
 }

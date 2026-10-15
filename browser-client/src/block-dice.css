@@ -24,7 +24,11 @@
 .live-dice-overlay.pitch-decision-overlay.block-dice-surface.uphill .live-dice-choices button.pitch-dice-icon-choice :is(img, svg) { filter: drop-shadow(0 0 7px #df343b66) drop-shadow(0 4px 4px #0006); }
 .block-dice-surface .match-die.selected { filter: drop-shadow(0 0 3px #8ac8fb) drop-shadow(0 4px 4px #0006); }
 .block-dice-surface.uphill .match-die.selected { filter: drop-shadow(0 0 3px #8ac8fb) drop-shadow(0 0 7px #df343b88); }
-.block-die { display: inline-block; width: 44px; height: 44px; perspective: 240px; vertical-align: middle; }
+.polygon-die { display: inline-block; width: 44px; height: 44px; perspective: 240px; vertical-align: middle; }
+.polygon-die[hidden] { display: none; }
+/* Bound invisible transformed face rectangles without flattening the solid.
+   The margin contains the D16's vertices and the preview's upward drift. */
+.polygon-die { overflow: clip; overflow-clip-margin: 12px; }
 .block-die-hover { display: block; width: 100%; height: 100%; transform-style: preserve-3d; }
 .block-die-cube { position: absolute; width: 28px; height: 28px; left: calc(50% - 14px); top: calc(50% - 14px); transform-style: preserve-3d; transform: none; }
 .block-die-side { position: absolute; inset: 0; border: 2px solid #77c8d6; border-radius: 4px; box-sizing: border-box; background: linear-gradient(135deg,#fff2d5,#ebd2a3); backface-visibility: hidden; }
@@ -35,5 +39,11 @@
 .block-die-side.side-3 { transform: rotateY(-90deg) translateZ(14px); }
 .block-die-side.side-4 { transform: rotateX(90deg) translateZ(14px); }
 .block-die-side.side-5 { transform: rotateX(-90deg) translateZ(14px); }
+.polygon-die-body.polyhedron { width: 52px; height: 52px; left: calc(50% - 26px); top: calc(50% - 26px); }
+.polyhedron-face { position: absolute; inset: 0; backface-visibility: hidden; }
+.polyhedron-face svg { width: 100%; height: 100%; overflow: visible; }
+.polyhedron-face polygon { fill: #f4e2bd; stroke: #77c8d6; stroke-width: 1.25; stroke-linejoin: round; }
+.polyhedron-face text { fill: #14283e; font: 700 10px MUTP, sans-serif; }
+.d16 .polyhedron-face text { font-size: 9px; }
 .pitch-block-dice { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
 .live-dice-overlay .live-die-choice[data-passive="true"] { opacity: 1; cursor: default; pointer-events: none; }
