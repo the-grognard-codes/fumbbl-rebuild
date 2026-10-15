@@ -224,11 +224,19 @@ test('two players and spectator use one board; updates, read-only controls and r
   const visualCrowdedPlayers = crowdedPlayers.map(player => player.role === 'away'
     ? { ...player, art: { rosterId: 'orc', positionId: 'orc-lineman' } } : player);
   let crowded = false;
+  let unactivatedPlayer = false;
+  const activationFixture = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const activationPlayer = activationFixture.players.find(player => player.role === 'home');
   const hostileName = '<img src=x onerror="window.__projectionExecuted=true">';
   const privateSentinels = ['provider-uid-sentinel', 'private-email@example.invalid', 'private-display-sentinel', 'fixture-0', 'fixture-1', 'fixture-2', ...accounts];
   const consoleSummary = { messages: 0, errors: 0, leaked: false };
-  const state = index => ({ ...base, phase: 'PLAY', turnMode: 'regular', revision, callerRole: ['home', 'away', 'spectator'][index],
-    players: crowded ? visualCrowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) });
+  const state = index => unactivatedPlayer
+    ? { ...activationFixture, matchId, revision, callerRole: ['home', 'away', 'spectator'][index],
+      actions: [{ id: 'next', kind: 'endTurn', label: 'End turn', actor: 'home', sourcePlayerId: null, target: null },
+        { id: 'select-unused', kind: 'select', label: `Move ${activationPlayer.name}`, actor: 'home',
+          sourcePlayerId: activationPlayer.id, target: { playerId: activationPlayer.id } }] }
+    : { ...base, phase: 'PLAY', turnMode: 'regular', revision, callerRole: ['home', 'away', 'spectator'][index],
+      players: crowded ? visualCrowdedPlayers : base.players.map(player => ({ ...player, name: hostileName })) };
   try {
     const pages = [];
     for (let index = 0; index < 3; index++) {
@@ -323,17 +331,26 @@ test('two players and spectator use one board; updates, read-only controls and r
     assert.equal(await pages[2].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
     assert.equal(await pages[1].getByRole('button', { name: 'Confirmed!', exact: true }).count(), 0);
     await pages[0].getByRole('button', { name: 'End Turn', exact: true }).click();
-    assert.equal(mutations.length, 0, 'End Turn is a reviewed proposal');
-    await pages[0].getByRole('button', { name: 'Confirmed!', exact: true }).click();
     await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 4'));
-    assert.equal(mutations.length, 1);
+    assert.equal(mutations.length, 1, 'End Turn executes immediately when no activation actions remain');
+    assert.equal(mutations[0].actionId, 'next');
+    unactivatedPlayer = true;
+    revision++;
+    for (const [index, send] of live) send({ type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state: state(index) });
+    for (const page of pages) await page.getByTestId('setup-status').filter({ hasText: 'Revision 5 ' }).waitFor({ state: 'attached' });
+    await pages[0].getByRole('button', { name: 'End Turn', exact: true }).click();
+    assert.equal(mutations.length, 1, 'An unactivated player makes End Turn a reviewed proposal');
+    await pages[0].getByRole('button', { name: 'Confirmed!', exact: true }).click();
+    await pages[2].waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 6'));
+    assert.equal(mutations.length, 2);
+    assert.equal(mutations[1].actionId, 'next');
     assert.equal(await pages[2].getByRole('button', { name: 'Disconnect', exact: true }).count(), 0);
     assert.equal(await pages[2].getByLabel('Match window controls').count(), 0, 'Window controls live in Game Menu');
     liveSockets.get(2).close();
     await pages[2].getByLabel('Live match pitch').waitFor({ state: 'detached' });
     await pages[2].getByRole('button', { name: 'Reconnect', exact: true }).click();
     await openGrid(pages[2]);
-    assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 4/);
+    assert.match(await pages[2].getByTestId('setup-status').textContent(), /Revision 6/);
     live.get(2)({ type: 'error', requestId: null, code: 'VIEW_UNAVAILABLE' });
     await pages[2].getByLabel('Live match pitch').waitFor({ state: 'detached' });
     assert.equal(consoleSummary.leaked, false); assert.equal(consoleSummary.errors, 0);

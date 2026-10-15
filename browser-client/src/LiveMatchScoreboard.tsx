@@ -38,14 +38,16 @@ function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName:
   </section>;
 }
 
-function ClockPanel({ role, teamName, clock }: { role: 'home' | 'away'; teamName: string; clock: ReturnType<typeof clockValues> }) {
-  const active = clock.activeRole === role;
-  const turn = active ? clock.turnMs : 120_000;
-  const bank = role === 'home' ? clock.homeReserveMs : clock.awayReserveMs;
+type EndTurnControl = { onClick: () => void; disabled: boolean };
+function ClockPanel({ role, teamName, clock, endTurn }: { role: 'home' | 'away'; teamName: string; clock: ReturnType<typeof clockValues> | null; endTurn?: EndTurnControl }) {
+  const active = clock?.activeRole === role;
+  const turn = active ? clock!.turnMs : 120_000;
+  const bank = role === 'home' ? clock?.homeReserveMs : clock?.awayReserveMs;
   return <div className={`live-chess-clock ${role}${active ? ' active' : ''}${active && turn <= 15_000 ? ' urgent' : ''}`}
-    aria-label={`${teamName}: time bank ${formatClock(bank)}, turn ${formatClock(turn)}`}>
-    <span>BANK <b>{formatClock(bank)}</b></span>
-    <span data-clock-line="turn">TURN <b>{formatClock(turn)}</b></span>
+    aria-label={clock ? `${teamName}: time bank ${formatClock(bank!)}, turn ${formatClock(turn)}` : `${teamName}: timer unavailable`}>
+    <span>BANK <b>{bank === undefined ? '--:--' : formatClock(bank)}</b></span>
+    <span data-clock-line="turn">TURN <b>{clock ? formatClock(turn) : '--:--'}</b></span>
+    {endTurn && <button type="button" className="clock-end-turn" disabled={endTurn.disabled} onClick={endTurn.onClick} aria-keyshortcuts="Backspace">End Turn</button>}
   </div>;
 }
 
@@ -105,7 +107,7 @@ function TeamName({ name }: { name: string }) {
 }
 
 /** The approved coach HUD, bound only to the server projection. */
-export function LiveMatchScoreboard({ view }: { view: SetupState }) {
+export function LiveMatchScoreboard({ view, endTurn }: { view: SetupState; endTurn?: EndTurnControl }) {
   const [elapsedSinceProjection, setElapsedSinceProjection] = useState(0);
   const paused = view.saveResume?.status === 'SUSPENDED' || view.saveResume?.status === 'RESUME_PENDING';
   useEffect(() => {
@@ -123,7 +125,7 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
   const weather = weatherPresentation(view.weather);
   return <div className="match-scoreboard live-match-scoreboard" aria-label="Match scoreboard">
     <Resources role="home" teamName={homeName} items={hudResources(view, 'home')}/>
-    {clock && <ClockPanel role="home" teamName={homeName} clock={clock}/>}
+    {(clock || endTurn && view.callerRole === 'home') && <ClockPanel role="home" teamName={homeName} clock={clock} endTurn={view.callerRole === 'home' ? endTurn : undefined}/>}
     <div className="coach-score-center">
       <div className="live-team-nameplate home">
         {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
@@ -138,7 +140,7 @@ export function LiveMatchScoreboard({ view }: { view: SetupState }) {
         {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
       </div>
     </div>
-    {clock && <ClockPanel role="away" teamName={awayName} clock={clock}/>}
+    {(clock || endTurn && view.callerRole === 'away') && <ClockPanel role="away" teamName={awayName} clock={clock} endTurn={view.callerRole === 'away' ? endTurn : undefined}/>}
     <Resources role="away" teamName={awayName} items={hudResources(view, 'away')}/>
     <TurnTrack role="home" teamName={homeName} half={view.half} teamTurn={view.homeTurn} phase={view.phase}/>
     <div className="coach-weather-slot" role="status" aria-label={`Weather: ${weather.label}`}>

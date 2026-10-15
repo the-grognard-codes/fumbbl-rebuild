@@ -882,6 +882,12 @@ public final class SetupSession {
                 .add("label", action.label).add("actor", action.role).add("target", target)
                 .add("sourcePlayerId", sourcePlayerId == null ? JsonValue.NULL : JsonValue.valueOf(sourcePlayerId)));
         }
+        JsonArray playerActionMenu = new JsonArray();
+        if (!isComplete()) for (Action action : new CoreTurnActions(state, routeV2 && activationSequencing).playerActionMenu()) {
+            if (action.targetPlayerId == null) continue;
+            playerActionMenu.add(new JsonObject().add("playerId", action.targetPlayerId).add("kind", action.kind)
+                .add("spent", action.spent));
+        }
         FieldCoordinate ball = new KickoffBallPresentation().coordinate(state);
         DialogKickSkillParameter kickChoice = game.getDialogParameter() instanceof DialogKickSkillParameter
             ? (DialogKickSkillParameter) game.getDialogParameter() : null;
@@ -901,6 +907,9 @@ public final class SetupSession {
 			.add("awayTeamArt", new MatchTeamArt().project(document.away.team))
 			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome()))
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway()));
+		if (game.getActingPlayer().getPlayer() != null && game.getActingPlayer().getPlayerAction() != null)
+			projected.add("activePlayerAction", game.getActingPlayer().getPlayerAction().getName());
+        if (!playerActionMenu.isEmpty()) projected.add("playerActionMenu", playerActionMenu);
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));
         if (kickChoice != null) {
@@ -989,6 +998,8 @@ public final class SetupSession {
 		if (saved.get("driveTracker") == null) current.remove("driveTracker");
 		if (saved.get("ballState") == null) current.remove("ballState");
 		if (saved.get("kickPreview") == null) current.remove("kickPreview");
+		if (saved.get("playerActionMenu") == null) current.remove("playerActionMenu");
+		if (saved.get("activePlayerAction") == null) current.remove("activePlayerAction");
 		if (saved.get("movementForecast") == null) current.remove("movementForecast");
 		else if (saved.get("movementForecast").asObject().getInt("version", -1) == 1) {
 			JsonObject legacy = new RoutePlanner(state).legacyAdjacent(actions());

@@ -7,7 +7,7 @@ import { createServer } from './browser-test-server.mjs';
 
 // Presentation and intent evidence using isolated authoritative projections.
 const base = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
-const play = { ...base, revision: 1, phase: 'PLAY', actor: 'home', callerRole: 'home', activePlayerId: null,
+const play = { ...base, clock: { activeRole: 'home', turnElapsedMs: 0, homeReserveMs: 600000, awayReserveMs: 600000 }, revision: 1, phase: 'PLAY', actor: 'home', callerRole: 'home', activePlayerId: null,
   players: [{ ...base.players[0], id: 'human', role: 'home', name: 'Human Blitzer', x: 12, y: 7 }],
   actions: [{ id: 'select', kind: 'select', label: 'Move Human Blitzer', actor: 'home', sourcePlayerId: 'human', target: null },
     { id: 'end', kind: 'endTurn', label: 'End Turn', actor: 'home', sourcePlayerId: null, target: null }] };
@@ -45,6 +45,11 @@ try {
       assert.equal(await page.locator('.live-match-page').evaluate(element => element.scrollTop), 0, 'State changes cannot scroll the match beneath its controls');
       assert.ok(Math.abs(box.x + box.width / 2 - width / 2) < 1, 'Confirmation stays centered');
       assert.ok(box.y >= 0 && box.y + box.height <= height && box.x >= 0 && box.x + box.width <= width, 'Confirmation stays inside the match');
+      const preview = page.locator('.command-preview');
+      if (await preview.count() && (await preview.textContent()).trim()) {
+        const textBox = await preview.boundingBox();
+        assert.ok(textBox.y + textBox.height + 4 <= box.y, `${label}: Action text stays clear of Confirmed!`);
+      }
     };
     await publish({ ...play, phase: 'SETUP', actions: [] }, ['Setup is not yet legal']);
     assert.equal(await page.locator('.match-command-bar').isVisible(), false, 'Setup confirmation has no empty background bar');
@@ -52,15 +57,11 @@ try {
     await samePosition('Setup'); await confirm.click(); await samePosition('Pending setup confirmation');
     assert.equal((await page.evaluate(() => window.hudIntents)).at(-1).operation, 'confirm');
     await publish(play); await samePosition('Return to play');
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
-    await samePosition('Open additional actions');
-    await page.getByRole('button', { name: 'Other action', exact: true }).click();
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
     await samePosition('End-turn preview'); assert.equal(await confirm.isEnabled(), true);
     await confirm.click(); await samePosition('Pending action'); assert.equal(await confirm.isDisabled(), true);
     assert.equal((await page.evaluate(() => window.hudIntents)).at(-1).fields.actionId, 'end');
     await publish(teammate);
-    await page.getByRole('button', { name: 'Other action', exact: true }).click({ trial: true });
     await page.locator('[data-player-id="human"]').focus(); await page.keyboard.press('Enter');
     await page.locator('[data-player-id="mate"]').focus(); await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Cancel teammate selection', exact: true }).waitFor();

@@ -22,11 +22,15 @@ import java.util.List;
 /** Server-issued BB2025 Multiple Block declaration and legal defender pairs. */
 final class MultipleBlockActions {
     void declaration(Game game, Player<?> player, PlayerState status, String role, List<Action> actions) {
-        if (game.getTurnMode() != TurnMode.REGULAR || !status.isActive()
+        declaration(game, player, status, role, actions, false);
+    }
+
+    void declaration(Game game, Player<?> player, PlayerState status, String role, List<Action> actions, boolean menu) {
+        if (game.getTurnMode() != TurnMode.REGULAR || !menu && !status.isActive()
             || game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
             || player.hasSkillProperty(NamedProperties.preventRegularBlockAction)
             || status.getBase() == PlayerState.PRONE && !player.hasSkillProperty(NamedProperties.canStandUpForFree)
-            || !hasMultipleBlockSkill(player) || defenders(game, player).length < 2) return;
+            || !hasMultipleBlockSkill(player) || !menu && defenders(game, player).length < 2) return;
         actions.add(new Action("declare-multiple-block-" + player.getId(), "declareMultipleBlock", "Multiple Block with " + player.getName(), role,
             new ClientCommandActingPlayer(player.getId(), PlayerAction.MULTIPLE_BLOCK, false), player.getId()));
     }
