@@ -1,0 +1,19 @@
+Generated with the built-in image_gen tool. Review mockups only; no consuming code or production artwork changed.
+
+References:
+- test-output/action-menu/menu-1224.png: existing HUD and placement.
+- assets/game/ui/reroll-v1.png: painted brass, blue enamel, leather and modelled detail.
+
+Mockup A, icons-only.png:
+Preserve the screenshot's pitch, camera and supporting HUD. Change only the bottom-center action row. Remove the surrounding tray and individual boxes, exposing grass between floating icons. Use detailed painted fantasy-football illustrations, smooth silhouettes, crisp dark outlines and restrained blue/brass accents. Space icons approximately 12px apart at their intended display scale. Show Move, Block, Blitz, Foul, Hand Off, Pass, Chainsaw, Bomb, TTM, KTM, Star and End Act. Block uses a clenched armored fist inside a shield. Foul uses a studded boot stamping a helmeted head with jagged impact bolts, without gore. Chainsaw has a mechanical housing, grips, vents and individual teeth. Bomb has an iron body, brass fuse collar, rope fuse and sparks. Keep Pass gold, slightly raised with faint cyan glow, and Blitz visibly spent. No action labels.
+
+Mockup B, icons-labelled.png:
+Edit A while preserving artwork, order, spacing and other HUD elements. Add short labels centered directly underneath each individual icon in compact MUTP-style squared bold type with a dark readability shadow. Exact labels: Move, Block, Blitz, Foul, Hand Off, Pass, Chainsaw, Bomb, TTM, KTM, Star, End Act. Lift the row only enough to fit captions in the bottom margin. No icon or caption backgrounds. Selected Pass label yellow, spent Blitz label faint.
+
+Mockup C, icon-review-sheet.png:
+Create an enlarged review board using B's icon direction and the reroll material reference. A continuous green pitch background; four rows of six distinct floating illustrated icons. Generous open grass between icons; no trays, panels or individual tile backgrounds. All artwork enabled for detail inspection, with bottom-centered labels.
+Row 1: Move (boot and arrow), Block (fist in shield), Blitz (fist and lightning), Foul (boot stamping helmeted head and impact bolts), Hand Off (two hands transferring football), Pass (flying stitched football and arc).
+Row 2: Chainsaw (mechanical housing and teeth), Stab (dagger and impact), Vomit (goblin expelling green stream), Fire (mouth breathing flame), Chomp (biting jaws), Gaze (eye with hypnotic spiral).
+Row 3: Bomb (iron bomb and sparking rope fuse), TTM (hand tossing small helmeted humanoid), KTM (boot kicking small helmeted humanoid), Multi Block (two fists and impact bursts), StB (hands securing football and lock), Punt (boot kicking football).
+Row 4: Jump (humanoid leaping obstacle), Recover (helmeted head, confusion stars and recovery arrow), Forgo (open hands declining and crossed circle), Star (gold star and blue football), End Act (stop hand and finish flag), Confirm (cyan checkmark and brass outline).
+Title: ACTION ICON REVIEW. No extra commentary or unrelated HUD elements.
