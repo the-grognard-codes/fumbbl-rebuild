@@ -44,6 +44,12 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
     kind: view.prompt.kind,
     options: view.prompt.options.map(option => ({ id: option, label: option[0].toUpperCase() + option.slice(1), kind: 'choice' }))
   };
+  const hitAndRunDecline = ownActions.find(action => action.kind === 'hitAndRunDecline');
+  if (view.phase === 'PLAY' && view.turnMode === 'HIT_AND_RUN' && view.actor === view.callerRole && hitAndRunDecline) return {
+    title: 'Hit and Run', key: `${view.revision}:hitAndRun`, kind: 'hitAndRun',
+    instruction: 'Select an arrow to move, or decline Hit and Run.',
+    options: [{ id: hitAndRunDecline.id, label: 'Decline Hit and Run', kind: 'action' }]
+  };
   const kind = promptOrder.find(candidate => ownActions.some(action => action.kind === candidate)
     && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;

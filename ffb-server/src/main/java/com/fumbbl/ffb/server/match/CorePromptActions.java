@@ -5,8 +5,10 @@ import com.fumbbl.ffb.Direction;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.IDialogParameter;
+import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
+import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.bb2020.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
@@ -30,6 +32,8 @@ import com.fumbbl.ffb.net.commands.ClientCommandApothecaryChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
 import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
+import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
+import com.fumbbl.ffb.net.commands.ClientCommandFieldCoordinate;
 import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
@@ -39,6 +43,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
+import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
 import com.fumbbl.ffb.util.UtilPassing;
 
@@ -162,7 +167,18 @@ public final class CorePromptActions {
 				if (role != null) add(result, "intercept:" + interceptor.getId(), "interception", "Intercept with " + interceptor.getName(), role,
 					new ClientCommandInterceptorChoice(interceptor.getId(), choice.getInterceptionSkill()));
 			}
-        } else if (dialog == null && game.getFieldModel().getPushbackSquares().length > 0) {
+		} else if (dialog == null && game.getTurnMode() == TurnMode.HIT_AND_RUN
+			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN) {
+			String role = game.isHomePlaying() ? "home" : "away";
+			for (MoveSquare square : game.getFieldModel().getMoveSquares()) {
+				FieldCoordinate target = square.getCoordinate();
+				result.add(new CoreTurnActions.Action("hit-and-run:" + target.getX() + ":" + target.getY(),
+					"hitAndRun", "Hit and Run to " + target.getX() + ", " + target.getY(), role,
+					new ClientCommandFieldCoordinate("home".equals(role) ? target : target.transform()), target));
+			}
+			add(result, "hit-and-run:decline", "hitAndRunDecline", "Decline Hit and Run", role,
+				new ClientCommandEndTurn(TurnMode.HIT_AND_RUN, null));
+		} else if (dialog == null && game.getFieldModel().getPushbackSquares().length > 0) {
 			pushback(result, game);
 		}
 		return result;

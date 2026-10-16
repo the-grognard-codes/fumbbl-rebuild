@@ -382,6 +382,10 @@ public class UtilPlayer {
 	}
 
 	public static void refreshPlayersForTurnStart(Game pGame) {
+		refreshPlayersForTurnStart(pGame, true);
+	}
+
+	public static void refreshPlayersForTurnStart(Game pGame, boolean recoverStunnedPlayers) {
 		FieldModel fieldModel = pGame.getFieldModel();
 		Player<?>[] players = pGame.getPlayers();
 		GameMechanic mechanic =
@@ -420,8 +424,8 @@ public class UtilPlayer {
 					newPlayerState = oldPlayerState.changeActive(setActive);
 					break;
 				case PlayerState.STUNNED:
-					if ((pGame.isHomePlaying() && pGame.getTeamHome().hasPlayer(player))
-							|| (!pGame.isHomePlaying() && pGame.getTeamAway().hasPlayer(player))) {
+					if (recoverStunnedPlayers && ((pGame.isHomePlaying() && pGame.getTeamHome().hasPlayer(player))
+							|| (!pGame.isHomePlaying() && pGame.getTeamAway().hasPlayer(player)))) {
 						newPlayerState = oldPlayerState.changeBase(PlayerState.PRONE).changeActive(false);
 					}
 					break;

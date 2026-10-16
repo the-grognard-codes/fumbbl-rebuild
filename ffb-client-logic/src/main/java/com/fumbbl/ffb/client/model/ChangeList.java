@@ -10,6 +10,16 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser coaches can concede retained matches from older game versions without resuming their incompatible engine")
+			.addBugfix("Match preparation stays connected while playing in another window and remains available for fifteen minutes after completion")
+			.addBugfix("Space confirms proposed player actions and end-turn warnings from the pitch and action menu")
+			.addBugfix("Block declarations no longer draw a target line from a previously active teammate")
+			.addImprovement("Movement range outlines follow planned waypoints and show the movement remaining after each segment")
+			.addBugfix("Blitz targets preserve manual waypoints, and explicitly declared Blitz actions allow planning before choosing the target")
+			.addBugfix("Hit and Run immediately offers destination arrows and a centered reminder with Decline Hit and Run, matching follow-up placement without an extra skill-use question")
+			.addBugfix("Hand Off receivers can be selected directly on the pitch and confirmed")
+			.addBugfix("BB2025 players can stand up in place and continue moving, including routes back to their starting square")
+			.addBehaviorChange("BB2025 stunned players remain stunned throughout their missed turn and recover at its end; fresh stuns wait until the next missed turn")
 			.addImprovement("Browser dice remain visible longer and stream in labelled roll groups, keeping armour and injury easy to follow")
 			.addBugfix("Browser D16 rolls no longer briefly show scrollbars while tumbling")
 			.addImprovement("Browser D6, D8 and D16 rolls use physical polygon dice, the shared block-dice motion and diffuse backing around dice and reroll choices")

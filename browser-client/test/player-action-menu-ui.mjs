@@ -78,7 +78,11 @@ try {
   await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Backspace');
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Repeated end turn still requires explicit confirmation');
   await page.keyboard.press('Space');
-  assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Space cannot bypass the explicit end-turn confirmation');
+  assert.deepEqual(await page.evaluate(() => window.hudIntents), [{ operation: 'action', fields: { actionId: 'home:endTurn' } }],
+    'Space confirms the reviewed end-turn warning');
+  assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
+  await page.evaluate(state => { window.hudIntents = []; window.publishHud(state); }, { ...state, revision: state.revision + 1 });
+  await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [{ operation: 'action', fields: { actionId: 'home:endTurn' } }]);
   for (const role of ['home', 'away']) {

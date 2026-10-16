@@ -51,13 +51,16 @@ marker-6 storage only; it cannot initialize or migrate a database. Neither this
 launcher nor its systemd candidate is installed or activated by the repository.
 
 Each JSON request has `version:2`, `type`, and a unique `requestId`. Human clients
-authenticate first with `{type:"authenticate",bearer:<Firebase ID token>}`;
+authenticate first with `{type:"authenticate",bearer:<Firebase ID token>,purpose:"preparation"|"play"}`;
 the independent computer service uses `authenticateComputer` with its service
 token instead. Neither client
 roles, email, name, UID, dice nor legal actions are accepted as authority. A
 successful response exposes only the caller's internal account ID for exact
-intent recovery. The newest successful connection replaces the account's old
-connection. Every operation and recipient delivery rechecks expiry, Firebase
+intent recovery. `purpose` is optional and defaults to `"play"` for existing clients.
+One preparation and one play connection may coexist per account. The newest successful
+connection replaces only the account's previous connection with the same purpose;
+other purpose values are rejected. Purpose does not grant scopes or match membership.
+Every operation and recipient delivery rechecks expiry, Firebase
 disabled/revoked identity state and current MariaDB scopes. Failures are generic;
 provider/JDBC exception details and request bodies are not logged.
 
@@ -97,13 +100,19 @@ before the membership query and excludes completed durable documents. A changed
 or unavailable snapshot does not expose private data or create an engine.
 Unactivated entries offer Continue setup; activated entries link to Resume.
 Activated entries also offer Concede with the existing irreversible-action
-confirmation. Confirm reads the authorized native state, submits `setup/concede`
+confirmation. Confirm reads the authorized retained public revision using
+`{type:"setup",operation:"concessionStatus",matchId}` (with the usual version and
+request ID, without `expectedRevision`), then submits `setup/concede`
 at that revision and refreshes the inventory after its reply. Cancellation sends
 no request. A retained concession stays on setup after reload and uses the
 ordinary explicit exact-request retry; it never automatically launches the pitch
   or resubmits the mutation. The displayed preparation is reloaded after the native
   reply so its lifecycle subscription and reconnect selection remain current.
-  Native concession legality and penalties are unchanged.
+  Compatible matches use the native concession flow. Incompatible retained runtimes
+  can be conceded without restoring their engine: checksum and frozen identities
+  are validated, a terminal result is persisted with compare-and-set protection,
+  and the original native checkpoint remains intact. Exact retries reconcile
+  uncertain completion; stale revisions, reused request IDs and corrupt data fail closed.
 This opt-in response family leaves existing clients' messages and durable
 formats unchanged; new clients require a server supporting this read operation.
 
@@ -131,9 +140,12 @@ explicitly reserves a browsing context during the user gesture; the browser
 decides whether it is a window or tab. If blocked or closed, launch falls back
 to the current tab. The other player receives a server notification and a
 same-tab continuation link plus an explicit new-window link. For an explicit
-window handoff, the preparation socket closes because the server permits one
-active socket per account; reloaded preparation remains disconnected until the
-player reconnects there. A spectator uses
+window handoff, preparation stays authenticated with its own connection purpose.
+Reloading it replaces only preparation and leaves the play socket connected.
+Preparation remains usable throughout the active match and for fifteen minutes
+after completion. The existing thirty-second inventory poll evaluates cleanup;
+legacy format-1 results without a terminal timestamp start retention when completion
+is first observed. A spectator uses
 the same match route with `watch=1`.
 The match route mounts the existing setup/game view and seeds one `V2Client`
 subscription from its validated URL. `/play/result?matchId=<uuid>` requests
@@ -147,7 +159,7 @@ Hosting's existing `/play/**` rewrite serves both routes.
 
 Direct-link diagnostic coverage uses synthetic authorized accounts: fresh
 connections with the same durable membership load the same role and revision,
-and the newest authenticated socket retires the old socket before queued input
+and the newest authenticated socket of the same purpose retires the old socket before queued input
 can run. A missing account membership (including a copied reference/legacy ID)
 returns `NOT_FOUND` before any engine read. An activated match without a retained
 checkpoint instead fails `SESSION_UNAVAILABLE`; it is never reinitialized.
@@ -316,6 +328,10 @@ reject the new field, while a new browser against an older service omits threats
 
 Authenticated match coaches may read `{version:2,type:"movementRange",requestId,matchId,expectedRevision,playerId}`. The accepted response is `{version:2,type:"movementRange",requestId,code:"ACCEPTED",matchId,range}`. `range` has `rangeVersion:2`, `playerId`, `from:{x,y}`, integer `remaining` and `normalRemaining`, unique canonical destination arrays `normal` and `full` containing `{x,y}`, and `revision`. The origin is excluded from both arrays, and `normal` is a subset of `full`. Membership includes every valid native ordinary movement path within the respective allowance, regardless of roll difficulty. Leap, Jump and Pogo paths are excluded from this forecast; there are no step risks or roll targets in this response. The match's active team uses current activation eligibility and movement spent, while the inactive team forecasts its next activation with current posture and restrictions. Both coaches see the same forecast for a selected player. Finished active-team and immobile players have empty sets. Native special movement limits apply to Kickoff Return and Pass Block; other special modes omit ordinary range guidance. Reads do not select an actor, roll dice, change a revision, or grant mutation rights. Rebuild the browser and Java game service together when updating this range contract.
 
-The acting coach may read `{version:2,type:"movementPreview",requestId,matchId,expectedRevision,playerId,kind,targetPlayerId,waypoints}`. `kind` is `"move"` or `"blitz"`; `targetPlayerId` is null for Move and an opponent ID for Blitz. Move needs one to 20 `{x,y}` waypoints. Blitz accepts `[]` to choose a native-ranked adjacent approach, including zero steps when already adjacent; its response resolves this to canonical waypoints. The accepted response contains `plan:{planVersion:1,kind,targetPlayerId,waypoints,route}`, where `route` is the existing route-version-3 preview with selected player, source, remaining movement, entered-square steps, revision, and actor. Blitz reserves one native movement for its block. Invalid or stale previews fail before activation.
+The acting coach may read `{version:2,type:"movementPreview",requestId,matchId,expectedRevision,playerId,kind,targetPlayerId,waypoints}`. `kind` is `"move"`, `"blitz"` or `"foul"`; `targetPlayerId` is null for Move and an opponent ID for Blitz/Foul. Move needs one to 20 `{x,y}` waypoints. Blitz/Foul accept `[]` to choose a native-ranked adjacent approach, including zero steps when already adjacent. Supplied waypoints remain an unchanged prefix; if the last waypoint is not adjacent to the target, the server appends a reachable approach within the remaining budget and the twenty-waypoint limit. The accepted response contains `plan:{planVersion:1,kind,targetPlayerId,waypoints,route,range?}`, where `route` is the existing route-version-3 preview with selected player, source, remaining movement, entered-square steps, revision, and actor. Optional `range` has the movement-range schema above, with `from` at the planned endpoint and both budgets reduced by entered steps (and native standing costs already included in the route budget). It is bound to the same player and revision. Blitz reserves one native movement for its block. Invalid or stale previews fail before activation. Rebuild the strict browser decoder and server together for the extended plan response.
 
-The reviewed plan commits through the existing version-2 `setup` request with `operation:"movement"`, `matchId`, `expectedRevision`, `playerId`, `kind`, `targetPlayerId`, and canonical `waypoints`. The server revalidates the intent at that revision, declares Move or Blitz if needed, executes each native move step, and for Blitz starts the native block on arrival without another confirmation. An already active mover may continue a native movement action with `kind:"move"`; this does not change its declared action. Native prompts pause the committed route, whose remaining intent is saved in the match checkpoint and resumed after the required decision. Exact request retries use the existing setup idempotency history. Spectators cannot call these reads or commit movement.
+During `SELECT_BLITZ_TARGET`, the active blitzer can read its range and preview waypoints with `kind:"move"` without executing them. Its movement commit requires `kind:"blitz"` and a legal declared target. Selecting that target preserves the draft path and previews the completed approach. Other eligible players can still declare their own movement through the existing activation-switch flow.
+
+The reviewed plan commits through the existing version-2 `setup` request with `operation:"movement"`, `matchId`, `expectedRevision`, `playerId`, `kind`, `targetPlayerId`, and canonical `waypoints`. The server revalidates the intent at that revision, declares Move, Blitz or Foul if needed, executes each native move step, and starts the attack on arrival without another confirmation. Blitz selects its native target before moving. An already active mover may continue a native movement action with `kind:"move"`; this does not change its declared action. Native prompts pause the committed route, whose remaining intent is saved in the match checkpoint and resumed after the required decision. Exact request retries use the existing setup idempotency history. Spectators cannot call these reads or commit movement.
+
+During native `HIT_AND_RUN` square selection, offered `hitAndRun` actions carry canonical square targets and `hitAndRunDecline` declines the optional move. The browser renders the destinations with the pushback/follow-up arrow graphic, and submits the exact offered action on selection. The command bar labels decline as **Decline Hit and Run**. Pending, spectator and waiting-coach views cannot submit these choices.

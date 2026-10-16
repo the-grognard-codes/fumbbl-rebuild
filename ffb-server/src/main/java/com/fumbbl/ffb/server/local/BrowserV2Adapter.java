@@ -20,6 +20,7 @@ import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 
 import java.sql.SQLException;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,10 +40,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final V2PreparationService preparation;
 	private final BrowserSavedTeamJson teams;
 	private final ComputerOpponentService computers;
+	private final Clock clock;
 	private BrowserMatchAdapter.Connection computerDispatcher;
 	private final Set<BrowserMatchAdapter.Connection> computerConnections = new HashSet<>();
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserMatchAdapter.Connection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
+	private final Map<BrowserMatchAdapter.Connection, String> connectionPurposes = new LinkedHashMap<>();
+	private final Map<BrowserMatchAdapter.Connection, Long> preparationCompletedAt = new LinkedHashMap<>();
 	private final Map<BrowserMatchAdapter.Connection, String> preparationSubscriptions = new LinkedHashMap<>();
 	private final Set<BrowserMatchAdapter.Connection> retired = Collections.newSetFromMap(new WeakHashMap<BrowserMatchAdapter.Connection, Boolean>());
 
@@ -53,9 +57,15 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 
 	public BrowserV2Adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup,
 		MatchService matches, V2PreparationService preparation, BrowserSavedTeamJson teams, ComputerOpponentService computers) {
+		this(authenticator, access, setup, matches, preparation, teams, computers, Clock.systemUTC());
+	}
+
+	BrowserV2Adapter(V2PrincipalAuthenticator authenticator, V2MatchAccess access, SetupApplication setup,
+		MatchService matches, V2PreparationService preparation, BrowserSavedTeamJson teams, ComputerOpponentService computers, Clock clock) {
 		this.authenticator = authenticator; this.access = access; this.setup = setup;
 		this.matches = matches; this.preparation = preparation; this.teams = teams;
 		this.computers = computers;
+		this.clock = clock;
 		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
 	}
 
@@ -83,18 +93,23 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			if ("authenticate".equals(type)) {
-				fields(request, "version", "type", "requestId", "bearer");
+				if (request.get("purpose") == null) fields(request, "version", "type", "requestId", "bearer");
+				else fields(request, "version", "type", "requestId", "bearer", "purpose");
+				String purpose = request.getString("purpose", "play");
+				if (!"play".equals(purpose) && !"preparation".equals(purpose)) throw new IllegalArgumentException();
 				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
 					fail(connection, requestId, "IDENTITY_REBINDING_FORBIDDEN"); return;
 				}
 				AuthenticatedPrincipal principal = authenticator.authenticate(request.get("bearer").asString());
-				// Newest authenticated connection wins, serialized on the same worker.
+				// Keep one preparation and one play connection per account. Reconnects replace only their own purpose.
 				for (BrowserMatchAdapter.Connection prior : new java.util.ArrayList<>(principals.keySet())) {
-					if (principals.get(prior).accountId().equals(principal.accountId())) {
+					if (principals.get(prior).accountId().equals(principal.accountId())
+						&& purpose.equals(connectionPurposes.get(prior))) {
 						retire(prior);
 					}
 				}
 				principals.put(connection, principal);
+				connectionPurposes.put(connection, purpose);
 				send(connection, new JsonObject().add("type", "authentication").add("requestId", requestId)
 					.add("code", "ACCEPTED").add("accountId", principal.accountId()));
 				return;
@@ -110,6 +125,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (!after.isNull() && (!after.isString()
 					|| !after.asString().matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"))) throw new IllegalArgumentException();
 				List<MatchMembership> memberships = access.currentMatches(principal, after.isNull() ? null : after.asString());
+				if (expirePreparation(connection)) return;
 				JsonArray entries = new JsonArray();
 				int count = Math.min(100, memberships.size());
 				for (int index = 0; index < count; index++) {
@@ -313,6 +329,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if ("preparedMatch".equals(type) && "ACCEPTED".equals(response.getString("code", ""))) {
 				String id = response.get("document").asObject().getString("matchId", null);
 				preparationSubscriptions.put(connection, id);
+				preparationCompletedAt.remove(connection);
 				publisher.remove(connection);
 				if (!"load".equals(request.getString("operation", ""))) preparationChanged(id, connection);
 				if ("activate".equals(request.getString("operation", "")) && preparation.isComputerMatch(id))
@@ -408,17 +425,44 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	@Override public synchronized void disconnect(BrowserMatchAdapter.Connection connection) {
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
-		principals.remove(connection); publisher.remove(connection); preparationSubscriptions.remove(connection);
+		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.remove(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserMatchAdapter.Connection connection) {
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
 		principals.remove(connection);
+		connectionPurposes.remove(connection);
+		preparationCompletedAt.remove(connection);
 		publisher.remove(connection);
 		preparationSubscriptions.remove(connection);
 		retired.add(connection);
 		fail(connection, null, "CONNECTION_REPLACED");
 		connection.close(1008, "Connection replaced by a newer authenticated session");
+	}
+
+	/** The preparation inventory poll also supplies liveness; active matches have no elapsed-time limit. */
+	private boolean expirePreparation(BrowserMatchAdapter.Connection connection) throws SQLException {
+		String id = preparationSubscriptions.get(connection);
+		if (!"preparation".equals(connectionPurposes.get(connection)) || id == null) return false;
+		access.playerRole(principals.get(connection), id);
+		MatchDocument document = setup.browseDocument(id);
+		if (document.lifecycle != MatchDocument.Lifecycle.COMPLETED) { preparationCompletedAt.remove(connection); return false; }
+		Long completedAt = preparationCompletedAt.get(connection);
+		if (completedAt == null) {
+			completedAt = clock.millis();
+			JsonObject artifact = JsonObject.readFrom(document.completion.json());
+			if (artifact.get("transcript") != null) {
+				JsonArray records = artifact.get("transcript").asObject().get("records").asArray();
+				if (!records.isEmpty()) completedAt = records.get(records.size() - 1).asObject().get("at").asLong();
+			}
+			preparationCompletedAt.put(connection, completedAt);
+		}
+		if (clock.millis() - completedAt < 15 * 60 * 1000L) return false;
+		fail(connection, null, "PREPARATION_EXPIRED");
+		retired.add(connection);
+		disconnect(connection);
+		connection.close(1000, "Match preparation retention ended");
+		return true;
 	}
 	private void send(BrowserMatchAdapter.Connection connection, JsonObject response) { connection.send(response.set("version", 2).toString()); }
 	private void fail(BrowserMatchAdapter.Connection connection, String id, String code) {

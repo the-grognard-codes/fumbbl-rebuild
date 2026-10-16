@@ -43,6 +43,68 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BrowserV2AdapterTest {
+	@Test void unknownConnectionPurposeDoesNotAuthenticateOrEvictAnExistingPlayer() throws Exception {
+		BrowserV2Adapter adapter = adapter(bearer -> principal(FIRST, ApplicationScope.PLAYER), mock(V2MatchAccess.class), mock(SetupApplication.class));
+		Connection play = new Connection(), unknown = new Connection();
+		adapter.receive(play, authenticate("play", "same").toString());
+		adapter.receive(unknown, authenticate("unknown", "same").add("purpose", "unbounded-extra-window").toString());
+		assertEquals("MALFORMED_MESSAGE", code(unknown, 0));
+		assertEquals(0, play.closeStatusCode);
+	}
+	@Test void preparationRemainsUsableDuringPlayAndExpiresFifteenMinutesAfterCompletion() throws Exception {
+		Clock clock = mock(Clock.class);
+		long finished = 2000000000000L;
+		when(clock.millis()).thenReturn(finished - 3600000L);
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+		when(access.playerRole(player, MATCH)).thenReturn("home");
+		when(access.currentMatches(player, null)).thenReturn(Collections.emptyList());
+		SetupApplication setup = mock(SetupApplication.class);
+		V2PreparationService preparation = mock(V2PreparationService.class);
+		MatchService matches = mock(MatchService.class);
+		FrozenTeam team = frozenTeam("The Reavers", "human", 1000000);
+		MatchDocument active = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", team), new MatchDocument.Member("away", "away", team));
+		java.lang.reflect.Constructor<MatchService.Result> resultConstructor = MatchService.Result.class.getDeclaredConstructor(MatchDocument.class, boolean.class);
+		resultConstructor.setAccessible(true);
+		when(matches.load("home", MATCH)).thenReturn(resultConstructor.newInstance(active, false));
+		when(setup.browseDocument(MATCH)).thenReturn(active);
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> player, access, setup, matches, preparation,
+			mock(BrowserSavedTeamJson.class), new com.fumbbl.ffb.server.match.ComputerOpponentService(null), clock);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").add("purpose", "preparation").toString());
+		adapter.receive(connection, request("preparedMatch", "prepare-load").add("operation", "load").add("matchId", MATCH).toString());
+		when(clock.millis()).thenReturn(finished);
+		adapter.receive(connection, request("currentMatches", "while-playing").add("after", JsonValue.NULL).toString());
+		assertEquals(0, connection.closeStatusCode);
+		CompletedMatch completion = new CompletedMatch(new JsonObject().add("formatVersion", 2).add("transcript", new JsonObject()
+			.add("records", new JsonArray().add(new JsonObject().add("at", finished)))).toString());
+		when(setup.browseDocument(MATCH)).thenReturn(active.completed(completion));
+		when(clock.millis()).thenReturn(finished + 899999L);
+		adapter.receive(connection, request("currentMatches", "retained").add("after", JsonValue.NULL).toString());
+		assertEquals(0, connection.closeStatusCode);
+		when(clock.millis()).thenReturn(finished + 900000L);
+		adapter.receive(connection, request("currentMatches", "expired").add("after", JsonValue.NULL).toString());
+		assertEquals(1000, connection.closeStatusCode);
+		assertEquals("PREPARATION_EXPIRED", code(connection, connection.messages.size() - 1));
+	}
+	@Test void preparationAndPlayKeepIndependentBoundedConnections() throws Exception {
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+		when(access.currentMatches(player, null)).thenReturn(Collections.emptyList());
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, mock(SetupApplication.class));
+		Connection preparation = new Connection(), play = new Connection(), replacement = new Connection();
+		adapter.receive(preparation, authenticate("prep-auth", "same").add("purpose", "preparation").toString());
+		adapter.receive(play, authenticate("play-auth", "same").toString());
+		assertEquals("ACCEPTED", code(preparation, 0));
+		assertEquals(0, preparation.closeStatusCode);
+		adapter.receive(preparation, request("currentMatches", "still-usable").add("after", JsonValue.NULL).toString());
+		assertEquals("ACCEPTED", code(preparation, 1));
+		adapter.receive(replacement, authenticate("new-prep-auth", "same").add("purpose", "preparation").toString());
+		assertEquals(1008, preparation.closeStatusCode);
+		assertEquals(0, play.closeStatusCode);
+	}
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final String FIRST = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 	private static final String SECOND = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";

@@ -6,7 +6,7 @@ export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoin
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
 export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
-  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number };
+  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; range?: MovementRange };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
   code: 'ACCEPTED'; matchId: string; range: MovementRange };
 export type MovementPreviewResponse = { version: 2; type: 'movementPreview'; requestId: string;
@@ -42,7 +42,11 @@ function envelope(json: string, type: string, field: string): Record<string, unk
 
 export function decodeMovementRange(json: string): MovementRangeResponse {
   const response = envelope(json, 'movementRange', 'range');
-  const value = object(response.range, ['rangeVersion', 'playerId', 'from', 'remaining', 'normalRemaining', 'normal', 'full', 'revision']);
+  return { ...response, range: decodeRangeValue(response.range) } as MovementRangeResponse;
+}
+
+function decodeRangeValue(input: unknown): MovementRange {
+  const value = object(input, ['rangeVersion', 'playerId', 'from', 'remaining', 'normalRemaining', 'normal', 'full', 'revision']);
   if (value.rangeVersion !== 2) throw Error('Invalid movement range');
   const from = point(value.from), remaining = integer(value.remaining, 20);
   const normalRemaining = integer(value.normalRemaining, remaining);
@@ -59,14 +63,15 @@ export function decodeMovementRange(json: string): MovementRangeResponse {
   const normal = destinations(value.normal, normalRemaining), full = destinations(value.full, remaining);
   const fullKeys = new Set(full.map(square => `${square.x},${square.y}`));
   if (normal.some(square => !fullKeys.has(`${square.x},${square.y}`))) throw Error('Normal range outside full range');
-  return { ...response, range: { rangeVersion: 2, playerId: playerId(value.playerId), from, remaining,
-    normalRemaining, normal, full, revision: integer(value.revision, 8192) } } as MovementRangeResponse;
+  return { rangeVersion: 2, playerId: playerId(value.playerId), from, remaining,
+    normalRemaining, normal, full, revision: integer(value.revision, 8192) };
 }
 
 export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const response = envelope(json, 'movementPreview', 'plan');
   const hasDice = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockDice');
-  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : [])]);
+  const hasRange = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'range');
+  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : [])]);
   if (value.planVersion !== 1 || !['move', 'blitz', 'foul'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
@@ -85,6 +90,10 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
     if (cursor === route.steps.length) throw Error('Waypoint absent from movement path');
     cursor++;
   }
+  const range = hasRange ? decodeRangeValue(value.range) : undefined;
+  if (range && (range.playerId !== route.playerId || range.revision !== route.revision
+    || range.from.x !== end.x || range.from.y !== end.y || range.remaining !== route.remaining - route.steps.length))
+    throw Error('Invalid planned movement range');
   return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route,
-    ...(hasDice ? { blockDice: value.blockDice as number } : {}) } } as MovementPreviewResponse;
+    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(range ? { range } : {}) } } as MovementPreviewResponse;
 }

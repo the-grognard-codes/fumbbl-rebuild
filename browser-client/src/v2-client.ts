@@ -16,6 +16,7 @@ type ClientOptions = {
   makeSocket?: (url: string) => WebSocket; storage?: Storage;
   initialMatch?: { matchId: string; watch: boolean };
   browseOnly?: boolean;
+  purpose?: 'preparation' | 'play';
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -77,7 +78,8 @@ export class V2Client {
         const bearer = await this.options.getToken();
         if (this.socket !== socket) return;
         this.authenticationId = crypto.randomUUID();
-        socket.send(JSON.stringify({ version: 2, type: 'authenticate', requestId: this.authenticationId, bearer }));
+        socket.send(JSON.stringify({ version: 2, type: 'authenticate', requestId: this.authenticationId, bearer,
+          ...(this.options.purpose === 'preparation' ? { purpose: 'preparation' } : {}) }));
       } catch {
         if (this.socket === socket) {
           this.options.onChange({ type: 'error', code: 'AUTHENTICATION_TOKEN_UNAVAILABLE' });
@@ -124,13 +126,13 @@ export class V2Client {
     return request.requestId;
   }
 
-  open(matchId: string, watch: boolean) {
+  open(matchId: string, watch: boolean, concessionOnly = false) {
     if (!uuid.test(matchId)) throw Error('Enter a valid match ID.');
     for (const [id, request] of this.requests)
       if (request.type === 'preparedMatch' && request.operation === 'load') this.requests.delete(id);
     this.selection = { matchId, watch }; this.state = null;
     this.preparationMatchId = null;
-    return this.request(watch ? 'watch' : 'setup', watch ? { matchId } : { matchId, operation: 'load' });
+    return this.request(watch ? 'watch' : 'setup', watch ? { matchId } : { matchId, operation: concessionOnly ? 'concessionStatus' : 'load' });
   }
 
   restorePreparation(matchId: string) {
@@ -253,8 +255,8 @@ export class V2Client {
         const plan = decoded.plan;
         if (plan.kind !== request.kind || plan.targetPlayerId !== request.targetPlayerId
           || plan.route.actor !== this.state?.callerRole || !Array.isArray(request.waypoints)
-          || request.waypoints.length && (plan.waypoints.length !== request.waypoints.length
-            || plan.waypoints.some((point, index) => point.x !== request.waypoints[index]?.x || point.y !== request.waypoints[index]?.y)))
+            || (plan.kind === 'move' ? plan.waypoints.length !== request.waypoints.length : plan.waypoints.length < request.waypoints.length)
+            || request.waypoints.some((point: { x: number; y: number }, index: number) => point.x !== plan.waypoints[index]?.x || point.y !== plan.waypoints[index]?.y))
           throw Error('Foreign movement plan');
         if (this.state?.revision === plan.route.revision) {
           const player = this.state.players.find(player => player.id === plan.route.playerId);

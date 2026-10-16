@@ -221,7 +221,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
   for (const action of actions) {
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target && !['push', 'followUp', 'move', 'jump', 'kickoff'].includes(action.kind)
+    else if (action.target && 'x' in action.target && !['push', 'followUp', 'hitAndRun', 'move', 'jump', 'kickoff'].includes(action.kind)
       && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
@@ -230,6 +230,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
+  const targetSource = view.players.find(player => player.id === pinnedAction?.sourcePlayerId);
+  const showTargetLine = !!pinnedAction && ['block', 'blitzTarget', 'foul', 'pass', 'handOff', 'liftTeamMate',
+    'throwTeamMate', 'kickMate', 'kickMateTo', 'gaze', 'bomb', 'punt'].includes(pinnedAction.kind);
   const kickTarget = pinnedAction?.kind === 'kickoff' && pinnedTarget?.x != null && pinnedTarget.y != null
     ? { x: pinnedTarget.x, y: pinnedTarget.y }
     : view.phase === 'READY_FOR_KICKOFF' && (hover ?? cursor) && actions.some(action => action.kind === 'kickoff'
@@ -378,7 +381,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
-          {activePlayer?.x != null && activePlayer.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: activePlayer.x, y: activePlayer.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
+          {showTargetLine && targetSource?.x != null && targetSource.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: targetSource.x, y: targetSource.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
         </svg>
         {kickTarget ? <BallMarker ball={kickTarget} state={{ version: 1, inPlay: true, moving: true, carrierPlayerId: null }} camera={camera}/>
           : (kickPreview?.deviation ?? view.ball) && <BallMarker ball={(kickPreview?.deviation ?? view.ball)!} allowOffPitch={!!view.kickPreview}
@@ -406,7 +409,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         {pushChoices.map(choice => {
           const p = camera.project(centerOf({ x: choice.x, y: choice.y })), from = camera.project(centerOf({ x: choice.fromX, y: choice.fromY }));
           if (!p || !from) return null;
-          return <button key={choice.action.id} type="button" className="live-push-choice" aria-label={choice.action.label} title={choice.action.label}
+          return <button key={choice.action.id} type="button" className={`live-push-choice${choice.action.kind === 'hitAndRun' ? ' live-hit-and-run-choice' : ''}`} aria-label={choice.action.label} title={choice.action.label}
+            data-x={choice.x} data-y={choice.y}
             style={{ left: p.x - p.pixelsPerSquare / 2, top: p.y - p.pixelsPerSquare / 2, width: p.pixelsPerSquare, height: p.pixelsPerSquare }}
             onClick={event => { event.stopPropagation(); onPushChoice?.(choice.action.id); }}>
             <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(p.y - from.y, p.x - from.x) * 180 / Math.PI}deg)` }}><path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/></svg>
