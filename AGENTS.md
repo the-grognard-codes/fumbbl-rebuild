@@ -44,6 +44,10 @@ Shared versions managed via root `pom.xml` currently include `classgraph`, JUnit
 
 ## Agent skills
 
+### Feature specs and tickets
+
+When drafting new feature specs or implementation tickets, including with `/to-spec` or `/to-tickets`, use [the feature template](docs/agents/feature-template.md). Replace placeholders with concrete requirements and tailor constraints and validation to the feature and repository.
+
 ### Issue tracker
 
 Issues and specs are tracked as GitHub issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 3,
+  "commit": "1137b0c4cd625a4a7f207337d87fd734d535b59e",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/projected-pitch-ui.mjs",
+      "durationMs": 229540.8121,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-checks-ui.mjs",
+      "durationMs": 72570.62539999999,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/coach-hud-ui.mjs",
+      "durationMs": 20376.674300000013,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/drive-phase-tracker-ui.mjs",
+      "durationMs": 35564.48300000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/game-menu-events-ui.mjs",
+      "durationMs": 27012.612199999974,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/round-four-ui.mjs",
+      "durationMs": 12463.709900000016,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

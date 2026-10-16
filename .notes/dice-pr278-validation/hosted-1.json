@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "family": "hosted",
+  "shard": 1,
+  "commit": "37a014e78e442ee13cd43b0a8389d4517cb7ebb8",
+  "passed": true,
+  "suites": [
+    {
+      "id": "site/test/account-menu-browser.test.mjs",
+      "durationMs": 20781.4839,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/play-browser.test.mjs",
+      "durationMs": 67597.511,
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/current-games-browser.test.mjs",
+      "durationMs": 5867.915699999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/spectate-browser.test.mjs",
+      "durationMs": 5003.880099999995,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/updates-browser.test.mjs",
+      "durationMs": 4623.281799999997,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/builder-browser.test.mjs",
+      "durationMs": 5852.30230000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/m5d-blitz-browser.test.mjs",
+      "durationMs": 16280.636200000008,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/m5e-result-browser.test.mjs",
+      "durationMs": 30006.265100000004,
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "site/test/m5f-keyboard-browser.test.mjs",
+      "durationMs": 21590.0668,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/client-path-ui.mjs",
+      "durationMs": 9318.324499999988,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

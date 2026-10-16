@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 2,
+  "commit": "1137b0c4cd625a4a7f207337d87fd734d535b59e",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/reroll-accounting-ui.mjs",
+      "durationMs": 217854.52289999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/pass-ranges-ui.mjs",
+      "durationMs": 103519.9766,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/setup-drag-ui.mjs",
+      "durationMs": 31889.857799999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/push-artwork-ui.mjs",
+      "durationMs": 35386.97200000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/follow-up-ui.mjs",
+      "durationMs": 21420.81950000004,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/dice-ui.mjs",
+      "durationMs": 36119.99119999999,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/ball-ui.mjs",
+      "durationMs": 83626.5026,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/ball-zoom-ui.mjs",
+      "durationMs": 5240.088899999973,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}
