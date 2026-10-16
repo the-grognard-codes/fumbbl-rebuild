@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { appendMatchLogLines, matchLogLines } from '../src/match-log.ts';
-import { blockFace, blockFaceLabel, reportedDice } from '../src/dice-presentation.ts';
+import { blockFace, reportedDice } from '../src/dice-presentation.ts';
 import { decodeLogBlock, decodeLogOutcomes } from '../src/log-presentation.ts';
 import { decodeTranscript } from '../src/transcript-protocol.ts';
-import { matchTeamName } from '../src/match-team-name.ts';
 import type { LogBlock, LogOutcome } from '../src/log-presentation.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
 
@@ -27,16 +26,17 @@ test('all native block faces and selected dice have images, names and the frozen
     if (input.name.includes('uphill')) assert.equal(context.chooser, input.name.startsWith('home') ? 'away' : 'home');
     for (const debug of [false, true]) for (const movement of [false, true]) for (const rollModifiers of [false, true]) {
       const lines = matchLogLines(records, { debug, movement, rollModifiers });
-      const dice = lines.filter(line => line.dice);
+      const dice = lines.filter(line => line.dice?.kinds.every(kind => kind === 'block'));
       const rolls = native.filter(report => ['blockRoll', 'blockChoice', 'blockReRoll'].includes(String(report.reportId)));
-      assert.equal(dice.length, rolls.length, input.name);
-      for (const [index, report] of rolls.entries()) {
-        assert.deepEqual(dice[index].dice!.faces, (report.blockRoll as number[]).map(value => blockFace(value)));
-        for (const face of dice[index].dice!.faces) assert.ok(dice[index].text.includes(blockFaceLabel(face)!), input.name);
+      assert.equal(dice.length, rolls.filter(report => report.reportId !== 'blockChoice').length, input.name);
+      for (const report of rolls) {
+        const faces = (report.blockRoll as number[]).map(value => blockFace(value));
+        assert.ok(dice.some(line => JSON.stringify(line.dice!.faces) === JSON.stringify(faces)), input.name);
       }
       const selected = dice.find(line => line.dice?.selected !== null)!;
       assert.equal(selected.dice!.selected, choice.diceIndex);
-      assert.ok(selected.text.startsWith(matchTeamName(records.at(-1)!.state, context.chooser!)), input.name);
+      assert.equal(selected.dice!.chooser, context.chooser);
+      assert.ok(selected.text.startsWith('Block dice'), input.name);
       assert.equal(lines.some(line => line.debug), debug);
       assert.ok(lines.every(line => !/block-die:|block-reroll:|homeTeam:|awayTeam:/.test(line.text)));
     }
@@ -74,15 +74,16 @@ test('native skill decisions and each pushed, standing, knocked down or Wrestle-
 test('native original blocks, Pro/Brawler sources and new dice preserve chronology through incremental replay and legacy omission', () => {
   for (const family of ['rerolls', 'pro-test']) for (const input of read(family)) {
     const records = decode(input), lines = matchLogLines(records), text = lines.map(line => line.text);
-    const initial = text.findIndex(line => line.includes('Both down, Skull'));
+    const initial = lines.findIndex(line => line.dice?.kinds.every(kind => kind === 'block')
+      && line.dice.faces.includes('BOTH DOWN') && line.dice.faces.includes('SKULL'));
     const source = text.findIndex(line => /used (Pro|Brawler) reroll/.test(line));
-    const retry = text.findIndex(line => line.includes('rerolls block dice'));
-    const selected = text.findIndex(line => line.includes('chooses die'));
+    const retry = text.findIndex(line => line.includes('Block dice rerolled'));
+    const selected = lines.findIndex(line => line.dice && line.dice.selected !== null);
     assert.ok(initial >= 0 && source > initial && retry > source && selected > retry, input.name);
     if (family === 'pro-test') {
-      const failed = text.findIndex(line => line.includes('tests Pro: 1'));
+      const failed = text.findIndex(line => line.includes('tests Pro: 1') && line.includes('failure'));
       const team = text.findIndex(line => line.includes('used Team reroll.'));
-      const testRetry = text.findIndex(line => line.includes('rerolls Pro: 6'));
+      const testRetry = text.findIndex(line => line.includes('rerolls Pro: 6') && line.includes('success'));
       assert.ok(failed > source && team > failed && testRetry > team && retry > testRetry);
     }
     const incremental: typeof lines = []; for (const record of records) appendMatchLogLines(incremental, record);
@@ -92,7 +93,7 @@ test('native original blocks, Pro/Brawler sources and new dice preserve chronolo
       delete command.logOutcomes;
       for (const report of (command.reportList as { reports: Record<string, unknown>[] }).reports) delete report.logBlock;
     }
-    assert.ok(matchLogLines(decode(legacy)).some(line => line.dice?.selected !== null && line.text.startsWith('Coach chooses')));
+    assert.ok(matchLogLines(decode(legacy)).some(line => line.dice && line.dice.selected !== null));
     assert.equal(reportedDice({ reportId: 'blockReRoll', blockRoll: [3], reRollSource: 'Pro' })?.faces[0], 'PUSHBACK');
   }
 });

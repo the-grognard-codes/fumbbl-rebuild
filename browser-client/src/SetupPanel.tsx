@@ -850,7 +850,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       </div><LiveDugouts players={view.players} homeName={view.homeTeamName} awayName={view.awayTeamName} onSelect={selectPlayer} onFocusPlayer={focusPlayer} onBlurPlayer={blurPlayer}
         draggableIds={draggableIds} draggingPlayerId={draggingPlayerId} onStartDrag={setDraggingPlayerId} onEndDrag={() => setDraggingPlayerId('')} reserveDropIds={reserveDropIds} onDropReserve={dropReserve}/><aside className="match-side" aria-label="Match decisions and players">
         {matchControls?.error && <p role="alert">{matchControls.error}</p>}
-        <MatchHistory overlay stacked matchId={view.matchId} records={logRecords.filter(record => record.revision <= pitchView.revision)} logLoading={logLoading} logUnavailable={logUnavailable}
+        <MatchHistory overlay stacked matchId={view.matchId} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
           homeTeamName={view.homeTeamName} awayTeamName={view.awayTeamName}
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}

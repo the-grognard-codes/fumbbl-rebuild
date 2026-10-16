@@ -4,10 +4,11 @@ import { matchTeamName } from './match-team-name.ts';
 import { defaultMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { LogActors, LogBlock, LogOutcome, LogPresentation, LogRoll } from './log-presentation.ts';
-import { blockFace, blockFaceLabel, reportedDice } from './dice-presentation.ts';
+import { reportedDice } from './dice-presentation.ts';
+import type { DieKind } from './die-geometry.ts';
 
 export type MatchLogLine = { key: string; revision: number; at: number; text: string; debug?: string;
-  dice?: { faces: string[]; selected: number | null } };
+  dice?: { faces: string[]; kinds: DieKind[]; selected: number | null; uphill?: boolean; chooser?: 'home' | 'away'; inline?: boolean } };
 
 const readable = (value: string) => value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase();
 const playerName = (id: unknown, players: SetupPlayer[]) =>
@@ -38,23 +39,26 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
   const teamRole = teamId === 'home' || teamId === 'away' ? teamId : typeof teamId === 'string'
     ? players.find(player => player.id.startsWith(`${teamId}:`))?.role : undefined;
   const team = teamRole ? matchTeamName(state, teamRole) : '';
+  if (id === 'fanFactor') {
+    const fans = Number(report.dedicatedFans ?? 0), roll = Number(report.dedicatedFansRoll ?? 0);
+    const total = Number(report.dedicatedFansResult ?? fans + roll);
+    return `${team || 'Team'}${teamRole ? ` (${teamRole === 'home' ? 'Home' : 'Away'})` : ''}: Fan factor · dedicated fans ${fans} + roll ${roll} · Fan factor is ${total}.`;
+  }
+  if (id === 'weather') {
+    const weatherCode = String(report.weather ?? report.weatherType ?? 'Weather');
+    const weatherNames: Record<string, string> = { NICE: 'Nice Weather', NICE_WEATHER: 'Nice Weather', VERY_SUNNY: 'Very Sunny', SWELTERING_HEAT: 'Sweltering Heat',
+      POURING_RAIN: 'Pouring Rain', BLIZZARD: 'Blizzard' };
+    const weather = weatherNames[weatherCode] ?? named(weatherCode).replace(/^./, letter => letter.toUpperCase());
+    const dice = Array.isArray(report.weatherRoll) ? report.weatherRoll : [];
+    const total = dice.length && dice.every(value => typeof value === 'number') ? ` = ${dice.reduce((sum, value) => sum + Number(value), 0)}` : '';
+    return `Weather: ${weather}${dice.length ? ` · [${dice.join(' + ')}${total}]` : ''}.`;
+  }
+  if (['pettyCash', 'freePettyCash'].includes(id)) return `Petty cash · ${team || 'Team'}: ${valueText(report.gold ?? report.amount ?? report.pettyCash)}gp.`;
   const title = `${readable(id)}${team ? ` · ${team}` : ''}${subject ? ` · ${subject}` : ''}${defender ? ` → ${defender}` : ''}`;
   const block = report.logBlock as LogBlock | undefined;
   const attacker = playerName(block?.attackerId ?? presentation?.action?.playerId ?? report.playerId, players) || 'Player';
   const target = playerName(block?.defenderId ?? report.defenderId, players) || 'opponent';
-  const faces = Array.isArray(report.blockRoll) ? report.blockRoll.map(value => typeof value === 'number'
-    ? blockFaceLabel(blockFace(value) ?? '') ?? 'Unknown face' : 'Unknown face') : [];
   if (id === 'block') return `${attacker} blocks ${target}.`;
-  if (id === 'blockRoll' && faces.length) return `${attacker} block dice against ${target}: ${faces.join(', ')}.`;
-  if (id === 'blockChoice' && faces.length) {
-    const chooser = block?.chooser ? matchTeamName(state, block.chooser) : team || 'Coach';
-    const selected = Number(report.diceIndex), nativeFace = blockFace(Number((report.blockRoll as unknown[])[selected]));
-    const result = typeof report.blockResult === 'string' && report.blockResult !== nativeFace
-      ? ` · result ${blockFaceLabel(report.blockResult) ?? sourceName(report.blockResult)}` : '';
-    return `${chooser} chooses die ${selected + 1} (${faces[selected] ?? 'Unknown face'}): ${attacker} against ${target} · dice ${faces.join(', ')}${result}.`;
-  }
-  if (id === 'blockReRoll' && faces.length)
-    return `${attacker} rerolls block dice against ${target}: ${faces.join(', ')} · source ${sourceName(report.reRollSource)}.`;
   if (id === 'pushback') {
     const pushed = playerName(report.defenderId, players) || 'Player';
     if (report.pushbackMode === 'grab') return `${actors?.actorId ? playerName(actors.actorId, players) : attacker} uses Grab to push ${pushed}.`;
@@ -74,7 +78,7 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
   }
   if (id === 'playerAction') {
     const actions: Record<string, string> = { blitzMove: 'blitz', standUpBlitz: 'blitz', passMove: 'pass', handOverMove: 'hand-over',
-      foulMove: 'foul', throwTeamMateMove: 'throw team-mate', kickTeamMateMove: 'kick team-mate', gazeMove: 'hypnotic gaze', puntMove: 'punt',
+      foulMove: 'foul action', throwTeamMateMove: 'throw team-mate', kickTeamMateMove: 'kick team-mate', gazeMove: 'hypnotic gaze', puntMove: 'punt',
       secureTheBall: 'Secure the Ball action' };
     const action = typeof report.playerAction === 'string' ? actions[report.playerAction] ?? readable(report.playerAction) : 'player action';
     return `${playerName(report.actingPlayerId, players) || 'Player'} declares a ${action}.`;
@@ -89,8 +93,7 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
   }
   if (id === 'briberyAndCorruptionReRoll')
     return `${title}: ${named(report.briberyAncCorruptionAction)}`;
-  if (id === 'referee')
-    return `${title}: ${report.foulingPlayerBanned ? 'fouling player sent off' : 'fouling player remains'}${report.underScrutiny ? ' · under scrutiny' : ''}`;
+  if (id === 'referee') return `${report.foulingPlayerBanned === true ? 'Referee has spotted the foul!' : 'Referee did not spot the foul!'}${report.underScrutiny ? ' The referee was under scrutiny.' : ''}`;
   if (id === 'turnEnd') return report.playerIdTouchdown ? `${playerName(report.playerIdTouchdown, players)} scores a touchdown.` : 'Turn ends.';
   if (id === 'handOver') return `${presentation?.action?.playerId ? playerName(presentation.action.playerId, players) : 'Player'} hands the ball to ${playerName(report.catcherId, players)}.`;
   if (id === 'animalSavagery') return report.defenderId
@@ -104,17 +107,6 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
       report.playerState ? `state ${named(report.playerState)}` : null,
       preferences.rollModifiers && Array.isArray(report.casualtyModifiers) && report.casualtyModifiers.length ? `modifiers ${valueText(report.casualtyModifiers)}` : null];
     return `${title}: ${parts.filter(Boolean).join(' · ')}`;
-  }
-  if (id === 'injury') {
-    const defenderPlayer = players.find(player => player.id === report.defenderId);
-    const parts = [Array.isArray(report.armorRoll) ? `armor ${twoDiceTotal(report.armorRoll)}${defenderPlayer?.av ? ` vs base AV ${defenderPlayer.av}+` : ''} · ${report.armorBroken ? 'broken' : 'held'}` : null,
-      preferences.rollModifiers && Array.isArray(report.armorModifiers) && report.armorModifiers.length ? `armor modifiers ${valueText(report.armorModifiers)}` : null,
-      Array.isArray(report.injuryRoll) ? `injury ${twoDiceTotal(report.injuryRoll)}${report.injury ? ` · ${named(report.injury)}` : ''}` : null,
-      preferences.rollModifiers && Array.isArray(report.injuryModifiers) && report.injuryModifiers.length ? `injury modifiers ${valueText(report.injuryModifiers)}` : null,
-      Array.isArray(report.casualtyRoll) ? `casualty ${casualtyDice(report.casualtyRoll)}${report.seriousInjury ? ` · ${named(report.seriousInjury)}` : ''}` : null,
-      preferences.rollModifiers && Array.isArray(report.casualtyModifiers) && report.casualtyModifiers.length ? `casualty modifiers ${valueText(report.casualtyModifiers)}` : null,
-      Array.isArray(report.casualtyRollDecay) ? `decay casualty ${casualtyDice(report.casualtyRollDecay)}${report.seriousInjuryDecay ? ` · ${named(report.seriousInjuryDecay)}` : ''}` : null];
-    return `${title}: ${parts.filter(Boolean).join(' · ') || named(report.injuryType)}`;
   }
   if (typeof report.roll === 'number' && (typeof report.minimumRoll === 'number' || report.logRoll)) {
     const player = players.find(candidate => candidate.id === report.playerId);
@@ -153,6 +145,41 @@ function reportLines(report: Record<string, unknown>, state: SetupState, prefere
   if (report.reportId === 'receiveChoice' || report.reportId === 'startHalf') return [];
   if (report.reportId === 'skillUse' && report.playerId == null && report.used !== true) return [];
   const players = state.players;
+  if (report.reportId === 'argueTheCall' && typeof report.roll === 'number') {
+    const player = playerName(report.playerId, players) || 'Player';
+    const playerRole = players.find(candidate => candidate.id === report.playerId)?.role;
+    const coach = playerRole ? matchTeamName(state, playerRole) : 'Coach';
+    const modifier = (typeof report.biasedRefs === 'number' ? report.biasedRefs : 0) + (report.friendsWithRef === true ? 1 : 0);
+    const target = 6 - modifier;
+    return [`${coach}: Argues the call for ${player}.`,
+      `Argue the call ${report.roll} vs ${target}+ · ${report.successful ? 'success' : 'failure'} · ${player} ${report.staysOnPitch ? 'stays on pitch' : 'is sent off'}!`];
+  }
+  if (report.reportId === 'injury') {
+    const target = players.find(player => player.id === report.defenderId)?.name ?? 'Player';
+    const av = players.find(player => player.id === report.defenderId)?.av;
+    const skippedParts = String(report.skipInjuryParts ?? 'NONE');
+    const skipArmor = ['ARMOUR', 'ARMOUR_AND_CAS', 'ARMOUR_AND_INJURY', 'EVERYTHING_BUT_CAS'].includes(skippedParts);
+    const skipInjury = ['ARMOUR_AND_INJURY', 'EVERYTHING_BUT_CAS', 'INJURY'].includes(skippedParts);
+    const skipCasualty = ['ARMOUR_AND_CAS', 'ARMOUR_AND_INJURY', 'INJURY', 'CAS'].includes(skippedParts);
+    const foul = /foul/i.test(`${presentation?.action?.kind ?? ''} ${presentation?.action?.label ?? ''} ${report.injuryType ?? ''}`);
+    const lines: string[] = [];
+    if (!skipArmor && Array.isArray(report.armorRoll)) {
+      const modifier = preferences.rollModifiers && Array.isArray(report.armorModifiers) && report.armorModifiers.length
+        ? ` · armor modifiers ${valueText(report.armorModifiers)}` : '';
+      lines.push(`${foul ? 'Foul' : 'Armor'} · ${target} - armor roll ${twoDiceTotal(report.armorRoll)}${av ? ` vs base AV ${av}+` : ''} · armor ${report.armorBroken ? 'broken' : 'held'}!${modifier}`);
+    }
+    if (!skipInjury && Array.isArray(report.injuryRoll)) {
+      const mods = preferences.rollModifiers && Array.isArray(report.injuryModifiers) && report.injuryModifiers.length
+        ? ` · ${valueText(report.injuryModifiers)}` : '';
+      const outcome = report.injury ? ` · ${named(report.injury)}` : '';
+      lines.push(`Injury · ${target} - injury roll ${twoDiceTotal(report.injuryRoll)}${mods}${outcome}!`);
+    }
+    if (!skipCasualty && Array.isArray(report.casualtyRoll))
+      lines.push(`Casualty · ${target} - casualty roll ${casualtyDice(report.casualtyRoll)}${report.seriousInjury ? ` = ${named(report.seriousInjury)}` : ''}!`);
+    if (!skipCasualty && Array.isArray(report.casualtyRollDecay))
+      lines.push(`Casualty · ${target} - decay casualty roll ${casualtyDice(report.casualtyRollDecay)}${report.seriousInjuryDecay ? ` = ${named(report.seriousInjuryDecay)}` : ''}!`);
+    return lines;
+  }
   if (report.reportId === 'reRoll') {
     const player = playerName(report.playerId, players) || 'Player';
     const source = sourceName(report.reRollSource).replace(/\s+re\s*roll$/i, '');
@@ -197,6 +224,7 @@ function decisionLine(record: TranscriptRecord, presentation?: LogPresentation):
     const reports = record.native.flatMap(sync => (sync.reportList as { reports?: Record<string, unknown>[] } | undefined)?.reports ?? []);
     if (reports.some(report => report.reportId === 'playerAction') || action.kind === 'secureBall'
       || /reroll/i.test(action.kind) && reports.some(report => report.reportId === 'reRoll' || report.reportId === 'mascotUsed')
+      || reports.some(report => report.reportId === 'argueTheCall')
       || reports.some(report => report.reportId === 'handOver') || action.kind === 'blockDie' && reports.some(report => report.reportId === 'blockChoice')
       || action.kind === 'block' && reports.some(report => report.reportId === 'block')) return null;
     if (action.kind === 'skill') return `${action.playerId ? playerName(action.playerId, record.state.players) : team} chooses to ${action.label.replace(/^./, letter => letter.toLowerCase())}.`;
@@ -206,7 +234,7 @@ function decisionLine(record: TranscriptRecord, presentation?: LogPresentation):
     ? `${team} chooses to ${decision.optionId}.` : null;
   if (operation === 'place' || operation === 'route' || operation === 'movement') return null;
   if (operation === 'confirm') return `${team} confirms setup.`;
-  if (operation === 'concede') return `${team} conceded. ${record.actor === 'home' ? matchTeamName(record.state, 'away') : matchTeamName(record.state, 'home')} wins ${record.state.homeScore}–${record.state.awayScore}`;
+  if (operation === 'concede') return `${team} conceded! ${record.actor === 'home' ? matchTeamName(record.state, 'away') : matchTeamName(record.state, 'home')} wins ${record.state.homeScore}-${record.state.awayScore}.`;
   return null;
 }
 
@@ -230,11 +258,48 @@ export function appendMatchLogLines(lines: MatchLogLine[], record: TranscriptRec
   if (decision) add(decision, metadata());
   for (const sync of record.native) {
     const reports = (sync.reportList as { reports?: unknown[] } | undefined)?.reports;
+    const seenReports = new Set<string>();
     if (Array.isArray(reports)) for (const value of reports) if (value && typeof value === 'object' && !Array.isArray(value)) {
       const report = value as Record<string, unknown>;
+      const signature = JSON.stringify(report);
+      if (seenReports.has(signature)) continue;
+      seenReports.add(signature);
       if (report.reportId === 'block' && record.native.some(command => (command.reportList as { reports?: Record<string, unknown>[] } | undefined)?.reports?.some(item => item.reportId === 'blockReRoll'))) continue;
-      const moment = ['blockRoll', 'blockChoice', 'blockReRoll'].includes(String(report.reportId)) ? reportedDice(report) : null;
-      for (const text of reportLines(report, record.state, preferences, presentation)) add(text, metadata(report, sync.commandNr), moment ?? undefined);
+      const moment = reportedDice(report, record.state.players);
+      if (report.reportId === 'blockRoll' && reports.some(item => item && typeof item === 'object'
+        && (item as Record<string, unknown>).reportId === 'blockChoice')) continue;
+      if (report.reportId === 'blockChoice') {
+        const blockMoment = reportedDice(report, record.state.players);
+        const chosen = blockMoment ? { faces: blockMoment.faces,
+          kinds: blockMoment.rolls?.map(roll => roll.kind ?? 'block') ?? blockMoment.faces.map(() => 'block'),
+          selected: blockMoment.selected, uphill: blockMoment.uphill, chooser: blockMoment.chooser } : undefined;
+        const hasRollBesideChoice = reports.some(item => item && typeof item === 'object'
+          && (item as Record<string, unknown>).reportId === 'blockRoll');
+        const latestBlockRoll = [...lines].reverse().find(line => line.dice?.kinds.every(kind => kind === 'block'));
+        const prior = !hasRollBesideChoice && chosen && latestBlockRoll?.dice?.selected === null
+          && JSON.stringify(latestBlockRoll.dice.faces) === JSON.stringify(chosen.faces) ? latestBlockRoll : undefined;
+        if (prior && chosen) prior.dice = chosen;
+        else add('Block dice ·', metadata(report, sync.commandNr), chosen);
+        continue;
+      }
+      if (report.reportId === 'blockRoll' || report.reportId === 'blockReRoll') {
+        const blockMoment = moment;
+        add(report.reportId === 'blockReRoll' ? `Block dice rerolled · source ${sourceName(report.reRollSource)}.` : 'Block dice ·', metadata(report, sync.commandNr), blockMoment ? {
+          faces: blockMoment.faces, kinds: blockMoment.rolls?.map(roll => roll.kind ?? 'block') ?? blockMoment.faces.map(() => 'block'),
+          selected: blockMoment.selected, uphill: blockMoment.uphill, chooser: blockMoment.chooser } : undefined);
+        continue;
+      }
+      for (const text of reportLines(report, record.state, preferences, presentation)) {
+        const lineRolls = moment?.rolls?.filter(roll => text.startsWith(`${roll.label} ·`)
+          || roll.label.toLowerCase().startsWith('armor') && /^(Armor|Foul) ·/.test(text)
+          || roll.label.toLowerCase().startsWith('injury') && text.startsWith('Injury ·')
+          || roll.label.toLowerCase().startsWith('casualty') && text.startsWith('Casualty ·'));
+        const lineMoment = moment && lineRolls?.length ? { ...moment, faces: lineRolls.map(roll => roll.face), rolls: lineRolls } : moment;
+        add(text, metadata(report, sync.commandNr), lineMoment ? {
+          faces: lineMoment.faces, kinds: lineMoment.rolls?.map(roll => roll.kind ?? 'd6') ?? lineMoment.faces.map(() => 'block'),
+          selected: lineMoment.selected, uphill: lineMoment.uphill, chooser: lineMoment.chooser, inline: !!lineMoment.rolls?.length
+        } : undefined);
+      }
     }
     const outcomes = (sync.logOutcomes as { events: LogOutcome[] } | undefined)?.events ?? [];
     for (const outcome of outcomes) {

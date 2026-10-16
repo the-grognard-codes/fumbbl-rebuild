@@ -64,7 +64,7 @@
 .play-runtime .coach-match.hosted-match .match-history-log { right: 12px; }
 .play-runtime .coach-match.hosted-match .match-event-log, .play-runtime .coach-match.hosted-match .match-chat { display: flex; flex: 1; min-height: 0; flex-direction: column; }
 .play-runtime .coach-match.hosted-match .match-history h3 { margin: 0; font: 700 11px MUTP,sans-serif; letter-spacing: 1px; color: #a4bfd5; }
-.play-runtime .coach-match.hosted-match .match-event-scroll, .play-runtime .coach-match.hosted-match .match-chat-scroll { flex: 1; min-height: 0; max-height: none; color: #a4bfd5; font: 14px/1.5 system-ui,sans-serif; }
+.play-runtime .coach-match.hosted-match .match-event-scroll, .play-runtime .coach-match.hosted-match .match-chat-scroll { flex: 1; min-height: 0; max-height: none; color: #a4bfd5; font: 14px/1.5 MUTP,sans-serif; }
 .play-runtime .coach-match.hosted-match .match-event-scroll p, .play-runtime .coach-match.hosted-match .match-chat-scroll p { margin: 3px 0; font-size: inherit; line-height: inherit; }
 .play-runtime .coach-match.hosted-match .match-log-count, .play-runtime .coach-match.hosted-match .match-chat-count { margin: 2px 0; font: 10px system-ui,sans-serif; color: #a4bfd5; }
 .play-runtime .coach-match.hosted-match .match-chat-scroll strong { color: #49dfff; font-weight: 600; }
@@ -77,9 +77,9 @@
 .play-runtime .coach-match.hosted-match .match-event-log header, .play-runtime .coach-match.hosted-match .match-chat header { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
 .play-runtime .coach-match.hosted-match .log-font-controls button { padding: 0 2px; margin: 0; border: 0; border-bottom: 1px solid transparent; box-shadow: none; background: none; color: #a4bfd5; font-family: MUTP,sans-serif; }
 .play-runtime .coach-match.hosted-match .log-font-controls button[aria-pressed=true] { color: #49e6ff; border-bottom-color: #49e6ff; }
-.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=small] { font-size: 12px; }
-.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=medium] { font-size: 16px; }
-.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=large] { font-size: 20px; }
+.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=small] { font-size: 10px; }
+.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=medium] { font-size: 12px; }
+.play-runtime .coach-match.hosted-match .log-font-controls [data-log-size=large] { font-size: 14px; }
 .play-runtime .coach-match.hosted-match .match-chat-compose { margin: 0; padding: 1px 3px; font: 10px MUTP,sans-serif; background: none; border: 0; box-shadow: none; }
 .play-runtime .coach-match.hosted-match .match-chat-hint { margin: 2px 0; color: #a4bfd5; font: 10px system-ui,sans-serif; }
 .play-runtime .coach-match.hosted-match .live-player-card-token { display: grid; place-items: center; width: 76px; height: 76px; color: #ffe17b; border: 1px solid #426c9b; }
