@@ -176,7 +176,7 @@ public final class CoreTurnActions {
             boolean blitzSpent = game.getTurnData().isBlitzUsed();
             if (menu || !blitzSpent)
                 result.add(new Action("blitz-" + player.getId(), "blitz", "Start blitz with " + player.getName(), role,
-                    new ClientCommandActingPlayer(player.getId(), prone ? PlayerAction.STAND_UP_BLITZ : PlayerAction.BLITZ_MOVE, false), player.getId(), blitzSpent));
+                    new ClientCommandActingPlayer(player.getId(), PlayerAction.BLITZ_MOVE, false), player.getId(), blitzSpent));
             boolean blockEligible = !prone && mode == TurnMode.REGULAR
                 && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction);
             boolean canBlock = blockEligible && UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at).length > 0;

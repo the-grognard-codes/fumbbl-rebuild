@@ -30,6 +30,34 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionConcessionTest {
+    @Test void recoverableLegacyRuntimesPersistAndRetryConcessionsForEitherCoach() {
+        SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
+        for (String role : new String[] { "home", "away" }) {
+            for (int runtime = 0; runtime < 3; runtime++) {
+                SetupSession session = new SetupSession(fixture.server, fixture.document, -3 - runtime, true, runtime > 0, runtime > 1);
+                JsonObject request = fixture.request("concede", "legacy-concede", session.spectatorView());
+                assertEquals("ACCEPTED", session.apply(role, request).getString("code", null));
+                new MatchJson().validateCompletion(session.completedMatch(), fixture.document);
+                SetupSession recovered = new SetupSession(fixture.server, fixture.document, session.recoveryArtifact());
+                assertTrue(recovered.apply(role, request).getBoolean("duplicate", false));
+                assertEquals(session.completedMatch(), recovered.completedMatch());
+            }
+        }
+    }
+    @Test void concessionAfterPassDeclarationPersistsEarlierPassingGuidance() {
+        SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
+        JsonObject ready = fixture.advanceToTurn();
+        String role = ready.getString("actor", null);
+        JsonObject pass = null;
+        for (JsonValue value : ready.get("actions").asArray())
+            if ("declarePass".equals(value.asObject().getString("kind", null))) { pass = value.asObject(); break; }
+        assertTrue(pass != null, ready.toString());
+        JsonObject active = fixture.session.apply(role, fixture.request("action", "declare-pass", ready)
+            .add("actionId", pass.getString("id", null))).get("state").asObject();
+        assertTrue(active.get("passing") != null, active.toString());
+        fixture.session.apply(role, fixture.request("concede", "concede-pass", active));
+        new MatchJson().validateCompletion(fixture.session.completedMatch(), fixture.document);
+    }
     @Test void homeCoachConcedesBeforeKickoffWithReplayableResult() { assertConcession("home"); }
     @Test void awayCoachConcedesBeforeKickoffWithReplayableResult() { assertConcession("away"); }
     @Test void homeCoachConcedesDuringOwnTurn() { assertConcession("home", "home"); }
@@ -98,6 +126,7 @@ class SetupSessionConcessionTest {
         int awayScore = response.get("state").asObject().getInt("awayScore", -1);
         assertTrue("home".equals(concedingRole) ? awayScore > homeScore : homeScore > awayScore);
         JsonObject result = JsonObject.readFrom(session.completedMatch().json());
+        new MatchJson().validateCompletion(session.completedMatch(), document);
         assertEquals("FULL_TIME", result.get("events").asArray().get(result.get("events").asArray().size() - 1).asObject().getString("kind", null));
         assertEquals("ACCEPTED", session.apply(concedingRole, request).getString("code", null));
         assertTrue(session.apply(concedingRole, request).getBoolean("duplicate", false));

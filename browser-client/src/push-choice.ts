@@ -18,3 +18,17 @@ export function pitchPushChoices(view: SetupState, actions: SetupAction[]): Push
   }
   return choices;
 }
+
+/** Hit and Run reuses the same projected square arrows, pointing from its acting player. */
+export function pitchHitAndRunChoices(view: SetupState, actions: SetupAction[]): PushChoice[] {
+  if (view.phase !== 'PLAY' || view.turnMode !== 'HIT_AND_RUN' || view.callerRole === 'spectator'
+    || view.actor !== view.callerRole) return [];
+  const player = view.players.find(player => player.id === view.activePlayerId && player.role === view.callerRole);
+  if (player?.x == null || player.y == null) return [];
+  return actions.flatMap(action => {
+    const target = action.target;
+    if (action.kind !== 'hitAndRun' || action.actor !== view.callerRole || !target || !('x' in target)
+      || Math.max(Math.abs(player.x! - target.x), Math.abs(player.y! - target.y)) !== 1) return [];
+    return [{ action, x: target.x, y: target.y, fromX: player.x!, fromY: player.y! }];
+  });
+}

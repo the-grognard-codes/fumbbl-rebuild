@@ -130,3 +130,7 @@ Branch: `feature/opposing-player-threat-tickets`. Implementation, focused checks
 Markings appear during the selecting coach's regular turn or Charge! kickoff event.
 The stripe skills are Prehensile Tail, Diving Tackle, Tentacles, and Shadowing; Tackle uses a hollow white triangle with a red T. Arm Bar is excluded.
 Use one shared diagonal pattern, neutral hatching when colors are off, and persistent controls enabled by default.
+
+## Miscellaneous match fixes - batch 6
+
+Twelve observations on branch `fix/misc-fix-rollup-6` are tracked individually in GitHub issues #279-#290. [Ticket scope](docs/specs/misc-fix-rollup-6.md) and [verification](docs/verification/misc-fix-rollup-6.md). Fixes and follow-ups are accepted; Get the Ref and computer-player apothecary support are verified without additional production changes. The owner requested commit, PR publication, merge after passing CI and local branch removal. Deployment is outside this request.

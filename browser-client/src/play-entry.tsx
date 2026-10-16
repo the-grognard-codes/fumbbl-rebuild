@@ -20,8 +20,6 @@ import { LobbyConcession } from './lobby-concession.ts';
 import type { ConcessionStatus } from './lobby-concession.ts';
 import './play-brand.css';
 
-const transferredMatchKey = 'moles.play.open-match';
-
 export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
   const root = createRoot(element);
   root.render(<Play options={options} />);
@@ -97,11 +95,6 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const logRecordsRef = useRef<TranscriptRecord[]>([]);
   const logRequestRef = useRef<string | null>(null);
   const logUnavailableRef = useRef(false);
-  const [transferredMatchId, setTransferredMatchId] = useState(() => {
-    if (location.pathname !== '/play') { sessionStorage.removeItem(transferredMatchKey); return ''; }
-    const saved = sessionStorage.getItem(transferredMatchKey);
-    return saved && matchIdPattern.test(saved) ? saved : '';
-  });
   const client = useRef<V2Client | null>(null);
   const activationWindow = useRef<{ requestId: string; matchId: string; popup: Window | null } | null>(null);
   useEffect(() => {
@@ -137,7 +130,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setLogLoading(true);
       } catch { setLogLoading(false); }
     };
-    const connection = new V2Client({ ...options, storage: sessionStorage,
+    const connection = new V2Client({ ...options, storage: sessionStorage, purpose: matchRoute || resultRoute ? 'play' : 'preparation',
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
       if (concessionRef.current?.receive(message)) requestCurrentMatches();
@@ -295,7 +288,6 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
               const url = matchUrl(launch.matchId, false);
               let opened = false;
               if (launch.popup && !launch.popup.closed) {
-                transferToMatch(launch.matchId, connection);
                 try { launch.popup.location.replace(url); opened = true; } catch { /* Fall back to the current tab. */ }
               }
               if (!opened) location.assign(url);
@@ -325,26 +317,14 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     else if ((matchRoute || resultRoute) && !matchIdPattern.test(matchId)) setError('Enter a valid match ID.');
     else if (matchRoute && connection.pending?.request.type === 'setup' && (connection.pending.request.matchId !== matchId || watchRoute))
       location.replace(matchUrl(connection.pending.request.matchId, false));
-    else if (!matchRoute && !resultRoute && transferredMatchId) setStatus('Match opened in another tab or window');
     else connection.connect();
     return () => { window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); concessionRef.current = null; };
   }, [options]);
   const connection = client.current;
   const connected = status === 'Connected';
-  const preparationTransferred = !!transferredMatchId && !matchRoute && !resultRoute;
   const busy = !connected || !!connection?.pending || concessionStatus.busy;
   const selected = teams.find(team => team.teamId === teamId && team.eligibility === 'CURRENT');
   const selectedComputer = teams.find(team => team.teamId === computerTeamId && team.eligibility === 'CURRENT');
-  function transferToMatch(id: string, connection: V2Client) {
-    try { sessionStorage.setItem(transferredMatchKey, id); } catch { /* The current page still disconnects. */ }
-    setTransferredMatchId(id);
-    connection.disconnect();
-  }
-  function reconnectPreparation() {
-    sessionStorage.removeItem(transferredMatchKey);
-    setTransferredMatchId('');
-    client.current?.connect();
-  }
   function run(action: () => void) { try { setError(''); action(); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Request could not be sent.'); } }
   function prepare(operation: string) {
     const fields = operation === 'create' ? { teamId, expectedDocumentVersion: selected?.documentVersion }
@@ -400,16 +380,14 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   }
   return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
     {!matchRoute && <div className={resultRoute ? 'match-page-top' : undefined}>
-      <h1>{resultRoute ? 'Match result' : 'Create a game'}</h1>{(resultRoute || !connected || preparationTransferred) && <p role="status">{preparationTransferred ? 'Match opened in another tab or window' : status}</p>}{error && <p role="alert">{error}</p>}
-      {!connected && !preparationTransferred && <button onClick={() => connection?.connect()}>Reconnect</button>}
+      <h1>{resultRoute ? 'Match result' : 'Create a game'}</h1>{(resultRoute || !connected) && <p role="status">{status}</p>}{error && <p role="alert">{error}</p>}
+      {!connected && <button onClick={() => connection?.connect()}>Reconnect</button>}
       {resultRoute && connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
-      {preparationTransferred && <button onClick={reconnectPreparation}>Reconnect preparation here</button>}
       {resultRoute && <a href="/play">Match preparation and games</a>}
     </div>}
     {matchRoute && !connection?.state && <section className="match-connect-panel" aria-label="Match connection"><h1>Match</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
       <button type="button" onClick={() => connection?.connect()} disabled={connected}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
     {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
-    {preparationTransferred && <section aria-label="Match opened elsewhere"><p>The match is open in another tab or window. Reconnecting preparation here will disconnect that match window.</p><a href={matchUrl(transferredMatchId, false)}>Continue the match in this tab</a></section>}
     {!matchRoute && !resultRoute && <>
 
     <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
@@ -444,7 +422,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         <button disabled={busy} onClick={() => startGame()}>Start game</button>
         <button disabled={busy} onClick={() => startGame(true)}>Start game in a new window</button>
       </>}
-      {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a> · <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener" onClick={() => transferToMatch(prepared.document.matchId, connection!)}>Open match in a new tab or window</a></p>}
+      {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a> · <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener">Open match in a new tab or window</a></p>}
     </section>
     <section className="current-games spectate-section" aria-label="Your current games"><div className="spectate-section-heading"><h2>Your current games</h2>
       <button disabled={!connected || currentMatchesLoading} onClick={() => run(() => {

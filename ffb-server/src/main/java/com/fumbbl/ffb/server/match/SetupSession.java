@@ -595,6 +595,9 @@ public final class SetupSession {
             movement = narrative.movement(revision, pendingRoute.playerId, pendingRoute.origin);
 			command = null;
 		} else if ("movement".equals(operation)) {
+			if (game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET && "move".equals(request.getString("kind", null))
+				&& request.getString("playerId", "").equals(game.getActingPlayer().getPlayerId()))
+				throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 			JsonObject plan = movementPreview(role, revision, request.getString("playerId", null),
 				request.getString("kind", null), nullableString(request, "targetPlayerId"), request.get("waypoints").asArray());
 			JsonObject preview = plan.get("route").asObject();
@@ -1009,6 +1012,11 @@ public final class SetupSession {
 		if (saved.get("blockPreview") == null) current.remove("blockPreview");
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
+		// Older browser checkpoints could stop at this native choice without projecting any actions.
+		if (savedActions.isEmpty() && state.getGame().getTurnMode() == TurnMode.HIT_AND_RUN
+			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN) {
+			current.set("actions", new JsonArray());
+		}
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
 			JsonObject previous = savedActions.get(index).asObject(), now = currentActions.get(index).asObject();
 			if (saved.get("movementForecast") == null && ("move".equals(previous.getString("kind", null))
@@ -1178,7 +1186,7 @@ public final class SetupSession {
 			&& !player.hasSkillProperty(NamedProperties.movesRandomly);
 		boolean active = game.getActingPlayer().getPlayer() == player;
 		TurnMode mode = game.getTurnMode();
-		boolean supported = mode == TurnMode.REGULAR || mode == TurnMode.BLITZ
+		boolean supported = mode == TurnMode.REGULAR || mode == TurnMode.BLITZ || mode == TurnMode.SELECT_BLITZ_TARGET && active
 			|| mode == TurnMode.KICKOFF_RETURN || mode == TurnMode.PASS_BLOCK;
 		boolean special = mode == TurnMode.KICKOFF_RETURN || mode == TurnMode.PASS_BLOCK;
 		boolean eligible = supported && (!activeTeam || (active
@@ -1207,8 +1215,10 @@ public final class SetupSession {
 			throw new MatchService.Failure("WRONG_PLAYER");
 		Player<?> active = game.getActingPlayer().getPlayer();
 		PlayerAction currentAction = game.getActingPlayer().getPlayerAction();
-		if (active == player && (!("move".equals(kind) && currentAction != null && currentAction.isMoving()
-			|| "blitz".equals(kind) && currentAction == PlayerAction.BLITZ_MOVE
+		boolean selectingBlitzTarget = active == player && game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET;
+		if (active == player && (!("move".equals(kind) && currentAction != null
+				&& (currentAction.isMoving() || currentAction.isStandingUp() || selectingBlitzTarget)
+			|| "blitz".equals(kind) && (currentAction == PlayerAction.BLITZ_MOVE || selectingBlitzTarget)
 			|| "foul".equals(kind) && currentAction == PlayerAction.FOUL_MOVE)
 			|| "blitz".equals(kind) && game.getActingPlayer().hasBlocked()
 			|| "foul".equals(kind) && game.getActingPlayer().hasFouled()))
@@ -1216,7 +1226,7 @@ public final class SetupSession {
 		List<Action> offered = actions();
 		if (active == player && offered.stream().noneMatch(action -> role.equals(action.role)
 			&& ("move".equals(action.kind) || "jump".equals(action.kind)
-				|| "blitz".equals(kind) && ("blitzTarget".equals(action.kind) || "block".equals(action.kind))
+				|| ("blitz".equals(kind) || selectingBlitzTarget) && ("blitzTarget".equals(action.kind) || "block".equals(action.kind))
 				|| "foul".equals(kind) && "foul".equals(action.kind))))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		if (active != player && offered.stream().noneMatch(action ->
@@ -1234,11 +1244,11 @@ public final class SetupSession {
 				throw new MatchService.Failure("INVALID_TARGET");
 			FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(target);
 			if (!FieldCoordinateBounds.FIELD.isInBounds(at)) throw new MatchService.Failure("INVALID_TARGET");
-			if (waypoints.isEmpty() && !at.isAdjacent(game.getFieldModel().getPlayerCoordinate(player))) {
-				waypoints.add(planner.approach(at, "blitz".equals(kind)));
-			}
 			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player) : waypoints.get(waypoints.size() - 1);
-			if (!end.isAdjacent(at)) throw new MatchService.Failure("INVALID_TARGET");
+			if (!end.isAdjacent(at)) {
+				if (waypoints.size() >= 20) throw new MatchService.Failure("INVALID_ROUTE");
+				waypoints.add(planner.approach(at, "blitz".equals(kind), waypoints));
+			}
 		} else if (targetPlayerId != null || waypoints.isEmpty()) throw new MatchService.Failure("INVALID_ROUTE");
 		JsonObject route = waypoints.isEmpty() ? planner.emptyPreview() : planner.preview(waypoints);
 		if ("blitz".equals(kind) && route.get("steps").asArray().size() > planner.blitzApproachSteps())
@@ -1249,6 +1259,7 @@ public final class SetupSession {
 		JsonObject plan = new JsonObject().add("planVersion", 1).add("kind", kind)
 			.add("targetPlayerId", targetPlayerId == null ? JsonValue.NULL : JsonValue.valueOf(targetPlayerId))
 			.add("waypoints", canonicalPoints).add("route", route);
+		plan.add("range", planner.rangeAfter(route).add("revision", revision));
 		if ("blitz".equals(kind)) {
 			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player)
 				: waypoints.get(waypoints.size() - 1);

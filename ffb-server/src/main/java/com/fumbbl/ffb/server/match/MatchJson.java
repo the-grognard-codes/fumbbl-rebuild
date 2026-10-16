@@ -245,6 +245,41 @@ public final class MatchJson {
             bounded(ball.get("x"), 0, 25); bounded(ball.get("y"), 0, 14);
         }
         JsonArray players = state.get("players").asArray(); if (players.size() > 32) throw new IllegalArgumentException();
+        if (state.get("passing") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            JsonObject passing = state.get("passing").asObject();
+            int version = passing.getInt("version", -1);
+            if (version == 2) exact(passing, "version", "playerId", "from", "weatherPenalty", "rangeLimited", "ranges", "action", "targets");
+            else exact(passing, "version", "playerId", "from", "weatherPenalty", "rangeLimited", "ranges");
+            if (version != 1 && version != 2) throw new IllegalArgumentException();
+            JsonObject from = passing.get("from").asObject(); exact(from, "x", "y");
+            bounded(from.get("x"), 0, 25); bounded(from.get("y"), 0, 14);
+            bounded(passing.get("weatherPenalty"), 0, 1); passing.get("rangeLimited").asBoolean();
+            boolean found = false;
+            for (JsonValue value : players) {
+                JsonObject player = value.asObject();
+                if (passing.get("playerId").equals(player.get("id")) && passing.get("playerId").equals(state.get("activePlayerId"))
+                    && from.get("x").equals(player.get("x")) && from.get("y").equals(player.get("y"))) found = true;
+            }
+            JsonArray ranges = passing.get("ranges").asArray();
+            if (!found || ranges.size() != 26) throw new IllegalArgumentException();
+            for (JsonValue row : ranges) if (!row.asString().matches(version == 2 ? "[QS-]{15}" : "[QSLBR-]{15}")) throw new IllegalArgumentException();
+            if (ranges.get(from.getInt("x", -1)).asString().charAt(from.getInt("y", -1)) != '-') throw new IllegalArgumentException();
+            if (version == 2) {
+                if (!Arrays.asList("throwTeamMate", "kickMateTo").contains(passing.getString("action", null))) throw new IllegalArgumentException();
+                JsonArray targets = passing.get("targets").asArray();
+                if (targets.size() != 26) throw new IllegalArgumentException();
+                for (int x = 0; x < 26; x++) {
+                    JsonArray row = targets.get(x).asArray();
+                    if (row.size() != 15) throw new IllegalArgumentException();
+                    for (int y = 0; y < 15; y++) {
+                        JsonValue target = row.get(y);
+                        if ((ranges.get(x).asString().charAt(y) == '-') != target.isNull()) throw new IllegalArgumentException();
+                        if (!target.isNull()) bounded(target, 2, 64);
+                    }
+                }
+            }
+        }
         if (state.get("blockPreview") != null) {
             if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
             JsonObject preview = state.get("blockPreview").asObject();
@@ -651,6 +686,7 @@ public final class MatchJson {
         if (object.get("driveTracker") != null) extended.add("driveTracker");
         if (object.get("playerActionMenu") != null) extended.add("playerActionMenu");
         if (object.get("activePlayerAction") != null) extended.add("activePlayerAction");
+        if (object.get("passing") != null) extended.add("passing");
         exact(object, extended.toArray(new String[0]));
     }
 

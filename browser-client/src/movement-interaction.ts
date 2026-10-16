@@ -9,6 +9,8 @@ export function canPlanMovement(view: SetupState, actions: SetupAction[], player
     || player.x === null || player.y === null) return false;
   const offered = actions.filter(action => action.sourcePlayerId === playerId);
   if (kind === 'move') return offered.some(action => ['select', 'stand'].includes(action.kind))
+    || view.activePlayerId === playerId && view.turnMode === 'SELECT_BLITZ_TARGET'
+      && offered.some(action => action.kind === 'blitzTarget')
     || view.activePlayerId === playerId && offered.some(action => action.kind === 'move');
   if (kind === 'foul') return offered.some(action => action.kind === 'declareFoul')
     || view.activePlayerId === playerId && offered.some(action => action.kind === 'foul');
@@ -23,6 +25,6 @@ export function matchesMovementPlan(plan: MovementPlan | null, intent: MovementR
     || plan.route.playerId !== intent.playerId) return false;
   const player = view.players.find(player => player.id === intent.playerId);
   if (player?.role !== view.callerRole || player.x !== plan.route.from.x || player.y !== plan.route.from.y) return false;
-  return !intent.waypoints.length && intent.kind !== 'move' || intent.waypoints.length === plan.waypoints.length
+  return (intent.kind !== 'move' ? intent.waypoints.length <= plan.waypoints.length : intent.waypoints.length === plan.waypoints.length)
     && intent.waypoints.every((point, index) => point.x === plan.waypoints[index].x && point.y === plan.waypoints[index].y);
 }

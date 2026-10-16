@@ -137,12 +137,14 @@ test('start defaults to the current tab and supports explicit windows with block
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  const recipients = new Map(); const reads = []; const authentications = [0, 0]; let revision = 1;
+  const recipients = new Map(); const owners = new Map(); const reads = [];
+  const authentications = [{ preparation: 0, play: 0 }, { preparation: 0, play: 0 }]; let revision = 1;
   const member = role => ({ role, sourceTeamId: matchId, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'fixture', rosterId: 'human', presetId: 'fixture', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: {}, players: [] } });
   try {
     for (const mode of ['same-tab', 'new-window', 'blocked-window']) {
       const sameTab = mode === 'same-tab', popupBlocked = mode === 'blocked-window';
-      revision = 1; recipients.clear(); reads.length = 0; authentications.fill(0);
+      revision = 1; recipients.clear(); owners.clear(); reads.length = 0;
+      for (const counts of authentications) { counts.preparation = 0; counts.play = 0; }
       const pages = []; const contexts = [];
       for (let index = 0; index < 2; index++) {
         const context = await browser.newContext(); contexts.push(context);
@@ -152,10 +154,19 @@ test('start defaults to the current tab and supports explicit windows with block
         await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
         await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture-${index}'}));return()=>{};}` }));
         await context.routeWebSocket('**/browser/v2', socket => {
-          const send = message => socket.send(JSON.stringify({ version: 2, ...message })); recipients.set(index, send);
+          const send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+          let ownershipKey;
           socket.onMessage(raw => {
             const request = JSON.parse(raw);
-            if (request.type === 'authenticate') { authentications[index]++; send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] }); }
+            if (request.type === 'authenticate') {
+              const purpose = request.purpose ?? 'play';
+              assert.ok(['preparation', 'play'].includes(purpose));
+              ownershipKey = `${index}:${purpose}`;
+              owners.get(ownershipKey)?.close({ code: 1008, reason: 'Connection replaced by a newer session for this purpose' });
+              owners.set(ownershipKey, socket); authentications[index][purpose]++;
+              if (purpose === 'preparation') recipients.set(index, send);
+              send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[index] });
+            } else if (owners.get(ownershipKey) !== socket) return;
             if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
             if (request.type === 'savedTeam') send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', teams: [], document: null, validation: null, versionStatus: null });
             if (request.type === 'preparedMatch') {
@@ -216,10 +227,11 @@ test('start defaults to the current tab and supports explicit windows with block
         assert.equal(new URL(pages[1].url()).pathname, '/play', 'The preparation page stays open');
         assert.equal(await starterMatch.evaluate(() => window.opener), null, 'The match window cannot control preparation');
         assert.equal(await starterMatch.evaluate(() => window.name), 'moles.play.launched-window');
-        await pages[1].getByLabel('Match opened elsewhere').waitFor();
+        assert.equal(await pages[1].getByRole('button', { name: 'Reconnect preparation here', exact: true }).count(), 0);
         await pages[1].reload();
-        await pages[1].getByLabel('Match opened elsewhere').waitFor();
-        assert.equal(authentications[1], 2, 'Reloaded preparation must not replace its match connection');
+        await pages[1].getByRole('button', { name: 'Refresh teams', exact: true }).click();
+        assert.equal(await pages[1].getByText('Match opened in another tab or window', { exact: true }).count(), 0);
+        assert.deepEqual(authentications[1], { preparation: 2, play: 1 }, 'Reloaded preparation authenticates independently of the match connection');
       } else assert.equal(contexts[1].pages().length, 1, 'Default and blocked-window launch remain in the current tab');
       await pages[0].getByRole('link', { name: 'Open match in a new tab or window' }).waitFor();
       const opponentWindow = pages[0].waitForEvent('popup');
@@ -227,10 +239,11 @@ test('start defaults to the current tab and supports explicit windows with block
       const opponentMatch = await opponentWindow;
       await openGrid(opponentMatch);
       assert.equal(new URL(pages[0].url()).pathname, '/play', 'Server notification leaves a usable preparation page');
-      await pages[0].getByLabel('Match opened elsewhere').waitFor();
+      assert.equal(await pages[0].getByRole('button', { name: 'Reconnect preparation here', exact: true }).count(), 0);
       await pages[0].reload();
-      await pages[0].getByLabel('Match opened elsewhere').waitFor();
-      assert.equal(authentications[0], 2, 'Reloaded preparation must not replace its match connection');
+      await pages[0].getByRole('button', { name: 'Refresh teams', exact: true }).click();
+      assert.equal(await pages[0].getByText('Match opened in another tab or window', { exact: true }).count(), 0);
+      assert.deepEqual(authentications[0], { preparation: 2, play: 1 }, 'Reloaded preparation authenticates independently of the match connection');
       assert.deepEqual(reads.sort(), [0, 1], 'Both match windows loaded the authoritative setup');
       for (const page of [opponentMatch, starterMatch]) {
         assert.equal(new URL(page.url()).pathname, '/play/match');

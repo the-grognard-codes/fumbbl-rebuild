@@ -94,9 +94,19 @@ final class RoutePlanner {
 	}
 
 	JsonObject range() {
+		return range(start, 0);
+	}
+
+	JsonObject rangeAfter(JsonObject preview) {
+		JsonArray steps = preview.get("steps").asArray();
+		JsonObject endpoint = steps.isEmpty() ? preview.get("from").asObject() : steps.get(steps.size() - 1).asObject();
+		return range(new FieldCoordinate(endpoint.getInt("x", -1), endpoint.getInt("y", -1)), steps.size());
+	}
+
+	private JsonObject range(FieldCoordinate origin, int plannedSteps) {
 		boolean special = rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK;
-		int remaining = Math.max(0, (special ? 3 : allowance) - currentMove);
-		int normalRemaining = special ? remaining : Math.max(0, player.getMovementWithModifiers() - currentMove);
+		int remaining = Math.max(0, (special ? 3 : allowance) - currentMove - plannedSteps);
+		int normalRemaining = special ? remaining : Math.max(0, player.getMovementWithModifiers() - currentMove - plannedSteps);
 		JsonArray normal = new JsonArray(), full = new JsonArray();
 		FieldCoordinateBounds bounds = rangeMode == TurnMode.KICKOFF_RETURN
 			? (game.isHomePlaying() ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY)
@@ -107,8 +117,8 @@ final class RoutePlanner {
 			? UtilPassing.findValidPassBlockEndCoordinates(game) : java.util.Collections.emptySet();
 		Map<FieldCoordinate, Integer> distance = new HashMap<>();
 		ArrayDeque<FieldCoordinate> queue = new ArrayDeque<>();
-		distance.put(start, 0);
-		queue.add(start);
+		distance.put(origin, 0);
+		queue.add(origin);
 		while (!queue.isEmpty()) {
 			FieldCoordinate from = queue.removeFirst();
 			int used = distance.get(from);
@@ -123,14 +133,14 @@ final class RoutePlanner {
 			}
 		}
 		List<FieldCoordinate> ordered = new ArrayList<>(distance.keySet());
-		ordered.remove(start);
+		ordered.remove(origin);
 		ordered.sort(Comparator.comparingInt(FieldCoordinate::getY).thenComparingInt(FieldCoordinate::getX));
 		for (FieldCoordinate square : ordered) {
 			full.add(point(square));
 			if (distance.get(square) <= normalRemaining) normal.add(point(square));
 		}
 		return new JsonObject().add("rangeVersion", 2).add("playerId", player.getId())
-			.add("from", point(start)).add("remaining", remaining).add("normalRemaining", normalRemaining)
+			.add("from", point(origin)).add("remaining", remaining).add("normalRemaining", normalRemaining)
 			.add("normal", normal).add("full", full);
 	}
 
@@ -180,10 +190,21 @@ final class RoutePlanner {
 	}
 
 	FieldCoordinate approach(FieldCoordinate target, boolean blitz) {
-		if (start.isAdjacent(target)) return start;
+		return approach(target, blitz, java.util.Collections.emptyList());
+	}
+
+	/** Continue after the requested path, charging every earlier square before choosing an approach. */
+	FieldCoordinate approach(FieldCoordinate target, boolean blitz, List<FieldCoordinate> waypoints) {
+		FieldCoordinate origin = waypoints.isEmpty() ? start : waypoints.get(waypoints.size() - 1);
+		JsonArray prefix = waypoints.isEmpty() ? new JsonArray() : preview(waypoints).get("steps").asArray();
+		int used = prefix.size();
+		if (origin.isAdjacent(target)) return origin;
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
-		Node root = new Node(start, 0, 0, 0, 0, false, 0, 0, 0, 0, null, null);
+		boolean ballHandled = prefix.values().stream().anyMatch(value -> value.asObject().get("checks").asArray().values()
+			.stream().anyMatch(check -> "Pickup".equals(check.asObject().getString("name", null))
+				|| "Ball scatter".equals(check.asObject().getString("name", null))));
+		Node root = new Node(origin, used, 0, 0, 0, ballHandled, 0, 0, 0, 0, null, null);
 		queue.add(root);
 		best.put(key(root), root);
 		while (!queue.isEmpty()) {
@@ -194,12 +215,12 @@ final class RoutePlanner {
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
 				FieldCoordinate next = node.at.add(x, y);
-				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || next.equals(start) || occupied(next)) continue;
+				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || occupied(next)) continue;
 				Step step = step(node.at, next, node.used, node.ballHandled, false);
 				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
 				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
 				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
-				Node candidate = nextNode(node, next, step, reactions, rolls, risk, start, target);
+				Node candidate = nextNode(node, next, step, reactions, rolls, risk, origin, target);
 				String key = key(candidate);
 				Node prior = best.get(key);
 				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
