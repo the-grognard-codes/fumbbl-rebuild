@@ -16,7 +16,8 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 try {
   for (const journey of journeys) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
-    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const startsReduced = journey === journeys[0];
+    await page.emulateMedia({ reducedMotion: startsReduced ? 'reduce' : 'no-preference' });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     const first = journey.frames[0], last = journey.frames[1];
     await page.addInitScript(first => { window.playbackInput = { view: first.state, records: first.records, enabled: true, mode: 'live' };
@@ -25,6 +26,11 @@ try {
       '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module" src="/test/playback-ui-harness.tsx"></script>' }));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/ball-test`);
     const highlight = page.locator('.live-ball-highlight'); await highlight.waitFor();
+    if (startsReduced) {
+      assert.equal(await highlight.locator('animateTransform').count(), 0);
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await page.waitForFunction(() => document.querySelectorAll('.live-ball-highlight animateTransform').length === 2);
+    }
     assert.equal(await page.locator('.live-ball-football').count(), journey.drop ? 0 : 1);
     assert.equal(await page.locator('.live-ball-shadow').count(), journey.drop ? 0 : 1);
     const animations = await highlight.evaluate(element => {
@@ -87,6 +93,15 @@ try {
     assert.deepEqual(await page.locator('.live-ball-outer, .live-ball-inner').evaluateAll(elements =>
       elements.map(element => element.transform.animVal.numberOfItems)), [0, 0]);
     assert.ok(Number(await highlight.evaluate(element => getComputedStyle(element).opacity)) > 0);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.waitForFunction(() => document.querySelectorAll('.live-ball-highlight animateTransform').length === 2);
+    const resumedRotation = await highlight.locator('.live-ball-outer, .live-ball-inner').evaluateAll(parts =>
+      parts.map(part => part.transform.animVal.numberOfItems ? part.transform.animVal.getItem(0).matrix.b : 0));
+    await page.waitForFunction(previous => [...document.querySelectorAll('.live-ball-outer, .live-ball-inner')]
+      .every((part, index) => part.transform.animVal.numberOfItems
+        && Math.abs(part.transform.animVal.getItem(0).matrix.b - previous[index]) > .01), resumedRotation, { timeout: 2000 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForFunction(() => document.querySelectorAll('.live-ball-highlight animateTransform').length === 0);
     await page.getByRole('button', {name:'Reveal ball / active',exact:true}).click();
     await page.waitForFunction(() => {
       const marker = document.querySelector('.live-ball-marker').getBoundingClientRect();
@@ -104,5 +119,5 @@ try {
     assert.equal(await page.locator('.live-ball-football').count(),0,'Unknown legacy possession does not assert a loose sprite');
     assert.deepEqual(errors,[]); await page.close();
   }
-  console.log('PASS: four native pickup/drop journeys, slow opposing rotations without pulsing, carried/loose sprite gating and reduced motion.');
+  console.log('PASS: four native pickup/drop journeys, slow opposing rotations without pulsing, carried/loose sprite gating and reduced-motion start/stop/resume.');
 } finally { await browser.close(); await server.close(); }

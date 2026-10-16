@@ -5,7 +5,7 @@ import type { DieKind } from './die-geometry.ts';
 export type PresentedRoll = { label: string; face: string; kind?: DieKind; rollKey?: string };
 
 export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null;
-  rollKey?: string; revision?: number; uphill?: boolean; rolls?: PresentedRoll[]; groups?: DiceRollGroup[] };
+  rollKey?: string; revision?: number; uphill?: boolean; chooser?: 'home' | 'away'; rolls?: PresentedRoll[]; groups?: DiceRollGroup[] };
 
 export type DiceRollGroup = DiceMoment & { key: string };
 
@@ -40,9 +40,9 @@ export function numericRolls(value: unknown): PresentedRoll[] | null {
   if (source.version !== 1 || !Array.isArray(source.dice) || !source.dice.length || source.dice.length > 32) return null;
   const rolls: PresentedRoll[] = [];
   for (const item of source.dice) {
-    if (!item || typeof item !== 'object' || ![6, 8, 16].includes(item.sides) || !Number.isInteger(item.value)
+    if (!item || typeof item !== 'object' || ![3, 6, 8, 16].includes(item.sides) || !Number.isInteger(item.value)
       || item.value < 1 || item.value > item.sides || typeof item.label !== 'string' || !item.label || item.label.length > 100) return null;
-    rolls.push({ kind: `d${item.sides}` as DieKind, face: String(item.value), label: item.label });
+    rolls.push({ kind: item.sides === 3 ? 'd6' : `d${item.sides}` as DieKind, face: String(item.value), label: item.label });
   }
   return rolls;
 }
@@ -68,11 +68,31 @@ export function reportedDice(report: Record<string, unknown>, players: SetupPlay
     const uphill = attacker && ['home', 'away'].includes(block?.chooser ?? '')
       ? faces.length > 1 && attacker.role !== block?.chooser : undefined;
     return { label: id === 'blockChoice' ? 'Block die selected' : id === 'blockReRoll' ? 'Block dice rerolled' : 'Block dice rolled', faces: faces as string[], subjectId, selected,
-      ...(uphill !== undefined ? { uphill } : {}) };
+      ...(uphill !== undefined ? { uphill } : {}), ...(block?.chooser === 'home' || block?.chooser === 'away' ? { chooser: block.chooser } : {}) };
   }
   if (Object.hasOwn(report, 'numericDice')) {
     const rolls = numericRolls(report.numericDice);
     return rolls ? { label: [...new Set(rolls.map(roll => roll.label))].join('; '), faces: rolls.map(roll => roll.face), rolls, subjectId, selected: null } : null;
+  }
+  if (id === 'fanFactor' && Number.isInteger(report.dedicatedFansRoll)
+    && Number(report.dedicatedFansRoll) >= 1 && Number(report.dedicatedFansRoll) <= 6) {
+    const face = String(report.dedicatedFansRoll), label = 'Fan factor';
+    return { label, faces: [face], rolls: [{ kind: 'd6', face, label }], subjectId, selected: null };
+  }
+  if (id === 'injury') {
+    const rolls: PresentedRoll[] = [];
+    for (const [field, sides, label] of [['armorRoll', 6, 'Armor'], ['injuryRoll', 6, 'Injury'],
+      ['casualtyRoll', 16, 'Casualty'], ['casualtyRollDecay', 16, 'Decay casualty']] as const) {
+      const values = report[field];
+      if (!Array.isArray(values)) continue;
+      values.forEach((value, index) => {
+        const dieSides = sides === 16 && index > 0 ? 6 : sides;
+        if (Number.isInteger(value) && value >= 1 && value <= dieSides)
+          rolls.push({ kind: dieSides === 16 ? 'd16' : 'd6', face: String(value), label: `${label}${index ? ' detail' : ''}` });
+      });
+    }
+    if (rolls.length) return { label: [...new Set(rolls.map(roll => roll.label))].join('; '), faces: rolls.map(roll => roll.face),
+      rolls, subjectId, selected: null };
   }
   if (id === 'scatterBall' && Array.isArray(report.rolls) && report.rolls.length > 0
     && report.rolls.every(value => Number.isInteger(value) && value >= 1 && value <= 8)) {

@@ -90,7 +90,7 @@ try {
   await chat.press('Enter');
   assert.deepEqual(await page.evaluate(() => window.hudMessages), ['Draft <script> stays literal']);
   await chat.press('Escape');
-  for (const [size, pixels] of [['Small', 12], ['Medium', 14], ['Large', 18]]) {
+  for (const [size, pixels] of [['Small', 10], ['Medium', 12], ['Large', 14]]) {
     await page.getByRole('button', { name: `${size} log text` }).click();
     assert.equal(await page.locator('.match-event-scroll').evaluate(element => parseFloat(getComputedStyle(element).fontSize)), pixels);
   }

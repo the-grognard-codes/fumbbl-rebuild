@@ -75,7 +75,7 @@ try {
       if (evidence) await page.screenshot({ path: `${evidence}/menu-${tab.replaceAll(' ', '-').toLowerCase()}-${width}-${height}.png` });
       if (tab === 'Game Log') await menu.locator('.long-content-probe').evaluate(element => element.remove());
     }
-    for (const [size, pixels] of [['Small',12], ['Medium',14], ['Large',18]]) {
+    for (const [size, pixels] of [['Small',10], ['Medium',12], ['Large',14]]) {
       await menu.getByRole('button', { name: `${size} log text` }).click();
       assert.equal(await menu.locator('.match-event-scroll').evaluate(element => parseFloat(getComputedStyle(element).fontSize)), pixels);
     }

@@ -28,24 +28,26 @@ try {
     assert.ok(/base \d+\+/.test(text), input.name);
     if (input.name.includes('pro-test')) {
       const rows = await log.locator('p').allTextContents();
-      const pro = rows.findIndex(row => row.includes('tests Pro: 1 vs 3+'));
+      const pro = rows.findIndex(row => row.includes('tests Pro:  vs 3+'));
       const team = rows.findIndex(row => row.includes('used Team reroll.'));
-      const retry = rows.findIndex(row => row.includes('rerolls Pro: 6 vs 3+'));
+      const retry = rows.findIndex(row => row.includes('rerolls Pro:  vs 3+'));
       assert.ok(pro >= 0 && team > pro && retry > team, input.name);
+      assert.ok(await log.locator('p').nth(pro).locator('.numeric-die[data-face="1"]').count());
+      assert.ok(await log.locator('p').nth(retry).locator('.numeric-die[data-face="6"]').count());
       assert.equal(rows.filter(row => row.includes('used Pro reroll.')).length, 1);
       for (const showDebug of [false, true]) for (const showMovement of [false, true]) for (const showModifiers of [false, true]) {
         await debug.setChecked(showDebug); await movement.setChecked(showMovement); await modifiers.setChecked(showModifiers);
         assert.equal(await log.locator('.match-log-debug').count() > 0, showDebug);
-        assert.ok((await log.textContent()).includes('rerolls Pro: 6 vs 3+'));
+        assert.ok((await log.textContent()).includes('rerolls Pro:  vs 3+'));
       }
       await debug.uncheck(); await movement.uncheck(); await modifiers.check();
     }
   }
   const input = read('pro-test')[0]; await page.evaluate(records => window.publishLogRecords(records), input.records);
-  await page.waitForFunction(() => document.querySelector('[role="log"]').textContent.includes('rerolls Pro: 6 vs 3+'));
+  await page.waitForFunction(() => document.querySelector('[role="log"]').textContent.includes('rerolls Pro:  vs 3+'));
   if (process.env.MATCH_LOG_EVIDENCE_DIR) {
     mkdirSync(process.env.MATCH_LOG_EVIDENCE_DIR, { recursive: true });
-    for (const [name, fragment] of [['original', 'picks up the ball'], ['failed-test', 'tests Pro: 1'], ['team-source', 'used Team reroll.'], ['retry', 'rerolls Pro: 6']]) {
+    for (const [name, fragment] of [['original', 'picks up the ball'], ['failed-test', 'tests Pro:'], ['team-source', 'used Team reroll.'], ['retry', 'rerolls Pro:']]) {
       await log.evaluate((element, text) => {
         const row = [...element.querySelectorAll('p')].find(item => item.textContent.includes(text));
         element.scrollTop = row.offsetTop;
