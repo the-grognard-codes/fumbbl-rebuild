@@ -3,7 +3,7 @@ import type { PendingIntent, V2Client, V2Message } from './v2-client.ts';
 export type ConcessionStatus = { matchId: string | null; busy: boolean; text: string };
 type Transport = Pick<V2Client, 'open' | 'request' | 'restorePreparation'> & { pending: PendingIntent | null };
 
-/** Confirmation is owned by the page; the authorized native read supplies the revision. */
+/** Confirmation is owned by the page; a public checkpoint read supplies the revision without restoring the engine. */
 export class LobbyConcession {
   private intent: { matchId: string; requestId: string; stage: 'load' | 'submit' } | null = null;
   private transport: Transport;
@@ -25,7 +25,7 @@ export class LobbyConcession {
     this.intent = { matchId, requestId: '', stage: 'load' };
     this.preparationMatchId = preparationMatchId;
     try {
-      this.intent.requestId = this.transport.open(matchId, false);
+      this.intent.requestId = this.transport.open(matchId, false, true);
       this.show(true, 'Checking the match before conceding…');
     } catch (failure) { this.intent = null; this.show(false, 'Reconnect before conceding.'); this.restorePreparation(); throw failure; }
   }

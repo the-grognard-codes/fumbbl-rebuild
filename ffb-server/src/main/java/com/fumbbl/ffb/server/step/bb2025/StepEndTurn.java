@@ -295,6 +295,9 @@ public class StepEndTurn extends AbstractStep {
 			fNewHalf = UtilServerSteps.checkEndOfHalf(getGameState());
 
 			if (!fNextSequencePushed) {
+				if (game.getTurnMode() == TurnMode.REGULAR) {
+					new StunnedPlayerRecovery().endTurn(game);
+				}
 
 				fNextSequencePushed = true;
 
@@ -356,7 +359,10 @@ public class StepEndTurn extends AbstractStep {
 
 				}
 
-				UtilPlayer.refreshPlayersForTurnStart(game);
+				UtilPlayer.refreshPlayersForTurnStart(game, false);
+				if (game.getTurnMode() == TurnMode.REGULAR) {
+					new StunnedPlayerRecovery().startTurn(game);
+				}
 				game.getFieldModel().clearMoveSquares();
 				game.getFieldModel().clearTrackNumbers();
 				game.getFieldModel().clearDiceDecorations();

@@ -60,6 +60,55 @@ function readFrames(socket, onMessage) {
   });
 }
 
+test('multi-injury apothecary treatment survives a lost acknowledgement and advances to fresh choices', { timeout: 15000 }, async () => {
+  const seen = [];
+  const sockets = new Set();
+  let lost = false;
+  const offers = ['50:apothecaries:p1:TEAM', '51:injury:new', '52:apothecaries:p2:WANDERING', '53:injury:old', '54:apothecaries:no'];
+  let index = 0;
+  const view = () => ({ ...state, revision: 50 + index, phase: index === offers.length ? 'FULL_TIME' : 'PLAY', prompt: null,
+    actions: index === offers.length ? [] : [{ id: offers[index], label: 'Apothecary decision', actor: 'home', kind: 'apothecary', target: null }] });
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else if (body.operation === 'load') send(socket, response(body.requestId, view()));
+      else if (body.operation === 'action') {
+        seen.push(body);
+        if (!lost) { lost = true; socket.destroy(); return; }
+        assert.equal(body.actionId, offers[index]);
+        assert.equal(body.expectedRevision, 50 + index);
+        index++;
+        send(socket, { ...response(body.requestId, view()), duplicate: seen.length === 2 });
+      }
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId, '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  let timer;
+  try {
+    const [code] = await Promise.race([once(child, 'exit'), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 8000);
+    })]);
+    assert.equal(code, 0, output);
+    assert.deepEqual(seen[0], seen[1], 'retry preserves the complete uncertain treatment request');
+    assert.deepEqual(seen.slice(1).map(body => body.actionId), offers);
+    assert.equal(new Set(seen.slice(1).map(body => body.requestId)).size, offers.length);
+  } finally {
+    clearTimeout(timer);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+    if (child.exitCode === null && child.signalCode === null) await stopChild(child);
+  }
+});
+
 test('default daemon leaves browser slots and starts queued matches when a worker completes', { timeout: 15000 }, async () => {
   const jobs = Array.from({ length: 20 }, (_, index) => `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`);
   const loaded = [];

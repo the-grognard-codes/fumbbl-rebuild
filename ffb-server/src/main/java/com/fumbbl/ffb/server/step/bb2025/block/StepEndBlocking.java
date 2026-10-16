@@ -359,10 +359,8 @@ public class StepEndBlocking extends AbstractStep {
 					fieldModel.setTargetSelectionState(null);
 					return;
 				}
-				if (useHitAndRun == null) {
-					UtilServerDialog.showDialog(getGameState(), new DialogSkillUseParameter(activePlayer.getId(), activePlayer.getSkillWithProperty(NamedProperties.canMoveAfterBlock), 0), false);
-					getResult().setNextAction(StepAction.CONTINUE);
-				} else if (useHitAndRun) {
+				if (!Boolean.FALSE.equals(useHitAndRun)) {
+					// Destination selection also offers decline, so no separate skill-use dialog is needed.
 					useHitAndRun = false;
 					getGameState().pushCurrentStepOnStack();
 					IStep step = getGameState().getStepFactory().create(StepId.HIT_AND_RUN, null, null);

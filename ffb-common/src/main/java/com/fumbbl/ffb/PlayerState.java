@@ -40,6 +40,7 @@ public class PlayerState {
 	private static final int _BIT_SELECTED_GAZE_TARGET = 0x10000;
 	private static final int _BIT_EYE_GOUGED = 0x20000;
 	private static final int _BIT_CHOMPED = 0x40000;
+	private static final int STUN_RECOVERY_PENDING = 0x80000;
 
 	private static final int[] _BASE_MASK = new int[]{
 		0x00000, // UNKNOWN
@@ -91,7 +92,16 @@ public class PlayerState {
 
 	public PlayerState changeBase(int pBase) {
 		int baseMask = ((pBase > 0) && (pBase < _BASE_MASK.length)) ? _BASE_MASK[pBase] : 0x00000;
-		return new PlayerState((getId() & baseMask) | pBase);
+		// A fresh injury must not inherit recovery eligibility from an earlier stun.
+		return new PlayerState((getId() & baseMask & ~STUN_RECOVERY_PENDING) | pBase);
+	}
+
+	public boolean isStunRecoveryPending() {
+		return hasBit(STUN_RECOVERY_PENDING);
+	}
+
+	public PlayerState changeStunRecoveryPending(boolean pending) {
+		return changeBit(STUN_RECOVERY_PENDING, pending);
 	}
 
 

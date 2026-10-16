@@ -29,6 +29,13 @@ test('owned match reads preserve an uncertain mutation and reject a nonadvancing
   assert.equal(client.pending?.request.requestId, mutation);
 });
 
+test('concession revision reads do not reconstruct the retained engine', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  client.open(match, false, true);
+  assert.equal(socket.sent.at(-1).operation, 'concessionStatus');
+  assert.equal(socket.sent.at(-1).matchId, match);
+});
+
 test('preparation notification reloads only the selected match and preserves an uncertain mutation', async () => {
   const { client, connect, events } = fixture(); const socket = await connect();
   const created = client.request('preparedMatch', { operation: 'create' }, true);
@@ -300,7 +307,30 @@ test('preactivation Blitz previews bind origin, target, revision and waypoints t
   }
 });
 
-class Socket {
+  test('Blitz preview may append an approach without replacing the requested waypoint prefix', async () => {
+    for (const replacePrefix of [false, true]) {
+      const { client, connect, events } = fixture(); const socket = await connect();
+      const requestId = client.open(match, false);
+      socket.reply({ type: 'setupState', code: 'ACCEPTED', requestId, duplicate: false, state: {
+        ...state, phase: 'PLAY', actor: 'home', callerRole: 'home', players: [
+          { ...state.players[0], x: 7, y: 7, state: 'is standing' },
+          { ...state.players[0], id: 'p2', role: 'away', x: 10, y: 7, state: 'is standing' },
+        ] } });
+      const preview = client.request('movementPreview', { matchId: match, expectedRevision: 2,
+        playerId: 'p1', kind: 'blitz', targetPlayerId: 'p2', waypoints: [{ x: 8, y: 8 }] });
+      socket.reply({ type: 'movementPreview', requestId: preview, code: 'ACCEPTED', matchId: match, plan: {
+        planVersion: 1, kind: 'blitz', targetPlayerId: 'p2',
+        waypoints: [{ x: 8, y: replacePrefix ? 7 : 8 }, { x: 9, y: 7 }], route: {
+          routeVersion: 3, playerId: 'p1', from: { x: 7, y: 7 }, remaining: 8, revision: 2, actor: 'home',
+          steps: [{ x: 8, y: replacePrefix ? 7 : 8, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] },
+            { x: 9, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }],
+        } } });
+      assert.equal(socket.closed, replacePrefix);
+      assert.equal(events.at(-1).type, replacePrefix ? 'error' : 'movementPreview');
+    }
+  });
+
+  class Socket {
   readyState = 1; sent: any[] = []; closed = false;
   onopen: (() => Promise<void>) | null = null; onmessage: ((event: any) => void) | null = null;
   onclose: (() => void) | null = null; onerror: (() => void) | null = null;

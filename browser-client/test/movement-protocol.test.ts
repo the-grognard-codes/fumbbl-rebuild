@@ -72,3 +72,13 @@ test('an adjacent Foul can review an empty approach and requires a target', () =
   assert.throws(() => decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview',
     plan: { ...foul, targetPlayerId: null } })));
 });
+
+test('planned ranges bind to the canonical endpoint, actor revision and remaining budget', () => {
+  const plannedRange = { ...range, from: square, remaining: 7, normalRemaining: 5,
+    normal: [{ x: 9, y: 7 }], full: [{ x: 9, y: 7 }] };
+  const response = { ...envelope, type: 'movementPreview', plan: { ...plan, range: plannedRange } };
+  assert.deepEqual(decodeMovementPreview(JSON.stringify(response)).plan.range, plannedRange);
+  for (const invalid of [{ ...plannedRange, from: route.from }, { ...plannedRange, remaining: 8 },
+    { ...plannedRange, revision: 3 }, { ...plannedRange, playerId: 'away1' }])
+    assert.throws(() => decodeMovementPreview(JSON.stringify({ ...response, plan: { ...plan, range: invalid } })));
+});

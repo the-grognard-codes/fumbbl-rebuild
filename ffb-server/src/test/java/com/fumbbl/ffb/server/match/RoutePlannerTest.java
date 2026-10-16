@@ -107,6 +107,16 @@ class RoutePlannerTest {
 		assertEquals(8, route.getInt("remaining", -1));
 	}
 
+	@Test void approachCanReturnThroughTheVacatedStartingSquareAfterManualWaypoints() {
+		planner();
+		when(acting.getCurrentMove()).thenReturn(6);
+		Player<?> blocker = mock(Player.class);
+		doReturn(blocker).when(field).getPlayer(new FieldCoordinate(5, 4));
+		doReturn(blocker).when(field).getPlayer(new FieldCoordinate(5, 6));
+		assertEquals(new FieldCoordinate(5, 5), new RoutePlanner(state).approach(new FieldCoordinate(6, 5),
+			false, Collections.singletonList(new FieldCoordinate(4, 5))));
+	}
+
 	@Test void unobstructedRoutesStayStraightAcrossRowsColumnsAndDiagonals() {
 		RoutePlanner planner = planner();
 		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))),

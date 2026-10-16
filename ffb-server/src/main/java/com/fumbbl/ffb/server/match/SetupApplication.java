@@ -223,6 +223,33 @@ public final class SetupApplication {
 			String role = owner.equals(document.home.owner) ? "home"
 				: document.away != null && owner.equals(document.away.owner) ? "away" : null;
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
+			String operation = request.getString("operation", null);
+			if (recovery != null && (document.lifecycle == MatchDocument.Lifecycle.ACTIVATED || document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
+				&& ("concede".equals(operation) || "concessionStatus".equals(operation)
+				|| document.lifecycle == MatchDocument.Lifecycle.COMPLETED)) {
+				RecoveryRepository.Record record = recovery.find(id);
+				if (record != null) {
+					RetainedConcession retained = new RetainedConcession(record, document);
+					if ("concessionStatus".equals(operation)) {
+						SetupSession resident = sessions.get(id);
+						return outcome(resident == null ? retainedReply(requestId, role, retained, false)
+							: resident.reply(requestId, "ACCEPTED", false, role), false);
+					}
+					if (retained.closed() || "concede".equals(operation) && retained.unsupported()) {
+						boolean duplicate = retained.closed() && !"load".equals(operation) && retained.duplicate(role, request);
+						if (!retained.closed()) {
+							duplicate = retained.close(role, request, clock.millis());
+							matches.load(owner, id);
+							if (!recovery.save(new RecoveryRepository.Record(id, record.generation + 1, retained.artifact()), record.generation))
+								throw new MatchService.Failure("RECOVERY_CONFLICT");
+						}
+						boolean publish = document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
+						if (publish) { matches.complete(owner, id, retained.completed()); release(id); completedReleases++; }
+						else if (!retained.completed().equals(matches.result(owner, id))) throw new MatchService.Failure("RECOVERY_CORRUPT");
+						return outcome(retainedReply(requestId, role, retained, duplicate), publish);
+					}
+				}
+			}
 			releaseIdle();
 			if (recovery != null && document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
 				return completedReplyWithOutcome(owner, document, role, request);
@@ -230,7 +257,7 @@ public final class SetupApplication {
 			if (recovery != null && !sessions.containsKey(id)
 				&& document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) recovered = restore(id, document);
 			if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED && !sessions.containsKey(id)) {
-                if (!"load".equals(request.getString("operation", null))) throw new MatchService.Failure("MATCH_COMPLETED");
+                if (!"load".equals(operation) && !"concessionStatus".equals(operation)) throw new MatchService.Failure("MATCH_COMPLETED");
                 JsonObject artifact = JsonObject.readFrom(matches.result(owner, id).json());
                 com.eclipsesource.json.JsonArray events = artifact.get("events").asArray();
                 JsonObject terminal = events.get(events.size() - 1).asObject().get("state").asObject().set("callerRole", role);
@@ -251,11 +278,10 @@ public final class SetupApplication {
 			session.expireSaveResumeProposal(clock.millis());
 			JsonObject response;
 			try {
-				String operation = request.getString("operation", null);
-				response = "load".equals(operation) ? session.reply(requestId, "ACCEPTED", false, role)
+				response = "load".equals(operation) || "concessionStatus".equals(operation) ? session.reply(requestId, "ACCEPTED", false, role)
 					: isSaveResumeOperation(operation) ? session.saveResume(role, request, clock.millis()) : session.apply(role, request);
 				if ("ACCEPTED".equals(response.getString("code", null)) && !response.getBoolean("duplicate", false)
-					&& !"load".equals(operation) && !isSaveResumeOperation(operation)) session.recordPlayerActivity(clock.millis());
+					&& !"load".equals(operation) && !"concessionStatus".equals(operation) && !isSaveResumeOperation(operation)) session.recordPlayerActivity(clock.millis());
 			} catch (RuntimeException failure) {
 				checkpoint(owner, id, session, before);
 				throw failure;
@@ -264,7 +290,7 @@ public final class SetupApplication {
 			session.decorateSaveResume(response);
             // Persist before acknowledging terminal success. A retry/load reconciles without executing the engine again.
 			boolean publish = "ACCEPTED".equals(response.getString("code", null))
-				&& !response.getBoolean("duplicate", false) && !"load".equals(request.getString("operation", null));
+				&& !response.getBoolean("duplicate", false) && !"load".equals(operation) && !"concessionStatus".equals(operation);
 			if (session.isComplete()) {
 				matches.complete(owner, id, session.completedMatch());
 				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
@@ -279,10 +305,15 @@ public final class SetupApplication {
 		catch (RuntimeException failure) { return outcome(failure(requestId, "INVALID_REQUEST"), false); }
 	}
 
+	private JsonObject retainedReply(String requestId, String role, RetainedConcession retained, boolean duplicate) {
+		return new JsonObject().add("version", 1).add("type", "setupState").add("requestId", requestId)
+			.add("code", "ACCEPTED").add("duplicate", duplicate).add("state", retained.view(role));
+	}
+
 	private HandleOutcome completedReplyWithOutcome(String owner, MatchDocument document, String role, JsonObject request) throws SQLException {
 		RecoveryRepository.Record record = recovery.find(document.matchId);
 		if (record == null) {
-			if (!"load".equals(request.getString("operation", null))) throw new MatchService.Failure("MATCH_COMPLETED");
+			if (!"load".equals(request.getString("operation", null)) && !"concessionStatus".equals(request.getString("operation", null))) throw new MatchService.Failure("MATCH_COMPLETED");
 			JsonObject artifact = JsonObject.readFrom(matches.result(owner, document.matchId).json());
 			com.eclipsesource.json.JsonArray events = artifact.get("events").asArray();
 			return outcome(new JsonObject().add("version", 1).add("type", "setupState").add("requestId", request.get("requestId"))
@@ -296,7 +327,7 @@ public final class SetupApplication {
 			|| !terminal.completedMatch().equals(matches.result(owner, document.matchId)))
 			throw new MatchService.Failure("RECOVERY_CORRUPT");
 		JsonObject response;
-		if ("load".equals(request.getString("operation", null))) {
+		if ("load".equals(request.getString("operation", null)) || "concessionStatus".equals(request.getString("operation", null))) {
 			response = terminal.reply(request.getString("requestId", null), "ACCEPTED", false, role);
 		} else response = terminal.apply(role, request);
 		if (response.get("state") != null && !response.get("state").isNull()) terminal.decorateSaveResume(response);
@@ -452,12 +483,12 @@ public final class SetupApplication {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };
 		java.util.List<String> fields = new java.util.ArrayList<>(Arrays.asList(base));
-		if (!"load".equals(operation)) {
+		if (!"load".equals(operation) && !"concessionStatus".equals(operation)) {
 			fields.add("expectedRevision");
 			if (request.get("expectedRevision").asInt() < 0) throw new IllegalArgumentException();
 		}
 		switch (operation) {
-			case "load": case "confirm": case "concede": case "saveRequest": case "resumeRequest": break;
+			case "load": case "concessionStatus": case "confirm": case "concede": case "saveRequest": case "resumeRequest": break;
 			case "saveAccept": case "saveReject": case "saveCancel": case "resumeAccept": case "resumeReject": case "resumeCancel":
 				fields.add("proposalId"); if (!request.get("proposalId").asString().matches("[0-9a-f-]{36}")) throw new IllegalArgumentException(); break;
 			case "action": fields.add("actionId"); if (request.get("actionId").asString().length() > 200) throw new IllegalArgumentException(); break;

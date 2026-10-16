@@ -50,6 +50,7 @@ import com.fumbbl.ffb.server.step.generator.ThrowTeamMate;
 import com.fumbbl.ffb.server.step.generator.bb2025.MultiBlock;
 import com.fumbbl.ffb.server.step.generator.bb2025.Treacherous;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
+import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 import com.fumbbl.ffb.util.UtilPlayer;
 
 import java.util.ArrayList;
@@ -394,7 +395,10 @@ public final class StepEndSelecting extends AbstractStep {
         endGenerator.pushSequence(endParams);
         break;
       case STAND_UP:
-        endGenerator.pushSequence(endParams);
+        actingPlayer.setStandingUp(false);
+        actingPlayer.setPlayerAction(PlayerAction.MOVE);
+        UtilServerPlayerMove.updateMoveSquares(getGameState(), actingPlayer.isJumping());
+        moveGenerator.pushSequence(new Move.SequenceParams(getGameState()));
         break;
       case STAND_UP_BLITZ:
         game.getTurnData().setBlitzUsed(true);

@@ -75,7 +75,7 @@ test('current games page assembles owned pages, resumes setup, and links activat
             document: { formatVersion: 1, matchId: request.matchId, documentVersion: 1,
               lifecycle: 'WAITING_FOR_OPPONENT', invitation: { intendedOpponent: 'away' }, home: member, away: null } });
           if (request.type === 'setup') {
-            if (request.operation === 'load') send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: matchState });
+            if (request.operation === 'concessionStatus' || request.operation === 'load') send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: matchState });
             else if (request.operation === 'concede') {
               if (uncertainConcession) { uncertainConcession = false; send({ type: 'setupState', requestId: request.requestId, code: 'MATCH_OUTCOME_UNKNOWN', duplicate: false, state: null }); }
               else { conceded = true; send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: true,
@@ -162,6 +162,10 @@ test('current games page assembles owned pages, resumes setup, and links activat
         await games.getByRole('button', { name: 'Concede', exact: true }).click();
         await games.getByRole('button', { name: 'Confirm concession', exact: true }).click();
         await games.getByText('Concession outcome is unconfirmed.', { exact: false }).waitFor();
+        const revisionReads = requests.filter(request => request.type === 'setup' && request.operation !== 'concede');
+        assert.equal(revisionReads.length, 1);
+        assert.equal(revisionReads[0].operation, 'concessionStatus', 'Concession reads the public checkpoint without restoring a retained engine');
+        assert.equal('expectedRevision' in revisionReads[0], false, 'The authorized checkpoint supplies the current revision');
         await page.waitForFunction(() => !document.querySelector('section[aria-label="Your current games"] button').disabled);
         assert.equal(requests.filter(request => request.type === 'preparedMatch').length, 2, 'Restore the displayed preparation subscription after the native concession reply');
         assert.equal(requests.filter(request => request.type === 'preparedMatch').at(-1).matchId, id(1));
