@@ -23,10 +23,31 @@ try {
   const movement = page.getByRole('checkbox', { name: 'Movement', exact: true }), modifiers = page.getByRole('checkbox', { name: 'Roll modifiers', exact: true });
   await log.waitFor(); assert.equal(await debug.isChecked(), false); assert.equal(await movement.isChecked(), false); assert.equal(await modifiers.isChecked(), true);
   assert.match(await log.textContent(), /Runner declares a pass\./);
-  assert.match(await log.textContent(), /Runner passes to \(14, 7\): 6 vs 4\+ \(base 3\+ · -1 net modifier\).*accurate/);
+  assert.match(await log.textContent(), /Runner passes to \(14, 7\):  vs 4\+ \(base 3\+ · -1 net modifier\).*accurate/);
+  assert.ok(await log.locator('.numeric-die').count(), 'numeric rolls use the shared dice artwork');
+  assert.equal(await log.locator('.numeric-die').first().evaluate(element => element.dataset.dieKind), 'd6');
+  const rowSteps = {};
+  for (const [name, pixels] of [['Small', '10px'], ['Medium', '12px'], ['Large', '14px']]) {
+    await page.getByRole('button', { name: `${name} log text` }).click();
+    assert.equal(await log.evaluate(element => getComputedStyle(element).fontSize), pixels);
+    rowSteps[name] = await log.locator('p').evaluateAll(rows => rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top);
+  }
+  assert.ok(rowSteps.Small <= 16, `Small log text uses closer line spacing (${rowSteps.Small}px)`);
+  assert.ok(rowSteps.Medium <= 21, `Medium log text uses closer line spacing (${rowSteps.Medium}px)`);
+  assert.ok(rowSteps.Large >= 24, `Large log text keeps its current line spacing (${rowSteps.Large}px)`);
+  const previous = fixture.at(-1);
+  const uphill = { ...previous, index: previous.index + 1, revision: previous.revision + 1,
+    state: { ...previous.state, revision: previous.revision + 1 }, decision: { operation: 'action', actionId: 'block-choice' },
+    native: [{ commandNr: 99, reportList: { reports: [{ reportId: 'blockChoice', blockRoll: [1, 6], diceIndex: 1, blockResult: 'POW',
+      logBlock: { version: 1, attackerId: 'actor', defenderId: 'opponent', chooser: 'away' } }] } }] };
+  await page.evaluate(records => window.publishLogRecords(records), [...fixture, uphill]);
+  const selected = log.locator('.match-log-dice .uphill-selected');
+  await selected.waitFor();
+  assert.equal(await selected.evaluate(element => getComputedStyle(element).outlineColor), 'rgb(228, 74, 80)');
   await debug.check(); assert.ok(await log.locator('.match-log-debug').count());
   await modifiers.uncheck(); assert.doesNotMatch(await log.textContent(), /net modifier/);
-  assert.match(await log.textContent(), /6 vs 4\+ \(base 3\+\)/);
+  assert.match(await log.textContent(), /Runner passes to \(14, 7\):  vs 4\+ \(base 3\+\)/);
+  assert.ok(await log.locator('.numeric-die').count(), 'numeric dice remain visible when modifiers are hidden');
   await movement.check();
   for (const input of movementCases) {
     await page.evaluate(records => window.publishLogRecords(records), input.records);
@@ -43,18 +64,22 @@ try {
       { reportId: 'dodgeRoll', playerId: 'actor', roll: 6, minimumRoll: 3, successful: true, logRoll: { version: 1, base: 3, target: 3, modifier: 0, square: { x: 10, y: 7 } } }
     ] } }] }));
   await page.evaluate(records => window.publishLogRecords(records), many);
-  await page.waitForFunction(() => document.querySelectorAll('.match-event-scroll p').length === 160);
-  await page.getByRole('button', { name: 'Earlier', exact: true }).click();
-  await page.waitForFunction(() => document.querySelectorAll('.match-event-scroll p').length === 320);
+  await page.waitForFunction(() => document.querySelectorAll('.match-event-scroll p').length === 400);
+  assert.equal(await page.getByRole('button', { name: /Earlier|Later/ }).count(), 0, 'history has no paging controls');
   await log.evaluate(element => { element.scrollTop = 1000; element.dispatchEvent(new Event('scroll', { bubbles: true })); });
-  const visibleKey = () => log.evaluate(element => Array.from(element.querySelectorAll('[data-log-key]'))
-    .find(row => row.offsetTop + row.offsetHeight > element.scrollTop)?.dataset.logKey);
-  const before = await visibleKey();
-  await debug.uncheck(); assert.equal(await visibleKey(), before, 'Changing settings preserves the visible history row');
-  await modifiers.check(); assert.equal(await visibleKey(), before);
+  const visibleRow = () => log.evaluate(element => {
+    const row = Array.from(element.querySelectorAll('[data-log-key]'))
+      .find(item => item.getBoundingClientRect().bottom > element.getBoundingClientRect().top);
+    return row ? { key: row.dataset.logKey, top: row.getBoundingClientRect().top } : null;
+  });
+  const before = await visibleRow();
+  await debug.uncheck();
+  const afterDebug = await visibleRow();
+  assert.ok(Math.abs(Number(afterDebug.key.split(':')[0]) - Number(before.key.split(':')[0])) <= 2,
+    'Changing log settings keeps the reading position in the same nearby history entries');
+  await modifiers.check();
   const replaced = structuredClone(many); replaced[0].native[0].reportList.reports[0].successful = false;
   await page.evaluate(records => window.publishLogRecords(records), replaced);
-  await page.getByRole('button', { name: 'Earlier', exact: true }).click();
   assert.match(await log.locator('p').first().textContent(), /failure/, 'Same-length replaced history is reformatted');
   assert.equal(await log.locator('.match-log-debug').count(), 0);
   assert.doesNotMatch(await log.textContent(), /opaque-choice|record-/);
@@ -62,8 +87,9 @@ try {
     mkdirSync(process.env.MATCH_LOG_EVIDENCE_DIR, { recursive: true });
     await page.evaluate(records => window.publishLogRecords(records), read('primary').find(input => input.name === 'secure-ball').records);
     await page.getByRole('button', { name: 'Large log text' }).click();
+    assert.equal(await log.evaluate(element => getComputedStyle(element).fontSize), '14px');
     await log.evaluate(element => { element.scrollTop = element.scrollHeight; });
     await page.locator('.match-event-log').screenshot({ path: `${process.env.MATCH_LOG_EVIDENCE_DIR}/native-log-controls.png` });
   }
-  assert.deepEqual(errors, []); console.log('PASS native action log, committed movement, all preferences, reload, paging, scroll preservation and equal-length history replacement');
+  assert.deepEqual(errors, []); console.log('PASS native action log, continuous entries, no paging, shared numeric dice, uphill highlight, all preferences, reload and scroll preservation');
 } finally { await browser.close(); await server.close(); }

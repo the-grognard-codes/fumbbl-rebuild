@@ -43,6 +43,13 @@ try {
     });
     for (const [width, height] of [[1237, 617], [640, 330]]) {
       await page.setViewportSize({ width, height });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.match-decision-dialog');
+        if (!element) return false;
+        const box = element.getBoundingClientRect();
+        return Math.abs(box.x + box.width / 2 - innerWidth / 2) < 2
+          && box.top >= 0 && box.bottom <= innerHeight;
+      });
       assert.equal(await dialog.evaluate(element => {
         const box = element.getBoundingClientRect();
         return Math.abs(box.x + box.width / 2 - innerWidth / 2) < 2

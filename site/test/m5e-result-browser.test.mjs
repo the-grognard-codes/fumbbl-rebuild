@@ -411,9 +411,11 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     assert.equal(await replayDice.getByRole('button').count(), 0, 'Replay dice remain read-only');
     await page.getByRole('tab', { name: 'Log' }).click();
     const log = page.getByRole('log');
-    await log.getByText(/chooses die 2 \(Pow\).*dice Skull, Pow/).waitFor();
-    assert.equal(await log.locator('svg.match-die').count(), 2);
-    assert.equal(await log.locator('svg.match-die.selected').getAttribute('aria-label'), 'Ivory and cyan die: Pow');
+    const blockLog = log.locator('p').filter({ hasText: 'Block dice' });
+    await blockLog.waitFor();
+    const loggedDice = blockLog.locator('.match-die');
+    assert.deepEqual(await loggedDice.evaluateAll(dice => dice.map(die => die.dataset.face)), ['SKULL', 'POW']);
+    assert.equal(await blockLog.locator('.match-die.selected').getAttribute('aria-label'), 'Ivory and cyan die: Pow');
     // Animated replay streams groups once; static inspection remains available.
     await page.clock.install();
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));

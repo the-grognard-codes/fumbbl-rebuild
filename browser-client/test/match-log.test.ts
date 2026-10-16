@@ -21,13 +21,17 @@ test('logs raw dodge target, net modifier, reroll and block dice without coordin
       { reportId: 'dodgeRoll', playerId: 'runner', roll: 4, minimumRoll: 5, rollModifiers: ['Diving Tackle'], successful: false, reRolled: false },
       { reportId: 'reRoll', playerId: 'runner', reRollSource: 'Dodge', roll: 5, successful: true },
       { reportId: 'blockRoll', blockRoll: [4, 6], choosingTeamId: 'home' },
-      { reportId: 'blockChoice', defenderId: 'runner', blockRoll: [4, 6], diceIndex: 1, blockResult: 'PUSHBACK' },
+      { reportId: 'blockChoice', defenderId: 'runner', blockRoll: [4, 6], diceIndex: 1, blockResult: 'PUSHBACK',
+        logBlock: { version: 1, attackerId: 'runner', defenderId: 'runner', chooser: 'away' } },
     ] } }], state: state(1, 10) };
   const lines = matchLogLines([start, action]).map(line => line.text);
   assert.ok(lines.some(line => line.includes('4 vs 5+ (base 3+ · -2 net modifier)') && line.includes('failure')));
   assert.ok(lines.some(line => line.includes('used Dodge reroll.')));
-  assert.ok(lines.some(line => line.includes('Push, Pow')));
-  assert.ok(lines.some(line => line.includes('chooses die 2 (Pow)') && line.includes('result Push')));
+  assert.ok(lines.includes('Block dice ·'));
+  const blockLine = matchLogLines([start, action]).find(line => line.text === 'Block dice ·');
+  assert.deepEqual(blockLine?.dice?.faces, ['PUSHBACK', 'POW']);
+  assert.equal(blockLine?.dice?.selected, 1);
+  assert.equal(blockLine?.dice?.uphill, true, 'an opponent-selected uphill result is marked for the opponent');
   assert.ok(lines.every(line => !line.includes('(4, 7) → (10, 7)')));
 });
 
@@ -54,18 +58,34 @@ test('renders retained injury, apothecary, foul rulings, rerolls and KO recovery
       ] },
     ] } }], state: detailedState };
   const lines = matchLogLines([start, action]).map(line => line.text);
-  assert.ok(lines.some(line => /armor 5 \+ 5 = 10 vs base AV 9\+ · broken/.test(line) && line.includes('Mighty Blow')));
-  assert.ok(lines.some(line => line.includes('injury 4 + 6 = 10') && line.includes('casualty 3 · serious injury die 4')));
+  assert.ok(lines.some(line => /armor roll 5 \+ 5 = 10 vs base AV 9\+ · armor broken!/.test(line) && line.includes('Mighty Blow')));
+  assert.ok(lines.some(line => line.includes('Injury · Runner - injury roll 4 + 6 = 10 · badly hurt!')));
+  assert.ok(lines.some(line => line.includes('Casualty · Runner - casualty roll 3 · serious injury die 4 = broken arm!')));
   assert.ok(lines.some(line => line.includes('apothecary roll') && line.includes('casualty 2 · serious injury die 3')));
   assert.ok(lines.some(line => line.includes('tests Regeneration') && line.includes('5 vs 4+')));
-  assert.ok(lines.some(line => line.includes('argue the call') && line.includes('5 vs 5+')));
+  assert.ok(lines.some(line => line.includes('Argue the call 5 vs 5+') && line.includes('success')));
   assert.ok(lines.some(line => line.includes('bribes roll') && line.includes('2 vs 2+')));
-  assert.ok(lines.some(line => line.includes('fouling player sent off') && line.includes('under scrutiny')));
+  assert.ok(lines.some(line => line.includes('Referee has spotted the foul!') && line.includes('under scrutiny')));
   assert.ok(lines.some(line => line.includes('Secret weapon · Runner: roll 1 · sent off')));
   assert.ok(lines.some(line => line.includes('bribery and corruption re roll') && line.includes('reroll bribe')));
   assert.ok(lines.some(line => line.includes('used Team reroll.')));
-  assert.ok(lines.some(line => line.includes('rerolls block dice') && line.includes('source Brawler')));
+  assert.ok(lines.some(line => line.includes('Block dice rerolled') && line.includes('source Brawler')));
   assert.equal(lines.filter(line => line.startsWith('KO recovery · Runner')).length, 2);
+});
+
+test('logs injury parts once when native reports split armour and casualty results', () => {
+  const detailedState = { ...state(1, 4), players: [{ ...player, av: 10 }] };
+  const action: TranscriptRecord = { index: 1, revision: 1, kind: 'ACTION', actor: 'home', at: 101,
+    decision: { operation: 'action', actionId: 'block-runner' }, native: [{ commandNr: 1, reportList: { reports: [
+      { reportId: 'injury', defenderId: 'runner', armorRoll: [4, 4], armorBroken: false, armorModifiers: ['Mighty Blow'],
+        injuryRoll: [3, 5], injury: null, casualtyRoll: [5, 3], seriousInjury: 'BADLY_HURT', skipInjuryParts: 'CAS' },
+      { reportId: 'injury', defenderId: 'runner', armorRoll: [4, 4], armorBroken: false, armorModifiers: ['Mighty Blow'],
+        injuryRoll: [3, 5], injury: null, casualtyRoll: [5, 3], seriousInjury: 'BADLY_HURT', skipInjuryParts: 'EVERYTHING_BUT_CAS' }
+    ] } }], state: detailedState };
+  const lines = matchLogLines([start, action]).map(line => line.text);
+  assert.equal(lines.filter(line => line.startsWith('Armor · Runner')).length, 1);
+  assert.equal(lines.filter(line => line.startsWith('Injury · Runner')).length, 1);
+  assert.equal(lines.filter(line => line.startsWith('Casualty · Runner')).length, 1);
 });
 
 test('uses team names for kickoff choices and hides setup bookkeeping, team IDs, and placement changes', () => {
@@ -80,7 +100,7 @@ test('uses team names for kickoff choices and hides setup bookkeeping, team IDs,
     decision: { operation: 'place', playerId: 'runner', to: { x: 13, y: 6 } }, native: [], state: state(2, 13) };
   const lines = matchLogLines([start, choice, placement]).map(line => line.text);
   assert.ok(lines.includes("Bugman's Best Dugout chooses to kick."));
-  assert.ok(lines.some(line => line.startsWith('fan factor:')));
+  assert.ok(lines.some(line => line.startsWith('Team: Fan factor')));
   assert.ok(lines.every(line => !line.includes(teamId) && !line.startsWith('receive choice')
     && !line.startsWith('start half') && !line.includes('off pitch') && !line.includes('placed Runner')));
 });
@@ -97,7 +117,24 @@ test('attributes simultaneous home and away fan rolls without exposing native te
       { reportId: 'fanFactor', teamId: awayId, dedicatedFansRoll: 3 }
     ] } }] };
   const lines = matchLogLines([record]).map(line => line.text);
-  assert.ok(lines.some(line => line.includes('fan factor · Tusk Love Dugout: dedicated fans roll 1')));
-  assert.ok(lines.some(line => line.includes("fan factor · Bugman's Best Dugout: dedicated fans roll 3")));
+  assert.ok(lines.some(line => line.includes('Tusk Love Dugout (Home): Fan factor · dedicated fans 0 + roll 1')));
+  assert.ok(lines.some(line => line.includes("Bugman's Best Dugout (Away): Fan factor · dedicated fans 0 + roll 3")));
   assert.ok(lines.every(line => !line.includes(homeId) && !line.includes(awayId)));
+});
+
+test('renders fan, weather, and injury rolls as current numeric dice with concise event wording', () => {
+  const opening: TranscriptRecord = { index: 1, revision: 1, kind: 'ACTION', actor: 'home', at: 101,
+    decision: { operation: 'action', actionId: 'start-drive' }, state: state(1, 4), native: [{ commandNr: 1, reportList: { reports: [
+      { reportId: 'fanFactor', teamId: 'home', dedicatedFans: 2, dedicatedFansResult: 3, dedicatedFansRoll: 1 },
+      { reportId: 'weather', weather: 'NICE', weatherRoll: [5, 2] },
+      { reportId: 'injury', defenderId: 'runner', armorRoll: [4, 6], armorBroken: true, injuryRoll: [4, 6], injury: 'CASUALTY',
+        casualtyRoll: [8], seriousInjury: 'SERIOUS_INJURY' }
+    ] } }] };
+  const lines = matchLogLines([opening]);
+  assert.ok(lines.some(line => /Tusk Love Dugout \(Home\): Fan factor · dedicated fans 2 \+ roll 1/.test(line.text)
+    && line.dice?.kinds[0] === 'd6' && line.dice.inline));
+  assert.ok(lines.some(line => line.text === 'Weather: Nice Weather · [5 + 2 = 7].' && line.dice?.kinds.join(',') === 'd6,d6'));
+  assert.ok(lines.some(line => line.text.startsWith('Armor · Runner - armor roll')));
+  assert.ok(lines.some(line => line.text.startsWith('Injury · Runner - injury roll')));
+  assert.ok(lines.some(line => line.text.startsWith('Casualty · Runner - casualty roll') && line.dice?.kinds[0] === 'd16'));
 });

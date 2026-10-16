@@ -20,6 +20,7 @@ public class ChangeList {
 			.addBugfix("Hand Off receivers can be selected directly on the pitch and confirmed")
 			.addBugfix("BB2025 players can stand up in place and continue moving, including routes back to their starting square")
 			.addBehaviorChange("BB2025 stunned players remain stunned throughout their missed turn and recover at its end; fresh stuns wait until the next missed turn")
+			.addImprovement("Browser Game Log keeps live and settings history in sync, uses current MUTP dice for rolls, and removes paging")
 			.addImprovement("Browser dice remain visible longer and stream in labelled roll groups, keeping armour and injury easy to follow")
 			.addBugfix("Browser D16 rolls no longer briefly show scrollbars while tumbling")
 			.addImprovement("Browser D6, D8 and D16 rolls use physical polygon dice, the shared block-dice motion and diffuse backing around dice and reroll choices")

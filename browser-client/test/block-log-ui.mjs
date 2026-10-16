@@ -22,17 +22,59 @@ try {
   const movement = page.getByRole('checkbox', { name: 'Movement', exact: true }), modifiers = page.getByRole('checkbox', { name: 'Roll modifiers', exact: true });
   const publish = async input => {
     await page.evaluate(records => window.publishLogRecords(records), input.records);
-    const expected = matchLogLines(input.records).map(line => line.text).join('');
-    await page.waitForFunction(text => document.querySelector('[role="log"]').textContent === text, expected);
+    const expected = matchLogLines(input.records);
+    await page.waitForFunction(count => document.querySelectorAll('[role="log"] p').length === count, expected.length);
+    const rendered = await log.locator('p').evaluateAll(rows => rows.map(row => {
+      const copy = row.cloneNode(true);
+      copy.querySelectorAll('.polygon-die').forEach(die => die.remove());
+      copy.querySelectorAll('.match-log-dice').forEach(dice => dice.remove());
+      return { text: copy.textContent, dice: row.querySelectorAll('.polygon-die').length };
+    }));
+    for (let index = 0; index < expected.length; index++) {
+      if (!expected[index].dice) assert.equal(rendered[index].text, expected[index].text, `${input.name}: ${expected[index].text}`);
+      else assert.equal(rendered[index].dice, expected[index].dice.faces.length, `${input.name}: ${expected[index].text}`);
+    }
   };
   await log.waitFor();
   for (const input of cases) {
     await publish(input);
     const lines = matchLogLines(input.records), moments = lines.filter(line => line.dice);
-    assert.equal(await log.locator('svg.match-die').count(), moments.reduce((sum, line) => sum + line.dice.faces.length, 0), input.name);
-    assert.equal(await log.locator('svg.selected').count(), 1, input.name);
-    for (const image of await log.getByRole('img').all()) assert.match(await image.getAttribute('aria-label'), /^Ivory and cyan die: (Skull|Both down|Push|Stumble|Pow)$/);
-    const bounds = await log.locator('svg.match-die').first().boundingBox(); assert.equal(bounds.width, 22); assert.equal(bounds.height, 22);
+    assert.equal(await log.locator('.match-die').count(), moments.reduce((sum, line) => sum + line.dice.faces.length, 0), input.name);
+    assert.equal(await log.locator('.match-die.selected').count(), 1, input.name);
+    assert.equal(await log.locator('.match-die.selected').evaluateAll(dice => dice.every(die => {
+      if (getComputedStyle(die).filter !== 'none') return false;
+      const home = die.classList.contains('home-selected'), away = die.classList.contains('away-selected');
+      if (home || away) {
+        if (die.dataset.coachMarker !== undefined || die.title) return false;
+        if (getComputedStyle(die).outlineStyle === 'none') return false;
+        if (die.classList.contains('uphill-selected')) return getComputedStyle(die).outlineColor === 'rgb(228, 74, 80)';
+        return getComputedStyle(die).outlineColor === (home ? 'rgb(73, 223, 255)' : 'rgb(228, 74, 80)');
+      }
+      return getComputedStyle(die).outlineStyle === 'none';
+    })), true, `${input.name}: selected dice identify the chooser and use a clear outline`);
+    const d6 = log.locator('.numeric-die.d6').first();
+    if (await d6.count()) {
+      const markerOffset = await d6.evaluate(die => {
+        const face = die.querySelector('.block-die-side[data-result="true"]'), bounds = face.getBoundingClientRect();
+        const markers = [...face.querySelectorAll('[data-pip]')].map(marker => marker.getBoundingClientRect());
+        const center = markers.reduce((sum, marker) => sum + marker.y + marker.height / 2, 0) / markers.length;
+        return center - (bounds.y + bounds.height / 2);
+      });
+      assert.ok(markerOffset < .75 && markerOffset > -.75, `${input.name}: D6 pips are optically centered on the face (${markerOffset}px)`);
+    }
+    for (const image of await log.getByRole('img').all()) assert.match(await image.getAttribute('aria-label'), /^Ivory and cyan die: /);
+    const bounds = await log.locator('.match-die').first().boundingBox(); assert.ok(bounds.width >= 20); assert.ok(bounds.height >= 20);
+    const blockGeometry = await log.locator('.match-log-dice .block-die').first().evaluate(die => ({
+      bounds: die.getBoundingClientRect().toJSON(),
+      position: getComputedStyle(die).position,
+      cube: getComputedStyle(die.querySelector('.block-die-cube')).width,
+      mark: getComputedStyle(die.querySelector('.block-die-side svg')).transform
+    }));
+    assert.equal(blockGeometry.bounds.width, 26, `${input.name}: block die matches numeric log dice size`);
+    assert.equal(blockGeometry.bounds.height, 26, `${input.name}: block die matches numeric log dice size`);
+    assert.equal(blockGeometry.position, 'static', `${input.name}: selection outline does not shift the die`);
+    assert.equal(blockGeometry.cube, '22px', `${input.name}: block die face fills its compact log slot`);
+    assert.equal(blockGeometry.mark, 'matrix(1, 0, 0, 1, 0, -0.5)', `${input.name}: face marking is centered without moving the die`);
     await page.waitForFunction(() => [...document.querySelectorAll('.match-log-dice image')].every(image => {
       const probe = new Image(); probe.src = image.getAttribute('href'); return probe.complete && probe.naturalWidth > 0;
     }));
@@ -46,18 +88,19 @@ try {
   for (const showDebug of [false, true]) for (const showMovement of [false, true]) for (const showModifiers of [false, true]) {
     await debug.setChecked(showDebug); await movement.setChecked(showMovement); await modifiers.setChecked(showModifiers);
     const expected = matchLogLines(input.records, { debug: showDebug, movement: showMovement, rollModifiers: showModifiers });
-    assert.equal(await log.locator('svg.selected').count(), 1); assert.equal(await log.locator('p').count(), expected.length);
+    assert.equal(await log.locator('.match-die.selected').count(), 1); assert.equal(await log.locator('p').count(), expected.length);
     assert.equal(await log.locator('.match-log-debug').count() > 0, showDebug);
   }
   await debug.uncheck(); await movement.uncheck(); await modifiers.check();
-  await page.reload(); assert.equal(await log.locator('svg.selected').count(), 1); assert.equal(await debug.isChecked(), false);
+  await page.reload(); assert.equal(await log.locator('.match-die.selected').count(), 1); assert.equal(await debug.isChecked(), false);
   const records = structuredClone(input.records); while (records.length < 220) {
     const record = structuredClone(input.records.find(record => record.native.some(command => command.reportList.reports.some(report => report.reportId === 'blockChoice'))));
     record.index = records.length; record.revision = records.length; record.state.revision = records.length; record.decision = null; records.push(record);
   }
   await page.evaluate(records => window.publishLogRecords(records), records);
-  await page.waitForFunction(() => document.querySelectorAll('[role="log"] p').length === 160);
-  await page.getByRole('button', { name: 'Earlier', exact: true }).click();
-  assert.equal(await log.locator('p').count(), Math.min(320, matchLogLines(records).length)); assert.ok(await log.getByRole('img').count() > 0);
-  assert.deepEqual(errors, []); console.log(`PASS ${cases.length} native block log journeys, loaded dice artwork, chooser, skills, outcomes, all settings, reload and paging`);
+  const completeLines = matchLogLines(records);
+  await page.waitForFunction(count => document.querySelectorAll('[role="log"] p').length === count, completeLines.length);
+  assert.equal(await log.getByRole('button', { name: /Earlier|Later/ }).count(), 0);
+  assert.ok(await log.getByRole('img').count() > 0);
+  assert.deepEqual(errors, []); console.log(`PASS ${cases.length} native block log journeys, loaded dice artwork, chooser, skills, outcomes, all settings, reload and complete history`);
 } finally { await browser.close(); await server.close(); }
