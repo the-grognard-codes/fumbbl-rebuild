@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 4,
+  "commit": "1137b0c4cd625a4a7f207337d87fd734d535b59e",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/pass-workflow-ui.mjs",
+      "durationMs": 143397.00449999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-flow-ui.mjs",
+      "durationMs": 79118.8947,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-range-ui.mjs",
+      "durationMs": 41586.05739999999,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/threat-ui.mjs",
+      "durationMs": 53875.888399999996,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/confirmation-position-ui.mjs",
+      "durationMs": 51415.75289999996,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/player-action-menu-ui.mjs",
+      "durationMs": 20609.36320000002,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/playback-ui.mjs",
+      "durationMs": 27056.807100000035,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/teammate-ui.mjs",
+      "durationMs": 49382.28879999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/manual-reroll-ui.mjs",
+      "durationMs": 14458.925199999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/route-check-ui.mjs",
+      "durationMs": 42576.033600000024,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}
