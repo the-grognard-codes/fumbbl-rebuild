@@ -6,7 +6,7 @@ Expose native reactive decisions to the correct browser coach and bound each opt
 
 ## Objective
 
-Implement the inventory and behavior approved by the user on 2026-10-17. Tracking issue: [#294](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/294).
+Implement the inventory and behavior approved by the user on 2026-10-17. Tracking issue: [#294](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/294). Delivery: [PR #295](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/295), with issue closure on merge and ongoing live-play validation afterward.
 
 ## Context / Existing Behavior
 
