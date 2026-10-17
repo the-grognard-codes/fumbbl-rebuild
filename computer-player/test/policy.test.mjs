@@ -75,3 +75,20 @@ test('declines a save request and accepts a resume request from the opponent', (
   assert.deepEqual(chooseDecision({ ...base, saveResume: { status: 'RESUME_PENDING', proposalId: 'resume-1', proposer: 'home' } }),
     { operation: 'resumeAccept', proposalId: 'resume-1' });
 });
+
+
+test('reactive decisions use the owning computer coach outside the normal turn', () => {
+  const reaction = { id: 'reaction-17', actor: 'away', title: 'Use a skill?', serverNow: 1000, expiresAt: 31000 };
+  for (const kind of ['reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd', 'skill', 'reroll', 'push']) {
+    const state = { ...base, actor: 'home', reaction, actions: [action('foreign', kind, 'home'), action(`17:${kind}`, kind)] };
+    assert.deepEqual(chooseDecision(state, () => 0), { operation: 'action', actionId: `17:${kind}` });
+  }
+});
+
+test('a reaction does not permit unrelated outside-turn or foreign actions', () => {
+  const offered = { ...base, actor: 'home', actions: [action('17:use', 'reactiveSkill')] };
+  assert.equal(chooseDecision(offered), null, 'An offer alone does not grant an outside-turn decision');
+  assert.equal(chooseDecision({ ...offered, reaction: { actor: 'home' } }), null);
+  assert.equal(chooseDecision({ ...offered, reaction: { actor: 'away' }, actions: [action('foreign', 'reactiveSkill', 'home')] }), null);
+  assert.equal(chooseDecision({ ...offered, reaction: { actor: 'away' }, phase: 'FULL_TIME' }), null);
+});

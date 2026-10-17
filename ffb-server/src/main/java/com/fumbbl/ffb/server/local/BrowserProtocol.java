@@ -4,4 +4,5 @@ package com.fumbbl.ffb.server.local;
 public interface BrowserProtocol {
 	void receive(BrowserMatchAdapter.Connection connection, String text);
 	void disconnect(BrowserMatchAdapter.Connection connection);
+	default void expireDecisions() { }
 }

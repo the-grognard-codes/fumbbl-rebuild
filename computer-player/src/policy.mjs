@@ -14,7 +14,7 @@ export function chooseDecision(state, random = Math.random, actionsThisTurn = 0,
   if (state.prompt && state.prompt.actor === role) {
     return { operation: 'choice', promptId: state.prompt.id, optionId: pick(state.prompt.options, random) };
   }
-  if (state.actor !== role || state.phase === 'FULL_TIME') return null;
+  if (state.phase === 'FULL_TIME' || state.actor !== role && state.reaction?.actor !== role) return null;
   if (state.phase === 'SETUP') return setupDecision(state, setupVariant);
 
   const actions = state.actions.filter(action => action.actor === role);

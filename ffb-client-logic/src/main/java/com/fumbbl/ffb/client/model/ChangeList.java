@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Compact pitch decisions avoid covering destinations when only tighter spacing fits a small screen")
+			.addBugfix("Browser reactive skills prompt the owning coach with a server-enforced 30-second deadline and decline unanswered optional decisions")
 			.addBugfix("Browser coaches can concede retained matches from older game versions without resuming their incompatible engine")
 			.addBugfix("Match preparation stays connected while playing in another window and remains available for fifteen minutes after completion")
 			.addBugfix("Space confirms proposed player actions and end-turn warnings from the pitch and action menu")

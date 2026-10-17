@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
+import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { PolygonDie } from './PolygonDie.tsx';
 import { blockFaceLabel } from './dice-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
@@ -108,7 +109,10 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
     <div className="pitch-dice-content" style={{ maxHeight: bounds ? Math.max(1, bounds.maxHeight - 24) : undefined,
       pointerEvents: scrollable ? 'auto' : undefined }}>
-    <strong className={diceMoment || primaryFaces.length ? 'sr-only' : undefined}>{label}</strong>
+    <strong className={diceMoment || primaryFaces.length || decision?.reaction ? 'sr-only' : undefined}>{label}</strong>
+    {decision?.reaction && <><strong>{decision.title}</strong>
+      {decision.detail && <p>{decision.detail}</p>}
+      <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/></>}
     {decision?.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={decision.originalLabel ?? 'Original block dice'}>
       {decision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
         kind={decision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}

@@ -74,6 +74,14 @@ public class StepPushback extends AbstractStep {
 		return StepId.PUSHBACK;
 	}
 
+	/** Read-only targets so browser coaches can commit use and destination together. */
+	public PushbackSquare[] sideStepChoices() {
+		return UtilServerPushback.findPushbackSquares(getGameState().getGame(), state.startingPushbackSquare,
+			com.fumbbl.ffb.PushbackMode.SIDE_STEP);
+	}
+
+	public boolean hasSelectedSideStep(String playerId) { return Boolean.TRUE.equals(state.sideStepping.get(playerId)); }
+
 	@Override
 	public void start() {
 		super.start();

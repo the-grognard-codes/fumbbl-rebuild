@@ -22,6 +22,7 @@ public class BrowserMatchServlet extends JettyWebSocketServlet implements JettyW
 		this.policy = adapter instanceof BrowserV2Adapter ? new BrowserV2TransportPolicy(server.getProperty("server.base"),
 			server.getProperty("local.browser.v2.proxy.profile")) : null;
 		this.transport = new BrowserMatchTransport(server);
+		this.transport.startDecisionChecks(adapter);
 	}
 
 	@Override

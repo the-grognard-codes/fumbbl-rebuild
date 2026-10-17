@@ -7,7 +7,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception']);
+const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
 function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');

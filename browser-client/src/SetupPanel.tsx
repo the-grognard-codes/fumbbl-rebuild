@@ -6,6 +6,7 @@ import { PlayerHoverCard } from './PlayerHoverCard.tsx';
 import { GameMenu } from './GameMenu.tsx';
 import { useThreatPreferences } from './use-threat-preferences.ts';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
+import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { MatchDecisionDialog } from './MatchDecisionDialog.tsx';
 import { MatchHistory } from './MatchHistory.tsx';
 import type { TranscriptRecord } from './transcript-protocol.ts';
@@ -263,7 +264,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const saved = view.saveResume;
   const suspended = saved?.status === 'SUSPENDED' || saved?.status === 'RESUME_PENDING';
   const maySetup = connected && !pending && !suspended && view.phase === 'SETUP' && view.actor === view.callerRole;
-  const availableActions = view.actions.filter(action => action.actor === view.callerRole) ?? [];
+  const availableActions = view.actions.filter(action => action.actor === view.callerRole
+    && (!view.reaction || view.reaction.actor === view.callerRole));
   const draggableIds = new Set(connected && !pending && !suspended && !playbackActive && hosted
     ? view.players.filter(player => canDragSetupPlayer(view, player, availableActions)).map(player => player.id) : []);
   const reserveDropIds = new Set([...draggableIds].filter(id => canDropSetupPlayer(view, id, null)));
@@ -281,9 +283,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => { rangeRequest.current?.(rangePlayerId); }, [rangePlayerId, view.matchId, view.revision]);
   const originalRange = rangePlayerId && matchesMovementRange(movementRange, view, rangePlayerId) ? movementRange : null;
   const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
-    : !kickoff && !kickoffMovement && !hitAndRun && availableActions.length > 0;
+    : !kickoff && !kickoffMovement && !hitAndRun && !view.reaction && availableActions.length > 0;
   const gameStep = currentGameStep(pitchView);
-  const pitchActions = kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
+  const pitchActions = view.reaction ? availableActions : kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions;
   const menuPlayerId = selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '';
   const menuItems = playerActionMenu(view, menuPlayerId);
@@ -368,6 +370,19 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setMovementIntent(null); requestMovementPreview?.(null);
   };
   const selectPlayer = (id: string) => {
+    if (view.reaction) {
+      const choices = availableActions.filter(action => action.kind === 'reactiveSkill' && action.target && 'playerId' in action.target && action.target.playerId === id);
+      if (canChoose && choices.length === 1) { mutate('action', { actionId: choices[0].id }); return; }
+      if (canChoose && availableActions.some(action => action.kind === 'reactionMove' && action.sourcePlayerId === id)) {
+        setPlayerId(id); setActionId(''); setTargetFocus('player'); return;
+      }
+      if (choices.length > 1) return; // The labelled dialog choices disambiguate the native commands.
+      const recipient = view.players.find(player => player.id === id);
+      if (recipient?.x != null && recipient.y != null && availableActions.some(action => action.kind === 'reactiveSquare'
+        && action.target && 'x' in action.target && action.target.x === recipient.x && action.target.y === recipient.y)) {
+        selectSquare(recipient.x, recipient.y); return;
+      }
+    }
     setMenuChoices([]);
     const kickOccupant = view.players.find(player => player.id === id);
     if (view.phase === 'READY_FOR_KICKOFF' && kickOccupant?.x != null && kickOccupant.y != null) {
@@ -493,6 +508,13 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const selectSquare = (column: number, row: number) => {
+    if (view.reaction) {
+      const choices = availableActions.filter(action => ['reactiveSquare', 'reactionMove', 'reactiveSkill', 'push'].includes(action.kind)
+        && (action.kind !== 'reactionMove' || action.sourcePlayerId === playerId)
+        && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
+      if (canChoose && choices.length === 1) mutate('action', { actionId: choices[0].id });
+      return;
+    }
     if (hitAndRun) {
       const choice = pushChoices.find(choice => choice.action.kind === 'hitAndRun' && choice.x === column && choice.y === row);
       if (canChoose && choice) mutate('action', { actionId: choice.action.id });
@@ -787,7 +809,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
       </div>}
       {hosted && <div className="match-command-bar" aria-label="Current decision">
-        {view.phase === 'SETUP' || hitAndRun ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
+        {view.reaction ? !decision && !playbackActive ? <div className="reaction-status" role="status">
+          <strong>{view.reaction.title}</strong>{view.reaction.detail && <p>{view.reaction.detail}</p>}
+          <p>Waiting for {matchTeamName(view, view.reaction.actor)}.</p>
+          {view.callerRole !== 'spectator' && <ReactionCountdown reaction={view.reaction} matchId={view.matchId}/>}
+        </div> : null : view.phase === 'SETUP' || hitAndRun ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
           <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
           <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
             aria-pressed={selected} disabled={!canChoose} onClick={() => {

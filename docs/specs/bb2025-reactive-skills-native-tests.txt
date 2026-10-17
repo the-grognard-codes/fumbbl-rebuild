@@ -1,0 +1,11 @@
+**/BrowserChoiceTest.java
+**/OnTheBallMechanicTest.java
+**/OnTheBallPassBlockIntegrationTest.java
+**/OnTheBallSkillTest.java
+**/PassRangeProjectionTest.java
+**/RecipientProjectionTest.java
+**/RecoveryScenariosTest.java
+**/RecoverySessionTest.java
+**/SetupSessionTest.java
+**/ShadowingTest.java
+**/SpectatorProjectionTest.java

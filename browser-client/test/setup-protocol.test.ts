@@ -82,7 +82,7 @@ test('decodes server-issued play actions and board state', () => {
   assert.equal(decoded.actions[0].kind, 'kickoff'); assert.deepEqual(decoded.ball, { x: 12, y: 7 }); assert.equal(decoded.players[0].state, 'standing');
 });
 test('accepts broadcasts and validates prompt option shape', () => { const broadcast = { ...response, requestId: null, state: { ...state, prompt: { id: 'coin-1', actor: 'away', kind: 'coin', options: ['heads','tails'] } } }; assert.equal(decodeSetupState(JSON.stringify(broadcast)).state?.prompt?.kind, 'coin'); assert.throws(() => decodeSetupState(JSON.stringify({ ...broadcast, state: { ...broadcast.state, prompt: { ...broadcast.state.prompt, options: ['heads','kick'] } } }))); });
-test('fails closed for unknown fields, illegal coordinates, and rejected state payloads', () => { assert.throws(() => decodeSetupState(JSON.stringify({ ...response, extra: true }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, players: [{ ...state.players[0], x: 26 }] } }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'STALE_REVISION' }))); });
+test('fails closed for unknown fields, illegal coordinates, and rejected state payloads', () => { assert.throws(() => decodeSetupState(JSON.stringify({ ...response, extra: true }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, players: [{ ...state.players[0], x: 26 }] } }))); assert.throws(() => decodeSetupState(JSON.stringify({ ...response, code: 'WRONG_ACTOR' }))); });
 test('rejects malformed server action and gameplay fields', () => {
   assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, actions: [{ id: '', label: 'End turn', actor: 'home', kind: 'endTurn' }] } })));
   assert.throws(() => decodeSetupState(JSON.stringify({ ...response, state: { ...state, actions: [{ id: 'a', label: 'End turn', actor: 'spectator', kind: 'endTurn' }] } })));
@@ -126,4 +126,15 @@ test('frozen team art is a paired optional v4 identity even with no pitch player
   assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt, awayTeamArt: { ...awayTeamArt, secret: 1 } }));
   assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt: { ...homeTeamArt, league: '' }, awayTeamArt }));
   assert.throws(() => decodeSetupStateValue({ ...state, homeTeamArt, awayTeamArt }));
+});
+
+
+test('stale revision replies may carry the authoritative timeout state without becoming duplicate success', () => {
+  const stale = { ...response, code: 'STALE_REVISION', state: { ...state, revision: state.revision + 1 } };
+  assert.equal(decodeSetupState(JSON.stringify(stale)).state?.revision, state.revision + 1);
+  assert.equal(decodeSetupState(JSON.stringify({ ...stale, state: null })).state, null);
+  for (const snapshot of [stale.state, null])
+    assert.throws(() => decodeSetupState(JSON.stringify({ ...stale, state: snapshot, duplicate: true })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...stale, state: { ...stale.state, privateDecision: true } })));
+  assert.throws(() => decodeSetupState(JSON.stringify({ ...stale, setupErrors: ['not a setup failure'] })));
 });

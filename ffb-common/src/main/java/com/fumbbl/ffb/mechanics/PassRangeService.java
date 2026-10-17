@@ -30,6 +30,6 @@ public class PassRangeService {
 			return false;
 		}
 		PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
-		return mechanic.findPassingDistance(game, throwerCoordinate, targetCoordinate, false) != null;
+		return mechanic.isInRange(game, thrower, targetCoordinate, throwerAction);
 	}
 }

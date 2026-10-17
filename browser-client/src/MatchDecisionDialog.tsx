@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
+import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { PolygonDie } from './PolygonDie.tsx';
 import './match-decision.css';
 
@@ -13,7 +14,7 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
-  const centeredPitchDecision = ['followUp', 'hitAndRun'].includes(decision.kind);
+  const centeredPitchDecision = ['followUp', 'hitAndRun', 'reaction'].includes(decision.kind);
   const nonModal = centeredPitchDecision || decision.kind === 'kickSkill';
   useEffect(() => {
     const element = dialog.current;
@@ -22,19 +23,24 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
     const prior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (nonModal) element.show();
     else element.showModal();
-    const scene = centeredPitchDecision ? document.querySelector('.live-marker.active')?.closest('.live-pitch-scene') : null;
+    const scene = centeredPitchDecision ? document.querySelector(decision.kind === 'reaction' ? '.live-marker.target' : '.live-marker.active')?.closest('.live-pitch-scene')
+      ?? document.querySelector('.live-pitch-scene') : null;
     const positionPitchDecision = () => {
       if (!centeredPitchDecision) return;
       const prompt = element.getBoundingClientRect(), center = window.innerHeight / 2;
       const left = (window.innerWidth - prompt.width) / 2, right = left + prompt.width;
-      const obstacles = [...(scene?.querySelectorAll('.live-marker.active, .live-follow-up-preview, .live-hit-and-run-choice') ?? [])]
+      const selectors = '.live-marker.active, .live-follow-up-preview, .live-hit-and-run-choice'
+        + (decision.kind === 'reaction' ? ', .live-marker.target, .live-target-square, .live-push-choice' : '');
+      const obstacles = [...(scene?.querySelectorAll(selectors) ?? [])]
         .filter(marker => getComputedStyle(marker).visibility !== 'hidden')
         .map(marker => marker.getBoundingClientRect())
         .filter(box => box.right > left - 8 && box.left < right + 8);
-      const fits = (y: number) => y - prompt.height / 2 >= 8 && y + prompt.height / 2 <= window.innerHeight - 8
-        && obstacles.every(box => y + prompt.height / 2 <= box.top - 8 || y - prompt.height / 2 >= box.bottom + 8);
-      const candidates = [center, ...obstacles.flatMap(box => [box.top - 8 - prompt.height / 2, box.bottom + 8 + prompt.height / 2])];
-      const top = candidates.filter(fits).sort((a, b) => Math.abs(a - center) - Math.abs(b - center))[0] ?? center;
+      const fits = (y: number, gap: number) => y - prompt.height / 2 >= 8 && y + prompt.height / 2 <= window.innerHeight - 8
+        && obstacles.every(box => y + prompt.height / 2 <= box.top - gap || y - prompt.height / 2 >= box.bottom + gap);
+      const positionWithGap = (gap: number) => [center, ...obstacles.flatMap(box =>
+        [box.top - gap - prompt.height / 2, box.bottom + gap + prompt.height / 2])]
+        .filter(y => fits(y, gap)).sort((a, b) => Math.abs(a - center) - Math.abs(b - center))[0];
+      const top = positionWithGap(8) ?? positionWithGap(0) ?? center;
       element.style.top = `${top}px`;
     };
     positionPitchDecision();
@@ -49,9 +55,11 @@ export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onA
       element.style.removeProperty('top'); element.close(); if (prior?.isConnected) prior.focus();
     };
   }, [decision.key]);
-  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${decision.kind === 'apothecary' ? 'apothecary-decision' : ''} ${nonModal ? 'compact' : ''} ${centeredPitchDecision ? `${decision.kind === 'followUp' ? 'follow-up' : 'hit-and-run'} center` : activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
+  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${decision.kind === 'apothecary' ? 'apothecary-decision' : ''} ${nonModal ? 'compact' : ''} ${centeredPitchDecision ? `${decision.kind === 'reaction' ? 'reaction' : decision.kind === 'followUp' ? 'follow-up' : 'hit-and-run'} center` : activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
     aria-label="Match decision" aria-modal={!nonModal} onCancel={event => event.preventDefault()}>
     <h2>{decision.title}</h2>
+    {decision.detail && <p>{decision.detail}</p>}
+    {decision.reaction && <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/>}
     {decision.playerName && <p className="apothecary-player">{decision.playerName}</p>}
     {decision.instruction && <p>{decision.instruction}</p>}
     <div className="match-decision-options">{decision.options.map(option => <button key={option.id} type="button" disabled={disabled}
