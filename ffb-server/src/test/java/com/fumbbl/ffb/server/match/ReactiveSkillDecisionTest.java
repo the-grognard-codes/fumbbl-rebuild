@@ -127,15 +127,27 @@ class ReactiveSkillDecisionTest {
         ReactiveDecision decision = new ReactiveDecision(); ReactiveSkillActions catalog = new ReactiveSkillActions();
         decision.refresh(state, catalog.actions(state, Collections.emptySet()), 1, 1000);
         String movementId = decision.id();
+        assertEquals(0, state.getTurnTimeStarted(), "The normal clock pauses during the opponent's movement");
         Player<?> reactor = game.getTeamHome().getPlayers()[0];
         game.setDialogParameter(new DialogPlayerChoiceParameter(game.getTeamHome().getId(), PlayerChoiceMode.TENTACLES, new Player<?>[] {reactor}, null, 1));
         decision.refresh(state, catalog.actions(state, Collections.emptySet()), 2, 12_000);
         assertEquals("home", decision.actor()); assertEquals(42_000, decision.publicJson(12_000).getLong("expiresAt", -1));
+        assertTrue(state.getTurnTimeStarted() > 0, "The normal turn coach's nested choice consumes normal turn time");
+        assertFalse(decision.checkpoint().getBoolean("paused", true));
         ReactiveDecision recovered = new ReactiveDecision(); recovered.restore(decision.checkpoint());
+        String tentaclesId = recovered.id();
+        recovered.refresh(state, catalog.actions(state, Collections.emptySet()), 3, 17_000);
+        assertEquals(tentaclesId, recovered.id()); assertEquals(42_000, recovered.publicJson(17_000).getLong("expiresAt", -1));
+        game.setDialogParameter(new DialogPlayerChoiceParameter(game.getTeamHome().getId(), PlayerChoiceMode.DIVING_TACKLE, new Player<?>[] {reactor}, null, 1));
+        recovered.refresh(state, catalog.actions(state, Collections.emptySet()), 4, 20_000);
+        assertFalse(tentaclesId.equals(recovered.id()), "A different nested skill receives its own activation");
+        assertEquals(50_000, recovered.publicJson(20_000).getLong("expiresAt", -1));
+        ReactiveDecision nextRecovered = new ReactiveDecision(); nextRecovered.restore(recovered.checkpoint());
         game.setDialogParameter(null);
-        recovered.refresh(state, catalog.actions(state, Collections.emptySet()), 3, 22_000);
-        assertEquals("away", recovered.actor()); assertEquals(movementId, recovered.id());
-        assertEquals(41_000, recovered.publicJson(22_000).getLong("expiresAt", -1));
+        nextRecovered.refresh(state, catalog.actions(state, Collections.emptySet()), 5, 22_000);
+        assertEquals("away", nextRecovered.actor()); assertEquals(movementId, nextRecovered.id());
+        assertEquals(41_000, nextRecovered.publicJson(22_000).getLong("expiresAt", -1));
+        assertEquals(0, state.getTurnTimeStarted(), "The normal clock pauses when the opponent resumes movement");
     }
 
     @Test void idleServerDeadlineDeclinesAndPublishesWithoutAnyCoachRequest() throws Exception {

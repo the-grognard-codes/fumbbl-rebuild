@@ -102,7 +102,8 @@ final class ReactiveDecision {
         String teamId = "home".equals(nextActor) ? game.getTeamHome().getId() : game.getTeamAway().getId();
         boolean selectedPlayer = key != null && key.endsWith(":" + teamId) && stem(key).equals(stem(nextKey));
         boolean sameChoice = key != null && (normalize(key).equals(normalize(nextKey)) || selectedPlayer);
-        boolean keep = key != null && (sequence || sameChoice && actor.equals(nextActor) && (step == null || step == state.getCurrentStep()));
+        boolean keep = key != null && actor.equals(nextActor) && (sequence && interruptedMovement == null
+            || sameChoice && (step == null || step == state.getCurrentStep()));
         if (!keep) {
             JsonObject movement = interruptedMovement;
             long remaining = movementRemainingMs;
@@ -120,11 +121,11 @@ final class ReactiveDecision {
         title = nextTitle;
         detail = (player == null ? "" : player.getName() + ". ") + nextDetail;
         step = state.getCurrentStep();
-        boolean opponent = !actor.equals(normalHome ? "home" : "away") || onTheBall || dumpOff || trickster;
+        boolean opponent = !actor.equals(normalHome ? "home" : "away") || dumpOff || trickster;
         if (opponent) { UtilServerTimer.stopTurnTimer(state, now); paused = true; }
         else {
             UtilServerTimer.startTurnTimer(state, now);
-            if (placing && state.getTurnTimeStarted() == 0) state.setTurnTimeStarted(now - game.getTurnTime());
+            if (state.getTurnTimeStarted() == 0) state.setTurnTimeStarted(now - game.getTurnTime());
             paused = false;
         }
     }
