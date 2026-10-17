@@ -117,14 +117,14 @@ public class DivingTackleBehaviour extends SkillBehaviour<DivingTackle> {
 									}
 								}
 
-								promptForDT(game, step, divingTacklers, descriptions, state);
+								promptForDT(game, step, divingTacklers, descriptions, state, minimumRollWithCurrentModifiers);
 							} else if (!DiceInterpreter.getInstance().isSkillRollSuccessful(state.dodgeRoll,
 								minimumRollWithoutBreakTackle)) {
 								// Ask if Diving tackle is going to be used strictly to trigger Break Tackle.
 								// The dodge will still succeed.
 								descriptions = new String[]{
 									"This will NOT trip the dodger, but will force the use of BREAK TACKLE."};
-								promptForDT(game, step, divingTacklers, descriptions, state);
+								promptForDT(game, step, divingTacklers, descriptions, state, minimumRollWithCurrentModifiers);
 							} else {
 								step.getResult().addReport(new ReportSkillUse(null, skill, false, SkillUse.WOULD_NOT_HELP));
 							}
@@ -175,10 +175,15 @@ public class DivingTackleBehaviour extends SkillBehaviour<DivingTackle> {
 				return DiceInterpreter.getInstance().isSkillRollSuccessful(state.dodgeRoll, requiredRoll);
 			}
 
-			private void promptForDT(Game game, StepDivingTackle step, Player<?>[] divingTacklers, String[] descriptions, StepState state) {
+			private void promptForDT(Game game, StepDivingTackle step, Player<?>[] divingTacklers, String[] descriptions, StepState state, int minimumRoll) {
+				String effect = "Opponent's required dodge roll becomes " + DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(minimumRoll) + "+, rolled " + state.dodgeRoll + ".";
+				String[] contextualDescriptions = new String[divingTacklers.length];
+				for (int index = 0; index < contextualDescriptions.length; index++) {
+					contextualDescriptions[index] = effect + (descriptions == null || descriptions.length == 0 ? "" : " " + descriptions[Math.min(index, descriptions.length - 1)]);
+				}
 				String teamId = game.isHomePlaying() ? game.getTeamAway().getId() : game.getTeamHome().getId();
 				UtilServerDialog.showDialog(step.getGameState(), new DialogPlayerChoiceParameter(teamId,
-					PlayerChoiceMode.DIVING_TACKLE, divingTacklers, descriptions, 1), true);
+					PlayerChoiceMode.DIVING_TACKLE, divingTacklers, contextualDescriptions, 1), true);
 				state.usingDivingTackle = null;
 			}
 

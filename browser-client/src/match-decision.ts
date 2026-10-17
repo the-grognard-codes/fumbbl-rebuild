@@ -1,4 +1,4 @@
-import type { SetupAction, SetupState } from './setup-protocol.ts';
+import type { Reaction, SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices } from './push-choice.ts';
 import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
@@ -6,7 +6,7 @@ import type { PresentedRoll } from './dice-presentation.ts';
 
 export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
-  playerName?: string; instruction?: string;
+  playerName?: string; instruction?: string; detail?: string; reaction?: Reaction & { matchId: string };
   originalFaces?: string[]; originalRolls?: PresentedRoll[]; originalLabel?: string; uphill?: boolean;
   proTest?: { face: string; successful: boolean; rollKey?: string } };
 
@@ -35,7 +35,7 @@ const promptTitles: Record<string, string> = {
 const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
-export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
+function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
   if (view.callerRole === 'spectator') return null;
   const ownActions = actions.filter(action => action.actor === view.callerRole);
   if (view.prompt?.actor === view.callerRole) return {
@@ -88,4 +88,20 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
         : 'Accept the injury to save your apothecary, or use an available apothecary.' };
   }
   return { title: promptTitles[kind], key: `${view.revision}:${kind}`, kind, options: grouped };
+}
+
+/** Reaction metadata accompanies native choices without changing their rules or commands. */
+export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
+  const decision = nativeDecision(view, actions);
+  const reaction = view.reaction;
+  if (!reaction) return decision;
+  if (view.callerRole !== reaction.actor) return null;
+  const offered = actions.filter(action => action.actor === reaction.actor);
+  const reactive = offered.filter(action => ['reactiveSkill', 'reactionEnd'].includes(action.kind));
+  const base = decision ?? { title: reaction.title, key: `reaction:${reaction.id}`, kind: 'reaction',
+    instruction: offered.some(action => action.kind === 'reactionMove') ? 'Select a player, then a highlighted destination.'
+      : offered.some(action => ['reactiveSquare', 'push'].includes(action.kind)) ? 'Choose a highlighted square on the pitch.' : undefined,
+    options: reactive.map(action => ({ id: action.id, label: action.label, kind: 'action' as const })) };
+  return { ...base, ...(base.kind === 'push' ? { kind: 'reaction', instruction: 'Choose a highlighted square on the pitch.' } : {}),
+    title: reaction.title, detail: reaction.detail, reaction: { ...reaction, matchId: view.matchId } };
 }
