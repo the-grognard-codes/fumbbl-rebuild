@@ -24,6 +24,7 @@ public class BrowserMatchTransport {
 	private final Set<BrowserMatchSocket> sockets = Collections.newSetFromMap(new ConcurrentHashMap<BrowserMatchSocket, Boolean>());
 	private final FantasyFootballServer server;
 	private final AtomicBoolean stopped = new AtomicBoolean();
+	private final AtomicBoolean deadlineCheckQueued = new AtomicBoolean();
 	private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor(work -> {
 		Thread thread = new Thread(work, "browser-match-write-watchdog");
 		thread.setDaemon(true);
@@ -43,6 +44,24 @@ public class BrowserMatchTransport {
 		boolean admitted = !stopped.get() && connections.tryAcquire();
 		if (!admitted) metrics.admissionRejected();
 		return admitted;
+	}
+
+	/** Wall-clock scheduling only; native decisions and publication stay on the engine worker. */
+	void startDecisionChecks(BrowserProtocol adapter) {
+		watchdog.scheduleWithFixedDelay(() -> queueDecisionCheck(adapter), 1, 1, TimeUnit.SECONDS);
+	}
+
+	void queueDecisionCheck(BrowserProtocol adapter) {
+		if (stopped.get() || !deadlineCheckQueued.compareAndSet(false, true)) return;
+		try {
+			boolean queued = server.getCommunication().execute(() -> {
+				try { if (!stopped.get()) adapter.expireDecisions(); }
+				finally { deadlineCheckQueued.set(false); }
+			});
+			if (!queued) deadlineCheckQueued.set(false);
+		} catch (RuntimeException unavailable) {
+			deadlineCheckQueued.set(false); // A transient enqueue failure must not cancel future deadline checks.
+		}
 	}
 
 	synchronized boolean connected(BrowserMatchSocket socket) {

@@ -133,6 +133,13 @@ public class PassMechanic extends com.fumbbl.ffb.mechanics.PassMechanic {
 	}
 
 	@Override
+	public boolean isInRange(Game game, Player<?> thrower, FieldCoordinate target, PlayerAction action) {
+		if (action == PlayerAction.DUMP_OFF)
+			return super.findPassingDistance(game, game.getFieldModel().getPlayerCoordinate(thrower), target, false) == PassingDistance.QUICK_PASS;
+		return super.isInRange(game, thrower, target, action);
+	}
+
+	@Override
 	public PassingDistance findPassingDistance(Game game, FieldCoordinate fromCoordinate, FieldCoordinate toCoordinate, boolean throwTeamMate) {
 		PassingDistance distance = super.findPassingDistance(game, fromCoordinate, toCoordinate, throwTeamMate);
 		PlayerAction action = game.getActingPlayer().getPlayerAction();

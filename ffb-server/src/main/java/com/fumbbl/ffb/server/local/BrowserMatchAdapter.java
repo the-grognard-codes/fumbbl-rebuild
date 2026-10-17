@@ -107,6 +107,18 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 		if (fixture != Fixture.MOVEMENT) pendingChoice = readChoice();
 	}
 
+	@Override public synchronized void expireDecisions() {
+		if (setup == null) return;
+		for (String id : setup.expireReactiveDecisions().keySet()) {
+			for (Map.Entry<Connection, String> entry : setupSubscriptions.entrySet()) {
+				if (!id.equals(entry.getValue()) || !actors.containsKey(entry.getKey())) continue;
+				JsonObject load = new JsonObject().add("version", 1).add("type", "setup").add("operation", "load")
+					.add("requestId", "deadline").add("matchId", id);
+				entry.getKey().send(setup.handle(actors.get(entry.getKey()), load).set("requestId", JsonValue.NULL).toString());
+			}
+		}
+	}
+
 	public synchronized void receive(Connection connection, String text) {
 		JsonObject message;
 		String requestId = null;

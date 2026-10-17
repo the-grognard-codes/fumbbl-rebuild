@@ -2,6 +2,7 @@ package com.fumbbl.ffb.mechanics;
 
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PassingDistance;
+import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.ReRolledAction;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.PassingDistanceFactory;
@@ -71,6 +72,11 @@ public abstract class PassMechanic implements Mechanic {
 			}
 		}
 		return passingDistance;
+	}
+
+	/** Ruleset-specific range restrictions shared by native validation and browser offers. */
+	public boolean isInRange(Game game, Player<?> thrower, FieldCoordinate target, PlayerAction action) {
+		return findPassingDistance(game, game.getFieldModel().getPlayerCoordinate(thrower), target, false) != null;
 	}
 
 	public abstract int passModifiers(Game game, Player<?> player);

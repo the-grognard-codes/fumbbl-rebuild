@@ -92,6 +92,9 @@ public final class SetupSession {
 	private SaveResumeState saveResumeState;
 	private long homeReserveUsedMs;
 	private long awayReserveUsedMs;
+	private final ReactiveDecision reactiveDecision = new ReactiveDecision();
+	private boolean expiringReaction;
+	private boolean reactiveSequencing = true;
 	private static final long TURN_ALLOWANCE_MS = 120_000L;
 	private static final long RESERVE_ALLOWANCE_MS = 600_000L;
 
@@ -173,6 +176,7 @@ public final class SetupSession {
 		((StartGame) factory.forName(SequenceGenerator.Type.StartGame.name()))
 			.pushSequence(new SequenceGenerator.SequenceParams(state));
 		state.startNextStep();
+		refreshReaction(System.currentTimeMillis());
 		assertSupported();
 		recordEvent("START", "system", JsonValue.NULL);
 	}
@@ -190,6 +194,13 @@ public final class SetupSession {
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			JsonValue savedReaction = payload.get("reactiveDecision");
+			if (savedReaction != null) payload.remove("reactiveDecision");
+			JsonValue reactionVersion = payload.get("reactionVersion");
+			if (reactionVersion != null) {
+				if (reactionVersion.asInt() != 1) throw new IllegalArgumentException("Unsupported reaction version");
+				payload.remove("reactionVersion");
+			}
 			int recoveryVersion = payload.getInt("recoveryVersion", -1);
 			String runtime = payload.getString("runtimeVersion", null);
 			boolean r2 = recoveryVersion == 2 && (LEGACY_RUNTIME.equals(runtime) || DEFAULT_SETUP_RUNTIME.equals(runtime));
@@ -255,6 +266,7 @@ public final class SetupSession {
 			// Existing checkpoints may retain either iteration order for native sets.
 			JsonObject nativeSnapshot = new RecoveryNativeJson().normalize(payload.get("native").asObject());
 			state.initFrom(server.getFactorySource(), nativeSnapshot);
+			if (savedReaction != null && !savedReaction.isNull()) reactiveDecision.restore(savedReaction.asObject());
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
 			if (r53 && payload.get("clock") != null) {
@@ -322,10 +334,13 @@ public final class SetupSession {
 			if (!ordered(recoveryNative()).equals(payload.get("native"))) throw new IllegalArgumentException("Native state did not round-trip");
 			// Validate old checkpoints using their original action projection before offering the new flow.
 			activationSequencing = activationVersion != null;
+			reactiveSequencing = reactionVersion != null;
 			if (!matchesRecoveredView(payload.get("homeView").asObject(), "home")
 				|| !matchesRecoveredView(payload.get("awayView").asObject(), "away"))
 				throw new IllegalArgumentException("Recovered decision differs");
 			activationSequencing = true;
+			reactiveSequencing = true;
+			refreshReaction(System.currentTimeMillis());
 		} catch (MatchService.Failure failure) { throw failure; }
 		catch (RuntimeException invalid) { throw new MatchService.Failure("RECOVERY_CORRUPT"); }
 	}
@@ -350,6 +365,8 @@ public final class SetupSession {
 			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
 			.add("eventsJson", events.toString()).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
+		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
+		payload.add("reactionVersion", 1);
 		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.json())
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
@@ -416,6 +433,7 @@ public final class SetupSession {
 	}
 
 	public boolean isFailed() { return failed; }
+	String checkpointOwner() { return document.home.owner; }
 
 	/** Called while staging a new r4.1 checkpoint, before activation is acknowledged. */
 	public void startSaveResumeRetention(long now) {
@@ -529,6 +547,8 @@ public final class SetupSession {
 	public JsonObject decorateSaveResumeState(JsonObject state) {
 		if (saveResume) state.add("saveResume", saveResumeState.publicJson());
 		if (chatV1) state.add("clock", clockProjection());
+		JsonObject reaction = reactiveDecision.publicJson(System.currentTimeMillis());
+		if (reaction != null && state.getInt("revision", -1) == revision) state.add("reaction", reaction);
 		if (state.getInt("projectionVersion", -1) == 4 && state.getInt("revision", -1) == revision
 			&& "PLAY".equals(state.getString("phase", null))
 			&& state.getString("actor", "").equals(state.getString("callerRole", null))
@@ -542,18 +562,23 @@ public final class SetupSession {
 	private JsonObject clockProjection() {
 		Game game = state.getGame();
 		long started = state.getTurnTimeStarted();
-		boolean running = !isComplete() && game.isTurnTimeEnabled() && started > 0;
+		boolean running = !isComplete() && started > 0 && (game.isTurnTimeEnabled() || reactiveDecision.pending());
 		long now = saveResume && saveResumeState.suspended() ? saveResumeState.suspendedAt : System.currentTimeMillis();
-		long elapsed = running ? Math.max(0L, now - started) : 0L;
+		long elapsed = running ? Math.max(0L, now - started) : Math.max(0L, game.getTurnTime());
 		long excess = Math.max(0L, elapsed - TURN_ALLOWANCE_MS);
-		boolean home = game.isHomePlaying();
+		boolean home = reactiveDecision.pending() ? reactiveDecision.normalHome() : game.isHomePlaying();
 		return new JsonObject().add("activeRole", running ? JsonValue.valueOf(home ? "home" : "away") : JsonValue.NULL)
-			.add("turnElapsedMs", elapsed)
-			.add("homeReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - homeReserveUsedMs - (running && home ? excess : 0L)))
-			.add("awayReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - awayReserveUsedMs - (running && !home ? excess : 0L)));
+			.add("turnElapsedMs", running ? elapsed : 0L)
+			.add("homeReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - homeReserveUsedMs - (home ? excess : 0L)))
+			.add("awayReserveMs", Math.max(0L, RESERVE_ALLOWANCE_MS - awayReserveUsedMs - (!home ? excess : 0L)));
 	}
 
 	public JsonObject apply(String role, JsonObject request) {
+		return apply(role, request, System.currentTimeMillis());
+	}
+
+	JsonObject apply(String role, JsonObject request, long decisionTime) {
+		if (!expiringReaction) expireReactiveDecision(decisionTime);
 		String id = request.getString("requestId", null);
 		String key = role + "\n" + id;
 		String fingerprint = canonical(request);
@@ -574,6 +599,7 @@ public final class SetupSession {
 		if (!"action".equals(request.getString("operation", null)) && !"concede".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
 		String operation = request.getString("operation", null);
 		ClientCommand command;
+		Action reactionAction = null;
 		Player<?> swapTarget = null;
 		FieldCoordinate swapOrigin = null;
 		FieldCoordinate swapBuffer = null;
@@ -626,6 +652,7 @@ public final class SetupSession {
                 movement = narrative.movement(revision, movingId, game.getFieldModel().getPlayerCoordinate(game.getPlayerById(movingId)));
             }
             command = selected.command;
+			reactionAction = selected;
             if (command == null) {
                 if (!selected.id.startsWith("event-pick:")) throw new MatchService.Failure("INVALID_OPTION");
                 String player = selected.id.substring("event-pick:".length());
@@ -700,9 +727,11 @@ public final class SetupSession {
 			command = new ClientCommandEndTurn(TurnMode.SETUP, null);
 		} else throw new MatchService.Failure("INVALID_REQUEST");
 		int oldHalf = game.getHalf();
-		int oldTurn = game.getTurnData().getTurnNr();
+		int oldHomeTurn = game.getTurnDataHome().getTurnNr(), oldAwayTurn = game.getTurnDataAway().getTurnNr();
 		long oldTurnStarted = state.getTurnTimeStarted();
 		boolean oldHomePlaying = game.isHomePlaying();
+		boolean normalHomePlaying = reactiveDecision.pending() ? reactiveDecision.normalHome() : oldHomePlaying;
+		long oldElapsed = oldTurnStarted > 0 ? Math.max(0L, System.currentTimeMillis() - oldTurnStarted) : game.getTurnTime();
 		int oldScore = homeScore() + awayScore();
 		StepId oldStep = step();
 		String oldActor = actor();
@@ -733,24 +762,29 @@ public final class SetupSession {
 					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
 						swapTarget.getId(), home ? swapOrigin : swapOrigin.transform()), home));
 				}
-				if (routeV2) {
+				if (routeV2 && (reactionAction == null || !reactionAction.kind.startsWith("reaction") && !reactionAction.kind.startsWith("reactive"))) {
 					if (!new PlayerActivation(state).handle(command, role))
 						pendingActivation = new PendingActivation(role, (ClientCommandActingPlayer) command, game);
 				}
 				else state.handleCommand(new ReceivedCommand(command, "home".equals(role)));
+				if (reactionAction != null && reactionAction.id.startsWith("reaction-use:")) {
+					ClientCommand continuation = new ReactiveSkillActions().continuation(state, reactionAction);
+					state.handleCommand(new ReceivedCommand(continuation, "home".equals(role)));
+				}
 			}
 			continueActivation();
 			if (pendingRoute != null && pendingActivation == null) continueRoute();
-			if (chatV1 && oldTurnStarted > 0 && (oldTurnStarted != state.getTurnTimeStarted()
-				|| oldHomePlaying != game.isHomePlaying() || oldHalf != game.getHalf() || oldTurn != game.getTurnData().getTurnNr())) {
-				long elapsed = Math.max(0L, System.currentTimeMillis() - oldTurnStarted);
-				long excess = Math.min(RESERVE_ALLOWANCE_MS, Math.max(0L, elapsed - TURN_ALLOWANCE_MS));
-				if (oldHomePlaying) homeReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, homeReserveUsedMs + excess);
+			if (oldTurnStarted > 0 && !game.isTurnTimeEnabled() && game.getFinished() == null)
+				game.setTurnTime(Math.max(0L, System.currentTimeMillis() - oldTurnStarted));
+			if (chatV1 && (oldHalf != game.getHalf() || oldHomeTurn != game.getTurnDataHome().getTurnNr() || oldAwayTurn != game.getTurnDataAway().getTurnNr())) {
+				long excess = Math.min(RESERVE_ALLOWANCE_MS, Math.max(0L, oldElapsed - TURN_ALLOWANCE_MS));
+				if (normalHomePlaying) homeReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, homeReserveUsedMs + excess);
 				else awayReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, awayReserveUsedMs + excess);
 			}
             kickoffSelection.clear();
 			assertSupported();
 			revision++;
+			refreshReaction(decisionTime);
 			history.put(key, new Record(fingerprint, "ACCEPTED"));
 			boolean newHalf = oldHalf > 0 && game.getHalf() != oldHalf;
 			boolean touchdown = homeScore() + awayScore() != oldScore;
@@ -1092,12 +1126,34 @@ public final class SetupSession {
     private String actionId(Action action) { return revision + ":" + action.id; }
     private List<Action> actions() {
         if (isComplete()) return java.util.Collections.emptyList();
-        List<Action> result = new KickoffActions(state, kickoffSelection).actions();
+        List<Action> result = reactiveSequencing ? new ReactiveSkillActions().actions(state, kickoffSelection) : java.util.Collections.emptyList();
+        if (result.isEmpty()) result = new KickoffActions(state, kickoffSelection).actions();
         if (result.isEmpty()) result = new CorePromptActions(state).actions();
         if (result.isEmpty()) result = new CoreTurnActions(state, routeV2 && activationSequencing).actions();
         if (recoveryDice != null) result.sort(java.util.Comparator.comparing(action -> action.role + "\n" + action.id));
         return result;
     }
+
+	private void refreshReaction(long now) {
+		reactiveDecision.refresh(state, actions(), revision, now);
+	}
+
+	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */
+	public boolean expireReactiveDecision(long now) {
+		if (failed || isComplete() || saveResume && (saveResumeState.suspended() || saveResumeState.abandoned)) return false;
+		refreshReaction(now);
+		if (!reactiveDecision.due(now)) return false;
+		Action decline = reactiveDecision.decline(state, actions());
+		String role = decline.role;
+		JsonObject request = new JsonObject().add("operation", "action").add("expectedRevision", revision)
+			.add("requestId", "timeout-" + reactiveDecision.id() + "-" + revision).add("actionId", actionId(decline));
+		expiringReaction = true;
+		try { apply(role, request, now); }
+		finally { expiringReaction = false; }
+		return true;
+	}
+
+	boolean reactiveDecisionDue(long now) { return reactiveDecision.due(now); }
 
     public boolean isComplete() { return state.getGame().getFinished() != null; }
     private int homeScore() { return state.getGame().getGameResult().getTeamResultHome().getScore(); }

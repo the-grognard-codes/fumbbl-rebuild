@@ -69,6 +69,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
 	}
 
+	@Override public synchronized void expireDecisions() {
+		setup.expireReactiveDecisions().forEach((id, state) -> publisher.publish(id, null, state));
+	}
+
 	@Override public synchronized void receive(BrowserMatchAdapter.Connection connection, String text) {
 		if (retired.contains(connection)) return;
 		String requestId = null;

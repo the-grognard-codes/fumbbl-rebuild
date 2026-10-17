@@ -214,6 +214,31 @@ public final class SetupApplication {
 
 	public JsonObject handle(String owner, JsonObject request) { return handleWithOutcome(owner, request).response(); }
 
+	/** Timer callbacks enqueue this on the same communication worker as coach commands. */
+	public Map<String, JsonObject> expireReactiveDecisions() {
+		Map<String, JsonObject> changed = new LinkedHashMap<>();
+		for (String id : new java.util.ArrayList<>(sessions.keySet())) {
+			SetupSession session = sessions.get(id);
+			if (!session.reactiveDecisionDue(clock.millis())) continue;
+			String before = recovery == null ? null : session.recoveryArtifact();
+			try {
+				if (!session.expireReactiveDecision(clock.millis())) continue;
+				checkpoint(session.checkpointOwner(), id, session, before);
+				if (session.isComplete()) matches.complete(session.checkpointOwner(), id, session.completedMatch());
+				changed.put(id, session.decorateSaveResume(session.reply("deadline", "ACCEPTED", false, "home")).get("state").asObject());
+				if (session.isComplete() && recovery != null) { release(id); completedReleases++; }
+			} catch (SQLException | RuntimeException failure) {
+				if (session.isFailed() && sessions.containsKey(id)) {
+					try { checkpoint(session.checkpointOwner(), id, session, before); }
+					catch (SQLException | RuntimeException unavailable) { /* Reconcile before reuse. */ }
+				}
+				// Never publish a state whose durable mutation is uncertain. A load reconciles the checkpoint.
+				release(id);
+			}
+		}
+		return changed;
+	}
+
 	public HandleOutcome handleWithOutcome(String owner, JsonObject request) {
 		String requestId = request.getString("requestId", null);
 		try {
@@ -276,10 +301,22 @@ public final class SetupApplication {
 				return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 			}
 			session.expireSaveResumeProposal(clock.millis());
+			long decisionTime = clock.millis();
+			boolean expiredDecision;
+			try { expiredDecision = session.expireReactiveDecision(decisionTime); }
+			catch (RuntimeException failure) { checkpoint(owner, id, session, before); throw failure; }
+			if (expiredDecision) {
+				checkpoint(owner, id, session, before);
+				if (session.isComplete()) matches.complete(owner, id, session.completedMatch());
+				JsonObject expired = session.reply(requestId, "load".equals(operation) ? "ACCEPTED" : "STALE_REVISION", false, role);
+				session.decorateSaveResume(expired);
+				if (session.isComplete() && recovery != null) { release(id); completedReleases++; }
+				return outcome(expired, true);
+			}
 			JsonObject response;
 			try {
 				response = "load".equals(operation) || "concessionStatus".equals(operation) ? session.reply(requestId, "ACCEPTED", false, role)
-					: isSaveResumeOperation(operation) ? session.saveResume(role, request, clock.millis()) : session.apply(role, request);
+					: isSaveResumeOperation(operation) ? session.saveResume(role, request, clock.millis()) : session.apply(role, request, decisionTime);
 				if ("ACCEPTED".equals(response.getString("code", null)) && !response.getBoolean("duplicate", false)
 					&& !"load".equals(operation) && !"concessionStatus".equals(operation) && !isSaveResumeOperation(operation)) session.recordPlayerActivity(clock.millis());
 			} catch (RuntimeException failure) {

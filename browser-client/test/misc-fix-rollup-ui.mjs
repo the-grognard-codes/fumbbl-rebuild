@@ -222,6 +222,8 @@ test('Hit and Run centers its non-modal reminder and decline decision without co
   assert.equal(await dialog.evaluate(element => element.matches(':modal')), false);
   assert.equal(await dialog.getAttribute('aria-modal'), 'false');
   assert.equal(await page.locator('.match-command-bar').getByRole('button', { name: 'Decline Hit and Run', exact: true }).count(), 0);
+  // Exercise the tight landscape fit even when a fallback font makes the prompt shorter.
+  await page.addStyleTag({ content: '@media (max-width: 700px) { .match-decision-dialog { min-height: 128px; } }' });
   for (const [width, height] of [[1440, 900], [640, 330]]) {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(() => {
