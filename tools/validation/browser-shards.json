@@ -30,6 +30,7 @@
       "browser-client/test/coach-hud-ui.mjs",
       "browser-client/test/drive-phase-tracker-ui.mjs",
       "browser-client/test/game-menu-events-ui.mjs",
+      "browser-client/test/skill-markers-ui.mjs",
       "browser-client/test/round-four-ui.mjs"
     ],
     [

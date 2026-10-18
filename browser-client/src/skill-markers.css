@@ -1,0 +1,6 @@
+.live-skill-markers { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; width: max-content; pointer-events: none; }
+.live-marker .live-skill-markers img.live-skill-icon { position: static; display: block; flex: none; max-width: none; transform: none; opacity: 1; filter: none; image-rendering: auto; pointer-events: none; }
+.live-skill-overflow { display: grid; place-items: center; flex: none; align-self: stretch; box-sizing: border-box; color: #fff4d6; background: #091726ed; border: 1px solid #b7cbd9; border-radius: 2px; font-family: MUTP, sans-serif; line-height: 1; }
+.skill-marker-size { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.skill-marker-size input { min-width: 80px; max-width: 180px; flex: 1; }
+.threat-settings select { max-width: 100%; }
