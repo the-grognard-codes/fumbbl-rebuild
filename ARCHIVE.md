@@ -6,13 +6,38 @@ Inventory prepared 2026-10-18 from the repository checkout. The 1,725 listed fil
 
 On 2026-10-18, three reactive-skill validation snapshot files were also moved into `archive/` (65,794 bytes), bringing the archive to 1,728 files totaling 328,216,316 bytes.
 
-## Move candidates
+The worktree review on 2026-10-18 added 4,990 files, including its manifest, report, and preservation script. The archive now contains **6,718 files totaling 3,464,626,910 bytes**. Existing files were reused by checksum; original worktrees and local artifacts were left intact.
+
+## Worktree review — 2026-10-18
+
+Reviewed all four registered worktrees against local and live remote `main`, both at `625d01acb0554d23d0458237f3c3c6b7902f36ae`. Earlier history rewriting changed commit identities, so the review verified exact committed file trees against main ancestors instead of treating every divergent commit as unmerged work.
+
+| Worktree | Result |
+| --- | --- |
+| Main checkout | Clean before this review. Ignored project notes, mockups, screenshots, validation records, and historical source snapshots were preserved. |
+| `.tools/player-skill-markers-preserved` | Detached at `7cc46baaa`; its committed tree exactly matches main ancestor `5602bcedc` (PR #291). Reviewed all 20 modified files, 2,045 untracked files, and 52 ignored review files. Three modified files contain pending reduced-motion work; the other 17 tracked edits are already represented on main. Art experiments and prototypes are preserved. |
+| `.tools/skill-markers-merge` | Clean at `0cdb7f620`; its complete committed tree exactly matches main ancestor `a2e797ba0` (PR #296), including asset checksum and native fixture follow-ups. Its ignored review screenshots and scripts were preserved. |
+| `C:/Users/jaken/.codex/worktrees/4e38/fumbbl-rebuild` | Missing directory; registration remains locked as `initializing` at `883323216`. Its committed tree exactly matches main ancestor `bac52ae95`. There is no unique committed content; uncommitted or ignored files cannot be inspected because the directory does not exist. |
+
+At the reviewed snapshot, the pending application work was a playback change that waits for React to render each confirmed movement square before advancing, its reduced-motion regression test, and its changelist entry. It does not change ball rotation. The affected files are `browser-client/src/use-pitch-playback.ts`, `browser-client/test/playback-ui.mjs`, and `ffb-client-logic/src/main/java/com/fumbbl/ffb/client/model/ChangeList.java`. The delivery-workflow edits already match main.
+
+Preservation records are stored locally under `archive/worktree-review-2026-10-18/`:
+
+- `REVIEW.md`: findings, exclusions, and recovery instructions.
+- `manifest.json`: 14,236 source-path references with worktree provenance, byte counts, SHA-256 checksums, and archive locations. Duplicate content reuses an archive path; every selected file has a location in the archive, including exact local line endings.
+- `files/<worktree>/<original-relative-path>`: 4,987 newly preserved unique artifact files (3,127,293,150 bytes). Other references reuse existing archive files. This includes notes and mockups from older local preservation folders, not only current pending application changes.
+- The manifest's `review` records locate `worktrees.json`, `tracked-change-review.json`, `original-tracked-changes.patch`, and `unmerged-reduced-motion.patch`. The original patch includes already-merged changes; the isolated reduced-motion patch contains only the three pending edits against the reviewed main commit.
+- `preserve.py`: the inventory and checksum-verification procedure used for this review.
+
+All copied files and reused archive references were verified with SHA-256. The isolated patch passed `git apply --check`; application tests were not rerun because no application changes were applied. Worktree heads, statuses, and tracked diffs were verified unchanged after preservation. No branches, stashes, or worktrees were removed, and no commit, push, merge, or deployment was performed.
+
+## Previously archived files
 
 These files are historical design/review material or local scratch logs. They are not inputs to the active game, production assets, build, or test suites.
 
 ### Completed player skill marker history
 
-Source: `.notes/player-skill-markers/` — 1,655 tracked files, 311,393,335 bytes (about 297 MiB). Before moving, update the reference in `docs/specs/player-skill-markers.md` from this repository path to the archive location.
+Source: `.notes/player-skill-markers/` — 1,655 tracked files, 311,393,335 bytes (about 297 MiB). The history is stored under `archive/.notes/player-skill-markers/`; `docs/specs/player-skill-markers.md` now points to this index.
 
 - `.notes/player-skill-markers/archive-index.json`
 - `.notes/player-skill-markers/checkout-preservation/additional-review-files.json`
@@ -1759,7 +1784,7 @@ The archived copies preserve the older prompt placement, specification and valid
 
 The rest of the repository was reviewed and is not listed as safe to move in this pass. This includes active source, production assets, tests, build and deployment configuration, project documentation, and reference material with live links or scripts. In particular, `.notes/overhaul-analysis/` is referenced by current documentation and test/demo scripts; other retained evidence is linked from specs and verification notes.
 
-Build caches, dependencies, local tooling, and worktrees (`target/`, `node_modules/`, `.tools/`, `.worktrees/`, and `.firebase/`) are otherwise excluded because they are local or recreatable state rather than archive material. The three validation snapshot files listed above are the explicit exception.
+Build caches, dependencies, tool installations, browser caches, and runtime state remain excluded. Git recovery bundles, binary pathspec lists, packaged build tarballs, database dumps, and credentials were also excluded; their original local copies remain untouched. Project notes, mockups, prototypes, source snapshots, patches, screenshots, and validation records inside ignored folders were selectively preserved as documented in the worktree review above. Worktrees themselves remain in place.
 
 ## Archive policy
 

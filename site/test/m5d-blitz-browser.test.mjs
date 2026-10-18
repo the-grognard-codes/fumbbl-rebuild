@@ -61,18 +61,17 @@ test('real-engine Blitz actions pin and commit once across both players and spec
           else if (request.type === 'setup' && request.operation === 'load') { loads++; sendState(index, send, request.requestId); }
           else if (request.type === 'watch') sendState(index, send, request.requestId);
           else if (request.type === 'movementPreview') {
+            previews.push({ index, request });
             const snapshot = state(index);
             const player = snapshot.players.find(item => item.id === request.playerId);
             const from = { x: player.x, y: player.y };
-            // Selection requests an initial Move forecast before a Blitz is proposed.
-            if (request.kind === 'move' && !request.waypoints.length) {
+            if (request.kind === 'move' && request.waypoints.length === 0) {
               send({ type: 'movementPreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
                 plan: { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: [], jumpOptions: [],
-                  route: { routeVersion: 3, playerId: player.id, from, remaining: 0, steps: [],
-                    revision: snapshot.revision, actor: snapshot.callerRole } } });
+                  route: { routeVersion: 3, playerId: player.id, from, remaining: 8, steps: [],
+                    revision: snapshot.revision, actor: snapshot.actor } } });
               return;
             }
-            previews.push({ index, request });
             const steps = frames.slice(3, 6).map(frame => {
               const position = frame.actor.players.find(item => item.id === player.id);
               return { x: position.x, y: position.y, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] };

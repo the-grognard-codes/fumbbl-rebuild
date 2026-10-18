@@ -76,8 +76,13 @@ try {
   await publish({view:state(9,21),records:[],enabled:false}); await wait(9,21);
   await publish({view:state(9,21),records:[]}); await wait(9,21);
   await page.emulateMedia({reducedMotion:'reduce'});
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await page.evaluate(()=>{window.playbackFrames=[];});
   await publish({view:state(10,24),records:Array.from({length:11},(_,revision)=>record(revision,revision===10?24:21,revision===10?[{reportList:{reports:[dice]},modelChangeList:{modelChangeArray:[change(22),change(23),change(24)]}}]:[]))});
+  await page.waitForFunction(()=>document.querySelector('#playback-state').dataset.x==='22');
+  // Advance the short timers together to catch updates batched before a commit.
+  await page.clock.runFor(64);
+  await page.clock.resume();
   await wait(10,24);
   assert.deepEqual(await page.evaluate(()=>window.playbackFrames.map(frame=>frame.x).filter((x,index,all)=>!index||all[index-1]!==x)),[22,23,24], 'Reduced motion exposes every ordered discrete square');
   assert.equal(await page.locator('#playback-state').getAttribute('data-roll-key'),'');
