@@ -65,6 +65,13 @@ test('real-engine Blitz actions pin and commit once across both players and spec
             const snapshot = state(index);
             const player = snapshot.players.find(item => item.id === request.playerId);
             const from = { x: player.x, y: player.y };
+            if (request.kind === 'move' && request.waypoints.length === 0) {
+              send({ type: 'movementPreview', requestId: request.requestId, code: 'ACCEPTED', matchId,
+                plan: { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: [], jumpOptions: [],
+                  route: { routeVersion: 3, playerId: player.id, from, remaining: 8, steps: [],
+                    revision: snapshot.revision, actor: snapshot.actor } } });
+              return;
+            }
             const steps = frames.slice(3, 6).map(frame => {
               const position = frame.actor.players.find(item => item.id === player.id);
               return { x: position.x, y: position.y, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] };
