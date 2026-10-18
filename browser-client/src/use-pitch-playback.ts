@@ -24,6 +24,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const completed = useRef(view.revision), generation = useRef(0);
   const running = useRef(false), waiting = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingBeat = useRef<{ view: SetupState; advance: () => void; delay: number } | null>(null);
   const diceStream = useRef<DiceStream | null>(null);
   if (!diceStream.current) diceStream.current = new DiceStream(setDiceMoment);
   const diceRevision = useRef(view.revision);
@@ -35,6 +36,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const cancel = () => {
     generation.current += 1;
     if (timer.current) clearTimeout(timer.current);
+    pendingBeat.current = null;
     clearDice();
     timer.current = null; running.current = false; waiting.current = false;
   };
@@ -136,16 +138,22 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
         const next = beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
         if (next === current) continue;
+        // Start the next delay only after React commits this square. Separate
+        // timer tasks alone can still be batched, especially in reduced motion.
+        pendingBeat.current = { view: next, advance: () => advance(index + 1), delay: reduced ? 16 : 190 / safeSpeed };
         presented.current = next; setPitchView(next);
-        // Separate tasks retain discrete states under React batching. Reduced
-        // motion never interpolates or spins, but still exposes each square.
-        timer.current = setTimeout(() => advance(index + 1), reduced ? 16 : 190 / safeSpeed);
         return;
       }
       finish();
     };
     advance(0);
   }, [view, records, enabled, tick, speed, mode]);
+  useLayoutEffect(() => {
+    const pending = pendingBeat.current;
+    if (!pending || pending.view !== pitchView) return;
+    pendingBeat.current = null;
+    timer.current = setTimeout(pending.advance, pending.delay);
+  }, [pitchView]);
   return { pitchView, playbackActive: active, diceMoment,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }
