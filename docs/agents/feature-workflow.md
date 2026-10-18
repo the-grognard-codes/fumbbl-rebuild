@@ -44,6 +44,14 @@ scope.
 
 ## Implementation handoff for each slice
 
+The **normal process**, also called the **usual method**, is the sequence below.
+When the user requests this process for agreed work, that authorizes creating
+the working branch, implementing, reviewing, validating, staging, committing,
+pushing the working branch, opening the PR and merging it after required checks
+and review requirements pass. Carry the authorized sequence through completion
+without requesting permission again for those steps. Land changes in `main`
+through the PR; direct pushes to `main` are outside this authorization.
+
 The handoff identifies the issue, design record, acceptance criteria, branch
 base, relevant constraints, and the authority granted for publishing and
 merging. An implementer can then:
@@ -84,14 +92,20 @@ report above is the product acceptance review.
 
 ## Authorization text for a future handoff
 
-Replace the brackets with the actual scope before starting implementation:
+Name the agreed scope and use:
 
-> Proceed with the approved slices under [spec or issue link]. You may create
-> branches or worktrees, implement and validate changes, stage and commit them,
-> push branches, open and update PRs, and merge passing PRs into `main` after
-> required checks and review requirements are met. [Name any further
-> release or deployment authority, or omit it.] Complete the outcome report
-> and retrospective after the final slice.
+> Proceed with the work in the usual method: new working branch > implement
+> the changes > self-review code for intended outcome and behavior > test and
+> validate > stage changes > commit with standard message > open PR > merge.
+
+For an approved spec, multiple issues or tickets, or work organized around an
+ADR or design with several implementation slices, optionally append:
+
+> Repeat until all slices are complete.
+
+When included, this clause carries the full sequence through every approved
+slice, in dependency order, rather than stopping after the first PR.
 
 This authorization applies to the named work only; changes in scope are
-recorded against the spec before implementation continues.
+recorded against the spec before implementation continues. Release or deployment
+authority must be named separately.
