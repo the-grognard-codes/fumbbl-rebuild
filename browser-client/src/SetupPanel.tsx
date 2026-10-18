@@ -867,7 +867,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
             <label className="hud-opacity-control">Panel background opacity <input type="range" min="0" max="100" step="1" value={opacity} onChange={event => changeOpacity(Number(event.target.value))}/><output>{opacity}%</output></label>
             <p>Right-button drag travels along the field; the wheel zooms. Click pitch squares to add movement waypoints; Confirmed or Space commits. Right-click undoes a waypoint; Escape clears the route. Top-down preserves the camera position.</p></>}/></div>
       </aside></div></>}
-      {hosted && hoverPlayer && (() => { const player = view.players.find(item => item.id === hoverPlayer.id);
+      {hosted && hoverPlayer && (() => { const player = pitchView.players.find(item => item.id === hoverPlayer.id);
         return player ? <PlayerHoverCard player={player} anchor={hoverPlayer.anchor} dock={selectedScreen && selectedScreen.x < selectedScreen.width / 2 - 1 ? 'right' : 'left'} teamName={matchTeamName(view, player.role)}/> : null; })()}
       {hosted && debugOpen && <section id="match-debug" className="match-debug-panel match-debug-drawer" role="region" aria-label="Match debug">
           <header><strong>Debug</strong><button type="button" aria-label="Close debug panel" onClick={() => setDebugOpen(false)}>×</button></header>

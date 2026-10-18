@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Violent Innovator (VI) - Devious</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#E7AA6A"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M19.276 35.7H24.596L31.208 56.144H31.284L37.896 35.7H43.216L33.754 62.3H28.738Z"/><path d="M47.556 35.7H52.724000000000004V62.3H47.556Z"/></g>
+</svg>

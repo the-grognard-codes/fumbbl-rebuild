@@ -31,7 +31,7 @@ export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: Se
       </dl>
       {image && failedImage !== image ? <img src={image} alt="" onError={() => setFailedImage(image)}/>
         : <span className="live-player-card-token" aria-label={`${teamName} number ${player.number ?? player.slot}`}>{player.number ?? player.slot}</span>}</div></header>
-    <div className="live-player-card-detail"><strong>Skills & traits</strong><p>{player.skills?.join(', ') || 'None'}</p></div>
+    <div className="live-player-card-detail"><strong>Skills & traits</strong><p>{(player.skillMarkers?.details ?? player.skills)?.join(', ') || 'None'}</p></div>
     <div className="live-player-card-detail"><strong>Status</strong><p>{playerCardStatus(player)}</p></div>
   </aside>;
 }

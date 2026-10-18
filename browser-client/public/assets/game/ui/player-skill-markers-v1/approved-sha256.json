@@ -1,0 +1,434 @@
+{
+  "catch": {
+    "text": "27e44a7ca7e1e381b15eafdc75a0c3a003b3c3f921380e163799d251d000b63a",
+    "illustrated": "d2311acdc01ff715937340825a1ee3a22c817addcfce6e78f267dd4f5b3c02de"
+  },
+  "diving-catch": {
+    "text": "014e487f3e4037f7dadd2eca1334b3e803ef3cdaedf972d30c83f143988afcde",
+    "illustrated": "86d828d51e35b47032522ef212990293476de4b72a5ed60ce7480394871861b8"
+  },
+  "diving-tackle": {
+    "text": "a23b4f520ebf4f679dcd3f06c4315aacc9dd5f4e1874c7b20f7030683bd154fc",
+    "illustrated": "be781e0350d5b8525bb1a311cdace0f6caf056aae597a89b9e5f85b0f350a399"
+  },
+  "dodge": {
+    "text": "1dd95340a5b7f94389e8f1f8894cdc4d836b3341894fd7792f16294d278c3d69",
+    "illustrated": "f339dec660fdaf65d8be911a33ac40a08b3d74b197f2a969d8c1df1ce4004342"
+  },
+  "defensive": {
+    "text": "01f2fb3b7bd692799d314456d1f885b254f556cb0ae0048e0e5e4d9ae798bc20",
+    "illustrated": "c80a7a476712dc943bfab393cf6bc684507da291d3cf93affb0ee63a941d5315"
+  },
+  "hit-and-run": {
+    "text": "fc6581ce3d671d6bf25c154bdf9c62f9130f2a99b4975f257971869eebd417b9",
+    "illustrated": "7349be87ef83ca6fb5ba1d6aeea944ff7b272f7626c58b7e0e149ac9d71cbc05"
+  },
+  "jump-up": {
+    "text": "e2412f16f89082e50edc9cc77d5c4a96b3ab09093928c1ea161717fe7e82b3ec",
+    "illustrated": "6eaee7d91a56c047b2d1fab6cef0c2a55502ce880e58a406b2fefc6093fdaf91"
+  },
+  "leap": {
+    "text": "0ae3036137009fd285566c32a4bb12d9bd6fbcb76bc0a82cee38d037bff728f1",
+    "illustrated": "256231de536f87a1bc3c10b8f4aef0bdf32863c7e2666914253c2cf68a6696ab"
+  },
+  "safe-pair-of-hands": {
+    "text": "146fa0ffdc6ca688c4280c74e50d63f83cc84d2cd6a7308c1268a788ff47b41e",
+    "illustrated": "021b7abaeb961501ebc416aad7a5d0542fbe4cb55d0c45653959e44a469235e8"
+  },
+  "sidestep": {
+    "text": "2324a53d3bf5e79e901e68fe1180459c56aff21edc07decc6b23220b80647bc4",
+    "illustrated": "4a957fd73d82ef2fa91db98e45a3c22db24abb34a2ca2da271acf16627f759c3"
+  },
+  "sprint": {
+    "text": "9572126cc889d0f9a2d2f016779298c06b243d7c63427baa29a2533739819a53",
+    "illustrated": "2258b82f9628c15edc053c45b9733b44fb07e24c4d0c66444bc1969dc9603ccd"
+  },
+  "sure-feet": {
+    "text": "ba3c9bd148be4bd1f7ae314ef00cf5a727628e37f1f65f0dc532a7360e1baf85",
+    "illustrated": "ac926231af3d74c25939830af4fef57cfbabcf4f8251ec5769f2ede764aa7c6d"
+  },
+  "dirty-player": {
+    "text": "e0e2c5948570b7e041825f56fc9870ae6448d571db2145f2e85b8b3a559e1bb0",
+    "illustrated": "3c5497249c23798ca01472b9b4bca6cdf190005d1d4913eebdc5a7a3eb7e9266"
+  },
+  "eye-gouge": {
+    "text": "2df3a931f032eb53069746e542a88776d6a479e057d61cca3bb812ed6ab8600e",
+    "illustrated": "7b5d02ba56d45c0d223a9101d4f1f6e00c7c7e5119265fbeb9019f338248dbe2"
+  },
+  "fumblerooski": {
+    "text": "6a16d90711a335c4cea90c4c7a12b03569cbc1ccad10440f6c909ecce2a38702",
+    "illustrated": "013b53ee0fcdd1deb77f90e091508a64cd3db76244b64b843bd1fabeffbae739"
+  },
+  "lethal-flight": {
+    "text": "86504c5aa9473d4bc03a9e679b67f931927b96fb51588e6df47a21301d967bff",
+    "illustrated": "7234da3d89b409745a8765d706cb2afa6fac650890e4462c3f8df088ef96219d"
+  },
+  "lone-fouler": {
+    "text": "dddc4d6de1b1457e51daec6308ec6464fcfe8514bc989495d5d3cde9a290e57e",
+    "illustrated": "9dc0f628529c6b008906f69e1bd7ad3f12b4d399a996ee14aaf2b5a190d19b4c"
+  },
+  "pile-driver": {
+    "text": "44d02bdb706724324e4e967f14317ccfd150d8143848461c69c7971f10457185",
+    "illustrated": "aa42ceb2db13af15a36ba57d8872d337fce77937c2b974dc4255095f6a35a189"
+  },
+  "put-the-boot-in": {
+    "text": "c0b22fd14601c0fab39580b1bf1cdd493755de21bfebb1c925fa8d51d3df8676",
+    "illustrated": "e93a09d986385ec4cb238f1a16b109b531e51e77c188e438a874198ed0b489d5"
+  },
+  "quick-foul": {
+    "text": "e210bee2f9a1ef1fd9e7674b836710a5054231b66f07d482abb2ccf1df7a6808",
+    "illustrated": "7a9f334f02d686109d64696b163db5f9cc4cf5186eab4ba273ee9454ef320d61"
+  },
+  "saboteur": {
+    "text": "4f391c7c6b2e31e2912ae77cf75bf348181781fce7004b021c278819c296265e",
+    "illustrated": "52aef28936ff8e30ed087c0ae22d7365d34679f13c96230d2e23673c7e0c9b31"
+  },
+  "shadowing": {
+    "text": "0e5b078510de98b1f57ac6c9e0f12b7eaf7810a10c01ef15a6596377c9e7654c",
+    "illustrated": "1beb4315db6b56fcff9d444b618f9d96d58c474de6e3b750ca0c9d273349e061"
+  },
+  "sneaky-git": {
+    "text": "28cc9fc1636c428b0bed2a48ec443ebe0b03af45fa3b59b0c122a1c8c9fc24e4",
+    "illustrated": "ff2510f6642a97a516b8c2c1dadb6f4d4867fbdee4f8bbad8abc2bd3256c9d74"
+  },
+  "violent-innovator": {
+    "text": "a84b4e9c7c345bf3d854aea84fe01e93938cd1e234fa989463acf828a1bdf689",
+    "illustrated": "1b8347420952bbd8b266651e5b580469d1862d30745f45ee6674c38512fd6a79"
+  },
+  "block": {
+    "text": "c659ef26480c741bad5128d797a839746f59125afbd8b7f3dc9fbd2ebc41f9ad",
+    "illustrated": "eb9f96900bc0c811337834de957e6cefa4a524185f1fa65c538f6fc8f082e441"
+  },
+  "dauntless": {
+    "text": "eff237a68f24a140d9eda9ad647cb140ec4475581cf112f5e87fa96b8f12a4c9",
+    "illustrated": "d0972ee3de8c406453bd01dd8858b57f1160812dba865c9c3a0842b289007c80"
+  },
+  "fend": {
+    "text": "8b651572436bf03e6e234ba09a9361de46a3b3bcb58c869912a75fde8f9b1398",
+    "illustrated": "e27199d15f2ef13321fc32833960c0eee0c2f87c04ace8a593c01d1861a57cc2"
+  },
+  "frenzy": {
+    "text": "c35b8446eae6a5a5ef045054f8892cdb221e24922141641dadda82578980e85b",
+    "illustrated": "54a1d9cbc84bd547124c573ad9985d1a53d2002442265f804abd14a51f6eb8ea"
+  },
+  "kick": {
+    "text": "f78bdf010713cd6d5da1e43f68fc8a9dff604604e1bfb776808c641681d59114",
+    "illustrated": "f62aa4124e207326cc02160cbfe1bd4b070e25699b3519d6c55e76f3754b393c"
+  },
+  "pro": {
+    "text": "96e6bab10a8fd7d7177f464ca22d0db59ffb5d70fe7fdafd5601be83a782864c",
+    "illustrated": "3064fc769baa1222dc138d5a16ee68ccbdd310e2e88588e0bddd85f96d8b066b"
+  },
+  "steady-footing": {
+    "text": "8807e7626a6d948ee742393ae96d7d4379eff0640c86b3ab502278a16c6f360e",
+    "illustrated": "6ef776e5425f6b452c7f8313099f0b59090734f0e1f470b3f2778538ea1cfce3"
+  },
+  "strip-ball": {
+    "text": "d67f02b2bbb6945a82f216ebdbf6017ef560a30309df1a22f8edbcea40273513",
+    "illustrated": "57548146c87359a289c992d768ad009c88be5074d4b000673982d559d183d083"
+  },
+  "sure-hands": {
+    "text": "417ed858db609606d7d4862f16b4606f592e79d5d42e17fd8c7bfa1af7017848",
+    "illustrated": "5d1f9840fbce8a6498ee6c3ac2521802d2ed3049a66073c7c7cd7db1e851e6bc"
+  },
+  "tackle": {
+    "text": "889070d91094e983a9ec252b566624bffa7ddacb18aa9b2dcfa93a15a4d5c4a7",
+    "illustrated": "d09be69a469ba4a725ae00210d3b5bf655661548929a8fe4498d4340a01fcfc0"
+  },
+  "taunt": {
+    "text": "19ce2338a81fd42359ebeaed437b0f30df0c70c80b9e0c655bc25660a7e46952",
+    "illustrated": "f39b0593c0760bca9be3fdcddc639f802095bce5a6b298f3bc741cec6c0ee579"
+  },
+  "wrestle": {
+    "text": "3e5d2249eadcc0d9a0d6f3a0eb7bfc63088c8acae9291db8f9df10295595382b",
+    "illustrated": "8ded292d977979b75082ea80b7bcaee4dd92dcbdda2c9cf986f357cd23c71bb7"
+  },
+  "big-hand": {
+    "text": "431cabe4a2245b3d0197e84b4cb6dafb34d299eca959da1059dcfcf44a660e57",
+    "illustrated": "09e2728b795e498d87347995d1d40782b2241eab700d897bb344cc7ce171cc9b"
+  },
+  "claws": {
+    "text": "c1bc8180fdfe5f00bec223d8fefcdb791e43e55322a07848a84358a7d96d2dd3",
+    "illustrated": "d5f48a72e2c8c9833648be8d129000d56fce2c60b9f112c4a88fe1c84fbd68f3"
+  },
+  "disturbing-presence": {
+    "text": "90fcff722e080bc43d780833925d2cb8bdb689cd3afc3974f0d050ef7e71167f",
+    "illustrated": "423f0aa83030b7cb6da3b5a0f32963d5fb625a85d4ecaaf6d6d5e39145eba43a"
+  },
+  "extra-arms": {
+    "text": "d773dc71196f1df88dc5fb19d1344f062b597f47b35484142f374bde0b59b612",
+    "illustrated": "ce1254dcf6e7ecf7559c41fe4c5399ff335bc664b3e58df5e61e614f0243b120"
+  },
+  "foul-appearance": {
+    "text": "002acc8abe55386669f55b4c951deb93b4c75726e88b06665ac7f9215308cbaf",
+    "illustrated": "24fe8598cbdee1d858509ae959f68b134439662bccf33f690e489a2cabce370d"
+  },
+  "horns": {
+    "text": "ce982211614f2a7e5e0e7bbda7655e45397b9ffb6668c3f82f0fb954facef9b9",
+    "illustrated": "34470a416aeaf1715fb55ee357aa5413dc4f0e02904e59347e7bb44e6e7621fc"
+  },
+  "iron-hard-skin": {
+    "text": "e295d66b53e23cff85cb4d0a0901c3078d2f9ba3137b85cd968f6dd298aa48df",
+    "illustrated": "649c48f1f05aa9dfbbb768661da4f93e27488068c03de34f657202d87d132b45"
+  },
+  "monstrous-mouth": {
+    "text": "04b8411a724cec02f4f6b9b465de57fcb648f5067ecddf478656d109dba245b2",
+    "illustrated": "e4c6b9229b7532d094cc11c7811858752786f7fb9c188016af09a8fabf67e4f7"
+  },
+  "prehensile-tail": {
+    "text": "66097c7945434751c72300f41598fed67161500c7bd25a0e95454eb8448530be",
+    "illustrated": "529e68df0969da9e991cab5d1a52d5a4de64170ec0d74414ca49caf857bdd86a"
+  },
+  "tentacles": {
+    "text": "b0f93c75ee8c809c7c2ca470fc7edf33e302c60762382bda7758b1a6efd599e0",
+    "illustrated": "cebff912f2f45b10d9fb321d8acc084fd9189a012e4eb52270c94368c8f2b6d9"
+  },
+  "two-heads": {
+    "text": "ac4254e8d0e3f389a04c75d66f6251466439d214e3e8c973a9a8a44435d985e2",
+    "illustrated": "0149cc8f39b7fe1b595c1a2b78321e398057c8ce6501b6fd6a463ff349e35483"
+  },
+  "very-long-legs": {
+    "text": "d85312a9bc0f834e4abbb3fb41a373030505a9159b6daa967052f0ed83e6a4ee",
+    "illustrated": "c5d5c24249b845fa979d8db427d7162668bdcdc3fcb1c4b59178d0093ba96388"
+  },
+  "accurate": {
+    "text": "70ed9644606cb8e32c3872e85facddfd4f9495ff54177ebb2147846efc5e0a9d",
+    "illustrated": "9d55a0fc807c7930ecfca0d2413dac8f9b1f5bb8af73fdbbc51d43bcef50cf78"
+  },
+  "cannoneer": {
+    "text": "3ec74c53c5dd4e3396b84419fcc4200d795bdf239e7ef3dccca596b21573265e",
+    "illustrated": "6421d2333338ef3dfe03c79efe2930378c9c2296c88cf15cd8fac838e846cfe2"
+  },
+  "cloud-burster": {
+    "text": "02cd816df2317181e2947a809eb8559711f4484da7a58047def06a031a404da8",
+    "illustrated": "9b1f12dca4c368e31cf09b913e2c5369a0126ec83cf33c7ea868fe47a10f40e2"
+  },
+  "dump-off": {
+    "text": "f0045442730c2094b10c3300b909596df09385f525270465e7b394347bf1bd50",
+    "illustrated": "faced71ab41f937f6ebb0a80e105b07aab1b9d3e566824b749bdc37ef5470d95"
+  },
+  "give-and-go": {
+    "text": "4edca6b7cf15bcc73ae6777abaadffff1ac0fbcb0d88a16710f4a5f500f52739",
+    "illustrated": "0c7864be727a3f724516a62b70b3a4cbc58575ce311c19dc9d8d5d798b05e47f"
+  },
+  "hail-mary-pass": {
+    "text": "cf14a7ad7418f1bf35d1dfd242f7e9b1c7e754b8552e4f4642d39d85d25af509",
+    "illustrated": "50713d0aa73b3347d1e79ec001c2e88bfec14b2789639adcf6bf8f9879c69e6f"
+  },
+  "leader": {
+    "text": "dca2b0f1cdaf2a50a864a29f8011cfeaed0e144ac37c99c536e17dd11c21a943",
+    "illustrated": "eea1c3fe0e92f6e66c4b2c555e7bc53dfbbb8a8df405c428c881b0c84452f63c"
+  },
+  "nerves-of-steel": {
+    "text": "bbafd67a446e1e03bcb3e09aff4a4c59b2912242a19daef81e36fa8198cd2387",
+    "illustrated": "4f2141ed0715a071bde33fb3d971ff13710d8fefc14eb613c9b25dfe04ec3f0e"
+  },
+  "on-the-ball": {
+    "text": "b8294f573e51bfabefb94d783062c9fcb6a248f41d44a2896dac69b0ce11d18b",
+    "illustrated": "cbf4a290ea5eb2b49ed10b872d43386c10067b5d0bf95950d1a7ad5012999ac0"
+  },
+  "pass": {
+    "text": "eb42f2accfea35db6351b6746c3c1240cae64412f5a6feb44866b425b08e3199",
+    "illustrated": "2ed349093df8a0c99f6a740fce9d645ebdbd51483baf062cfdf37ee9a092d691"
+  },
+  "punt": {
+    "text": "185e7e992f2341cc50d592daaa16f0cbd0ab295c536d1b065d787ef20d857a97",
+    "illustrated": "60b34050567776e7d342baa8b3a5950fb8fe595b0014cb190b79b9d78fabb892"
+  },
+  "safe-pass": {
+    "text": "70033c12ac2689afb76c395888621488f854499c821bf1e84699e20644c30c5f",
+    "illustrated": "f4d38f215e766325b66dbd2ee89bd34167dd8ebb0dbeab4b06d398756f00eb3a"
+  },
+  "arm-bar": {
+    "text": "11da644fff753d057cf68621d6aa0cc021cbeea48bae7e0e00f05b53aa08f3c4",
+    "illustrated": "fde9b52c80ba1282b78907d508ec5cc63e337c3b36996b35b97cf9dfa1ced9c7"
+  },
+  "brawler": {
+    "text": "581e2c5de3757326f0a30fcc483bea7af3e5ee2a050277e72d419db22994567f",
+    "illustrated": "215d1130078ea6922b429c25e88ebd2789e7c1e30d70de88f41491549c7de24e"
+  },
+  "break-tackle": {
+    "text": "8d7c59d1a66f94459c5f2be6c236eb90366954354e7cff008bc896d20d7b4895",
+    "illustrated": "66c09ce69901a73f1c726517c323e9245b7b8cc89afd2ab6a3837fab29034678"
+  },
+  "bullseye": {
+    "text": "477815db0d5f1fdf55cc825007844ee506b6fd76c5b55794ae430989cee7f631",
+    "illustrated": "c6506f0f1a806ab80de2f5eb9fd00cc4d0ee5385f9e67f7fe55e4eaa4ade20d6"
+  },
+  "grab": {
+    "text": "127132feb0a61a3cfc581e3a7592deae99e1ebdb6fee18fa127d45cc9b52b27e",
+    "illustrated": "3f07eb323b0187e4b43ececfe649b8ce0ac8ad04f13ceb611022ca7f96a13c28"
+  },
+  "guard": {
+    "text": "5cc0d9355c8749834ed87eb98258d79c3764b97e9ef2e49f2b4174d988674e5c",
+    "illustrated": "e80727c7ad09fc2e937713a7073af9c058956f29e43d8cec3803d622f7ea4af5"
+  },
+  "juggernaut": {
+    "text": "05c0fbb85ece42ba70d32671e6554c5d0d89539b0790482b3e455bebb031e115",
+    "illustrated": "2a07c6193f26bd8c475f0bba1e87bb7aa453bfd2afd1ef0eb86c15786b2327ea"
+  },
+  "mighty-blow": {
+    "text": "9c46384b03793801d825c9dc18d0903ba29f85aeb804bb0503311b55bfa30ecd",
+    "illustrated": "d50336e45ef3b65bf0c8fd3c0f58d3afbed349fc32e33851caa0f27c027bd52f"
+  },
+  "multiple-block": {
+    "text": "65fa431df54b0b65cbba92eef2d3f2d0159096e5f28a11e922db79d0df62ed3c",
+    "illustrated": "03b21abcade40bccfa37272027347de1684cdb67af1aaee7548ce6aedd5eb604"
+  },
+  "stand-firm": {
+    "text": "1be02f4a69bef2641996641d946cf0064bfbdff050b128affe683862460df48b",
+    "illustrated": "33bf66ac0596bcfa975b155c842cc68efc7f4b524a252671395dcc3048e71a0c"
+  },
+  "strong-arm": {
+    "text": "e9a00b2f946020b014a901179d142a710bb037bbdf49b34581954de69d9a5043",
+    "illustrated": "901302b4770b436cebabecb90cf61888f10cd9fd6b00a58b77d8655a4f65b8df"
+  },
+  "thick-skull": {
+    "text": "7fd514f7f1d6f329ea2e0101aa44360371180e50316664341b7255640eba98f0",
+    "illustrated": "ed6376271184facdd2ee37132142df6feb6d6115aaa66ddda2e852b24225884f"
+  },
+  "always-hungry": {
+    "text": "d97035b6e49bb2d0a5dcd1acfd2de548f50dd2979300c99525977c3c8225bc66",
+    "illustrated": "ce48ca61d7f38f264b2b8e30ec8940d60f1d7fb16556d39633dcbd1c7c4d5524"
+  },
+  "animal-savagery": {
+    "text": "1710525770e108642b8a8c614ed86c1506d584c76fd59773f0b367e6c23048e4",
+    "illustrated": "be1478c02ef52c91b5d9f21e9aa8a733b76df56ac892e1c42fc2c6c01b6538b4"
+  },
+  "animosity": {
+    "text": "fa176fee9f67819d05946ba89e5ee1e0d7e1b74445b0314a79d6fc29064ead24",
+    "illustrated": "37046145ec9608d31001e20084ba6dcea66b2a696fdf53dbbcb104c0a1ae4980"
+  },
+  "ball-and-chain": {
+    "text": "0843563e8940e350c2bbd49ebeb02dd0eeeb8e77af6dbc9e1256da8c189ed7d2",
+    "illustrated": "90f74c04c52c90a2aa666f3acf1f0ba9b0e5d9dcede25fd181c8ff0b4415a99a"
+  },
+  "bloodlust": {
+    "text": "897729e13d86a46e46e5082da12b2bdf885fb8303ac3d8b0ec285ab0d248b4f9",
+    "illustrated": "639b3235706a029bc453ffbef0ba3ef81b3b9b668fb95d1f0b9b6a88b67f816f"
+  },
+  "bombardier": {
+    "text": "5f30953496e0f2b29c2375cc1fc9b2288bbd8d074fd494e1f3b75f129e0f28ae",
+    "illustrated": "e676e5a7e9c846505125b136e30f0cad920450141709906a2b9c9c1390a9b5a5"
+  },
+  "bone-head": {
+    "text": "21fec46078ea40bb6282ad6329ffc8f98e1e911154b3bbc93bc0fee3e6481694",
+    "illustrated": "0e85cddd64298d499ef8567836c519e3291574b8833d3d334ba97c883794e6ac"
+  },
+  "breathe-fire": {
+    "text": "e76a8db72a49114630d893f724e9e9fdd97eefe21a0e224f75060e9d6d7bdaa5",
+    "illustrated": "01621f863763ab41ed2080138ee1806a05178ba7d9c2b0675d635a08d6de0da9"
+  },
+  "chainsaw": {
+    "text": "f5297195a1cff2641a6fe49bd5a0a78de5ea443980b1a33db03be7b54ab6d44b",
+    "illustrated": "8e6fbdae20cc4359c800708a704d62fcf9b5cdef2e3c9d3d54d93743c4c7341e"
+  },
+  "decay": {
+    "text": "20f5332a1d8a62b4f38f917e8934545b71f32bba26b739b661954649f9d156c7",
+    "illustrated": "94414925c59ac06dddafa213745faaa7dde5bae495d94072ebaadd4f32f6e126"
+  },
+  "drunkard": {
+    "text": "dd74350d9dbe2c592ff951cdcf8160884b4d69f74fb82634fb6047ae1c7aee17",
+    "illustrated": "fb92597d5a78a3d8673dce5338e081b40a18ca3696dd1d69e5acaccbbff8e162"
+  },
+  "hatred": {
+    "text": "1a63e318c8347c4a2083d1b5663275e9a469760753eeed24f3fb170d8bfc5e0d",
+    "illustrated": "508bb1ac3c9e127caac1abb917a4fc0f65bb522aaead70ee3f29aef67643d1cb"
+  },
+  "hypnotic-gaze": {
+    "text": "f353693f53d761274e5f3fe601ca00ce97a65234a7056eb695b4f6dddf88951f",
+    "illustrated": "3ea62bc679b553febefbd3de1ac5efdb44f1007c318594efb47880abb1d70035"
+  },
+  "insignificant": {
+    "text": "18d31766011476e89f8fca6c454a95a44f7395205ac1f0f361c238fd5695b1a3",
+    "illustrated": "b7a11f04aae6ddfbb5b161ada141bf4da109db37c0a7c8a41e3a84c02ef21b88"
+  },
+  "kick-team-mate": {
+    "text": "2d815a21d7dd51aae275a08bbac7dfe1dcbf61cba9a72d430434323dbb48af0c",
+    "illustrated": "537b65d12913c39ac0b476eae167aa98bc5f555b165c537425b47f5440a0baab"
+  },
+  "loner": {
+    "text": "22a43c887f60e692c2b69fe5774f7f7aead102f432dddf3f9be0b714e0262d84",
+    "illustrated": "693ffa01878f1ba08cbbcab639cc35251d907cd8e49b3786b12c5358cbb32e1d"
+  },
+  "my-ball": {
+    "text": "8b5040997e8312e30b1f5066c568bd9e246995881cf5ff745c8d31c0a59adb4f",
+    "illustrated": "ad6f6ccbc7d7e2dc1361217afe79ed70e8b0af9ab08927b4dbca1e33afff91ea"
+  },
+  "no-ball": {
+    "text": "e19952e7acb916cb99ad7e69d07cb014fb5df2d7176b523aff3f84b850570653",
+    "illustrated": "8f3b4c235209ffe58126a23b2a800a5d0ef45fab437458932f196f67920049a4"
+  },
+  "pick-me-up": {
+    "text": "324163a9e5d9709d7a39d85885dddb1b9bef6c18fc5b4aae5336a8ceee0a67c5",
+    "illustrated": "b86c6d6b381d7c9d806cafff55e901634a9b46c9e2ab1e8cb4b22daf986d4e58"
+  },
+  "plague-ridden": {
+    "text": "3095b6e59fc41a94222f62aa219b97ce2d8a4f7b7f1709dc0b36b6de67108e8b",
+    "illustrated": "14b79a6b393567b3edf5530b1172ebd84d507470d26497e970898d81a95072a3"
+  },
+  "pogo": {
+    "text": "8ca4764802495eea701152d2770a97c017ca9da0c155b4f3f37a411ace320c11",
+    "illustrated": "6bdecfffd7c2eed7f4a47ef6ac77ab690d94e5a6fa4a8dd4bbb4b3c97ac9546e"
+  },
+  "projectile-vomit": {
+    "text": "ed281ec4be20a8851d172f5457a1a603c4f007d64da43420fbd008b0f3d10520",
+    "illustrated": "97f159ae73a7b5ed63a33671e50d7396438731a35f41502e4435fec4bcf0eedc"
+  },
+  "really-stupid": {
+    "text": "d11c01883326de1f181ec6ebee075179c9283d2dfb81598f109769e8d231ace3",
+    "illustrated": "cd225b022e4420dbf6428c02c294fd01c36cf8eeebe045bc33ec29221d40b03a"
+  },
+  "regeneration": {
+    "text": "36231726769798923d873aedfae722d602ab73c38fa58caa28087ae90f76c3f5",
+    "illustrated": "a99c8c7f4b9cd7390d8535c10ffafa088386bd3ed16a9d5f3ca87c4ec934e5ba"
+  },
+  "right-stuff": {
+    "text": "b00dbc30e97136cb6ef33c40cc09bbf7e07f3d6bc97c7203e98857cf42b7f0db",
+    "illustrated": "e0604e76fa7fe5763ec86447f5f61787aef742638d3cfe6ac227a475510a72a5"
+  },
+  "secret-weapon": {
+    "text": "a1a6c126dd9182d3c0af454f522d7e0b92aad032d3b8f589d557e0509734a78a",
+    "illustrated": "55c8860e4f799497e7b574a990b97fcf49582d12a2cfec949166c8105c87fba5"
+  },
+  "stab": {
+    "text": "4acfb9ba72b96e12feb28f7d17c4b82e7779f2be2e2688fe580101286126cadb",
+    "illustrated": "4cfd9e73876cea9d5f8ebfa7f7c288d4874d86fcf6838779f1f1852d31af13e9"
+  },
+  "stunty": {
+    "text": "dcfedf9ba14d8258a95b2131fff0abb01c51fe6b5b4b4116d98564b94e4a89f6",
+    "illustrated": "55e2432201224f3934da3731e7a24d788ac8c4729087a973b821ba18d7a239c1"
+  },
+  "swoop": {
+    "text": "974704833266110aa7e9f9b918d5922b758855f9bfb05f71b6bc4c58ae7a4d67",
+    "illustrated": "47fcbcefe9a6bc2734c514cf14d6772f7125ea51eb3d03a2a14aafbf8980ab51"
+  },
+  "take-root": {
+    "text": "ad2918dce271d6f3f3de33f8d57955e1a41d3b4271ea44906889ef92372cb379",
+    "illustrated": "82ed6bacd76e9bea18a41ac327e585946bee3aaaead8cfbbfc40c34bbf0b07bd"
+  },
+  "throw-team-mate": {
+    "text": "a52ec32994eabde10f26bd906e0664fcc41334e119ddd8662c4295796a97db53",
+    "illustrated": "5e64fea505341a69a5cd85be31cced9fdb2cf849f799df9512eeb11c0db8128f"
+  },
+  "timmm-ber": {
+    "text": "ed186571c2c778d3029c468254447ddf80402554cfe14a3c8e52e21866704f09",
+    "illustrated": "2727e34cf0046ca3d89172db7e58cfbe8cbddc717b30ccdebf606e26aeb54ba3"
+  },
+  "titchy": {
+    "text": "ad84fdc41fb806f7f1e633b900e7805a0cf30a262c1b4b49b55593ca1e8f4037",
+    "illustrated": "afea51fcbba32e89deae2ffd7a6d86315b9c7aa61e8daead15a06f4431818d2b"
+  },
+  "trickster": {
+    "text": "c916e7d43e5ee169c742f62816b7e6a11192fc63df18c3ea57031cdb41a2f8e1",
+    "illustrated": "fedfcd98b4c9d68e06b9bb47003cbcbc101b326250e6b7d33f49e4a53ada85f6"
+  },
+  "unchannelled-fury": {
+    "text": "7f54ad91ee18c201a96c22cf81f272ebb0b3e60b0ce22782ab6827ab976d32e1",
+    "illustrated": "8b64b37f7ee253769ac3248ff48a374a172a6d165c4e0616a6d6b7270d025c3a"
+  },
+  "unsteady": {
+    "text": "2a8d5f85ae2f270fc04cd7fbb35c008569cca652b2a73502c11cacb21785c807",
+    "illustrated": "0b45a9751add1c1577208297fe8e78b036f87d10c5a327071caa77ed650ac96f"
+  }
+}

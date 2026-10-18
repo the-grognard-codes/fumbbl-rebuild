@@ -11,6 +11,7 @@ import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
+import com.fumbbl.ffb.factory.SkillFactory;
 import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.mechanics.GameMechanic;
@@ -34,6 +35,7 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
+import com.fumbbl.ffb.server.match.bb2025.SkillMarkerProjection;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.StepId;
@@ -840,6 +842,7 @@ public final class SetupSession {
 	private JsonObject view(String role) {
 		Game game = state.getGame();
 		JsonArray players = new JsonArray();
+		SkillMarkerProjection markers = new SkillMarkerProjection((SkillFactory) game.getFactory(FactoryType.Factory.SKILL));
 		for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
 			for (Player<?> player : team.getPlayers()) {
 				FrozenTeam frozen = team == game.getTeamHome() ? document.home.team : document.away.team;
@@ -857,6 +860,7 @@ public final class SetupSession {
 					.add("ma", player.getMovementWithModifiers(game)).add("st", player.getStrengthWithModifiers(game))
 					.add("ag", player.getAgilityWithModifiers(game)).add("pa", player.getPassingWithModifiers(game))
 					.add("av", player.getArmourWithModifiers(game)).add("skills", skills)
+					.add("skillMarkers", markers.project(player))
 					.add("offPitch", offPitch(playerState, onPitch))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
 					.add("state", playerState.getDescription()).add("status", playerStatus(playerState))
@@ -1045,7 +1049,7 @@ public final class SetupSession {
 		for (int index = 0; index < savedPlayers.size(); index++) {
 			JsonObject previous = savedPlayers.get(index).asObject();
 			JsonObject now = currentPlayers.get(index).asObject();
-			for (String field : new String[] { "status", "positionRace", "positionRole" })
+			for (String field : new String[] { "status", "positionRace", "positionRole", "skillMarkers" })
 				if (previous.get(field) == null) now.remove(field);
 		}
 		if (version < 4) {

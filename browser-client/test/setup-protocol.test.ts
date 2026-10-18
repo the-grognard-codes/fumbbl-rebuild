@@ -127,3 +127,16 @@ test('frozen team art is a paired optional v4 identity even with no pitch player
   assert.throws(() => decodeSetupStateValue({ ...empty, homeTeamArt: { ...homeTeamArt, league: '' }, awayTeamArt }));
   assert.throws(() => decodeSetupStateValue({ ...state, homeTeamArt, awayTeamArt }));
 });
+
+test('skill marker facts validate core identity, category and provenance in live and replay snapshots', () => {
+  const live = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const data = { version: 1, entries: [{ id: 'block', category: 'GENERAL', origin: 'acquired' }], details: ['Block', 'Loner (4+)', 'Star ability'] };
+  const snapshot = (skillMarkers: unknown) => ({ ...live, players: [{ ...live.players[0], skillMarkers }, ...live.players.slice(1)] });
+  assert.deepEqual(decodeSetupStateValue(snapshot(data)).players[0].skillMarkers, data);
+  assert.deepEqual(decodeSetupStateValue({ ...snapshot(data), callerRole: 'spectator' }, true).players[0].skillMarkers, data);
+  for (const entry of [ { id: 'star-ability', category: 'TRAIT', origin: 'base' },
+    { id: 'block', category: 'TRAIT', origin: 'base' }, { id: 'block', category: 'GENERAL', origin: 'unknown' } ])
+    assert.throws(() => decodeSetupStateValue(snapshot({ ...data, entries: [entry] })));
+  for (const invalid of [{ ...data, version: 2 }, { ...data, entries: [...data.entries, ...data.entries] }, { ...data, privateDice: [] }, { ...data, details: [''] }])
+    assert.throws(() => decodeSetupStateValue(snapshot(invalid)));
+});

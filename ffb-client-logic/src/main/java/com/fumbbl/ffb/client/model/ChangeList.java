@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser player skill markers offer text and illustrated badges with team, origin, trait and size settings in live matches and replays")
 			.addBugfix("Browser coaches can concede retained matches from older game versions without resuming their incompatible engine")
 			.addBugfix("Match preparation stays connected while playing in another window and remains available for fifteen minutes after completion")
 			.addBugfix("Space confirms proposed player actions and end-turn warnings from the pitch and action menu")

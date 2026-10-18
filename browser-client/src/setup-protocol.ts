@@ -1,10 +1,13 @@
 import { decodeRouteStep, type RouteStep } from './route-protocol.ts';
 import { parseUniqueJson } from './saved-team-protocol.ts';
 import type { MatchRole } from './prepared-match-protocol.ts';
+import { skillMarkerCatalog } from './generated-skill-markers.ts';
+
+export type PlayerSkillMarkers = { version: 1; entries: { id: string; category: string; origin: 'base' | 'acquired' }[]; details: string[] };
 
 export type SetupCode = 'ACCEPTED' | 'SESSION_UNAVAILABLE' | 'NOT_ACTIVATED' | 'WRONG_ACTOR' | 'WRONG_PHASE' | 'WRONG_PLAYER' | 'ILLEGAL_PLACEMENT' | 'ILLEGAL_SETUP' | 'PROMPT_MISMATCH' | 'INVALID_OPTION' | 'REQUEST_ID_REUSED' | 'REQUEST_HISTORY_LIMIT' | 'SAVE_HISTORY_LIMIT' | 'SAVE_RESUME_UNAVAILABLE' | 'SAVE_PROPOSAL_PENDING' | 'SAVE_PROPOSAL_MISSING' | 'SAVE_PROPOSAL_MISMATCH' | 'SAVE_PROPOSAL_OWNER' | 'MATCH_SUSPENDED' | 'MATCH_NOT_SUSPENDED' | 'MATCH_ABANDONED' | 'STALE_REVISION' | 'INVALID_REQUEST' | 'NOT_FOUND' | 'AUTHENTICATION_REQUIRED' | 'PERSISTENCE_FAILED' | 'SNAPSHOT_UNSUPPORTED' | 'REPLAY_UNSUPPORTED' | 'MATCH_COMPLETED' | 'COMPLETION_PENDING' | 'MATCH_OUTCOME_UNKNOWN' | 'COMPLETION_CONFLICT' | 'REPLAY_LIMIT' | 'RECOVERY_UNSUPPORTED' | 'RECOVERY_CORRUPT' | 'RECOVERY_CONFLICT' | 'RECOVERY_LIMIT' | 'ACTIVATION_LIMIT';
 export type OffPitchCategory = 'pitch' | 'reserve' | 'knockedOut' | 'casualty' | 'sentOff' | 'other';
-export type SetupPlayer = { id: string; name: string; slot: number; role: MatchRole; x: number | null; y: number | null; state: string; art?: { rosterId: string; positionId: string } | null; number?: number; position?: string; positionRace?: string; positionRole?: string; status?: string; ma?: number; st?: number; ag?: number; pa?: number; av?: number; skills?: string[]; offPitch?: OffPitchCategory };
+export type SetupPlayer = { id: string; name: string; slot: number; role: MatchRole; x: number | null; y: number | null; state: string; art?: { rosterId: string; positionId: string } | null; number?: number; position?: string; positionRace?: string; positionRole?: string; status?: string; ma?: number; st?: number; ag?: number; pa?: number; av?: number; skills?: string[]; skillMarkers?: PlayerSkillMarkers; offPitch?: OffPitchCategory };
 export type SetupPrompt = { id: string; actor: MatchRole; kind: 'coin' | 'receive'; options: ('heads' | 'tails' | 'receive' | 'kick')[] };
 export type ActionTarget = { playerId: string } | { x: number; y: number };
 export type SetupAction = { id: string; label: string; actor: MatchRole; kind: string; target?: ActionTarget | null; sourcePlayerId?: string | null };
@@ -56,7 +59,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	}
 	const result = source; text(result.matchId, 36); if (!uuid.test(result.matchId)) throw Error('Invalid match'); integer(result.revision, 2147483646); if (!(spectator && result.callerRole === 'spectator')) role(result.callerRole); role(result.actor);
 	if ((result.phase !== 'PRE_MATCH' && result.phase !== 'SETUP' && result.phase !== 'READY_FOR_KICKOFF' && result.phase !== 'PLAY' && result.phase !== 'FULL_TIME') || !Array.isArray(result.players) || result.players.length > 32) throw Error('Invalid state'); text(result.weather); integer(result.homeRerolls, 100); integer(result.awayRerolls, 100); integer(result.turn); text(result.turnMode); integer(result.half, 2); if (result.half < 1) throw Error('Invalid half'); integer(result.homeTurn, 8); integer(result.awayTurn, 8); integer(result.homeScore, 100); integer(result.awayScore, 100); integer(result.drive, 100); if (result.drive < 1) throw Error('Invalid drive');
-	const players = result.players.map(value => { const cardFields = detailsV4 && value && typeof value === 'object' && !Array.isArray(value) ? ['status','positionRace','positionRole'].filter(key => Object.hasOwn(value, key)) : []; const player = object(value, [...(artV2 ? ['id','name','slot','role','x','y','state','art'] : ['id','name','slot','role','x','y','state']), ...(detailsV4 ? ['number','position','ma','st','ag','pa','av','skills','offPitch'] : []), ...cardFields]); text(player.id); text(player.name); integer(player.slot, 16); if (player.slot < 1) throw Error('Invalid slot'); role(player.role); text(player.state); if ((player.x === null) !== (player.y === null)) throw Error('Invalid coordinate'); if (player.x !== null) { integer(player.x, 25); integer(player.y, 14); } if (artV2 && player.art !== null) { const art = object(player.art, ['rosterId','positionId']); text(art.rosterId, 60); text(art.positionId, 60); } if (detailsV4) { integer(player.number, 99); if (player.number < 1) throw Error('Invalid number'); text(player.position); for (const stat of ['ma','st','ag','pa','av']) integer(player[stat], 30); if (!Array.isArray(player.skills) || player.skills.length > 64) throw Error('Invalid skills'); for (const skill of player.skills) text(skill, 100); if (!['pitch','reserve','knockedOut','casualty','sentOff','other'].includes(player.offPitch as string) || (player.x !== null) !== (player.offPitch === 'pitch')) throw Error('Invalid off-pitch category'); if (Object.hasOwn(player, 'status')) text(player.status); if (Object.hasOwn(player, 'positionRace') !== Object.hasOwn(player, 'positionRole')) throw Error('Incomplete position subtype'); if (Object.hasOwn(player, 'positionRace')) { text(player.positionRace); text(player.positionRole); } } return player as SetupPlayer; });
+	const players = result.players.map(value => { const cardFields = detailsV4 && value && typeof value === 'object' && !Array.isArray(value) ? ['status','positionRace','positionRole','skillMarkers'].filter(key => Object.hasOwn(value, key)) : []; const player = object(value, [...(artV2 ? ['id','name','slot','role','x','y','state','art'] : ['id','name','slot','role','x','y','state']), ...(detailsV4 ? ['number','position','ma','st','ag','pa','av','skills','offPitch'] : []), ...cardFields]); text(player.id); text(player.name); integer(player.slot, 16); if (player.slot < 1) throw Error('Invalid slot'); role(player.role); text(player.state); if ((player.x === null) !== (player.y === null)) throw Error('Invalid coordinate'); if (player.x !== null) { integer(player.x, 25); integer(player.y, 14); } if (artV2 && player.art !== null) { const art = object(player.art, ['rosterId','positionId']); text(art.rosterId, 60); text(art.positionId, 60); } if (detailsV4) { integer(player.number, 99); if (player.number < 1) throw Error('Invalid number'); text(player.position); for (const stat of ['ma','st','ag','pa','av']) integer(player[stat], 30); if (!Array.isArray(player.skills) || player.skills.length > 64) throw Error('Invalid skills'); for (const skill of player.skills) text(skill, 100); if (!['pitch','reserve','knockedOut','casualty','sentOff','other'].includes(player.offPitch as string) || (player.x !== null) !== (player.offPitch === 'pitch')) throw Error('Invalid off-pitch category'); if (Object.hasOwn(player, 'status')) text(player.status); if (Object.hasOwn(player, 'positionRace') !== Object.hasOwn(player, 'positionRole')) throw Error('Incomplete position subtype'); if (Object.hasOwn(player, 'positionRace')) { text(player.positionRace); text(player.positionRole); } if (Object.hasOwn(player, 'skillMarkers')) decodePlayerSkillMarkers(player.skillMarkers); } return player as SetupPlayer; });
 	if (new Set(players.map(player => player.id)).size !== players.length) throw Error('Repeated player');
     if (Object.hasOwn(source, 'activePlayerAction')) {
         text(source.activePlayerAction, 60);
@@ -247,4 +250,21 @@ export function canPlaceReserve(state: SetupState, playerId: string, x: number, 
 	return state.phase === 'SETUP' && state.actor === state.callerRole && !!player && player.role === state.callerRole && Number.isSafeInteger(x) && Number.isSafeInteger(y)
 		&& y >= 0 && y < 15 && (state.callerRole === 'home' ? x >= 0 && x <= 12 : x >= 13 && x < 26)
 		&& !state.players.some(item => item.x === x && item.y === y);
+}
+
+/** Optional on older recordings; never infer provenance from a localized display name. */
+function decodePlayerSkillMarkers(value: unknown): void {
+  const data = object(value, ['version', 'entries', 'details']);
+  if (data.version !== 1 || !Array.isArray(data.entries) || data.entries.length > 108
+    || !Array.isArray(data.details) || data.details.length > 128) throw Error('Invalid skill markers');
+  const ids = new Set<string>();
+  for (const value of data.entries) {
+    const entry = object(value, ['id', 'category', 'origin']);
+    text(entry.id, 60);
+    const definition = skillMarkerCatalog.find(marker => marker.id === entry.id);
+    if (!definition || definition.category !== entry.category || ids.has(entry.id)
+      || entry.origin !== 'base' && entry.origin !== 'acquired') throw Error('Invalid skill marker');
+    ids.add(entry.id);
+  }
+  for (const detail of data.details) text(detail, 300);
 }
