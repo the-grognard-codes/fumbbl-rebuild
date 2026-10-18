@@ -4,6 +4,11 @@
 **/dependency-reduced-pom.xml
 **/pom.xml.versionsBackup
 
+# Keep the per-machine Drive archive link and its contents out of Git.
+/archive
+!/archive/
+/archive/*
+
 # Browser-client build output
 /node_modules/
 browser-client/node_modules/

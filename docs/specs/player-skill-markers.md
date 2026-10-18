@@ -69,4 +69,4 @@ Commands include browser unit tests and both builds; asset integrity/sync; marke
 
 Original implementation checks passed 316 browser units, 30 asset checks, both browser builds, 618 Maven tests discovered (616 passed, two existing opt-in database skips) and the separate native recipient contract. All 12 suites in the affected interaction shard passed after correcting a wall-clock-dependent four-dice assertion: the test controls decorative time while waiting for each React movement commit, then checks continuation and expiry explicitly. No gameplay or retention timing changed.
 
-The original local feature thread summary and full art history are retained under `.notes/player-skill-markers/` in the owner's working checkout. The published implementation depends only on the production assets and manifest in this PR.
+The original feature thread summary and full art history are retained in the off-GitHub archive; see [ARCHIVE.md](../../ARCHIVE.md) for the inventory. The published implementation depends only on the production assets and manifest in this PR.
