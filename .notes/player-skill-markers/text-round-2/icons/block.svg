@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Block (B) - General</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#49DFFF"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M22.605 32.550000000000004H43.238L47.938 37.25V46.462L46.058 48.389L49.394999999999996 51.773V60.374L44.319 65.45H22.605ZM39.948 46.321 41.64 44.629000000000005V39.553000000000004L39.995000000000005 37.908H28.856V46.321ZM41.076 60.092000000000006 43.097 58.071000000000005V53.465L41.076 51.444H28.856V60.092000000000006Z"/></g>
+</svg>

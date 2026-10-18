@@ -1,0 +1,83 @@
+[
+  {
+    "id": "block",
+    "name": "Block",
+    "label": "B",
+    "category": "GENERAL",
+    "fill": "#49DFFF",
+    "source": "block.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "dodge",
+    "name": "Dodge",
+    "label": "D",
+    "category": "AGILITY",
+    "fill": "#FFE17B",
+    "source": "dodge.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "mighty-blow",
+    "name": "Mighty Blow",
+    "label": "MB",
+    "category": "STRENGTH",
+    "fill": "#E4777F",
+    "source": "mighty-blow.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "claws",
+    "name": "Claws",
+    "label": "CL",
+    "category": "MUTATION",
+    "fill": "#B696DE",
+    "source": "claws.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "pass",
+    "name": "Pass",
+    "label": "PS",
+    "category": "PASSING",
+    "fill": "#7AC59C",
+    "source": "pass-opaque.png",
+    "opaqueMaster": true
+  },
+  {
+    "id": "dirty-player",
+    "name": "Dirty Player",
+    "label": "DP",
+    "category": "DEVIOUS",
+    "fill": "#E7AA6A",
+    "source": "dirty-player-opaque.png",
+    "opaqueMaster": true
+  },
+  {
+    "id": "bone-head",
+    "name": "Bone Head",
+    "label": "BHD",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "bone-head.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "loner",
+    "name": "Loner",
+    "label": "LO",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "loner.png",
+    "opaqueMaster": false
+  },
+  {
+    "id": "secret-weapon",
+    "name": "Secret Weapon",
+    "label": "SW",
+    "category": "TRAIT",
+    "fill": "#10141A",
+    "source": "secret-weapon-concealed.png",
+    "opaqueMaster": true
+  }
+]

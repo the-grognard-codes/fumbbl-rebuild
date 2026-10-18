@@ -1,0 +1,5 @@
+/* Round 2 keeps the first review route and assets intact. */
+.marker-text-prototype-v2 .review-controls { flex-wrap: wrap; }
+.marker-text-prototype-v2 .sample-settings-menu { position: static; display: block; padding: 0; margin: 0; border: 0; background: transparent; }
+.play-runtime.marker-text-prototype-v2 .coach-match.hosted-match.sample-settings-menu .game-menu-trigger { position: static; max-width: none; white-space: nowrap; font: inherit; color: #d9e9f7; background: #142e4b; padding: 6px 12px; border: 1px solid #426c9b; }
+.marker-text-prototype-v2 .game-menu-shade { z-index: 10000; }

@@ -1,0 +1,18 @@
+{
+  "mode": "built-in image_gen",
+  "purpose": "Opaque generation masters for three candidates with alpha extraction artifacts; standard frame clipping supplies export transparency.",
+  "candidates": [
+    {
+      "id": "pass",
+      "prompt": "Use case: stylized-concept. Generate ONE illustrated fantasy-football PASS skill marker. Use the reference only for the navy clipped-corner portrait frame and cream flat cel-shaded style. Change interior to a perfectly flat opaque sage green #7AC59C. A single very large ivory fantasy football with bold dark laces flies diagonally upward above one broad ivory curved trajectory swoosh. Strong silhouette; only two tones per object; thick navy outline. No extra objects, no text, numbers, specks, blotches, gradients, transparency or holes anywhere in the green panel. Full card front facing, centered, 3:4 portrait, frame fills nearly whole canvas. Use solid dark navy #091726 outside the clipped card corners. This is an opaque master intended for standard frame-clipped icon exports. Original symbol, do not copy videogame artwork."
+    },
+    {
+      "id": "dirty-player",
+      "prompt": "Use case: stylized-concept. Create ONE original illustrated fantasy-football DIRTY PLAYER skill card. Use reference only for the upright 3:4 clipped-corner portrait frame, cream cel-shaded illustration and thick navy lines. Central symbol: a large cream studded boot stomping onto a simplified dark prone helmet, one tiny impact wedge; unmistakable foul stomp; no blood, no gore. The category panel is completely opaque solid #E7AA6A. No gradients, smudges, noise, holes or transparency anywhere. Use solid #091726 navy for the exterior outside the frame, too. Large strong silhouette and only 2 tones per object so it survives at 20px. Pale inset keyline. Frame fills nearly whole canvas, front facing. No text, letters, numbers, gore or other badges. This is an opaque master for standard frame-clipped icon exports. Original design, not a copy of videogame symbols."
+    },
+    {
+      "id": "secret-weapon",
+      "prompt": "Create a new opaque master of this exact Secret Weapon illustrated badge. Use the input as style, emblem and category-color reference. Keep the big ivory diagonal toothed blade and dark cloak, navy outer frame, pale inset edge, same composition. The ENTIRE INTERIOR PANEL MUST BE BLACK #10141A, with absolutely no blue, cyan, green, orange or other category color. This is a BLACK TRAIT marker. Fix the tiny patch in lower right with solid black. Make every interior pixel opaque. Outside the clipped corner frame use solid opaque navy #091726 for a master that will be clipped during export. No alpha transparency anywhere in this opaque source. No text, numerals or labels. Bold clean cel shading."
+    }
+  ]
+}

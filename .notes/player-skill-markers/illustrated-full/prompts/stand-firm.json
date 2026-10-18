@@ -1,0 +1,14 @@
+{
+  "id": "stand-firm",
+  "name": "Stand Firm",
+  "category": "STRENGTH",
+  "fill": "#C94F5C",
+  "concept": "Two heavy planted boots locked to one broad ground platform by a single central anchor shape; low immovable base, no uneven stone.",
+  "prompt": "Use case: stylized-concept. Generate ONE original illustrated fantasy-football skill marker for STAND FIRM. Input is STYLE/FRAME/CATEGORY reference ONLY: replace the whole central emblem with the requested new subject. Keep its crisp flat cel-shaded ivory/navy fantasy-sports style, very thick outlines, pale inset frame, upright clipped-corner 3:4 portrait card. Entire interior panel must be the deeper category color #C94F5C. NEW emblem: Two heavy planted boots locked to one broad ground platform by a single central anchor shape; low immovable base, no uneven stone. Design to be recognized at only 20 pixels tall: one strong large silhouette, at most two main objects, broad separated gaps, only one large shadow plane per object, no fine lines, no rivets or decorative clutter. Fill most of the card with the symbol while keeping it inside the frame. OPAQUE MASTER: no alpha anywhere, solid navy #091726 outside the clipped corners too, full frame at about 4% inset from canvas edge. The export pipeline supplies transparent corners. No text, letters, abbreviations, numerals, watermark, photoreal texture, extra cards, gradients or background smudges. No gore except any explicit blood-drop subject. Do not copy existing videogame icons. Do not retain the reference subject unless explicitly requested in the new emblem.",
+  "mode": "built-in image_gen",
+  "reference": "C:/Users/jaken/Git-Hub/fumbbl-rebuild/.notes/player-skill-markers/illustrated-round-2/mighty-blow-opaque.png",
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-544752ff-c03b-494a-b2ed-399744a28d8e.png",
+  "source": "sources/stand-firm.png",
+  "opaqueMaster": true,
+  "attempt": 1
+}

@@ -1,0 +1,89 @@
+{
+  "mode": "built-in image_gen",
+  "references": [
+    "../text-full/png/master/block.png",
+    "block.png"
+  ],
+  "candidates": [
+    {
+      "id": "block",
+      "name": "Block",
+      "category": "GENERAL",
+      "fill": "#49DFFF",
+      "prompt": "Use case: stylized-concept. Generate ONE illustrated fantasy-football skill marker candidate for BLOCK. The provided tiny blue text card is a STYLE/FRAME reference only: preserve its upright portrait form, clipped corners, dark navy outer edge, pale blue inset keyline, bright cyan category panel (#49DFFF) and restrained upper-left highlight. Replace the letter entirely with an original illustrated emblem: two chunky armored forearms crossed as a strong X-shaped blocking guard, cream steel gauntlets with dark navy contours, clear separated silhouettes, one tiny impact wedge. Fill most of the panel with this single symbol. Crisp flat cel-shaded fantasy-sports UI art, only 2-3 tones per object, thick clean outlines, minimal interior detail. Intended to remain distinct at 20-28 pixels high. Entire marker upright and front facing, approximately 3:4 portrait ratio, centered with transparent exterior; badge itself opaque. No text, no letters, no numbers, no watermark, no decorative scenery, no realistic texture, no glow, no duplicate badges. Original design; do not copy Blood Bowl videogame symbols.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-f47aef0a-d6ea-4f96-b305-f25827fa3bb9.png"
+    },
+    {
+      "id": "dodge",
+      "name": "Dodge",
+      "category": "AGILITY",
+      "fill": "#FFE17B",
+      "subject": "a single cream armored boot bending sideways around one blunt navy incoming arrow, one sweeping curved motion stroke; strong S-shaped negative space; evasion, not running",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the DODGE skill/trait. Category panel fill must be #FFE17B, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a single cream armored boot bending sideways around one blunt navy incoming arrow, one sweeping curved motion stroke; strong S-shaped negative space; evasion, not running. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-5062dde0-a5c9-45f7-8bf2-a8d7a2de608f.png"
+    },
+    {
+      "id": "mighty-blow",
+      "name": "Mighty Blow",
+      "category": "STRENGTH",
+      "fill": "#E4777F",
+      "subject": "a massive cream closed armored fist punching downward into a bold three-pronged impact burst; fist dominates; no crossed arms, no weapon",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the MIGHTY BLOW skill/trait. Category panel fill must be #E4777F, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a massive cream closed armored fist punching downward into a bold three-pronged impact burst; fist dominates; no crossed arms, no weapon. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-b770b148-2ff3-43d0-b801-936845c75157.png"
+    },
+    {
+      "id": "claws",
+      "name": "Claws",
+      "category": "MUTATION",
+      "fill": "#B696DE",
+      "subject": "one diagonal beast paw with exactly three extremely large ivory hooked talons extending down, three separated dark gaps; purple shadows; no fine fur",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the CLAWS skill/trait. Category panel fill must be #B696DE, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: one diagonal beast paw with exactly three extremely large ivory hooked talons extending down, three separated dark gaps; purple shadows; no fine fur. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-e66f0be3-de58-41a0-962d-73c58d87d72b.png"
+    },
+    {
+      "id": "pass",
+      "name": "Pass",
+      "category": "PASSING",
+      "fill": "#7AC59C",
+      "subject": "a single ivory fantasy-football ball with simple dark laces flying diagonally upward on one broad curved trajectory stroke; no hand or player",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the PASS skill/trait. Category panel fill must be #7AC59C, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a single ivory fantasy-football ball with simple dark laces flying diagonally upward on one broad curved trajectory stroke; no hand or player. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-1b502a6d-fa1b-4f07-92bc-fe8678187ad0.png"
+    },
+    {
+      "id": "dirty-player",
+      "name": "Dirty Player",
+      "category": "DEVIOUS",
+      "fill": "#E7AA6A",
+      "subject": "a large cream studded boot stomping onto a simplified dark prone helmet, one tiny impact wedge; unmistakable foul stomp; no blood, no gore",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the DIRTY PLAYER skill/trait. Category panel fill must be #E7AA6A, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a large cream studded boot stomping onto a simplified dark prone helmet, one tiny impact wedge; unmistakable foul stomp; no blood, no gore. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-0fa66cc4-c879-449b-ad7f-6339e8bace4d.png"
+    },
+    {
+      "id": "bone-head",
+      "name": "Bone Head",
+      "category": "TRAIT",
+      "fill": "#10141A",
+      "subject": "a simple ivory ogre head silhouette front view with tiny eyes and a vacant slack expression; inside its broad forehead is ONE large empty dark oval thought bubble or hollow circle; reads as absent-minded; no punctuation, no letters",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the BONE HEAD skill/trait. Category panel fill must be #10141A, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a simple ivory ogre head silhouette front view with tiny eyes and a vacant slack expression; inside its broad forehead is ONE large empty dark oval thought bubble or hollow circle; reads as absent-minded; no punctuation, no letters. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-241c3683-b536-4af0-98ef-62a7cc2532b3.png"
+    },
+    {
+      "id": "loner",
+      "name": "Loner",
+      "category": "TRAIT",
+      "fill": "#10141A",
+      "subject": "one large ivory upright helmeted player bust isolated inside a broken circular ring, with two much smaller muted blue-grey teammate busts beyond the ring; large central isolated silhouette dominates; no digits or text",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the LONER skill/trait. Category panel fill must be #10141A, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: one large ivory upright helmeted player bust isolated inside a broken circular ring, with two much smaller muted blue-grey teammate busts beyond the ring; large central isolated silhouette dominates; no digits or text. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-629d0345-9041-4f27-a16b-0f73b3af84ba.png"
+    },
+    {
+      "id": "secret-weapon",
+      "name": "Secret Weapon",
+      "category": "TRAIT",
+      "fill": "#10141A",
+      "subject": "a large diagonal ivory toothed chainsaw blade emerging from a small concealed dark cloak fold; broad distinct teeth, tiny dark handle; no blood or gore",
+      "prompt": "Use case: stylized-concept. Asset type: ONE original fantasy-football illustrated skill marker candidate, for a pitch UI at only 20-28 px high. The input image is a STYLE AND FRAME reference, not a subject to keep. Preserve its upright clipped-corner portrait frame, dark navy outer edge, pale inset keyline, restrained upper-left rim highlight, creamy ivory central art with thick dark navy contours, crisp cel shading. Simplify detail beyond the reference: only 2-3 large tones per object, fewer bolts, no realistic texture. Match the approximate 3:4 badge shape and camera-straight view. Full badge centered with ample transparent exterior. Create the SECRET WEAPON skill/trait. Category panel fill must be #10141A, covering the entire interior; retain the color identity at tiny size. Central illustrated emblem: a large diagonal ivory toothed chainsaw blade emerging from a small concealed dark cloak fold; broad distinct teeth, tiny dark handle; no blood or gore. Fill most of the panel with a single strong silhouette. Make this symbol readily distinct from other skills. No text, letters, numerals, punctuation, watermark, scenery, extra badges, or glowing effects. Original design; do not reproduce videogame icons.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-e92196d5-839f-457d-969f-fcbe32a607e2.png"
+    }
+  ]
+}

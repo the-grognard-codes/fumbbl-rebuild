@@ -1,0 +1,12 @@
+{
+  "id": "put-the-boot-in",
+  "fill": "#CE853B",
+  "reference": "dirty-player.png",
+  "transparent": false,
+  "subject": "Use the reference only for cream/navy flat cel shading, deeper orange category panel and portrait frame. Generate an original PUT THE BOOT IN coordinated foul-assist emblem. TWO chunky studded boots approach from opposite upper corners and converge at ONE central impact wedge. Strong symmetrical V silhouette, two simple studs on each boot. NO prone helmet or body, no single stomping boot. It must be clearly distinct from Dirty Player's single vertical boot over a prone helmet. No tiny detail, text or numbers. Opaque navy exterior for frame-clipped export.",
+  "prompt": "Use case: stylized-concept. ONE original fantasy-football skill badge for a 20px minimum pitch UI. Use the reference only for cream/navy flat cel shading, deeper orange category panel and portrait frame. Generate an original PUT THE BOOT IN coordinated foul-assist emblem. TWO chunky studded boots approach from opposite upper corners and converge at ONE central impact wedge. Strong symmetrical V silhouette, two simple studs on each boot. NO prone helmet or body, no single stomping boot. It must be clearly distinct from Dirty Player's single vertical boot over a prone helmet. No tiny detail, text or numbers. Opaque navy exterior for frame-clipped export. Category fill #CE853B; creamy ivory art, very thick dark navy outlines, no more than one broad shadow plane per object. Bold flat cel shading, original fantasy-sports UI. NO typography, letters, numerals, watermark or scenery. Keep portrait 3:4 clipped corners and pale keyline.",
+  "mode": "built-in image_gen",
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-441e67af-dcab-42d9-8cff-89fd087b75bc.png",
+  "source": "sources/put-the-boot-in.png",
+  "opaqueMaster": true
+}

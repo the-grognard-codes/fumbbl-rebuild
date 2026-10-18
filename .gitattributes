@@ -9,3 +9,5 @@ browser-client/src/generated-stadium-modules.ts text eol=lf
 # Approved marker checksums must survive Windows checkouts unchanged.
 assets/game/ui/player-skill-markers-v1/text/*.svg -text whitespace=cr-at-eol
 browser-client/public/assets/game/ui/player-skill-markers-v1/text/*.svg -text whitespace=cr-at-eol
+# Preserve historical review sources, checksums and logs byte-for-byte.
+.notes/player-skill-markers/** -text -whitespace
