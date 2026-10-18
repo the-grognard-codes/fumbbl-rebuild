@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Local development sign-in works after refreshing Google credentials")
 			.addBugfix("Browser movement playback preserves every confirmed square when reduced motion is enabled")
 			.addFeature("BB2025 browser movement plans support Jump, Leap and Pogo waypoints, with a compact Jump toggle, landing difficulty and Rush warnings")
 			.addFeature("Browser player skill markers offer text and illustrated badges with team, origin, trait and size settings in live matches and replays")

@@ -6,8 +6,8 @@ import test from 'node:test';
 
 import { recoverCredential } from '../match-review-start.mjs';
 
-const credential = refresh_token => JSON.stringify({ type: 'authorized_user', client_id: 'test-client',
-  client_secret: 'test-secret', refresh_token });
+const credential = (refresh_token, quota_project_id) => JSON.stringify({ type: 'authorized_user', client_id: 'test-client',
+  client_secret: 'test-secret', refresh_token, ...(quota_project_id ? { quota_project_id } : {}) });
 const verify = async text => JSON.parse(text).refresh_token === 'valid' ? 'OK' : 'SESSION_EXPIRED';
 
 function files(t, mounted, standard) {
@@ -21,11 +21,24 @@ function files(t, mounted, standard) {
 }
 
 test('valid mounted ADC starts without replacing it or opening sign-in', async t => {
-  const { target, source } = files(t, credential('valid'), credential('expired'));
+  const { target, source } = files(t, credential('valid', 'dev-moles-under-the-pitch-org'), credential('expired'));
   const before = readFileSync(target, 'utf8');
   assert.equal(await recoverCredential(target, { source, verify, login: () => { throw Error('unexpected login'); } }), false);
   assert.equal(readFileSync(target, 'utf8'), before);
 });
+
+for (const quotaProject of [undefined, 'another-project']) {
+  test(`valid mounted ADC repairs ${quotaProject ? 'foreign' : 'missing'} quota project without opening sign-in`, async t => {
+    const { target } = files(t, credential('valid', quotaProject), credential('expired'));
+    assert.equal(await recoverCredential(target, { source: target, verify,
+      login: () => { throw Error('unexpected login'); } }), true);
+    const updated = JSON.parse(readFileSync(target, 'utf8'));
+    assert.equal(updated.refresh_token, 'valid');
+    assert.equal(updated.quota_project_id, 'dev-moles-under-the-pitch-org');
+    assert.equal(await recoverCredential(target, { source: target, verify,
+      login: () => { throw Error('unexpected login'); } }), false, 'Already repaired credentials do not restart the server again');
+  });
+}
 
 test('valid standard ADC replaces an expired mount and sets the dev quota project', async t => {
   const { target, source } = files(t, credential('expired'), credential('valid'));

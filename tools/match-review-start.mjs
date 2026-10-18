@@ -49,7 +49,14 @@ export async function recoverCredential(target, { source, verify = checkAdc, log
   let mounted;
   try { mounted = readFileSync(target, 'utf8'); } catch { throw Error('ADC_MOUNT_UNAVAILABLE'); }
   const mountedStatus = await verify(mounted);
-  if (mountedStatus === 'OK') return false;
+  if (mountedStatus === 'OK') {
+    // The access probe supplies its own quota header; Firebase Admin uses the file metadata.
+    const credential = JSON.parse(mounted);
+    if (credential.quota_project_id === quotaProject) return false;
+    credential.quota_project_id = quotaProject;
+    writeFileSync(target, JSON.stringify(credential), { encoding: 'utf8', flag: 'w' });
+    return true;
+  }
   if (!renewalStatuses.has(mountedStatus)) throw Error(`ADC_${mountedStatus}`);
 
   const sourceFile = source ?? standardAdcFile();
