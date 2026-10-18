@@ -1,12 +1,12 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
-import { decodeRoutePreviewValue } from './route-protocol.ts';
-import type { RoutePoint, RoutePreview } from './route-protocol.ts';
+import { decodeRoutePreviewValue, decodeRouteStep, decodeWaypoint, isJumpStep, routeCost } from './route-protocol.ts';
+import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
 
 export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
 export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
-  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; range?: MovementRange };
+  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; range?: MovementRange; jumpOptions?: RouteStep[] };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
   code: 'ACCEPTED'; matchId: string; range: MovementRange };
 export type MovementPreviewResponse = { version: 2; type: 'movementPreview'; requestId: string;
@@ -71,29 +71,42 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const response = envelope(json, 'movementPreview', 'plan');
   const hasDice = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockDice');
   const hasRange = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'range');
-  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : [])]);
+  const hasJumps = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'jumpOptions');
+  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : [])]);
   if (value.planVersion !== 1 || !['move', 'blitz', 'foul'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
   if (hasDice && (kind !== 'blitz' || ![1, 2, 3, -2, -3].includes(value.blockDice as number))) throw Error('Invalid blitz dice');
   const targetPlayerId = kind !== 'move' ? playerId(value.targetPlayerId) : null;
   if (kind === 'move' && value.targetPlayerId !== null) throw Error('Unexpected movement target');
-  const route = decodeRoutePreviewValue(value.route, kind !== 'move');
-  if (route.routeVersion !== 3 || targetPlayerId === route.playerId) throw Error('Invalid movement plan route');
-  const waypoints = value.waypoints.map(point);
+  const route = decodeRoutePreviewValue(value.route, kind !== 'move' || hasJumps);
+  if (![3,4].includes(route.routeVersion) || targetPlayerId === route.playerId) throw Error('Invalid movement plan route');
+  const waypoints = value.waypoints.map(decodeWaypoint);
   const end = route.steps.at(-1) ?? route.from, last = waypoints.at(-1);
   if (route.steps.length > 0 && !last || last && (last.x !== end.x || last.y !== end.y)) throw Error('Invalid movement endpoint');
-  if (kind === 'move' && !waypoints.length) throw Error('Missing movement destination');
+  if (kind === 'move' && !waypoints.length && !hasJumps) throw Error('Missing movement destination');
   let cursor = 0;
   for (const waypoint of waypoints) {
     while (cursor < route.steps.length && (route.steps[cursor].x !== waypoint.x || route.steps[cursor].y !== waypoint.y)) cursor++;
     if (cursor === route.steps.length) throw Error('Waypoint absent from movement path');
+    if (!!waypoint.jump !== isJumpStep(route.steps[cursor])) throw Error('Waypoint movement kind mismatch');
     cursor++;
   }
   const range = hasRange ? decodeRangeValue(value.range) : undefined;
   if (range && (range.playerId !== route.playerId || range.revision !== route.revision
-    || range.from.x !== end.x || range.from.y !== end.y || range.remaining !== route.remaining - route.steps.length))
+    || range.from.x !== end.x || range.from.y !== end.y || range.remaining !== route.remaining - routeCost(route.steps)))
     throw Error('Invalid planned movement range');
+  let jumpOptions: RouteStep[] | undefined;
+  if (hasJumps) {
+    if (!Array.isArray(value.jumpOptions) || value.jumpOptions.length > 16) throw Error('Invalid jump options');
+    const unique = new Set<string>();
+    jumpOptions = value.jumpOptions.map(input => {
+      const step = decodeRouteStep(input, 4), key = `${step.x},${step.y}`;
+      if (!isJumpStep(step) || unique.has(key) || Math.max(Math.abs(step.x-end.x),Math.abs(step.y-end.y)) !== 2
+        || route.remaining-routeCost(route.steps) < 2) throw Error('Invalid jump destination');
+      unique.add(key); return step;
+    });
+  }
   return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route,
-    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(range ? { range } : {}) } } as MovementPreviewResponse;
+    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(range ? { range } : {}), ...(jumpOptions ? {jumpOptions} : {}) } } as MovementPreviewResponse;
 }

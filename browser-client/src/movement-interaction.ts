@@ -26,5 +26,6 @@ export function matchesMovementPlan(plan: MovementPlan | null, intent: MovementR
   const player = view.players.find(player => player.id === intent.playerId);
   if (player?.role !== view.callerRole || player.x !== plan.route.from.x || player.y !== plan.route.from.y) return false;
   return (intent.kind !== 'move' ? intent.waypoints.length <= plan.waypoints.length : intent.waypoints.length === plan.waypoints.length)
-    && intent.waypoints.every((point, index) => point.x === plan.waypoints[index].x && point.y === plan.waypoints[index].y);
+    && intent.waypoints.every((point, index) => point.x === plan.waypoints[index].x && point.y === plan.waypoints[index].y
+      && !!point.jump === !!plan.waypoints[index].jump);
 }

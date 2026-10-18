@@ -51,7 +51,7 @@ public final class CoreTurnActions {
         FieldCoordinate to = square.getCoordinate();
         String label = (jumping ? "Jump to " : "Move to ") + to.getX() + ", " + to.getY();
         int dodge = square.getMinimumRollDodge(), rush = square.getMinimumRollGoForIt();
-        if (dodge > 0) label += " (dodge " + (effective ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(dodge) : dodge) + "+)";
+        if (dodge > 0) label += (jumping && effective ? " (jump " : " (dodge ") + (effective ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(dodge) : dodge) + "+)";
         if (rush > 0) label += " (rush " + (effective ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(rush) : rush) + "+)";
         return label;
     }

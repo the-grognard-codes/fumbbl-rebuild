@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
-import type { RoutePoint, RoutePreview } from './route-protocol.ts';
+import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
+import { isJumpStep } from './route-protocol.ts';
+import { movementRoutePath, projectJumpLanding } from './jump-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
@@ -33,13 +35,7 @@ const directions: PlayerFacing[] = ['north', 'north-east', 'east', 'south-east',
 export const spriteUrl = resolvePlayerPortrait;
 
 function routePath(route: RoutePoint[], camera: PitchProjection): string {
-  let previous = false;
-  return route.map(cell => {
-    const point = camera.project(centerOf(cell));
-    if (!point) { previous = false; return ''; }
-    const command = previous ? 'L' : 'M'; previous = true;
-    return `${command}${point.x},${point.y}`;
-  }).join(' ');
+  return movementRoutePath(route,camera);
 }
 
 function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
@@ -114,6 +110,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
+  jumpOptions = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
@@ -121,6 +118,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
+  jumpOptions?: RouteStep[] | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
@@ -192,10 +190,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const followUpTo = followUpTarget && camera.project(centerOf(followUpTarget));
   const followUpFrom = followUpPlayer?.x != null && followUpPlayer.y != null
     ? camera.project(centerOf({ x: followUpPlayer.x, y: followUpPlayer.y })) : null;
-  const rangeMarkings = movementRange && movementRange.full.length > 0 && movementRange.playerId === selectedId
+  const rangeMarkings = jumpOptions === null && movementRange && movementRange.full.length > 0 && movementRange.playerId === selectedId
     ? movementRangePresentation(movementRange.normal, movementRange.full, movementRange.from, camera,
       view.players.filter(player => player.x != null && player.y != null).map(player => ({ x: player.x!, y: player.y! }))) : null;
-  const threatMarkings = (allowThreats && !readOnly && !playback ? threatSquares(view, selectedId, threatPreferences) : []).map(square => {
+  const threatMarkings = (jumpOptions === null && allowThreats && !readOnly && !playback ? threatSquares(view, selectedId, threatPreferences) : []).map(square => {
     const sharesRush = !!rangeMarkings?.warnings.some(warning => warning.square.x === square.x && warning.square.y === square.y);
     return { square, projected: projectThreatSquare(square, camera, threatPreferences.zoneColors, sharesRush) };
   });
@@ -410,7 +408,21 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
-          {routePreview && <><path className="live-route-guide" d={routePath([routePreview.from, ...routePreview.steps], camera)}/><path className="live-route-line" d={routePath([routePreview.from, ...routePreview.steps], camera)} markerEnd={`url(#${markerId}-route-arrow)`}/></>}
+          {jumpOptions && !readOnly && !playback && <g className="live-jump-landings" aria-label="Jump landing guidance">
+            {jumpOptions.map(step => {
+              const landing = projectJumpLanding(step,camera,threatPreferences);
+              return <g key={`${step.x},${step.y}`} data-jump-landing={`${step.x},${step.y}`} data-jump-penalty={landing.penalty}>
+                {landing.fills.map((polygon,index) => <polygon key={index} points={points(polygon)} fill={landing.color} fillOpacity={threatOpacity}/>)}
+                <polygon className="live-jump-outline" points={points(landing.outline)}/>
+                {landing.hatches.map(edge => <path key={edge.key} className="live-threat-hatch" d={`M${edge.screenFrom.x},${edge.screenFrom.y} L${edge.screenTo.x},${edge.screenTo.y}`}/>)}
+                {landing.center && <text className="live-jump-target" x={landing.center.x} y={landing.center.y-10}>J {landing.target}+</text>}
+                {landing.rush && <g data-rush-warning={`${step.x},${step.y}`}><path className="live-range-warning-triangle" d={landing.rush.path}/><text className="live-range-warning-mark" x={landing.rush.center.x} y={landing.rush.center.y} fontSize={landing.rush.size}>!</text></g>}
+                <title>{`Jump ${landing.target}+${step.rush ? `; Rush ${step.rush}+` : ''}${step.reactions.length ? `; ${step.reactions.join(', ')}` : ''}`}</title>
+              </g>;
+            })}
+          </g>}
+          {routePreview && (() => { const path = routePath([routePreview.from,...routePreview.steps.map(step => ({...step,...(isJumpStep(step) ? {jump:true as const} : {})}))],camera);
+            return <><path className="live-route-guide" d={path}/><path className="live-route-line" d={path} markerEnd={`url(#${markerId}-route-arrow)`}/></>; })()}
           {showTargetLine && targetSource?.x != null && targetSource.y != null && pinnedTarget?.x != null && pinnedTarget.y != null && <path className="live-target-line" d={routePath([{ x: targetSource.x, y: targetSource.y }, { x: pinnedTarget.x, y: pinnedTarget.y }], camera)}/>}
         </svg>
         {kickTarget ? <BallMarker ball={kickTarget} state={{ version: 1, inPlay: true, moving: true, carrierPlayerId: null }} camera={camera}/>

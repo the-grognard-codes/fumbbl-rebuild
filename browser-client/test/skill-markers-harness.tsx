@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import '../../site/src/assets/site.css';
 import '../src/play-brand.css';
 import { GameView } from '../src/SetupPanel.tsx';
@@ -13,7 +14,7 @@ declare global { interface Window {
 } }
 function Harness() {
   const [input, setInput] = useState(window.markerInput);
-  window.publishMarkerState = setInput;
+  window.publishMarkerState = next => flushSync(() => setInput(next));
   const view = input.view;
   const result: MatchResultMetadata = { formatVersion: 3, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025',
     catalogVersion: 'bb2025-exhibition-2026-09-25.1', presetId: 'exhibition-1150', presetVersion: 'bb2025-exhibition-2026-09-25.1',

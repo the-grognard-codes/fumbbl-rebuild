@@ -75,3 +75,24 @@ See [M3b evidence](../.notes/overhaul-analysis/verification/m3b/README.md) for a
 checks, failures and live demonstration status. Do not infer acceptance merely
 from the availability of a control. [M3c evidence](../.notes/overhaul-analysis/verification/m3c/README.md)
 records the subsequent action coverage and its live versus mounted test boundaries.
+# BB2025 planned Jump, Leap and Pogo
+
+`movementPreview` accepts an empty Move waypoint list as a read-only request for
+starting-square guidance. BB2025 plans include `jumpOptions`, a bounded list of
+native jump forecasts from the planned endpoint. An empty draft cannot be committed.
+Other rulesets retain their existing native Jump/Leap action controls.
+
+An explicit jump waypoint is `{x, y, jump: true}`; ordinary waypoints remain
+`{x, y}`. `jump: false` and unknown fields are rejected. Plans containing a jump
+use `routeVersion: 4`; the versioned `Jump` movement-check name identifies the
+two-square step and its target. Every jump costs two movement points, including
+in remaining-range and Blitz approach budgets. Older walking route versions
+remain supported. Client request matching includes jump identity, not only coordinates.
+
+Confirm uses the existing `setup/movement` request. The server revalidates the
+entire route, selects native Jump mode only for an explicit jump step, and
+executes only currently offered native commands. Private pending-route checkpoints
+preserve each step's jump flag across rerolls, skill decisions and recovery.
+Unconfirmed browser drafts remain local, and replay retains native outcomes.
+Native jump execution performs one or two Rush rolls as required; the shared
+Rush target and triangle do not replace those rolls.

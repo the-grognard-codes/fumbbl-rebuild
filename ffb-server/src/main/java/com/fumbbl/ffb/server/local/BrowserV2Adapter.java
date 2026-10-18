@@ -242,7 +242,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					String target = request.get("targetPlayerId").isNull() ? null : request.get("targetPlayerId").asString();
 					if (target != null && target.length() > 200) throw new IllegalArgumentException();
 					JsonArray waypoints = request.get("waypoints").asArray();
-					if (waypoints.size() > 20 || "move".equals(kind) && waypoints.isEmpty()) throw new IllegalArgumentException();
+					if (waypoints.size() > 20) throw new IllegalArgumentException();
 					result = setup.movementPreview(role, id, request.get("expectedRevision").asInt(),
 						request.get("playerId").asString(), kind, target, waypoints);
 				} else result = setup.movementRange(role, id, request.get("expectedRevision").asInt(),

@@ -99,8 +99,10 @@ try {
       assert.deepEqual(await page.evaluate(() => window.hudIntents), [{ operation: 'action', fields: { actionId: `${role}:endTurn` } }]);
     }
     await page.evaluate(state => { window.publishHud(state); }, { ...exhausted, callerRole: 'spectator' });
+    await page.getByRole('button', { name: 'End Turn', exact: true }).waitFor({ state: 'hidden' });
     assert.equal(await page.getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
     await page.evaluate(state => { window.publishHud(state); }, { ...exhausted, actor: role === 'home' ? 'away' : 'home' });
+    await page.getByRole('button', { name: 'End Turn', exact: true }).waitFor({ state: 'hidden' });
     assert.equal(await page.getByRole('button', { name: 'End Turn', exact: true }).count(), 0);
   }
   const legacy = { ...state, revision: state.revision + 3, clock: undefined,

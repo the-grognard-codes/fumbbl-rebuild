@@ -256,7 +256,8 @@ export class V2Client {
         if (plan.kind !== request.kind || plan.targetPlayerId !== request.targetPlayerId
           || plan.route.actor !== this.state?.callerRole || !Array.isArray(request.waypoints)
             || (plan.kind === 'move' ? plan.waypoints.length !== request.waypoints.length : plan.waypoints.length < request.waypoints.length)
-            || request.waypoints.some((point: { x: number; y: number }, index: number) => point.x !== plan.waypoints[index]?.x || point.y !== plan.waypoints[index]?.y))
+              || request.waypoints.some((point: { x: number; y: number; jump?: true }, index: number) => point.x !== plan.waypoints[index]?.x || point.y !== plan.waypoints[index]?.y
+                || !!point.jump !== !!plan.waypoints[index]?.jump))
           throw Error('Foreign movement plan');
         if (this.state?.revision === plan.route.revision) {
           const player = this.state.players.find(player => player.id === plan.route.playerId);

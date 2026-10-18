@@ -1,9 +1,9 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
 
-export type RoutePoint = { x: number; y: number };
-export type MovementCheck = { name: 'Pickup' | 'Jump' | 'Ball scatter' | 'Diving Tackle' | 'Tentacles' | 'Shadowing' | 'Steady Footing'; target: number | null; condition: 'entry' | 'possible' | 'fall' };
+export type RoutePoint = { x: number; y: number; jump?: true };
+export type MovementCheck = { name: 'Pickup' | 'Jump' | 'Ball scatter' | 'Diving Tackle' | 'Tentacles' | 'Shadowing' | 'Steady Footing' | 'Prehensile Tail'; target: number | null; condition: 'entry' | 'possible' | 'fall' };
 export type RouteStep = RoutePoint & { dodge: number; rush: number; dodgeModifier?: number; reactions: string[]; checks?: MovementCheck[] };
-export type RoutePreview = { routeVersion: 1 | 2 | 3; playerId: string; from: RoutePoint; remaining: number;
+export type RoutePreview = { routeVersion: 1 | 2 | 3 | 4; playerId: string; from: RoutePoint; remaining: number;
   steps: RouteStep[]; revision: number; actor: 'home' | 'away' };
 export type RoutePreviewResponse = { version: 2; type: 'routePreview'; requestId: string;
   code: 'ACCEPTED'; matchId: string; route: RoutePreview };
@@ -35,36 +35,46 @@ export function decodeRoutePreview(json: string): RoutePreviewResponse {
 
 export function decodeRoutePreviewValue(value: unknown, allowEmpty = false): RoutePreview {
   const route = shape(value, ['routeVersion', 'playerId', 'from', 'remaining', 'steps', 'revision', 'actor']);
-  if (![1, 2, 3].includes(route.routeVersion as number) || typeof route.playerId !== 'string' || !route.playerId || route.playerId.length > 200
+  if (![1, 2, 3, 4].includes(route.routeVersion as number) || typeof route.playerId !== 'string' || !route.playerId || route.playerId.length > 200
     || !['home', 'away'].includes(route.actor as string) || !Array.isArray(route.steps)
     || route.steps.length < (allowEmpty ? 0 : 1) || route.steps.length > 20) throw Error('Invalid route preview');
   const from = point(route.from);
   const remaining = integer(route.remaining, 0, 20);
   const revision = integer(route.revision, 0, 8192);
-  const steps = route.steps.map(value => decodeRouteStep(value, route.routeVersion as 1 | 2 | 3));
-  if (steps.some(step => step.checks?.some(check => check.name === 'Jump'))) throw Error('Jump route unavailable');
-  if (steps.length > remaining) throw Error('Route exceeds remaining movement');
+  const steps = route.steps.map(value => decodeRouteStep(value, route.routeVersion as 1 | 2 | 3 | 4));
+  if (route.routeVersion !== 4 && steps.some(isJumpStep)) throw Error('Jump route unavailable');
+  if (routeCost(steps) > remaining) throw Error('Route exceeds remaining movement');
   let previous = from;
   for (const step of steps) {
-    if (Math.max(Math.abs(step.x - previous.x), Math.abs(step.y - previous.y)) !== 1) throw Error('Nonadjacent route step');
+    if (Math.max(Math.abs(step.x - previous.x), Math.abs(step.y - previous.y)) !== (isJumpStep(step) ? 2 : 1)) throw Error('Invalid route step distance');
     previous = step;
   }
   return { routeVersion: route.routeVersion, playerId: route.playerId, from, remaining,
     steps, revision, actor: route.actor } as RoutePreview;
 }
 
-export function decodeRouteStep(value: unknown, version: 1 | 2 | 3 = 2): RouteStep {
-    const item = shape(value, version === 3 ? ['x', 'y', 'dodge', 'rush', 'dodgeModifier', 'reactions', 'checks'] : version === 2
+export function isJumpStep(step: RouteStep): boolean { return !!step.checks?.some(check => check.name === 'Jump'); }
+export function routeCost(steps: RouteStep[]): number { return steps.reduce((sum, step) => sum + (isJumpStep(step) ? 2 : 1), 0); }
+
+export function decodeWaypoint(value: unknown): RoutePoint {
+  const jump = !!value && typeof value === 'object' && Object.hasOwn(value, 'jump');
+  const item = shape(value, jump ? ['x', 'y', 'jump'] : ['x', 'y']);
+  if (jump && item.jump !== true) throw Error('Invalid jump waypoint');
+  return {x: integer(item.x, 0, 25), y: integer(item.y, 0, 14), ...(jump ? {jump: true as const} : {})};
+}
+
+export function decodeRouteStep(value: unknown, version: 1 | 2 | 3 | 4 = 2): RouteStep {
+    const item = shape(value, version >= 3 ? ['x', 'y', 'dodge', 'rush', 'dodgeModifier', 'reactions', 'checks'] : version === 2
       ? ['x', 'y', 'dodge', 'rush', 'dodgeModifier', 'reactions'] : ['x', 'y', 'dodge', 'rush', 'reactions']);
-    if (!Array.isArray(item.reactions) || item.reactions.length > 3
-      || item.reactions.some(label => !['Diving Tackle', 'Tentacles', 'Shadowing'].includes(label)))
+    if (!Array.isArray(item.reactions) || item.reactions.length > 4
+      || item.reactions.some(label => !['Diving Tackle', 'Tentacles', 'Shadowing', ...(version === 4 ? ['Prehensile Tail'] : [])].includes(label)))
       throw Error('Invalid route reactions');
-    const checks = version === 3 ? decodeMovementChecks(item.checks) : undefined;
+    const checks = version >= 3 ? decodeMovementChecks(item.checks) : undefined;
     if (checks) {
       const reactions = checks.filter(check => check.condition === 'possible').map(check => check.name).sort();
       if (JSON.stringify(reactions) !== JSON.stringify([...item.reactions as string[]].sort())) throw Error('Inconsistent movement reactions');
       if (checks.some(check => check.name === 'Pickup') && checks.some(check => check.name === 'Ball scatter')) throw Error('Conflicting ball contact');
-      if (checks.some(check => check.name === 'Jump') && (item.dodge !== 0 || item.dodgeModifier !== 0)) throw Error('Conflicting jump check');
+      if (checks.some(check => check.name === 'Jump') && (item.dodge !== 0 || version !== 4 && item.dodgeModifier !== 0)) throw Error('Conflicting jump check');
       if (checks.some(check => check.name === 'Steady Footing') && !item.dodge && !item.rush && !checks.some(check => check.name === 'Jump')) throw Error('Unavailable fall check');
     }
     return { x: integer(item.x, 0, 25), y: integer(item.y, 0, 14), dodge: integer(item.dodge, 0, version >= 2 ? 6 : 64),
@@ -73,7 +83,7 @@ export function decodeRouteStep(value: unknown, version: 1 | 2 | 3 = 2): RouteSt
 }
 
 export function decodeMovementChecks(value: unknown): MovementCheck[] {
-  if (!Array.isArray(value) || value.length > 7) throw Error('Invalid movement checks');
+  if (!Array.isArray(value) || value.length > 8) throw Error('Invalid movement checks');
   const names = new Set<string>();
   return value.map(input => {
     const check = shape(input, ['name', 'target', 'condition']);
@@ -86,7 +96,7 @@ export function decodeMovementChecks(value: unknown): MovementCheck[] {
       if (check.condition !== 'fall' || check.target !== 6) throw Error('Invalid fall check');
     } else if (check.name === 'Ball scatter') {
       if (check.condition !== 'entry' || check.target !== null) throw Error('Invalid ball contact');
-    } else if (['Diving Tackle', 'Tentacles', 'Shadowing'].includes(check.name)) {
+    } else if (['Diving Tackle', 'Tentacles', 'Shadowing', 'Prehensile Tail'].includes(check.name)) {
       if (check.condition !== 'possible' || check.target !== null) throw Error('Invalid reaction check');
     } else throw Error('Unknown movement check');
     return check as MovementCheck;

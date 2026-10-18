@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
 import { createServer } from './browser-test-server.mjs';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
@@ -22,6 +23,7 @@ async function open(role, distant = false, hold = false) {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
     '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
+  await page.addInitScript(installInitialMovementPreview);
   await page.addInitScript(({ fixture, role, distant, hold }) => {
     const ready = distant ? fixture.distantMoveReadyState : fixture.readyState;
     const plan = (distant ? fixture.distantMovePlan : fixture.movePlan).plan;
@@ -51,6 +53,7 @@ async function open(role, distant = false, hold = false) {
       }
       send(raw) {
         const request = JSON.parse(raw); this.sent.push(request);
+        if (window.replyToInitialMovementPreview(request,this.state,value=>this.emit(value))) return;
         if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication',
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'matchChat') queueMicrotask(() => this.emit({ version: 2, type: 'error',
