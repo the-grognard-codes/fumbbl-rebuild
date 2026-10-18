@@ -111,7 +111,7 @@ public class StepShadowing extends AbstractStepWithReRoll {
 		IServerJsonOption.DEFENDER_POSITION.addTo(jsonObject, state.defenderPosition);
 		IServerJsonOption.COORDINATE_FROM.addTo(jsonObject, state.coordinateFrom);
 		IServerJsonOption.USING_DIVING_TACKLE.addTo(jsonObject, state.usingDivingTackle);
-		IServerJsonOption.USING_SHADOWING.addTo(jsonObject, state.usingDivingTackle);
+		IServerJsonOption.USING_SHADOWING.addTo(jsonObject, state.usingShadowing);
 		IServerJsonOption.SHADOWER_WAS_PREVIOUS_DEFENDER.addTo(jsonObject, state.shadowerWasPreviousDefender);
 		return jsonObject;
 	}
@@ -125,7 +125,7 @@ public class StepShadowing extends AbstractStepWithReRoll {
 		state.defenderPosition = IServerJsonOption.DEFENDER_POSITION.getFrom(source, jsonObject);
 		state.coordinateFrom = IServerJsonOption.COORDINATE_FROM.getFrom(source, jsonObject);
 		state.usingDivingTackle = IServerJsonOption.USING_DIVING_TACKLE.getFrom(source, jsonObject);
-		state.usingDivingTackle = IServerJsonOption.USING_SHADOWING.getFrom(source, jsonObject);
+		state.usingShadowing = IServerJsonOption.USING_SHADOWING.getFrom(source, jsonObject);
 		state.shadowerWasPreviousDefender = toPrimitive(IServerJsonOption.SHADOWER_WAS_PREVIOUS_DEFENDER.getFrom(source, jsonObject));
 		return this;
 	}

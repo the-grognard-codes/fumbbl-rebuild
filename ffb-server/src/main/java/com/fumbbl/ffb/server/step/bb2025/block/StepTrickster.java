@@ -227,6 +227,11 @@ public class StepTrickster extends AbstractStep {
 		}
 	}
 
+	/** Targets already calculated by the native skill sequence, without committing use. */
+	public java.util.List<FieldCoordinate> reactionChoices() {
+		return new java.util.ArrayList<>(eligibleSquares);
+	}
+
 	private void leave() {
 		Game game = getGameState().getGame();
 		FieldModel fieldModel = game.getFieldModel();

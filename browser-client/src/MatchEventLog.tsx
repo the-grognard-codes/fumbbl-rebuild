@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { appendMatchLogLines } from './match-log.ts';
 import type { MatchLogLine } from './match-log.ts';
-import { DiceFace } from './DiceFace.tsx';
+import { PolygonDie } from './PolygonDie.tsx';
 import { readMatchLogPreferences, saveMatchLogPreferences, subscribeMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
@@ -10,16 +11,28 @@ import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTex
 import type { MatchTextSize } from './MatchTextSizeControls.tsx';
 import './match-log.css';
 
-const PAGE = 160;
 const fontKey = 'ffb.match.log.font-size';
-type Boundary = { key: string; revision: number };
-const boundary = (line: MatchLogLine): Boundary => ({ key: line.key, revision: line.revision });
-const locate = (lines: MatchLogLine[], point: Boundary, end = false) => {
-  const exact = lines.findIndex(line => line.key === point.key);
-  if (exact >= 0) return exact;
-  const index = lines.findIndex(line => line.revision >= point.revision);
-  return index >= 0 ? index : end ? lines.length - 1 : 0;
-};
+
+function LogText({ line }: { line: MatchLogLine }) {
+  const dice = line.dice;
+  if (!dice?.inline) return <>{line.text}</>;
+  let cursor = 0;
+  const parts: ReactNode[] = [];
+  const unmatched: number[] = [];
+  dice.faces.forEach((face, index) => {
+    const expression = new RegExp(`(?<![\\p{L}\\p{N}])${face}(?![\\p{L}\\p{N}])`, 'gu');
+    expression.lastIndex = cursor;
+    const found = expression.exec(line.text);
+    if (!found) { unmatched.push(index); return; }
+    if (found.index > cursor) parts.push(line.text.slice(cursor, found.index));
+    parts.push(<PolygonDie key={`die-${index}`} kind={dice.kinds[index] ?? 'd6'} face={face}/>);
+    cursor = found.index + found[0].length;
+  });
+  if (unmatched.length) parts.unshift(<span key="unmatched" className="match-log-dice">{unmatched.map(index =>
+    <PolygonDie key={index} kind={dice.kinds[index] ?? 'd6'} face={dice.faces[index]}/>)}</span>);
+  if (cursor < line.text.length) parts.push(line.text.slice(cursor));
+  return <>{parts.map((part, index) => <Fragment key={index}>{part}</Fragment>)}</>;
+}
 
 export function MatchEventLog({ records, loading, unavailable, showSettings = true }: {
   records: TranscriptRecord[]; loading: boolean; unavailable: boolean; showSettings?: boolean;
@@ -36,20 +49,26 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     cache.current.records = records.slice();
     return cache.current.lines.slice();
   }, [records, signature, preferences]);
-  const [windowRange, setWindowRange] = useState<{ first: Boundary; last: Boundary } | null>(null);
   const [fontSize, setFontSize] = useState<MatchTextSize>(() => readMatchTextSize(fontKey));
   const pane = useRef<HTMLDivElement>(null);
   const anchor = useRef<{ key: string; revision: number; offset: number } | null>(null);
+  const follow = useRef(true);
   const matchId = records[0]?.state.matchId;
-  useLayoutEffect(() => { anchor.current = null; setWindowRange(null); }, [matchId]);
-  const first = windowRange ? locate(lines, windowRange.first) : Math.max(0, lines.length - PAGE);
-  const last = windowRange ? locate(lines, windowRange.last, true) + 1 : lines.length;
+  useLayoutEffect(() => { anchor.current = null; follow.current = true; }, [matchId]);
   const rememberPosition = () => {
     const element = pane.current;
     if (!element) return;
+    if (element.scrollHeight - element.scrollTop - element.clientHeight <= 36) {
+      follow.current = true;
+      anchor.current = null;
+      return;
+    }
+    follow.current = false;
+    const paneTop = element.getBoundingClientRect().top;
     const row = Array.from(element.querySelectorAll<HTMLElement>('[data-log-key]'))
-      .find(row => row.offsetTop + row.offsetHeight > element.scrollTop);
-    if (row) anchor.current = { key: row.dataset.logKey!, revision: Number(row.dataset.revision), offset: row.offsetTop - element.scrollTop };
+      .find(row => row.getBoundingClientRect().bottom > paneTop);
+    if (row) anchor.current = { key: row.dataset.logKey!, revision: Number(row.dataset.revision),
+      offset: row.getBoundingClientRect().top - paneTop };
   };
   useLayoutEffect(() => {
     const element = pane.current;
@@ -58,25 +77,17 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
       const saved = anchor.current;
       const rows = Array.from(element.querySelectorAll<HTMLElement>('[data-log-key]'));
       const row = rows.find(row => row.dataset.logKey === saved.key) ?? rows.find(row => Number(row.dataset.revision) >= saved.revision);
-      if (row) element.scrollTop = row.offsetTop - saved.offset;
+      if (row) element.scrollTop += row.getBoundingClientRect().top - element.getBoundingClientRect().top - saved.offset;
       anchor.current = null;
-    } else if (windowRange === null) element.scrollTop = element.scrollHeight;
-  }, [lines, windowRange, fontSize]);
+    } else if (follow.current) element.scrollTop = element.scrollHeight;
+  }, [lines, fontSize]);
   useEffect(() => subscribeMatchLogPreferences(next => {
     if (JSON.stringify(next) === signature) return;
     rememberPosition();
-    if (windowRange === null && lines.length && pane.current
-      && pane.current.scrollHeight - pane.current.scrollTop - pane.current.clientHeight > 36)
-      setWindowRange({ first: boundary(lines[first]), last: boundary(lines[last - 1]) });
     setPreferences(next);
-  }), [signature, lines, windowRange, first, last]);
+  }), [signature, lines]);
   const choosePreference = (name: keyof MatchLogPreferences, value: boolean) =>
     saveMatchLogPreferences({ ...preferences, [name]: value });
-  const earlier = () => {
-    rememberPosition();
-    setWindowRange({ first: boundary(lines[Math.max(0, first - PAGE)]), last: boundary(lines[last - 1]) });
-  };
-  const later = () => setWindowRange({ first: boundary(lines[first]), last: boundary(lines[Math.min(lines.length, last + PAGE) - 1]) });
   return <section className="match-event-log" data-font-size={fontSize} aria-label="Match log">
     <header><h3>Game Log</h3><MatchTextSizeControls subject="log" size={fontSize} onChange={size => {
       rememberPosition(); setFontSize(size); saveMatchTextSize(fontKey, size);
@@ -87,18 +98,14 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
           onChange={event => choosePreference(name, event.target.checked)}/>{label}</label>)}
     </div>}
     {!lines.length && <p>{loading ? 'Loading recorded history…' : unavailable ? 'Recorded history is unavailable for this match.' : 'No recorded events yet.'}</p>}
-    <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll" style={{ fontSize: `${matchTextPixels[fontSize]}px` }}
-      onScroll={event => { if (windowRange !== null || !lines.length) return; const element = event.currentTarget;
-        if (element.scrollHeight - element.scrollTop - element.clientHeight > 36)
-          setWindowRange({ first: boundary(lines[first]), last: boundary(lines[last - 1]) }); }}>
-      {lines.slice(first, last).map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision}>
-        {line.dice && <span className="match-log-dice">{line.dice.faces.map((face, index) =>
-          <DiceFace key={index} face={face} selected={line.dice?.selected === index}/>)}</span>}
-        {line.text}{line.debug && <small className="match-log-debug">{line.debug}</small>}</p>)}
+    <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll"
+      style={{ fontSize: `${matchTextPixels[fontSize]}px`, lineHeight: 1.5 }}
+      onScroll={rememberPosition}>
+      {lines.map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision}>
+        {line.dice && !line.dice.inline && <span className="match-log-dice">{line.dice.faces.map((face, index) =>
+          <PolygonDie key={index} kind={line.dice?.kinds[index] ?? 'block'} face={face}
+            selected={line.dice?.selected === index} uphill={line.dice?.uphill} chosenBy={line.dice?.chooser}/>)}</span>}
+        <LogText line={line}/>{line.debug && <small className="match-log-debug">{line.debug}</small>}</p>)}
     </div>
-    {lines.length > PAGE && <div className="match-log-paging">
-      <button type="button" onClick={earlier} disabled={first === 0}>Earlier</button>
-      <button type="button" onClick={later} disabled={last >= lines.length}>Later</button>
-    </div>}
   </section>;
 }

@@ -55,13 +55,15 @@ public class ShadowingBehaviour extends SkillBehaviour<Shadowing> {
 					&& !actingPlayer.getPlayer().hasSkillProperty(NamedProperties.movesRandomly));
 				if (doShadowing && (state.coordinateFrom != null) && (state.usingShadowing == null)) {
 					Player<?>[] shadowers =
-						UtilPlayer.findAdjacentOpposingPlayersWithSkill(game, state.coordinateFrom, skill, true);
+						UtilPlayer.findAdjacentOpposingPlayersWithSkill(game, state.coordinateFrom, skill, false);
 					shadowers = UtilPlayer.filterThrower(game, shadowers);
 					if (game.getTurnMode() == TurnMode.DUMP_OFF) {
 						shadowers = UtilPlayer.filterAttackerAndDefender(game, shadowers);
 					}
 
-					shadowers = Arrays.stream(shadowers).filter(
+					shadowers = Arrays.stream(shadowers)
+						.filter(shadower -> !game.getFieldModel().getPlayerState(shadower).isRooted()
+							&& !game.getFieldModel().getPlayerState(shadower).isPinned()).filter(
 							shadower -> shadower.getMovementWithModifiers() > step.getGameState().shadowingCount(shadower.getId()))
 						.toArray(Player[]::new);
 
@@ -69,7 +71,8 @@ public class ShadowingBehaviour extends SkillBehaviour<Shadowing> {
 						String teamId = game.isHomePlaying() ? game.getTeamAway().getId() : game.getTeamHome().getId();
 						Team actingTeam = game.isHomePlaying() ? game.getTeamHome() : game.getTeamAway();
 						UtilServerDialog.showDialog(step.getGameState(),
-							new DialogPlayerChoiceParameter(teamId, PlayerChoiceMode.SHADOWING, shadowers, null, 1),
+							new DialogPlayerChoiceParameter(teamId, PlayerChoiceMode.SHADOWING, shadowers,
+								Arrays.stream(shadowers).map(player -> "(" + minimumRoll() + "+)").toArray(String[]::new), 1),
 							!actingTeam.getId().equals(teamId));
 						doNextStep = false;
 					} else {
@@ -90,7 +93,7 @@ public class ShadowingBehaviour extends SkillBehaviour<Shadowing> {
 						if (rollShadowing) {
 							step.getGameState().addShadower(game.getDefenderId());
 							int roll = step.getGameState().getDiceRoller().rollSkill();
-							int minimumRoll = 4;
+							int minimumRoll = minimumRoll();
 							boolean successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, minimumRoll);
 							boolean reRolled = ((step.getReRolledAction() == ReRolledActions.SHADOWING)
 								&& (step.getReRollSource() != null));
@@ -133,4 +136,6 @@ public class ShadowingBehaviour extends SkillBehaviour<Shadowing> {
 
 		});
 	}
+
+	private int minimumRoll() { return 4; }
 }

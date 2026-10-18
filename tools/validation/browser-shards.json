@@ -4,13 +4,15 @@
     [
       "browser-client/test/reroll-choices-ui.mjs",
       "browser-client/test/apothecary-decision-ui.mjs",
+      "browser-client/test/reactive-decisions-ui.mjs",
       "browser-client/test/smart-pitch-ui.mjs",
       "browser-client/test/push-choice-ui.mjs",
       "browser-client/test/end-player-action-ui.mjs",
       "browser-client/test/chat-speaker-ui.mjs",
       "browser-client/test/match-log-ui.mjs",
       "browser-client/test/native-check-log-ui.mjs",
-      "browser-client/test/block-log-ui.mjs"
+      "browser-client/test/block-log-ui.mjs",
+      "browser-client/test/dice-mark-alignment-ui.mjs"
     ],
     [
       "browser-client/test/reroll-accounting-ui.mjs",

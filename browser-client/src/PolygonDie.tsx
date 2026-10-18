@@ -16,11 +16,11 @@ const numericAngles: Record<string, [number, number, number]> = {
 
 export type PolygonDieProps = {
   kind: DieKind;
-  face?: string; potential?: boolean; awaiting?: boolean; selected?: boolean; rollKey?: string; index?: number;
+  face?: string; potential?: boolean; awaiting?: boolean; selected?: boolean; uphill?: boolean; chosenBy?: 'home' | 'away'; rollKey?: string; index?: number;
 };
 
 /** One motion lifecycle for all physical dice. Only native results choose the resting face. */
-export function PolygonDie({ kind, face, potential = false, awaiting = false, selected = false, rollKey, index = 0 }: PolygonDieProps) {
+export function PolygonDie({ kind, face, potential = false, awaiting = false, selected = false, uphill = false, chosenBy, rollKey, index = 0 }: PolygonDieProps) {
   const solid = kind === 'd8' || kind === 'd16' ? numericSolids[kind] : null;
   const faces = kind === 'block' ? blockFaces : ['1', '2', '6', '5', '3', '4'];
   const valid = potential || awaiting || (solid ? solid.some(side => side.value === face) : faces.includes(face ?? ''));
@@ -93,7 +93,7 @@ export function PolygonDie({ kind, face, potential = false, awaiting = false, se
   }, [motion, rollKey, index, face, kind]);
   const resultSide = potential || awaiting ? -1 : faces.indexOf(face ?? '');
   const name = kind === 'block' ? 'Block die' : kind.toUpperCase();
-  return <span className={`match-die polygon-die ${kind === 'block' ? 'block-die' : 'numeric-die'} ${kind} ${phase}${selected ? ' selected' : ''}`}
+  return <span className={`match-die polygon-die ${kind === 'block' ? 'block-die' : 'numeric-die'} ${kind} ${phase}${selected ? ' selected' : ''}${selected && chosenBy ? ` ${chosenBy}-selected` : ''}${selected && uphill ? ' uphill-selected' : ''}`}
     data-face={potential || awaiting ? undefined : face} data-die-kind={kind} hidden={!valid}
     role="img" aria-label={awaiting ? `${name}; awaiting native result` : potential ? `Potential ${name.toLowerCase()}; outcome not yet rolled`
       : `Ivory and cyan die: ${kind === 'block' ? blockFaceLabel(face!) : `${name} ${face}`}`}>

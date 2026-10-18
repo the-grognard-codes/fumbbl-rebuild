@@ -66,6 +66,7 @@ public class TentaclesBehaviour extends SkillBehaviour<Tentacles> {
 									description.append("(").append(Math.abs(attributeDiff)).append(" ST disadvantage)");
 								}
 								descriptionArray[i] = description.toString();
+								descriptionArray[i] += " (" + DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(minimumRoll(playerArray[i], actingPlayer.getPlayer())) + "+)";
 							}
 							Team actingTeam = game.isHomePlaying() ? game.getTeamHome() : game.getTeamAway();
 							UtilServerDialog.showDialog(step.getGameState(),
@@ -91,8 +92,7 @@ public class TentaclesBehaviour extends SkillBehaviour<Tentacles> {
 						}
 						if (rollTentacles) {
 							int roll = step.getGameState().getDiceRoller().rollSkill();
-							int stDifference = game.getDefender().getStrengthWithModifiers() - actingPlayer.getPlayer().getStrengthWithModifiers();
-							int minimumRoll = Math.max(6 - stDifference, 2);
+							int minimumRoll = minimumRoll(game.getDefender(), actingPlayer.getPlayer());
 							boolean successful = DiceInterpreter.getInstance().isSkillRollSuccessful(roll, minimumRoll);
 
 							boolean reRolled = ((step.getReRolledAction() == ReRolledActions.TENTACLES)
@@ -135,5 +135,9 @@ public class TentaclesBehaviour extends SkillBehaviour<Tentacles> {
 			}
 
 		});
+	}
+
+	private int minimumRoll(Player<?> tentacledPlayer, Player<?> movingPlayer) {
+		return Math.max(6 - tentacledPlayer.getStrengthWithModifiers() + movingPlayer.getStrengthWithModifiers(), 2);
 	}
 }

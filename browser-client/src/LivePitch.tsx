@@ -241,11 +241,20 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     view.kickPreview?.withKick.x, view.kickPreview?.withKick.y, size.width, size.height, end, mode, perspectiveElevation, zoom]);
   const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
   for (const action of actions) {
+    if (action.kind === 'reactionMove' && action.sourcePlayerId) {
+      targetPlayers.add(action.sourcePlayerId);
+      if (action.sourcePlayerId !== selectedId) continue;
+    }
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
     else if (action.target && 'x' in action.target && !['push', 'followUp', 'hitAndRun', 'move', 'jump', 'kickoff'].includes(action.kind)
       && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
+      if (action.kind === 'reactiveSquare') {
+        const square = action.target;
+        const recipient = view.players.find(player => player.x === square.x && player.y === square.y);
+        if (recipient) targetPlayers.add(recipient.id);
+      }
     }
   }
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')

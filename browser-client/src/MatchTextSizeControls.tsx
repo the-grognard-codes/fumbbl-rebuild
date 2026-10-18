@@ -1,6 +1,6 @@
 export type MatchTextSize = 'small' | 'medium' | 'large';
 
-export const matchTextPixels: Record<MatchTextSize, number> = { small: 12, medium: 14, large: 18 };
+export const matchTextPixels: Record<MatchTextSize, number> = { small: 10, medium: 12, large: 14 };
 
 export function readMatchTextSize(key: string): MatchTextSize {
   try { const saved = localStorage.getItem(key); return saved === 'small' || saved === 'large' ? saved : 'medium'; }

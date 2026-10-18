@@ -17,6 +17,34 @@ import static org.mockito.Mockito.when;
 
 public class BrowserMatchTransportTest {
 	@Test
+	public void deadlineChecksQueueAtMostOnceAndRetryAfterEnqueueFailures() {
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		List<Runnable> queued = new ArrayList<>();
+		AtomicInteger attempts = new AtomicInteger(), expired = new AtomicInteger();
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> {
+			int attempt = attempts.incrementAndGet();
+			if (attempt == 1) throw new IllegalStateException("Queue temporarily unavailable");
+			if (attempt == 2) return false;
+			queued.add(invocation.getArgument(0)); return true;
+		});
+		BrowserProtocol adapter = new BrowserProtocol() {
+			public void receive(BrowserMatchAdapter.Connection connection, String text) { }
+			public void disconnect(BrowserMatchAdapter.Connection connection) { }
+			public void expireDecisions() { expired.incrementAndGet(); }
+		};
+		BrowserMatchTransport transport = new BrowserMatchTransport(server);
+		transport.queueDecisionCheck(adapter); transport.queueDecisionCheck(adapter);
+		transport.queueDecisionCheck(adapter); transport.queueDecisionCheck(adapter);
+		assertEquals(3, attempts.get()); assertEquals(1, queued.size()); assertEquals(0, expired.get());
+		queued.get(0).run(); assertEquals(1, expired.get());
+		transport.queueDecisionCheck(adapter); assertEquals(2, queued.size());
+		transport.destroy(); queued.get(1).run(); transport.queueDecisionCheck(adapter);
+		assertEquals(1, expired.get()); assertEquals(4, attempts.get());
+	}
+
+	@Test
 	public void ingressCapRejectsBrowserWorkWhileCommunicationWorkerIsBlockedAndRecoversWhenItDrains() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);

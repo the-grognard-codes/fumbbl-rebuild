@@ -11,6 +11,8 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addFeature("Browser player skill markers offer text and illustrated badges with team, origin, trait and size settings in live matches and replays")
+			.addBugfix("Compact pitch decisions avoid covering destinations when only tighter spacing fits a small screen")
+			.addBugfix("Browser reactive skills prompt the owning coach with a server-enforced 30-second deadline and decline unanswered optional decisions")
 			.addBugfix("Browser coaches can concede retained matches from older game versions without resuming their incompatible engine")
 			.addBugfix("Match preparation stays connected while playing in another window and remains available for fifteen minutes after completion")
 			.addBugfix("Space confirms proposed player actions and end-turn warnings from the pitch and action menu")
@@ -21,6 +23,7 @@ public class ChangeList {
 			.addBugfix("Hand Off receivers can be selected directly on the pitch and confirmed")
 			.addBugfix("BB2025 players can stand up in place and continue moving, including routes back to their starting square")
 			.addBehaviorChange("BB2025 stunned players remain stunned throughout their missed turn and recover at its end; fresh stuns wait until the next missed turn")
+			.addImprovement("Browser Game Log keeps live and settings history in sync, uses current MUTP dice for rolls, and removes paging")
 			.addImprovement("Browser dice remain visible longer and stream in labelled roll groups, keeping armour and injury easy to follow")
 			.addBugfix("Browser D16 rolls no longer briefly show scrollbars while tumbling")
 			.addImprovement("Browser D6, D8 and D16 rolls use physical polygon dice, the shared block-dice motion and diffuse backing around dice and reroll choices")

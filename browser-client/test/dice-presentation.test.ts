@@ -28,13 +28,15 @@ test('low D8 and D16 values retain native types and group order instead of becom
 });
 
 test('untyped totals, unsupported dice and invalid native metadata never become guessed faces', () => {
-  for (const report of [{ reportId: 'injury', casualtyRoll: [3, 2] }, { reportId: 'prayerRoll', roll: 3 },
+  for (const report of [{ reportId: 'prayerRoll', roll: 3 },
     { reportId: 'solidDefenceRoll', roll: 3 }, { reportId: 'unknownRoll', roll: 3 }, { reportId: 'injury', injuryRoll: 8 }]) {
     assert.equal(reportedDice(report), null);
   }
-  for (const [sides, value] of [[3, 2], [8, 9], [16, 17], [6, 0], [16, 1.5]]) {
+  for (const [sides, value] of [[8, 9], [16, 17], [6, 0], [16, 1.5]]) {
     assert.equal(numericRolls({ version: 1, dice: [{ sides, value, label: 'Native' }] }), null);
   }
+  assert.deepEqual(numericRolls({ version: 1, dice: [{ sides: 3, value: 2, label: 'D3' }] })?.map(roll => [roll.kind, roll.face]), [['d6', '2']]);
+  assert.deepEqual(reportedDice({ reportId: 'injury', casualtyRoll: [3, 2] })?.rolls?.map(roll => roll.kind), ['d16', 'd6']);
   assert.equal(reportedDice({ reportId: 'goForItRoll', roll: 3, numericDice: { version: 2, dice: [] } }), null);
   assert.deepEqual(reportedDice({ reportId: 'scatterBall', rolls: [2, 8] })?.rolls?.map(roll => roll.kind), ['d8', 'd8']);
   assert.deepEqual(reportedDice({ reportId: 'tentaclesShadowingRoll', tentacleRoll: [2, 6] })?.faces, ['2', '6']);

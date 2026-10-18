@@ -49,6 +49,7 @@ public class StepPlaceBall extends AbstractStep {
 	private CatchScatterThrowInMode catchScatterThrowInMode;
 	private Phase phase = Phase.ASK;
 	private boolean ballCarrierTeamTurn, revertEndTurn;
+	private boolean retainedTurnContext;
 	private final Set<FieldCoordinate> adjacentSquares = new HashSet<>();
 	private FieldCoordinate selectedCoordinate;
 
@@ -198,12 +199,20 @@ public class StepPlaceBall extends AbstractStep {
 		}
 
 		ballCarrierTeamTurn = game.isHomePlaying() == game.getTeamHome().hasPlayer(ballCarrier);
+		retainedTurnContext = true;
 		if (!ballCarrierTeamTurn) {
 			game.setHomePlaying(!game.isHomePlaying());
 		}
 
-		UtilServerDialog.showDialog(getGameState(), new DialogSkillUseParameter(playerId, skill, 0), !game.isHomePlaying());
+		UtilServerDialog.showDialog(getGameState(), new DialogSkillUseParameter(playerId, skill, 0), !ballCarrierTeamTurn);
 	}
+
+	/** Targets already calculated by the native skill sequence, without committing use. */
+	public java.util.List<FieldCoordinate> reactionChoices() {
+		return new java.util.ArrayList<>(adjacentSquares);
+	}
+
+	public boolean isBallCarrierTeamTurn() { return ballCarrierTeamTurn; }
 
 	private void leave(Game game) {
 		game.getFieldModel().clearMoveSquares();
@@ -217,6 +226,7 @@ public class StepPlaceBall extends AbstractStep {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+		if (retainedTurnContext) jsonObject.add("ballCarrierTeamTurn", ballCarrierTeamTurn);
 		IServerJsonOption.PLAYER_ID.addTo(jsonObject, playerId);
 		IServerJsonOption.CATCH_SCATTER_THROW_IN_MODE.addTo(jsonObject, catchScatterThrowInMode);
 		IServerJsonOption.STEP_PHASE.addTo(jsonObject, phase.name());
@@ -234,8 +244,16 @@ public class StepPlaceBall extends AbstractStep {
 	public AbstractStep initFrom(IFactorySource source, JsonValue jsonValue) {
 		super.initFrom(source, jsonValue);
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+		retainedTurnContext = jsonObject.get("ballCarrierTeamTurn") != null;
+		if (retainedTurnContext) ballCarrierTeamTurn = jsonObject.getBoolean("ballCarrierTeamTurn", false);
 
 		playerId = IServerJsonOption.PLAYER_ID.getFrom(source, jsonObject);
+		if (!retainedTurnContext) {
+			Game game = getGameState().getGame();
+			Player<?> active = game.getActingPlayer().getPlayer();
+			Player<?> carrier = game.getPlayerById(playerId);
+			if (active != null && carrier != null) ballCarrierTeamTurn = active.getTeam() == carrier.getTeam();
+		}
 		catchScatterThrowInMode = (CatchScatterThrowInMode) IServerJsonOption.CATCH_SCATTER_THROW_IN_MODE.getFrom(source, jsonObject);
 		phase = Phase.valueOf(IServerJsonOption.STEP_PHASE.getFrom(source, jsonObject));
 
