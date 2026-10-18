@@ -39,7 +39,7 @@ try {
     await page.setViewportSize({ width, height });
     await opener.click();
     assert.equal(await menu.getByRole('button', { name: 'Close Game Menu' }).evaluate(element => element === document.activeElement), true);
-    for (const tab of ['Game Options', 'Game Settings', 'Interface', 'Key Bindings', 'Game Log']) {
+    for (const tab of ['Game Options', 'Game Settings', 'Skills & Traits', 'Interface', 'Key Bindings', 'Game Log']) {
       const selected = menu.getByRole('tab', { name: tab, exact: true });
       await selected.click();
       if (tab === 'Game Log') await menu.locator('.match-event-scroll').evaluate(element => {
@@ -156,5 +156,5 @@ try {
   assert.equal(await menu.getByRole('button', { name: 'Concede match', exact: true }).isDisabled(), true);
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Presentation checks submitted no game actions');
   assert.deepEqual(errors, []);
-  console.log('PASS: MUTP menu across five tabs/four viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');
+  console.log('PASS: MUTP menu across six tabs/four viewports, keyboard focus, log sizes, live preferences/reading position, reload and denied storage; setup/kickoff-only broadcasts with intact dedicated decisions.');
 } finally { await browser.close(); await server.close(); }

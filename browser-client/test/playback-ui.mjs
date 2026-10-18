@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 import { verifyDiceStream } from './dice-stream-checks.mjs';
+import { DICE_GROUP_INTERVAL_MS, DICE_RETENTION_MS } from '../src/dice-stream.ts';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const pickupReport = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8'))[0].reports[0];
@@ -108,10 +109,18 @@ try {
     reportList:{reports:[{reportId:index===3?'goForItRoll':'dodgeRoll',roll,successful:true,playerId:'home1'}]},
     modelChangeList:{modelChangeArray:[change([23,24,25,24][index])]}
   })));
+  // Four independently expiring groups overlap for only 150ms. Keep decorative
+  // time paused while React commits each move, so a busy build cannot miss it.
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
     revision===14?success:record(revision,22)) });
   const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');
+  for (const x of [23,24,25,24]) {
+    await page.waitForFunction(x => Number(document.querySelector('#playback-state').dataset.x) === x, x);
+    await page.clock.runFor(200);
+  }
   await wait(14,24);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay[role="status"] .match-die').length === 4);
   assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2'],
     'Three dodges and one rush stream in across movement playback');
@@ -119,12 +128,16 @@ try {
     modelChangeList:{modelChangeArray:[change(25)]}}]);
   await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
     revision===15?continuation:revision===14?success:record(revision,22)) });
+  await page.waitForFunction(() => document.querySelector('#playback-state').dataset.x === '25');
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await wait(15,25);
   await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
   const continuedFaces = await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face));
   assert.equal(continuedFaces.at(-1), '3', 'A later authoritative revision joins the same stream');
   assert.ok(continuedFaces.includes('2'), 'The preceding rush stays visible for its own interval');
+  await page.clock.runFor(DICE_RETENTION_MS);
   await page.waitForFunction(() => !document.querySelector('.live-dice-overlay[role="status"] .match-die'));
+  await page.clock.resume();
   await publish({view:state(15,25),records:[],enabled:false}); await wait(15,25);
   await publish({view:state(15,25),records:[]}); await wait(15,25);
   assert.equal(await successfulDice.count(),0, 'Reconnect does not replay stale retained dice');

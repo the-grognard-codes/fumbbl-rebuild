@@ -11,6 +11,8 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import { usePitchPlayback } from './use-pitch-playback.ts';
 import { matchTeamName } from './match-team-name.ts';
+import { GameMenu } from './GameMenu.tsx';
+import './coach-match.css';
 
 export function HostedResult({ matchId, result, event, index, pending, connected, onLoad, onReplay,
   logRecords, logLoading, logUnavailable, chatMessages, chatLoading, chatUnavailable }: {
@@ -82,6 +84,8 @@ export function HostedResult({ matchId, result, event, index, pending, connected
       </div>
       {event ? <section aria-label="Replay event"><h2>Event {event.revision + 1} of {result.eventCount}: {event.kind}</h2>
         <p>Half {event.state.half} · Drive {event.state.drive} · {matchTeamName(event.state, 'home')} turn {event.state.homeTurn} · {matchTeamName(event.state, 'away')} turn {event.state.awayTurn} · {event.state.weather}</p>
+        <div className="replay-menu"><GameMenu view={{ ...event.state, callerRole: 'spectator' }} replay connected={connected} pending={pending}
+          mutate={() => {}} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}/></div>
         <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
       </section> : <p>Choose First or Last to view the recorded pitch.</p>}
       {result.formatVersion >= 2 && <MatchHistory matchId={matchId} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}

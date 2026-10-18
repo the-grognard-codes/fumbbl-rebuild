@@ -1,0 +1,2224 @@
+{
+  "ruleset": "BB2025",
+  "status": "approved 108-core scope and artwork; integrated in browser pitch",
+  "date": "2026-10-17",
+  "counts": {
+    "categorySkills": 72,
+    "coreTraits": 36,
+    "total": 108
+  },
+  "palette": [
+    {
+      "category": "General",
+      "color": "Blue",
+      "fill": "#49DFFF",
+      "text": "#091726",
+      "note": "Existing MUTP home score accent in coach-match.css."
+    },
+    {
+      "category": "Agility",
+      "color": "Yellow",
+      "fill": "#FFE17B",
+      "text": "#091726",
+      "note": "Existing MUTP gold accent in coach-match.css."
+    },
+    {
+      "category": "Strength",
+      "color": "Red",
+      "fill": "#E4777F",
+      "text": "#091726",
+      "note": "Proposed; review with samples."
+    },
+    {
+      "category": "Mutation",
+      "color": "Purple",
+      "fill": "#B696DE",
+      "text": "#091726",
+      "note": "Proposed; review with samples."
+    },
+    {
+      "category": "Passing",
+      "color": "Green",
+      "fill": "#7AC59C",
+      "text": "#091726",
+      "note": "Proposed; review with samples."
+    },
+    {
+      "category": "Devious",
+      "color": "Orange",
+      "fill": "#E7AA6A",
+      "text": "#091726",
+      "note": "Proposed; review with samples."
+    },
+    {
+      "category": "Core traits",
+      "color": "Black",
+      "fill": "#10141A",
+      "text": "#D9E9F7",
+      "note": "Pale edge distinguishes cards from the pitch; includes positive traits."
+    }
+  ],
+  "entries": [
+    {
+      "id": "catch",
+      "name": "Catch",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "C",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Catch.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Catch",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Catch"
+      }
+    },
+    {
+      "id": "diving-catch",
+      "name": "Diving Catch",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "DC",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/DivingCatch.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Diving Catch",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.DivingCatch"
+      }
+    },
+    {
+      "id": "diving-tackle",
+      "name": "Diving Tackle",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "DT",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/DivingTackle.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Diving Tackle",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.DivingTackle"
+      }
+    },
+    {
+      "id": "dodge",
+      "name": "Dodge",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "D",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Dodge.java",
+      "notes": "Single-letter priority; rules Elite.",
+      "rulesElite": true,
+      "markerPriority": true,
+      "native": {
+        "name": "Dodge",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_TURN",
+        "class": "com.fumbbl.ffb.skill.bb2025.Dodge"
+      }
+    },
+    {
+      "id": "defensive",
+      "name": "Defensive",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "DEF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Defensive.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Defensive",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Defensive"
+      }
+    },
+    {
+      "id": "hit-and-run",
+      "name": "Hit And Run",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "HR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/HitAndRun.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Hit And Run",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.HitAndRun"
+      }
+    },
+    {
+      "id": "jump-up",
+      "name": "Jump Up",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "JU",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/JumpUp.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Jump Up",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.JumpUp"
+      }
+    },
+    {
+      "id": "leap",
+      "name": "Leap",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "L",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Leap.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Leap",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Leap"
+      }
+    },
+    {
+      "id": "safe-pair-of-hands",
+      "name": "Safe Pair Of Hands",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "SPH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/SafePairOfHands.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Safe Pair Of Hands",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.SafePairOfHands"
+      }
+    },
+    {
+      "id": "sidestep",
+      "name": "Sidestep",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "SS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Sidestep.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Sidestep",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Sidestep"
+      }
+    },
+    {
+      "id": "sprint",
+      "name": "Sprint",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "SPR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Sprint.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Sprint",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Sprint"
+      }
+    },
+    {
+      "id": "sure-feet",
+      "name": "Sure Feet",
+      "section": "core",
+      "category": "AGILITY",
+      "shorthand": "SFE",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/SureFeet.java",
+      "notes": "SFE avoids Stand Firm SF.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Sure Feet",
+        "category": "AGILITY",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_TURN",
+        "class": "com.fumbbl.ffb.skill.bb2025.SureFeet"
+      }
+    },
+    {
+      "id": "dirty-player",
+      "name": "Dirty Player",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "DP",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/DirtyPlayer.java",
+      "notes": "No numbered text or +2 variant.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Dirty Player",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.DirtyPlayer"
+      }
+    },
+    {
+      "id": "eye-gouge",
+      "name": "Eye Gouge",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "EG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/EyeGouge.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Eye Gouge",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.EyeGouge"
+      }
+    },
+    {
+      "id": "fumblerooski",
+      "name": "Fumblerooski",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "FUM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Fumblerooski.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Fumblerooski",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Fumblerooski"
+      }
+    },
+    {
+      "id": "lethal-flight",
+      "name": "Lethal Flight",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "LF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/LethalFlight.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Lethal Flight",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.LethalFlight"
+      }
+    },
+    {
+      "id": "lone-fouler",
+      "name": "Lone Fouler",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "LFO",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/LoneFouler.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Lone Fouler",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_TURN",
+        "class": "com.fumbbl.ffb.skill.bb2025.LoneFouler"
+      }
+    },
+    {
+      "id": "pile-driver",
+      "name": "Pile Driver",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "PD",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/PileDriver.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Pile Driver",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.PileDriver"
+      }
+    },
+    {
+      "id": "put-the-boot-in",
+      "name": "Put the Boot In",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "PBI",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/PutTheBootIn.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Put the Boot In",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.PutTheBootIn"
+      }
+    },
+    {
+      "id": "quick-foul",
+      "name": "Quick Foul",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "QF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/QuickFoul.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Quick Foul",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.QuickFoul"
+      }
+    },
+    {
+      "id": "saboteur",
+      "name": "Saboteur",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "SAB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Saboteur.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Saboteur",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Saboteur"
+      }
+    },
+    {
+      "id": "shadowing",
+      "name": "Shadowing",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "SHA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Shadowing.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Shadowing",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Shadowing"
+      }
+    },
+    {
+      "id": "sneaky-git",
+      "name": "Sneaky Git",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "SG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/SneakyGit.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Sneaky Git",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.SneakyGit"
+      }
+    },
+    {
+      "id": "violent-innovator",
+      "name": "Violent Innovator",
+      "section": "core",
+      "category": "DEVIOUS",
+      "shorthand": "VI",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/ViolentInnovator.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Violent Innovator",
+        "category": "DEVIOUS",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.ViolentInnovator"
+      }
+    },
+    {
+      "id": "block",
+      "name": "Block",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "B",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Block.java",
+      "notes": "Single-letter priority; rules Elite.",
+      "rulesElite": true,
+      "markerPriority": true,
+      "native": {
+        "name": "Block",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Block"
+      }
+    },
+    {
+      "id": "dauntless",
+      "name": "Dauntless",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "DA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Dauntless.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Dauntless",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Dauntless"
+      }
+    },
+    {
+      "id": "fend",
+      "name": "Fend",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "FE",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Fend.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Fend",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Fend"
+      }
+    },
+    {
+      "id": "frenzy",
+      "name": "Frenzy",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "F",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Frenzy.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Frenzy",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Frenzy"
+      }
+    },
+    {
+      "id": "kick",
+      "name": "Kick",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "K",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Kick.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Kick",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Kick"
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "P",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Pro.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Pro",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_TURN",
+        "class": "com.fumbbl.ffb.skill.bb2025.Pro"
+      }
+    },
+    {
+      "id": "steady-footing",
+      "name": "Steady Footing",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "STF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/SteadyFooting.java",
+      "notes": "STF avoids Stand Firm SF.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Steady Footing",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.SteadyFooting"
+      }
+    },
+    {
+      "id": "strip-ball",
+      "name": "Strip Ball",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "SB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/StripBall.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Strip Ball",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.StripBall"
+      }
+    },
+    {
+      "id": "sure-hands",
+      "name": "Sure Hands",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "SH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/SureHands.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Sure Hands",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.SureHands"
+      }
+    },
+    {
+      "id": "tackle",
+      "name": "Tackle",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "T",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Tackle.java",
+      "notes": "Single-letter priority agreed for markers; not rules Elite.",
+      "rulesElite": false,
+      "markerPriority": true,
+      "native": {
+        "name": "Tackle",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Tackle"
+      }
+    },
+    {
+      "id": "taunt",
+      "name": "Taunt",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "TA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Taunt.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Taunt",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Taunt"
+      }
+    },
+    {
+      "id": "wrestle",
+      "name": "Wrestle",
+      "section": "core",
+      "category": "GENERAL",
+      "shorthand": "W",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Wrestle.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Wrestle",
+        "category": "GENERAL",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Wrestle"
+      }
+    },
+    {
+      "id": "big-hand",
+      "name": "Big Hand",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "BH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/BigHand.java",
+      "notes": "BH reserved here; Bone Head uses BHD.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Big Hand",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.BigHand"
+      }
+    },
+    {
+      "id": "claws",
+      "name": "Claws",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "CL",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Claws.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Claws",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Claws"
+      }
+    },
+    {
+      "id": "disturbing-presence",
+      "name": "Disturbing Presence",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "DIS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/DisturbingPresence.java",
+      "notes": "DIS avoids Dirty Player DP.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Disturbing Presence",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.DisturbingPresence"
+      }
+    },
+    {
+      "id": "extra-arms",
+      "name": "Extra Arms",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "EA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/ExtraArms.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Extra Arms",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.ExtraArms"
+      }
+    },
+    {
+      "id": "foul-appearance",
+      "name": "Foul Appearance",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "FA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/FoulAppearance.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Foul Appearance",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.FoulAppearance"
+      }
+    },
+    {
+      "id": "horns",
+      "name": "Horns",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "H",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Horns.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Horns",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Horns"
+      }
+    },
+    {
+      "id": "iron-hard-skin",
+      "name": "Iron Hard Skin",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "IHS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/IronHardSkin.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Iron Hard Skin",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.IronHardSkin"
+      }
+    },
+    {
+      "id": "monstrous-mouth",
+      "name": "Monstrous Mouth",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "MM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/MonstrousMouth.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Monstrous Mouth",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.MonstrousMouth"
+      }
+    },
+    {
+      "id": "prehensile-tail",
+      "name": "Prehensile Tail",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "PT",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/PrehensileTail.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Prehensile Tail",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.PrehensileTail"
+      }
+    },
+    {
+      "id": "tentacles",
+      "name": "Tentacles",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "TE",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Tentacles.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Tentacles",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Tentacles"
+      }
+    },
+    {
+      "id": "two-heads",
+      "name": "Two Heads",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "TH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/TwoHeads.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Two Heads",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.TwoHeads"
+      }
+    },
+    {
+      "id": "very-long-legs",
+      "name": "Very Long Legs",
+      "section": "core",
+      "category": "MUTATION",
+      "shorthand": "VLL",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/VeryLongLegs.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Very Long Legs",
+        "category": "MUTATION",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.VeryLongLegs"
+      }
+    },
+    {
+      "id": "accurate",
+      "name": "Accurate",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "AC",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Accurate.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Accurate",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Accurate"
+      }
+    },
+    {
+      "id": "cannoneer",
+      "name": "Cannoneer",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "CAN",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Cannoneer.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Cannoneer",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Cannoneer"
+      }
+    },
+    {
+      "id": "cloud-burster",
+      "name": "Cloud Burster",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "CB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/CloudBurster.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Cloud Burster",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.CloudBurster"
+      }
+    },
+    {
+      "id": "dump-off",
+      "name": "Dump-Off",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "DO",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/DumpOff.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Dump-Off",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.DumpOff"
+      }
+    },
+    {
+      "id": "give-and-go",
+      "name": "Give and Go",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "GG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/GiveAndGo.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Give and Go",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.GiveAndGo"
+      }
+    },
+    {
+      "id": "hail-mary-pass",
+      "name": "Hail Mary Pass",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "HMP",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/HailMaryPass.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Hail Mary Pass",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.HailMaryPass"
+      }
+    },
+    {
+      "id": "leader",
+      "name": "Leader",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "LE",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Leader.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Leader",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_HALF",
+        "class": "com.fumbbl.ffb.skill.bb2025.Leader"
+      }
+    },
+    {
+      "id": "nerves-of-steel",
+      "name": "Nerves of Steel",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "NOS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/NervesOfSteel.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Nerves of Steel",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.NervesOfSteel"
+      }
+    },
+    {
+      "id": "on-the-ball",
+      "name": "On The Ball",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "OTB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/OnTheBall.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "On The Ball",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.OnTheBall"
+      }
+    },
+    {
+      "id": "pass",
+      "name": "Pass",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "PS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/Pass.java",
+      "notes": "PS avoids the PA stat label.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Pass",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.Pass"
+      }
+    },
+    {
+      "id": "punt",
+      "name": "Punt",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "PU",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Punt.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Punt",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Punt"
+      }
+    },
+    {
+      "id": "safe-pass",
+      "name": "Safe Pass",
+      "section": "core",
+      "category": "PASSING",
+      "shorthand": "SP",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/SafePass.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Safe Pass",
+        "category": "PASSING",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.SafePass"
+      }
+    },
+    {
+      "id": "arm-bar",
+      "name": "Arm Bar",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "AB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/ArmBar.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Arm Bar",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.ArmBar"
+      }
+    },
+    {
+      "id": "brawler",
+      "name": "Brawler",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "BR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Brawler.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Brawler",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Brawler"
+      }
+    },
+    {
+      "id": "break-tackle",
+      "name": "Break Tackle",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "BT",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/BreakTackle.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Break Tackle",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.BreakTackle"
+      }
+    },
+    {
+      "id": "bullseye",
+      "name": "Bullseye",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "BE",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Bullseye.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Bullseye",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Bullseye"
+      }
+    },
+    {
+      "id": "grab",
+      "name": "Grab",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "GR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Grab.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Grab",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Grab"
+      }
+    },
+    {
+      "id": "guard",
+      "name": "Guard",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "G",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Guard.java",
+      "notes": "Single-letter priority; rules Elite.",
+      "rulesElite": true,
+      "markerPriority": true,
+      "native": {
+        "name": "Guard",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Guard"
+      }
+    },
+    {
+      "id": "juggernaut",
+      "name": "Juggernaut",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "J",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Juggernaut.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Juggernaut",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Juggernaut"
+      }
+    },
+    {
+      "id": "mighty-blow",
+      "name": "Mighty Blow",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "MB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/MightyBlow.java",
+      "notes": "Keep MB; no numbered text or +2 variant. Internal default modifier is 1.",
+      "rulesElite": true,
+      "markerPriority": true,
+      "native": {
+        "name": "Mighty Blow",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 1,
+        "valueType": "MODIFIER",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.MightyBlow"
+      }
+    },
+    {
+      "id": "multiple-block",
+      "name": "Multiple Block",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "MUL",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/MultipleBlock.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Multiple Block",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.MultipleBlock"
+      }
+    },
+    {
+      "id": "stand-firm",
+      "name": "Stand Firm",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "SF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/StandFirm.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Stand Firm",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.StandFirm"
+      }
+    },
+    {
+      "id": "strong-arm",
+      "name": "Strong Arm",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "SA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/StrongArm.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Strong Arm",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.StrongArm"
+      }
+    },
+    {
+      "id": "thick-skull",
+      "name": "Thick Skull",
+      "section": "core",
+      "category": "STRENGTH",
+      "shorthand": "TS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/common/ThickSkull.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Thick Skull",
+        "category": "STRENGTH",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.common.ThickSkull"
+      }
+    },
+    {
+      "id": "always-hungry",
+      "name": "Always Hungry",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "AH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/AlwaysHungry.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Always Hungry",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.AlwaysHungry"
+      }
+    },
+    {
+      "id": "animal-savagery",
+      "name": "Animal Savagery",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "AS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/AnimalSavagery.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Animal Savagery",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.AnimalSavagery"
+      }
+    },
+    {
+      "id": "animosity",
+      "name": "Animosity",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "ANI",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Animosity.java",
+      "notes": "Target keywords or all; retain targets in details; one ANI text identity.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Animosity",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "CUSTOM",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Animosity"
+      }
+    },
+    {
+      "id": "ball-and-chain",
+      "name": "Ball and Chain",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "BC",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/BallAndChain.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Ball and Chain",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.BallAndChain"
+      }
+    },
+    {
+      "id": "bloodlust",
+      "name": "Bloodlust",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "BL",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Bloodlust.java",
+      "notes": "Numeric threshold; native default 2. Text stays BL; illustrated variants need review.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Bloodlust",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 2,
+        "valueType": "ROLL",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Bloodlust"
+      }
+    },
+    {
+      "id": "bombardier",
+      "name": "Bombardier",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "BOM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Bombardier.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Bombardier",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Bombardier"
+      }
+    },
+    {
+      "id": "bone-head",
+      "name": "Bone Head",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "BHD",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/BoneHead.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Bone Head",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.BoneHead"
+      }
+    },
+    {
+      "id": "breathe-fire",
+      "name": "Breathe Fire",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "BF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/BreatheFire.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Breathe Fire",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.BreatheFire"
+      }
+    },
+    {
+      "id": "chainsaw",
+      "name": "Chainsaw",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "CHA",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Chainsaw.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Chainsaw",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Chainsaw"
+      }
+    },
+    {
+      "id": "decay",
+      "name": "Decay",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "DEC",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Decay.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Decay",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Decay"
+      }
+    },
+    {
+      "id": "drunkard",
+      "name": "Drunkard",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "DRU",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Drunkard.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Drunkard",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Drunkard"
+      }
+    },
+    {
+      "id": "hatred",
+      "name": "Hatred",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "HAT",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Hatred.java",
+      "notes": "Target keywords; retain targets in details; one HAT text identity.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Hatred",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "CUSTOM",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Hatred"
+      }
+    },
+    {
+      "id": "hypnotic-gaze",
+      "name": "Hypnotic Gaze",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "HG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/HypnoticGaze.java",
+      "notes": "Engine supports threshold formatting, default 0; no extra numeric variant proposed.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Hypnotic Gaze",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "ROLL",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.HypnoticGaze"
+      }
+    },
+    {
+      "id": "insignificant",
+      "name": "Insignificant",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "INS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Insignificant.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Insignificant",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Insignificant"
+      }
+    },
+    {
+      "id": "kick-team-mate",
+      "name": "Kick Team-Mate",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "KTM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/KickTeamMate.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Kick Team-Mate",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.KickTeamMate"
+      }
+    },
+    {
+      "id": "loner",
+      "name": "Loner",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "LO",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Loner.java",
+      "notes": "Numeric threshold; native default 4. Values 2, 3, and 4 observed across prayer/official stars; text stays LO.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Loner",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 4,
+        "valueType": "ROLL",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Loner"
+      }
+    },
+    {
+      "id": "my-ball",
+      "name": "My Ball",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "MYB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/MyBall.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "My Ball",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.MyBall"
+      }
+    },
+    {
+      "id": "no-ball",
+      "name": "No Ball",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "NB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/NoBall.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "No Ball",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.NoBall"
+      }
+    },
+    {
+      "id": "pick-me-up",
+      "name": "Pick-me-up",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "PMU",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/PickMeUp.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Pick-me-up",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.PickMeUp"
+      }
+    },
+    {
+      "id": "plague-ridden",
+      "name": "Plague Ridden",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "PR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/PlagueRidden.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Plague Ridden",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.PlagueRidden"
+      }
+    },
+    {
+      "id": "pogo",
+      "name": "Pogo",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "PG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Pogo.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Pogo",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Pogo"
+      }
+    },
+    {
+      "id": "projectile-vomit",
+      "name": "Projectile Vomit",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "PV",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/ProjectileVomit.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Projectile Vomit",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.ProjectileVomit"
+      }
+    },
+    {
+      "id": "really-stupid",
+      "name": "Really Stupid",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "RS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/ReallyStupid.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Really Stupid",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.ReallyStupid"
+      }
+    },
+    {
+      "id": "regeneration",
+      "name": "Regeneration",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "REG",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Regeneration.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Regeneration",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Regeneration"
+      }
+    },
+    {
+      "id": "right-stuff",
+      "name": "Right Stuff",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "RST",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/RightStuff.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Right Stuff",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.RightStuff"
+      }
+    },
+    {
+      "id": "secret-weapon",
+      "name": "Secret Weapon",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "SW",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/SecretWeapon.java",
+      "notes": "Engine supports threshold formatting, default 0; no extra numeric variant proposed.",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Secret Weapon",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "ROLL",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.SecretWeapon"
+      }
+    },
+    {
+      "id": "stab",
+      "name": "Stab",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "STB",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Stab.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Stab",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Stab"
+      }
+    },
+    {
+      "id": "stunty",
+      "name": "Stunty",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "STU",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Stunty.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Stunty",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Stunty"
+      }
+    },
+    {
+      "id": "swoop",
+      "name": "Swoop",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "SWO",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Swoop.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Swoop",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "ONCE_PER_TURN_BY_TEAM_MATE",
+        "class": "com.fumbbl.ffb.skill.bb2025.Swoop"
+      }
+    },
+    {
+      "id": "take-root",
+      "name": "Take Root",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "TR",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/TakeRoot.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Take Root",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.TakeRoot"
+      }
+    },
+    {
+      "id": "throw-team-mate",
+      "name": "Throw Team-Mate",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "TTM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/ThrowTeamMate.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Throw Team-Mate",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.ThrowTeamMate"
+      }
+    },
+    {
+      "id": "timmm-ber",
+      "name": "Timmm-ber!",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "TIM",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Timmmber.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Timmm-ber!",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Timmmber"
+      }
+    },
+    {
+      "id": "titchy",
+      "name": "Titchy",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "TCH",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Titchy.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Titchy",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Titchy"
+      }
+    },
+    {
+      "id": "trickster",
+      "name": "Trickster",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "TRI",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/Trickster.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Trickster",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.Trickster"
+      }
+    },
+    {
+      "id": "unchannelled-fury",
+      "name": "Unchannelled Fury",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "UF",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/mixed/UnchannelledFury.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Unchannelled Fury",
+        "category": "TRAIT",
+        "negativeTrait": true,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.mixed.UnchannelledFury"
+      }
+    },
+    {
+      "id": "unsteady",
+      "name": "Unsteady",
+      "section": "core",
+      "category": "TRAIT",
+      "shorthand": "UNS",
+      "source": "ffb-common/src/main/java/com/fumbbl/ffb/skill/bb2025/Unsteady.java",
+      "notes": "",
+      "rulesElite": false,
+      "markerPriority": false,
+      "native": {
+        "name": "Unsteady",
+        "category": "TRAIT",
+        "negativeTrait": false,
+        "defaultValue": 0,
+        "valueType": "DEFAULT",
+        "usage": "REGULAR",
+        "class": "com.fumbbl.ffb.skill.bb2025.Unsteady"
+      }
+    }
+  ],
+  "scope": "108 core BB2025 skills and traits only; unique star abilities appear on the player profile card."
+}
