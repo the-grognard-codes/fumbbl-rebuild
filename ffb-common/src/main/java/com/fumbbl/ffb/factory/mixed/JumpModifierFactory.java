@@ -4,7 +4,6 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.RulesCollection.Rules;
-import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
@@ -90,7 +89,7 @@ public class JumpModifierFactory extends com.fumbbl.ffb.factory.JumpModifierFact
 
 		if (!UtilCards.hasSkillToCancelProperty(context.getPlayer(), NamedProperties.makesJumpingHarder)) {
 
-			prehensileTailModifier(findNumberOfPrehensileTails(context.getGame(), context.getFrom()))
+			prehensileTailModifier(findNumberOfPrehensileTails(context.getGame(), context.getPlayer(), context.getFrom()))
 				.ifPresent(modifiers::add);
 		}
 
@@ -108,9 +107,8 @@ public class JumpModifierFactory extends com.fumbbl.ffb.factory.JumpModifierFact
 		return modifiers;
 	}
 
-	private int findNumberOfPrehensileTails(Game pGame, FieldCoordinate pCoordinateFrom) {
-		ActingPlayer actingPlayer = pGame.getActingPlayer();
-		Team otherTeam = UtilPlayer.findOtherTeam(pGame, actingPlayer.getPlayer());
+	private int findNumberOfPrehensileTails(Game pGame, Player<?> player, FieldCoordinate pCoordinateFrom) {
+		Team otherTeam = UtilPlayer.findOtherTeam(pGame, player);
 		int nrOfPrehensileTails = 0;
 		Player<?>[] opponents = UtilPlayer.findAdjacentPlayersWithTacklezones(pGame, otherTeam, pCoordinateFrom, true);
 		for (Player<?> opponent : opponents) {

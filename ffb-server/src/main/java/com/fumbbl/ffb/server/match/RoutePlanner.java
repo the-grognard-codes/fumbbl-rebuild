@@ -8,8 +8,10 @@ import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.DodgeModifierFactory;
+import com.fumbbl.ffb.factory.JumpModifierFactory;
 import com.fumbbl.ffb.factory.common.GoForItModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
+import com.fumbbl.ffb.mechanics.JumpMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
@@ -18,6 +20,9 @@ import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.DodgeContext;
 import com.fumbbl.ffb.modifiers.DodgeModifier;
 import com.fumbbl.ffb.modifiers.GoForItContext;
+import com.fumbbl.ffb.modifiers.JumpContext;
+import com.fumbbl.ffb.modifiers.JumpModifier;
+import com.fumbbl.ffb.modifiers.ModifierType;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
@@ -100,7 +105,7 @@ final class RoutePlanner {
 	JsonObject rangeAfter(JsonObject preview) {
 		JsonArray steps = preview.get("steps").asArray();
 		JsonObject endpoint = steps.isEmpty() ? preview.get("from").asObject() : steps.get(steps.size() - 1).asObject();
-		return range(new FieldCoordinate(endpoint.getInt("x", -1), endpoint.getInt("y", -1)), steps.size());
+		return range(new FieldCoordinate(endpoint.getInt("x", -1), endpoint.getInt("y", -1)), cost(preview));
 	}
 
 	private JsonObject range(FieldCoordinate origin, int plannedSteps) {
@@ -151,24 +156,36 @@ final class RoutePlanner {
 	}
 
 	JsonObject preview(List<FieldCoordinate> waypoints) {
+		List<MovementWaypoint> points = new ArrayList<>();
+		for (FieldCoordinate waypoint : waypoints) points.add(new MovementWaypoint(waypoint, false));
+		return previewWaypoints(points);
+	}
+
+	JsonObject previewWaypoints(List<MovementWaypoint> waypoints) {
 		if (acting.isJumping()) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		if (waypoints.isEmpty() || waypoints.size() > 20) throw new MatchService.Failure("INVALID_ROUTE");
 		List<Step> path = new ArrayList<>();
 		FieldCoordinate from = start;
-		for (FieldCoordinate waypoint : waypoints) {
+		int used = 0;
+		for (MovementWaypoint instruction : waypoints) {
+			FieldCoordinate waypoint = instruction.coordinate();
 			if (!FieldCoordinateBounds.FIELD.isInBounds(waypoint) || waypoint.equals(from)
 				|| occupied(waypoint)) throw new MatchService.Failure("INVALID_ROUTE");
-			List<Step> segment = waypoint.isAdjacent(from)
-				? (currentMove + path.size() < allowance
-					? java.util.Collections.singletonList(step(from, waypoint, path.size(), path.stream().anyMatch(step -> step.checks.ballContact), false)) : null)
-				: span(from, waypoint, path.size(), path.stream().anyMatch(step -> step.checks.ballContact));
+			boolean jumping = instruction.isJump();
+			boolean ballHandled = path.stream().anyMatch(step -> step.checks.ballContact);
+			List<Step> segment = jumping ? java.util.Collections.singletonList(jumpStep(from, waypoint, used, ballHandled))
+				: waypoint.isAdjacent(from)
+				? (currentMove + used < allowance
+					? java.util.Collections.singletonList(step(from, waypoint, used, ballHandled, false)) : null)
+				: span(from, waypoint, used, ballHandled);
 			if (segment == null) throw new MatchService.Failure("NO_ROUTE");
 			path.addAll(segment);
+			used += jumping ? 2 : segment.size();
 			from = waypoint;
 		}
 		JsonArray steps = new JsonArray();
 		for (Step step : path) steps.add(step.json());
-		return new JsonObject().add("routeVersion", 3).add("playerId", player.getId())
+		return new JsonObject().add("routeVersion", path.stream().anyMatch(step -> step.isJump()) ? 4 : 3).add("playerId", player.getId())
 			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove))
 			.add("steps", steps);
 	}
@@ -177,6 +194,62 @@ final class RoutePlanner {
 		return new JsonObject().add("routeVersion", 3).add("playerId", player.getId())
 			.add("from", point(start)).add("remaining", Math.max(0, allowance - currentMove))
 			.add("steps", new JsonArray());
+	}
+
+	int cost(JsonObject preview) {
+		int used = 0;
+		for (com.eclipsesource.json.JsonValue step : preview.get("steps").asArray())
+			used += step.asObject().get("checks").asArray().values().stream()
+				.anyMatch(check -> "Jump".equals(check.asObject().getString("name", null))) ? 2 : 1;
+		return used;
+	}
+
+	/** Legal native jump forecasts at the planned endpoint, without changing the acting player. */
+	JsonArray jumpOptions(JsonObject preview) {
+		JsonArray options = new JsonArray();
+		if (!jumpPlanningAvailable()) return options;
+		JsonArray path = preview.get("steps").asArray();
+		JsonObject endpoint = path.isEmpty() ? preview.get("from").asObject() : path.get(path.size() - 1).asObject();
+		FieldCoordinate from = new FieldCoordinate(endpoint.getInt("x", -1), endpoint.getInt("y", -1));
+		int used = cost(preview);
+		if (currentMove + used + 2 > allowance || !((JumpMechanic) game.getMechanic(Mechanic.Type.JUMP)).canJump(game, player, from)) return options;
+		for (int y = -2; y <= 2; y++) for (int x = -2; x <= 2; x++) {
+			FieldCoordinate to = from.add(x, y);
+			if (FieldCoordinateBounds.FIELD.isInBounds(to) && !occupied(to)
+				&& ((JumpMechanic) game.getMechanic(Mechanic.Type.JUMP)).isValidJump(game, player, from, to))
+				options.add(jumpStep(from, to, used, path.values().stream().anyMatch(value -> value.asObject().get("checks")
+					.asArray().values().stream().anyMatch(check -> "Pickup".equals(check.asObject().getString("name", null))
+						|| "Ball scatter".equals(check.asObject().getString("name", null))))).json());
+		}
+		return options;
+	}
+
+	private Step jumpStep(FieldCoordinate from, FieldCoordinate to, int used, boolean ballHandled) {
+		JumpMechanic mechanic = game.getMechanic(Mechanic.Type.JUMP);
+		if (!jumpPlanningAvailable() || currentMove + used + 2 > allowance
+			|| !mechanic.canJump(game, player, from) || !mechanic.isValidJump(game, player, from, to))
+			throw new MatchService.Failure("INVALID_ROUTE");
+		JumpModifierFactory factory = game.getFactory(FactoryType.Factory.JUMP_MODIFIER);
+		Set<JumpModifier> modifiers = game.getActingPlayer().getPlayer() == player && acting.isJumpsWithoutModifiers()
+			? java.util.Collections.emptySet() : factory.findModifiers(new JumpContext(game, player, from, to));
+		int modifier = -modifiers.stream().mapToInt(JumpModifier::getModifier).sum();
+		int target = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(agility.minimumRollJump(player, modifiers));
+		int rush = 0;
+		if (currentMove + used + 2 > player.getMovementWithModifiers()) {
+			GoForItModifierFactory rushModifiers = game.getFactory(FactoryType.Factory.GO_FOR_IT_MODIFIER);
+			rush = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(DiceInterpreter.getInstance().minimumRollGoingForIt(
+				rushModifiers.findModifiers(new GoForItContext(game, player, state.getPrayerState().getMolesUnderThePitch()))));
+		}
+		MovementChecks.Forecast checks = movementChecks.at(from, to, false, rush, new MoveSquare(to, target, rush), ballHandled);
+		if (modifiers.stream().anyMatch(value -> value.getType() == ModifierType.PREHENSILE_TAIL)) checks.reaction("Prehensile Tail");
+		return new Step(to, 0, rush, modifier, checks.reactions, checks);
+	}
+
+	private boolean jumpPlanningAvailable() {
+		return game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic
+			&& (rangeMode == TurnMode.REGULAR || rangeMode == TurnMode.BLITZ || rangeMode == TurnMode.SELECT_BLITZ_TARGET)
+			&& game.getFieldModel().getPlayerState(player).isAbleToMove()
+			&& !(game.getActingPlayer().getPlayer() == player && acting.isHeldInPlace());
 	}
 
 	int blitzApproachSteps() {
@@ -195,9 +268,16 @@ final class RoutePlanner {
 
 	/** Continue after the requested path, charging every earlier square before choosing an approach. */
 	FieldCoordinate approach(FieldCoordinate target, boolean blitz, List<FieldCoordinate> waypoints) {
-		FieldCoordinate origin = waypoints.isEmpty() ? start : waypoints.get(waypoints.size() - 1);
-		JsonArray prefix = waypoints.isEmpty() ? new JsonArray() : preview(waypoints).get("steps").asArray();
-		int used = prefix.size();
+		List<MovementWaypoint> points = new ArrayList<>();
+		for (FieldCoordinate waypoint : waypoints) points.add(new MovementWaypoint(waypoint, false));
+		return approachWaypoints(target, blitz, points);
+	}
+
+	FieldCoordinate approachWaypoints(FieldCoordinate target, boolean blitz, List<MovementWaypoint> waypoints) {
+		FieldCoordinate origin = waypoints.isEmpty() ? start : waypoints.get(waypoints.size() - 1).coordinate();
+		JsonObject route = waypoints.isEmpty() ? emptyPreview() : previewWaypoints(waypoints);
+		JsonArray prefix = route.get("steps").asArray();
+		int used = cost(route);
 		if (origin.isAdjacent(target)) return origin;
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
@@ -381,6 +461,7 @@ final class RoutePlanner {
 			this.at = at; this.dodge = dodge; this.rush = rush; this.dodgeModifier = dodgeModifier; this.reactions = reactions; this.checks = checks;
 		}
 		JsonObject json() { return json(false); }
+		boolean isJump() { return checks.checks.values().stream().anyMatch(check -> "Jump".equals(check.asObject().getString("name", null))); }
 		JsonObject json(boolean legacy) {
 			JsonArray hazards = new JsonArray();
 			reactions.stream().sorted().forEach(hazards::add);

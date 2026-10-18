@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
 import { createServer } from './browser-test-server.mjs';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
@@ -21,6 +22,7 @@ try {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
       '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
+    await page.addInitScript(installInitialMovementPreview);
     await page.addInitScript(journey => {
       window.WebSocket = class {
         static OPEN = 1; readyState = 1; index = 0; state = journey.frames[0].actor; sent = []; rangeResponses = 0;
@@ -28,6 +30,7 @@ try {
         emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
         send(raw) {
           const request = JSON.parse(raw);
+          if (window.replyToInitialMovementPreview(request,this.state,value=>this.emit(value))) return;
           if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication', requestId: request.requestId,
             code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
           if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({ version: 2, type: 'error', requestId: request.requestId, code: 'TRANSCRIPT_UNAVAILABLE' }));

@@ -19,6 +19,16 @@
 .play-runtime .coach-match.hosted-match .player-action-icons > button > svg { width: 28px; height: 28px; }
 .play-runtime .coach-match.hosted-match .player-action-icons > button:disabled { opacity: .5; }
 .play-runtime .coach-match.hosted-match .player-action-icons > button.spent { opacity: .18; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion {
+  width: 30px; height: 30px; padding: 4px; align-self: center; justify-self: start;
+}
+.play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion > svg { width: 21px; height: 21px; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion:disabled { opacity: .28; }
+@media(pointer: coarse) {
+  .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { grid-template-columns: repeat(var(--action-count),44px); }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button { width: 44px; height: 44px; }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion { width: 44px; height: 44px; padding: 10px; }
+}
 .play-runtime .coach-match.hosted-match .player-action-icons > button[aria-pressed=true] {
   transform: translateY(-12%); border-color: #edb644; color: #ffe17b; background: #583d0fd1;
   box-shadow: 0 0 7px 1px #45e7ff24; opacity: 1;
@@ -49,4 +59,27 @@
 }
 @media(prefers-reduced-motion:reduce) {
   .play-runtime .coach-match.hosted-match .player-action-icons > button { transition: none; }
+}
+.play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons:has(.jump-companion) {
+  grid-template-columns: 42px 30px repeat(calc(var(--action-count) - 2),minmax(0,42px));
+}
+@media(max-width:600px) {
+  .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons:has(.jump-companion) {
+    grid-template-columns: 32px 30px repeat(calc(var(--action-count) - 2),minmax(0,32px));
+  }
+}
+@media(pointer:coarse) {
+  .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { display:flex; flex-wrap:wrap; justify-content:center; }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button,
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion { width:44px; height:44px; flex:0 0 44px; }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion {
+    position:relative; background:transparent; border-color:transparent; box-shadow:none;
+  }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion::before {
+    content:''; position:absolute; inset:6px; border:1px solid #426c9b; border-radius:2px; background:#091726bb;
+  }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion[aria-pressed=true]::before {
+    border-color:#edb644; background:#583d0fd1;
+  }
+  .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion > svg { position:relative; }
 }

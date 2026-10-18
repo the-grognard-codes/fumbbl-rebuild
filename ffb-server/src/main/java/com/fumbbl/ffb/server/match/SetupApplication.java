@@ -551,8 +551,7 @@ public final class SetupApplication {
 				if (movementPoints.size() > 20 || "move".equals(kind) && movementPoints.isEmpty()) throw new IllegalArgumentException();
 				for (JsonValue item : movementPoints) {
 					JsonObject point = item.asObject();
-					if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y")) throw new IllegalArgumentException();
-					point.get("x").asInt(); point.get("y").asInt();
+					new MovementWaypoint(point);
 				}
 				break;
 			case "choice": fields.add("promptId"); fields.add("optionId"); request.get("promptId").asString(); request.get("optionId").asString(); break;

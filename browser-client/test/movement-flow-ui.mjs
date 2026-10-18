@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
+import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/movement-interaction-projections.json', import.meta.url), 'utf8'));
 const evidence = process.env.MOVEMENT_FLOW_EVIDENCE;
@@ -22,6 +23,7 @@ async function openJourney(readyState, plan, acceptedState, replyDelay = 0, acti
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
     '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
+  await page.addInitScript(installInitialMovementPreview);
   await page.addInitScript(({ fixture, readyState, plan, acceptedState, replyDelay, actionStates }) => {
     window.WebSocket = class {
       static OPEN = 1;
@@ -32,6 +34,7 @@ async function openJourney(readyState, plan, acceptedState, replyDelay = 0, acti
       emit(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
       send(raw) {
         const request = JSON.parse(raw); this.sent.push(request);
+        if (window.replyToInitialMovementPreview(request,this.state,value=>this.emit(value))) return;
         if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication',
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'matchTranscript' || request.type === 'matchChat') queueMicrotask(() => this.emit({

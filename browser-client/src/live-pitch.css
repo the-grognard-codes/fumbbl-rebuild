@@ -518,3 +518,6 @@
 .live-ball-kick-preview .live-ball-football { opacity: .65; }
 .live-kick-label { position: absolute; left: 7px; top: -15px; padding: 0 3px; color: #071724; background: #6be5ef; border: 1px solid #071724; font: 700 10px 'Match Barlow', sans-serif; }
 .live-kick-arrow { fill: none; stroke: #f0f2ec; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 2px #071014); pointer-events: none; }
+.live-jump-landings { pointer-events: none; }
+.live-jump-outline { fill: none; stroke: #b7c9da; stroke-width: 1; }
+.live-jump-target { fill: #f3ecd4; paint-order: stroke; stroke: #091726; stroke-width: 3px; font: 12px MUTP,sans-serif; text-anchor: middle; }

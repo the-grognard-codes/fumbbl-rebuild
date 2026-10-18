@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
 
 const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
 const matchId = frames[0].actor.matchId;
@@ -17,6 +18,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
     '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused", getToken:async()=>"token"});</script>' }));
+  await page.addInitScript(installInitialMovementPreview);
   await page.addInitScript(({ frames, matchId }) => {
     window.testSocket = null;
     window.WebSocket = class {
@@ -29,6 +31,7 @@ try {
       send(raw) {
         const request = JSON.parse(raw);
         this.sent.push(request);
+        if (window.replyToInitialMovementPreview(request,this.adjacentState??frames[0].actor,value=>this.emit(value))) return;
         if (request.type === 'authenticate') queueMicrotask(() => this.emit({ version: 2, type: 'authentication',
           requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
         if (request.type === 'setup' && request.operation === 'load') queueMicrotask(() => this.emit({ version: 2,
@@ -73,7 +76,7 @@ try {
   assert.equal(sent[0].targetPlayerId, 'away1');
   assert.equal(sent[0].expectedRevision, 0);
   assert.deepEqual(sent[0].waypoints, [{ x: 10, y: 7 }]);
-  const previews = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview'));
+  const previews = await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview' && request.kind !== 'move'));
   assert.equal(previews.length, 1);
   assert.deepEqual(previews[0].waypoints, [], 'The server chooses the approach to the selected target');
   const adjacentState = { ...frames[0].actor, revision: 100,
@@ -89,7 +92,7 @@ try {
   await page.locator('.live-marker.home').click();
   await page.locator('.live-marker.away').click();
   assert.match(await page.locator('.command-preview').textContent(), /Block with home1/, 'An adjacent opponent defaults to Block');
-  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview').length), 0,
+  assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview' && request.kind !== 'move').length), 0,
     'An adjacent Block needs no Blitz route preview');
   await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
   await page.waitForFunction(() => window.testSocket.sent.some(request => request.actionId === 'block-away1'));
@@ -108,7 +111,7 @@ try {
     await page.locator('.live-marker.home').click(); await page.locator('.live-marker.away').click();
     if (blockAvailable) assert.match(await page.locator('.command-preview').textContent(), /Block with home1/);
     else assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
-    assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview').length), 0,
+    assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementPreview' && request.kind !== 'move').length), 0,
       'Diagonal adjacency never invents an automatic Blitz');
     assert.equal(await page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'setup' && request.operation !== 'load').length), 0);
   }

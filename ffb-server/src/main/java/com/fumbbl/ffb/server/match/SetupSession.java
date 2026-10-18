@@ -1288,7 +1288,8 @@ public final class SetupSession {
 		if (active != player && offered.stream().noneMatch(action ->
 			(movementDeclaration(kind) + playerId).equals(action.id)))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
-		List<FieldCoordinate> waypoints = routePoints(points, !"move".equals(kind));
+		boolean jumpPlanning = game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic;
+		List<MovementWaypoint> waypoints = routePoints(points, !"move".equals(kind) || jumpPlanning);
 		RoutePlanner planner = new RoutePlanner(state, player, false);
 		Player<?> target = null;
 		if (!"move".equals(kind)) {
@@ -1300,25 +1301,27 @@ public final class SetupSession {
 				throw new MatchService.Failure("INVALID_TARGET");
 			FieldCoordinate at = game.getFieldModel().getPlayerCoordinate(target);
 			if (!FieldCoordinateBounds.FIELD.isInBounds(at)) throw new MatchService.Failure("INVALID_TARGET");
-			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player) : waypoints.get(waypoints.size() - 1);
+			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player) : waypoints.get(waypoints.size() - 1).coordinate();
 			if (!end.isAdjacent(at)) {
 				if (waypoints.size() >= 20) throw new MatchService.Failure("INVALID_ROUTE");
-				waypoints.add(planner.approach(at, "blitz".equals(kind), waypoints));
+				waypoints.add(new MovementWaypoint(planner.approachWaypoints(at, "blitz".equals(kind), waypoints), false));
 			}
-		} else if (targetPlayerId != null || waypoints.isEmpty()) throw new MatchService.Failure("INVALID_ROUTE");
-		JsonObject route = waypoints.isEmpty() ? planner.emptyPreview() : planner.preview(waypoints);
-		if ("blitz".equals(kind) && route.get("steps").asArray().size() > planner.blitzApproachSteps())
+		} else if (targetPlayerId != null) throw new MatchService.Failure("INVALID_ROUTE");
+		JsonObject route = waypoints.isEmpty() ? planner.emptyPreview() : planner.previewWaypoints(waypoints);
+		if ("blitz".equals(kind) && planner.cost(route) > planner.blitzApproachSteps())
 			throw new MatchService.Failure("NO_ROUTE");
 		route.add("revision", revision).add("actor", role);
 		JsonArray canonicalPoints = new JsonArray();
-		for (FieldCoordinate waypoint : waypoints) canonicalPoints.add(point(waypoint));
+		for (MovementWaypoint waypoint : waypoints) canonicalPoints.add(waypoint.json());
 		JsonObject plan = new JsonObject().add("planVersion", 1).add("kind", kind)
 			.add("targetPlayerId", targetPlayerId == null ? JsonValue.NULL : JsonValue.valueOf(targetPlayerId))
 			.add("waypoints", canonicalPoints).add("route", route);
 		plan.add("range", planner.rangeAfter(route).add("revision", revision));
+		if (game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic)
+			plan.add("jumpOptions", planner.jumpOptions(route));
 		if ("blitz".equals(kind)) {
 			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player)
-				: waypoints.get(waypoints.size() - 1);
+				: waypoints.get(waypoints.size() - 1).coordinate();
 			plan.add("blockDice", new BlockPreviewPresentation(state).blitzDice(playerId, targetPlayerId, end,
 				active == player, !route.get("steps").asArray().isEmpty()));
 		}
@@ -1336,14 +1339,13 @@ public final class SetupSession {
 		if (!("home".equals(role) || "away".equals(role))) throw new MatchService.Failure("AUTHORIZATION");
 	}
 
-	private List<FieldCoordinate> routePoints(JsonArray points, boolean allowEmpty) {
+	private List<MovementWaypoint> routePoints(JsonArray points, boolean allowEmpty) {
 		if (points.size() > 20 || !allowEmpty && points.isEmpty()) throw new MatchService.Failure("INVALID_ROUTE");
-		List<FieldCoordinate> result = new ArrayList<>();
+		List<MovementWaypoint> result = new ArrayList<>();
 		for (JsonValue value : points) {
 			JsonObject point = value.asObject();
-			if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y"))
-				throw new MatchService.Failure("INVALID_ROUTE");
-			result.add(new FieldCoordinate(point.get("x").asInt(), point.get("y").asInt()));
+			try { result.add(new MovementWaypoint(point)); }
+			catch (IllegalArgumentException failure) { throw new MatchService.Failure("INVALID_ROUTE"); }
 		}
 		return result;
 	}
@@ -1382,7 +1384,7 @@ public final class SetupSession {
 		final String actor, playerId, kind, targetPlayerId;
 		final int declaredRevision;
 		final FieldCoordinate origin;
-		final List<FieldCoordinate> steps = new ArrayList<>();
+		final List<MovementWaypoint> steps = new ArrayList<>();
 		int next;
 		boolean targetSelected;
 
@@ -1396,14 +1398,16 @@ public final class SetupSession {
 			this.targetPlayerId = targetPlayerId;
 			playerId = preview.get("playerId").asString();
 			declaredRevision = revision;
-			origin = coordinate(preview.get("from").asObject());
+			origin = coordinate(preview.get("from").asObject()).coordinate();
 			int version = preview.getInt("routeVersion", 1);
-			if (version != 1 && version != 2 && version != 3) throw new IllegalArgumentException("Unsupported route version");
+			if (version != 1 && version != 2 && version != 3 && version != 4) throw new IllegalArgumentException("Unsupported route version");
 			for (JsonValue value : preview.get("steps").asArray()) {
 				JsonObject step = value.asObject();
-				if (step.size() != (version == 3 ? 7 : version == 2 ? 6 : 5) || !step.names().containsAll(java.util.Arrays.asList(
-					"x", "y", "dodge", "rush", "reactions")) || (version >= 2 && !step.names().contains("dodgeModifier")) || (version == 3 && !step.names().contains("checks"))) throw new IllegalArgumentException("Invalid route step");
-				steps.add(new FieldCoordinate(step.get("x").asInt(), step.get("y").asInt()));
+				if (step.size() != (version >= 3 ? 7 : version == 2 ? 6 : 5) || !step.names().containsAll(java.util.Arrays.asList(
+					"x", "y", "dodge", "rush", "reactions")) || (version >= 2 && !step.names().contains("dodgeModifier")) || (version >= 3 && !step.names().contains("checks"))) throw new IllegalArgumentException("Invalid route step");
+				JsonObject square = new JsonObject().add("x", step.get("x")).add("y", step.get("y"));
+				if (version == 4 && step.get("checks").asArray().values().stream().anyMatch(check -> "Jump".equals(check.asObject().getString("name", null)))) square.add("jump", true);
+				steps.add(new MovementWaypoint(square));
 			}
 			check();
 		}
@@ -1419,19 +1423,19 @@ public final class SetupSession {
 				? saved.get("targetPlayerId").asString() : null;
 			targetSelected = saved.size() == 9 && saved.get("targetSelected").asBoolean();
 			declaredRevision = saved.get("declaredRevision").asInt();
-			origin = coordinate(saved.get("origin").asObject());
+			origin = coordinate(saved.get("origin").asObject()).coordinate();
 			for (JsonValue value : saved.get("steps").asArray()) steps.add(coordinate(value.asObject()));
 			next = saved.get("next").asInt();
 			check();
 		}
 
-		FieldCoordinate expectedPosition() { return next == 0 ? origin : steps.get(next - 1); }
-		FieldCoordinate nextSquare() { return steps.get(next); }
+		FieldCoordinate expectedPosition() { return next == 0 ? origin : steps.get(next - 1).coordinate(); }
+		FieldCoordinate nextSquare() { return steps.get(next).coordinate(); }
 		boolean complete() { return next >= steps.size(); }
 
 		JsonObject json() {
 			JsonArray path = new JsonArray();
-			for (FieldCoordinate coordinate : steps) path.add(point(coordinate));
+			for (MovementWaypoint coordinate : steps) path.add(coordinate.json());
 			JsonObject result = new JsonObject().add("actor", actor).add("playerId", playerId)
 				.add("declaredRevision", declaredRevision).add("origin", point(origin))
 				.add("steps", path).add("next", next);
@@ -1449,16 +1453,16 @@ public final class SetupSession {
 				|| !"move".equals(kind) && (targetPlayerId == null || targetPlayerId.isEmpty()))
 				throw new IllegalArgumentException("Invalid pending route");
 			FieldCoordinate previous = origin;
-			for (FieldCoordinate coordinate : steps) {
-				if (!FieldCoordinateBounds.FIELD.isInBounds(coordinate) || !coordinate.isAdjacent(previous))
+			for (MovementWaypoint instruction : steps) {
+				FieldCoordinate coordinate = instruction.coordinate();
+				boolean jump = instruction.isJump();
+				if (!FieldCoordinateBounds.FIELD.isInBounds(coordinate) || (jump ? coordinate.distanceInSteps(previous) != 2 : !coordinate.isAdjacent(previous)))
 					throw new IllegalArgumentException("Invalid pending route step");
 				previous = coordinate;
 			}
 		}
-		private static FieldCoordinate coordinate(JsonObject point) {
-			if (point.size() != 2 || !point.names().contains("x") || !point.names().contains("y"))
-				throw new IllegalArgumentException("Invalid route square");
-			return new FieldCoordinate(point.get("x").asInt(), point.get("y").asInt());
+		private static MovementWaypoint coordinate(JsonObject point) {
+			return new MovementWaypoint(point);
 		}
 		private static JsonObject point(FieldCoordinate coordinate) {
 			return new JsonObject().add("x", coordinate.getX()).add("y", coordinate.getY());
@@ -1525,8 +1529,19 @@ public final class SetupSession {
 				return;
 			}
 			Action offered = null;
+			boolean jumping = pendingRoute.steps.get(pendingRoute.next).isJump();
+			if (game.getActingPlayer().isJumping() != jumping) {
+				Action toggle = actions().stream().filter(action -> "jumpMode".equals(action.kind)
+					&& pendingRoute.actor.equals(action.role)).findFirst().orElse(null);
+				if (toggle != null) {
+					state.handleCommand(new ReceivedCommand(toggle.command, "home".equals(pendingRoute.actor)));
+					if (game.getActingPlayer().isJumping() == jumping) continue;
+				}
+				if (game.getDialogParameter() != null) return;
+				pendingRoute = null; return;
+			}
 			for (Action action : actions()) {
-				if ("move".equals(action.kind) && pendingRoute.actor.equals(action.role)
+				if ((jumping ? "jump" : "move").equals(action.kind) && pendingRoute.actor.equals(action.role)
 					&& pendingRoute.nextSquare().equals(action.targetSquare)) { offered = action; break; }
 			}
 			if (offered == null) {
