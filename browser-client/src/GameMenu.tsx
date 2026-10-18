@@ -7,18 +7,23 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import { useThreatPreferences } from './use-threat-preferences.ts';
 import { stripeSkillControls, type ThreatPreferences } from './threat-preferences.ts';
+import { useSkillMarkerPreferences } from './use-skill-marker-preferences.ts';
 
-type Tab = 'Game Options' | 'Game Settings' | 'Interface' | 'Key Bindings' | 'Game Log';
+type Tab = 'Game Options' | 'Game Settings' | 'Skills & Traits' | 'Interface' | 'Key Bindings' | 'Game Log';
 
-export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls }: {
+export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls, replay = false }: {
   view: SetupState; connected: boolean; pending: boolean; mutate: (operation: string, fields?: Record<string, unknown>) => void;
   records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
-  interfaceControls?: ReactNode;
+  interfaceControls?: ReactNode; replay?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('Game Options');
   const [confirmConcede, setConfirmConcede] = useState(false);
   const { preferences, change } = useThreatPreferences();
+  const { preferences: skillMarkers, change: changeSkillMarkers } = useSkillMarkerPreferences();
+  const neutral = replay || view.callerRole === 'spectator';
+  const skillControl = (name: 'showOwn' | 'showOpponent' | 'showBase' | 'showAcquired' | 'showTraits' | 'showBigGuyNegatraits', label: string) =>
+    <label><input type="checkbox" checked={skillMarkers[name]} onChange={event => changeSkillMarkers(name, event.target.checked)}/>{label}</label>;
   const threatControl = (name: keyof ThreatPreferences, label: string) =>
     <label key={name}><input type="checkbox" checked={preferences[name]} onChange={event => change(name, event.target.checked)}/>{label}</label>;
   const opener = useRef<HTMLButtonElement>(null);
@@ -43,9 +48,34 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       }}>
         <header><h2>Game Menu</h2><button type="button" aria-label="Close Game Menu" onClick={close}>×</button></header>
-        <nav role="tablist" aria-label="Game Menu tabs">{(['Game Options', 'Game Settings', 'Interface', 'Key Bindings', 'Game Log'] as Tab[]).map(item =>
+        <nav role="tablist" aria-label="Game Menu tabs">{(['Game Options', 'Game Settings', 'Skills & Traits', 'Interface', 'Key Bindings', 'Game Log'] as Tab[]).map(item =>
           <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item}</button>)}</nav>
         <div role="tabpanel" className="game-menu-content">
+          {tab === 'Skills & Traits' && <section className="threat-settings"><h3>Skill Markers</h3>
+            <h4>Show Player Skills</h4>
+            <div role="group" aria-label="Skill marker teams">
+              {skillControl('showOwn', neutral ? 'Home team' : 'Own team')}
+              {skillControl('showOpponent', neutral ? 'Away team' : 'Opponent')}
+            </div>
+            <div role="group" aria-label="Skill marker origins">
+              {skillControl('showBase', 'Show player base skills')}
+              {skillControl('showAcquired', 'Show player acquired skills')}
+            </div>
+            <div role="group" aria-label="Skill marker traits">
+              <label><input type="checkbox" checked={skillMarkers.showTraits} onChange={event => changeSkillMarkers('showTraits', event.target.checked)}/>Show traits</label>
+              <label><input type="checkbox" checked={skillMarkers.showBigGuyNegatraits} onChange={event => changeSkillMarkers('showBigGuyNegatraits', event.target.checked)}/>Show Big Guy negatraits and Secret Weapon</label>
+            </div>
+            <label>Presentation <select aria-label="Skill marker presentation" value={skillMarkers.style}
+              onChange={event => changeSkillMarkers('style', event.target.value === 'illustrated' ? 'illustrated' : 'text')}>
+              <option value="text">Text</option><option value="illustrated">Illustrated</option>
+            </select></label>
+            <label className="skill-marker-size">Marker size <input aria-label="Skill marker size" type="range" min="0" max="2" step="1"
+              aria-valuetext={skillMarkers.size} value={['small', 'medium', 'large'].indexOf(skillMarkers.size)}
+              onChange={event => changeSkillMarkers('size', (['small', 'medium', 'large'] as const)[Number(event.target.value)])}/>
+              <output>{skillMarkers.size === 'small' ? 'Small' : skillMarkers.size === 'large' ? 'Large' : 'Medium'}</output>
+            </label>
+            <p>The Big Guy toggle controls Bone Head, Really Stupid, Always Hungry, Animal Savagery, Unchannelled Fury, and Secret Weapon. It does not hide Loner.</p>
+          </section>}
           {tab === 'Game Settings' && <section className="threat-settings"><h3>Opposing player threats</h3>
             <p>Show threats when selecting an unfinished friendly player during your turn or Charge!.</p>
             <div role="group" aria-label="Threat markings">

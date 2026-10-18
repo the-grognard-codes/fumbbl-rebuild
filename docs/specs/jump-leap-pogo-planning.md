@@ -61,4 +61,4 @@ Run focused Java and browser regression selectors first, then browser unit/UI ch
 
 ## Completion Notes
 
-Tracking: [#297](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/297). Implementation and self-review complete. Full Maven verification, focused native regressions, browser unit tests, production build and affected desktop/tablet interaction journeys passed. See [acceptance evidence, compatibility and audit limits](jump-leap-pogo-validation.md).
+Tracking: [#297](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/297), [PR #298](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/298). Implementation and self-review complete. Full Maven verification, focused native regressions, browser unit tests, production build and affected desktop/tablet interaction journeys passed. See [acceptance evidence, compatibility and audit limits](jump-leap-pogo-validation.md) and the [outcome report](jump-leap-pogo-outcome.md).

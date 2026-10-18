@@ -1,0 +1,541 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] ffb                                                                [pom]
+[INFO] ffb-common                                                         [jar]
+[INFO] ffb-server                                                         [jar]
+[INFO] ffb-client-logic                                                   [jar]
+[INFO] 
+[INFO] -------------------------< com.fumbbl.ffb:ffb >-------------------------
+[INFO] Building ffb 3.4.0                                                 [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< com.fumbbl.ffb:ffb-common >----------------------
+[INFO] Building ffb-common 3.4.0                                          [2/4]
+[INFO]   from ffb-common\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ffb-common ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] The encoding used to copy filtered properties files have not been set. This means that the same encoding will be used to copy filtered properties files as when copying other filtered resources. This might not be what you want! Run your build with --debug to see which files might be affected. Read more at https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ffb-common ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ffb-common ---
+[INFO] skip non existing resourceDirectory C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-common\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ffb-common ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ ffb-common ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.fumbbl.ffb.CommonPropertyTest
+[INFO] Tests run: 70, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.153 s -- in com.fumbbl.ffb.CommonPropertyTest
+[INFO] Running com.fumbbl.ffb.CommonPropertyValueTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.fumbbl.ffb.CommonPropertyValueTest
+[INFO] Running com.fumbbl.ffb.factory.DodgeModifierFactoryTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\jaken\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.7\byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.598 s -- in com.fumbbl.ffb.factory.DodgeModifierFactoryTest
+[INFO] Running com.fumbbl.ffb.IClientPropertyValueTest
+[INFO] Tests run: 84, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.134 s -- in com.fumbbl.ffb.IClientPropertyValueTest
+[INFO] Running com.fumbbl.ffb.RulesTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in com.fumbbl.ffb.RulesTest
+[INFO] Running com.fumbbl.ffb.util.StringToolTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in com.fumbbl.ffb.util.StringToolTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 175, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:2.4:jar (default-jar) @ ffb-common ---
+[INFO] Building jar: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-common\target\ffb-common-3.4.0.jar
+[INFO] 
+[INFO] ---------------------< com.fumbbl.ffb:ffb-server >----------------------
+[INFO] Building ffb-server 3.4.0                                          [3/4]
+[INFO]   from ffb-server\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ffb-server ---
+[INFO] Copying 12 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ffb-server ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1205 source files with javac [debug release 21] to target\classes
+[WARNING] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/main/java/com/fumbbl/ffb/server/admin/AdminServlet.java:[739,33] Long(java.lang.String) in java.lang.Long has been deprecated and marked for removal
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/main/java/com/fumbbl/ffb/server/util/rng/Fortuna.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/main/java/com/fumbbl/ffb/server/util/rng/Fortuna.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/main/java/com/fumbbl/ffb/server/handler/AbstractServerCommandHandlerSketch.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/main/java/com/fumbbl/ffb/server/handler/AbstractServerCommandHandlerSketch.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ffb-server ---
+[INFO] skip non existing resourceDirectory C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ffb-server ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 77 source files with javac [debug release 21] to target\test-classes
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/test/java/com/fumbbl/ffb/server/local/BrowserSavedTeamJsonTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/test/java/com/fumbbl/ffb/server/local/BrowserSavedTeamJsonTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/test/java/com/fumbbl/ffb/server/util/ReRollApiEquivalenceTest.java: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\src\test\java\com\fumbbl\ffb\server\util\ReRollApiEquivalenceTest.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-server/src/test/java/com/fumbbl/ffb/server/util/ReRollApiEquivalenceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ ffb-server ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.fumbbl.ffb.marking.MarkerGeneratorTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\jaken\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.7\byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.359 s -- in com.fumbbl.ffb.marking.MarkerGeneratorTest
+[INFO] Running com.fumbbl.ffb.server.admin.UtilBackupTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.198 s -- in com.fumbbl.ffb.server.admin.UtilBackupTest
+[INFO] Running com.fumbbl.ffb.server.commandline.InifileParamFilterTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in com.fumbbl.ffb.server.commandline.InifileParamFilterTest
+[INFO] Running com.fumbbl.ffb.server.DbUpdaterShutdownTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.115 s -- in com.fumbbl.ffb.server.DbUpdaterShutdownTest
+[INFO] Running com.fumbbl.ffb.server.injury.injuryType.InjuryTypeBlockBB2025Test
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.fumbbl.ffb.server.injury.injuryType.InjuryTypeBlockBB2025Test
+[INFO] Running com.fumbbl.ffb.server.local.BrowserJettyContractTest
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.140 s -- in com.fumbbl.ffb.server.local.BrowserJettyContractTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserMatchDeliveryTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.fumbbl.ffb.server.local.BrowserMatchDeliveryTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserMatchSocketTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.076 s -- in com.fumbbl.ffb.server.local.BrowserMatchSocketTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserMatchTransportTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s -- in com.fumbbl.ffb.server.local.BrowserMatchTransportTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserSavedTeamJsonTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.904 s -- in com.fumbbl.ffb.server.local.BrowserSavedTeamJsonTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserTeamJsonTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.257 s -- in com.fumbbl.ffb.server.local.BrowserTeamJsonTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserV2AdapterTest
+[INFO] Tests run: 28, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.865 s -- in com.fumbbl.ffb.server.local.BrowserV2AdapterTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserV2ProjectionTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.070 s -- in com.fumbbl.ffb.server.local.BrowserV2ProjectionTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserV2RouteTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.434 s -- in com.fumbbl.ffb.server.local.BrowserV2RouteTest
+[INFO] Running com.fumbbl.ffb.server.local.BrowserV2TransportPolicyTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in com.fumbbl.ffb.server.local.BrowserV2TransportPolicyTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalAcceptanceBootstrapTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.363 s -- in com.fumbbl.ffb.server.local.LocalAcceptanceBootstrapTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalAcceptanceTokenMintTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in com.fumbbl.ffb.server.local.LocalAcceptanceTokenMintTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalDatabaseCloseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in com.fumbbl.ffb.server.local.LocalDatabaseCloseTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalGameLifecycleTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.089 s -- in com.fumbbl.ffb.server.local.LocalGameLifecycleTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalSchemaTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.147 s -- in com.fumbbl.ffb.server.local.LocalSchemaTest
+[INFO] Running com.fumbbl.ffb.server.local.LocalServerMainTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in com.fumbbl.ffb.server.local.LocalServerMainTest
+[INFO] Running com.fumbbl.ffb.server.local.Marker6SchemaTest
+[WARNING] Tests run: 5, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.098 s -- in com.fumbbl.ffb.server.local.Marker6SchemaTest
+[INFO] Running com.fumbbl.ffb.server.local.NativeMarker6ServerMainTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.244 s -- in com.fumbbl.ffb.server.local.NativeMarker6ServerMainTest
+[INFO] Running com.fumbbl.ffb.server.match.ActionSourceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.157 s -- in com.fumbbl.ffb.server.match.ActionSourceTest
+[INFO] Running com.fumbbl.ffb.server.match.ApothecaryPresentationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in com.fumbbl.ffb.server.match.ApothecaryPresentationTest
+[INFO] Running com.fumbbl.ffb.server.match.BallAndFoulActionsTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.214 s -- in com.fumbbl.ffb.server.match.BallAndFoulActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.BoundedJsonStorageCodecTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.240 s -- in com.fumbbl.ffb.server.match.BoundedJsonStorageCodecTest
+[INFO] Running com.fumbbl.ffb.server.match.CompletedMatchTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.169 s -- in com.fumbbl.ffb.server.match.CompletedMatchTest
+[INFO] Running com.fumbbl.ffb.server.match.DriveTrackerPresentationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.192 s -- in com.fumbbl.ffb.server.match.DriveTrackerPresentationTest
+[INFO] Running com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticatorTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.302 s -- in com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticatorTest
+[INFO] Running com.fumbbl.ffb.server.match.FollowUpActionsTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s -- in com.fumbbl.ffb.server.match.FollowUpActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.FrozenTeamEngineConverterTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.256 s -- in com.fumbbl.ffb.server.match.FrozenTeamEngineConverterTest
+[INFO] Running com.fumbbl.ffb.server.match.JdbcMatchMembershipRepositoryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.151 s -- in com.fumbbl.ffb.server.match.JdbcMatchMembershipRepositoryTest
+[INFO] Running com.fumbbl.ffb.server.match.JdbcMatchRepositoryTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.230 s -- in com.fumbbl.ffb.server.match.JdbcMatchRepositoryTest
+[INFO] Running com.fumbbl.ffb.server.match.JdbcRecoveryRepositoryTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.182 s -- in com.fumbbl.ffb.server.match.JdbcRecoveryRepositoryTest
+[INFO] Running com.fumbbl.ffb.server.match.JdbcV2PrincipalDirectoryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in com.fumbbl.ffb.server.match.JdbcV2PrincipalDirectoryTest
+[INFO] Running com.fumbbl.ffb.server.match.KickoffPresentationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.fumbbl.ffb.server.match.KickoffPresentationTest
+[INFO] Running com.fumbbl.ffb.server.match.KickSkillActionsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in com.fumbbl.ffb.server.match.KickSkillActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.MatchResultV2Test
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.fumbbl.ffb.server.match.MatchResultV2Test
+[INFO] Running com.fumbbl.ffb.server.match.MatchServiceTest
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.040 s -- in com.fumbbl.ffb.server.match.MatchServiceTest
+[INFO] Running com.fumbbl.ffb.server.match.MatchTranscriptTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in com.fumbbl.ffb.server.match.MatchTranscriptTest
+[INFO] Running com.fumbbl.ffb.server.match.MovementWaypointRegressionTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.165 s -- in com.fumbbl.ffb.server.match.MovementWaypointRegressionTest
+[INFO] Running com.fumbbl.ffb.server.match.MultipleBlockActionsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.fumbbl.ffb.server.match.MultipleBlockActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.NativeOutcomeCaptureTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in com.fumbbl.ffb.server.match.NativeOutcomeCaptureTest
+[INFO] Running com.fumbbl.ffb.server.match.NativeRuleFlowTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.290 s -- in com.fumbbl.ffb.server.match.NativeRuleFlowTest
+[INFO] Running com.fumbbl.ffb.server.match.PlayerActivationRecoveryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.649 s -- in com.fumbbl.ffb.server.match.PlayerActivationRecoveryTest
+[INFO] Running com.fumbbl.ffb.server.match.RecoveryDiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.067 s -- in com.fumbbl.ffb.server.match.RecoveryDiceTest
+[INFO] Running com.fumbbl.ffb.server.match.RecoveryNativeJsonTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.fumbbl.ffb.server.match.RecoveryNativeJsonTest
+[INFO] Running com.fumbbl.ffb.server.match.RetainedConcessionTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.101 s -- in com.fumbbl.ffb.server.match.RetainedConcessionTest
+[INFO] Running com.fumbbl.ffb.server.match.RoutePlannerTest
+[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.14 s -- in com.fumbbl.ffb.server.match.RoutePlannerTest
+[INFO] Running com.fumbbl.ffb.server.match.SetupApplicationTranscriptTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.fumbbl.ffb.server.match.SetupApplicationTranscriptTest
+[INFO] Running com.fumbbl.ffb.server.match.SetupBrowseSummaryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.fumbbl.ffb.server.match.SetupBrowseSummaryTest
+[INFO] Running com.fumbbl.ffb.server.match.SetupSessionConcessionTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.502 s -- in com.fumbbl.ffb.server.match.SetupSessionConcessionTest
+[INFO] Running com.fumbbl.ffb.server.match.SetupSessionMovementTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.36 s -- in com.fumbbl.ffb.server.match.SetupSessionMovementTest
+[INFO] Running com.fumbbl.ffb.server.match.SetupSessionPlacementTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.402 s -- in com.fumbbl.ffb.server.match.SetupSessionPlacementTest
+[INFO] Running com.fumbbl.ffb.server.match.SkillMarkerProjectionTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.186 s -- in com.fumbbl.ffb.server.match.SkillMarkerProjectionTest
+[INFO] Running com.fumbbl.ffb.server.match.SpecialBlockActionsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.fumbbl.ffb.server.match.SpecialBlockActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.SpecialTurnActionsTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s -- in com.fumbbl.ffb.server.match.SpecialTurnActionsTest
+[INFO] Running com.fumbbl.ffb.server.match.ThreatPresentationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.fumbbl.ffb.server.match.ThreatPresentationTest
+[INFO] Running com.fumbbl.ffb.server.match.V2MatchAccessTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in com.fumbbl.ffb.server.match.V2MatchAccessTest
+[INFO] Running com.fumbbl.ffb.server.match.V2PreparationJdbcTest
+[WARNING] Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.002 s -- in com.fumbbl.ffb.server.match.V2PreparationJdbcTest
+[INFO] Running com.fumbbl.ffb.server.match.V2PreparationServiceTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.144 s -- in com.fumbbl.ffb.server.match.V2PreparationServiceTest
+[INFO] Running com.fumbbl.ffb.server.net.SessionTimeoutTaskTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.137 s -- in com.fumbbl.ffb.server.net.SessionTimeoutTaskTest
+[INFO] Running com.fumbbl.ffb.server.request.ServerRequestProcessorShutdownTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.122 s -- in com.fumbbl.ffb.server.request.ServerRequestProcessorShutdownTest
+[INFO] Running com.fumbbl.ffb.server.ServerReplayerShutdownTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.173 s -- in com.fumbbl.ffb.server.ServerReplayerShutdownTest
+[INFO] Running com.fumbbl.ffb.server.ServerUrlPropertyTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.123 s -- in com.fumbbl.ffb.server.ServerUrlPropertyTest
+[INFO] Running com.fumbbl.ffb.server.step.action.move.StepDivingTackleTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.138 s -- in com.fumbbl.ffb.server.step.action.move.StepDivingTackleTest
+[INFO] Running com.fumbbl.ffb.server.team.bb2025.OrcContentMappingTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in com.fumbbl.ffb.server.team.bb2025.OrcContentMappingTest
+[INFO] Running com.fumbbl.ffb.server.team.bb2025.SkillDefinitionsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.091 s -- in com.fumbbl.ffb.server.team.bb2025.SkillDefinitionsTest
+[INFO] Running com.fumbbl.ffb.server.team.JdbcObsoleteSavedTeamStoreTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in com.fumbbl.ffb.server.team.JdbcObsoleteSavedTeamStoreTest
+[INFO] Running com.fumbbl.ffb.server.team.JdbcSavedTeamRepositoryTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s -- in com.fumbbl.ffb.server.team.JdbcSavedTeamRepositoryTest
+[INFO] Running com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupMainTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.086 s -- in com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupMainTest
+[INFO] Running com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.060 s -- in com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupTest
+[INFO] Running com.fumbbl.ffb.server.util.ReRollApiEquivalenceTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.271 s -- in com.fumbbl.ffb.server.util.ReRollApiEquivalenceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[WARNING] Tests run: 420, Failures: 0, Errors: 0, Skipped: 2
+[INFO] 
+[INFO] 
+[INFO] --- jar:2.4:jar (default-jar) @ ffb-server ---
+[INFO] Building jar: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\target\ffb-server-3.4.0.jar
+[INFO] 
+[INFO] --- shade:3.5.1:shade (default) @ ffb-server ---
+[INFO] Including com.fumbbl.ffb:ffb-common:jar:3.4.0 in the shaded jar.
+[INFO] Excluding io.github.classgraph:classgraph:jar:4.8.98 from the shaded jar.
+[INFO] Excluding com.eclipsesource.minimal-json:minimal-json:jar:0.9.5 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8.websocket:jetty-ee8-websocket-jetty-server:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-annotations:jar:12.1.13 from the shaded jar.
+[INFO] Excluding jakarta.annotation:jakarta.annotation-api:jar:1.3.5 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-annotations:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-server:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-plus:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-security:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-util:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-plus:jar:12.1.13 from the shaded jar.
+[INFO] Excluding jakarta.transaction:jakarta.transaction-api:jar:1.3.3 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-jndi:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-webapp:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-xml:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee:jetty-ee-webapp:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.ow2.asm:asm:jar:9.10.1 from the shaded jar.
+[INFO] Excluding org.ow2.asm:asm-commons:jar:9.10.1 from the shaded jar.
+[INFO] Excluding org.ow2.asm:asm-tree:jar:9.10.1 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-servlet:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-nested:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-session:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8:jetty-ee8-security:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8.websocket:jetty-ee8-websocket-jetty-api:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8.websocket:jetty-ee8-websocket-jetty-common:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.websocket:jetty-websocket-core-common:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8.websocket:jetty-ee8-websocket-servlet:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.websocket:jetty-websocket-core-server:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.toolchain:jetty-servlet-api:jar:4.0.9 from the shaded jar.
+[INFO] Excluding org.slf4j:slf4j-api:jar:2.0.17 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.ee8.websocket:jetty-ee8-websocket-jetty-client:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-client:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-alpn-client:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-http:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty:jetty-io:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.compression:jetty-compression-gzip:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.compression:jetty-compression-common:jar:12.1.13 from the shaded jar.
+[INFO] Excluding org.eclipse.jetty.websocket:jetty-websocket-core-client:jar:12.1.13 from the shaded jar.
+[INFO] Excluding com.amazonaws:aws-java-sdk-s3:jar:1.12.272 from the shaded jar.
+[INFO] Excluding com.amazonaws:aws-java-sdk-kms:jar:1.12.272 from the shaded jar.
+[INFO] Excluding com.amazonaws:aws-java-sdk-core:jar:1.12.272 from the shaded jar.
+[INFO] Excluding commons-logging:commons-logging:jar:1.1.3 from the shaded jar.
+[INFO] Excluding commons-codec:commons-codec:jar:1.15 from the shaded jar.
+[INFO] Excluding software.amazon.ion:ion-java:jar:1.0.2 from the shaded jar.
+[INFO] Excluding com.fasterxml.jackson.core:jackson-databind:jar:2.12.6.1 from the shaded jar.
+[INFO] Excluding com.fasterxml.jackson.core:jackson-annotations:jar:2.12.6 from the shaded jar.
+[INFO] Excluding com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:jar:2.12.6 from the shaded jar.
+[INFO] Excluding joda-time:joda-time:jar:2.8.1 from the shaded jar.
+[INFO] Excluding com.amazonaws:jmespath-java:jar:1.12.272 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents:httpmime:jar:4.5.2 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents:httpclient:jar:4.5.2 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents:httpcore:jar:4.4.4 from the shaded jar.
+[INFO] Excluding org.mariadb.jdbc:mariadb-java-client:jar:3.5.8 from the shaded jar.
+[INFO] Excluding com.google.firebase:firebase-admin:jar:9.4.3 from the shaded jar.
+[INFO] Excluding com.google.api-client:google-api-client:jar:2.7.1 from the shaded jar.
+[INFO] Excluding com.google.oauth-client:google-oauth-client:jar:1.36.0 from the shaded jar.
+[INFO] Excluding com.google.auth:google-auth-library-credentials:jar:1.30.0 from the shaded jar.
+[INFO] Excluding com.google.http-client:google-http-client-gson:jar:1.45.2 from the shaded jar.
+[INFO] Excluding com.google.http-client:google-http-client-apache-v2:jar:1.45.2 from the shaded jar.
+[INFO] Excluding com.google.api-client:google-api-client-gson:jar:2.7.1 from the shaded jar.
+[INFO] Excluding com.google.http-client:google-http-client:jar:1.45.3 from the shaded jar.
+[INFO] Excluding com.google.code.findbugs:jsr305:jar:3.0.2 from the shaded jar.
+[INFO] Excluding com.google.errorprone:error_prone_annotations:jar:2.36.0 from the shaded jar.
+[INFO] Excluding com.google.j2objc:j2objc-annotations:jar:3.0.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-context:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.opencensus:opencensus-api:jar:0.31.1 from the shaded jar.
+[INFO] Excluding io.opencensus:opencensus-contrib-http-util:jar:0.31.1 from the shaded jar.
+[INFO] Excluding com.google.api:api-common:jar:2.42.0 from the shaded jar.
+[INFO] Excluding com.google.auto.value:auto-value-annotations:jar:1.11.0 from the shaded jar.
+[INFO] Excluding javax.annotation:javax.annotation-api:jar:1.3.2 from the shaded jar.
+[INFO] Excluding com.google.auth:google-auth-library-oauth2-http:jar:1.30.1 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-storage:jar:2.46.0 from the shaded jar.
+[INFO] Excluding com.google.guava:failureaccess:jar:1.0.2 from the shaded jar.
+[INFO] Excluding com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava from the shaded jar.
+[INFO] Excluding com.google.http-client:google-http-client-jackson2:jar:1.45.3 from the shaded jar.
+[INFO] Excluding com.google.apis:google-api-services-storage:jar:v1-rev20241206-2.0.0 from the shaded jar.
+[INFO] Excluding com.google.code.gson:gson:jar:2.11.0 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-core:jar:2.49.0 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-core-http:jar:2.49.0 from the shaded jar.
+[INFO] Excluding com.google.http-client:google-http-client-appengine:jar:1.45.3 from the shaded jar.
+[INFO] Excluding com.google.api:gax-httpjson:jar:2.59.0 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-core-grpc:jar:2.49.0 from the shaded jar.
+[INFO] Excluding com.google.api:gax:jar:2.59.0 from the shaded jar.
+[INFO] Excluding com.google.api:gax-grpc:jar:2.59.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-inprocess:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-alts:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-grpclb:jar:1.69.0 from the shaded jar.
+[INFO] Excluding org.conscrypt:conscrypt-openjdk-uber:jar:2.5.2 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-auth:jar:1.69.0 from the shaded jar.
+[INFO] Excluding com.google.api.grpc:proto-google-iam-v1:jar:1.45.0 from the shaded jar.
+[INFO] Excluding com.google.protobuf:protobuf-java:jar:3.25.5 from the shaded jar.
+[INFO] Excluding com.google.protobuf:protobuf-java-util:jar:3.25.5 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-core:jar:1.69.0 from the shaded jar.
+[INFO] Excluding com.google.android:annotations:jar:4.1.1.4 from the shaded jar.
+[INFO] Excluding org.codehaus.mojo:animal-sniffer-annotations:jar:1.24 from the shaded jar.
+[INFO] Excluding io.perfmark:perfmark-api:jar:0.27.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-protobuf:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-protobuf-lite:jar:1.69.0 from the shaded jar.
+[INFO] Excluding com.google.api.grpc:proto-google-common-protos:jar:2.50.0 from the shaded jar.
+[INFO] Excluding org.threeten:threetenbp:jar:1.7.0 from the shaded jar.
+[INFO] Excluding com.google.api.grpc:proto-google-cloud-storage-v2:jar:2.46.0-beta from the shaded jar.
+[INFO] Excluding com.google.api.grpc:grpc-google-cloud-storage-v2:jar:2.46.0-beta from the shaded jar.
+[INFO] Excluding com.google.api.grpc:gapic-google-cloud-storage-v2:jar:2.46.0-beta from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk-trace:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk-logs:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-opentelemetry:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-api:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-context:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk-metrics:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-api-incubator:jar:1.45.0-alpha from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk-common:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:jar:1.45.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry.semconv:opentelemetry-semconv:jar:1.27.0-alpha from the shaded jar.
+[INFO] Excluding com.google.cloud.opentelemetry:exporter-metrics:jar:0.33.0 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-monitoring:jar:3.52.0 from the shaded jar.
+[INFO] Excluding com.google.api.grpc:proto-google-cloud-monitoring-v3:jar:3.52.0 from the shaded jar.
+[INFO] Excluding com.google.cloud.opentelemetry:shared-resourcemapping:jar:0.33.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry.contrib:opentelemetry-gcp-resources:jar:1.37.0-alpha from the shaded jar.
+[INFO] Excluding com.google.cloud.opentelemetry:detector-resources-support:jar:0.33.0 from the shaded jar.
+[INFO] Excluding org.checkerframework:checker-qual:jar:3.48.3 from the shaded jar.
+[INFO] Excluding com.fasterxml.jackson.core:jackson-core:jar:2.18.2 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-api:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-netty-shaded:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-util:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-stub:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-googleapis:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-xds:jar:1.69.0 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-services:jar:1.69.0 from the shaded jar.
+[INFO] Excluding com.google.re2j:re2j:jar:1.7 from the shaded jar.
+[INFO] Excluding io.grpc:grpc-rls:jar:1.69.0 from the shaded jar.
+[INFO] Excluding com.google.cloud:google-cloud-firestore:jar:3.30.2 from the shaded jar.
+[INFO] Excluding com.google.api.grpc:proto-google-cloud-firestore-v1:jar:3.30.2 from the shaded jar.
+[INFO] Excluding com.google.cloud:proto-google-cloud-firestore-bundle-v1:jar:3.30.2 from the shaded jar.
+[INFO] Excluding io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:jar:2.1.0-alpha from the shaded jar.
+[INFO] Excluding io.opentelemetry.instrumentation:opentelemetry-instrumentation-api:jar:2.1.0 from the shaded jar.
+[INFO] Excluding io.opentelemetry:opentelemetry-extension-incubator:jar:1.35.0-alpha from the shaded jar.
+[INFO] Excluding io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator:jar:2.1.0-alpha from the shaded jar.
+[INFO] Excluding com.google.guava:guava:jar:33.3.1-jre from the shaded jar.
+[INFO] Excluding io.netty:netty-codec-http:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-common:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-buffer:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-codec:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-handler:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-resolver:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-transport-native-unix-common:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding io.netty:netty-transport:jar:4.1.116.Final from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.client5:httpclient5:jar:5.3.1 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.core5:httpcore5:jar:5.2.4 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.core5:httpcore5-h2:jar:5.2.4 from the shaded jar.
+[INFO] Dependency-reduced POM written at: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\dependency-reduced-pom.xml
+[WARNING] ffb-common-3.4.0.jar, ffb-server-3.4.0.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/MANIFEST.MF
+[WARNING] maven-shade-plugin has detected that some files are
+[WARNING] present in two or more JARs. When this happens, only one
+[WARNING] single version of the file is copied to the uber jar.
+[WARNING] Usually this is not harmful and you can skip these warnings,
+[WARNING] otherwise try to manually exclude artifacts based on
+[WARNING] mvn dependency:tree -Ddetail=true and the above output.
+[WARNING] See https://maven.apache.org/plugins/maven-shade-plugin/
+[INFO] Replacing C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\target\FantasyFootballServer.jar with C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\target\ffb-server-3.4.0-shaded.jar
+[INFO] 
+[INFO] --- assembly:3.6.0:single (make-assembly) @ ffb-server ---
+[INFO] Reading assembly descriptor: src/assembly/assembly.xml
+[INFO] Building zip: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\target\ffb-server.zip
+[INFO] 
+[INFO] ------------------< com.fumbbl.ffb:ffb-client-logic >-------------------
+[INFO] Building ffb-client-logic 3.4.0                                    [4/4]
+[INFO]   from ffb-client-logic\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ffb-client-logic ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ffb-client-logic ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 654 source files with javac [debug target 8] to target\classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[WARNING] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/IconCache.java:[51,21] java.security.AccessController in java.security has been deprecated and marked for removal
+[WARNING] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/handler/ClientCommandHandlerGameState.java:[24,21] java.security.AccessController in java.security has been deprecated and marked for removal
+[WARNING] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/IconCache.java:[332,17] java.security.AccessController in java.security has been deprecated and marked for removal
+[WARNING] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/handler/ClientCommandHandlerGameState.java:[125,25] java.security.AccessController in java.security has been deprecated and marked for removal
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/IconCache.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/IconCache.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/ui/swing/JComboBox.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/jaken/Git-Hub/fumbbl-rebuild/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/ui/swing/JComboBox.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ffb-client-logic ---
+[INFO] skip non existing resourceDirectory C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-client-logic\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ffb-client-logic ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 4 source files with javac [debug target 8] to target\test-classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[WARNING] source value 8 is obsolete and will be removed in a future release
+[WARNING] target value 8 is obsolete and will be removed in a future release
+[WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ ffb-client-logic ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.fumbbl.ffb.client.dialog.DialogKeyGuardTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.452 s -- in com.fumbbl.ffb.client.dialog.DialogKeyGuardTest
+[INFO] Running com.fumbbl.ffb.client.handler.SubHandlerGameStateMarkingTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\jaken\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.7\byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.470 s -- in com.fumbbl.ffb.client.handler.SubHandlerGameStateMarkingTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:2.4:jar (default-jar) @ ffb-client-logic ---
+[INFO] Building jar: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-client-logic\target\ffb-client-logic-3.4.0.jar
+[INFO] 
+[INFO] --- shade:3.5.1:shade (default) @ ffb-client-logic ---
+[INFO] Including com.fumbbl.ffb:ffb-common:jar:3.4.0 in the shaded jar.
+[INFO] Excluding io.github.classgraph:classgraph:jar:4.8.98 from the shaded jar.
+[INFO] Excluding com.eclipsesource.minimal-json:minimal-json:jar:0.9.5 from the shaded jar.
+[INFO] Excluding org.glassfish.tyrus:tyrus-client:jar:1.21 from the shaded jar.
+[INFO] Excluding org.glassfish.tyrus:tyrus-core:jar:1.21 from the shaded jar.
+[INFO] Excluding org.glassfish.tyrus:tyrus-spi:jar:1.21 from the shaded jar.
+[INFO] Excluding jakarta.websocket:jakarta.websocket-api:jar:1.1.1 from the shaded jar.
+[INFO] Excluding jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3 from the shaded jar.
+[INFO] Excluding jakarta.activation:jakarta.activation-api:jar:1.2.2 from the shaded jar.
+[INFO] Excluding org.glassfish.tyrus:tyrus-container-grizzly-client:jar:1.21 from the shaded jar.
+[INFO] Excluding org.glassfish.grizzly:grizzly-framework:jar:2.4.4 from the shaded jar.
+[INFO] Excluding org.glassfish.grizzly:grizzly-http-server:jar:2.4.4 from the shaded jar.
+[INFO] Excluding org.glassfish.grizzly:grizzly-http:jar:2.4.4 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.client5:httpclient5:jar:5.3 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.core5:httpcore5:jar:5.2.4 from the shaded jar.
+[INFO] Excluding org.apache.httpcomponents.core5:httpcore5-h2:jar:5.2.4 from the shaded jar.
+[INFO] Excluding org.slf4j:slf4j-api:jar:1.7.36 from the shaded jar.
+[INFO] Excluding kuusisto.tinysound:tinysound:jar:1.1.1 from the shaded jar.
+[INFO] Excluding org.osgi:core:jar:4.3.0 from the shaded jar.
+[INFO] Excluding javazoom.vorbisspi:vorbisspi:jar:1.0.3 from the shaded jar.
+[INFO] Excluding com.jcraft:jorbis:jar:0.0.17 from the shaded jar.
+[INFO] Excluding org.tritonus:tritonus_share:jar:0.0.1 from the shaded jar.
+[INFO] Dependency-reduced POM written at: C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-client-logic\dependency-reduced-pom.xml
+[WARNING] ffb-client-logic-3.4.0.jar, ffb-common-3.4.0.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/MANIFEST.MF
+[WARNING] maven-shade-plugin has detected that some files are
+[WARNING] present in two or more JARs. When this happens, only one
+[WARNING] single version of the file is copied to the uber jar.
+[WARNING] Usually this is not harmful and you can skip these warnings,
+[WARNING] otherwise try to manually exclude artifacts based on
+[WARNING] mvn dependency:tree -Ddetail=true and the above output.
+[WARNING] See https://maven.apache.org/plugins/maven-shade-plugin/
+[INFO] Replacing original artifact with shaded artifact.
+[INFO] Replacing C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-client-logic\target\ffb-client-logic-3.4.0.jar with C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-client-logic\target\ffb-client-logic-3.4.0-shaded.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO] 
+[INFO] ffb ................................................ SUCCESS [  0.002 s]
+[INFO] ffb-common ......................................... SUCCESS [  7.510 s]
+[INFO] ffb-server ......................................... SUCCESS [01:34 min]
+[INFO] ffb-client-logic ................................... SUCCESS [ 14.801 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:57 min
+[INFO] Finished at: 2026-10-17T18:02:34-04:00
+[INFO] ------------------------------------------------------------------------

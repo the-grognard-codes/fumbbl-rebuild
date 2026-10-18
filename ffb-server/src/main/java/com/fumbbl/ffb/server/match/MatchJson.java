@@ -428,11 +428,15 @@ public final class MatchJson {
 						fields.add("positionRace"); fields.add("positionRole");
 						shortText(player.get("positionRace")); shortText(player.get("positionRole"));
 					}
+					if (player.get("skillMarkers") != null) fields.add("skillMarkers");
 					exact(player, fields.toArray(new String[0]));
 					bounded(player.get("number"), 1, 99); shortText(player.get("position"));
 					for (String stat : Arrays.asList("ma", "st", "ag", "pa", "av")) bounded(player.get(stat), 0, 30);
 					JsonArray skills = player.get("skills").asArray(); if (skills.size() > 64) throw new IllegalArgumentException();
 					for (JsonValue skill : skills) shortText(skill);
+					if (player.get("skillMarkers") != null) {
+						validateSkillMarkers(player.get("skillMarkers").asObject());
+					}
 					String offPitch = player.getString("offPitch", null);
 					if (!Arrays.asList("pitch", "reserve", "knockedOut", "casualty", "sentOff", "other").contains(offPitch)
 						|| player.get("x").isNull() == "pitch".equals(offPitch)) throw new IllegalArgumentException();
@@ -450,6 +454,22 @@ public final class MatchJson {
             if (!player.get("x").isNull()) { bounded(player.get("x"), 0, 25); bounded(player.get("y"), 0, 14); }
         }
     }
+    private void validateSkillMarkers(JsonObject markers) {
+        exact(markers, "version", "entries", "details");
+        if (markers.getInt("version", -1) != 1 || markers.get("entries").asArray().size() > 108
+            || markers.get("details").asArray().size() > 128) throw new IllegalArgumentException();
+        Set<String> ids = new HashSet<>();
+        for (JsonValue value : markers.get("entries").asArray()) {
+            JsonObject entry = value.asObject(); exact(entry, "id", "category", "origin");
+            SkillDefinitions.Definition definition =
+                SkillDefinitions.forId(entry.getString("id", null));
+            if (definition == null || !ids.add(definition.id) || !definition.category.name().equals(entry.getString("category", null))
+                || !Arrays.asList("base", "acquired").contains(entry.getString("origin", null))) throw new IllegalArgumentException();
+        }
+        for (JsonValue detail : markers.get("details").asArray())
+            if (detail.asString().isEmpty() || detail.asString().length() > 300) throw new IllegalArgumentException();
+    }
+
 	private void shortText(JsonValue value) {
         String text = value.asString(); if (text.isEmpty() || text.length() > 100) throw new IllegalArgumentException();
     }

@@ -1,0 +1,262 @@
+[
+  {
+    "path": ".notes/player-skill-markers/implementation-assets-check.log",
+    "sha256": "4176d103110b4406d9d3cb24ae45adef9b9e01b681c465eae91d798876d786cd",
+    "bytes": 4932
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-ball-zoom-ui.log",
+    "sha256": "c30f2ebb4739d8c2c6f10b2f309a94c4e62f2400be4148b909b8bb147163e0f4",
+    "bytes": 224
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-browser-build.log",
+    "sha256": "9b83451708ebd1f992438f8e79de9a55319dedd728f50fa40066ba8a8df19191",
+    "bytes": 5918
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-focused-maven.log",
+    "sha256": "90381435a95b471c21b282a5179cfa6d0c924e9e720021bc783415c397a4d269",
+    "bytes": 7035
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-game-menu-events-ui.log",
+    "sha256": "f58ccb25d3395f9bdc10c5d0a0663b307369ff812f6fd630d5142034c685f1f4",
+    "bytes": 404
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-marker-ui.log",
+    "sha256": "a99480790b5f78aaf899c701a6de1a90b339a11603ff515d88232c235fa38e6a",
+    "bytes": 256
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-maven-package.log",
+    "sha256": "f206493823b5060661922844a1d57e1a8a6d4a67ee6db358fa4151a043d38ecf",
+    "bytes": 48043
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-pending-recovery.log",
+    "sha256": "5930cb7de08827736f94d923f780613db2e2b3bf64b63902fde8b047ccaacf52",
+    "bytes": 180
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-play-build.log",
+    "sha256": "f32f5890dc707e345952262e902b7aad4ab280e01e00f24eba0a5aee6508cb0b",
+    "bytes": 1466
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-playback-ui.log",
+    "sha256": "338e26e057452e7fe555065375005b2de050f405d1c32546fbaae8f9177d17aa",
+    "bytes": 572
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-projected-pitch-ui.log",
+    "sha256": "0be75820fd9d7d6eab4fede15c998e1303cc6b2646528914de45b5e1a48d4046",
+    "bytes": 1482
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-reconnect-ui.log",
+    "sha256": "bfbfb261d69ef2abc4d1e1341f36957b01d62773ffa6b3344aa56a22e56a7493",
+    "bytes": 148
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-setup-drag-ui.log",
+    "sha256": "e2af111551a9019f6660ed1b780ebd10dfc800046ef718b6bd92f8864d1e4a5f",
+    "bytes": 400
+  },
+  {
+    "path": ".notes/player-skill-markers/implementation-unit.log",
+    "sha256": "e7c9a902a6dcb384325100a191e56826f8b34ad30e4035b20a9feb59fb1421f0",
+    "bytes": 60704
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-browser-build.log",
+    "sha256": "94d6310027a31f584b08d098dad04d34fb0844692ae57dc91571158cfa15b73e",
+    "bytes": 5918
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-browser-install.log",
+    "sha256": "cff6d9e9b6fcd2cb23f22508f04d127ea5e7e27c2ccb79ec457519a3e3246b72",
+    "bytes": 470
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-browser-unit.log",
+    "sha256": "e1653342d98009f4f58362b6332c3f55732a3cd205881b5c08213e1b039afd03",
+    "bytes": 62532
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-ci-watch.log",
+    "sha256": "b432a0eec063bc02ae7f791e872ea98784077814d0361144d73ec127a5b9e100",
+    "bytes": 18556
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-fixture-dice-ui.log",
+    "sha256": "ff73c2d8afb294a716dc291d6ff95bf12492a60aa1b891434a54b2943a60a1fc",
+    "bytes": 188
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-fixture-pending-recovery-ui.log",
+    "sha256": "8e824e8e9834a798de99328ecee60711574e85b116fe12c3ec5af2ec5ffc5f7e",
+    "bytes": 89
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-fixture-playback-ui.log",
+    "sha256": "88749f6ed58c990e18aa7fc09c72915cf9f5fde8cd50facde4a094c7b562f15f",
+    "bytes": 285
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-fixture-unit.log",
+    "sha256": "0bd61d29f9e49dfc930e06cdc462c817ca5083d83ddc1b66a4bba350f1c364ea",
+    "bytes": 31941
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-game-menu-events-ui.log",
+    "sha256": "f58ccb25d3395f9bdc10c5d0a0663b307369ff812f6fd630d5142034c685f1f4",
+    "bytes": 404
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-java21-verify.log",
+    "sha256": "7b8f3874bb1a37204122fb7860c9b80d15e52d5649adb8a202f84022c6b0aab0",
+    "bytes": 8454420
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-marker-ui.log",
+    "sha256": "7e938e66e9504a100c6abcfaf29fc7e035e9d3fd80881a5166701ce6e0598753",
+    "bytes": 388
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-native-fixtures-fixed.log",
+    "sha256": "d05f83c62c1156c9899d2aa5b5841cff559ff333a3849f7804a7cfa68dc1f41b",
+    "bytes": 7202
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-pending-recovery-ui.log",
+    "sha256": "5930cb7de08827736f94d923f780613db2e2b3bf64b63902fde8b047ccaacf52",
+    "bytes": 180
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-playback-ui.log",
+    "sha256": "338e26e057452e7fe555065375005b2de050f405d1c32546fbaae8f9177d17aa",
+    "bytes": 572
+  },
+  {
+    "path": ".notes/player-skill-markers/merge-reactive-decisions-ui.log",
+    "sha256": "cbb6fa397c214b943e618ab63f6539d2258a7b40f10912a131f96c946106fcb0",
+    "bytes": 838
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-concurrent-fixed.log",
+    "sha256": "338e26e057452e7fe555065375005b2de050f405d1c32546fbaae8f9177d17aa",
+    "bytes": 572
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-hosted-blitz.log",
+    "sha256": "cbb62801d39d6a3d45eea89f768e1e4e1359ccbf3f43bd5b10072453aefbf7af",
+    "bytes": 410
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-shard4-fixed.log",
+    "sha256": "9152938a22f3d820494f4d4ab7bca962d307fdc2e611c03486406a7fbed6e410",
+    "bytes": 10408
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-slow-render-fixed.log",
+    "sha256": "0d9ad1dddec74c446e1b02c4613d8f1084a35cc5c8c09cfc28c8f5421d8f1028",
+    "bytes": 228
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-slow-render-repro.log",
+    "sha256": "216cf090973acef8dbb1fca88144fd497611289dd37532ca72bfae5816d5b42e",
+    "bytes": 1448
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-timeout-fixed.log",
+    "sha256": "338e26e057452e7fe555065375005b2de050f405d1c32546fbaae8f9177d17aa",
+    "bytes": 572
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-timeout-repro.log",
+    "sha256": "1bb2f905f79e4bec57e44297891674bf7b0baa65f1221db70dcdb71005f850b2",
+    "bytes": 704
+  },
+  {
+    "path": ".notes/player-skill-markers/playback-unit-fixed.log",
+    "sha256": "1cca467015f8ccfdf3ad6c3f342bb8dee286049e51196af4802d259be8e87f0e",
+    "bytes": 1110
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/browser-build.log",
+    "sha256": "948b5270dcb1eb78c8009928ac3e399cd7683b9d3743916b951ec11a3b283de8",
+    "bytes": 5918
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/browser-unit-test.log",
+    "sha256": "d75ddd64b59867bfc2d3f6c3d32f16be055602d2494aabc849a772fdcb3021d0",
+    "bytes": 59246
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/maven-test.log",
+    "sha256": "be2a6b3be808deecc39eb7f6a4f191d58ab302380276fbcce66901e10e32d9e3",
+    "bytes": 25551
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/pending-recovery-ui.log",
+    "sha256": "1dda103e9cfbc37544bf8911c4e88074a9a1e60f0d4db9af51fca0cc933d6461",
+    "bytes": 440
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/playback-ui.log",
+    "sha256": "87693c17c5f2db9f58fa3b1081f2461532488edbaa0eb2e1059aa733fbe8f314",
+    "bytes": 832
+  },
+  {
+    "path": ".notes/player-skill-markers/illustrated-round-2/reconnect-ui.log",
+    "sha256": "89554df04ffecb4f341e94cb56a81b7cfbbbf3f0f379d68f7e76497b4ab6e5fb",
+    "bytes": 408
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-1/browser-unit-test.log",
+    "sha256": "07d313db85343a788aa14069801649806e4ce77fe50d0d79996d83031968c61b",
+    "bytes": 57744
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/browser-build.log",
+    "sha256": "18f5303d93a47f3bb100a8654838d17cb06f0b84f48985f23ad89b263dc765fb",
+    "bytes": 5938
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/browser-unit-test.log",
+    "sha256": "d2782ca5aef23a50c82766b0dc57176e0923c6beb71ed9ec2ae572f42be7a185",
+    "bytes": 59062
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/maven-test-unsandboxed.log",
+    "sha256": "d9a19ae5624a44fb502b6c5359c94cd742bacfaa572699d91cefe30886f0eb85",
+    "bytes": 25559
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/maven-test.log",
+    "sha256": "e412f14081a9df6bf4944b6657200711ff5b4be1a779c15347b7b6ea6678ca17",
+    "bytes": 3446566
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/menu-ui.log",
+    "sha256": "f58ccb25d3395f9bdc10c5d0a0663b307369ff812f6fd630d5142034c685f1f4",
+    "bytes": 404
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/pending-recovery-ui.log",
+    "sha256": "7c0cde71f225253a62ed289b57b4336339d9dc720bd3505e18812f3ca14635e5",
+    "bytes": 310
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/playback-ui.log",
+    "sha256": "f157f0e8475cbaa276e121e2aee336aa85304b885585e82fc0e8199f747e8843",
+    "bytes": 702
+  },
+  {
+    "path": ".notes/player-skill-markers/text-round-2/reconnect-ui.log",
+    "sha256": "8c58e37c2b8ca4d7a905372eaac855470b196165b8a6a4368896eb5e4651897b",
+    "bytes": 278
+  }
+]

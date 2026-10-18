@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "family": "interaction",
+  "shard": 4,
+  "commit": "7cc46baaaa683211b6bbc5e6bc04a513077253a0",
+  "passed": true,
+  "suites": [
+    {
+      "id": "browser-client/test/pass-workflow-ui.mjs",
+      "durationMs": 27519.2756,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-flow-ui.mjs",
+      "durationMs": 22585.230600000003,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/misc-fix-rollup-ui.mjs",
+      "durationMs": 24227.37460000001,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/preparation-lifecycle-ui.mjs",
+      "durationMs": 4560.083299999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/movement-range-ui.mjs",
+      "durationMs": 13535.005399999995,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/threat-ui.mjs",
+      "durationMs": 17414.516499999998,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/confirmation-position-ui.mjs",
+      "durationMs": 33049.135999999984,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/player-action-menu-ui.mjs",
+      "durationMs": 12069.579800000007,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/playback-ui.mjs",
+      "durationMs": 13741.671200000012,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/teammate-ui.mjs",
+      "durationMs": 34163.2469,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/manual-reroll-ui.mjs",
+      "durationMs": 13410.300999999978,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "browser-client/test/route-check-ui.mjs",
+      "durationMs": 25676.592800000013,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

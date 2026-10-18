@@ -38,6 +38,15 @@ Full Maven verification: `powershell -NoProfile -ExecutionPolicy Bypass -File to
 
 Skipped existing opt-in checks: `Marker6SchemaTest` (1), `V2PreparationJdbcTest` (1), `R5CompletedFixtureGeneratorTest` (1), `R5RestoredContinuationTest` (1), `RecoveryApplicationTest` (2), `RecoveryArtifactInspectionTest` (1), `V2RuntimeIntegrationTest` (2). Their required external database/runtime evidence was not configured for this local run.
 
+## Integration with current main
+
+PR #296 (player skill markers) and its archived design/artwork reached main during this implementation. Integration preserves both features; the only textual conflict was the change list, resolved by retaining both entries.
+
+- Integrated browser unit suite: 329 passed; production `build:play` and the 15 tooling tests passed.
+- Integrated native selector: `-Module ffb-statetest -Test JumpPlanningTest,RoutePlannerTest,SetupSessionMovementTest,MovementWaypointRegressionTest,SkillMarkerProjectionTest,RecipientProjectionTest,SetupSessionTest` with the same target-build command — 73 passed, zero skipped.
+- Both `jump-planning-ui.mjs` and `skill-markers-ui.mjs` passed. The marker test's controlled snapshot publisher now uses the existing harness convention of `flushSync`, so replay/filter assertions inspect the requested render rather than the preceding frame. No marker product behavior changed.
+- Independent read-only integration review found no actionable interaction regressions in pitch targeting, replay, marker overlays or checkpoint compatibility.
+
 ## Compatibility
 
 Client and server should be released together for route version 4. An older server cannot consume newly committed jump checkpoints. There is no database schema migration; unconfirmed drafts remain local. No deployment is part of this change.

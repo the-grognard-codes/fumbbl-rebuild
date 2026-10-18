@@ -11,6 +11,7 @@ public class ChangeList {
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
 			.addFeature("BB2025 browser movement plans support Jump, Leap and Pogo waypoints, with a compact Jump toggle, landing difficulty and Rush warnings")
+			.addFeature("Browser player skill markers offer text and illustrated badges with team, origin, trait and size settings in live matches and replays")
 			.addBugfix("Compact pitch decisions avoid covering destinations when only tighter spacing fits a small screen")
 			.addBugfix("Browser reactive skills prompt the owning coach with a server-enforced 30-second deadline and decline unanswered optional decisions")
 			.addBugfix("Browser coaches can concede retained matches from older game versions without resuming their incompatible engine")

@@ -1,0 +1,154 @@
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 state tests (1/4)	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 state tests (1/4)	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 target verification	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 target verification	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 target verification	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Refreshing checks status every 10 seconds. Press Ctrl+C to quit.
+
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+Java 21 target verification	pending	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Java 21 target verification	pass	37s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	
+Analyze (actions)	pass	1m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235848	
+Analyze (java-kotlin)	pass	3m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235823	
+Analyze (javascript-typescript)	pass	1m53s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235753	
+Analyze (python)	pass	1m16s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095927415/job/117582235866	
+CodeQL	pass	4s	https://github.com/the-grognard-codes/fumbbl-rebuild/runs/117582406707	
+Firebase game session service	pass	58s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239426	
+GitHub Actions lint	pass	57s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239249	
+Java 21 state tests (1/4)	pass	8m11s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239473	
+Java 21 state tests (3/4)	pass	4m23s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239480	
+Java 21 state tests (4/4)	pass	4m39s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239407	
+Java 21 target verification	pass	37s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117583655778	
+Local review lifecycle and computer player	pass	43s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239355	
+Static assets, unit tests and Hosting artifacts	pass	1m5s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239425	
+Validate	pass	2m7s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239399	
+full-browser	skipping	0	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582240263	
+Java 21 state tests (2/4)	pass	4m21s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582239440	
+Secret scan	pass	30s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929118/job/117582239191	
+Static delivery	pass	24s	https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/39095929143/job/117582434312	

@@ -1,0 +1,8 @@
+{
+  "id": "bone-head",
+  "mode": "approved round-2 reuse",
+  "source": "sources/bone-head.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\bone-head.png",
+  "sha256": "f0c959adc6a4f9e703324a10328cf4fed598b85f91a23cac3a954d32f3753002",
+  "opaqueMaster": false
+}
