@@ -4,6 +4,8 @@ This inventory lists files identified for the off-GitHub archive. The archive fi
 
 Inventory prepared 2026-10-18 from the repository checkout. The 1,725 listed files were moved into `archive/`, preserving their repository-relative paths: 1,655 skill-marker history files and 70 scratch logs (328,150,522 bytes). Paths below identify the original repository locations.
 
+On 2026-10-18, three reactive-skill validation snapshot files were also moved into `archive/` (65,794 bytes), bringing the archive to 1,728 files totaling 328,216,316 bytes.
+
 ## Move candidates
 
 These files are historical design/review material or local scratch logs. They are not inputs to the active game, production assets, build, or test suites.
@@ -1743,11 +1745,21 @@ Source: `.scratch/` — 70 log files, 16,757,187 bytes.
 - `.scratch/service-retained-red.log`
 - `.scratch/stand-green.log`
 
+## Archived reactive-skill validation snapshot
+
+Source: `.tools/reactive-validation-20261017/` — three files, 65,794 bytes. These are the validation worktree's versions of files that differ from the final implementation merged through [PR #295](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/295), commit `a89be7a89`. The worktree was based on commit `f7a6d307ff68546533ffa4cee624f5198196bddb`.
+
+The archived copies preserve the older prompt placement, specification and validation notes, and changelist snapshot before worktree removal. Their paths relative to the main checkout are preserved under `archive/.tools/reactive-validation-20261017/`. The current production source and specification remain in the main checkout.
+
+- `.tools/reactive-validation-20261017/browser-client/src/MatchDecisionDialog.tsx`
+- `.tools/reactive-validation-20261017/docs/specs/bb2025-reactive-skill-decisions.md`
+- `.tools/reactive-validation-20261017/ffb-client-logic/src/main/java/com/fumbbl/ffb/client/model/ChangeList.java`
+
 ## Kept in the repository
 
 The rest of the repository was reviewed and is not listed as safe to move in this pass. This includes active source, production assets, tests, build and deployment configuration, project documentation, and reference material with live links or scripts. In particular, `.notes/overhaul-analysis/` is referenced by current documentation and test/demo scripts; other retained evidence is linked from specs and verification notes.
 
-Build caches, dependencies, local tooling, and worktrees (`target/`, `node_modules/`, `.tools/`, `.worktrees/`, and `.firebase/`) are excluded because they are local or recreatable state rather than archive material.
+Build caches, dependencies, local tooling, and worktrees (`target/`, `node_modules/`, `.tools/`, `.worktrees/`, and `.firebase/`) are otherwise excluded because they are local or recreatable state rather than archive material. The three validation snapshot files listed above are the explicit exception.
 
 ## Archive policy
 
