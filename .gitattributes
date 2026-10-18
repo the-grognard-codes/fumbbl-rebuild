@@ -7,5 +7,5 @@ browser-client/src/generated-player-art.ts text eol=lf
 browser-client/src/generated-skill-markers.ts text eol=lf
 browser-client/src/generated-stadium-modules.ts text eol=lf
 # Approved marker checksums must survive Windows checkouts unchanged.
-assets/game/ui/player-skill-markers-v1/text/*.svg text eol=lf
-browser-client/public/assets/game/ui/player-skill-markers-v1/text/*.svg text eol=lf
+assets/game/ui/player-skill-markers-v1/text/*.svg -text
+browser-client/public/assets/game/ui/player-skill-markers-v1/text/*.svg -text
