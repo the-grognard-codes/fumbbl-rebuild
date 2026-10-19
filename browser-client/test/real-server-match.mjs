@@ -199,6 +199,7 @@ function selectAction(view) {
     ?? view.actions.find(action => action.kind === 'reroll' && /^Do not/i.test(action.label)) ?? view.actions[0];
 }
 async function routeUI(view, action) {
+  lastAction = action;
   const page = pages[action.actor === 'home' ? 0 : 1], target = action.target;
   await page.locator('.live-pitch-viewport[aria-label="Pitch action preview"]').waitFor();
   const player = view.players.find(player => player.id === action.sourcePlayerId);
@@ -448,6 +449,9 @@ try {
     intents: window.__acceptance?.outgoing.slice(-6).map(message => ({ type: message.type, operation: message.operation, actionId: message.actionId }))
   }))));
   const latestState = await state(pages[0]).catch(() => lastState);
-  await writeFile(resolve(output, 'failure.json'), JSON.stringify({ passed: false, matchId, teams, assertions, checkpoints, state: latestState ?? lastState, lastAction, protocol, errors, invalidProjections, failure: failure.message }, null, 2));
+  const wireDiagnostic = await pages[0]?.evaluate(() => ({
+    incoming: window.__acceptance.incoming.slice(-12), outgoing: window.__acceptance.outgoing.slice(-12),
+  })).catch(() => null);
+  await writeFile(resolve(output, 'failure.json'), JSON.stringify({ passed: false, matchId, teams, assertions, checkpoints, state: latestState ?? lastState, lastAction, protocol, errors, invalidProjections, wireDiagnostic, failure: failure.message }, null, 2));
   throw failure;
 } finally { await browser.close(); }

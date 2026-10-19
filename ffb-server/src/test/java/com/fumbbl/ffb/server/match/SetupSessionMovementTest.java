@@ -660,6 +660,8 @@ class SetupSessionMovementTest {
         Field stateField = SetupSession.class.getDeclaredField("state");
         stateField.setAccessible(true);
         Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        JsonObject regularInactive = fixture.session.movementRange(role, revision, inactiveId);
+        assertTrue(regularInactive.getInt("remaining", -1) > 2);
         game.getActingPlayer().setPlayerId(activeId);
         game.getActingPlayer().setPlayerAction(PlayerAction.MOVE);
         game.getActingPlayer().setCurrentMove(1);
@@ -671,7 +673,8 @@ class SetupSessionMovementTest {
             assertEquals(2, active.getInt("remaining", -1));
             assertEquals(2, active.getInt("normalRemaining", -1));
             assertEquals(active.get("normal").toString(), active.get("full").toString());
-            assertEquals(8, inactive.getInt("remaining", -1));
+            assertEquals(regularInactive.getInt("remaining", -1), inactive.getInt("remaining", -1));
+            assertEquals(regularInactive.getInt("normalRemaining", -1), inactive.getInt("normalRemaining", -1));
             assertEquals(checkpoint, fixture.session.recoveryArtifact());
             game.getActingPlayer().setPlayerAction(PlayerAction.STAND_UP);
             assertEquals(0, fixture.session.movementRange(role, revision, activeId).get("full").asArray().size());

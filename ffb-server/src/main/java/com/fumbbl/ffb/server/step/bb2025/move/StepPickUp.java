@@ -11,6 +11,7 @@ import com.fumbbl.ffb.ReRollSource;
 import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.SoundId;
+import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.factory.PickupModifierFactory;
 import com.fumbbl.ffb.json.UtilJson;
@@ -23,6 +24,7 @@ import com.fumbbl.ffb.modifiers.PickupContext;
 import com.fumbbl.ffb.modifiers.PickupModifier;
 import com.fumbbl.ffb.net.NetCommandId;
 import com.fumbbl.ffb.net.commands.ClientCommandPickUpChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.report.bb2025.ReportPickupRoll;
 import com.fumbbl.ffb.server.ActionStatus;
 import com.fumbbl.ffb.server.DiceInterpreter;
@@ -37,10 +39,14 @@ import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.StepParameterSet;
+import com.fumbbl.ffb.server.step.UtilServerSteps;
+import com.fumbbl.ffb.server.util.ReRollRequest;
+import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -127,7 +133,13 @@ public class StepPickUp extends AbstractStepWithReRoll {
 
 	@Override
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
-		StepCommandStatus commandStatus = super.handleCommand(pReceivedCommand);
+		StepCommandStatus commandStatus;
+		if (isObsoleteSecureBallSkill(pReceivedCommand)) {
+			DialogReRollPropertiesParameter dialog = (DialogReRollPropertiesParameter) getGameState().getGame().getDialogParameter();
+			UtilServerDialog.hideDialog(getGameState());
+			commandStatus = askForPickupReRoll(getGameState().getGame().getPlayerById(dialog.getPlayerId()), dialog.getMinimumRoll())
+				? StepCommandStatus.SKIP_STEP : StepCommandStatus.EXECUTE_STEP;
+		} else commandStatus = super.handleCommand(pReceivedCommand);
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND &&
 			pReceivedCommand.getId() == NetCommandId.CLIENT_PICK_UP_CHOICE) {
 			ClientCommandPickUpChoice command = (ClientCommandPickUpChoice) pReceivedCommand.getCommand();
@@ -138,6 +150,30 @@ public class StepPickUp extends AbstractStepWithReRoll {
 			executeStep();
 		}
 		return commandStatus;
+	}
+
+	private boolean isObsoleteSecureBallSkill(ReceivedCommand receivedCommand) {
+		Game game = getGameState().getGame();
+		if (!secureTheBall || !UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), receivedCommand)
+			|| game.getActingPlayer().getPlayerAction() != PlayerAction.SECURE_THE_BALL
+			|| !(receivedCommand.getCommand() instanceof ClientCommandUseSkill)
+			|| !(game.getDialogParameter() instanceof DialogReRollPropertiesParameter)) return false;
+		ClientCommandUseSkill command = (ClientCommandUseSkill) receivedCommand.getCommand();
+		DialogReRollPropertiesParameter dialog = (DialogReRollPropertiesParameter) game.getDialogParameter();
+		// Older checkpoints can contain this unavailable choice. Refresh it without granting a reroll.
+		return command.isSkillUsed() && command.getReRolledAction() == ReRolledActions.PICK_UP
+			&& dialog.getReRolledAction() == ReRolledActions.PICK_UP
+			&& dialog.getPlayerId().equals(command.getPlayerId())
+			&& dialog.getPlayerId().equals(game.getActingPlayer().getPlayerId())
+			&& dialog.getReRollSkill() != null && dialog.getReRollSkill().equals(command.getSkill())
+			&& command.getSkill().getRerollSource(ReRolledActions.PICK_UP) != null;
+	}
+
+	private boolean askForPickupReRoll(Player<?> player, int minimumRoll) {
+		ReRollRequest.Builder request = ReRollRequest.forPlayer(getGameState(), player, ReRolledActions.PICK_UP, minimumRoll);
+		ReRollSource source = UtilCards.getRerollSource(player, ReRolledActions.PICK_UP);
+		if (secureTheBall && source != null) request.ignoreSkills(Collections.singleton(source.getSkill(getGameState().getGame())));
+		return getGameState().getReRollService().askForReRollIfAvailable(request.build());
 	}
 
 	private void executeStep() {
@@ -257,8 +293,7 @@ public class StepPickUp extends AbstractStepWithReRoll {
 						UtilServerReRoll.useReRoll(this, getReRollSource(), player);
 						return pickUp(player);
 					} else {
-						if (!reRolled && UtilServerReRoll.askForReRollIfAvailable(getGameState(), player,
-							ReRolledActions.PICK_UP, minimumRoll, false)) {
+						if (!reRolled && askForPickupReRoll(player, minimumRoll)) {
 							return ActionStatus.WAITING_FOR_RE_ROLL;
 						} else {
 							return ActionStatus.FAILURE;
