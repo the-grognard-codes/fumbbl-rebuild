@@ -39,6 +39,7 @@
       "com.fumbbl.ffb.test.PassRangeProjectionTest",
       "com.fumbbl.ffb.test.PushbackArtworkTest",
       "com.fumbbl.ffb.test.RecoveryScenariosTest",
+      "com.fumbbl.ffb.test.SecureBallRerollTest",
       "com.fumbbl.ffb.test.ServerCommunicationWorkTest"
     ],
     [

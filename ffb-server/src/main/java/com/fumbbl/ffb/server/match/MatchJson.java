@@ -65,6 +65,51 @@ public final class MatchJson {
 	}
 
 	public JsonObject encode(MatchDocument document) {
+		JsonObject out = envelope(document);
+		if (document.completion != null) out.add("completion", JsonObject.readFrom(document.completion.json()));
+		return out;
+	}
+
+	/** Embed the already canonical immutable artifact without rebuilding its object graph. */
+	String encodeText(MatchDocument document) {
+		String envelope = envelope(document).toString();
+		if (document.completion == null) return envelope;
+		return envelope.substring(0, envelope.length() - 1) + ",\"completion\":" + document.completion.json() + "}";
+	}
+
+	/** Validate before writing, using the source-validated immutable completion when available. */
+	String storageText(MatchDocument document) {
+		try {
+			String text = encodeText(document);
+			if (document.completion == null) decode(text, document.documentVersion);
+			else {
+				JsonObject envelope = envelope(document).add("completion", JsonValue.NULL);
+				ComputerCoach computer = document.computer;
+				envelope.remove("computer");
+				MatchDocument activated = completedPreparation(envelope, document.documentVersion, computer);
+				validateCompletion(document.completion, activated);
+				checkText(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
+			}
+			return text;
+		} catch (MatchService.Failure failure) { throw failure; }
+		catch (RuntimeException failure) { throw new MatchService.Failure("SNAPSHOT_UNSUPPORTED"); }
+	}
+
+	String completionScope(MatchDocument document) {
+		MatchDocument activated = new MatchDocument(document.matchId, 3, document.intendedOpponent,
+			MatchDocument.Lifecycle.ACTIVATED, document.home, document.away, document.requests, null, document.computer);
+		return envelope(activated).toString();
+	}
+
+	JsonObject frozenIdentity(MatchDocument document) {
+		JsonObject encoded = envelope(document);
+		JsonObject frozen = new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
+			.add("homeOwner", document.home.owner).add("awayOwner", document.away.owner);
+		if (document.computer != null) frozen.add("computer", document.computer.json());
+		return frozen;
+	}
+
+	private JsonObject envelope(MatchDocument document) {
 		JsonObject out = publicDocument(document).add("homeOwner", document.home.owner);
 		out.get("home").asObject().add("resolvedCatalog", JsonObject.readFrom(document.home.team.resolvedCatalogJson));
 		if (document.away != null) out.get("away").asObject().add("owner", document.away.owner)
@@ -73,24 +118,41 @@ public final class MatchJson {
 		for (Map.Entry<String, MatchDocument.Request> entry : document.requests.entrySet())
 			requests.add(new JsonObject().add("key", entry.getKey()).add("fingerprint", entry.getValue().fingerprint));
 		out.add("requests", requests);
-		if (document.completion != null) return out.set("formatVersion", document.home.team.teamName.isEmpty() ? 2 : 4).add("completion", JsonObject.readFrom(document.completion.json()));
+		if (document.computer != null) out.add("computer", document.computer.json());
+		if (document.completion != null) out.set("formatVersion", document.home.team.teamName.isEmpty() ? 2 : 4);
 		return out;
 	}
 
-	/** Inspect minimal persisted membership before reporting a format incompatibility to a caller. */
-	void authorizePersisted(String owner, String text) {
+	/** Inspect persisted membership before reporting a format incompatibility to a caller. */
+	private void authorizePersisted(String owner, JsonObject object) {
 		try {
-			JsonObject object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
 			String creator = object.get("homeOwner").asString();
 			String invited = object.get("invitation").asObject().get("intendedOpponent").asString();
 			if (!owner.equals(creator) && !owner.equals(invited)) throw new IllegalArgumentException();
 		} catch (RuntimeException failure) { throw new MatchService.Failure("NOT_FOUND"); }
 	}
 
+	MatchDocument decodeAuthorized(String owner, String text, int persistedVersion) {
+		JsonObject object;
+		try { object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16); }
+		catch (RuntimeException failure) { throw new MatchService.Failure("NOT_FOUND"); }
+		authorizePersisted(owner, object);
+		return decode(object, persistedVersion);
+	}
+
 	public MatchDocument decode(String text, int persistedVersion) {
+		try { return decode(parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16), persistedVersion); }
+		catch (MatchService.Failure failure) { throw failure; }
+		catch (RuntimeException failure) { throw new MatchService.Failure("SNAPSHOT_UNSUPPORTED"); }
+	}
+
+	private MatchDocument decode(JsonObject object, int persistedVersion) {
 		try {
-			JsonObject object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
-			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4) return decodeCompleted(object, persistedVersion);
+			// Independently versioned private extension; old preparation/public formats retain their shape.
+			ComputerCoach computer = object.get("computer") == null ? null : new ComputerCoach(object.get("computer").asObject());
+			object.remove("computer");
+			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4)
+				return decodeCompleted(object, persistedVersion, computer);
 			exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests");
 			int format = object.get("formatVersion").asInt();
 			if ((format != 1 && format != 3) || positive(object.get("documentVersion")) != persistedVersion) throw new IllegalArgumentException();
@@ -124,26 +186,45 @@ public final class MatchJson {
 				if (!valid || requests.containsKey(key)) throw new IllegalArgumentException();
 				requests.put(key, new MatchDocument.Request(fingerprint));
 			}
-			return new MatchDocument(id, persistedVersion, invited, lifecycle, home, away, requests);
+			return computerIdentity(new MatchDocument(id, persistedVersion, invited, lifecycle, home, away, requests), computer);
 		} catch (MatchService.Failure failure) { throw failure;
 		} catch (RuntimeException failure) { throw new MatchService.Failure("SNAPSHOT_UNSUPPORTED"); }
 	}
 
-	private MatchDocument decodeCompleted(JsonObject object, int persistedVersion) {
+	private MatchDocument computerIdentity(MatchDocument document, ComputerCoach computer) {
+		if (computer == null) return document;
+		MatchDocument result = document.withComputer(computer);
+		if (new ComputerOpponentService(null).coach(result) == null || !"BB2025".equals(document.home.team.ruleset))
+			throw new IllegalArgumentException("Computer identity differs from frozen team");
+		return result;
+	}
+
+	private MatchDocument decodeCompleted(JsonObject object, int persistedVersion, ComputerCoach computer) {
+		MatchDocument activated = completedPreparation(object, persistedVersion, computer);
+		CompletedMatch completed = new CompletedMatch(object.get("completion").asObject(), activated);
+		return activated.completed(completed);
+	}
+
+	private MatchDocument completedPreparation(JsonObject object, int persistedVersion, ComputerCoach computer) {
 		if (persistedVersion != 4) throw new IllegalArgumentException();
 		exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests", "completion");
 		if (object.getInt("documentVersion", -1) != 4 || !"COMPLETED".equals(object.getString("lifecycle", null))) throw new IllegalArgumentException();
-		CompletedMatch completed = new CompletedMatch(object.get("completion").toString());
-		JsonObject prior = JsonObject.readFrom(object.toString()); prior.remove("completion"); prior.set("formatVersion", object.getInt("formatVersion", -1) == 4 ? 3 : 1); prior.set("documentVersion", 3); prior.set("lifecycle", "ACTIVATED");
-		MatchDocument activated = decode(prior.toString(), 3);
-		validateCompletion(completed, activated);
-		return activated.completed(completed);
+		JsonObject prior = new JsonObject();
+		for (JsonObject.Member member : object) if (!"completion".equals(member.getName())) prior.add(member.getName(), member.getValue());
+		prior.set("formatVersion", object.getInt("formatVersion", -1) == 4 ? 3 : 1); prior.set("documentVersion", 3); prior.set("lifecycle", "ACTIVATED");
+		return computerIdentity(decode(prior, 3), computer);
 	}
 
 	/** Verifies the small, stable terminal envelope without interpreting game state. */
 	void validateCompletion(CompletedMatch completed, MatchDocument document) {
+		if (completed.validatedFor(completionScope(document))) return;
+		try { validateCompletion(JsonObject.readFrom(completed.json()), document); }
+		catch (RuntimeException failure) { throw new MatchService.Failure("REPLAY_UNSUPPORTED"); }
+	}
+
+	void validateCompletion(JsonObject artifact, MatchDocument document) {
 		try {
-			JsonObject artifact = JsonObject.readFrom(completed.json());
+			unique(artifact);
 			int format = artifact.getInt("formatVersion", -1);
 			if (format == 3) exact(artifact, "formatVersion", "engineVersion", "ruleset", "catalogVersion", "presetId", "presetVersion", "matchId", "homeScore", "awayScore", "finalRevision", "events", "transcript", "chat");
 			else if (format == 2) exact(artifact, "formatVersion", "engineVersion", "ruleset", "catalogVersion", "presetId", "presetVersion", "matchId", "homeScore", "awayScore", "finalRevision", "events", "transcript");
@@ -188,7 +269,7 @@ public final class MatchJson {
 				for (int index = 0; index < records.size(); index++) {
 					JsonObject record = records.get(index).asObject();
 					JsonObject event = events.get(index).asObject();
-					if (!record.get("kind").equals(event.get("kind")) || !record.get("state").equals(event.get("state"))) throw new IllegalArgumentException();
+					if (!record.get("kind").equals(event.get("kind")) || !sameJson(record.get("state"), event.get("state"))) throw new IllegalArgumentException();
 				}
 			}
 			if (format == 3) {
@@ -198,6 +279,23 @@ public final class MatchJson {
 					throw new IllegalArgumentException("Chat after final revision");
 			}
 		} catch (RuntimeException failure) { throw new MatchService.Failure("REPLAY_UNSUPPORTED"); }
+	}
+
+	/** Canonical equality for resident graphs whose object fields may have different insertion orders. */
+	private boolean sameJson(JsonValue left, JsonValue right) {
+		if (left == right) return true;
+		if (left == null || right == null) return false;
+		if (left.isObject() && right.isObject()) {
+			if (left.asObject().size() != right.asObject().size()) return false;
+			for (JsonObject.Member member : left.asObject()) if (!sameJson(member.getValue(), right.asObject().get(member.getName()))) return false;
+			return true;
+		}
+		if (left.isArray() && right.isArray()) {
+			if (left.asArray().size() != right.asArray().size()) return false;
+			for (int index = 0; index < left.asArray().size(); index++) if (!sameJson(left.asArray().get(index), right.asArray().get(index))) return false;
+			return true;
+		}
+		return left.equals(right);
 	}
 
     private void validateReplayState(JsonObject state) {
@@ -733,7 +831,11 @@ public final class MatchJson {
 
 	private void exact(JsonObject object, String... fields) { if (object.size() != fields.length || !new HashSet<>(object.names()).equals(new HashSet<>(Arrays.asList(fields)))) throw new IllegalArgumentException(); }
 	JsonObject parse(String text, int bytes, int maximumDepth) {
-		if (text == null || text.length() > bytes || text.getBytes(StandardCharsets.UTF_8).length > bytes) throw new IllegalArgumentException();
+		checkText(text, bytes, maximumDepth);
+		JsonObject object = JsonObject.readFrom(text); unique(object); return object;
+	}
+	private void checkText(String text, int bytes, int maximumDepth) {
+		if (text == null || text.length() > bytes || new Utf8Size().bytes(text) > bytes) throw new IllegalArgumentException();
 		boolean quoted = false, escaped = false; int depth = 0;
 		for (int index = 0; index < text.length(); index++) {
 			char ch = text.charAt(index);
@@ -742,7 +844,6 @@ public final class MatchJson {
 			else if (ch == '{' || ch == '[') { if (++depth > maximumDepth) throw new IllegalArgumentException(); }
 			else if (ch == '}' || ch == ']') depth--;
 		}
-		JsonObject object = JsonObject.readFrom(text); unique(object); return object;
 	}
 	private void unique(JsonValue value) {
 		if (value.isObject()) { JsonObject object = value.asObject(); if (new HashSet<>(object.names()).size() != object.size()) throw new IllegalArgumentException(); for (JsonObject.Member member : object) unique(member.getValue()); }

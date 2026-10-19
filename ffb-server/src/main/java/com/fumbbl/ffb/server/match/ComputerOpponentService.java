@@ -11,6 +11,9 @@ public final class ComputerOpponentService {
 	public static final String BUGMAN_ID = "coach-bugman-random";
 	public static final String BUGMAN_NAME = "Coach Bugman - Random";
 	public static final String BUGMAN_TEAM_NAME = "Bugman's Best";
+	public static final String BOGRUK_ID = "coach-bogruk-weak";
+	public static final String BOGRUK_NAME = "Bogruk the Almost Clever";
+	public static final String BOGRUK_TEAM_NAME = "Bogruk's Almost Best";
 	private final byte[] tokenHash;
 	private final String memberId = UUID.nameUUIDFromBytes(
 		("computer-opponent\n" + BUGMAN_ID).getBytes(StandardCharsets.UTF_8)).toString();
@@ -32,10 +35,33 @@ public final class ComputerOpponentService {
 		} catch (IllegalArgumentException | NoSuchAlgorithmException invalid) { return false; }
 	}
 
-	public boolean supports(String id) { return BUGMAN_ID.equals(id); }
+	public boolean supports(String id) { return BUGMAN_ID.equals(id) || BOGRUK_ID.equals(id); }
 	public String memberId() { return memberId; }
 	public String cloneTeamId(String matchId) {
-		return UUID.nameUUIDFromBytes(("computer-team\n" + BUGMAN_ID + "\n" + matchId)
+		return cloneTeamId(matchId, BUGMAN_ID);
+	}
+	public String cloneTeamId(String matchId, String opponentId) throws IllegalArgumentException {
+		if (!supports(opponentId)) throw new IllegalArgumentException("Unknown computer coach");
+		return UUID.nameUUIDFromBytes(("computer-team\n" + opponentId + "\n" + matchId)
 			.getBytes(StandardCharsets.UTF_8)).toString();
+	}
+	public String teamName(String opponentId) throws IllegalArgumentException {
+		if (!supports(opponentId)) throw new IllegalArgumentException("Unknown computer coach");
+		return BOGRUK_ID.equals(opponentId) ? BOGRUK_TEAM_NAME : BUGMAN_TEAM_NAME;
+	}
+	public String coachName(String opponentId) throws IllegalArgumentException {
+		if (!supports(opponentId)) throw new IllegalArgumentException("Unknown computer coach");
+		return BOGRUK_ID.equals(opponentId) ? BOGRUK_NAME : BUGMAN_NAME;
+	}
+	public ComputerCoach identity(String matchId, String opponentId) throws IllegalArgumentException {
+		return new ComputerCoach(opponentId, BOGRUK_ID.equals(opponentId) ? "bogruk-v1" : "random-v1",
+			matchId.hashCode() & 0xffffffffL);
+	}
+	/** Legacy Bugman documents predate explicit policy identity. Never infer Bogruk from a display name. */
+	public ComputerCoach coach(MatchDocument document) {
+		if (document.away == null) return null;
+		ComputerCoach coach = document.computer == null ? identity(document.matchId, BUGMAN_ID) : document.computer;
+		return teamName(coach.opponentId).equals(document.away.team.teamName)
+			&& cloneTeamId(document.matchId, coach.opponentId).equals(document.away.team.sourceTeamId) ? coach : null;
 	}
 }

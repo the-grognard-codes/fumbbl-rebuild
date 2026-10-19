@@ -367,7 +367,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			String matchId = request.get("matchId").asString();
 			if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
 			request.set("version", 1);
-			SetupApplication.HandleOutcome outcome = setup.handleWithOutcome("away", request);
+			SetupApplication.HandleOutcome outcome = setup.handleComputerWithOutcome(request);
 			JsonObject response = outcome.response();
 			if ("ACCEPTED".equals(response.getString("code", ""))) publisher.enrollComputer(connection, matchId);
 			send(connection, response);
@@ -408,9 +408,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	private String computerCoach(MatchDocument document) {
-		return ComputerOpponentService.BUGMAN_TEAM_NAME.equals(document.away.team.teamName)
-			&& computers.cloneTeamId(document.matchId).equals(document.away.team.sourceTeamId)
-			? ComputerOpponentService.BUGMAN_NAME : null;
+		com.fumbbl.ffb.server.match.ComputerCoach coach = computers.coach(document);
+		return coach == null ? null : computers.coachName(coach.opponentId);
 	}
 
 	private void preparationChanged(String matchId, BrowserMatchAdapter.Connection source) {

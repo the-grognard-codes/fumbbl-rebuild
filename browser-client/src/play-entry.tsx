@@ -20,6 +20,12 @@ import { LobbyConcession } from './lobby-concession.ts';
 import type { ConcessionStatus } from './lobby-concession.ts';
 import './play-brand.css';
 
+const computerCoaches = [
+  { id: 'coach-bugman-random', name: 'Coach Bugman - Random', teamName: "Bugman's Best", shortName: 'Bugman', description: '' },
+  { id: 'coach-bogruk-weak', name: 'Bogruk the Almost Clever · Weak', teamName: "Bogruk's Almost Best", shortName: 'Bogruk',
+    description: 'Loves a risky play, especially when there’s a perfectly good safe one.' }
+];
+
 export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
   const root = createRoot(element);
   root.render(<Play options={options} />);
@@ -50,6 +56,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [playMode, setPlayMode] = useState<'human' | 'computer'>('human');
   const [computerAvailable, setComputerAvailable] = useState(false);
   const [computerId, setComputerId] = useState('coach-bugman-random');
+  const computerCoach = computerCoaches.find(coach => coach.id === computerId) ?? computerCoaches[0];
   const [teamId, setTeamId] = useState('');
   const [computerTeamId, setComputerTeamId] = useState('');
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
@@ -405,10 +412,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       {prepared?.callerRole === 'home' && prepared.document.lifecycle !== 'ACTIVATED' && <><button disabled={busy} onClick={() => prepare('reissue')}>Refresh invitation</button><button disabled={busy} onClick={() => prepare('release')}>Release disconnected opponent</button></>}
     </section>}
     {playMode === 'computer' && <section aria-label="Computer opponent"><h2>Computer opponent</h2>
-      <label>Opponent <select value={computerId} onChange={event => setComputerId(event.target.value)}><option value="coach-bugman-random">Coach Bugman - Random</option></select></label>
+      <label>Opponent <select value={computerId} onChange={event => setComputerId(event.target.value)}>{computerCoaches.map(coach => <option key={coach.id} value={coach.id}>{coach.name}</option>)}</select></label>
+      {computerCoach.description && <p>{computerCoach.description}</p>}
       <label>Your saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose your team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
-      <label>Roster for Bugman's Best <select value={computerTeamId} onChange={event => setComputerTeamId(event.target.value)}><option value="">Choose a roster to clone</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
-      <p>Bugman receives an independent copy of the selected roster named Bugman's Best.</p>
+      <label>Roster for {computerCoach.teamName} <select value={computerTeamId} onChange={event => setComputerTeamId(event.target.value)}><option value="">Choose a roster to clone</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
+      <p>{computerCoach.shortName} receives an independent copy of the selected roster named {computerCoach.teamName}.</p>
       <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
       <button disabled={!connected} onClick={() => run(() => connection?.request('computer', { operation: 'status' }))}>Refresh computer availability</button>
       {!computerAvailable && connected && <p>The computer opponent process is currently unavailable.</p>}

@@ -10,28 +10,36 @@ public final class MatchDocument {
 	public final java.util.Map<String, Request> requests;
 	/** Private, durable terminal result. It is deliberately absent from public match projections. */
 	public final CompletedMatch completion;
+	public final ComputerCoach computer;
 	public MatchDocument(String matchId, int documentVersion, String intendedOpponent, Lifecycle lifecycle, Member home, Member away) { this(matchId,documentVersion,intendedOpponent,lifecycle,home,away,new java.util.LinkedHashMap<String,Request>()); }
 	public MatchDocument(String matchId, int documentVersion, String intendedOpponent, Lifecycle lifecycle, Member home, Member away, java.util.Map<String,Request> requests) {
 		this(matchId, documentVersion, intendedOpponent, lifecycle, home, away, requests, null);
 	}
 	public MatchDocument(String matchId, int documentVersion, String intendedOpponent, Lifecycle lifecycle, Member home, Member away, java.util.Map<String,Request> requests, CompletedMatch completion) {
+		this(matchId, documentVersion, intendedOpponent, lifecycle, home, away, requests, completion, null);
+	}
+	public MatchDocument(String matchId, int documentVersion, String intendedOpponent, Lifecycle lifecycle, Member home, Member away, java.util.Map<String,Request> requests, CompletedMatch completion, ComputerCoach computer) {
 		this.matchId=matchId; this.documentVersion=documentVersion; this.intendedOpponent=intendedOpponent; this.lifecycle=lifecycle; this.home=home; this.away=away;
 		this.requests=java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<String,Request>(requests));
 		this.completion=completion;
+		this.computer=computer;
+	}
+	public MatchDocument withComputer(ComputerCoach coach) {
+		return new MatchDocument(matchId, documentVersion, intendedOpponent, lifecycle, home, away, requests, completion, coach);
 	}
 	public MatchDocument completed(CompletedMatch result) {
 		if (lifecycle != Lifecycle.ACTIVATED || documentVersion != 3) throw new IllegalStateException("Match is not activated");
-		return new MatchDocument(matchId, 4, intendedOpponent, Lifecycle.COMPLETED, home, away, requests, result);
+		return new MatchDocument(matchId, 4, intendedOpponent, Lifecycle.COMPLETED, home, away, requests, result, computer);
 	}
 	public MatchDocument joined(Member opponent, String requestKey, String fingerprint) {
 		if (away != null) throw new IllegalStateException("Seat occupied");
 		java.util.Map<String,Request> next=new java.util.LinkedHashMap<String,Request>(requests); next.put(requestKey,new Request(fingerprint));
-		return new MatchDocument(matchId, documentVersion + 1, intendedOpponent, Lifecycle.AWAITING_SETUP, home, opponent,next);
+		return new MatchDocument(matchId, documentVersion + 1, intendedOpponent, Lifecycle.AWAITING_SETUP, home, opponent,next, null, computer);
 	}
 	public MatchDocument activated(String requestKey, String fingerprint) {
 		if (away == null || lifecycle != Lifecycle.AWAITING_SETUP) throw new IllegalStateException("Match is not ready");
 		java.util.Map<String,Request> next=new java.util.LinkedHashMap<String,Request>(requests); next.put(requestKey,new Request(fingerprint));
-		return new MatchDocument(matchId, documentVersion + 1, intendedOpponent, Lifecycle.ACTIVATED, home, away,next);
+		return new MatchDocument(matchId, documentVersion + 1, intendedOpponent, Lifecycle.ACTIVATED, home, away,next, null, computer);
 	}
 	public Request request(String owner,String requestId) { return requests.get(owner + "\n" + requestId); }
 	public static final class Request { public final String fingerprint; public Request(String fingerprint){this.fingerprint=fingerprint;} }

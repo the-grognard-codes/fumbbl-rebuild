@@ -102,6 +102,13 @@ final class RoutePlanner {
 		return range(start, 0);
 	}
 
+	JsonObject budget() {
+		boolean special = rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK;
+		int remaining = Math.max(0, (special ? 3 : allowance) - currentMove);
+		int normalRemaining = special ? remaining : Math.max(0, player.getMovementWithModifiers() - currentMove);
+		return new JsonObject().add("normalRemaining", normalRemaining).add("remaining", remaining);
+	}
+
 	JsonObject rangeAfter(JsonObject preview) {
 		JsonArray steps = preview.get("steps").asArray();
 		JsonObject endpoint = steps.isEmpty() ? preview.get("from").asObject() : steps.get(steps.size() - 1).asObject();

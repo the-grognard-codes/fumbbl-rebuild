@@ -1,12 +1,15 @@
 package com.fumbbl.ffb.server.match;
 
-import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.team.SavedTeamDocument;
 import com.fumbbl.ffb.server.team.SavedTeamJson;
 import com.fumbbl.ffb.server.team.SavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -261,6 +265,108 @@ class MatchServiceTest {
 		service.complete("away", id, new CompletedMatch(completed.json()));
 		assertEquals("COMPLETION_CONFLICT", assertThrows(MatchService.Failure.class, () -> service.complete("home", id, completed(id, 3, 1))).code);
 		assertEquals(null, json.publicDocument(service.load("home", id).document).get("completion"));
+	}
+
+	@Test
+	void completionTextEncodingMatchesTheExistingFormatAndStillRejectsTamperedReplay() throws Exception {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam)); accepted("home", activate(id));
+		MatchDocument activated = service.load("home", id).document;
+		MatchDocument terminal = activated.completed(completed(id, 2, 1));
+		assertEquals(json.encode(terminal).toString(), json.encodeText(terminal));
+		assertEquals(terminal.completion, json.decodeAuthorized("home", json.encodeText(terminal), 4).completion);
+		JsonObject corrupted = json.encode(terminal);
+		corrupted.get("completion").asObject().get("events").asArray().get(0).asObject().set("kind", "TURN");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.decodeAuthorized("home", corrupted.toString(), 4)).code);
+		assertEquals("NOT_FOUND", assertThrows(MatchService.Failure.class,
+			() -> json.decodeAuthorized("stranger", corrupted.toString(), 4)).code);
+		corrupted.get("completion").asObject().get("events").asArray().get(0).asObject().set("kind", "START");
+		corrupted.set("documentVersion", 3);
+		assertEquals("SNAPSHOT_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> json.decodeAuthorized("home", corrupted.toString(), 4)).code);
+	}
+
+	/** Used by the fixed-heap child process so the live history remains resident during persistence. */
+	void completeRetainedHistory() throws Exception {
+		BogrukEngineFixture fixture = new BogrukEngineFixture("human", "orc", 42);
+		String id = fixture.document.matchId;
+		matches.rows.put(id, new MatchRepository.Record(id, 3, json.encode(fixture.document).toString()));
+		CompletedMatch completed = persistRetainedHistory(fixture.document);
+		assertEquals(completed, service.result("away", id));
+		service.complete("away", id, completed);
+		assertEquals(4, matches.rows.get(id).documentVersion);
+		MatchDocument restored = service.load("home", id).document;
+		assertTrue(restored.completion.validatedFor(json.completionScope(restored)));
+		assertEquals(42, restored.computer.seed);
+	}
+
+	private CompletedMatch persistRetainedHistory(MatchDocument document) throws Exception {
+		String id = document.matchId;
+		int count = 3500;
+		JsonArray events = new JsonArray();
+		MatchTranscript transcript = new MatchTranscript();
+		for (int revision = 0; revision < count; revision++) {
+			JsonObject state = state(id, revision, 0, 2).set("phase", revision == count - 1 ? "FULL_TIME" : "PLAY");
+			JsonArray players = state.get("players").asArray();
+			for (int player = 0; player < 22; player++) {
+				players.add(new JsonObject().add("id", "player-" + player).add("name", "Recorded player " + player)
+					.add("slot", player % 11 + 1).add("role", player < 11 ? "home" : "away").add("state", "standing")
+					.add("x", (revision + player) % 26).add("y", player % 15));
+			}
+			String kind = revision == 0 ? "START" : revision == count - 1 ? "FULL_TIME" : "ACTION";
+			events.add(new JsonObject().add("revision", revision).add("kind", kind).add("state", state));
+			transcript.append(revision, kind, revision == 0 ? "system" : "home", revision,
+				revision == 0 ? JsonValue.NULL : new JsonObject().add("kind", "move"), new JsonArray(), state, 0);
+		}
+		JsonObject artifact = new JsonObject().add("formatVersion", 2).add("engineVersion", CompletedMatch.ENGINE_VERSION).add("ruleset", "BB2025")
+			.add("catalogVersion", RosterCatalog.VERSION).add("presetId", RosterCatalog.PRESET).add("presetVersion", RosterCatalog.VERSION)
+			.add("matchId", id).add("homeScore", 0).add("awayScore", 2).add("finalRevision", count - 1).add("events", events).add("transcript", transcript.json());
+		CompletedMatch completed = new CompletedMatch(artifact, document);
+		assertTrue(completed.json().length() > 15 * 1024 * 1024);
+		service.complete("home", id, completed);
+		assertEquals(count, events.size());
+		assertEquals(count, transcript.size());
+		return completed;
+	}
+
+	@Test void completionValidationIsBoundToFrozenPreparationAndRejectsDuplicateFields() throws Exception {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam)); accepted("home", activate(id));
+		MatchDocument document = service.load("home", id).document;
+		JsonObject artifact = JsonObject.readFrom(completed(id, 2, 1).json());
+		CompletedMatch completed = new CompletedMatch(artifact, document);
+		assertTrue(completed.validatedFor(json.completionScope(document)));
+		assertFalse(completed.validatedFor(json.completionScope(document.withComputer(new ComputerCoach(ComputerOpponentService.BOGRUK_ID, "bogruk-v1", 42)))));
+		MatchDocument changed = new MatchDocument(id, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", document.home.team.copyForMatch(document.home.team.sourceTeamId, "home", "Changed")), document.away, document.requests);
+		assertFalse(completed.validatedFor(json.completionScope(changed)));
+		artifact.get("events").asArray().get(0).asObject().get("state").asObject().add("weather", "NICE");
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class, () -> new CompletedMatch(artifact, document)).code);
+		assertEquals("REPLAY_UNSUPPORTED", assertThrows(MatchService.Failure.class,
+			() -> service.complete("home", id, new CompletedMatch(artifact.toString()))).code);
+		assertEquals(3, matches.rows.get(id).documentVersion);
+	}
+
+	@Test void completionEmbeddingRetainsThePersistedDepthLimit() throws Exception {
+		String id = matchId(accepted("home", create(homeTeam, "away")));
+		accepted("away", join(id, awayTeam)); accepted("home", activate(id));
+		MatchDocument document = service.load("home", id).document;
+		for (int depth : new int[] { 10, 11 }) {
+			JsonObject artifact = JsonObject.readFrom(completed(id, 0, 2).json()).set("formatVersion", 2).set("finalRevision", 1);
+			JsonObject start = state(id, 0, 0, 2).set("phase", "PLAY"), end = state(id, 1, 0, 2);
+			artifact.set("events", new JsonArray().add(new JsonObject().add("revision", 0).add("kind", "START").add("state", start))
+				.add(new JsonObject().add("revision", 1).add("kind", "FULL_TIME").add("state", end)));
+			JsonValue nested = JsonValue.NULL;
+			for (int index = 0; index < depth; index++) nested = new JsonArray().add(nested);
+			MatchTranscript transcript = new MatchTranscript();
+			transcript.append(0, "START", "system", 0, JsonValue.NULL, new JsonArray(), start, 0);
+			transcript.append(1, "FULL_TIME", "home", 1, new JsonObject().add("nested", nested), new JsonArray(), end, 0);
+			artifact.add("transcript", transcript.json());
+			MatchDocument terminal = document.completed(new CompletedMatch(artifact, document));
+			if (depth == 10) assertEquals(terminal.completion, json.decode(json.storageText(terminal), 4).completion);
+			else assertEquals("SNAPSHOT_UNSUPPORTED", assertThrows(MatchService.Failure.class, () -> json.storageText(terminal)).code);
+		}
 	}
 
 	@Test

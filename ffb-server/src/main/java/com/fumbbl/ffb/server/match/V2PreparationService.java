@@ -70,9 +70,7 @@ public final class V2PreparationService {
 		try (Connection connection = connections.open()) {
 			if (!member(connection, matchId, computers.memberId(), "away")) return false;
 			MatchDocument document = document(connection, matchId, false);
-			return document != null && document.away != null
-				&& ComputerOpponentService.BUGMAN_TEAM_NAME.equals(document.away.team.teamName)
-				&& computers.cloneTeamId(matchId).equals(document.away.team.sourceTeamId);
+			return document != null && computers.coach(document) != null;
 		}
 	}
 
@@ -89,7 +87,8 @@ public final class V2PreparationService {
 				while (rows.next()) {
 					String id = rows.getString(1);
 					MatchDocument document = document(connection, id, false);
-					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) result.add(id);
+					if (document != null && document.lifecycle == MatchDocument.Lifecycle.ACTIVATED
+						&& computers.coach(document) != null) result.add(id);
 				}
 			}
 		}
@@ -164,12 +163,13 @@ public final class V2PreparationService {
 		String computerTeamId = uuid(request.getString("computerTeamId", null));
 		int version = positive(request.get("expectedDocumentVersion").asInt());
 		int computerVersion = positive(request.get("expectedComputerDocumentVersion").asInt());
-		if (!computers.supports(request.getString("computerId", null))) throw new Failure("INVALID_REQUEST");
+		String computerId = request.getString("computerId", null);
+		if (!computers.supports(computerId)) throw new Failure("INVALID_REQUEST");
 		requestId(requestId);
 		String matchId = UUID.nameUUIDFromBytes(("v2-prepared-match\n" + accountId + "\n" + requestId)
 			.getBytes(StandardCharsets.UTF_8)).toString();
 		String fingerprint = "create|" + teamId + "|" + version + "|away";
-		String cloneId = computers.cloneTeamId(matchId);
+		String cloneId = computers.cloneTeamId(matchId, computerId);
 		try (Connection connection = connections.open()) {
 			connection.setAutoCommit(false);
 			try {
@@ -177,6 +177,8 @@ public final class V2PreparationService {
 				MatchDocument existing = document(connection, matchId, true);
 				if (existing != null) {
 					if (!creatorMembership || !member(connection, matchId, computers.memberId(), "away")) throw new Failure("REQUEST_ID_REUSED");
+					ComputerCoach selected = computers.coach(existing);
+					if (selected == null || !computerId.equals(selected.opponentId)) throw new Failure("REQUEST_ID_REUSED");
 					Retry retry = retry(connection, matchId, accountId, requestId,
 						fingerprint + "|" + computerTeamId + "|" + computerVersion);
 					commit(connection); return accepted(requestId, existing, "home", retry, true);
@@ -187,12 +189,13 @@ public final class V2PreparationService {
 				if (!home.ruleset.equals(source.ruleset) || !home.catalogVersion.equals(source.catalogVersion)
 					|| !home.presetId.equals(source.presetId) || !home.presetVersion.equals(source.presetVersion))
 					throw new Failure("INCOMPATIBLE_TEAM");
-				FrozenTeam away = source.copyForMatch(cloneId, "away", ComputerOpponentService.BUGMAN_TEAM_NAME);
+				FrozenTeam away = source.copyForMatch(cloneId, "away", computers.teamName(computerId));
 				Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
 				history.put("home\n" + requestId, new MatchDocument.Request(fingerprint));
 				history.put("away\ncomputer", new MatchDocument.Request("join|" + matchId + "|1|" + cloneId + "|" + computerVersion));
 				MatchDocument created = new MatchDocument(matchId, 2, "away", MatchDocument.Lifecycle.AWAITING_SETUP,
-					new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history);
+					new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), history)
+					.withComputer(computers.identity(matchId, computerId));
 				insertDocument(connection, created);
 				insertMember(connection, matchId, accountId, "home");
 				insertMember(connection, matchId, computers.memberId(), "away");

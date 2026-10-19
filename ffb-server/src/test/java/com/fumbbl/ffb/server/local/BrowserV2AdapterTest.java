@@ -308,8 +308,8 @@ class BrowserV2AdapterTest {
 		when(preparation.activeComputerMatches()).thenReturn(java.util.Collections.singletonList(MATCH));
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.handleWithOutcome(eq("away"), any(JsonObject.class))).thenAnswer(call -> {
-			JsonObject request = call.getArgument(1);
+		when(setup.handleComputerWithOutcome(any(JsonObject.class))).thenAnswer(call -> {
+			JsonObject request = call.getArgument(0);
 			return outcome(new JsonObject().add("type", "setupState").add("requestId", request.getString("requestId", null))
 				.add("code", "ACCEPTED").add("duplicate", false)
 				.add("state", new JsonObject().add("matchId", MATCH).add("callerRole", "away")), false);

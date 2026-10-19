@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -25,6 +26,17 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class RetainedConcessionTest {
+    @Test void closedStatusRejectsDigestValidArtifactsBeyondTheNestingLimit() throws Exception {
+        SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
+        JsonObject payload = JsonObject.readFrom(fixture.session.recoveryArtifact()).get("payload").asObject();
+        JsonValue nested = JsonValue.NULL;
+        for (int index = 0; index < 65; index++) nested = new JsonArray().add(nested);
+        payload.add("concession", new JsonObject().add("completion", new JsonObject().add("nested", nested)));
+        String artifact = new JsonObject().add("payload", payload).add("sha256", new JsonDigest().sha256(payload)).toString();
+        RetainedConcession retained = new RetainedConcession(new RecoveryRepository.Record(fixture.document.matchId, 1, artifact), fixture.document);
+        assertThrows(IllegalArgumentException.class, () -> retained.view("home"));
+    }
+
     @Test void acceptedTerminalConcessionAtMaximumRevisionRetainsItsExistingFullTimeRecord() throws Exception {
         SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
         JsonObject payload = JsonObject.readFrom(fixture.session.recoveryArtifact()).get("payload").asObject();

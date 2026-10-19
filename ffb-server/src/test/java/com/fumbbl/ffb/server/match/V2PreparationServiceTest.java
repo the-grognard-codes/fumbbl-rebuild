@@ -37,6 +37,29 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class V2PreparationServiceTest {
+	@Test void createsBogrukWithASeparateFrozenCloneAndPreservesHisRosterChoice() throws Exception {
+		Connection connection = connection(false);
+		RosterCatalog catalog = new RosterCatalog();
+		String account = "00000000-0000-0000-0000-000000000001";
+		SavedTeamService teams = teamService(catalog, account);
+		String teamId = teams.list(account).get(0).teamId;
+		V2PreparationService service = new V2PreparationService(() -> connection, teams, catalog, Clock.systemUTC());
+		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch")
+			.add("operation", "createComputer").add("requestId", "bogruk_1")
+			.add("teamId", teamId).add("expectedDocumentVersion", 1)
+			.add("computerId", ComputerOpponentService.BOGRUK_ID)
+			.add("computerTeamId", teamId).add("expectedComputerDocumentVersion", 1);
+		JsonObject response = service.handle(account, request);
+		assertEquals("ACCEPTED", response.getString("code", null));
+		JsonObject document = response.get("document").asObject();
+		String matchId = document.getString("matchId", null);
+		ComputerOpponentService computers = new ComputerOpponentService(null);
+		assertEquals(ComputerOpponentService.BOGRUK_TEAM_NAME, document.get("away").asObject().getString("teamName", null));
+		assertEquals(computers.cloneTeamId(matchId, ComputerOpponentService.BOGRUK_ID),
+			document.get("away").asObject().getString("sourceTeamId", null));
+		assertTrue(!computers.cloneTeamId(matchId).equals(computers.cloneTeamId(matchId, ComputerOpponentService.BOGRUK_ID)));
+		assertTrue(document.get("computer") == null, "private policy identity is not a preparation projection field");
+	}
 	@Test
 	void createsComputerMatchWithDistinctFrozenCloneAndNoInvitation() throws Exception {
 		Connection connection = connection(false); RosterCatalog catalog = new RosterCatalog();

@@ -54,7 +54,7 @@ final class ActiveMatchPublisher {
 	void publishChat(String matchId, BrowserMatchAdapter.Connection source, JsonObject page) {
 		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
 			Viewer viewer = viewers.get(connection);
-			if (viewer == null || connection == source || !matchId.equals(viewer.matchId)) continue;
+			if (viewer == null || viewer.principal == null || connection == source || !matchId.equals(viewer.matchId)) continue;
 			try {
 				if (viewer.spectator) access.spectatorTranscript(viewer.principal, matchId);
 				else access.playerRole(viewer.principal, matchId);
@@ -75,7 +75,10 @@ final class ActiveMatchPublisher {
 				if (viewer.spectator) {
 					// A previously admitted viewer may receive the final frame after the match leaves the active index.
 					access.require(viewer.principal, ApplicationScope.SPECTATOR);
-					send(connection, state(null, JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator")));
+					JsonObject spectatorState = JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator");
+					spectatorState.remove("computer");
+					spectatorState.remove("threats"); // Acting-coach guidance is invalid in a spectator projection.
+					send(connection, state(null, spectatorState));
 					if ("FULL_TIME".equals(publicState.getString("phase", ""))) viewers.remove(connection);
 				} else {
 					String role;
@@ -83,8 +86,9 @@ final class ActiveMatchPublisher {
 						if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
 						role = "away";
 					} else role = access.playerRole(viewer.principal, matchId);
-					JsonObject response = setup.handle(role, new JsonObject().add("version", 1).add("type", "setup")
-						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId));
+					JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
+						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
+					JsonObject response = viewer.principal == null ? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
 					response.set("requestId", JsonValue.NULL);
 					send(connection, response);
 				}
