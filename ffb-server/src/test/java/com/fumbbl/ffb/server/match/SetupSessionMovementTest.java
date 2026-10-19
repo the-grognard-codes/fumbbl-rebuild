@@ -107,8 +107,15 @@ class SetupSessionMovementTest {
     @Test void intermediateGeneratedSquaresCanPickUpTheBallAndFailureCausesTheNormalTurnover() throws Exception {
         for (boolean success : new boolean[] {false, true}) {
             BallFixture ball = new BallFixture(true, 10, 7, 0);
-            place(ball.game, ball.alternate, 8, 6, PlayerState.STANDING);
-            place(ball.game, ball.game.getActingTeam().getPlayers()[3], 8, 8, PlayerState.STANDING);
+            // Force ordinary pathfinding through the one open square in this column.
+            // Two nearby blockers still permit a longer, safer route around the loose ball.
+            int row = 0;
+            for (Player<?> blocker : ball.game.getPlayers()) {
+                if (blocker == ball.source || blocker == ball.target) continue;
+                if (row == 7) row++;
+                if (row >= 15) break;
+                place(ball.game, blocker, 8, row++, PlayerState.PRONE);
+            }
             JsonObject ready = ball.ready();
             JsonObject plan = ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
                 ball.source.getId(), "handOff", ball.target.getId(), points(9, 7));
@@ -116,8 +123,10 @@ class SetupSessionMovementTest {
             assertEquals(8, plan.get("route").asObject().get("steps").asArray().get(0).asObject().getInt("x", -1));
             forceGeneralRolls(ball.fixture.session, success ? 6 : 1, 6, 6, 6, 6, 6);
             JsonObject after = ball.fixture.session.apply(ball.role, ball.request(ready, "handOff", points(9, 7))).get("state").asObject();
+            // The captain can still offer Pro when the team has no rerolls.
+            if (!success && hasAction(after, "reroll")) after = chooseReroll(ball.fixture.session, ball.role, after, "none");
             assertEquals(success, UtilPlayer.hasBall(ball.game, ball.target));
-            if (!success) assertFalse(ball.role.equals(after.getString("actor", null)), "Failed pickup turns over normally");
+            if (!success) assertFalse(ball.role.equals(after.getString("actor", null)), "Failed pickup turns over normally: " + after);
             assertTrue(JsonObject.readFrom(ball.fixture.session.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
         }
     }
