@@ -45,32 +45,37 @@ scope.
 ## Implementation handoff for each slice
 
 The **normal process**, also called the **usual method**, is the sequence below.
-When the user requests this process for agreed work, that authorizes creating
-the working branch, implementing, reviewing, validating, staging, committing,
-pushing the working branch, opening the PR and merging it after required checks
-and review requirements pass. Carry the authorized sequence through completion
-without requesting permission again for those steps. Land changes in `main`
-through the PR; direct pushes to `main` are outside this authorization.
+When the user requests this process for agreed work, create or reuse GitHub
+issues for each required slice, create a new working branch, implement,
+self-review, test and validate, and report results. Complete this sequence for
+the agreed scope and leave the changes in the working tree for user review.
+Staging, committing, pushing, opening a PR, merging, and deployment require
+explicit user authorization; requesting the usual method alone does not grant it.
 
 The handoff identifies the issue, design record, acceptance criteria, branch
-base, relevant constraints, and the authority granted for publishing and
-merging. An implementer can then:
+base, and relevant constraints. Any publishing or merging authority is named
+separately. An implementer can then:
 
-1. Start a short-lived branch from current `main`, using a separate worktree
+1. Separate the work into independently verifiable slices. Create or reuse a
+   GitHub issue for each required slice and keep a local mirror as described in
+   [issue-tracker.md](issue-tracker.md).
+2. Start a short-lived branch from current `main`, using a separate worktree
    when the current checkout contains other work.
-2. Implement the slice and its relevant tests, documentation, change-list entry,
+3. Implement the slice and its relevant tests, documentation, change-list entry,
    and media or visual assets. Keep the slice independently verifiable.
-3. Review the diff against the issue and design intent, including behavior,
+4. Self-review the diff against the issue and design intent, including behavior,
    repository standards, and unintended scope. Fix findings.
-4. Run focused checks and the relevant project-required validation. Inspect
+5. Run focused checks and the relevant project-required validation. Inspect
    visual or media output in its actual use context when applicable.
-5. Stage only the intended files, commit with the repository's usual message
-   style, push, and open a PR linked to the issue and parent spec.
-6. Wait for required checks, resolve review comments and failures, and merge
-   when the granted authority and branch rules allow it. Record the PR and
-   acceptance evidence on the issue and local mirror.
+6. Record the implementation results, review findings and fixes, validation
+   evidence, and remaining gaps on the issue and local mirror. Report results
+   to the user, including the working branch and any unverified requirements.
 7. Repeat for the next ready slice until every required technical and
    nontechnical deliverable is complete.
+
+When separately authorized, land changes in `main` through a reviewed, validated
+PR that satisfies required checks and branch rules. Direct pushes to `main`
+remain outside this process.
 
 Merging runs GitHub checks; DEV Hosting publication is explicit through
 `node tools/deploy.mjs --environment dev-remote`, after local browser validation
@@ -81,10 +86,10 @@ The implementation handoff should name publication authority separately.
 
 Compare the finished result with the original plan and parent spec. Check every
 functional requirement, visual and media requirement, exclusion, and the
-original intent against the merged work and acceptance evidence. Record matches,
-changes made during delivery, remaining gaps, and links to PRs and checks in a
-Markdown outcome report next to the local design mirror. Present that report to
-the user.
+original intent against the implemented work and acceptance evidence. Record
+matches, changes made during implementation, remaining gaps, issue links, and
+validation evidence in a Markdown outcome report next to the local design mirror.
+Present that report to the user.
 
 Then use `/retro` to examine what the coding sessions suggest improving in the
 agent's environment. Its current purpose is process improvement; the outcome
@@ -94,18 +99,20 @@ report above is the product acceptance review.
 
 Name the agreed scope and use:
 
-> Proceed with the work in the usual method: new working branch > implement
-> the changes > self-review code for intended outcome and behavior > test and
-> validate > stage changes > commit with standard message > open PR > merge.
+> Proceed with the work in the usual method: separate work into one or more
+> GitHub issues, one for each required slice > create a new working branch >
+> implement the changes > self-review code for intended outcome and behavior >
+> test and validate > report results.
 
 For an approved spec, multiple issues or tickets, or work organized around an
 ADR or design with several implementation slices, optionally append:
 
 > Repeat until all slices are complete.
 
-When included, this clause carries the full sequence through every approved
-slice, in dependency order, rather than stopping after the first PR.
+When included, this clause carries implementation, self-review, validation, and
+reporting through every approved slice in dependency order.
 
 This authorization applies to the named work only; changes in scope are
-recorded against the spec before implementation continues. Release or deployment
-authority must be named separately.
+recorded against the spec before implementation continues. Staging, committing,
+pushing, PR creation, merging, and release or deployment authority must be named
+separately.
