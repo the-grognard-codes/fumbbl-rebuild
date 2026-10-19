@@ -24,6 +24,7 @@ import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.util.UtilBox;
+import com.fumbbl.ffb.util.UtilPlayer;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -52,6 +53,190 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SetupSessionMovementTest {
+    @Test void plannedTransfersValidateTheEndpointWithoutChangingTheGameAndExecuteOnce() throws Exception {
+        JsonArray journeys = new JsonArray();
+        for (String kind : new String[] {"pass", "handOff"}) for (boolean loose : new boolean[] {false, true})
+            for (boolean moving : new boolean[] {false, true}) {
+            if (loose && !moving) continue;
+            BallFixture ball = new BallFixture(loose, "pass".equals(kind) ? 12 : moving ? 9 : 8, moving ? 7 : 8, 0);
+            JsonObject ready = ball.ready();
+            String checkpoint = ball.fixture.session.recoveryArtifact();
+            String nativeBefore = nativeState(ball.fixture.session).toJsonValue(true, 0).toString();
+            JsonArray waypoints = moving ? points(8, 7) : new JsonArray();
+            JsonObject plan = ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
+                ball.source.getId(), kind, ball.target.getId(), waypoints);
+            assertEquals(checkpoint, ball.fixture.session.recoveryArtifact());
+            assertEquals(nativeBefore, nativeState(ball.fixture.session).toJsonValue(true, 0).toString());
+            FieldCoordinate endpoint = new FieldCoordinate(moving ? 8 : 7, 7);
+            String alternateKind = endpoint.isAdjacent(ball.game.getFieldModel().getPlayerCoordinate(ball.alternate)) ? "handOff" : "pass";
+            JsonObject alternatePlan = ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
+                ball.source.getId(), alternateKind, ball.alternate.getId(), waypoints);
+            forceGeneralRolls(ball.fixture.session, 6, 6, 6, 6, 6, 6);
+            JsonObject request = ball.request(ready, kind, waypoints);
+            JsonObject accepted = ball.fixture.session.apply(ball.role, request);
+            assertTrue(UtilPlayer.hasBall(ball.game, ball.target), accepted.toString());
+            assertTrue(ball.fixture.session.apply(ball.role, request).getBoolean("duplicate", false));
+            SetupSession restored = new SetupSession(ball.fixture.server, ball.fixture.document, ball.fixture.session.recoveryArtifact());
+            assertTrue(restored.apply(ball.role, request).getBoolean("duplicate", false));
+            assertTrue(JsonObject.readFrom(restored.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+            journeys.add(new JsonObject().add("kind", kind).add("loose", loose).add("moving", moving).add("sourceId", ball.source.getId())
+                .add("targetId", ball.target.getId()).add("alternateId", ball.alternate.getId()).add("ready", ready)
+                .add("plan", plan).add("alternatePlan", alternatePlan).add("movePlan",
+                    new JsonObject().add("planVersion", 1).add("kind", "move").add("targetPlayerId", JsonValue.NULL)
+                        .add("waypoints", waypoints).add("route", plan.get("route")))
+                .add("accepted", accepted.get("state")));
+        }
+        String output = System.getProperty("transfer.fixture");
+        if (output != null) Files.write(Paths.get(output), journeys.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test void stationaryTransfersDoNotInventMovement() throws Exception {
+        for (String kind : new String[] {"pass", "handOff"}) {
+            BallFixture ball = new BallFixture(false, "pass".equals(kind) ? 12 : 8, 8, 0);
+            JsonObject ready = ball.ready();
+            JsonObject plan = ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
+                ball.source.getId(), kind, ball.target.getId(), new JsonArray());
+            assertTrue(plan.get("route").asObject().get("steps").asArray().isEmpty());
+            forceGeneralRolls(ball.fixture.session, 6, 6, 6, 6);
+            ball.fixture.session.apply(ball.role, ball.request(ready, kind, new JsonArray()));
+            assertEquals(new FieldCoordinate(7, 7), ball.game.getFieldModel().getPlayerCoordinate(ball.source));
+            assertTrue(UtilPlayer.hasBall(ball.game, ball.target));
+        }
+    }
+
+    @Test void intermediateGeneratedSquaresCanPickUpTheBallAndFailureCausesTheNormalTurnover() throws Exception {
+        for (boolean success : new boolean[] {false, true}) {
+            BallFixture ball = new BallFixture(true, 10, 7, 0);
+            place(ball.game, ball.alternate, 8, 6, PlayerState.STANDING);
+            place(ball.game, ball.game.getActingTeam().getPlayers()[3], 8, 8, PlayerState.STANDING);
+            JsonObject ready = ball.ready();
+            JsonObject plan = ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
+                ball.source.getId(), "handOff", ball.target.getId(), points(9, 7));
+            assertEquals(2, plan.get("route").asObject().get("steps").asArray().size());
+            assertEquals(8, plan.get("route").asObject().get("steps").asArray().get(0).asObject().getInt("x", -1));
+            forceGeneralRolls(ball.fixture.session, success ? 6 : 1, 6, 6, 6, 6, 6);
+            JsonObject after = ball.fixture.session.apply(ball.role, ball.request(ready, "handOff", points(9, 7))).get("state").asObject();
+            assertEquals(success, UtilPlayer.hasBall(ball.game, ball.target));
+            if (!success) assertFalse(ball.role.equals(after.getString("actor", null)), "Failed pickup turns over normally");
+            assertTrue(JsonObject.readFrom(ball.fixture.session.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+        }
+    }
+
+    @Test void explicitPassStillAllowsAnAdjacentReceiverAndCannotAcquireAnImpliedTransfer() throws Exception {
+        BallFixture ball = new BallFixture(false, 8, 8, 0);
+        JsonObject ready = ball.ready();
+        JsonObject declaration = offered(ready, "declarePass", ball.source.getId());
+        JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "explicit-pass", ready)
+            .add("actionId", declaration.get("id"))).get("state").asObject();
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            active.getInt("revision", -1), ball.source.getId(), "handOff", ball.target.getId(), new JsonArray()));
+        JsonObject pass = null;
+        for (JsonValue value : active.get("actions").asArray()) {
+            JsonObject action = value.asObject();
+            if ("pass".equals(action.getString("kind", null)) && action.get("target").isObject()
+                && action.get("target").asObject().getInt("x", -1) == 8
+                && action.get("target").asObject().getInt("y", -1) == 8) pass = action;
+        }
+        assertTrue(pass != null);
+        forceGeneralRolls(ball.fixture.session, 6, 6, 6, 6);
+        ball.fixture.session.apply(ball.role, ball.fixture.request("action", "adjacent-pass", active).add("actionId", pass.get("id")));
+        assertTrue(UtilPlayer.hasBall(ball.game, ball.target));
+    }
+
+    @Test void invalidImpliedTransfersRejectWithoutDeclaringOrChangingTheRoute() throws Exception {
+        BallFixture ball = new BallFixture(true, 9, 7, 0);
+        JsonObject ready = ball.ready();
+        String checkpoint = ball.fixture.session.recoveryArtifact();
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "handOff", ball.target.getId(), points(7, 8)));
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "pass", ball.target.getId(), points(8, 7)));
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "handOff", ball.source.getId(), points(8, 7)));
+        assertEquals(checkpoint, ball.fixture.session.recoveryArtifact());
+        ball.game.getTurnData().setHandOverUsed(true);
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "handOff", ball.target.getId(), points(8, 7)));
+        ball.game.getTurnData().setHandOverUsed(false);
+        ball.game.getFieldModel().setPlayerState(ball.target, new PlayerState(PlayerState.PRONE));
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "handOff", ball.target.getId(), points(8, 7)));
+        place(ball.game, ball.target, 25, 14, PlayerState.STANDING);
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role,
+            ready.getInt("revision", -1), ball.source.getId(), "pass", ball.target.getId(), points(8, 7)));
+    }
+
+    @Test void pickupRerollResumesConfirmedTransferAcrossRecoveryAndDeclineCancelsIt() throws Exception {
+        for (String kind : new String[] {"pass", "handOff"}) {
+            BallFixture ball = new BallFixture(true, "pass".equals(kind) ? 12 : 9, 7, 1);
+            JsonObject ready = ball.ready();
+            forceGeneralRolls(ball.fixture.session, 1, 6, 6, 6, 6, 6, 6);
+            JsonObject request = ball.request(ready, kind, points(8, 7));
+            JsonObject paused = ball.fixture.session.apply(ball.role, request).get("state").asObject();
+            assertTrue(hasAction(paused, "reroll"), paused.toString());
+            String checkpoint = ball.fixture.session.recoveryArtifact();
+            SetupSession declined = new SetupSession(ball.fixture.server, ball.fixture.document, checkpoint);
+            chooseReroll(declined, ball.role, paused, "none");
+            assertTrue(JsonObject.readFrom(declined.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+            assertFalse(UtilPlayer.hasBall(nativeState(declined).getGame(),
+                nativeState(declined).getGame().getPlayerById(ball.target.getId())));
+            SetupSession resumed = new SetupSession(ball.fixture.server, ball.fixture.document, checkpoint);
+            assertTrue(resumed.apply(ball.role, request).getBoolean("duplicate", false));
+            chooseReroll(resumed, ball.role, paused, "team");
+            Game game = nativeState(resumed).getGame();
+            assertTrue(UtilPlayer.hasBall(game, game.getPlayerById(ball.target.getId())));
+            assertTrue(JsonObject.readFrom(resumed.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+        }
+    }
+
+    @Test void anInvalidatedRecipientOrDisplacedMoverCancelsTheConfirmedTransfer() throws Exception {
+        for (boolean displaced : new boolean[] {false, true}) {
+            BallFixture ball = new BallFixture(true, 10, 7, 1);
+            JsonObject ready = ball.ready();
+            forceGeneralRolls(ball.fixture.session, 1, 6, 6, 6, 6, 6);
+            JsonArray path = points(8, 7).add(new JsonObject().add("x", 9).add("y", 7));
+            JsonObject paused = ball.fixture.session.apply(ball.role, ball.request(ready, "handOff", path)).get("state").asObject();
+            assertTrue(hasAction(paused, "reroll"), paused.toString());
+            if (displaced) ball.game.getFieldModel().setPlayerCoordinate(ball.source, new FieldCoordinate(6, 7));
+            else ball.game.getFieldModel().setPlayerState(ball.target, new PlayerState(PlayerState.PRONE));
+            chooseReroll(ball.fixture.session, ball.role, paused, "team");
+            assertFalse(UtilPlayer.hasBall(ball.game, ball.target));
+            assertTrue(JsonObject.readFrom(ball.fixture.session.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+        }
+    }
+
+    private final class BallFixture {
+        final Fixture fixture;
+        final Game game;
+        final Player<?> source, target, alternate;
+        final String role;
+
+        BallFixture(boolean loose, int targetX, int targetY, int rerolls) throws Exception {
+            fixture = new Fixture(rerolls);
+            role = fixture.advanceToTurn().getString("actor", null);
+            game = nativeState(fixture.session).getGame();
+            source = game.getActingTeam().getPlayers()[0];
+            target = game.getActingTeam().getPlayers()[1];
+            alternate = game.getActingTeam().getPlayers()[2];
+            UtilBox.putAllPlayersIntoBox(game);
+            place(game, source, 7, 7, PlayerState.STANDING);
+            place(game, target, targetX, targetY, PlayerState.STANDING);
+            place(game, alternate, targetX >= 12 ? 9 : 12, targetX >= 12 ? 8 : 9, PlayerState.STANDING);
+            game.getTurnData().setPassUsed(false);
+            game.getTurnData().setHandOverUsed(false);
+            game.getFieldModel().setBallCoordinate(new FieldCoordinate(loose ? 8 : 7, 7));
+            game.getFieldModel().setBallMoving(loose);
+            game.getFieldModel().setBallInPlay(true);
+        }
+
+        JsonObject ready() { return fixture.session.reply("load", "ACCEPTED", false, role).get("state").asObject(); }
+
+        JsonObject request(JsonObject ready, String kind, JsonArray points) {
+            return fixture.request("movement", "planned-transfer", ready).add("playerId", source.getId())
+                .add("kind", kind).add("targetPlayerId", target.getId()).add("waypoints", points);
+        }
+    }
+
     @Test void passAndHandOffCanBeDeclaredBeforeTheLooseBallIsPickedUp() throws Exception {
         Fixture fixture = new Fixture();
         JsonObject ready = fixture.advanceToTurn();

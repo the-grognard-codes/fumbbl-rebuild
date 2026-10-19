@@ -110,7 +110,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
-  jumpOptions = null,
+  jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
@@ -119,6 +119,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
+  plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
@@ -257,10 +258,13 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   }
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
-  const target = pinnedAction?.target, pinnedTarget = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
-  const targetSource = view.players.find(player => player.id === pinnedAction?.sourcePlayerId);
-  const showTargetLine = !!pinnedAction && ['block', 'blitzTarget', 'foul', 'pass', 'handOff', 'liftTeamMate',
+  const target = pinnedAction?.target, pinnedTarget = plannedTransfer
+    ? view.players.find(player => player.id === plannedTransfer.targetPlayerId)
+    : target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
+  const targetSource = plannedTransfer?.from ?? view.players.find(player => player.id === pinnedAction?.sourcePlayerId);
+  const showTargetLine = !!plannedTransfer || !!pinnedAction && ['block', 'blitzTarget', 'foul', 'pass', 'handOff', 'liftTeamMate',
     'throwTeamMate', 'kickMate', 'kickMateTo', 'gaze', 'bomb', 'punt'].includes(pinnedAction.kind);
+  if (plannedTransfer) targetPlayers.add(plannedTransfer.targetPlayerId);
   const kickTarget = pinnedAction?.kind === 'kickoff' && pinnedTarget?.x != null && pinnedTarget.y != null
     ? { x: pinnedTarget.x, y: pinnedTarget.y }
     : view.phase === 'READY_FOR_KICKOFF' && (hover ?? cursor) && actions.some(action => action.kind === 'kickoff'

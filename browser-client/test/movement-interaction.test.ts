@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { canPlanMovement, matchesMovementPlan } from '../src/movement-interaction.ts';
+import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer } from '../src/movement-interaction.ts';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import type { MovementPlan, MovementRequest } from '../src/movement-protocol.ts';
 
@@ -12,6 +12,30 @@ const intent: MovementRequest = { playerId: 'home1', kind: 'move', targetPlayerI
 const plan: MovementPlan = { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: intent.waypoints,
   route: { routeVersion: 3, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8, revision: view.revision, actor: 'home',
     steps: [{ x: 8, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }] } };
+
+test('implied transfers require an unactivated player and the offered native declaration', () => {
+  const select = view.actions.find(action => action.sourcePlayerId === 'home1')!;
+  for (const [kind, declaration] of [['pass', 'declarePass'], ['handOff', 'declareHandOff']] as const) {
+    const offered = [{ ...select, kind: declaration }];
+    assert.equal(canPlanMovement(view, offered, 'home1', kind), true);
+    assert.equal(canPlanMovement(view, [], 'home1', kind), false);
+    assert.equal(canPlanMovement({ ...view, activePlayerId: 'home1' }, offered, 'home1', kind), false);
+    assert.equal(canPlanMovement({ ...view, turnMode: 'BLITZ' }, offered, 'home1', kind), false);
+    const transfer: MovementRequest = { ...intent, kind, targetPlayerId: 'home2' };
+    assert.equal(matchesMovementPlan({ ...plan, kind, targetPlayerId: 'home2' }, transfer, view), true);
+    assert.equal(matchesMovementPlan({ ...plan, kind, targetPlayerId: 'home2', waypoints: [...intent.waypoints, {x:9,y:7}] }, transfer, view), false);
+  }
+});
+
+test('possession eligibility counts intermediate route squares but excludes another carrier and an active player', () => {
+  const ground = { ...view, ball: {x:8,y:7}, ballState: {version:1 as const,inPlay:true,moving:true,carrierPlayerId:null} };
+  assert.equal(canPlanBallTransfer(ground, 'home1', null), false);
+  assert.equal(canPlanBallTransfer(ground, 'home1', plan.route), true);
+  assert.equal(canPlanBallTransfer({...ground,ball:{x:9,y:7}}, 'home1', plan.route), false);
+  assert.equal(canPlanBallTransfer({...ground,ballState:{...ground.ballState,moving:false,carrierPlayerId:'home2'}}, 'home1', plan.route), false);
+  assert.equal(canPlanBallTransfer({...ground,ballState:{...ground.ballState,moving:false,carrierPlayerId:'home1'}}, 'home1', null), true);
+  assert.equal(canPlanBallTransfer({...ground,activePlayerId:'home1'}, 'home1', plan.route), false);
+});
 
 test('fresh movement and direct Blitz proposals use only native offers for the selected own player', () => {
   assert.equal(canPlanMovement(view, view.actions, 'home1', 'move'), true);

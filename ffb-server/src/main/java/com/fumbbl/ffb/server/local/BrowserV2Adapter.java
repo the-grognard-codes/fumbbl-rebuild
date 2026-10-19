@@ -238,7 +238,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				JsonObject result;
 				if (preview) {
 					String kind = request.get("kind").asString();
-					if (!("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind))) throw new IllegalArgumentException();
+					if (!("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind)
+						|| "pass".equals(kind) || "handOff".equals(kind))) throw new IllegalArgumentException();
 					String target = request.get("targetPlayerId").isNull() ? null : request.get("targetPlayerId").asString();
 					if (target != null && target.length() > 200) throw new IllegalArgumentException();
 					JsonArray waypoints = request.get("waypoints").asArray();
