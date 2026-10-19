@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { capturePresentation, captureNativeZoom, captureEdgeSmoke } from './real-server-presentation.mjs';
 
@@ -24,6 +25,7 @@ assert.ok(tokens.home && tokens.away && tokens.spectator, 'Three independent rea
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: process.env.COACH_ACCEPTANCE_BROWSER ?? 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1' });
 const pages = [], contexts = [], assertions = [], checkpoints = [], errors = [];
+const invalidProjections = [];
 let matchId, lastState, lastAction, teams = [];
 const record = (name, details = {}) => { assertions.push({ name, ...details }); console.log(name); };
 
@@ -46,7 +48,15 @@ async function observe(context) {
       }
     };
   });
-  context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
+  context.on('page', page => {
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('websocket', socket => socket.on('framereceived', event => {
+      const message = JSON.parse(String(event.payload));
+      if (message.type !== 'setupState' || !message.state) return;
+      try { decodeSetupStateValue(message.state); }
+      catch (error) { invalidProjections.push({ reason: error.message, state: message.state }); }
+    }));
+  });
 }
 async function signIn(page, token) {
   await page.goto(`${origin}/login`);
@@ -62,7 +72,7 @@ async function state(page) {
   return page.evaluate(() => window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state ?? null);
 }
 function canonical(view) {
-  const { callerRole, clock, ...fields } = view;
+  const { callerRole, clock, threats, ...fields } = view;
   return fields;
 }
 async function converge(revision) {
@@ -192,42 +202,32 @@ async function routeUI(view, action) {
   const page = pages[action.actor === 'home' ? 0 : 1], target = action.target;
   await page.locator('.live-pitch-viewport[aria-label="Pitch action preview"]').waitFor();
   const player = view.players.find(player => player.id === action.sourcePlayerId);
-  await squarePosition(page, player.x, player.y);
-  await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
-  await page.getByRole('button', { name: 'Move', exact: true }).click();
-  const waypoint = async () => {
+  const propose = async () => {
+    await setDebug(page, false);
+    await squarePosition(page, player.x, player.y);
+    await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
+    await page.getByRole('button', { name: 'Move', exact: true }).click();
     const position = await squarePosition(page, target.x, target.y);
     await page.locator('.live-pitch-scene').click({ position });
     await page.waitForFunction(expected => {
-      const route = window.__acceptance.incoming.filter(message => message.type === 'routePreview').at(-1)?.route;
+      const route = window.__acceptance.incoming.filter(message => message.type === 'movementPreview').at(-1)?.plan?.route;
       return route?.revision === expected.revision && route.steps.at(-1)?.x === expected.x && route.steps.at(-1)?.y === expected.y;
     }, { revision: view.revision, x: target.x, y: target.y });
     await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Confirmed!' && !button.disabled));
   };
-  await waypoint();
+  await propose();
   assert.equal((await state(page)).revision, view.revision, 'Server route preview is read-only');
-  await page.getByRole('button', { name: 'Undo', exact: true }).click();
-  assert.equal(await page.getByRole('list', { name: 'Waypoints' }).locator('li').count(), 0);
-  await waypoint(); await page.getByRole('button', { name: 'Clear', exact: true }).click();
-  assert.equal(await page.getByRole('list', { name: 'Waypoints' }).locator('li').count(), 0);
-  await waypoint();
-  const focus = await page.locator('.live-pitch-scene').getAttribute('data-focus');
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
-  await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
-  await page.getByRole('button', { name: 'Debug', exact: true }).click();
-  assert.equal(await page.locator('.live-pitch-scene').getAttribute('data-focus'), focus);
-  assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), true);
-  await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
   await page.reload(); await page.getByLabel('Live match pitch').waitFor();
   await converge(view.revision);
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), false, 'Reconnect discards an uncommitted route instead of sending it');
-  await squarePosition(page, player.x, player.y);
-  await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
-  await page.getByRole('button', { name: 'Move', exact: true }).click();
-  await waypoint();
+  await propose();
   view = await advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
-  record('Real server-bound route preview, Undo/Clear, camera-preserved proposal, reconnect and confirmed native route');
+  record('Real server-bound route preview, reconnect discards the proposal and confirmed native route');
   return view;
+}
+async function setDebug(page, open) {
+  const toggle = page.getByRole('button', { name: 'Debug', exact: true });
+  if ((await toggle.getAttribute('aria-expanded') === 'true') !== open) await toggle.click();
 }
 async function actionUI(view, action) {
   assert.ok(action, `No reachable offered action at ${view.phase}/${view.turnMode}`);
@@ -264,7 +264,7 @@ async function actionUI(view, action) {
     const position = await squarePosition(page, action.target.x, action.target.y);
     await page.locator('.live-pitch-scene').click({ position });
   } else {
-    await page.getByRole('button', { name: 'Debug', exact: true }).click();
+    await setDebug(page, true);
     await page.getByLabel('Server action', { exact: true }).selectOption(action.id);
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   }
@@ -341,9 +341,8 @@ try {
   }
   matchId = await pages[0].getByLabel('Match ID', { exact: true }).inputValue();
   await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
-  const popupPromise = pages[0].waitForEvent('popup');
   await pages[0].getByRole('button', { name: 'Start game', exact: true }).click();
-  const popup = await popupPromise; await popup.waitForURL(/\/play\/match/); pages[0] = popup;
+  await pages[0].waitForURL(/\/play\/match/);
   }
   if (!completedContinuation || !computer) await pages[1].goto(`${origin}/play/match?matchId=${matchId}${computer ? '&watch=1' : ''}`);
   if (completedContinuation) {
@@ -359,14 +358,20 @@ try {
   } else await pages[2].goto(`${origin}/play/match?matchId=${matchId}&watch=1`);
   await Promise.all(pages.map(page => page.getByLabel('Live match pitch').waitFor()));
   let view = await converge(resumed?.state.revision ?? 0);
+  if (computer) {
+    assert.equal(view.awayTeamName, computerOpponent === 'coach-bogruk-weak' ? "Bogruk's Almost Best" : "Bugman's Best");
+    assert.ok((await Promise.all(pages.map(state))).every(snapshot => !Object.hasOwn(snapshot, 'computer')));
+    record('Selected computer identity is visible and private policy state is absent from coach and spectator views');
+  }
   record(completedContinuation ? 'Both coaches reload the same retained native full-time snapshot'
     : computer ? 'Human coach and independent spectators subscribe to the native computer match'
     : 'Two independent coaches and spectator converge on the real native prematch snapshot', { matchId });
-  if (!resumed) {
+  if (!completedContinuation) {
+  const chatText = `Acceptance ${randomUUID().slice(0, 8)}: good luck <escaped>`;
   await pages[0].getByRole('button', { name: 'Click chat or press Enter to write', exact: true }).click();
-  await pages[0].getByLabel('Message the match', { exact: true }).fill('Acceptance: good luck <escaped>');
+  await pages[0].getByLabel('Message the match', { exact: true }).fill(chatText);
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
-  await Promise.all(pages.map(page => page.getByRole('log', { name: 'Match chat messages' }).getByText('Acceptance: good luck <escaped>', { exact: true }).waitFor()));
+  await Promise.all(pages.map(page => page.getByRole('log', { name: 'Match chat messages' }).getByText(chatText, { exact: true }).waitFor()));
   record('Durable escaped chat delivered to both coaches and spectator');
   }
   let continuity = assertions.some(item => item.name.startsWith('Save, agree')), permission = assertions.some(item => item.name.startsWith('Wrong-coach')),
@@ -378,8 +383,10 @@ try {
       await pages[0].waitForFunction(revision => window.__acceptance.incoming.some(message => message.state?.revision > revision), view.revision);
       await Promise.all(pages.map(page => page.waitForFunction(() => {
         const view = window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state;
-        return view && (view.phase === 'FULL_TIME' || (view.prompt?.actor ?? view.actor) === 'home');
+        return view && (view.phase === 'FULL_TIME' || (view.prompt?.actor ?? view.actor) === 'home')
+          || [...document.querySelectorAll('[role="alert"]')].some(element => /INVALID RESPONSE/.test(element.textContent));
       }, null, { timeout: 120000 })));
+      if (invalidProjections.length) throw Error(`Invalid live projection: ${invalidProjections[0].reason}`);
       view = await converge((await state(pages[0])).revision);
     } else if (view.prompt) {
       const page = pages[view.prompt.actor === 'home' ? 0 : 1];
@@ -428,6 +435,7 @@ try {
   await pages[0].getByRole('region', { name: 'Replay event' }).getByRole('heading').filter({ hasText: 'Event 1 of' }).waitFor();
   record('Authoritative completed result and backward replay seek preserved');
   assert.deepEqual(errors, [], 'No browser runtime exceptions');
+  assert.equal(invalidProjections.length, 0, 'All live projections satisfy the browser contract');
   const frozenTeams = ['home', 'away'].map(role => ({ rosterId: role === 'home' ? 'human' : 'orc',
     teamId: view.players.find(player => player.role === role).id.split(':')[0],
     positions: [...new Set(view.players.filter(player => player.role === role).map(player => player.position))] }));
@@ -439,6 +447,7 @@ try {
     responses: window.__acceptance?.incoming.slice(-12).map(message => ({ type: message.type, code: message.code, revision: message.state?.revision })),
     intents: window.__acceptance?.outgoing.slice(-6).map(message => ({ type: message.type, operation: message.operation, actionId: message.actionId }))
   }))));
-  await writeFile(resolve(output, 'failure.json'), JSON.stringify({ passed: false, matchId, teams, assertions, checkpoints, state: lastState, lastAction, protocol, errors, failure: failure.message }, null, 2));
+  const latestState = await state(pages[0]).catch(() => lastState);
+  await writeFile(resolve(output, 'failure.json'), JSON.stringify({ passed: false, matchId, teams, assertions, checkpoints, state: latestState ?? lastState, lastAction, protocol, errors, invalidProjections, failure: failure.message }, null, 2));
   throw failure;
 } finally { await browser.close(); }

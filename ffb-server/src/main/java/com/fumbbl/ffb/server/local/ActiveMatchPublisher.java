@@ -54,7 +54,7 @@ final class ActiveMatchPublisher {
 	void publishChat(String matchId, BrowserMatchAdapter.Connection source, JsonObject page) {
 		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
 			Viewer viewer = viewers.get(connection);
-			if (viewer == null || connection == source || !matchId.equals(viewer.matchId)) continue;
+			if (viewer == null || viewer.principal == null || connection == source || !matchId.equals(viewer.matchId)) continue;
 			try {
 				if (viewer.spectator) access.spectatorTranscript(viewer.principal, matchId);
 				else access.playerRole(viewer.principal, matchId);
@@ -77,6 +77,7 @@ final class ActiveMatchPublisher {
 					access.require(viewer.principal, ApplicationScope.SPECTATOR);
 					JsonObject spectatorState = JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator");
 					spectatorState.remove("computer");
+					spectatorState.remove("threats"); // Acting-coach guidance is invalid in a spectator projection.
 					send(connection, state(null, spectatorState));
 					if ("FULL_TIME".equals(publicState.getString("phase", ""))) viewers.remove(connection);
 				} else {
