@@ -12,6 +12,7 @@ public class ChangeList {
 		versions.add(new VersionChangeList("3.4.0")
 			.addFeature("Bogruk the Almost Clever joins computer opponents as a Weak BB2025 coach who pursues touchdowns and takes occasional purposeful risks")
 			.addBugfix("Secure the Ball no longer offers an unavailable Sure Hands re-roll in BB2025, and older saved prompts recover without looping")
+			.addBugfix("Long browser matches save their completed result and replay with lower server memory use")
 			.addBugfix("Keep spectators connected when coach-only threat guidance is available and preserve computer play subscriptions during chat")
 			.addFeature("Browser coaches can plan movement, pickup and a pass or handoff to a teammate with one confirmation")
 			.addBugfix("Local development sign-in works after refreshing Google credentials")

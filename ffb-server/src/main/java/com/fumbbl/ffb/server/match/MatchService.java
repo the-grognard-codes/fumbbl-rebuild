@@ -146,15 +146,13 @@ public final class MatchService {
 	private MatchDocument required(String owner, String id) throws SQLException {
 		MatchRepository.Record record = matches.find(id);
 		if (record == null) throw new Failure("NOT_FOUND");
-		json.authorizePersisted(owner, record.json);
-		MatchDocument document = json.decode(record.json, record.documentVersion);
+		MatchDocument document = json.decodeAuthorized(owner, record.json, record.documentVersion);
 		if (!id.equals(document.matchId) || !id.equals(record.matchId)) throw new Failure("SNAPSHOT_UNSUPPORTED");
 		return document;
 	}
 
 	private MatchRepository.Record record(MatchDocument document) {
-		String text = json.encode(document).toString();
-		json.decode(text, document.documentVersion); // Refuse an unrepresentable snapshot before any write.
+		String text = json.storageText(document);
 		return new MatchRepository.Record(document.matchId, document.documentVersion, text);
 	}
 

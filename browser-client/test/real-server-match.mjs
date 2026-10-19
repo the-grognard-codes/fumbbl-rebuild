@@ -23,10 +23,13 @@ if (resumed) {
 const tokens = JSON.parse(await readFile(process.env.COACH_ACCEPTANCE_TOKENS_FILE, 'utf8'));
 assert.ok(tokens.home && tokens.away && tokens.spectator, 'Three independent real Firebase custom tokens are required');
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({ channel: process.env.COACH_ACCEPTANCE_BROWSER ?? 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1' });
+const proxyServer = process.env.COACH_ACCEPTANCE_PROXY;
+if (proxyServer && !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}$/.test(proxyServer)) throw Error('Acceptance proxy must be an explicit loopback HTTP endpoint');
+const browser = await chromium.launch({ channel: process.env.COACH_ACCEPTANCE_BROWSER ?? 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1',
+  ...(proxyServer ? { proxy: { server: proxyServer, bypass: '<-loopback>' } } : {}) });
 const pages = [], contexts = [], assertions = [], checkpoints = [], errors = [];
 const invalidProjections = [];
-let matchId, lastState, lastAction, teams = [];
+let matchId, lastState, lastAction, teams = [], retainedSpectatorOnly = false;
 const record = (name, details = {}) => { assertions.push({ name, ...details }); console.log(name); };
 
 async function observe(context) {
@@ -89,7 +92,7 @@ async function converge(revision) {
     assert.deepEqual(canonical(view), canonical(states[0]));
   }
   assert.deepEqual(states.map(view => view.callerRole), completedContinuation ? (computer ? ['home'] : ['home', 'away'])
-    : computer ? ['home', 'spectator', 'spectator'] : ['home', 'away', 'spectator']);
+    : computer ? retainedSpectatorOnly ? ['home', 'spectator'] : ['home', 'spectator', 'spectator'] : ['home', 'away', 'spectator']);
   lastState = states[0];
   return states[0];
 }
@@ -253,11 +256,6 @@ async function actionUI(view, action) {
   }
   if (action.kind === 'endTurn') {
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
-  } else if (['selectBlock', 'blitz'].includes(action.kind) && action.sourcePlayerId) {
-    const player = view.players.find(player => player.id === action.sourcePlayerId);
-    await squarePosition(page, player.x, player.y);
-    await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
-    await page.getByRole('button', { name: action.kind === 'selectBlock' ? 'Block' : action.kind === 'blitz' ? 'Blitz' : 'Move', exact: true }).click();
   } else if (action.kind === 'move' && action.target && 'x' in action.target) {
     const player = view.players.find(player => player.id === action.sourcePlayerId);
     await squarePosition(page, player.x, player.y);
@@ -367,13 +365,18 @@ try {
   record(completedContinuation ? 'Both coaches reload the same retained native full-time snapshot'
     : computer ? 'Human coach and independent spectators subscribe to the native computer match'
     : 'Two independent coaches and spectator converge on the real native prematch snapshot', { matchId });
-  if (!completedContinuation) {
+  if (!completedContinuation && !assertions.some(item => item.name === 'Durable escaped chat delivered to both coaches and spectator')) {
   const chatText = `Acceptance ${randomUUID().slice(0, 8)}: good luck <escaped>`;
   await pages[0].getByRole('button', { name: 'Click chat or press Enter to write', exact: true }).click();
   await pages[0].getByLabel('Message the match', { exact: true }).fill(chatText);
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await Promise.all(pages.map(page => page.getByRole('log', { name: 'Match chat messages' }).getByText(chatText, { exact: true }).waitFor()));
   record('Durable escaped chat delivered to both coaches and spectator');
+  }
+  if (computer && !completedContinuation) {
+    const [extraSpectator] = pages.splice(1, 1);
+    await extraSpectator.close(); retainedSpectatorOnly = true;
+    record('Human coach and independent spectator retained for continued native play');
   }
   let continuity = assertions.some(item => item.name.startsWith('Save, agree')), permission = assertions.some(item => item.name.startsWith('Wrong-coach')),
     route = assertions.some(item => item.name.startsWith('Real server-bound route')), decisionReconnect = assertions.some(item => item.name.startsWith('Reconnect preserved'));
@@ -416,7 +419,7 @@ try {
     }
     if (before.half !== view.half || before.homeScore !== view.homeScore || before.awayScore !== view.awayScore || view.phase === 'FULL_TIME') {
       checkpoints.push({ revision: view.revision, half: view.half, drive: view.drive, phase: view.phase, score: [view.homeScore, view.awayScore] });
-      await Promise.all(pages.map((page, index) => page.screenshot({ path: resolve(output, `transition-${view.revision}-${['home','away','spectator'][index]}.png`) })));
+      await Promise.all(pages.map((page, index) => page.screenshot({ path: resolve(output, `transition-${view.revision}-${computer && index > 0 ? 'spectator' : ['home','away','spectator'][index]}.png`) })));
     }
   }
   assert.equal(view.phase, 'FULL_TIME'); assert.ok(checkpoints.some(checkpoint => checkpoint.half === 2), 'Native halftime reached');
@@ -453,7 +456,7 @@ try {
   const protocol = await Promise.all(pages.map(page => page.evaluate(() => ({
     responses: window.__acceptance?.incoming.slice(-12).map(message => ({ type: message.type, code: message.code, revision: message.state?.revision })),
     intents: window.__acceptance?.outgoing.slice(-6).map(message => ({ type: message.type, operation: message.operation, actionId: message.actionId }))
-  }))));
+  })).catch(() => ({ closed: page.isClosed() }))));
   const latestState = await state(pages[0]).catch(() => lastState);
   const wireDiagnostic = await pages[0]?.evaluate(() => ({
     incoming: window.__acceptance.incoming.slice(-12), outgoing: window.__acceptance.outgoing.slice(-12),

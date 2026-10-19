@@ -196,7 +196,7 @@ public final class SetupSession {
 		try {
 			JsonObject envelope = new MatchJson().parse(artifact, MAX_RECOVERY_ARTIFACT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();
-			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
+			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
 			JsonValue savedComputer = payload.get("computerMemory");
 			if (savedComputer != null) {
@@ -387,17 +387,13 @@ public final class SetupSession {
 			.add("homeUsedMs", homeReserveUsedMs).add("awayUsedMs", awayReserveUsedMs));
 		if (computerPolicy != null) payload.add("computerMemory", computerPolicy.json());
 		payload = ordered(payload).asObject();
-		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
+		String artifact = new JsonObject().add("payload", payload).add("sha256", new JsonDigest().sha256(payload)).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_RECOVERY_ARTIFACT_BYTES) throw new MatchService.Failure("RECOVERY_LIMIT");
 		return artifact;
 	}
 
 	private JsonObject frozen() {
-		JsonObject encoded = new MatchJson().encode(document);
-		JsonObject frozen = new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
-			.add("homeOwner", document.home.owner).add("awayOwner", document.away.owner);
-		if (document.computer != null) frozen.add("computer", document.computer.json());
-		return frozen;
+		return new MatchJson().frozenIdentity(document);
 	}
 
 	void validateComputerDecision(JsonObject request) {
@@ -440,13 +436,6 @@ public final class SetupSession {
 
 	private void normalizeRecoveryStep(JsonObject step) {
 		if ("kickoffScatterRoll".equals(step.getString("stepId", null)) && step.get("scatterDistance") == null) step.add("scatterDistance", 0);
-	}
-
-	private String digest(String text) {
-		try {
-			return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
-				.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-		} catch (java.security.NoSuchAlgorithmException unavailable) { throw new IllegalStateException(unavailable); }
 	}
 
 	private JsonValue ordered(JsonValue value) {
@@ -1237,7 +1226,7 @@ public final class SetupSession {
             .add("events", events);
 		if (transcriptV2) result.add("transcript", transcript.json());
 		if (chatV1) result.add("chat", chat.json());
-        return new CompletedMatch(result.toString());
+        return new CompletedMatch(result, document);
     }
 	public JsonObject transcriptPage(int from, int limit) {
 		if (!transcriptV2) throw new MatchService.Failure("REPLAY_UNSUPPORTED");

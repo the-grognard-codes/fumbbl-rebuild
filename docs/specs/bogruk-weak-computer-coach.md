@@ -134,8 +134,11 @@ this feature does not change game rules to reconcile them.
 - Preserve MUTP colors, typography, themes, and existing UI scaffolding.
 - Avoid new dependencies when existing facilities suffice.
 - Add a user-facing entry to the latest `VersionChangeList` in `ChangeList.java`.
-- The user authorized the usual branch/implementation/review/validation/commit/push/
-  PR/merge workflow on 18 October 2026. Deployment is outside this handoff.
+- The user requested the usual implementation, self-review, validation and results
+  workflow. The updated delivery workflow on 19 October 2026 requires separate
+  authorization for new staging/commits, publishing and merge. The requested local
+  rebase and review-stack restoration are authorized; leave further changes for
+  user review. Deployment is outside this handoff.
 
 ## Implementation Guidance
 
@@ -151,12 +154,13 @@ GitHub owns issue status. Issue links and acceptance evidence are maintained her
 alongside the durable design. Implementation follows issue creation, per the
 repository issue-tracker workflow.
 
-Parent: [#301](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/301).
+Parent: [#301](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/301). Checkboxes record local implementation and acceptance; GitHub issue closure and publishing remain separate.
 
 - [x] [#302 — Identity and durable policy contract](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/302)
 - [x] [#303 — Bogruk decisions and worker integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/303), depends on #302's contract.
-- [ ] [#304 — End-to-end acceptance and delivery](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/304), depends on #302 and #303.
-- [ ] [#309 — Legal Secure the Ball reroll prompts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/309), discovered during #304's real browser match; required to complete it.
+- [x] [#304 — End-to-end acceptance and delivery](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/304), depends on #302 and #303.
+- [x] [#309 — Legal Secure the Ball reroll prompts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/309), discovered during #304's real browser match; required to complete it.
+- [x] [#313 — Bound completed-match serialization memory](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/313), discovered at the terminal checkpoint during #304. Stream canonical completion JSON, remove repeated full-artifact copies, retain byte/depth limits and persistence/recovery semantics, and verify result/replay from the retained checkpoint.
 
 1. **Identity and durable policy contract** — owner: primary implementation agent.
    Add coach selection, server-side identity/authorization/routing, compatible
@@ -167,7 +171,7 @@ Parent: [#301](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/301).
 3. **End-to-end acceptance and delivery** — owner: primary implementation agent.
    Depends on slices 1 and 2. Exercise complete matches/recovery and browser startup,
    add the change-list entry, review standards and spec separately, run required
-   builds, and record acceptance evidence and the closing PR.
+   builds, and record acceptance evidence for user review. Publishing is separate.
 
 ## Validation
 
@@ -183,5 +187,10 @@ failures and repeat affected checks until resolved or a concrete blocker remains
 
 Record source references, default risks and intentional mistake examples, exact
 checks/scenarios and results, review findings and fixes, unresolved limitations,
-platform coverage, issue/PR links, and the merged acceptance outcome in a companion
-`bogruk-weak-computer-coach-outcome.md` report.
+platform coverage, issue/PR links, and the implementation acceptance outcome in a
+companion `bogruk-weak-computer-coach-outcome.md` report. Record publishing and
+merge separately when authorized.
+
+## Publication authorization
+
+On 19 October 2026, after playing a full half against Bogruk, the user accepted the implementation and explicitly authorized staging all remaining changes, committing, publishing the PR, merging into main after CI passes, deleting the local and remote working branch, and synchronizing local main. Live-play performance optimization is outside this delivery; deployment is not requested.

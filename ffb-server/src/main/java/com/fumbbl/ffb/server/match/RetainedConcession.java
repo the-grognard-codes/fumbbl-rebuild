@@ -4,11 +4,7 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.HexFormat;
 
 /** Administrative closure of an incompatible engine; the retained native checkpoint is never interpreted or changed. */
 final class RetainedConcession {
@@ -20,11 +16,8 @@ final class RetainedConcession {
         try {
             JsonObject envelope = JsonObject.readFrom(record.json);
             payload = envelope.get("payload").asObject();
-            JsonObject encoded = new MatchJson().encode(document);
-            JsonObject frozen = new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
-                .add("homeOwner", document.home.owner).add("awayOwner", document.away.owner);
-            if (document.computer != null) frozen.add("computer", document.computer.json());
-            if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null))
+            JsonObject frozen = new MatchJson().frozenIdentity(document);
+            if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null))
                 || !document.matchId.equals(payload.getString("matchId", null))
                 || !canonical(frozen).equals(canonical(payload.get("frozen").asObject())))
                 throw new IllegalArgumentException();
@@ -48,7 +41,8 @@ final class RetainedConcession {
     JsonObject view(String role) {
         JsonObject view;
         if (closed()) {
-            JsonArray events = JsonObject.readFrom(completed().json()).get("events").asArray();
+            completed(); // Preserve artifact bounds and validation on status-only reads too.
+            JsonArray events = payload.get("concession").asObject().get("completion").asObject().get("events").asArray();
             view = JsonObject.readFrom(events.get(events.size() - 1).asObject().get("state").toString());
         } else view = JsonObject.readFrom(payload.get("homeView").toString());
         view.set("callerRole", role).set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
@@ -93,8 +87,7 @@ final class RetainedConcession {
             result.add("transcript", history.json());
         }
         if (chat) result.add("chat", payload.get("chat"));
-        CompletedMatch completed = new CompletedMatch(result.toString());
-        new MatchJson().validateCompletion(completed, document);
+        CompletedMatch completed = new CompletedMatch(result, document);
         payload.add("concession", new JsonObject().add("role", role).add("request", canonical(request)).add("completion", JsonObject.readFrom(completed.json())));
         return accepted;
     }
@@ -109,11 +102,7 @@ final class RetainedConcession {
         throw new MatchService.Failure("MATCH_COMPLETED");
     }
 
-    CompletedMatch completed() { return new CompletedMatch(payload.get("concession").asObject().get("completion").toString()); }
-    String artifact() { return new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString(); }
-    private String canonical(JsonObject value) { return new CompletedMatch(value.toString()).json(); }
-    private String digest(String text) {
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))); }
-        catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
-    }
+    CompletedMatch completed() { return new CompletedMatch(payload.get("concession").asObject().get("completion").asObject(), document); }
+    String artifact() { return new JsonObject().add("payload", payload).add("sha256", new JsonDigest().sha256(payload)).toString(); }
+    private String canonical(JsonObject value) { return new CompletedMatch(value).json(); }
 }
