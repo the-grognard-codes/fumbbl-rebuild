@@ -240,11 +240,29 @@ public final class SetupApplication {
 	}
 
 	public HandleOutcome handleWithOutcome(String owner, JsonObject request) {
+		return handleWithOutcome(owner, request, false);
+	}
+
+	/** The caller must already have authenticated and authorized the separate computer service. */
+	public HandleOutcome handleComputerWithOutcome(JsonObject request) {
+		HandleOutcome result = handleWithOutcome("away", request, true);
+		SetupSession session = sessions.get(request.getString("matchId", null));
+		JsonValue view = result.response().get("state");
+		if (session != null && view != null && view.isObject()) {
+			JsonObject computer = session.computerProjection();
+			if (computer != null) view.asObject().add("computer", computer);
+		}
+		return result;
+	}
+
+	private HandleOutcome handleWithOutcome(String owner, JsonObject request, boolean computerChannel) {
 		String requestId = request.getString("requestId", null);
 		try {
-			validate(request);
+			validate(request, computerChannel);
 			String id = request.getString("matchId", null);
 			MatchDocument document = matches.load(owner, id).document;
+			if (computerChannel && new ComputerOpponentService(null).coach(document) == null)
+				throw new MatchService.Failure("NOT_FOUND");
 			String role = owner.equals(document.home.owner) ? "home"
 				: document.away != null && owner.equals(document.away.owner) ? "away" : null;
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
@@ -315,8 +333,15 @@ public final class SetupApplication {
 			}
 			JsonObject response;
 			try {
+				if (request.get("computerDecision") != null) session.validateComputerDecision(request);
+				else if (computerChannel && document.computer != null
+					&& ComputerOpponentService.BOGRUK_ID.equals(document.computer.opponentId)
+					&& isComputerGameOperation(operation))
+					throw new IllegalArgumentException("Missing Bogruk decision state");
 				response = "load".equals(operation) || "concessionStatus".equals(operation) ? session.reply(requestId, "ACCEPTED", false, role)
 					: isSaveResumeOperation(operation) ? session.saveResume(role, request, clock.millis()) : session.apply(role, request, decisionTime);
+				if (request.get("computerDecision") != null && "ACCEPTED".equals(response.getString("code", null))
+					&& !response.getBoolean("duplicate", false)) session.acceptComputerDecision(request);
 				if ("ACCEPTED".equals(response.getString("code", null)) && !response.getBoolean("duplicate", false)
 					&& !"load".equals(operation) && !"concessionStatus".equals(operation) && !isSaveResumeOperation(operation)) session.recordPlayerActivity(clock.millis());
 			} catch (RuntimeException failure) {
@@ -516,10 +541,14 @@ public final class SetupApplication {
 		return session;
 	}
 
-	private void validate(JsonObject request) {
+	private void validate(JsonObject request, boolean computerChannel) {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };
 		java.util.List<String> fields = new java.util.ArrayList<>(Arrays.asList(base));
+		if (computerChannel && request.get("computerDecision") != null) {
+			if (!isComputerGameOperation(operation)) throw new IllegalArgumentException();
+			fields.add("computerDecision");
+		}
 		if (!"load".equals(operation) && !"concessionStatus".equals(operation)) {
 			fields.add("expectedRevision");
 			if (request.get("expectedRevision").asInt() < 0) throw new IllegalArgumentException();
@@ -574,5 +603,9 @@ public final class SetupApplication {
 	private boolean isSaveResumeOperation(String operation) {
 		return "saveRequest".equals(operation) || "saveAccept".equals(operation) || "saveReject".equals(operation) || "saveCancel".equals(operation)
 			|| "resumeRequest".equals(operation) || "resumeAccept".equals(operation) || "resumeReject".equals(operation) || "resumeCancel".equals(operation);
+	}
+
+	private boolean isComputerGameOperation(String operation) {
+		return Arrays.asList("action", "choice", "place", "confirm", "route", "movement").contains(operation);
 	}
 }

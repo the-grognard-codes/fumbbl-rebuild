@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.ts';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
-import { chooseDecision } from './policy.mjs';
+import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
@@ -59,7 +59,8 @@ function decide() {
   if (key !== turnKey) { turnKey = key; actionsThisTurn = 0; }
   const currentSetupKey = state.phase === 'SETUP' ? `${state.half}:${state.drive}:${state.actor}` : null;
   if (currentSetupKey !== setupKey) { setupKey = currentSetupKey; setupVariant = 0; }
-  const decision = chooseDecision(state, Math.random, actionsThisTurn, setupVariant);
+  const outcome = chooseComputerDecision(state, { actionsThisTurn, setupVariant });
+  const { decision } = outcome;
   if (!decision) {
     const active = !state.saveResume || state.saveResume.status === 'ACTIVE';
     if (active && state.phase === 'SETUP' && state.actor === state.callerRole) throw Error('No legal setup candidate remains');
@@ -68,8 +69,12 @@ function decide() {
     return;
   }
   pending = { version: 2, type: 'setup', requestId: randomUUID(), matchId, expectedRevision: state.revision, ...decision };
+  if (state.computer?.opponentId === 'coach-bogruk-weak' && isComputerGameOperation(decision.operation)) pending.computerDecision = {
+    policyVersion: state.computer.policyVersion, reason: outcome.reason, nextPolicyState: outcome.nextPolicyState
+  };
   lastDecisionKey = decisionKey;
   log(`Revision ${state.revision}: ${decision.operation}${decision.actionId ? ` ${decision.actionId}` : decision.optionId ? ` ${decision.optionId}` : ''}`);
+  if (state.computer?.opponentId === 'coach-bogruk-weak') log(outcome.reason);
   send(pending);
 }
 function applyState(raw) {

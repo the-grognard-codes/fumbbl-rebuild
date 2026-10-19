@@ -10,6 +10,8 @@ import { capturePresentation, captureNativeZoom, captureEdgeSmoke } from './real
 
 const origin = 'http://localhost:5000';
 const computer = process.env.COACH_ACCEPTANCE_COMPUTER === '1';
+const computerOpponent = process.env.COACH_ACCEPTANCE_OPPONENT ?? 'coach-bugman-random';
+if (!['coach-bugman-random', 'coach-bogruk-weak'].includes(computerOpponent)) throw Error('Unknown acceptance computer opponent');
 const output = resolve(process.env.COACH_ACCEPTANCE_EVIDENCE ?? '../.tools/coach-oriented-match-ui/real-server-evidence');
 const resumed = process.env.COACH_ACCEPTANCE_RESUME_FROM ? JSON.parse(await readFile(process.env.COACH_ACCEPTANCE_RESUME_FROM, 'utf8')) : null;
 const completedContinuation = resumed?.state?.phase === 'FULL_TIME';
@@ -288,8 +290,8 @@ async function pauseResume(view) {
       window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state.saveResume?.status === status, status)));
     return converge((await state(pages[0])).revision);
   };
-  view = await saved(() => menu(pages[0], 'Request Match Pause'), 'SAVE_PENDING');
-  view = await saved(() => menu(pages[1], 'Accept pause'), 'SUSPENDED');
+  view = await saved(() => menu(pages[0], 'Request Match Pause'), computer ? 'SUSPENDED' : 'SAVE_PENDING');
+  if (!computer) view = await saved(() => menu(pages[1], 'Accept pause'), 'SUSPENDED');
   assert.equal(view.saveResume.status, 'SUSPENDED');
   await pages[1].reload(); await pages[1].getByLabel('Live match pitch').waitFor();
   await converge(view.revision);
@@ -303,8 +305,8 @@ async function pauseResume(view) {
     await converge(view.revision);
     record('Foreground viewport, camera, unavailable-art and native browser zoom acceptance');
   }
-  view = await saved(() => menu(pages[0], 'Request resume'), 'RESUME_PENDING');
-  view = await saved(() => menu(pages[1], 'Accept resume'), 'ACTIVE');
+  view = await saved(() => menu(pages[0], 'Request resume'), computer ? 'ACTIVE' : 'RESUME_PENDING');
+  if (!computer) view = await saved(() => menu(pages[1], 'Accept resume'), 'ACTIVE');
   assert.equal(view.saveResume.status, 'ACTIVE'); record('Save, agree, reconnect suspended snapshot and agree resume'); return view;
 }
 
@@ -324,8 +326,9 @@ try {
   record('Real DEV Firebase authentication and server-validated Human/Orc teams built through the UI');
   if (computer) {
     await pages[0].getByRole('combobox', { name: /^Play mode/ }).selectOption('computer');
+    await pages[0].getByRole('combobox', { name: 'Opponent', exact: true }).selectOption(computerOpponent);
     await pages[0].getByRole('combobox', { name: /^Your saved team/ }).selectOption(teams[0].teamId);
-    await pages[0].getByRole('combobox', { name: /^Roster for Bugman/ }).selectOption(teams[1].teamId);
+    await pages[0].getByRole('combobox', { name: /^Roster for / }).selectOption(teams[1].teamId);
     await pages[0].getByRole('button', { name: 'Create computer game', exact: true }).click();
     await pages[0].getByRole('button', { name: 'Start game', exact: true }).waitFor();
   } else {
@@ -391,7 +394,7 @@ try {
     } else if (view.phase === 'SETUP') view = await arrange(view);
     else {
       if (!permission && !computer) { await negative(view); permission = true; }
-      if (view.phase === 'PLAY' && !continuity && !computer && view.actions.some(action => action.kind === 'endTurn')) { view = await pauseResume(view); continuity = true; }
+      if (view.phase === 'PLAY' && !continuity && view.actions.some(action => action.kind === 'endTurn')) { view = await pauseResume(view); continuity = true; }
       const action = selectAction(view);
       if (!route && action?.kind === 'move' && action.target && 'x' in action.target) {
         view = await routeUI(view, action); route = true;

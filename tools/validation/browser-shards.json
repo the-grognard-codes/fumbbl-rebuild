@@ -41,6 +41,7 @@
       "browser-client/test/jump-planning-ui.mjs",
       "browser-client/test/misc-fix-rollup-ui.mjs",
       "browser-client/test/preparation-lifecycle-ui.mjs",
+      "browser-client/test/computer-selection-ui.mjs",
       "browser-client/test/movement-range-ui.mjs",
       "browser-client/test/threat-ui.mjs",
       "browser-client/test/confirmation-position-ui.mjs",

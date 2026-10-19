@@ -23,6 +23,7 @@ final class RetainedConcession {
             JsonObject encoded = new MatchJson().encode(document);
             JsonObject frozen = new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
                 .add("homeOwner", document.home.owner).add("awayOwner", document.away.owner);
+            if (document.computer != null) frozen.add("computer", document.computer.json());
             if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null))
                 || !document.matchId.equals(payload.getString("matchId", null))
                 || !canonical(frozen).equals(canonical(payload.get("frozen").asObject())))

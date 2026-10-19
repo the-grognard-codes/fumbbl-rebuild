@@ -92,6 +92,7 @@ public final class SetupSession {
 	private boolean failed;
 	private RecoveryDice recoveryDice;
 	private SaveResumeState saveResumeState;
+	private ComputerPolicyState computerPolicy;
 	private long homeReserveUsedMs;
 	private long awayReserveUsedMs;
 	private final ReactiveDecision reactiveDecision = new ReactiveDecision();
@@ -145,6 +146,7 @@ public final class SetupSession {
 		if (saveResume) saveResumeState = new SaveResumeState(0L);
 		this.document = document;
 		matchId = document.matchId;
+		if (document.computer != null) computerPolicy = new ComputerPolicyState();
 		state = new GameState(server) {
 			@Override public boolean usesLegacyPersistence() { return false; }
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
@@ -196,6 +198,12 @@ public final class SetupSession {
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !digest(payload.toString()).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			JsonValue savedComputer = payload.get("computerMemory");
+			if (savedComputer != null) {
+				if (document.computer == null) throw new IllegalArgumentException("Unexpected computer memory");
+				computerPolicy = new ComputerPolicyState(savedComputer.asObject());
+				payload.remove("computerMemory");
+			} else if (document.computer != null) throw new IllegalArgumentException("Missing computer memory");
 			JsonValue savedReaction = payload.get("reactiveDecision");
 			if (savedReaction != null) payload.remove("reactiveDecision");
 			JsonValue reactionVersion = payload.get("reactionVersion");
@@ -377,6 +385,7 @@ public final class SetupSession {
 		if (pendingActivation != null) payload.add("pendingActivation", pendingActivation.json());
 		if (chatV1) payload.add("chat", chat.json()).add("clock", new JsonObject()
 			.add("homeUsedMs", homeReserveUsedMs).add("awayUsedMs", awayReserveUsedMs));
+		if (computerPolicy != null) payload.add("computerMemory", computerPolicy.json());
 		payload = ordered(payload).asObject();
 		String artifact = new JsonObject().add("payload", payload).add("sha256", digest(payload.toString())).toString();
 		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_RECOVERY_ARTIFACT_BYTES) throw new MatchService.Failure("RECOVERY_LIMIT");
@@ -385,8 +394,39 @@ public final class SetupSession {
 
 	private JsonObject frozen() {
 		JsonObject encoded = new MatchJson().encode(document);
-		return new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
+		JsonObject frozen = new JsonObject().add("home", encoded.get("home")).add("away", encoded.get("away"))
 			.add("homeOwner", document.home.owner).add("awayOwner", document.away.owner);
+		if (document.computer != null) frozen.add("computer", document.computer.json());
+		return frozen;
+	}
+
+	void validateComputerDecision(JsonObject request) {
+		if (computerPolicy == null || request.get("computerDecision") == null)
+			throw new IllegalArgumentException("Missing computer policy state");
+		computerPolicy.validateDecision(request.get("computerDecision").asObject(), document.computer,
+			request.getInt("expectedRevision", -1) == revision);
+	}
+
+	void acceptComputerDecision(JsonObject request) {
+		computerPolicy.accept(request.get("computerDecision").asObject());
+	}
+
+	/** Only the authenticated computer response path adds this private projection. */
+	JsonObject computerProjection() {
+		ComputerCoach coach = new ComputerOpponentService(null).coach(document);
+		if (coach == null) return null;
+		Game game = state.getGame();
+		JsonValue movement = JsonValue.NULL;
+		Player<?> mover = game.getActingPlayer().getPlayer();
+		if (mover != null && game.getTeamAway().hasPlayer(mover)
+			&& FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mover))
+			&& !mover.hasSkillProperty(NamedProperties.movesRandomly))
+			movement = new RoutePlanner(state, true).budget();
+		String key = Math.max(1, game.getHalf()) + ":" + drive + ":" + game.getTurnDataAway().getTurnNr();
+		return new JsonObject().add("opponentId", coach.opponentId).add("policyVersion", coach.policyVersion)
+			.add("seed", coach.seed).add("policyState", computerPolicy == null ? JsonValue.NULL : computerPolicy.policyState())
+			.add("progress", computerPolicy == null ? new JsonObject().add("turnKey", key).add("stalledTurns", 0) : computerPolicy.progress())
+			.add("attackDirection", -1).add("movement", movement);
 	}
 
 	private JsonObject recoveryNative() {
@@ -610,6 +650,7 @@ public final class SetupSession {
         AcceptedActionPresentation narrative = new AcceptedActionPresentation();
         JsonObject logPresentation = new JsonObject().add("version", 1).add("action", JsonValue.NULL).add("movement", JsonValue.NULL);
         JsonObject acceptedDecision = JsonObject.readFrom(request.toString()).add("logPresentation", logPresentation);
+        acceptedDecision.remove("computerDecision"); // Keep private plans out of public transcripts; fingerprint retains them.
         JsonObject movement = transcriptV2 ? transcript.pendingMovement() : null;
         if (movement == null && pendingRoute != null)
             movement = narrative.movement(pendingRoute.declaredRevision, pendingRoute.playerId, pendingRoute.origin);
@@ -1166,6 +1207,8 @@ public final class SetupSession {
 
     private void recordEvent(String kind, String role, JsonValue decision, NativeRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
+        if (computerPolicy != null) computerPolicy.observe(snapshot,
+            reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying());
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
@@ -1174,7 +1217,12 @@ public final class SetupSession {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
             JsonArray nativeOutcomes = new JsonArray();
             capture.modelSyncs.forEach(nativeOutcomes::add);
-            JsonValue accepted = decision.isObject() ? JsonObject.readFrom(canonical(decision.asObject())) : JsonValue.NULL;
+            JsonValue accepted = JsonValue.NULL;
+            if (decision.isObject()) {
+                JsonObject publicDecision = JsonObject.readFrom(decision.toString());
+                publicDecision.remove("computerDecision");
+                accepted = JsonObject.readFrom(canonical(publicDecision));
+            }
             transcript.append(revision, kind, role, Math.max(System.currentTimeMillis(), transcript.lastTime()), accepted,
                 nativeOutcomes, snapshot, capture.lastCommandNr);
         }

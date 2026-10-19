@@ -60,6 +60,83 @@ function readFrames(socket, onMessage) {
   });
 }
 
+test('Bogruk retries a gameplay checkpoint and save/resume controls preserve it without metadata', { timeout: 15000 }, async () => {
+  const sockets = new Set(), seen = [];
+  let lost = false;
+  const computer = { opponentId: 'coach-bogruk-weak', policyVersion: 'bogruk-v1', seed: 42, attackDirection: -1,
+    movement: null, progress: { turnKey: '1:1:away:1', stalledTurns: 1 },
+    policyState: { version: 1, turnKey: '1:1:away:1', actions: 7, mistakeUsed: true, plan: null } };
+  let resumeTimer;
+  let current = { ...state, callerRole: 'away', actor: 'away', prompt: { ...state.prompt, actor: 'away' },
+    projectionVersion: 4, computer, homeTeamName: 'Home', awayTeamName: 'Away',
+    homeResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 }, awayResources: { apothecaries: 0, assistantCoaches: 0, cheerleaders: 0 } };
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else if (body.operation === 'load') send(socket, response(body.requestId, current));
+      else if (body.operation === 'choice') {
+        seen.push(body);
+        if (!lost) {
+          current = { ...current, revision: 1, phase: 'PLAY', prompt: null,
+            saveResume: { status: 'SAVE_PENDING', proposalId: matchId, proposer: 'home', expiresAt: 1000 },
+            computer: { ...computer, policyState: body.computerDecision.nextPolicyState },
+            actions: [] };
+          lost = true; socket.destroy(); return;
+        }
+        send(socket, { ...response(body.requestId, current), duplicate: true });
+      } else if (body.operation === 'saveAccept') {
+        seen.push(body);
+        current = { ...current, revision: 2,
+          saveResume: { status: 'SUSPENDED', proposalId: null, proposer: null, expiresAt: null } };
+        send(socket, response(body.requestId, current));
+        resumeTimer = setTimeout(() => {
+          current = { ...current, revision: 3, saveResume: { status: 'RESUME_PENDING', proposalId: secondMatchId, proposer: 'home', expiresAt: 2000 } };
+          send(socket, response(null, current));
+        }, 100);
+      } else if (body.operation === 'resumeAccept') {
+        seen.push(body);
+        send(socket, response(body.requestId, { ...current, revision: 4, phase: 'FULL_TIME', actions: [],
+          saveResume: { status: 'ACTIVE', proposalId: null, proposer: null, expiresAt: null } }));
+      }
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId, '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`, '--origin', origin], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  let timer;
+  try {
+    const [code] = await Promise.race([once(child, 'exit'), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 9000);
+    })]);
+    assert.equal(code, 0, output);
+    assert.equal(seen.length, 4);
+    assert.deepEqual(seen[0], seen[1], 'uncertain retry includes the identical reason and policy checkpoint');
+    assert.equal(seen[0].computerDecision.policyVersion, 'bogruk-v1');
+    assert.equal(seen[0].computerDecision.nextPolicyState.actions, 8);
+    assert.equal(current.computer.policyState.actions, 8, 'duplicates and save controls must preserve the gameplay counter');
+    assert.equal(current.computer.policyState.mistakeUsed, true);
+    assert.equal(seen[2].operation, 'saveAccept');
+    assert.equal(seen[3].operation, 'resumeAccept');
+    assert.equal(Object.hasOwn(seen[2], 'computerDecision'), false);
+    assert.equal(Object.hasOwn(seen[3], 'computerDecision'), false);
+    assert.match(output, /Accept the human coach's save request/);
+    assert.doesNotMatch(output, /aaaaaaaaaa/);
+  } finally {
+    clearTimeout(timer);
+    clearTimeout(resumeTimer);
+    if (child.exitCode === null && child.signalCode === null) await stopChild(child);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+  }
+});
+
 test('multi-injury apothecary treatment survives a lost acknowledgement and advances to fresh choices', { timeout: 15000 }, async () => {
   const seen = [];
   const sockets = new Set();

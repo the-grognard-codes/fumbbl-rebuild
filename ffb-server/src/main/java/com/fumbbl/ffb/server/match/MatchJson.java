@@ -73,6 +73,7 @@ public final class MatchJson {
 		for (Map.Entry<String, MatchDocument.Request> entry : document.requests.entrySet())
 			requests.add(new JsonObject().add("key", entry.getKey()).add("fingerprint", entry.getValue().fingerprint));
 		out.add("requests", requests);
+		if (document.computer != null) out.add("computer", document.computer.json());
 		if (document.completion != null) return out.set("formatVersion", document.home.team.teamName.isEmpty() ? 2 : 4).add("completion", JsonObject.readFrom(document.completion.json()));
 		return out;
 	}
@@ -90,7 +91,11 @@ public final class MatchJson {
 	public MatchDocument decode(String text, int persistedVersion) {
 		try {
 			JsonObject object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
-			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4) return decodeCompleted(object, persistedVersion);
+			// Independently versioned private extension; old preparation/public formats retain their shape.
+			ComputerCoach computer = object.get("computer") == null ? null : new ComputerCoach(object.get("computer").asObject());
+			object.remove("computer");
+			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4)
+				return computerIdentity(decodeCompleted(object, persistedVersion), computer);
 			exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests");
 			int format = object.get("formatVersion").asInt();
 			if ((format != 1 && format != 3) || positive(object.get("documentVersion")) != persistedVersion) throw new IllegalArgumentException();
@@ -124,9 +129,17 @@ public final class MatchJson {
 				if (!valid || requests.containsKey(key)) throw new IllegalArgumentException();
 				requests.put(key, new MatchDocument.Request(fingerprint));
 			}
-			return new MatchDocument(id, persistedVersion, invited, lifecycle, home, away, requests);
+			return computerIdentity(new MatchDocument(id, persistedVersion, invited, lifecycle, home, away, requests), computer);
 		} catch (MatchService.Failure failure) { throw failure;
 		} catch (RuntimeException failure) { throw new MatchService.Failure("SNAPSHOT_UNSUPPORTED"); }
+	}
+
+	private MatchDocument computerIdentity(MatchDocument document, ComputerCoach computer) {
+		if (computer == null) return document;
+		MatchDocument result = document.withComputer(computer);
+		if (new ComputerOpponentService(null).coach(result) == null || !"BB2025".equals(document.home.team.ruleset))
+			throw new IllegalArgumentException("Computer identity differs from frozen team");
+		return result;
 	}
 
 	private MatchDocument decodeCompleted(JsonObject object, int persistedVersion) {
