@@ -12,6 +12,7 @@ const cases = [...journeys, ...journeys.filter(journey => !accounting && ['pro',
   .flatMap(journey => ['otherCoach', 'spectator'].map(viewer => ({ ...journey, viewer })))];
 const selectedCases = process.env.REROLL_MODES ? cases.filter(journey => process.env.REROLL_MODES.split(',').includes(journey.mode) && !journey.viewer) : cases;
 const evidence = process.env.REROLL_EVIDENCE;
+const readinessStress = process.env.REROLL_READINESS_STRESS === '1';
 if (evidence) mkdirSync(evidence, { recursive: true });
 const server = await createServer({ root: fileURLToPath(new URL('../', import.meta.url)), configFile: false,
   server: { host: '127.0.0.1', port: 0 } });
@@ -25,6 +26,12 @@ try {
     console.log(journey.role, journey.mode, journey.viewer ?? 'actor');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
+    if (readinessStress && journey.role === 'home') {
+      await page.route('**/assets/game/ui/reroll-v1.png', async route => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await route.continue();
+      });
+    }
     await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
       '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
     await page.addInitScript(journey => {
@@ -70,11 +77,11 @@ try {
           // Keep the request pending until duplicate input/retries have been exercised.
           // A timed reply can focus the next decision between the two Enter presses.
           if (request.type === 'setup' && request.operation !== 'load') transport.replies.push(reply);
-          else setTimeout(() => this.emit(reply), 0);
+          else setTimeout(() => this.emit(reply), journey.readinessDelayMs ?? 0);
         }
         close() { this.readyState = 3; this.onclose?.(); }
       };
-    }, journey);
+    }, { ...journey, readinessDelayMs: readinessStress && journey.role === 'home' ? 6000 : 0 });
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${journey.offered.matchId}${journey.viewer === 'spectator' ? '&watch=1' : ''}`);
     if (journey.viewer) {
       await page.locator('.live-dice-overlay .match-die').first().waitFor({ state: 'visible' });
@@ -85,6 +92,8 @@ try {
       assert.deepEqual(errors, []);
       await page.close(); continue;
     }
+    await page.getByTestId('setup-status').filter({ hasText: `Revision ${journey.offered.revision} ` })
+      .waitFor({ state: 'attached', timeout: 30000 });
     const options = journey.offered.actions.filter(action => ['blockDie', 'reroll', 'skill'].includes(action.kind));
     const selected = options.find(action => action.id === journey.selectedId);
     const decision = matchDecision(journey.offered, options);
@@ -102,8 +111,11 @@ try {
     for (const option of decision.options.filter(option => /^(?:Use|Try)\b/.test(option.label))) {
       const offeredButton = page.getByRole('button', { name: option.label, exact: true });
       const resource = /^(?:Use|Try) (?:team|mascot|brilliant coaching|pump up the crowd|star of the show)/i.test(option.label);
-      if (resource) assert.ok(await offeredButton.locator('img').evaluate(image => image.complete && image.naturalWidth > 0 && image.src.endsWith('/assets/game/ui/reroll-v1.png')), option.label);
-      else assert.ok(await offeredButton.locator('svg use').evaluate(use => {
+      if (resource) {
+        const icon = offeredButton.locator('img');
+        await page.waitForFunction(image => image.complete, await icon.elementHandle(), { timeout: 30000 });
+        assert.ok(await icon.evaluate(image => image.naturalWidth > 0 && image.src.endsWith('/assets/game/ui/reroll-v1.png')), option.label);
+      } else assert.ok(await offeredButton.locator('svg use').evaluate(use => {
         const bounds = use.getBBox(); return bounds.width > 0 && bounds.height > 0;
       }), `Skill icon rendered for ${option.label}`);
     }
