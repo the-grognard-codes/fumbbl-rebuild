@@ -96,8 +96,9 @@ final class ComputerPolicyState {
 		}
 		if (!possession.equals(nextPossession)) {
 			stalledTurns = 0; progressed = false; hadPossession = false;
-		} else if (ownTurnOpen && nextPosition != null && position != null && nextPosition > position) {
-			stalledTurns = 0; progressed = true;
+		} else if (nextPosition != null && position != null && nextPosition > position) {
+			stalledTurns = 0;
+			if (ownTurnOpen) progressed = true;
 		}
 		boolean ownTurn = !normalHomePlaying && "PLAY".equals(view.getString("phase", null))
 			&& view.getInt("awayTurn", 0) > 0 && view.get("kickoff") == null;

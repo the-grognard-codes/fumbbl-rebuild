@@ -39,6 +39,12 @@ class ComputerPolicyStateTest {
 		assertEquals(0, memory.progress().getInt("stalledTurns", -1));
 	}
 
+	@Test void forwardProgressDuringTheOpponentsTurnAlsoResetsFrustration() {
+		ComputerPolicyState memory = stalled();
+		memory.observe(view(1, 1, "away", 14), true);
+		assertEquals(0, memory.progress().getInt("stalledTurns", -1));
+	}
+
 	@Test void nativeMovingFlagOnALooseGroundBallStillResetsPossession() {
 		ComputerPolicyState memory = stalled();
 		JsonObject inFlight = view(1, 1, "none", 15);
