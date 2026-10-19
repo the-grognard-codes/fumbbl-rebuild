@@ -48,7 +48,7 @@ export function chooseBogrukDecision(state, options = {}) {
     kick.sort((a, b) => distance(a.target, centre) - distance(b.target, centre) || a.id.localeCompare(b.id));
     return actionResult(kick[0], depth > 5 ? 'Try a deep kick.' : 'Try a shallow kick.');
   }
-  const prompt = promptDecision(state, actions, board, memory.plan);
+  const prompt = promptDecision(state, actions, board, memory.plan, memory.actions >= settings.maxActions);
   if (prompt) return actionResult(prompt, 'Resolve the offered choice with basic judgment.', memory.plan);
 
   const candidates = [];
@@ -204,9 +204,14 @@ function transferScore(board, passer, catcher, handOff, from) {
   return (38 + advance * 5 + safer * 8 + scoringThreat) * catchReroll * throwReroll - (1 - catchReroll * throwReroll) * 55;
 }
 
-function promptDecision(state, actions, board, plan) {
+function promptDecision(state, actions, board, plan, exhausted) {
   const regular = new Set(['select', 'stand', 'blitz', 'selectBlock', 'declareFoul', 'declarePass', 'declareHandOff', 'secureBall', 'move', 'jump', 'block', 'blitzTarget', 'foul', 'foulChainsaw', 'pass', 'handOff', 'endAction', 'endTurn', 'forgo', 'jumpMode']);
   if (actions.some(action => regular.has(action.kind))) return null;
+  if (exhausted) {
+    const decline = actions.find(action => ['reroll', 'proTestReroll', 'skill', 'reactiveSkill', 'kickSkill'].includes(action.kind)
+      && /do not|keep|none|decline|don't|not use|without/i.test(action.label));
+    if (decline) return decline;
+  }
   const attacker = board.players.find(player => player.id === state.activePlayerId);
   const defender = (plan && attacker && plan.playerId === attacker.id ? board.players.find(player => player.id === plan.targetPlayerId) : null)
     ?? board.players.find(player => attacker && player.role !== attacker.role && distance(player, attacker) === 1);

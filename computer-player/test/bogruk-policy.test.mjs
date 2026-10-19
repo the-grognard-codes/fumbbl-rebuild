@@ -371,3 +371,36 @@ test('Dodge, Tackle and Sure Hands influence estimates without making dice route
   const tackled = new BogrukBoard(state).stepRisk(runner, runner, { x: 6, y: 7 }, 1, 6);
   assert.equal(tackled.success, ordinary.success);
 });
+
+test('an exhausted persisted budget declines optional rerolls and skills instead of repeating them', () => {
+  for (const actions of [
+    [action('476:reroll:skill', 'reroll', null, null, 'Use Sure Hands'), action('476:reroll:team', 'reroll', null, null, 'Use team re-roll for Pick Up'), action('476:reroll:none', 'reroll', null, null, 'Do not re-roll Pick Up')],
+    [action('use', 'proTestReroll', null, null, 'Use team re-roll'), action('decline', 'proTestReroll', null, null, 'Keep the failed Pro test')],
+    [action('use', 'skill', null, null, 'Use Dodge'), action('decline', 'skill', null, null, 'Do not use Dodge')],
+  ]) for (const count of [BOGRUK_SETTINGS.maxActions, 256]) {
+    const state = view({ actions });
+    state.computer.policyState = { version: 1, turnKey: state.computer.progress.turnKey, actions: count, mistakeUsed: true, plan: null };
+    const result = calm(state);
+    assert.equal(result.decision.actionId, actions.at(-1).id);
+    assert.equal(result.nextPolicyState.actions, Math.min(256, count + 1));
+    assert.equal(result.nextPolicyState.mistakeUsed, true);
+    assert.deepEqual(result, calm(JSON.parse(JSON.stringify(state))));
+    state.computer.policyState.actions = BOGRUK_SETTINGS.maxActions - 1;
+    assert.equal(calm(state).decision.actionId, actions[0].id, 'ordinary prompt judgment remains available below the bound');
+  }
+});
+
+test('the exhausted budget still resolves mandatory faces, pushes and unfamiliar choices legally', () => {
+  for (const actions of [
+    [action('skull', 'blockDie', null, null, 'Attacker Down'), action('pow', 'blockDie', null, null, 'Defender Down')],
+    [action('push', 'push', null, { x: 10, y: 7 }, 'Push to 10, 7')],
+    [action('required', 'unfamiliarMandatory')],
+  ]) {
+    const state = view({ actions, players: [player('blocker', 9, 7)], activePlayerId: 'blocker' });
+    state.computer.policyState = { version: 1, turnKey: state.computer.progress.turnKey, actions: 256, mistakeUsed: false, plan: null };
+    const selected = calm(state).decision;
+    assert.equal(selected.operation, 'action');
+    assert.ok(actions.some(action => action.id === selected.actionId));
+    if (actions[0].kind === 'blockDie') assert.equal(selected.actionId, 'pow');
+  }
+});

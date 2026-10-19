@@ -27,7 +27,7 @@ Tracking: [parent #301](https://github.com/the-grognard-codes/fumbbl-rebuild/iss
 
 | Check | Result |
 | --- | --- |
-| `npm test` in `computer-player` | 33 passing policy and transport tests, including no-dice scoring, plausible risky alternatives, frustration, save controls, protective-retreat exclusion and exact unanswered-request retry. |
+| `npm test` in `computer-player` | 35 passing policy and transport tests, including no-dice scoring, plausible risky alternatives, frustration, save controls, protective-retreat exclusion, optional-prompt budget exhaustion and exact unanswered-request retry. |
 | Clean focused native/server suites | 98 passing after the Secure the Ball fix: 82 server tests across policy state/recovery, preparation, adapter, movement, placement, activation recovery, concession and live publication, plus 16 native reroll tests. Publication and Secure the Ball regressions failed before their fixes and passed afterward. |
 | Browser unit suite | 335 passing after integrating main's pass/handoff planning. |
 | Browser production build | `npm run build:play` passed. |
@@ -37,8 +37,8 @@ Tracking: [parent #301](https://github.com/the-grognard-codes/fumbbl-rebuild/iss
 | Complete browser gate | All 51 suites passed at merged code commit `2adee4aca8b8c6721709c00915ce8994d86d1158`: 41 interaction suites and 10 hosted suites. The combined execution-report gate passed, verifying every report's commit and suite inventory. |
 | Validation tooling | 15 passing browser inventory and execution-report tests. |
 | Native validation tooling | 12 passing shard-inventory/report checks; the new native regression is registered in shard 3. |
-| Native full match, Human home / Orc Bogruk, seed 42 | FULL_TIME, 1,024 decisions, 0 invalid, 0 stalled responses, 27 duplicate checks, 10 checkpoint restores, 6 deliberate gambles. Final score 0–4. |
-| Native full match, Orc home / Human Bogruk, seed 73 | FULL_TIME, 986 decisions, 0 invalid, 0 stalled responses, 26 duplicate checks, 9 checkpoint restores. Final score 0–6. |
+| Final native full match, Human home / Orc Bogruk, seed 42 | FULL_TIME with the native prompt fix and policy budget guard: 1,024 decisions, 0 invalid, 0 stalled responses, 27 duplicate checks, 10 checkpoint restores, 6 deliberate gambles. Final score 0–4. |
+| Final native full match, Orc home / Human Bogruk, seed 73 | FULL_TIME with the same final changes: 986 decisions, 0 invalid, 0 stalled responses, 26 duplicate checks, 9 checkpoint restores. Final score 0–6. |
 
 These native matches use real engine actions and recovery artifacts with seeded random choices for the human seat. They establish participation, scoring and recovery, not a casual-player win rate. No numerical win-rate guarantee was agreed.
 
@@ -69,6 +69,10 @@ Linux CI exposed two existing kickoff-dependent movement assertions. The fixture
 Real second-half play found an existing BB2025 Secure the Ball bug: the native step skipped Sure Hands, but generic reroll prompting offered it again. Its unhandled command left the same prompt in place, so the sensible free-reroll preference repeatedly selected it. [Sure Hands excludes Secure the Ball](https://bloodbowlbase.ru/bb2025/core_rules/skills_and_traits/#sure-hands-active). Issue #309 tracks the correction: the BB2025 step excludes that pickup skill from the existing reroll service while retaining applicable sources. An obsolete saved choice refreshes the legal prompt without rolling or consuming a resource; without a legal source, the existing failed-pickup path resolves. This repair requires the acting coach. Ordinary pickup skill rerolls and other rulesets retain their behavior. Three native regressions failed before the fix and cover both coach roles, legal team rerolls, no-source failure, unchanged ordinary pickup, and exact recovery with opponent-request rejection.
 
 The retained real match then recovered the obsolete choice at revision 1138, offered a legal team reroll at 1139, and returned to ordinary second-half play. A later run encountered a host clock jump during its fixed turn-completion wait. The harness now waits for bounded advancing revisions, with a per-update liveness timeout, rather than imposing 120 seconds on an entire computer turn. Google ADC subsequently reported `SESSION_EXPIRED`; final full-time/result/replay acceptance awaits owner reauthentication. This is not recorded as a completed live match.
+
+A final audit of that repeated prompt found that optional choices bypassed the policy's action-limit check, while the persisted counter saturated at 256. The policy now takes an offered optional reroll/skill decline after budget exhaustion, while retaining normal judgment below the bound and legal resolution of mandatory faces, pushes and unfamiliar choices. Guaranteed no-dice touchdowns still override exhaustion. A regression replays the observed choices at counts 192 and 256, including serialized recovery and unchanged spent-mistake state. This general guard complements the native legality correction; it does not blacklist Sure Hands. Both final native roster pairings were rerun after the change and completed with zero invalid/stalled responses.
+
+Final focused reviews: Standards has 0 unresolved findings; Spec has 0 unresolved findings. Remaining delivery work is the explicitly pending authenticated browser completion and final PR checks/merge.
 
 The broad browser run exposed an existing asset-readiness race in a reroll fixture: it inspected an image before decoding completed. The assertion now waits for `image.decode()` and still verifies the expected loaded asset. The new selector suite is registered in the existing browser manifest.
 
