@@ -72,4 +72,4 @@ Extend the existing movement request/plan and persisted pending-route machinery.
 
 ## Completion Notes
 
-Implementation is in progress on `feature/handoff-pass-steamline`. Outcomes and exact validation commands will be recorded alongside this design.
+Implemented in [PR #307](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/307) on `feature/handoff-pass-steamline`. See the [delivery outcome](streamlined-pass-handoff-outcome.md) for acceptance evidence, validation results, limitations and the environment retrospective.
