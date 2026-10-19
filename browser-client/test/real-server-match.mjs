@@ -53,7 +53,7 @@ async function observe(context) {
     page.on('websocket', socket => socket.on('framereceived', event => {
       const message = JSON.parse(String(event.payload));
       if (message.type !== 'setupState' || !message.state) return;
-      try { decodeSetupStateValue(message.state); }
+      try { decodeSetupStateValue(message.state, message.state.callerRole === 'spectator'); }
       catch (error) { invalidProjections.push({ reason: error.message, state: message.state }); }
     }));
   });
@@ -252,7 +252,7 @@ async function actionUI(view, action) {
   }
   if (action.kind === 'endTurn') {
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
-  } else if (['select', 'stand', 'selectBlock', 'blitz'].includes(action.kind) && action.sourcePlayerId) {
+  } else if (['selectBlock', 'blitz'].includes(action.kind) && action.sourcePlayerId) {
     const player = view.players.find(player => player.id === action.sourcePlayerId);
     await squarePosition(page, player.x, player.y);
     await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
