@@ -381,14 +381,20 @@ try {
     const before = view;
     if (index % 30 === 0) console.log(JSON.stringify({ decisions: index, revision: view.revision, phase: view.phase, half: view.half, turns: [view.homeTurn, view.awayTurn], score: [view.homeScore, view.awayScore] }));
     if (computer && (view.prompt?.actor ?? view.actor) === 'away') {
-      await pages[0].waitForFunction(revision => window.__acceptance.incoming.some(message => message.state?.revision > revision), view.revision);
-      await Promise.all(pages.map(page => page.waitForFunction(() => {
-        const view = window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state;
-        return view && (view.phase === 'FULL_TIME' || (view.prompt?.actor ?? view.actor) === 'home')
-          || [...document.querySelectorAll('[role="alert"]')].some(element => /INVALID RESPONSE/.test(element.textContent));
-      }, null, { timeout: 120000 })));
-      if (invalidProjections.length) throw Error(`Invalid live projection: ${invalidProjections[0].reason}`);
-      view = await converge((await state(pages[0])).revision);
+      let updates = 0;
+      while (view.phase !== 'FULL_TIME' && (view.prompt?.actor ?? view.actor) === 'away') {
+        assert.ok(++updates <= 256, 'Computer control returns within its action budget plus setup and prompt resolution');
+        await pages[0].waitForFunction(revision => {
+          const latest = window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state;
+          return latest?.revision > revision
+            || [...document.querySelectorAll('[role="alert"]')].some(element => /INVALID RESPONSE/.test(element.textContent));
+        }, view.revision, { timeout: 60000 });
+        if (invalidProjections.length) throw Error(`Invalid live projection: ${invalidProjections[0].reason}`);
+        const latest = await state(pages[0]);
+        assert.ok(latest.revision > view.revision, 'Computer publishes a valid advancing snapshot');
+        view = latest;
+      }
+      view = await converge(view.revision);
     } else if (view.prompt) {
       const page = pages[view.prompt.actor === 'home' ? 0 : 1];
       if (!decisionReconnect) {

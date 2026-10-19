@@ -702,6 +702,8 @@ class SetupSessionMovementTest {
         stateField.setAccessible(true);
         Game game = ((GameState) stateField.get(fixture.session)).getGame();
         Player<?> player = game.getPlayerById(playerId);
+        game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
+        assertEquals(6, player.getMovementWithModifiers(game), "Standing-up budget uses an unmodified lineman");
         game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.PRONE).changeActive(true));
         game.getActingPlayer().setPlayerId(playerId);
         game.getActingPlayer().setPlayerAction(PlayerAction.STAND_UP);
