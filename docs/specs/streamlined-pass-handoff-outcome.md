@@ -37,6 +37,14 @@ Complete optional Linux browser validation is not green. Three assertions failed
 
 Local visual captures are under `test-output/planned-transfers/`. Reviewed desktop perspective transfer lines/action highlights and portrait top-down movement editing. Android coverage uses a touch-capable browser viewport; no physical Android device was used.
 
+### Follow-up acceptance and local validation (2026-10-19)
+
+The owner confirmed that streamlined Pass and Hand Off work as expected in local gameplay. A subsequent parallel browser-validation run exposed two existing readiness races in the shared reroll harness: checking a resource icon before it loaded, and looking for a choice before the offered match revision arrived.
+
+The harness now waits for the expected revision and image completion with bounded timeouts, retaining its existing choice, icon, resource-accounting and duplicate-request assertions. A registered regression journey delays the initial state beyond the former five-second deadline and delays the reroll icon. Both failures were reproduced before their respective fixes.
+
+Post-fix verification: 56 reroll-choice cases and 22 accounting cases passed concurrently; the two delayed-readiness cases passed while those suites were running. All 20 validation-tooling tests passed. This follow-up changes test synchronization and inventory only; native game rules and browser gameplay are unchanged.
+
 ## Standards
 
 Independent review found no actionable documented-standard violation or baseline-smell regression. The instance service convention, ChangeList entry, strict protocol handling and existing styling were preserved.
