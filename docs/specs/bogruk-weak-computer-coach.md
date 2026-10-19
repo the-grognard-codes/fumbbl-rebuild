@@ -82,7 +82,8 @@ this feature does not change game rules to reconcile them.
    Reset frustration on forward ball progress, possession change, or a new drive.
    Allow at most one deliberate tactical mistake per team turn. A mistake is a
    legal, purposeful alternative that could succeed, such as a risky lane-clearing
-   block when a safer dodge or route exists. Success still consumes the allowance;
+   block when a safer dodge or route exists. An accepted choice consumes the
+   allowance regardless of its dice result;
    bad dice on a sensible decision do not. Carrier gambles are allowed, except
    when a no-dice scoring route is available. Support risky blocks, poor ordering,
    low-value fouls, and unnecessary dodges/rushes; purposeful play stays dominant.
@@ -152,9 +153,10 @@ repository issue-tracker workflow.
 
 Parent: [#301](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/301).
 
-- [ ] [#302 — Identity and durable policy contract](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/302)
-- [ ] [#303 — Bogruk decisions and worker integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/303), depends on #302's contract.
+- [x] [#302 — Identity and durable policy contract](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/302)
+- [x] [#303 — Bogruk decisions and worker integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/303), depends on #302's contract.
 - [ ] [#304 — End-to-end acceptance and delivery](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/304), depends on #302 and #303.
+- [ ] [#309 — Legal Secure the Ball reroll prompts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/309), discovered during #304's real browser match; required to complete it.
 
 1. **Identity and durable policy contract** — owner: primary implementation agent.
    Add coach selection, server-side identity/authorization/routing, compatible
