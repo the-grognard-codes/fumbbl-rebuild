@@ -11,6 +11,18 @@ const range = { rangeVersion: 2, playerId: 'home1', from: { x: 7, y: 7 }, remain
 const route = { routeVersion: 3, playerId: 'home1', from: range.from, remaining: 8, steps: [step], revision: 4, actor: 'home' };
 const plan = { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: [{ x: 8, y: 7 }], route };
 
+test('pass and handoff plans support stationary transfers and routed pickups with a required recipient', () => {
+  for (const kind of ['pass', 'handOff']) {
+    for (const steps of [[], [step]]) {
+      const transfer = { ...plan, kind, targetPlayerId: 'home2', waypoints: steps.length ? [square] : [], route: { ...route, steps } };
+      const response = { ...envelope, type: 'movementPreview', plan: transfer };
+      assert.equal(decodeMovementPreview(JSON.stringify(response)).plan.kind, kind);
+      for (const invalid of [{ ...transfer, targetPlayerId: null }, { ...transfer, targetPlayerId: 'home1' },
+        { ...transfer, blockDice: 2 }]) assert.throws(() => decodeMovementPreview(JSON.stringify({ ...response, plan: invalid })));
+    }
+  }
+});
+
 test('all exported native movement ranges and plans satisfy the reviewed wire contract', () => {
   const fixture = JSON.parse(readFileSync(new URL('./fixtures/movement-interaction-projections.json', import.meta.url), 'utf8'));
   for (const value of Object.values(fixture)) {

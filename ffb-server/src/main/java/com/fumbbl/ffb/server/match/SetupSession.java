@@ -1267,7 +1267,7 @@ public final class SetupSession {
 		String targetPlayerId, JsonArray points) {
 		movementRead(role, expectedRevision);
 		if (pendingActivation != null || !role.equals(actor())
-			|| !("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind)))
+			|| !("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind) || ballTransfer(kind)))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		Game game = state.getGame();
 		Player<?> player = game.getPlayerById(playerId);
@@ -1275,6 +1275,7 @@ public final class SetupSession {
 			throw new MatchService.Failure("WRONG_PLAYER");
 		Player<?> active = game.getActingPlayer().getPlayer();
 		PlayerAction currentAction = game.getActingPlayer().getPlayerAction();
+		if (ballTransfer(kind) && active == player) throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		boolean selectingBlitzTarget = active == player && game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET;
 		if (active == player && (!("move".equals(kind) && currentAction != null
 				&& (currentAction.isMoving() || currentAction.isStandingUp() || selectingBlitzTarget)
@@ -1296,7 +1297,7 @@ public final class SetupSession {
 		List<MovementWaypoint> waypoints = routePoints(points, !"move".equals(kind) || jumpPlanning);
 		RoutePlanner planner = new RoutePlanner(state, player, false);
 		Player<?> target = null;
-		if (!"move".equals(kind)) {
+		if (!"move".equals(kind) && !ballTransfer(kind)) {
 			target = game.getPlayerById(targetPlayerId);
 			if (target == null || !game.getOtherTeam(player.getTeam()).hasPlayer(target)
 				|| !("blitz".equals(kind) ? game.getFieldModel().getPlayerState(target).canBeBlocked()
@@ -1310,8 +1311,9 @@ public final class SetupSession {
 				if (waypoints.size() >= 20) throw new MatchService.Failure("INVALID_ROUTE");
 				waypoints.add(new MovementWaypoint(planner.approachWaypoints(at, "blitz".equals(kind), waypoints), false));
 			}
-		} else if (targetPlayerId != null) throw new MatchService.Failure("INVALID_ROUTE");
+		} else if ("move".equals(kind) && targetPlayerId != null) throw new MatchService.Failure("INVALID_ROUTE");
 		JsonObject route = waypoints.isEmpty() ? planner.emptyPreview() : planner.previewWaypoints(waypoints);
+		if (ballTransfer(kind)) new PlannedBallTransfer().validate(state, playerId, targetPlayerId, kind, role, route);
 		if ("blitz".equals(kind) && planner.cost(route) > planner.blitzApproachSteps())
 			throw new MatchService.Failure("NO_ROUTE");
 		route.add("revision", revision).add("actor", role);
@@ -1333,8 +1335,11 @@ public final class SetupSession {
 	}
 
 	private String movementDeclaration(String kind) {
-		return "blitz".equals(kind) ? "blitz-" : "foul".equals(kind) ? "declareFoul-" : "select-";
+		return "blitz".equals(kind) ? "blitz-" : "foul".equals(kind) ? "declareFoul-"
+			: "pass".equals(kind) ? "declarePass-" : "handOff".equals(kind) ? "declareHandOff-" : "select-";
 	}
+
+	private boolean ballTransfer(String kind) { return "pass".equals(kind) || "handOff".equals(kind); }
 
 	private void movementRead(String role, int expectedRevision) {
 		if (!routeV2 || failed || isComplete() || saveResume && saveResumeState.suspended())
@@ -1454,6 +1459,7 @@ public final class SetupSession {
 				|| steps.size() > 20 || next < 0 || next > steps.size()
 				|| steps.isEmpty() && "move".equals(kind)
 				|| !"move".equals(kind) && !"blitz".equals(kind) && !"foul".equals(kind)
+					&& !"pass".equals(kind) && !"handOff".equals(kind)
 				|| !"move".equals(kind) && (targetPlayerId == null || targetPlayerId.isEmpty()))
 				throw new IllegalArgumentException("Invalid pending route");
 			FieldCoordinate previous = origin;
@@ -1520,16 +1526,23 @@ public final class SetupSession {
 			}
 			if (pendingRoute.complete()) {
 				if ("move".equals(pendingRoute.kind)) { pendingRoute = null; return; }
-				Action block = actions().stream().filter(action -> ("foul".equals(pendingRoute.kind) ? "foul" : "block").equals(action.kind)
+				boolean transfer = ballTransfer(pendingRoute.kind);
+				PlannedBallTransfer transfers = new PlannedBallTransfer();
+				if (transfer && !transfers.eligibleRecipient(game, active, pendingRoute.targetPlayerId, pendingRoute.kind)) {
+					pendingRoute = null; return;
+				}
+				Action plannedAction = actions().stream().filter(action -> transfer
+					? pendingRoute.actor.equals(action.role) && transfers.matches(game, action, pendingRoute.targetPlayerId, pendingRoute.kind)
+					: ("foul".equals(pendingRoute.kind) ? "foul" : "block").equals(action.kind)
 					&& pendingRoute.actor.equals(action.role)
 					&& pendingRoute.targetPlayerId.equals(action.targetPlayerId)).findFirst().orElse(null);
-				if (block == null) {
+				if (plannedAction == null) {
 					if (game.getDialogParameter() != null || step() != StepId.INIT_MOVING && step() != StepId.INIT_SELECTING) return;
 					pendingRoute = null; return;
 				}
-				String blockActor = pendingRoute.actor;
+				String actionActor = pendingRoute.actor;
 				pendingRoute = null;
-				state.handleCommand(new ReceivedCommand(block.command, "home".equals(blockActor)));
+				state.handleCommand(new ReceivedCommand(plannedAction.command, "home".equals(actionActor)));
 				return;
 			}
 			Action offered = null;

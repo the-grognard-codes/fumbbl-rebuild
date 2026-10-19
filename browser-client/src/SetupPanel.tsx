@@ -22,7 +22,7 @@ import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
 import { matchesMovementRange } from './movement-range-read.ts';
-import { canPlanMovement, matchesMovementPlan } from './movement-interaction.ts';
+import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer, isBallTransfer } from './movement-interaction.ts';
 import { potentialBlockDice } from './block-dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
 import { blockFaceLabel } from './dice-presentation.ts';
@@ -238,6 +238,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [jumpMode, setJumpMode] = useState(false);
   const [jumpSupportMatch, setJumpSupportMatch] = useState<string | null>(null);
   const [movementIntent, setMovementIntent] = useState<MovementRequest | null>(null);
+  const transferRollback = useRef<{ intent: MovementRequest | null; targetId: string } | null>(null);
   const movementFlow = hosted && !!requestMovementPreview;
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [hoverPlayer, setHoverPlayer] = useState<{ id: string; anchor: DOMRect } | null>(null);
@@ -260,6 +261,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setRouteMode(false); setWaypoints([]); setJumpMode(false);
     setExplicitMove(false);
     setMovementIntent(null);
+    transferRollback.current = null;
   }, [view.revision]);
   const own = view.players.filter(player => player.role === view.callerRole) ?? [];
   const selectedPlayer = view.players.find(player => player.id === playerId);
@@ -327,6 +329,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const displayedWaypoints = movementFlow && movementIntent?.kind !== 'move' && !waypoints.length && movementReady
     ? movementPlan!.waypoints : waypoints;
   const previewMovement = (kind: MovementRequest['kind'], targetId: string | null, points: RoutePoint[]) => {
+    if (!isBallTransfer(kind)) transferRollback.current = null;
     setJumpMode(false);
     if (kind !== 'move') setExplicitMove(false);
     const intent = { playerId, kind, targetPlayerId: targetId, waypoints: points };
@@ -335,10 +338,21 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     requestMovementPreview?.(intent);
   };
   const clearMovement = (keepExplicitMove = false) => {
+    transferRollback.current = null;
     setJumpMode(false);
     if (!keepExplicitMove) setExplicitMove(false);
     setMovementIntent(null); setRouteMode(false); setWaypoints([]); requestMovementPreview?.(null);
   };
+  useEffect(() => {
+    if (!transferRollback.current) return;
+    if (movementReviewed) { transferRollback.current = null; return; }
+    if (!movementError) return;
+    const previous = transferRollback.current;
+    transferRollback.current = null;
+    setTargetPlayerId(previous.targetId);
+    if (previous.intent) previewMovement(previous.intent.kind, previous.intent.targetPlayerId, previous.intent.waypoints);
+    else clearMovement();
+  }, [movementError, movementReviewed]);
   const canRoute = hosted && !!requestRoutePreview && canChoose && view.phase === 'PLAY'
     && !kickoffMovement
     && view.actor === view.callerRole && !!view.activePlayerId
@@ -350,6 +364,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const reviewedRoute = movementIntent ? movementReviewed ? movementPlan!.route : null : routeReady ? routePreview : null;
   const pathReady = movementIntent ? movementReady : routeReady;
   const undoWaypoint = () => {
+    if (canChoose && isBallTransfer(movementIntent?.kind)) {
+      setTargetPlayerId('');
+      if (displayedWaypoints.length) previewMovement('move', null, displayedWaypoints);
+      else clearMovement();
+      return;
+    }
     if (!canChoose || !routeMode || !displayedWaypoints.length) return;
     updateWaypoints(displayedWaypoints.slice(0, -1));
   };
@@ -388,6 +408,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
   const cancelProposal = () => {
+    transferRollback.current = null;
     if (jumpMode) { setJumpMode(false); return; }
     if (!requestPending) setConfirmedDice(null);
     setPlayerId(teammateProposal ? view.activePlayerId ?? playerId : ''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
@@ -434,6 +455,25 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
     if (touchback) { setPlayerId(id); setActionId(touchback.id); setSmartIntent(null); return; }
     const player = view.players.find(item => item.id === id);
+    if (movementFlow && canChoose && !decision && !pinnedAction && !explicitMove && !explicitBlitz
+      && view.phase === 'PLAY' && view.actor === view.callerRole && selectedPlayer?.role === view.callerRole && player?.role === view.callerRole
+      && id !== playerId && view.activePlayerId !== playerId) {
+      // A pending route cannot yet establish possession or its endpoint.
+      if (movementIntent && !movementReviewed) return;
+      const route = movementReviewed ? movementPlan!.route : null;
+      if (canPlanBallTransfer(view, playerId, route)) {
+        const from = route?.steps.at(-1) ?? route?.from ?? selectedPlayer;
+        if (from.x != null && from.y != null && player.x != null && player.y != null) {
+          const kind = Math.max(Math.abs(from.x - player.x), Math.abs(from.y - player.y)) === 1 ? 'handOff' : 'pass';
+          if (canPlanMovement(view, availableActions, playerId, kind)) {
+            transferRollback.current = { intent: movementIntent, targetId: targetPlayerId };
+            setTargetPlayerId(id); setTargetFocus('player');
+            previewMovement(kind, id, displayedWaypoints);
+          }
+        }
+        return;
+      }
+    }
     if (canChoose && !decision && id === playerId && player?.role === view.callerRole && player.x != null && player.y != null) {
       if (movementFlow && movementIntent && displayedWaypoints.length) {
         selectSquare(player.x, player.y); return;
@@ -570,7 +610,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         const existing = displayedWaypoints.findIndex(point => point.x === column && point.y === row);
         const points = existing >= 0 ? displayedWaypoints.slice(0, existing + 1)
           : [...displayedWaypoints, { x: column, y: row }].slice(0, 20);
-        previewMovement(movementIntent.kind, movementIntent.targetPlayerId, points);
+        const transfer = isBallTransfer(movementIntent.kind);
+        if (transfer) setTargetPlayerId('');
+        previewMovement(transfer ? 'move' : movementIntent.kind, transfer ? null : movementIntent.targetPlayerId, points);
         return;
       }
       if (!pinnedAction && canMove) {
@@ -828,7 +870,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   </section>;
   return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined} style={{ ['--support-panel-opacity' as string]: `${opacity}%` }} onKeyDown={event => {
     if (!routeMode || (movementIntent ? !canChoose : !canRoute) || !(event.target instanceof HTMLElement) || !event.target.closest('.live-pitch') || event.target.closest('input,textarea,select,[contenteditable]')) return;
-    if (event.key === 'Escape') { event.preventDefault(); if (jumpMode) { setJumpMode(false); return; } setRouteMode(false); updateWaypoints([]); setSmartIntent(null); }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (jumpMode) { setJumpMode(false); return; }
+      if (isBallTransfer(movementIntent?.kind)) cancelProposal();
+      else { setRouteMode(false); updateWaypoints([]); setSmartIntent(null); }
+    }
   }}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? `${matchTeamName(view, 'home')} / ${matchTeamName(view, 'away')}` : view.callerRole === 'home' ? `${matchTeamName(view, 'home')}: You / ${matchTeamName(view, 'away')}: Opponent` : `${matchTeamName(view, 'home')}: Opponent / ${matchTeamName(view, 'away')}: You`}</p>
@@ -843,7 +890,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && showConfirmation && <div className="confirmation-row">
         {view.phase === 'PLAY' && <div className="command-preview">{jumpMode ? <span role="status">Choose a jump landing square or cancel Jump.</span> : (routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
-          : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.' : 'Confirm moves along the path.'
+          : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.'
+          : movementIntent?.kind === 'pass' ? 'Confirm moves and passes.'
+          : movementIntent?.kind === 'handOff' ? 'Confirm moves and hands off.' : 'Confirm moves along the path.'
           : 'Choose a waypoint to preview the path.' : confirmEndTurn ? 'Unactivated players remain. Confirm to end this turn.' : `Ready: ${pinnedAction!.label}`}</span>}
           {movementIntent && movementError && <span role="status">{movementError}</span>}
         </div>}
@@ -896,6 +945,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
+        plannedTransfer={!playbackActive && movementReviewed && movementPlan && isBallTransfer(movementPlan.kind)
+          ? { targetPlayerId: movementPlan.targetPlayerId!, from: movementPlan.route.steps.at(-1) ?? movementPlan.route.from } : null}
         jumpOptions={jumpMode && canChoose && !decision && !playbackActive ? jumpOptions : null}
         potentialDice={confirmedDice?.preview ?? potentialDice} diceAwaiting={!!confirmedDice}
         movementRange={displayedRange}
@@ -907,7 +958,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         onRightClick={() => {
           if (decision || playbackActive || requestPending) return;
           if (jumpMode) { setJumpMode(false); return; }
-          if (routeMode && displayedWaypoints.length) { undoWaypoint(); return; }
+          if (isBallTransfer(movementIntent?.kind) || routeMode && displayedWaypoints.length) { undoWaypoint(); return; }
           cancelProposal(); setPlayerId('');
         }}
         decision={!playbackActive && decision && ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) ? decision : null}

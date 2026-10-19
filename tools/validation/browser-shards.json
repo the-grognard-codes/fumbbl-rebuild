@@ -35,6 +35,7 @@
     ],
     [
       "browser-client/test/pass-workflow-ui.mjs",
+      "browser-client/test/planned-transfers-ui.mjs",
       "browser-client/test/movement-flow-ui.mjs",
       "browser-client/test/jump-planning-ui.mjs",
       "browser-client/test/misc-fix-rollup-ui.mjs",

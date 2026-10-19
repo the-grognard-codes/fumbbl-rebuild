@@ -4,7 +4,7 @@ import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
 
 export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
-export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul'; targetPlayerId: string | null; waypoints: RoutePoint[] };
+export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul' | 'pass' | 'handOff'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
   waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; range?: MovementRange; jumpOptions?: RouteStep[] };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
@@ -73,7 +73,7 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const hasRange = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'range');
   const hasJumps = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'jumpOptions');
   const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : [])]);
-  if (value.planVersion !== 1 || !['move', 'blitz', 'foul'].includes(value.kind as string)
+  if (value.planVersion !== 1 || !['move', 'blitz', 'foul', 'pass', 'handOff'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
   if (hasDice && (kind !== 'blitz' || ![1, 2, 3, -2, -3].includes(value.blockDice as number))) throw Error('Invalid blitz dice');
