@@ -1,7 +1,7 @@
 # Agent Guidelines
 
 ## Delivery Workflow
-- For implementation handoffs or requests to roll changes into `main`, read [the delivery workflow](docs/agents/feature-workflow.md). It defines the "normal process" / "usual method": a working branch through a reviewed, validated PR and merge. Direct pushes to `main` are outside this process.
+- For implementation handoffs or requests to roll changes into `main`, read [the delivery workflow](docs/agents/feature-workflow.md). It defines the "normal process" / "usual method": GitHub issues for each slice, a new working branch, implementation, self-review, validation, and a results report. Publishing and merging require explicit authorization as described there.
 
 ## Team Sprite Artwork
 - For creating, extending, revising, resizing, or reviewing team player sprites, read and use `.agents/skills/team-pixel-sprites/SKILL.md` and its referenced `.notes/art-preview/team-sprite-standard.md`. This applies even when the request does not explicitly name the skill. Keep unrelated art, typography, and gameplay tasks outside this workflow.
