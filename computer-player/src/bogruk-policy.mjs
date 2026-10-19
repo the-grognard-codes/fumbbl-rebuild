@@ -190,6 +190,8 @@ function bestAdjacent(paths, target) {
 
 function transferScore(board, passer, catcher, handOff, from) {
   const advance = board.progress(passer, catcher);
+  // A transfer must not surrender ground just to protect possession. Movement detours remain available.
+  if (advance < 0 || board.progress(from, catcher) < 0) return -Infinity;
   const safer = board.marks(passer, passer.role).length - board.marks(catcher, catcher.role).length;
   if (advance < 2 && safer < 1) return -Infinity;
   if (board.progress(from, catcher) < 1 && safer < 1) return -Infinity;

@@ -160,6 +160,26 @@ test('a useful handoff or short pass reaches a scoring threat, while long or emp
   assert.equal(calm(state).decision.actionId, 'handoff');
 });
 
+test('a safer backward receiver cannot replace purposeful forward play in either direction', () => {
+  for (const direction of [1, -1]) for (const kind of ['handOff', 'pass']) {
+    const carrier = player('carrier', 10, 7, { ma: 1, pa: 2, skills: ['Pass'] });
+    const receiver = player('receiver', 10 - direction, 7, { ag: 2, skills: ['Catch'] });
+    const marker = player('marker', 10 + direction, 7, { role: 'away' });
+    const forward = { x: 10 + direction, y: 8 };
+    const state = view({ players: [carrier, receiver, marker], activePlayerId: carrier.id,
+      ball: { x: carrier.x, y: carrier.y }, ballState: { carrierPlayerId: carrier.id, inPlay: true, moving: false },
+      actions: [action('retreat', kind, carrier.id, kind === 'handOff' ? { playerId: receiver.id } : { x: receiver.x, y: receiver.y }),
+        action('forward', 'move', carrier.id, forward), action('end', 'endAction')] });
+    state.computer.attackDirection = direction;
+    state.computer.movement = { normalRemaining: 1, remaining: 1 };
+    state.movementForecast = { playerId: carrier.id, steps: [{ ...forward, dodge: 4, rush: 0, reactions: [], checks: [] }] };
+    state.passing = { ranges: Array.from({ length: 26 }, () => '-'.repeat(15)) };
+    state.passing.ranges[receiver.x] = '-------Q-------';
+    assert.equal(calm(state).decision.actionId, 'forward', `${direction}/${kind}`);
+    assert.equal(chooseBogrukDecision(state, { random: () => 0 }).decision.actionId, 'forward', 'recklessness cannot authorize retreat');
+  }
+});
+
 function riskScenario(stalledTurns = 0) {
   const carrier = player('carrier', 10, 7);
   const blocker = player('blocker', 14, 3, { skills: ['Block'] });
