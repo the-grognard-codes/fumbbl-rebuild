@@ -44,6 +44,7 @@ public final class SavedTeamService {
 	public Loaded load(String owner, String id) throws SQLException { return inspect(required(owner, id)); }
 	public Loaded create(String owner, TeamDraft draft) throws SQLException {
 		TeamValidation.Evaluation result = accepted(draft);
+		uniqueName(owner, null, draft);
 		SavedTeamDocument document = new SavedTeamDocument(UUID.randomUUID().toString(), owner, 1, draft, json.evaluation(result).toString());
 		repository.insert(record(document));
 		return new Loaded(document, "CURRENT", result);
@@ -61,6 +62,7 @@ public final class SavedTeamService {
 			if (!json.encode(loaded.document).equals(json.encode(document))) throw new Failure("CONFLICT");
 			return loaded;
 		}
+		uniqueName(owner, null, draft);
 		repository.insert(record(document));
 		return new Loaded(document, "CURRENT", result);
 	}
@@ -72,6 +74,7 @@ public final class SavedTeamService {
 		if (draft.draftVersion != previous.document.draft.draftVersion) throw new Failure("MIGRATION_REQUIRED");
 		if (!previous.document.draft.catalogVersion.equals(draft.catalogVersion)) throw new Failure("MIGRATION_REQUIRED");
 		TeamValidation.Evaluation result = accepted(draft);
+		uniqueName(owner, id, draft);
 		if (expectedVersion >= 2147483646) throw new Failure("INVALID_DOCUMENT_VERSION");
 		SavedTeamDocument document = new SavedTeamDocument(id, owner, expectedVersion + 1, draft, json.evaluation(result).toString());
 		if (!repository.replace(record(document), expectedVersion)) throw new Failure("CONFLICT");
@@ -100,6 +103,15 @@ public final class SavedTeamService {
 		if (!"CURRENT".equals(status)) throw new Failure(status, result);
 		if (!result.isValid()) throw new Failure("VALIDATION_FAILED", result);
 		return result;
+	}
+	private void uniqueName(String owner, String teamId, TeamDraft draft) throws SQLException {
+		if ("home".equals(owner) || "away".equals(owner)) return;
+		SavedTeamNames names = new SavedTeamNames();
+		String key = names.key(draft.teamName);
+		if (key.isEmpty()) return;
+		for (SavedTeamRepository.Record existing : repository.list(owner)) {
+			if (!existing.teamId.equals(teamId) && key.equals(names.documentKey(existing.json))) throw new Failure("TEAM_NAME_TAKEN");
+		}
 	}
 	private String versionStatus(TeamDraft draft) {
 		if (!RosterCatalog.VERSION.equals(draft.catalogVersion)) return "VERSION_UNAVAILABLE";

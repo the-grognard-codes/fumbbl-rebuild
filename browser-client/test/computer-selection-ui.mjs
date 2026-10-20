@@ -7,7 +7,7 @@ import { createServer } from './browser-test-server.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const evidence = fileURLToPath(new URL('../../.tools/bogruk/', import.meta.url));
 await mkdir(evidence, { recursive: true });
-const server = await createServer({ root, configFile: false, server: { host: '127.0.0.1', port: 0 } });
+const server = await createServer({ root, publicDir: fileURLToPath(new URL('../../site/src/', import.meta.url)), configFile: false, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -47,13 +47,18 @@ try {
     });
     const page = await context.newPage();
     await page.goto(`${base}/test/fixtures/reconnect.html?view=play`);
-    await page.getByLabel(/^Play mode/).selectOption('computer');
-    await page.getByLabel(/^Opponent/).selectOption(coach);
+    for (const style of ['site.css', 'teambuilder.css', 'builder-layout.css']) await page.addStyleTag({ url: `${base}/assets/${style}` });
+    await page.getByRole('button', { name: 'AI Opponent', exact: true }).click();
     const bogruk = coach === 'coach-bogruk-weak';
+    const coaches = page.getByRole('list', { name: 'AI coaches', exact: true });
+    const selectedCoach = coaches.getByRole('button', { name: bogruk ? 'Bogruk the Almost Clever' : 'Gobbo “Wot Now?” Snotpick', exact: true });
+    await selectedCoach.click();
+    assert.equal(await selectedCoach.getAttribute('aria-pressed'), 'true');
+    assert.equal(await coaches.getByText('Coming soon!', { exact: true }).count(), 3);
     const roster = bogruk ? "Bogruk's Almost Best" : "Bugman's Best";
     if (bogruk) {
       await page.getByText('Loves a risky play, especially when there’s a perfectly good safe one.', { exact: true }).waitFor();
-      assert.match(await page.getByLabel(/^Opponent/).locator('option:checked').innerText(), /Weak/);
+      await selectedCoach.getByText('Skill level: Weak', { exact: true }).waitFor();
       await page.screenshot({ path: `${evidence}/selector-desktop.png`, fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ path: `${evidence}/selector-mobile.png`, fullPage: true });

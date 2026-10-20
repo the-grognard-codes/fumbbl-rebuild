@@ -29,7 +29,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-  const documents = new Map(); const requests = [];
+  const documents = new Map(); const requests = []; const savedCopies = new Map();
   try {
     const pages = [];
     for (let index = 0; index < 2; index++) {
@@ -44,7 +44,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
           if (request.type === 'browse') send({ type: 'browse', requestId: request.requestId, code: 'ACCEPTED', matches: [] });
           if (request.type === 'catalog') send({ ...(request.rosterId === 'orc' ? orcCatalog : catalog), version: 2, requestId: request.requestId });
           if (request.type === 'validateTeam') {
-            const valid = ['The Moles', 'The Orcs'].includes(request.draft.teamName) && request.draft.players.length === 11
+            const valid = ['The Moles', 'The Orcs', 'The Moles Copy'].includes(request.draft.teamName) && request.draft.players.length === 11
               && new Set(request.draft.players.map(player => player.jerseyNumber)).size === 11;
             const skillPoints = request.draft.players.filter(player => player.skillIds.length).length;
             send({ type: 'teamValidation', requestId: request.requestId, catalogVersion: catalog.catalogVersion, ruleset: 'BB2025', draftVersion: 2,
@@ -52,22 +52,28 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
               messages: valid ? [] : [{ code: 'PLAYER_COUNT', path: 'players', text: 'A draft must contain 11 players.' }] });
           }
           if (request.type === 'savedTeam') {
-            const owned = documents.get(accounts[index]);
+            const ownedTeams = [...savedCopies.values()].filter(document => document.owner.subject === accounts[index]);
+            const owned = ownedTeams.find(document => document.teamId === request.teamId);
             const validation = { valid: true, total: 550000, budget: catalog.budget,
               skillPoints: request.draft?.players.filter(player => player.skillIds.length).length ?? 0, messages: [] };
             if (request.operation === 'create') {
-              const document = { formatVersion: 3, teamId, documentVersion: 1, ruleset: 'BB2025', catalogVersion: catalog.catalogVersion,
+              if (ownedTeams.some(document => document.draft.teamName.toLowerCase() === request.draft.teamName.toLowerCase())) {
+                send({ type: 'savedTeam', requestId: request.requestId, code: 'TEAM_NAME_TAKEN', document: null, versionStatus: null, validation: null, teams: [] }); return;
+              }
+              const document = { formatVersion: 3, teamId: ownedTeams.length ? '23456789-1234-1234-1234-123456789abc' : teamId, documentVersion: 1, ruleset: 'BB2025', catalogVersion: catalog.catalogVersion,
                 owner: { namespace: 'account', subject: accounts[index] }, draft: request.draft, validation };
               documents.set(accounts[index], document);
+              savedCopies.set(`${accounts[index]}:${document.teamId}`, document);
               send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', document, versionStatus: 'CURRENT', validation, teams: [] });
             } else if (request.operation === 'delete') {
+              savedCopies.delete(`${accounts[index]}:${request.teamId}`);
               documents.delete(accounts[index]);
               send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', document: null, versionStatus: null, validation: null, teams: [] });
             } else if (request.operation === 'load' && owned?.teamId === request.teamId) {
               send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', document: owned, versionStatus: 'CURRENT', validation, teams: [] });
             } else {
-              const teams = owned ? [{ teamId: owned.teamId, documentVersion: owned.documentVersion, catalogVersion: owned.catalogVersion,
-                teamName: owned.draft.teamName, rosterId: owned.draft.rosterId, eligibility: 'CURRENT' }] : [];
+              const teams = ownedTeams.map(document => ({ teamId: document.teamId, documentVersion: document.documentVersion, catalogVersion: document.catalogVersion,
+                teamName: document.draft.teamName, rosterId: document.draft.rosterId, eligibility: 'CURRENT' }));
               send({ type: 'savedTeam', requestId: request.requestId, code: 'OK', document: null, versionStatus: null, validation: null, teams });
             }
           }
@@ -78,6 +84,18 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     }
     await pages[0].getByLabel('Team name').fill('The Moles');
     for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Human Lineman' }).click();
+    const generatedNames = await pages[0].getByLabel(/^Name for slot/).evaluateAll(inputs => inputs.map(input => input.value));
+    assert.equal(new Set(generatedNames).size, 11);
+    for (const name of generatedNames) assert.match(name, /^[A-Z][a-z]{1,11}$/);
+    await pages[0].getByLabel('Name for slot 1', { exact: true }).fill('Coach Choice');
+    await pages[0].getByText('Players 11/16', { exact: true }).waitFor();
+    await pages[0].getByRole('button', { name: 'Show Team Details' }).click();
+    for (const width of [1920, 1223]) {
+      await pages[0].setViewportSize({ width, height: 1080 });
+      assert.ok(await pages[0].locator('.team-details').evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Human details fit at ${width}`);
+      await pages[0].locator('.team-details').screenshot({ path: fileURLToPath(new URL(`../../.tools/builder-human-details-${width}.png`, import.meta.url)) });
+    }
+    assert.equal(await pages[0].getByText('Roster values are estimates until server validation.').count(), 0);
     const skillChoices = await pages[0].getByLabel('Skill for slot 1', { exact: true }).locator('option').allTextContents();
     for (const skill of ['Guard (Elite)', 'Wrestle', 'Sidestep', 'Sure Feet', 'Mighty Blow (Elite)'])
       assert.ok(skillChoices.includes(skill), skill);
@@ -87,16 +105,42 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Moles/).waitFor();
     assert.deepEqual(documents.get(accounts[0]).draft.players[0].skillIds, ['wrestle']);
+    assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'Coach Choice');
+    assert.doesNotMatch(await pages[0].locator('.saved-teams-panel').innerText(), /version \d/);
+    assert.match(await pages[0].locator('.saved-teams-panel').innerText(), /The Moles\s*· Human/);
     assert.equal(await pages[1].getByText('No saved teams yet.').count(), 1);
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/play`);
     await pages[0].getByLabel('Saved team').waitFor();
     await pages[0].getByRole('option', { name: /The Moles/ }).waitFor({ state: 'attached' });
-    assert.match(await pages[0].getByLabel('Saved team').innerText(), /The Moles/);
+    assert.match(await pages[0].getByLabel('Saved team').innerText(), /The Moles · Human/);
+    assert.doesNotMatch(await pages[0].getByLabel('Saved team').innerText(), /version \d/);
     assert.equal(await pages[0].getByRole('button', { name: 'Create game' }).isDisabled(), false);
     assert.equal(documents.has(accounts[1]), false);
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'savedTeam' && entry.operation === 'create'));
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
     await pages[0].getByRole('button', { name: 'Load' }).click();
+    const original = structuredClone(savedCopies.get(`${accounts[0]}:${teamId}`));
+    await pages[0].getByRole('button', { name: 'Save as new', exact: true }).click();
+    await pages[0].getByLabel('Team name').fill('The Moles');
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
+    await pages[0].getByText(/Valid draft/).waitFor();
+    await pages[0].getByRole('button', { name: 'Save new team', exact: true }).click();
+    await pages[0].getByRole('alert').filter({ hasText: 'You already have a team with that name' }).waitFor();
+    await pages[0].getByLabel('Team name').fill('The Moles Copy');
+    await pages[0].getByLabel('Name for slot 1', { exact: true }).fill('New Captain');
+    assert.equal(await pages[0].getByRole('button', { name: 'Save new team', exact: true }).isDisabled(), true);
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
+    await pages[0].getByText(/Valid draft/).waitFor();
+    await pages[0].getByRole('button', { name: 'Save new team', exact: true }).click();
+    await pages[0].getByText('Saved team The Moles Copy', { exact: true }).waitFor();
+    assert.deepEqual(savedCopies.get(`${accounts[0]}:${teamId}`), original);
+    assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'New Captain');
+    await pages[0].locator('.saved-teams-panel').getByText('The Moles Copy', { exact: true }).waitFor();
+    assert.equal(await pages[0].locator('.saved-teams-panel li').count(), 2);
+    pages[0].once('dialog', dialog => dialog.accept());
+    await pages[0].getByRole('button', { name: 'Delete team' }).click();
+    await pages[0].locator('.saved-teams-panel').getByText('The Moles Copy', { exact: true }).waitFor({ state: 'hidden' });
+    await pages[0].locator('.saved-teams-panel li').filter({ has: pages[0].getByText('The Moles', { exact: true }) }).getByRole('button', { name: 'Load' }).click();
     await pages[0].getByRole('button', { name: 'Delete team' }).waitFor();
     pages[0].once('dialog', dialog => dialog.accept());
     await pages[0].getByRole('button', { name: 'Delete team' }).click();
@@ -106,6 +150,12 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByRole('button', { name: 'New team' }).click();
     await pages[0].getByLabel('Team', { exact: true }).selectOption('orc');
     await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).waitFor();
+    await pages[0].getByRole('button', { name: 'Show Team Details' }).click();
+    for (const width of [1920, 1223]) {
+      await pages[0].setViewportSize({ width, height: 1080 });
+      assert.ok(await pages[0].locator('.team-details').evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Orc details fit at ${width}`);
+      await pages[0].locator('.team-details').screenshot({ path: fileURLToPath(new URL(`../../.tools/builder-orc-details-${width}.png`, import.meta.url)) });
+    }
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'catalog' && entry.rosterId === 'orc'));
     assert.match(await pages[0].locator('.recruitment img.sprite').first().getAttribute('src'), /assets\/game\/teams\/orc\//);
     await pages[0].getByLabel('Team name').fill('The Orcs');
@@ -114,6 +164,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Orcs/).waitFor();
+    await pages[0].locator('.saved-teams-panel').getByText(/The Orcs · Orc/).waitFor();
     assert.equal(documents.get(accounts[0]).draft.rosterId, 'orc');
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
     await pages[0].getByRole('button', { name: 'Load' }).click();

@@ -22,7 +22,21 @@
 .builder-actions p { margin: 0; }
 .validation-errors > section { margin: 0; padding: 0; border: 0; }
 .validation-errors > section h2 { margin-top: 0; }
+.team-details table { width: 100%; min-width: 0; }
+.team-details th, .team-details td { padding: .6rem .45rem; }
+.team-details th:first-child { min-width: 8rem; white-space: normal; }
+.team-details .starting-skills { white-space: normal; }
+.team-details .skills-list { min-width: 12rem; max-width: 22rem; white-space: normal; line-height: 1.45; }
+.team-details .skill-access-heading { white-space: normal; }
+.roster-validation { max-width: 20rem; text-align: right; }
+.roster-validation p { margin: .65rem 0 0; font-size: .85rem; }
+.resource-sign { position: relative; display: block; width: 1rem; height: 1rem; }
+.resource-sign::before, .resource-sign-plus::after { content: ''; position: absolute; background: currentColor; }
+.resource-sign::before { width: 1rem; height: .25rem; left: 0; top: .375rem; }
+.resource-sign-plus::after { width: .25rem; height: 1rem; left: .375rem; top: 0; }
 @media (max-width: 760px) {
+  .team-details table { min-width: 48rem; }
+  .roster-validation { max-width: none; text-align: left; margin-bottom: 1rem; }
   .builder-controls button { white-space: normal; }
   .roster-row { grid-template-columns: 3.7rem minmax(0, 1fr); }
   .roster-row .roster-skill { grid-column: 1 / -1; }

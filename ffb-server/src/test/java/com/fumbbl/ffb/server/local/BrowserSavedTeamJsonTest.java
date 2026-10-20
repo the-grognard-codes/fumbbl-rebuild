@@ -98,6 +98,22 @@ class BrowserSavedTeamJsonTest {
 			result.get("players").asArray().get(index).asObject().add("jerseyNumber", index + 1).add("playerName", "Mole " + (index + 1));
 		return result;
 	}
+	@Test void accountNamesAreUniqueAcrossCreateAndRenameButSharedAcrossAccounts() {
+		BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", other = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+		JsonObject originalRequest = request("create").add("draft", namedDraft());
+		JsonObject original = accounts.handle(owner, originalRequest.toString()).get("document").asObject();
+		assertEquals(original, accounts.handle(owner, originalRequest.toString()).get("document"));
+		JsonObject duplicate = request("create").set("requestId", "copy").add("draft", namedDraft().set("teamName", "THE MOLES"));
+		assertEquals("TEAM_NAME_TAKEN", accounts.handle(owner, duplicate.toString()).getString("code", null));
+		assertEquals("OK", accounts.handle(other, duplicate.toString()).getString("code", null));
+		JsonObject copyDraft = namedDraft().set("teamName", "The New Moles");
+		JsonObject copied = accounts.handle(owner, request("create").set("requestId", "copy").add("draft", copyDraft).toString()).get("document").asObject();
+		assertFalse(original.get("teamId").equals(copied.get("teamId")));
+		assertEquals("TEAM_NAME_TAKEN", accounts.handle(owner, update(copied, namedDraft()).toString()).getString("code", null));
+		assertEquals("OK", accounts.handle(owner, update(original, namedDraft().set("teamName", "The MOLES")).toString()).getString("code", null));
+		assertEquals(copyDraft, accounts.handle(owner, request("load").add("teamId", copied.get("teamId")).toString()).get("document").asObject().get("draft"));
+	}
 	@Test
 	void checkedInHumanStarterDraftIsAcceptedByTheFrozenCatalog() throws IOException {
 		Path fixture = Paths.get("browser-client", "examples", "human-starter-draft.json");

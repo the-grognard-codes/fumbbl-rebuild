@@ -108,9 +108,28 @@ test('current games page assembles owned pages, resumes setup, and links activat
         assert.equal(await games.locator('.spectate-game').count(), 4, 'Owned games use Spectate matchup cards');
         assert.equal(await games.locator('.spectate-team-mark').count(), 8, 'Shared team nameplates are present');
         assert.equal(await atBottom(), true);
-        await page.getByRole('combobox', { name: /^Play mode/ }).selectOption('computer');
+        await page.getByRole('button', { name: 'AI Opponent', exact: true }).click();
         assert.equal(await atBottom(), true, 'Current games stay last for both play modes');
-        await page.getByRole('combobox', { name: /^Play mode/ }).selectOption('human');
+        const coaches = page.getByRole('list', { name: 'AI coaches', exact: true });
+        assert.equal(await coaches.getByRole('button').count(), 5);
+        assert.equal(await coaches.getByRole('button', { name: 'Gobbo “Wot Now?” Snotpick', exact: true }).isEnabled(), true,
+          'The configured coach stays selectable while the daemon is temporarily offline');
+        assert.equal(await coaches.getByRole('button', { name: 'Bogruk the Almost Clever', exact: true }).isEnabled(), true);
+        assert.equal(await coaches.getByText('Coming soon!', { exact: true }).count(), 3);
+        assert.equal(await page.getByRole('button', { name: 'Create computer game', exact: true }).isDisabled(), true);
+        await page.getByRole('status').filter({ hasText: 'is offline.' }).waitFor();
+        await page.waitForFunction(() => [...document.querySelectorAll('.ai-coach-card img')].every(image => image.complete && image.naturalWidth > 0));
+        const output = fileURLToPath(new URL('../../test-output/play-opponents/', import.meta.url));
+        await mkdir(output, { recursive: true });
+        for (const width of [1223, 768, 390, 360, 320]) {
+          await page.setViewportSize({ width, height: width === 1223 ? 604 : 900 });
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Play fits ${width}px`);
+          assert.equal(await coaches.getByRole('button').count(), 5);
+          await page.screenshot({ path: resolve(output, `ai-${width}.png`), fullPage: true });
+        }
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.getByRole('button', { name: 'Human Opponent', exact: true }).click();
+        await page.screenshot({ path: resolve(output, 'human-desktop.png'), fullPage: true });
         const before = requests.filter(request => request.type === 'currentMatches' && request.after === null).length;
         holdRefresh = true;
         const held = new Promise(done => { signalHeld = done; });

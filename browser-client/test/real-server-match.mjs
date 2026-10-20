@@ -324,8 +324,8 @@ try {
     : await Promise.all([buildTeam(pages[0], 'human'), buildTeam(pages[1], 'orc')]);
   record('Real DEV Firebase authentication and server-validated Human/Orc teams built through the UI');
   if (computer) {
-    await pages[0].getByRole('combobox', { name: /^Play mode/ }).selectOption('computer');
-    await pages[0].getByRole('combobox', { name: 'Opponent', exact: true }).selectOption(computerOpponent);
+    await pages[0].getByRole('button', { name: 'AI Opponent', exact: true }).click();
+    await pages[0].getByRole('button', { name: computerOpponent === 'coach-bogruk-weak' ? 'Bogruk the Almost Clever' : 'Gobbo “Wot Now?” Snotpick', exact: true }).click();
     await pages[0].getByRole('combobox', { name: /^Your saved team/ }).selectOption(teams[0].teamId);
     await pages[0].getByRole('combobox', { name: /^Roster for / }).selectOption(teams[1].teamId);
     await pages[0].getByRole('button', { name: 'Create computer game', exact: true }).click();

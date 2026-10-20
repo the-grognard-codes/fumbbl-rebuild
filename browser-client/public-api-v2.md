@@ -66,7 +66,7 @@ provider/JDBC exception details and request bodies are not logged.
 
 | Family | Authorization before reads/retries | Recipient data | Mutations / denial |
 | --- | --- | --- | --- |
-| `catalog`, `validateTeam`, `savedTeam` | PLAYER, active identity | Frozen catalog or caller's own saved team | Existing validation/save/load/list; account document format 2; `AUTHENTICATION_REQUIRED`, `AUTHORIZATION`, existing validation/storage codes |
+| `catalog`, `validateTeam`, `savedTeam` | PLAYER, active identity | Frozen catalog or caller's own saved team | Existing validation/save/load/list; account document format 2 or named format 3; `AUTHENTICATION_REQUIRED`, `AUTHORIZATION`, existing validation/storage codes; `TEAM_NAME_TAKEN` for a create or rename whose trimmed, NFC-normalized, case-insensitive name matches another team in the account. Creates and renames serialize this check in the write transaction. |
 | `preparedMatch` | PLAYER; bearer proof for human join; persisted membership for load/activate/creator operations | Frozen prepared game, caller role; fresh invitation code only for a human match creator | create/createComputer/join/load/activate/reissue/revoke/release; computer creation freezes two caller-owned teams and creates no invitation |
 | `authenticateComputer` | Separate 32-byte service token, checked against the configured SHA-256 hash | `computerAuthentication` acknowledgement | Service connections never gain a Firebase account or PLAYER scope |
 | `computer` | PLAYER for `status`; service credential for `register` | `READY`, `UNAVAILABLE`, or rejection code | `register` designates the daemon dispatcher; service workers can open separate connections |
@@ -125,11 +125,22 @@ layout. The inventory query requires the new index; an unmigrated database
 returns an unavailable refresh instead of periodically scanning all accounts.
 Verify historical marker-6 copy evidence before applying this additive index.
 
-`/play` starts with a play-mode dropdown. The human option shows the existing
-invitation setup. The computer option shows Coach Bugman - Random, the player's
-own saved team, and a second caller-owned saved roster to clone for Bugman.
+`/play` shares Team Builder's shell, panels, typography and controls. Human
+Opponent and AI Opponent buttons choose the setup mode. The human option shows
+the existing invitation setup. AI Opponent shows five illustrated coach cards;
+the whole card selects the coach and the chosen card is highlighted. Gobbo
+“Wot Now?” Snotpick is configured, with a Skill level: Horrible label and
+“Calls plays by throwing a squig at the playbook.” Bogruk is also configured, with
+Skill level: Weak and his own durable policy. Grimbald, Morgath and Deep Bruise
+have disabled Coming soon! cards with no protocol IDs. Their skill level labels
+are Fair, Good and Expert, respectively. Coaches have no roster race restriction.
+Gobbo still uses the existing random policy. A temporarily offline configured
+coach remains selectable, but cannot create a game until the shared daemon is
+available. The opponent roster sits immediately below the coach cards alongside
+the player's own saved team; both are caller-owned saved rosters.
 The match freezes both rosters immediately; the away clone has a separate
-in-match identity and the name **Bugman's Best**. The creator then selects
+in-match identity and the name **Bugman's Best** for Gobbo or
+**Bogruk's Almost Best** for Bogruk. The creator then selects
 **Start game**. Computer creation is available while a daemon is registered.
 Local and hosted environments use the same v2 messages and each needs its own
 service token and running daemon; no computer accounts are required. See

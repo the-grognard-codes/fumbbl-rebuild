@@ -114,6 +114,9 @@ public final class MatchJson {
 		out.get("home").asObject().add("resolvedCatalog", JsonObject.readFrom(document.home.team.resolvedCatalogJson));
 		if (document.away != null) out.get("away").asObject().add("owner", document.away.owner)
 			.add("resolvedCatalog", JsonObject.readFrom(document.away.team.resolvedCatalogJson));
+		// Presentation is frozen privately; public preparation documents keep their existing schema.
+		if (document.away != null && document.away.team.coachName != null)
+			out.get("away").asObject().add("coachName", document.away.team.coachName);
 		JsonArray requests = new JsonArray();
 		for (Map.Entry<String, MatchDocument.Request> entry : document.requests.entrySet())
 			requests.add(new JsonObject().add("key", entry.getKey()).add("fingerprint", entry.getValue().fingerprint));
@@ -576,6 +579,12 @@ public final class MatchJson {
     }
 
 	private MatchDocument.Member readMember(JsonObject object, String owner, boolean away, boolean named) {
+		String coachName = null;
+		if (away && object.get("coachName") != null) {
+			coachName = object.get("coachName").asString();
+			if (!plainName(coachName, 100)) throw new IllegalArgumentException();
+			object.remove("coachName");
+		}
 		if (away) {
 			if (named) exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "teamName", "validation", "roster", "resolvedCatalog", "owner");
 			else exact(object, "role", "sourceTeamId", "sourceDocumentVersion", "ruleset", "catalogVersion", "rosterId", "presetId", "presetVersion", "validation", "roster", "resolvedCatalog", "owner");
@@ -639,7 +648,7 @@ public final class MatchJson {
 		}
 		if (captain != null && !ids.contains(captain)) throw new IllegalArgumentException();
 		FrozenTeam team = new FrozenTeam(uuid(object.get("sourceTeamId")), positive(object.get("sourceDocumentVersion")), owner, ruleset,
-			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString());
+			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString(), coachName);
 		verifyFrozenEvaluation(team, resolved);
 		return new MatchDocument.Member(object.get("role").asString(), owner, team);
 	}

@@ -4,7 +4,7 @@ export type SavedValidation = { valid: boolean; total: number | null; budget: nu
 export type SavedDocument = { formatVersion: 1 | 2 | 3; teamId: string; documentVersion: number; ruleset: 'BB2025'; catalogVersion: string; owner: { namespace: 'local' | 'account'; subject: string }; draft: TeamDraft; validation: SavedValidation };
 export type SavedTeamSummary = { teamId: string; documentVersion: number; catalogVersion: string; teamName?: string; rosterId?: string; eligibility?: string };
 export type SavedTeamResponse = { version: 1; type: 'savedTeam'; requestId: string; code: SavedTeamCode; document: SavedDocument | null; versionStatus: null | 'CURRENT' | 'MIGRATION_REQUIRED' | 'VERSION_UNAVAILABLE'; validation: SavedValidation | null; teams: SavedTeamSummary[] };
-export type SavedTeamCode = 'OK' | 'MALFORMED_TEAM_REQUEST' | 'INVALID_DOCUMENT_VERSION' | 'CONFLICT' | 'NOT_FOUND' | 'VALIDATION_FAILED' | 'MIGRATION_REQUIRED' | 'VERSION_UNAVAILABLE' | 'PERSISTENCE_FAILED' | 'SAVE_OUTCOME_UNKNOWN' | 'DELETE_OUTCOME_UNKNOWN' | 'LIMIT_REACHED';
+export type SavedTeamCode = 'OK' | 'MALFORMED_TEAM_REQUEST' | 'INVALID_DOCUMENT_VERSION' | 'CONFLICT' | 'NOT_FOUND' | 'VALIDATION_FAILED' | 'MIGRATION_REQUIRED' | 'VERSION_UNAVAILABLE' | 'PERSISTENCE_FAILED' | 'SAVE_OUTCOME_UNKNOWN' | 'DELETE_OUTCOME_UNKNOWN' | 'LIMIT_REACHED' | 'TEAM_NAME_TAKEN';
 export type SavedTeamRequest =
   | { version: 1; type: 'savedTeam'; requestId: string; operation: 'list' }
   | { version: 1; type: 'savedTeam'; requestId: string; operation: 'load'; teamId: string }
@@ -14,7 +14,7 @@ export type SavedTeamRequest =
   | { version: 1; type: 'savedTeam'; requestId: string; operation: 'import'; document: SavedDocument };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const codes = new Set<SavedTeamCode>(['OK', 'MALFORMED_TEAM_REQUEST', 'INVALID_DOCUMENT_VERSION', 'CONFLICT', 'NOT_FOUND', 'VALIDATION_FAILED', 'MIGRATION_REQUIRED', 'VERSION_UNAVAILABLE', 'PERSISTENCE_FAILED', 'SAVE_OUTCOME_UNKNOWN', 'DELETE_OUTCOME_UNKNOWN', 'LIMIT_REACHED']);
+const codes = new Set<SavedTeamCode>(['OK', 'MALFORMED_TEAM_REQUEST', 'INVALID_DOCUMENT_VERSION', 'CONFLICT', 'NOT_FOUND', 'VALIDATION_FAILED', 'MIGRATION_REQUIRED', 'VERSION_UNAVAILABLE', 'PERSISTENCE_FAILED', 'SAVE_OUTCOME_UNKNOWN', 'DELETE_OUTCOME_UNKNOWN', 'LIMIT_REACHED', 'TEAM_NAME_TAKEN']);
 function object(value: unknown, keys: string[]): Record<string, unknown> { if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected object'); const result = value as Record<string, unknown>; if (Object.keys(result).length !== keys.length || keys.some(key => !Object.hasOwn(result, key))) throw Error('Unexpected fields'); return result; }
 function text(value: unknown, max = 300): asserts value is string { if (typeof value !== 'string' || !value.length || value.length > max) throw Error('Invalid text'); }
 function name(value: unknown, max: number): asserts value is string { if (typeof value !== 'string' || value.length === 0 || [...value].length > max || value !== value.trim().normalize('NFC') || /[\u0000-\u001f\u007f-\u009f]/.test(value)) throw Error('Invalid name'); }

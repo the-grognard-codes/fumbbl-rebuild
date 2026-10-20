@@ -6,7 +6,7 @@ import { assertV2Projection } from '../src/v2-projection.ts';
 
 const game: BrowseGame = { matchId: '12345678-1234-1234-1234-123456789abc', label: 'Home vs Away', details: {
   home: { name: 'Deepdelve Miners', type: 'Human', teamValue: 1100000, coach: 'Grognard' },
-  away: { name: "Bugman's Best", type: 'Orc', teamValue: 990000, coach: 'Coach Bugman - Random' },
+  away: { name: "Bugman's Best", type: 'Orc', teamValue: 990000, coach: 'Gobbo “Wot Now?” Snotpick' },
   ruleset: 'BB2025', competition: null, phase: 'PLAY', half: 2, turn: 4, homeScore: 1, awayScore: 0, spectators: 3,
 } };
 

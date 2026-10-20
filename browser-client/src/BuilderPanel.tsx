@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { BuilderDraftEditor } from './BuilderDraftEditor';
+import { rosterDisplayName } from './roster-display-name';
 import { TeamValidationView } from './team-validation-view';
 import { decodeTeam, emptyDraft } from './team-protocol';
 import type { Catalog, TeamDraft, Validation } from './team-protocol';
@@ -20,6 +21,7 @@ export function BuilderPanel({ options }: { options: Options }) {
   const [validation, setValidation] = useState<Validation | null>(null);
   const [validatedDraft, setValidatedDraft] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDocument | null>(null);
+  const [copyName, setCopyName] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState('CURRENT');
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const client = useRef<V2Client | null>(null);
@@ -68,18 +70,19 @@ export function BuilderPanel({ options }: { options: Options }) {
           if (message.document) {
             const document = message.document as SavedDocument;
             setSaved(document); setEligibility(message.versionStatus ?? 'CURRENT');
+            setCopyName(null);
             if (document.formatVersion === 3 && document.draft.rosterId !== catalogRef.current?.rosterId) {
               const id = connection.request('catalog', { rosterId: document.draft.rosterId });
               catalogSelections.current.set(id, document.draft); setDraft(null);
             } else setDraft(document.formatVersion === 3 ? document.draft : null);
             setValidation(null); setValidatedDraft(null);
           } else if (operation === 'delete') {
-            setSaved(null); setDraft(null); setValidation(null); setValidatedDraft(null);
+            setSaved(null); setCopyName(null); setDraft(null); setValidation(null); setValidatedDraft(null);
           }
           if (operation === 'create' || operation === 'update' || operation === 'delete') connection.request('savedTeam', { operation: 'list' });
         } else if (message.code === 'SAVE_OUTCOME_UNKNOWN' || message.code === 'DELETE_OUTCOME_UNKNOWN') {
           setError('The server may have applied this change. Reconnect and repeat the retained request, then refresh your teams.');
-        } else setError(String(message.code).replaceAll('_', ' '));
+        } else setError(message.code === 'TEAM_NAME_TAKEN' ? 'You already have a team with that name. Choose a different team name.' : String(message.code).replaceAll('_', ' '));
       }
       if (message.type === 'error' && message.code) setError(String(message.code).replaceAll('_', ' '));
       redraw(value => value + 1);
@@ -107,7 +110,7 @@ export function BuilderPanel({ options }: { options: Options }) {
     run(() => {
       const id = client.current!.request('catalog', { rosterId });
       catalogSelections.current.set(id, null);
-      setSaved(null); setEligibility('CURRENT'); setDraft(null); setValidation(null); setValidatedDraft(null);
+      setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(null); setValidation(null); setValidatedDraft(null);
     });
   }
   function validate() {
@@ -116,8 +119,19 @@ export function BuilderPanel({ options }: { options: Options }) {
   }
   function save() {
     if (!draft || !saveable) return;
-    run(() => requestSaved(saved ? 'update' : 'create', saved
+    run(() => requestSaved(saved && copyName === null ? 'update' : 'create', saved && copyName === null
       ? { teamId: saved.teamId, expectedDocumentVersion: saved.documentVersion, draft } : { draft }, true));
+  }
+  function startCopy() {
+    if (!draft || !saved) return;
+    setCopyName(draft.teamName);
+    let name: string, suffix = 1;
+    do {
+      const ending = suffix === 1 ? ' copy' : ` copy ${suffix}`;
+      name = Array.from(draft.teamName).slice(0, 50 - ending.length).join('') + ending;
+      suffix++;
+    } while (teams.some(team => team.teamName?.trim().toLowerCase() === name.toLowerCase()));
+    update({ ...draft, teamName: name });
   }
   function remove() {
     if (!saved || !window.confirm(`Delete ${saved.draft.teamName}? Existing matches keep their frozen roster.`)) return;
@@ -132,16 +146,18 @@ export function BuilderPanel({ options }: { options: Options }) {
     {catalog && draft && <BuilderDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} validation={validation} selectRoster={selectRoster} />}
     {validation && <div className="panel validation-errors"><TeamValidationView result={validation} /></div>}
     <section className="builder-actions panel" aria-label="Save team"><div>
-      <button type="button" disabled={!saveable} onClick={save}>{saved ? 'Save changes' : 'Save team'}</button>
-      {saved && <button type="button" className="button secondary" disabled={busy} onClick={remove}>Delete team</button>}
-    </div><p>{saved ? `Saved team ${saved.draft.teamName || saved.teamId} · version ${saved.documentVersion} · ${eligibility}` : 'Server validation is required before saving.'}</p></section>
+      <button type="button" disabled={!saveable} onClick={save}>{copyName !== null ? 'Save new team' : saved ? 'Save changes' : 'Save team'}</button>
+      {saved && copyName === null && <button type="button" className="button secondary" disabled={!editable || busy} onClick={startCopy}>Save as new</button>}
+      {copyName !== null && <button type="button" className="button secondary" disabled={busy} onClick={() => { if (draft) update({ ...draft, teamName: copyName }); setCopyName(null); }}>Cancel copy</button>}
+      {saved && copyName === null && <button type="button" className="button secondary" disabled={busy} onClick={remove}>Delete team</button>}
+    </div><p role="status">{copyName !== null ? 'Choose a unique team name and validate the roster to save a new team.' : saved ? `Saved team ${saved.draft.teamName || saved.teamId}` : 'Server validation is required before saving.'}</p></section>
     {eligibility !== 'CURRENT' && <p className="builder-error" role="alert">This saved team cannot enter a new match until its catalog is explicitly migrated and validated.</p>}
     <section className="panel saved-teams-panel" aria-label="Your saved teams"><div className="section-heading"><div><h2>Your Teams</h2><p>Only teams owned by this account are shown here.</p></div><div className="roster-actions">
       <button type="button" className="button secondary" disabled={!connected} onClick={() => run(() => requestSaved('list'))}>Refresh teams</button>
-      <button type="button" disabled={!catalog || busy} onClick={() => { setSaved(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
+      <button type="button" disabled={!catalog || busy} onClick={() => { setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
     </div></div>
       {teams.length ? <ul>{teams.map(team => <li key={team.teamId}>
-        <strong>{team.teamName || 'Unnamed older team'}</strong> · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}
+        <strong>{team.teamName || 'Unnamed older team'}</strong> · {rosterDisplayName(team.rosterId)}
         {team.eligibility !== 'CURRENT' && <span> · Unavailable: {team.eligibility}</span>}
         <button type="button" className="button secondary" disabled={busy} onClick={() => run(() => requestSaved('load', { teamId: team.teamId }))}>Load</button>
       </li>)}</ul> : <p>No saved teams yet.</p>}

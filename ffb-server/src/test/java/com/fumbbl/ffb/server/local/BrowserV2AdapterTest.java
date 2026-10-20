@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
 import com.fumbbl.ffb.server.match.FrozenTeam;
+import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchMembershipRepository;
@@ -529,6 +530,33 @@ class BrowserV2AdapterTest {
 		assertEquals(100, entries.size());
 		assertEquals(2, entries.get(0).asObject().size());
 		verify(setup, times(100)).browseDocument(MATCH);
+	}
+
+	@Test void computerBrowseUsesFrozenCoachNameAndPreservesLegacyIdentity() throws Exception {
+		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(spectator)).thenReturn(Collections.singletonList(MATCH));
+		SetupApplication setup = mock(SetupApplication.class);
+		ComputerOpponentService computers = new ComputerOpponentService(null);
+		FrozenTeam home = frozenTeam("The Reavers", "human", 1000000);
+		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> spectator, access, setup,
+			mock(MatchService.class), mock(V2PreparationService.class), mock(BrowserSavedTeamJson.class), computers);
+		Connection browser = new Connection();
+		adapter.receive(browser, authenticate("auth", "viewer").toString());
+		String[] names = {null, "Gobbo “Wot Now?” Snotpick", "Coach Bugman - Random", null, "Bogruk the Almost Clever"};
+		for (int index = 0; index < names.length; index++) {
+			String opponentId = index < 3 ? ComputerOpponentService.BUGMAN_ID : ComputerOpponentService.BOGRUK_ID;
+			FrozenTeam away = home.copyForMatch(computers.cloneTeamId(MATCH, opponentId), "away", computers.teamName(opponentId), names[index]);
+			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+				new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), Collections.emptyMap());
+			if (index > 1) document = document.withComputer(computers.identity(MATCH, opponentId));
+			when(setup.browseDocument(MATCH)).thenReturn(document);
+			adapter.receive(browser, request("browse", "coach-" + index).add("includeDetails", true).toString());
+			JsonObject awayDetails = JsonObject.readFrom(browser.messages.get(index + 1)).get("matches").asArray()
+				.get(0).asObject().get("details").asObject().get("away").asObject();
+			assertEquals(index < 3 ? names[index] == null ? "Coach Bugman - Random" : names[index] : "Bogruk the Almost Clever", awayDetails.getString("coach", null));
+			assertEquals(index < 3 ? "Bugman's Best" : "Bogruk's Almost Best", awayDetails.getString("name", null));
+		}
 	}
 
 	private FrozenTeam frozenTeam(String name, String roster, int value) {
