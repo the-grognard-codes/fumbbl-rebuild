@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const server = await createServer({ root, configFile: false, server: { host: '127.0.0.1', port: 0 } });
+const server = await createServer({ root, publicDir: fileURLToPath(new URL('../../site/src/', import.meta.url)), configFile: false, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -25,6 +26,9 @@ try {
         const reply = message => queueMicrotask(() => this.onmessage?.({ data: JSON.stringify({ version: 2, requestId: request.requestId, ...message }) }));
         if (request.type === 'authenticate') reply({ type: 'authentication', code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
         else if (request.type === 'currentMatches') reply({ type: 'currentMatches', code: 'ACCEPTED', matches: [], next: null });
+        else if (request.type === 'computer') reply({ type: 'computer', code: 'READY' });
+        else if (request.type === 'savedTeam') reply({ type: 'savedTeam', code: 'OK', teams: [{ teamId: id, documentVersion: 1,
+          catalogVersion: 'catalog', teamName: 'The Reavers', rosterId: 'human', eligibility: 'CURRENT' }], document: null, validation: null, versionStatus: null });
         else if (request.type === 'preparedMatch') {
           if (request.operation === 'activate') { document.lifecycle = 'ACTIVATED'; document.documentVersion = 3; }
           reply({ type: 'preparedMatch', code: 'ACCEPTED', duplicate: false, callerRole: 'home', document, recoveryMatchId: null });
@@ -39,6 +43,36 @@ try {
   const page = await context.newPage();
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/test/fixtures/reconnect.html?view=play`);
+  for (const style of ['site.css', 'teambuilder.css', 'builder-layout.css']) await page.addStyleTag({ url: `${base}/assets/${style}` });
+  await page.getByRole('button', { name: 'AI Opponent', exact: true }).click();
+  const opponent = page.getByRole('region', { name: 'Computer opponent', exact: true });
+  const coaches = opponent.getByRole('list', { name: 'AI coaches', exact: true });
+  assert.equal(await coaches.getByRole('button').count(), 5);
+  const gobbo = coaches.getByRole('button', { name: 'Gobbo “Wot Now?” Snotpick', exact: true });
+  assert.equal(await gobbo.getAttribute('aria-pressed'), 'true');
+  assert.equal(await coaches.getByRole('button', { name: 'Bogruk the Almost Clever', exact: true }).isEnabled(), true);
+  for (const name of ['Coach Grimbald Ironwhistle', 'Morgath Blackquill', 'Deep Bruise']) {
+    assert.equal(await coaches.getByRole('button', { name, exact: true }).isDisabled(), true);
+  }
+  assert.equal(await coaches.getByText('Coming soon!', { exact: true }).count(), 3);
+  await gobbo.press('Enter');
+  await opponent.getByText('Skill level: Horrible', { exact: true }).waitFor();
+  await opponent.getByText('Calls plays by throwing a squig at the playbook.', { exact: true }).waitFor();
+  await mkdir(new URL('../../.tools/gobbo/', import.meta.url), { recursive: true });
+  for (const width of [1440, 1024, 390, 360]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `No overflow at ${width}px`);
+    assert.ok(await coaches.evaluate(element => element.clientWidth >= element.scrollWidth), `Coach cards fit at ${width}px`);
+    await page.screenshot({ path: fileURLToPath(new URL(`../../.tools/gobbo/selector-${width}.png`, import.meta.url)), fullPage: true });
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await opponent.getByRole('combobox', { name: /^Your saved team/ }).selectOption('12345678-1234-1234-1234-123456789abc');
+  await opponent.getByRole('combobox', { name: /^Roster for Bugman/ }).selectOption('12345678-1234-1234-1234-123456789abc');
+  await opponent.getByRole('button', { name: 'Create computer game', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.__preparationRequests.find(request => request.operation === 'createComputer')?.computerId), 'coach-bugman-random');
+  await page.getByRole('button', { name: 'Human Opponent', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Human Opponent', exact: true }).getAttribute('aria-pressed'), 'true');
+  assert.equal(await opponent.count(), 0);
   await page.getByLabel('Match ID', { exact: true }).fill('12345678-1234-1234-1234-123456789abc');
   await page.getByRole('button', { name: 'Reload game setup', exact: true }).click();
   await page.getByRole('button', { name: 'Start game in a new window', exact: true }).waitFor();

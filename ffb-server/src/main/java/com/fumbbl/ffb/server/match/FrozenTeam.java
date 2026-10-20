@@ -15,6 +15,7 @@ import java.util.Map;
 public final class FrozenTeam {
 	public final String sourceTeamId, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion, captainId, teamName;
 	public final String resolvedCatalogJson;
+	public final String coachName;
 	public final int sourceDocumentVersion, total, budget, skillPoints;
 	public final List<Player> players;
 	public final Map<String, Integer> resources;
@@ -43,7 +44,15 @@ public final class FrozenTeam {
 	public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
 		String rosterId, String presetId, String presetVersion, String captainId, String teamName, int total, int budget, int skillPoints,
 		List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson) {
+		this(sourceTeamId, sourceDocumentVersion, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion,
+			captainId, teamName, total, budget, skillPoints, players, resources, resolvedCatalogJson, null);
+	}
+
+	public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
+		String rosterId, String presetId, String presetVersion, String captainId, String teamName, int total, int budget, int skillPoints,
+		List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson, String coachName) {
 		this.sourceTeamId = sourceTeamId; this.sourceDocumentVersion = sourceDocumentVersion; this.owner = owner;
+		this.coachName = coachName;
 		this.teamName = teamName;
 		this.ruleset = ruleset; this.catalogVersion = catalogVersion; this.rosterId = rosterId;
 		this.presetId = presetId; this.presetVersion = presetVersion; this.captainId = captainId;
@@ -55,9 +64,13 @@ public final class FrozenTeam {
 
 	/** Copies immutable roster choices under a separate in-match identity and display name. */
 	public FrozenTeam copyForMatch(String matchTeamId, String matchOwner, String matchTeamName) {
+		return copyForMatch(matchTeamId, matchOwner, matchTeamName, coachName);
+	}
+
+	public FrozenTeam copyForMatch(String matchTeamId, String matchOwner, String matchTeamName, String matchCoachName) {
 		return new FrozenTeam(matchTeamId, sourceDocumentVersion, matchOwner, ruleset, catalogVersion,
 			rosterId, presetId, presetVersion, captainId, matchTeamName, total, budget, skillPoints,
-			players, resources, resolvedCatalogJson);
+			players, resources, resolvedCatalogJson, matchCoachName);
 	}
 
 	private static List<Player> freezePlayers(TeamDraft draft, RosterCatalog catalog) {

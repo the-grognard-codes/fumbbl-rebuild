@@ -189,7 +189,8 @@ public final class V2PreparationService {
 				if (!home.ruleset.equals(source.ruleset) || !home.catalogVersion.equals(source.catalogVersion)
 					|| !home.presetId.equals(source.presetId) || !home.presetVersion.equals(source.presetVersion))
 					throw new Failure("INCOMPATIBLE_TEAM");
-				FrozenTeam away = source.copyForMatch(cloneId, "away", computers.teamName(computerId));
+				FrozenTeam away = source.copyForMatch(cloneId, "away", computers.teamName(computerId),
+					computers.coachName(computerId));
 				Map<String, MatchDocument.Request> history = new LinkedHashMap<>();
 				history.put("home\n" + requestId, new MatchDocument.Request(fingerprint));
 				history.put("away\ncomputer", new MatchDocument.Request("join|" + matchId + "|1|" + cloneId + "|" + computerVersion));

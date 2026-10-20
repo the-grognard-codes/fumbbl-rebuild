@@ -75,6 +75,8 @@ public final class BrowserSavedTeamJson {
 			response.set("code", failure.code);
 			if (failure.validation != null) response.set("validation", json.evaluation(failure.validation));
 			if ("MIGRATION_REQUIRED".equals(failure.code) || "VERSION_UNAVAILABLE".equals(failure.code)) response.set("versionStatus", failure.code);
+		} catch (SavedTeamRepository.NameTaken failure) {
+			response.set("code", "TEAM_NAME_TAKEN");
 		} catch (SavedTeamRepository.OutcomeUnknown failure) {
 			if ("delete".equals(attemptedOperation)) return response.set("code", "DELETE_OUTCOME_UNKNOWN");
 			// This is the attempted snapshot, explicitly NOT a successful saved document response.

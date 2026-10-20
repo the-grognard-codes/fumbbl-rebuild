@@ -10,10 +10,14 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Team Builder fits roster details more comfortably, shows player counts beside values, capitalizes roster names, and keeps validation feedback beside its button")
+			.addFeature("Team Builder can save an edited roster as a new team, enforces unique team names per account, and gives new Human and Orc recruits editable fantasy names")
 			.addFeature("Bogruk the Almost Clever joins computer opponents as a Weak BB2025 coach who pursues touchdowns and takes occasional purposeful risks")
 			.addBugfix("Secure the Ball no longer offers an unavailable Sure Hands re-roll in BB2025, and older saved prompts recover without looping")
 			.addBugfix("Long browser matches save their completed result and replay with lower server memory use")
 			.addBugfix("Keep spectators connected when coach-only threat guidance is available and preserve computer play subscriptions during chat")
+			.addImprovement("Play uses Team Builder styling, Human and AI opponent buttons, and illustrated coach cards with skill levels and upcoming opponents")
+			.addImprovement("The Random computer coach is now Gobbo \u201cWot Now?\u201d Snotpick, who calls plays by throwing a squig at the playbook")
 			.addFeature("Browser coaches can plan movement, pickup and a pass or handoff to a teammate with one confirmation")
 			.addBugfix("Local development sign-in works after refreshing Google credentials")
 			.addBugfix("Browser movement playback preserves every confirmed square when reduced motion is enabled")

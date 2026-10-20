@@ -9,12 +9,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -92,5 +94,31 @@ class JdbcSavedTeamRepositoryTest {
 		assertTrue(repository.delete(record.owner, record.teamId, 1));
 		verify(statement, atLeastOnce()).setString(1, record.owner); verify(statement, atLeastOnce()).setString(2, record.teamId);
 		verify(statement).setInt(3, 1); verify(connection).commit();
+	}
+	@Test
+	void accountCreatesAndRenamesRejectDuplicateNamesWhileHoldingTheSharedWriteLock() throws Exception {
+		for (boolean insert : new boolean[] { true, false }) {
+			setup(); repository = new JdbcSavedTeamRepository(() -> connection, true);
+			PreparedStatement lock = mock(PreparedStatement.class), names = mock(PreparedStatement.class);
+			ResultSet schema = mock(ResultSet.class), rows = mock(ResultSet.class);
+			when(connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE")).thenReturn(lock);
+			when(connection.prepareStatement("SELECT team_id, document_json FROM ffb_v2_saved_teams WHERE owner_subject=? FOR UPDATE")).thenReturn(names);
+			when(lock.executeQuery()).thenReturn(schema); when(schema.next()).thenReturn(true); when(schema.getInt(1)).thenReturn(7);
+			when(names.executeQuery()).thenReturn(rows); when(rows.next()).thenReturn(true, false);
+			when(rows.getString(1)).thenReturn("different-team");
+			when(rows.getString(2)).thenReturn("{\"draft\":{\"teamName\":\"The Moles\"}}");
+			SavedTeamRepository.Record named = new SavedTeamRepository.Record("team", "account", 2, "catalog", "{\"draft\":{\"teamName\":\"THE MOLES\"}}");
+			assertThrows(SavedTeamRepository.NameTaken.class, () -> { if (insert) repository.insert(named); else repository.replace(named, 1); });
+			org.mockito.InOrder order = inOrder(lock, names, connection);
+			order.verify(lock).executeQuery(); order.verify(names).executeQuery(); order.verify(connection).rollback();
+			verify(names).setString(1, "account"); verify(statement, never()).executeUpdate(); verify(connection, never()).commit();
+		}
+	}
+	@Test
+	void normalizedNamesPreserveAccentsAndIgnoreCaseAndSurroundingWhitespace() {
+		SavedTeamNames names = new SavedTeamNames();
+		assertEquals(names.key("Caf\u00e9"), names.key(" CAFE\u0301 "));
+		assertEquals("", names.documentKey("unavailable historical row"));
+		assertEquals("", names.documentKey("{\"draft\":{}}"));
 	}
 }

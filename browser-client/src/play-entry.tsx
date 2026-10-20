@@ -17,14 +17,12 @@ import { MatchupTeam } from './MatchupTeam.tsx';
 import { currentMatchStatus } from './current-matches-protocol.ts';
 import type { CurrentMatch } from './current-matches-protocol.ts';
 import { LobbyConcession } from './lobby-concession.ts';
+import { computerCoaches } from './computer-coaches.ts';
+import { rosterDisplayName } from './roster-display-name.ts';
+import { ComputerCoachPicker } from './ComputerCoachPicker.tsx';
 import type { ConcessionStatus } from './lobby-concession.ts';
 import './play-brand.css';
-
-const computerCoaches = [
-  { id: 'coach-bugman-random', name: 'Coach Bugman - Random', teamName: "Bugman's Best", shortName: 'Bugman', description: '' },
-  { id: 'coach-bogruk-weak', name: 'Bogruk the Almost Clever · Weak', teamName: "Bogruk's Almost Best", shortName: 'Bogruk',
-    description: 'Loves a risky play, especially when there’s a perfectly good safe one.' }
-];
+import './play-lobby.css';
 
 export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
   const root = createRoot(element);
@@ -55,8 +53,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
   const [playMode, setPlayMode] = useState<'human' | 'computer'>('human');
   const [computerAvailable, setComputerAvailable] = useState(false);
-  const [computerId, setComputerId] = useState('coach-bugman-random');
-  const computerCoach = computerCoaches.find(coach => coach.id === computerId) ?? computerCoaches[0];
+  const [computerId, setComputerId] = useState(computerCoaches[0].id!);
+  const computerCoach = computerCoaches.find(coach => coach.id === computerId)!;
   const [teamId, setTeamId] = useState('');
   const [computerTeamId, setComputerTeamId] = useState('');
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? sessionStorage.getItem('moles.play.invitation') ?? '');
@@ -341,6 +339,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   }
   function startComputer() {
     run(() => {
+      if (!computerCoach.id || !computerAvailable) throw Error('Choose an available AI coach first.');
       if (!selected || !selectedComputer) throw Error('Choose both saved teams first.');
       if (!connection?.request('preparedMatch', { operation: 'createComputer', teamId: selected.teamId,
         expectedDocumentVersion: selected.documentVersion, computerId,
@@ -385,25 +384,28 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
     void request.catch(() => setError('Fullscreen is unavailable in this browser window.'));
   }
-  return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ''}`}>
-    {!matchRoute && <div className={resultRoute ? 'match-page-top' : undefined}>
-      <h1>{resultRoute ? 'Match result' : 'Create a game'}</h1>{(resultRoute || !connected) && <p role="status">{status}</p>}{error && <p role="alert">{error}</p>}
+  return <main className={`play-runtime setup-panel${matchRoute || resultRoute ? ' live-match-page' : ' play-lobby builder-shell'}`}>
+    {!matchRoute && <div className={resultRoute ? 'match-page-top' : 'builder-heading'}><div>
+      {!resultRoute && <p className="kicker">BB2025 · Matchday</p>}
+      <h1>{resultRoute ? 'Match result' : 'Create a game'}</h1>
+      {!resultRoute && <p>Bring your team to the pitch. Challenge a friend or take on an AI coach.</p>}
+      {(resultRoute || !connected) && <p className="builder-connection" role="status">{status}</p>}{error && <p className="builder-error" role="alert">{error}</p>}
       {!connected && <button onClick={() => connection?.connect()}>Reconnect</button>}
       {resultRoute && connected && <button onClick={() => connection?.disconnect()}>Disconnect</button>}
       {resultRoute && <a href="/play">Match preparation and games</a>}
-    </div>}
+    </div></div>}
     {matchRoute && !connection?.state && <section className="match-connect-panel" aria-label="Match connection"><h1>Match</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
       <button type="button" onClick={() => connection?.connect()} disabled={connected}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
     {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {!matchRoute && !resultRoute && <>
 
-    <label>Play mode <select value={playMode} onChange={event => setPlayMode(event.target.value as 'human' | 'computer')}>
-      <option value="human">Play against a human opponent</option>
-      <option value="computer">Play against a computer opponent</option>
-    </select></label>
-    {playMode === 'human' && <section aria-label="Match preparation"><h2>Your game</h2>
+    <div className="opponent-mode" role="group" aria-label="Opponent type">
+      <button type="button" className={playMode === 'human' ? '' : 'button secondary'} aria-pressed={playMode === 'human'} onClick={() => setPlayMode('human')}>Human Opponent</button>
+      <button type="button" className={playMode === 'computer' ? '' : 'button secondary'} aria-pressed={playMode === 'computer'} onClick={() => setPlayMode('computer')}>AI Opponent</button>
+    </div>
+    {playMode === 'human' && <section className="panel" aria-label="Match preparation"><h2>Your game</h2>
       <p>Need a new roster? <a href="/teambuilder">Open Team Builder</a>, validate it, and save the resulting team definition before creating a game.</p>
-      <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'} · version {team.documentVersion}{team.eligibility !== 'CURRENT' ? ` · unavailable: ${team.eligibility}` : ''}</option>)}</select></label>
+      <label>Saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose a team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {rosterDisplayName(team.rosterId)}{team.eligibility !== 'CURRENT' ? ` · unavailable: ${team.eligibility}` : ''}</option>)}</select></label>
       <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
       <button disabled={busy || !selected} onClick={() => prepare('create')}>Create game</button>
       <label>Invitation code <input value={invite} onChange={event => setInvite(event.target.value)} autoComplete="off" /></label>
@@ -411,18 +413,22 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       {prepared?.callerRole === 'home' && invite && <p><a href={`/play?invite=${encodeURIComponent(invite)}`}>Invitation link</a> — share with your opponent. Expires after one hour.</p>}
       {prepared?.callerRole === 'home' && prepared.document.lifecycle !== 'ACTIVATED' && <><button disabled={busy} onClick={() => prepare('reissue')}>Refresh invitation</button><button disabled={busy} onClick={() => prepare('release')}>Release disconnected opponent</button></>}
     </section>}
-    {playMode === 'computer' && <section aria-label="Computer opponent"><h2>Computer opponent</h2>
-      <label>Opponent <select value={computerId} onChange={event => setComputerId(event.target.value)}>{computerCoaches.map(coach => <option key={coach.id} value={coach.id}>{coach.name}</option>)}</select></label>
-      {computerCoach.description && <p>{computerCoach.description}</p>}
-      <label>Your saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose your team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
-      <label>Roster for {computerCoach.teamName} <select value={computerTeamId} onChange={event => setComputerTeamId(event.target.value)}><option value="">Choose a roster to clone</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {team.rosterId || 'Unknown roster'}</option>)}</select></label>
-      <p>{computerCoach.shortName} receives an independent copy of the selected roster named {computerCoach.teamName}.</p>
-      <button disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button>
-      <button disabled={!connected} onClick={() => run(() => connection?.request('computer', { operation: 'status' }))}>Refresh computer availability</button>
-      {!computerAvailable && connected && <p>The computer opponent process is currently unavailable.</p>}
-      <button disabled={busy || !selected || !selectedComputer || !computerAvailable} onClick={startComputer}>Create computer game</button>
+    {playMode === 'computer' && <section className="panel ai-opponents" aria-label="Computer opponent">
+      <div className="section-heading"><div><p className="kicker">The coaching dugout</p><h2>Choose your AI opponent</h2></div>
+        <button className="button secondary" disabled={!connected} onClick={() => run(() => connection?.request('computer', { operation: 'status' }))}>Refresh computer availability</button></div>
+      <ComputerCoachPicker selectedId={computerId} onSelect={setComputerId} />
+      <div className="ai-match-setup">
+        <div className="ai-roster"><p className="builder-hint">Selected coach · {computerCoach.name}</p>
+          <label>Roster for {computerCoach.teamName} <select value={computerTeamId} onChange={event => setComputerTeamId(event.target.value)}><option value="">Choose a roster to clone</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {rosterDisplayName(team.rosterId)}</option>)}</select></label>
+          <p className="builder-hint">Your opponent gets an independent copy of this roster, named {computerCoach.teamName}.</p></div>
+        <div><label>Your saved team <select value={teamId} onChange={event => setTeamId(event.target.value)}><option value="">Choose your team</option>{teams.map(team => <option key={team.teamId} value={team.teamId} disabled={team.eligibility !== 'CURRENT'}>{team.teamName || 'Unnamed older team'} · {rosterDisplayName(team.rosterId)}</option>)}</select></label>
+          <p className="builder-hint">Need a roster? <a href="/teambuilder">Open Team Builder</a>.</p></div>
+      </div>
+      {!computerAvailable && connected && <p className="builder-error" role="status">{computerCoach.name} is offline. Refresh availability to check again.</p>}
+      <div className="roster-actions"><button disabled={busy || !selected || !selectedComputer || !computerAvailable || !computerCoach.id} onClick={startComputer}>Create computer game</button>
+        <button className="button secondary" disabled={!connected} onClick={() => run(() => connection?.request('savedTeam', { operation: 'list' }))}>Refresh teams</button></div>
     </section>}
-    <section aria-label="Current game"><h2>Current game</h2>
+    <section className="panel" aria-label="Current game"><h2>Current game</h2>
       <label>Match ID <input value={matchId} onChange={event => setMatchId(event.target.value)} /></label>
       <button disabled={!connected || !matchId} onClick={() => prepare('load')}>Reload game setup</button>
       <button disabled={busy || !matchId} onClick={() => run(() => location.assign(matchUrl(matchId, false)))}>Resume play</button>
@@ -432,7 +438,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       </>}
       {prepared?.document.lifecycle === 'ACTIVATED' && <p role="status">Game ready. <a href={matchUrl(prepared.document.matchId, false)}>Continue in this tab</a> · <a href={matchUrl(prepared.document.matchId, false)} target="_blank" rel="noopener">Open match in a new tab or window</a></p>}
     </section>
-    <section className="current-games spectate-section" aria-label="Your current games"><div className="spectate-section-heading"><h2>Your current games</h2>
+    <section className="panel current-games spectate-section" aria-label="Your current games"><div className="spectate-section-heading"><h2>Your current games</h2>
       <button disabled={!connected || currentMatchesLoading} onClick={() => run(() => {
         currentMatchesBufferRef.current = [];
         currentMatchesRequestRef.current = connection!.request('currentMatches', { after: null });

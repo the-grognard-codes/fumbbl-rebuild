@@ -46,12 +46,8 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 			connection.setAutoCommit(false);
 			try {
 				// Serialize capacity checks across JVMs as well as connections. At most 50 documents per local owner.
-				try (PreparedStatement lock = connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE");
-					ResultSet rows = lock.executeQuery()) {
-					if (!rows.next()) throw new SQLException("Saved-team schema unavailable");
-					int schemaVersion = rows.getInt(1);
-					if (accounts ? schemaVersion != 7 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
-				}
+				lockWrites(connection);
+				checkName(connection, record);
 				try (PreparedStatement count = connection.prepareStatement("SELECT COUNT(*) FROM " + table + " WHERE owner_subject=?")) {
 					count.setString(1, record.owner);
 					try (ResultSet rows = count.executeQuery()) {
@@ -74,13 +70,17 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 		boolean commitAttempted = false;
 		try (Connection connection = connections.open()) {
 			connection.setAutoCommit(false);
-			try (PreparedStatement update = connection.prepareStatement(
-				"UPDATE " + table + " SET document_version=?,catalog_version=?,document_json=? WHERE team_id=? AND owner_subject=? AND document_version=?")) {
-				update.setInt(1, record.documentVersion); update.setString(2, record.catalogVersion); update.setString(3, record.json);
-				update.setString(4, record.teamId); update.setString(5, record.owner); update.setInt(6, expectedVersion);
-				boolean changed = update.executeUpdate() == 1;
-				if (changed) { commitAttempted = true; connection.commit(); } else connection.rollback();
-				return changed;
+			try {
+				// Use the insert lock for renames too: concurrent create/update cannot reserve the same account name.
+				if (accounts) { lockWrites(connection); checkName(connection, record); }
+				try (PreparedStatement update = connection.prepareStatement(
+					"UPDATE " + table + " SET document_version=?,catalog_version=?,document_json=? WHERE team_id=? AND owner_subject=? AND document_version=?")) {
+					update.setInt(1, record.documentVersion); update.setString(2, record.catalogVersion); update.setString(3, record.json);
+					update.setString(4, record.teamId); update.setString(5, record.owner); update.setInt(6, expectedVersion);
+					boolean changed = update.executeUpdate() == 1;
+					if (changed) { commitAttempted = true; connection.commit(); } else connection.rollback();
+					return changed;
+				}
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
 		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
 	}
@@ -99,6 +99,31 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 				return changed;
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
 		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(prior, failure); throw failure; }
+	}
+
+	private void lockWrites(Connection connection) throws SQLException {
+		try (PreparedStatement lock = connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE");
+			ResultSet rows = lock.executeQuery()) {
+			if (!rows.next()) throw new SQLException("Saved-team schema unavailable");
+			int schemaVersion = rows.getInt(1);
+			if (accounts ? schemaVersion != 7 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
+		}
+	}
+
+	private void checkName(Connection connection, Record record) throws SQLException {
+		if (!accounts) return;
+		SavedTeamNames names = new SavedTeamNames();
+		String key = names.documentKey(record.json);
+		if (key.isEmpty()) return;
+		try (PreparedStatement query = connection.prepareStatement(
+			"SELECT team_id, document_json FROM " + table + " WHERE owner_subject=? FOR UPDATE")) {
+			query.setString(1, record.owner);
+			try (ResultSet rows = query.executeQuery()) {
+				while (rows.next()) {
+					if (!record.teamId.equals(rows.getString(1)) && key.equals(names.documentKey(rows.getString(2)))) throw new NameTaken();
+				}
+			}
+		}
 	}
 
 	private void rollback(Connection connection, SQLException cause) {

@@ -409,7 +409,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 
 	private String computerCoach(MatchDocument document) {
 		com.fumbbl.ffb.server.match.ComputerCoach coach = computers.coach(document);
-		return coach == null ? null : computers.coachName(coach.opponentId);
+		if (coach == null) return null;
+		if (document.away.team.coachName != null) return document.away.team.coachName;
+		return ComputerOpponentService.BUGMAN_ID.equals(coach.opponentId)
+			? ComputerOpponentService.LEGACY_BUGMAN_NAME : computers.coachName(coach.opponentId);
 	}
 
 	private void preparationChanged(String matchId, BrowserMatchAdapter.Connection source) {

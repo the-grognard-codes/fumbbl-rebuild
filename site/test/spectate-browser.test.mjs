@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const matchId = '12345678-1234-1234-1234-123456789abc';
 const game = { matchId, label: 'Home vs Away', details: {
   home: { name: 'Deepdelve Miners', type: 'Human', teamValue: 1100000, coach: 'Grognard' },
-  away: { name: "Bugman's Best", type: 'Orc', teamValue: 990000, coach: 'Coach Bugman - Random' },
+  away: { name: "Bugman's Best", type: 'Orc', teamValue: 990000, coach: 'Gobbo “Wot Now?” Snotpick' },
   ruleset: 'BB2025', competition: null, phase: 'PLAY', half: 2, turn: 4, homeScore: 1, awayScore: 0, spectators: 3,
 } };
 
@@ -59,6 +59,7 @@ test('spectate browses live details, filters matches, prepares replay searches a
     assert.match(await live.innerText(), /Half 2 · Turn 4/);
     assert.match(await live.innerText(), /3 spectators/);
     const first = live.getByRole('article').first();
+    await first.getByText('Coach Gobbo “Wot Now?” Snotpick', { exact: true }).waitFor();
     assert.equal(await first.getByLabel('Score 1 to 0').count(), 1);
     assert.equal(await first.getByRole('link', { name: "Watch Deepdelve Miners vs. Bugman's Best" }).getAttribute('href'), `/play/match?matchId=${matchId}&watch=1`);
     assert.deepEqual(requests.map(request => request.type), ['authenticate', 'browse'], 'The spectator directory must not request private player data');

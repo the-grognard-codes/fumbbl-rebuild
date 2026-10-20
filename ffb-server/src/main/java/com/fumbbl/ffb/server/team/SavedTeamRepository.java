@@ -3,7 +3,7 @@ package com.fumbbl.ffb.server.team;
 import java.sql.SQLException;
 import java.util.List;
 
-/** Immutable narrow JSON snapshots. Replacements must compare the prior document version atomically. */
+/** Immutable narrow JSON snapshots. Replacements compare versions atomically; account writes also reserve unique normalized team names atomically. */
 public interface SavedTeamRepository {
 	Record find(String owner, String teamId) throws SQLException;
 	List<Record> list(String owner) throws SQLException;
@@ -11,6 +11,11 @@ public interface SavedTeamRepository {
 	boolean replace(Record record, int expectedVersion) throws SQLException;
 	default boolean delete(String owner, String teamId, int expectedVersion) throws SQLException {
 		throw new UnsupportedOperationException("Delete is unavailable");
+	}
+
+	/** A different team in the account already owns this normalized name. No write was committed. */
+	final class NameTaken extends SQLException {
+		public NameTaken() { super("Team name already used by this account", "23505"); }
 	}
 
 	/** COMMIT was attempted: a lost acknowledgement cannot establish whether it succeeded. */

@@ -1,0 +1,51 @@
+/* Layout only: the lobby shares Team Builder's shell, panels, controls and buttons. */
+.play-lobby .builder-heading { margin-bottom: 1.5rem; }
+.play-lobby .builder-heading p:last-child { margin-bottom: 0; }
+.play-lobby .opponent-mode { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.75rem; }
+.play-lobby .opponent-mode button { min-width: 12rem; }
+.play-lobby .opponent-mode button[aria-pressed="true"] { outline: 2px solid #ffe17b; outline-offset: 3px; }
+.play-lobby .section-heading { gap: 1rem; align-items: center; }
+.play-lobby .section-heading h2 { margin: .5rem 0 0; }
+.play-lobby .section-heading > button { max-width: 16rem; }
+.play-lobby > .panel > h2:first-child { margin-top: 0; }
+.play-lobby label { display: flex; margin: 1rem 0; max-width: 40rem; }
+.play-lobby :is(input, select) { min-width: 0; width: 100%; }
+.play-lobby > .panel > button { margin: 0 .75rem .75rem 0; }
+.play-lobby .ai-coaches { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; }
+.play-lobby .ai-coaches li { display: flex; min-width: 0; }
+.play-lobby .ai-coach-card { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .55rem; padding: 1rem .75rem; margin: 0; text-align: center; background: #0b1725; color: #edf5ff; border: 3px solid #40637e; box-shadow: none; font: inherit; line-height: 1.4; overflow-wrap: anywhere; }
+.play-lobby .ai-coach-card img { width: 6rem; height: 6rem; max-width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid #40637e; image-rendering: pixelated; }
+.play-lobby .ai-coach-name { font-family: 'Chakra Petch', Inter, sans-serif; font-size: 1.05rem; color: #bdeaff; }
+.play-lobby .ai-coach-difficulty { font-size: .75rem; color: #ffe17b; }
+.play-lobby .ai-coach-description { font-size: .8rem; }
+.play-lobby .ai-coach-availability { margin-top: auto; padding-top: .5rem; color: #a9d7ec; font-size: .72rem; font-weight: 700; }
+.play-lobby .ai-coach-card[aria-pressed="true"] { background: #142b3c; border-color: #ffe17b; box-shadow: 3px 3px 0 #6b321f; }
+.play-lobby .ai-coach-card[aria-pressed="true"] :is(.ai-coach-name, .ai-coach-availability) { color: #ffe17b; }
+.play-lobby .ai-coach-card:not(:disabled):hover { transform: translateY(-2px); border-color: #ffe17b; }
+.play-lobby .ai-coach-card:disabled { opacity: 1; color: #96a6b5; background: #0b1420; border-color: #283b4c; cursor: default; }
+.play-lobby .ai-coach-card:disabled img { filter: grayscale(1); opacity: .55; }
+.play-lobby .ai-coach-card:disabled .ai-coach-name { color: #9badbe; }
+.play-lobby .ai-match-setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 1.5rem; padding-top: 1.25rem; margin-bottom: 1.25rem; border-top: 1px solid #40637e; }
+.play-lobby .ai-match-setup label { margin: 0; }
+.play-lobby .ai-roster { border-left: 3px solid #ffe17b; padding-left: 1rem; }
+.play-lobby .ai-roster > .builder-hint:first-child { margin-top: 0; color: #ffe17b; }
+.play-lobby .current-games .spectate-section-heading button { margin-left: auto; }
+@media (max-width: 1050px) {
+  .play-lobby .ai-coaches { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .play-lobby .ai-coaches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .play-lobby .ai-match-setup { grid-template-columns: minmax(0, 1fr); }
+  .play-lobby .section-heading > button { margin-top: 1rem; }
+  .play-lobby .current-games .spectate-section-heading { display: block; }
+}
+@media (max-width: 460px) {
+  .play-lobby.builder-shell { width: calc(100% - 1rem); padding: 1.5rem .25rem 3rem; }
+  .play-lobby .opponent-mode { display: grid; grid-template-columns: 1fr 1fr; }
+  .play-lobby .opponent-mode button { min-width: 0; padding: .75rem .5rem; font-size: .58rem; }
+  .play-lobby .ai-coaches { grid-template-columns: minmax(0, 1fr); }
+  .play-lobby .ai-coach-card { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); text-align: left; align-items: start; gap: .35rem .75rem; }
+  .play-lobby .ai-coach-card img { grid-column: 1; grid-row: 1 / 5; width: 4.5rem; height: 4.5rem; }
+  .play-lobby .ai-coach-card > :not(img) { grid-column: 2; }
+  .play-lobby .ai-coach-availability { margin-top: 0; }
+}

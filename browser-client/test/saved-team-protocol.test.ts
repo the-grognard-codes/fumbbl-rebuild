@@ -33,3 +33,7 @@ test('duplicate JSON fields are rejected before JSON.parse could discard them', 
   assert.throws(() => parseUniqueJson('{"teamId":"one","teamId":"two"}'));
   assert.throws(() => decodeSavedTeam(JSON.stringify(response).replace('"code":"OK"', '"code":"OK","code":"CONFLICT"')));
 });
+
+test('duplicate account team names return a recognized recoverable rejection', () => {
+  assert.equal(decodeSavedTeam(JSON.stringify({ ...response, code: 'TEAM_NAME_TAKEN', document: null, validation: null, versionStatus: null })).code, 'TEAM_NAME_TAKEN');
+});

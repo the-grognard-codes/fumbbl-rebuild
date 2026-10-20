@@ -9,6 +9,7 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,6 +42,9 @@ import static org.mockito.Mockito.when;
 class V2PreparationServiceTest {
 	@Test void createsBogrukWithASeparateFrozenCloneAndPreservesHisRosterChoice() throws Exception {
 		Connection connection = connection(false);
+		PreparedStatement stored = mock(PreparedStatement.class);
+		when(connection.prepareStatement(startsWith("INSERT INTO ffb_prepared_matches"))).thenReturn(stored);
+		when(stored.executeUpdate()).thenReturn(1);
 		RosterCatalog catalog = new RosterCatalog();
 		String account = "00000000-0000-0000-0000-000000000001";
 		SavedTeamService teams = teamService(catalog, account);
@@ -59,10 +65,20 @@ class V2PreparationServiceTest {
 			document.get("away").asObject().getString("sourceTeamId", null));
 		assertTrue(!computers.cloneTeamId(matchId).equals(computers.cloneTeamId(matchId, ComputerOpponentService.BOGRUK_ID)));
 		assertTrue(document.get("computer") == null, "private policy identity is not a preparation projection field");
+		ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+		verify(stored).setString(eq(3), payload.capture());
+		MatchDocument reloaded = new MatchJson().decode(payload.getValue(), 2);
+		assertEquals("Bogruk the Almost Clever", reloaded.away.team.coachName);
+		assertEquals(ComputerOpponentService.BOGRUK_ID, reloaded.computer.opponentId);
+		assertEquals("bogruk-v1", reloaded.computer.policyVersion);
+		assertEquals(ComputerOpponentService.BOGRUK_ID, computers.coach(reloaded).opponentId);
 	}
 	@Test
 	void createsComputerMatchWithDistinctFrozenCloneAndNoInvitation() throws Exception {
 		Connection connection = connection(false); RosterCatalog catalog = new RosterCatalog();
+		PreparedStatement stored = mock(PreparedStatement.class);
+		when(connection.prepareStatement(startsWith("INSERT INTO ffb_prepared_matches"))).thenReturn(stored);
+		when(stored.executeUpdate()).thenReturn(1);
 		String account = "00000000-0000-0000-0000-000000000001";
 		SavedTeamService teams = teamService(catalog, account);
 		String teamId = teams.list(account).get(0).teamId;
@@ -84,6 +100,18 @@ class V2PreparationServiceTest {
 			.equals(document.get("away").asObject().getString("sourceTeamId", null)));
 		assertTrue(response.get("invitationCode").isNull());
 		verify(connection).commit();
+		ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+		verify(stored).setString(eq(3), payload.capture());
+		MatchDocument reloaded = new MatchJson().decode(payload.getValue(), 2);
+		assertEquals("Gobbo “Wot Now?” Snotpick", reloaded.away.team.coachName);
+		assertEquals(ComputerOpponentService.BUGMAN_ID, reloaded.computer.opponentId);
+		assertEquals("random-v1", reloaded.computer.policyVersion);
+		assertTrue(new MatchJson().publicDocument(reloaded).get("away").asObject().get("coachName") == null);
+		JsonObject legacy = new MatchJson().encode(reloaded);
+		legacy.get("away").asObject().remove("coachName");
+		MatchDocument oldMatch = new MatchJson().decode(legacy.toString(), 2);
+		assertTrue(oldMatch.away.team.coachName == null);
+		assertEquals(reloaded.away.team.sourceTeamId, oldMatch.away.team.sourceTeamId);
 	}
 
 	@Test
@@ -113,7 +141,8 @@ class V2PreparationServiceTest {
 		TeamDraft draft = namedDraft(catalog);
 		FrozenTeam home = new FrozenTeam("00000000-0000-0000-0000-000000000011", 1, "home", draft, 550000, 0, catalog);
 		ComputerOpponentService computers = new ComputerOpponentService(null);
-		FrozenTeam away = home.copyForMatch(computers.cloneTeamId(matchId), "away", ComputerOpponentService.BUGMAN_TEAM_NAME);
+		FrozenTeam away = home.copyForMatch(computers.cloneTeamId(matchId), "away", ComputerOpponentService.BUGMAN_TEAM_NAME,
+			ComputerOpponentService.BUGMAN_NAME);
 		Map<String, MatchDocument.Request> requests = new LinkedHashMap<>();
 		requests.put("home\ncreate_1", new MatchDocument.Request("create|" + home.sourceTeamId + "|1|away"));
 		requests.put("away\njoin_1", new MatchDocument.Request("join|" + matchId + "|1|" + away.sourceTeamId + "|1"));
@@ -128,6 +157,12 @@ class V2PreparationServiceTest {
 		MatchDocument completed = new MatchDocument(matchId, 4, "away", MatchDocument.Lifecycle.COMPLETED,
 			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), requests, completion);
 		String rawDocument = new MatchJson().encode(completed).toString();
+		assertEquals("Gobbo “Wot Now?” Snotpick", new MatchJson().decode(rawDocument, 4).away.team.coachName);
+		JsonObject legacy = JsonObject.readFrom(rawDocument);
+		legacy.get("away").asObject().remove("coachName");
+		MatchDocument historical = new MatchJson().decode(legacy.toString(), 4);
+		assertTrue(historical.away.team.coachName == null);
+		assertEquals(legacy.toString(), new MatchJson().encode(historical).toString());
 		String storedDocument = new BoundedJsonStorageCodec(BoundedJsonStorageCodec.PREPARED_ENCODED_LIMIT,
 			BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT).encode(rawDocument);
 		assertTrue(!rawDocument.equals(storedDocument), "completed fixture should exercise the storage envelope");
@@ -155,6 +190,16 @@ class V2PreparationServiceTest {
 			+ "JOIN ffb_v2_match_members away ON away.matchid=p.match_id AND away.account_id=? AND away.role='away' "
 			+ "JOIN ffb_v2_match_members home ON home.matchid=p.match_id AND home.role='home' "
 			+ "WHERE p.document_version=3 ORDER BY p.match_id"));
+	}
+
+	@Test void randomCoachKeepsStoredMembershipAndCloneIdentifiers() {
+		ComputerOpponentService computers = new ComputerOpponentService(null);
+		String matchId = "00000000-0000-0000-0000-000000000021";
+		assertTrue(computers.supports("coach-bugman-random"));
+		assertEquals(UUID.nameUUIDFromBytes("computer-opponent\ncoach-bugman-random"
+			.getBytes(StandardCharsets.UTF_8)).toString(), computers.memberId());
+		assertEquals(UUID.nameUUIDFromBytes(("computer-team\ncoach-bugman-random\n" + matchId)
+			.getBytes(StandardCharsets.UTF_8)).toString(), computers.cloneTeamId(matchId));
 	}
 
 	@Test

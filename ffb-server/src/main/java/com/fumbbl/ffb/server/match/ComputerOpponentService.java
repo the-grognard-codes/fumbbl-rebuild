@@ -9,7 +9,8 @@ import java.util.UUID;
 /** Computer coach definitions and the separate WebSocket service credential. */
 public final class ComputerOpponentService {
 	public static final String BUGMAN_ID = "coach-bugman-random";
-	public static final String BUGMAN_NAME = "Coach Bugman - Random";
+	public static final String BUGMAN_NAME = "Gobbo \u201cWot Now?\u201d Snotpick";
+	public static final String LEGACY_BUGMAN_NAME = "Coach Bugman - Random";
 	public static final String BUGMAN_TEAM_NAME = "Bugman's Best";
 	public static final String BOGRUK_ID = "coach-bogruk-weak";
 	public static final String BOGRUK_NAME = "Bogruk the Almost Clever";

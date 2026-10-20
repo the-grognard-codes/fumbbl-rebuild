@@ -1,0 +1,30 @@
+{
+  "generator": "Built-in imagegen",
+  "portraits": [
+    {
+      "id": "gobbo",
+      "file": "gobbo-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: square avatar for a fantasy-football coach selection card on Moles Under the Pitch. Create one polished 16-bit pixel-art head-and-shoulders portrait, crisp hand-placed pixel edges, chunky readable silhouette, limited colors, no blur, no photorealism. Dark navy background, cyan rim lighting, restrained warm gold details, matching a dark navy pixel-art sports UI. Face fills most of square and remains recognizable at 96 pixels. Frontal three-quarter view, lively character, whimsical gritty fantasy sports. No writing, letters, logo, watermark, UI, border, extra characters, or landscape. Gobbo “Wot Now?” Snotpick, a mischievous Night Goblin coach: small green face, huge pointed ears, crooked toothy grin, deep navy pointed hood, holding a little playbook with a small squig bite taken out of its corner. Impulsive confused expression."
+    },
+    {
+      "id": "bogruk",
+      "file": "bogruk-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: square avatar for a fantasy-football coach selection card on Moles Under the Pitch. Create one polished 16-bit pixel-art head-and-shoulders portrait, crisp hand-placed pixel edges, chunky readable silhouette, limited colors, no blur, no photorealism. Dark navy background, cyan rim lighting, restrained warm gold details, matching a dark navy pixel-art sports UI. Face fills most of square and remains recognizable at 96 pixels. Frontal three-quarter view, lively character, whimsical gritty fantasy sports. No writing, letters, logo, watermark, UI, border, extra characters, or landscape. Bogruk the Almost Clever, a Black Orc fantasy-football coach: massive dark olive-green face, broad heavy jaw, tusks, scarred black iron shoulder armor, small battered coach cap, determined but slightly befuddled expression. A tiny tactical chalk stub near his chest."
+    },
+    {
+      "id": "grimbald",
+      "file": "grimbald-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: square avatar for a fantasy-football coach selection card on Moles Under the Pitch. Create one polished 16-bit pixel-art head-and-shoulders portrait, crisp hand-placed pixel edges, chunky readable silhouette, limited colors, no blur, no photorealism. Dark navy background, cyan rim lighting, restrained warm gold details, matching a dark navy pixel-art sports UI. Face fills most of square and remains recognizable at 96 pixels. Frontal three-quarter view, lively character, whimsical gritty fantasy sports. No writing, letters, logo, watermark, UI, border, extra characters, or landscape. Coach Grimbald Ironwhistle, a Dwarf fantasy-football coach: stout stern dwarf with huge auburn braided beard, broad nose, brass whistle at neck, rugged navy and gold sideline coat, iron brow and folded clipboard. Grounded veteran strategist."
+    },
+    {
+      "id": "morgath",
+      "file": "morgath-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: square avatar for a fantasy-football coach selection card on Moles Under the Pitch. Create one polished 16-bit pixel-art head-and-shoulders portrait, crisp hand-placed pixel edges, chunky readable silhouette, limited colors, no blur, no photorealism. Dark navy background, cyan rim lighting, restrained warm gold details, matching a dark navy pixel-art sports UI. Face fills most of square and remains recognizable at 96 pixels. Frontal three-quarter view, lively character, whimsical gritty fantasy sports. No writing, letters, logo, watermark, UI, border, extra characters, or landscape. Morgath Blackquill, a Dark Elf fantasy-football coach: angular cool pale-purple face, long pointed ears, swept-back raven-black hair, arched brows, calculating stern gaze, high-collared dark navy coat with a black feather quill and gold clasp. Elegant devious tactician."
+    },
+    {
+      "id": "deep-bruise",
+      "file": "deep-bruise-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: square avatar for a fantasy-football coach selection card on Moles Under the Pitch. Create one polished 16-bit pixel-art head-and-shoulders portrait, crisp hand-placed pixel edges, chunky readable silhouette, limited colors, no blur, no photorealism. Dark navy background, cyan rim lighting, restrained warm gold details, matching a dark navy pixel-art sports UI. Face fills most of square and remains recognizable at 96 pixels. Frontal three-quarter view, lively character, whimsical gritty fantasy sports. No writing, letters, logo, watermark, UI, border, extra characters, or landscape. Deep Bruise, a legendary fantasy-football robot coaching contraption: expressive square brass and blackened-steel face, luminous cyan eyes, rivets, chunky iron jaw, small gears, navy armored shoulders, subtle punched match-record cards tucked into a brass chest slot. Intelligent intimidating whimsical machine, medieval dwarven engineering."
+    }
+  ]
+}

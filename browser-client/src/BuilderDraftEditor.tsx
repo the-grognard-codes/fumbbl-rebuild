@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { randomPlayerName } from './player-names';
 
 import { canPurchaseSkill } from './team-protocol';
 import type { Catalog, DraftPlayer, Position, TeamDraft, Validation } from './team-protocol';
@@ -68,7 +69,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
     if (!editable || slot === undefined || jerseyNumber === undefined || (counts.get(position.id) ?? 0) >= position.maximum) return;
     const player: DraftPlayer = {
       id: crypto.randomUUID(), slot, jerseyNumber,
-      playerName: `${position.name} ${Number(counts.get(position.id) ?? 0) + 1}`,
+      playerName: randomPlayerName(catalog.rosterId, position.id, draft.players.map(player => player.playerName)),
       positionId: position.id, skillIds: []
     };
     update({ ...draft, players: [...draft.players, player] });
@@ -109,19 +110,17 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
         </article>;
       })}</div></section>
       <aside className="panel value-panel"><h2>Roster Value</h2><dl>
-        <dt>Players</dt><dd>{money(playerTotal)}</dd>
+        <dt>Players {draft.players.length}/{catalog.maxPlayers}</dt><dd>{money(playerTotal)}</dd>
         <dt>Purchased skill points</dt><dd>{purchasedSkillPoints} / {catalog.skillPoints}</dd>
         <dt>Sideline staff</dt><dd>{money(sideline)}</dd>
         <dt>Team re-rolls</dt><dd>{money(rerolls)}</dd>
         <dt>Dedicated fans</dt><dd>{money(fans)}</dd>
         <dt>Total team value</dt><dd><strong>{money(total)}</strong></dd>
       </dl><p className="treasury">Remaining treasury: {money(catalog.budget - total)}</p>
-        <p className="builder-hint">Roster values are estimates until server validation.</p>
-        <p role="status">{validation ? validation.valid ? 'Server validation passed.' : 'Server validation found changes to make.' : 'Validate on the server before saving.'}</p>
       </aside>
     </div>
 
-    <section className="panel roster-panel"><div className="section-heading"><div><h2>Editable Roster</h2><p>Jersey numbers must be unique from 1–99. Use the order controls to arrange your team.</p></div><button type="button" disabled={!editable} onClick={validate}>Validate Roster</button></div>
+    <section className="panel roster-panel"><div className="section-heading"><div><h2>Editable Roster</h2><p>Jersey numbers must be unique from 1–99. Use the order controls to arrange your team.</p></div><div className="roster-validation"><button type="button" disabled={!editable} onClick={validate}>Validate Roster</button><p role="status">{validation ? validation.valid ? 'Server validation passed.' : 'Server validation found changes to make.' : 'Validate on the server before saving.'}</p></div></div>
       <div className="roster" aria-live="polite">{orderedPlayers.length ? orderedPlayers.map((player, index) => {
         const position = catalog.positions.find(item => item.id === player.positionId);
         const eligibleSkills = catalog.skills.filter(skill => position && canPurchaseSkill(skill, position, draft.captainId === player.id));
@@ -140,7 +139,7 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
 
     <section className="panel resources"><h2>Sideline And Resources</h2><div id="resource-list">{catalog.resources.map(resource => {
       const value = draft.resources[resource.id];
-      return <article className="resource" key={resource.id}><h3>{resource.name}</h3><p>{money(resource.cost)} each · max {resource.maximum}</p><div className="resource-controls"><button type="button" aria-label={`Subtract ${resource.name}`} disabled={!editable || value === 0} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value - 1 } })}>−</button><output aria-label={resource.name}>{value}</output><button type="button" aria-label={`Add ${resource.name}`} disabled={!editable || value >= resource.maximum} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value + 1 } })}>+</button></div></article>;
+      return <article className="resource" key={resource.id}><h3>{resource.name}</h3><p>{money(resource.cost)} each · max {resource.maximum}</p><div className="resource-controls"><button type="button" aria-label={`Subtract ${resource.name}`} disabled={!editable || value === 0} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value - 1 } })}><span className="resource-sign" aria-hidden="true" /></button><output aria-label={resource.name}>{value}</output><button type="button" aria-label={`Add ${resource.name}`} disabled={!editable || value >= resource.maximum} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value + 1 } })}><span className="resource-sign resource-sign-plus" aria-hidden="true" /></button></div></article>;
     })}</div></section>
   </>;
 }
