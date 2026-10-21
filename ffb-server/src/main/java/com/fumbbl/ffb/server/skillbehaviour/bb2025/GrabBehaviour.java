@@ -3,8 +3,9 @@ package com.fumbbl.ffb.server.skillbehaviour.bb2025;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PushbackMode;
-import com.fumbbl.ffb.RulesCollection;
+import com.fumbbl.ffb.PushbackSquare;
 import com.fumbbl.ffb.RulesCollection.Rules;
+import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.FieldModel;
@@ -16,11 +17,12 @@ import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.server.model.SkillBehaviour;
 import com.fumbbl.ffb.server.model.StepModifier;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences.UseCase;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
-import com.fumbbl.ffb.server.step.bb2025.block.StepPushback;
 import com.fumbbl.ffb.server.step.bb2025.block.StepPushback.StepState;
+import com.fumbbl.ffb.server.step.bb2025.block.StepPushback;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerPushback;
 import com.fumbbl.ffb.skill.mixed.Grab;
@@ -65,6 +67,18 @@ public class GrabBehaviour extends SkillBehaviour<Grab> {
 					&& !attackerHasConflictingSkill
 					&& ((actingPlayer.getPlayerAction().isBlockOrSpecialAction())
 					|| (actingPlayer.getPlayerAction() == PlayerAction.MULTIPLE_BLOCK) || allowGrabOutsideBlock)) {
+					if (state.grabbing == null && step.getGameState().getOptionalSkillUse().enabled()) {
+						PushbackSquare[] grabSquares = UtilServerPushback.findPushbackSquares(game,
+							state.startingPushbackSquare, PushbackMode.GRAB);
+						if (hasDifferentDestinations(state.pushbackSquares, grabSquares)) {
+							Boolean useGrab = step.getGameState().getOptionalSkillUse().choice(step, UseCase.GRAB,
+								actingPlayer.getPlayer(), skill);
+							if (useGrab == null) return true;
+							state.grabbing = useGrab;
+						} else {
+							state.grabbing = false;
+						}
+					}
 					if ((state.grabbing == null) && ArrayTool.isProvided(state.pushbackSquares)) {
 						state.grabbing = true;
 						for (int i = 0; i < state.pushbackSquares.length; i++) {
@@ -100,5 +114,21 @@ public class GrabBehaviour extends SkillBehaviour<Grab> {
 			}
 
 		});
+	}
+
+	private boolean hasDifferentDestinations(PushbackSquare[] regularSquares, PushbackSquare[] grabSquares) {
+		if (regularSquares == null || grabSquares == null) return regularSquares != grabSquares;
+		if (regularSquares.length != grabSquares.length) return true;
+		for (PushbackSquare regularSquare : regularSquares) {
+			boolean found = false;
+			for (PushbackSquare grabSquare : grabSquares) {
+				if (regularSquare.getCoordinate().equals(grabSquare.getCoordinate())) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) return true;
+		}
+		return false;
 	}
 }

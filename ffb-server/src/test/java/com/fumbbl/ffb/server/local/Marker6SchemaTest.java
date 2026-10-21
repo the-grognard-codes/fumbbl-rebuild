@@ -2,31 +2,31 @@ package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.db.DbConnectionManager;
 
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Test;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assumptions;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -50,7 +50,7 @@ class Marker6SchemaTest {
 	void missingNamedTeamTableFailsClosedWithoutWriting() throws Exception {
 		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet version = mock(ResultSet.class), table = mock(ResultSet.class);
 		when(connection.createStatement()).thenReturn(statement); when(statement.executeQuery(anyString())).thenReturn(version, table);
-		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(7); when(table.next()).thenReturn(false);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(8); when(table.next()).thenReturn(false);
 
 		assertThrows(SQLException.class, () -> new Marker6Schema().verify(connection));
 

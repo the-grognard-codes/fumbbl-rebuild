@@ -482,6 +482,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     {matchRoute && connection?.state && <GameView key={connection.state.matchId} hosted results={connection.state.callerRole !== 'spectator'} resultUrl={`/play/result?matchId=${encodeURIComponent(connection.state.matchId)}`} view={connection.state} connected={connected} pending={connection.pending?.request.requestId ?? null}
       matchControls={{ fullscreen, toggleFullscreen, exitMatch, reconnect: () => connection.connect(), error }}
       acceptedActionId={connection.lastAcceptedActionId}
+      skillUseControls={connection.state.callerRole === 'spectator' ? undefined : {
+        preferences: connection.skillUsePreferences, pending: connection.skillUsePending !== null,
+        error: connection.skillUseError, saved: connection.skillUseSaved,
+        load: () => connection.loadSkillUsePreferences(),
+        update: (useCase, mode) => connection.updateSkillUsePreference(useCase, mode),
+      }}
       logRecords={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
       chatMessages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable} chatSendError={chatSendError} chatSent={chatSent}
       chatSending={connection.pending?.request.type === 'matchChat'} sendChat={text => run(() => {

@@ -85,6 +85,29 @@ class JdbcSavedTeamRepositoryTest {
 		verify(statement, never()).executeUpdate();
 	}
 	@Test
+	void accountCreatesAndUpdatesSupportNamedTeamAndSkillPreferenceSchemas() throws Exception {
+		for (int version : new int[] { 7, 8 }) {
+			for (boolean insert : new boolean[] { true, false }) {
+				setup(); repository = new JdbcSavedTeamRepository(() -> connection, true);
+				ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
+				when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(version, 0);
+				when(statement.executeUpdate()).thenReturn(1);
+				if (insert) repository.insert(record); else assertTrue(repository.replace(record, 1));
+				verify(connection).commit(); verify(connection, never()).rollback();
+			}
+		}
+	}
+	@Test
+	void accountWritesRejectFutureSchemaAndLegacyWritesRejectAccountSchema() throws Exception {
+		for (boolean accounts : new boolean[] { true, false }) {
+			setup(); repository = new JdbcSavedTeamRepository(() -> connection, accounts);
+			ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
+			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(accounts ? 9 : 8);
+			assertThrows(SQLException.class, () -> repository.insert(record));
+			verify(statement, never()).executeUpdate(); verify(connection).rollback();
+		}
+	}
+	@Test
 	void deleteBindsOwnerAndExpectedVersionBeforeCommit() throws Exception {
 		ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
 		when(rows.next()).thenReturn(true); when(rows.getString(1)).thenReturn(record.teamId);

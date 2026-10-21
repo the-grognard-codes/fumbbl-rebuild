@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.mixed;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.*;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.UtilJson;
@@ -20,6 +18,9 @@ import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerPushback;
 import com.fumbbl.ffb.util.ArrayTool;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 /**
  * Step in block sequence to handle skill DODGE.
  * Expects stepParameter OLD_DEFENDER_STATE to be set by a preceding step.
@@ -27,7 +28,6 @@ import com.fumbbl.ffb.util.ArrayTool;
  * @author Kalimar
  */
 @RulesCollection(RulesCollection.Rules.BB2020)
-@RulesCollection(RulesCollection.Rules.BB2025)
 public class StepBlockDodge extends AbstractStep {
 
 	public static class StepState {

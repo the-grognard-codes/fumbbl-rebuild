@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.move;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.CatchScatterThrowInMode;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
@@ -45,6 +43,9 @@ import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Collections;
 import java.util.Set;
@@ -289,6 +290,9 @@ public class StepPickUp extends AbstractStepWithReRoll {
 					setReRolledAction(ReRolledActions.PICK_UP);
 					ReRollSource rerollSource = UtilCards.getRerollSource(player, ReRolledActions.PICK_UP);
 					if (rerollSource != null && !secureTheBall) {
+						if (offerOptionalSkillReroll(player, ReRolledActions.PICK_UP, rerollSource, minimumRoll)) {
+							return ActionStatus.WAITING_FOR_RE_ROLL;
+						}
 						setReRollSource(rerollSource);
 						UtilServerReRoll.useReRoll(this, getReRollSource(), player);
 						return pickUp(player);

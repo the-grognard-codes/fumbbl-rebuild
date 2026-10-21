@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ffb:browser:v2-skill-use-preferences",
+  "title": "Authenticated account skill use preference requests and response",
+  "$defs": {
+    "requestId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,100}$" },
+    "useCase": { "enum": ["catch", "dodge-movement", "dodge-block", "sure-feet", "fend", "steady-footing", "strip-ball", "sure-hands", "tackle-movement", "tackle-block", "taunt", "wrestle-attacker", "wrestle-defender", "pass-ball", "pass-bomb", "grab", "stand-firm", "pick-me-up"] },
+    "mode": { "enum": ["always-use", "always-ask"] },
+    "preferences": {
+      "type": "object",
+      "minProperties": 18,
+      "maxProperties": 18,
+      "propertyNames": { "$ref": "#/$defs/useCase" },
+      "additionalProperties": { "$ref": "#/$defs/mode" }
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "type", "requestId", "operation"],
+      "properties": {
+        "version": { "const": 2 },
+        "type": { "const": "skillUsePreferences" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "operation": { "const": "load" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "type", "requestId", "operation", "useCase", "mode"],
+      "properties": {
+        "version": { "const": 2 },
+        "type": { "const": "skillUsePreferences" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "operation": { "const": "update" },
+        "useCase": { "$ref": "#/$defs/useCase" },
+        "mode": { "$ref": "#/$defs/mode" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "type", "requestId", "code", "preferences"],
+      "properties": {
+        "version": { "const": 2 },
+        "type": { "const": "skillUsePreferences" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "code": { "const": "ACCEPTED" },
+        "preferences": { "$ref": "#/$defs/preferences" }
+      }
+    }
+  ]
+}

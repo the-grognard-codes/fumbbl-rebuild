@@ -2,6 +2,47 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { V2Client, v2PendingKey } from '../src/v2-client.ts';
 import { canPlaceReserve, decodeSetupStateValue } from '../src/setup-protocol.ts';
+import { skillUseCases } from '../src/skill-use-preferences.ts';
+
+test('account preferences acknowledge only server replies and preserve unrelated pending gameplay', async () => {
+  const { client, connect, storageData } = fixture(); const socket = await connect();
+  const gameplay = client.request('preparedMatch', { operation: 'create' }, true);
+  client.loadSkillUsePreferences();
+  const load = socket.sent.at(-1);
+  assert.equal(load.type, 'skillUsePreferences'); assert.equal(load.operation, 'load');
+  assert.equal(client.skillUsePreferences, null); assert.equal(client.skillUsePending, load.requestId);
+  const preferences = Object.fromEntries(skillUseCases.map(([key, , mode]) => [key, mode]));
+  socket.reply({ type: 'skillUsePreferences', requestId: load.requestId, code: 'ACCEPTED', preferences });
+  assert.equal(client.skillUsePreferences?.catch, 'always-use'); assert.equal(client.skillUseSaved, false);
+  client.updateSkillUsePreference('catch', 'always-ask');
+  const update = socket.sent.at(-1);
+  assert.equal(update.useCase, 'catch'); assert.equal(update.mode, 'always-ask');
+  assert.equal(client.skillUsePreferences?.catch, 'always-use', 'No optimistic saved value');
+  const count = socket.sent.length; client.updateSkillUsePreference('pass-ball', 'always-ask');
+  assert.equal(socket.sent.length, count, 'Disable further settings updates until the reply');
+  socket.reply({ type: 'skillUsePreferences', requestId: update.requestId, code: 'ACCEPTED', preferences: { ...preferences, catch: 'always-ask' } });
+  assert.equal(client.skillUsePreferences?.catch, 'always-ask'); assert.equal(client.skillUseSaved, true);
+  assert.equal(client.pending?.request.requestId, gameplay); assert.equal(storageData.size, 1);
+});
+
+test('preference failures and reconnect never claim saved or reuse another account policy', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  client.loadSkillUsePreferences();
+  socket.reply({ type: 'error', requestId: client.skillUsePending, code: 'PERSISTENCE_FAILED' });
+  assert.equal(client.skillUsePending, null); assert.ok(client.skillUseError); assert.equal(client.skillUseSaved, false);
+  client.updateSkillUsePreference('catch', 'always-ask');
+  client.disconnect();
+  assert.equal(client.skillUsePending, null); assert.equal(client.skillUsePreferences, null);
+  assert.ok(client.skillUseError.includes('not confirmed')); assert.equal(client.skillUseSaved, false);
+  const next = await connect();
+  assert.equal(next.sent.some(request => request.type === 'skillUsePreferences'), false, 'An unconfirmed settings write is never automatically replayed');
+});
+
+test('spectator selection cannot request account settings', async () => {
+  const { client, connect } = fixture(); await connect(); client.open(match, true);
+  client.loadSkillUsePreferences();
+  assert.equal(client.skillUsePending, null); assert.equal(client.skillUseError, 'This game is read-only.');
+});
 
 const account = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const match = '12345678-1234-1234-1234-123456789abc';

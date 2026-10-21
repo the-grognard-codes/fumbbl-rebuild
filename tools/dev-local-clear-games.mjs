@@ -66,10 +66,12 @@ export function clearDevLocalGames({ apply = false, run = defaultRun, environmen
   requireDatabase(database);
   // Use immutable container IDs after checking names/labels/mounts.
   const query = input => run('docker', ['exec', '-i', database.Id, 'sh', '-c', sqlCommand], { input });
-  if (query('SELECT version FROM ffb_local_schema;').trim() !== '7') throw Error('REVIEW_SCHEMA_MISMATCH');
+  const marker = query('SELECT version FROM ffb_local_schema;').trim();
+  if (!['7', '8'].includes(marker)) throw Error('REVIEW_SCHEMA_MISMATCH');
+  const retainedForSchema = marker === '8' ? [...retainedTables, 'ffb_v2_skill_use_preferences'] : retainedTables;
   const inventory = query('SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME;')
     .trim().split(/\r?\n/).map(line => line.split('\t'));
-  const expected = [...gameTables, ...retainedTables];
+  const expected = [...gameTables, ...retainedForSchema];
   const names = inventory.map(([name]) => name);
   if (new Set(names).size !== names.length || names.some(name => !expected.includes(name))
     || expected.filter(name => name !== optionalTable).some(name => !names.includes(name))
@@ -99,12 +101,12 @@ export function clearDevLocalGames({ apply = false, run = defaultRun, environmen
     const currentDatabase = inspect(run, databaseName, 'database');
     requireDatabase(currentDatabase);
     if (currentDatabase.Id !== database.Id) throw Error('REVIEW_DATABASE_MISMATCH');
-    const retained = counts(query, retainedTables);
+    const retained = counts(query, retainedForSchema);
     // No TRUNCATE, schema changes or ID resets: a failed SQL batch rolls back on disconnect.
     query(`START TRANSACTION;\n${selected.map(table => `DELETE FROM \`${table}\`;`).join('\n')}\nCOMMIT;`);
     const after = counts(query, selected);
     if (Object.values(after).some(count => count !== '0')) throw Error('REVIEW_GAMES_NOT_EMPTY');
-    if (JSON.stringify(counts(query, retainedTables)) !== JSON.stringify(retained)) throw Error('REVIEW_RETAINED_COUNTS_CHANGED');
+    if (JSON.stringify(counts(query, retainedForSchema)) !== JSON.stringify(retained)) throw Error('REVIEW_RETAINED_COUNTS_CHANGED');
     log('All database game records removed; accounts, saved teams, settings and backup files retained.');
     if (stopped) {
       run('docker', ['start', server.Id]);

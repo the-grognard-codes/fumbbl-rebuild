@@ -1,10 +1,19 @@
 package com.fumbbl.ffb.server;
 
+import com.fumbbl.ffb.IDialogParameter;
+import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
+import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
+import com.fumbbl.ffb.net.commands.ClientCommand;
+import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
+import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.server.GameState.StepExecutionMode;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepAction;
+import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepException;
+import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerGame;
 import com.fumbbl.ffb.util.StringTool;
 
@@ -109,16 +118,51 @@ class StepExecutor {
 		if (ctx.mode == StepExecutionMode.Start) {
 			fCurrentStep.start();
 		} else if (ctx.receivedCommand != null) {
-			fCurrentStep.handleCommand(ctx.receivedCommand);
+			handleCurrentCommand(ctx.receivedCommand);
 		}
 
 		while (fCurrentStep.getResult().getNextAction().triggerRepeat()) {
 			fCurrentStep.repeat();
 		}
 
+		// Resolve only newly produced decisions during native execution, never during load/replay.
+		for (int count = 0; !fCurrentStep.getResult().getNextAction().triggerNextStep(); count++) {
+			ClientCommand automatic = gameState.getOptionalSkillUse().automaticCommand();
+			if (automatic == null) break;
+			if (count >= 128) throw new StepException("Automatic skill decisions did not advance");
+			boolean home = true;
+			if (gameState.getGame().getDialogParameter() instanceof DialogSkillUseParameter) {
+				String player = ((DialogSkillUseParameter) gameState.getGame().getDialogParameter()).getPlayerId();
+				home = gameState.getGame().getTeamHome().hasPlayer(gameState.getGame().getPlayerById(player));
+			} else if (gameState.getGame().getDialogParameter() instanceof DialogReRollPropertiesParameter) {
+				String player = ((DialogReRollPropertiesParameter) gameState.getGame().getDialogParameter()).getPlayerId();
+				home = gameState.getGame().getTeamHome().hasPlayer(gameState.getGame().getPlayerById(player));
+			} else if (gameState.getGame().getDialogParameter() instanceof DialogPlayerChoiceParameter) {
+				home = gameState.getGame().getTeamHome().getId().equals(
+					((DialogPlayerChoiceParameter) gameState.getGame().getDialogParameter()).getTeamId());
+			}
+			StepCommandStatus status = handleCurrentCommand(new ReceivedCommand(automatic, home));
+			if (status == StepCommandStatus.UNHANDLED_COMMAND || status == StepCommandStatus.SKIP_STEP)
+				throw new StepException("Automatic skill decision was not accepted by " + fCurrentStep.getName());
+			while (fCurrentStep.getResult().getNextAction().triggerRepeat()) fCurrentStep.repeat();
+		}
+
 		UtilServerGame.syncGameModel(fCurrentStep);
 
 		ctx.action = fCurrentStep.getResult().getNextAction();
+	}
+
+	private StepCommandStatus handleCurrentCommand(ReceivedCommand received) {
+		IDialogParameter offered = gameState.getGame().getDialogParameter();
+		StepCommandStatus status = fCurrentStep.handleCommand(received);
+		// Some native steps leave consumed skill dialogs for the next step to clear. Do it
+		// before automatic policy sees them again, while retaining newly produced decisions.
+		boolean answeredSkill = received.getCommand() instanceof ClientCommandUseSkill;
+		boolean answeredReroll = received.getCommand() instanceof ClientCommandUseReRoll && offered instanceof DialogReRollPropertiesParameter;
+		if (gameState.getOptionalSkillUse().enabled() && (answeredSkill || answeredReroll)
+			&& status == StepCommandStatus.EXECUTE_STEP && gameState.getGame().getDialogParameter() == offered)
+			UtilServerDialog.hideDialog(gameState);
+		return status;
 	}
 
 	private void processFlowControl(Context ctx) {

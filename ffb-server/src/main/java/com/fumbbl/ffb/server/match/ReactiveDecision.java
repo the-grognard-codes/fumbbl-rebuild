@@ -25,6 +25,7 @@ final class ReactiveDecision {
     private String id, key, actor, title, detail;
     private long expiresAt;
     private boolean paused, normalHome;
+    private boolean optionalSkillPrompt;
     private Object step;
     private JsonObject interruptedMovement;
     private long movementRemainingMs;
@@ -35,12 +36,21 @@ final class ReactiveDecision {
         IDialogParameter dialog = game.getDialogParameter();
         String nextKey = null, nextTitle = null, nextDetail = "";
         Player<?> player = null;
+        boolean nextOptionalSkillPrompt = false;
         if (dialog instanceof DialogSkillUseParameter) {
             DialogSkillUseParameter choice = (DialogSkillUseParameter) dialog;
             if (catalog.covered(choice.getSkill().getName()) || game.getTurnMode() == TurnMode.PASS_BLOCK) {
                 nextKey = choice.getSkill().getName() + ":" + choice.getPlayerId();
+                if (state.getOptionalSkillUse().enabled() && state.getCurrentStep() instanceof com.fumbbl.ffb.server.step.AbstractStepWithReRoll) {
+                    com.fumbbl.ffb.ReRolledAction action = ((com.fumbbl.ffb.server.step.AbstractStepWithReRoll) state.getCurrentStep()).getReRolledAction();
+                    nextOptionalSkillPrompt = state.getOptionalSkillUse().rerollCase(choice.getSkill().getRerollSource(action), action) != null;
+                }
                 nextTitle = "Use " + choice.getSkill().getName() + "?" + target(choice.getMinimumRoll());
                 player = game.getPlayerById(choice.getPlayerId());
+                if ("Dodge".equals(choice.getSkill().getName())
+                    && state.getCurrentStep() instanceof com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge
+                    && ((com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge) state.getCurrentStep()).isPreDivingTackleReroll())
+                    nextDetail = "Diving Tackle can make this dodge fail. Reroll the dodge now?";
             }
         } else if (dialog instanceof DialogPlayerChoiceParameter) {
             DialogPlayerChoiceParameter choice = (DialogPlayerChoiceParameter) dialog;
@@ -59,6 +69,9 @@ final class ReactiveDecision {
                 nextTitle = "Re-roll " + choice.getReRolledAction().getName(game.getRules().getSkillFactory()) + "?" + target(choice.getMinimumRoll());
                 player = game.getPlayerById(choice.getPlayerId());
                 nextDetail = String.join(" ", choice.getMessages());
+                if (nextDetail.isEmpty() && state.getCurrentStep() instanceof com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge
+                    && ((com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge) state.getCurrentStep()).isPreDivingTackleReroll())
+                    nextDetail = "Diving Tackle can make this dodge fail. Reroll the dodge now?";
             }
         }
         if (dialog == null && state.getCurrentStep() instanceof StepPushback) {
@@ -102,7 +115,8 @@ final class ReactiveDecision {
         String teamId = "home".equals(nextActor) ? game.getTeamHome().getId() : game.getTeamAway().getId();
         boolean selectedPlayer = key != null && key.endsWith(":" + teamId) && stem(key).equals(stem(nextKey));
         boolean sameChoice = key != null && (normalize(key).equals(normalize(nextKey)) || selectedPlayer);
-        boolean keep = key != null && actor.equals(nextActor) && (sequence && interruptedMovement == null
+        boolean remainingRerolls = optionalSkillPrompt && dialog instanceof DialogReRollPropertiesParameter;
+        boolean keep = !remainingRerolls && key != null && actor.equals(nextActor) && (sequence && interruptedMovement == null
             || sameChoice && (step == null || step == state.getCurrentStep()));
         if (!keep) {
             JsonObject movement = interruptedMovement;
@@ -117,6 +131,7 @@ final class ReactiveDecision {
             if (state.getCurrentStep() instanceof StepPlaceBall && !((StepPlaceBall) state.getCurrentStep()).isBallCarrierTeamTurn()) normalHome = !normalHome;
         }
         key = nextKey;
+        optionalSkillPrompt = nextOptionalSkillPrompt;
         actor = nextActor;
         title = nextTitle;
         detail = (player == null ? "" : player.getName() + ". ") + nextDetail;
@@ -162,6 +177,7 @@ final class ReactiveDecision {
     JsonObject checkpoint() {
         if (!pending()) return null;
         JsonObject saved = publicJson(0).add("key", key).add("paused", paused).add("normalHome", normalHome);
+        if (optionalSkillPrompt) saved.add("optionalSkillPrompt", true);
         if (interruptedMovement != null) saved.add("interruptedMovement", interruptedMovement).add("movementRemainingMs", movementRemainingMs);
         return saved;
     }
@@ -170,6 +186,7 @@ final class ReactiveDecision {
         id = saved.get("id").asString(); key = saved.get("key").asString(); actor = saved.get("actor").asString();
         title = saved.get("title").asString(); detail = saved.getString("detail", ""); expiresAt = saved.get("expiresAt").asLong();
         paused = saved.get("paused").asBoolean(); normalHome = saved.get("normalHome").asBoolean();
+        optionalSkillPrompt = saved.getBoolean("optionalSkillPrompt", false);
         interruptedMovement = saved.get("interruptedMovement") == null ? null : saved.get("interruptedMovement").asObject();
         movementRemainingMs = saved.getLong("movementRemainingMs", 0L);
         if (movementRemainingMs < 0 || movementRemainingMs > ALLOWANCE_MS) throw new IllegalArgumentException("Invalid interrupted movement deadline");
@@ -180,6 +197,7 @@ final class ReactiveDecision {
     private void clear(GameState state, long now) {
         if (paused) UtilServerTimer.startTurnTimer(state, now);
         key = null; step = null; paused = false;
+        optionalSkillPrompt = false;
         interruptedMovement = null;
     }
 

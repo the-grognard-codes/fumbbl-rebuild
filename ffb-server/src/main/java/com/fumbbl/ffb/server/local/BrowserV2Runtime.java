@@ -11,9 +11,14 @@ import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
+import com.fumbbl.ffb.server.skilluse.JdbcSkillUsePreferenceRepository;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 import com.fumbbl.ffb.server.team.JdbcSavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
+
+import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee8.servlet.ServletHolder;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -21,9 +26,6 @@ import java.time.Clock;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee8.servlet.ServletHolder;
 
 /** The v2 host serves only one authenticated game endpoint. */
 public final class BrowserV2Runtime {
@@ -40,6 +42,9 @@ public final class BrowserV2Runtime {
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
 		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
 		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open), true, true);
+		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
+			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));
+		setup.configureSkillUsePreferences(skillUsePreferences);
 		JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, clock);
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(project, directory);
 		V2MatchAccess access = new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), verifier.liveDirectory(), clock);
@@ -50,6 +55,7 @@ public final class BrowserV2Runtime {
 		BrowserV2Adapter adapter = new BrowserV2Adapter(verifier, access,
 			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock, computers),
 			new BrowserSavedTeamJson(teams, true), computers);
+		adapter.configureSkillUsePreferences(skillUsePreferences);
 		mountRoutes(context, server, adapter);
 	}
 

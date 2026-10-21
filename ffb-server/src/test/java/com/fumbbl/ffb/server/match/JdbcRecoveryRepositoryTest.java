@@ -25,6 +25,7 @@ class JdbcRecoveryRepositoryTest {
 	private PreparedStatement statement;
 	private JdbcRecoveryRepository repository;
 	private ResultSet retained;
+	private ResultSet schema;
 	private RecoveryRepository.Record record(long generation) { return new RecoveryRepository.Record("match", generation, "staged recovery artifact"); }
 
 	@BeforeEach
@@ -32,7 +33,7 @@ class JdbcRecoveryRepositoryTest {
 		connection = mock(Connection.class); statement = mock(PreparedStatement.class);
 		when(connection.prepareStatement(anyString())).thenReturn(statement);
 		PreparedStatement lock = mock(PreparedStatement.class), count = mock(PreparedStatement.class);
-		ResultSet schema = mock(ResultSet.class); retained = mock(ResultSet.class);
+		schema = mock(ResultSet.class); retained = mock(ResultSet.class);
 		when(connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE")).thenReturn(lock);
 		when(lock.executeQuery()).thenReturn(schema); when(schema.next()).thenReturn(true); when(schema.getInt(1)).thenReturn(6);
 		when(connection.prepareStatement("SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")).thenReturn(count);
@@ -59,6 +60,23 @@ class JdbcRecoveryRepositoryTest {
 		when(statement.executeUpdate()).thenReturn(1);
 		assertTrue(repository.save(record(1), 0));
 		verify(statement).setLong(2, 1); verify(connection).commit(); verify(connection, never()).rollback();
+	}
+
+	@Test void initialCheckpointsSupportEveryPublishedRecoverySchema() throws Exception {
+		for (int version : new int[] { 5, 6, 7, 8 }) {
+			setup(); when(schema.getInt(1)).thenReturn(version);
+			when(statement.executeUpdate()).thenReturn(1);
+			assertTrue(repository.save(record(1), 0));
+			verify(connection).commit(); verify(connection, never()).rollback();
+		}
+	}
+
+	@Test void initialCheckpointsRejectUnsupportedSchemasBeforeWriting() throws Exception {
+		for (int version : new int[] { 4, 9 }) {
+			setup(); when(schema.getInt(1)).thenReturn(version);
+			assertThrows(SQLException.class, () -> repository.save(record(1), 0));
+			verify(statement, never()).executeUpdate(); verify(connection, never()).commit(); verify(connection).rollback();
+		}
 	}
 
 	@Test

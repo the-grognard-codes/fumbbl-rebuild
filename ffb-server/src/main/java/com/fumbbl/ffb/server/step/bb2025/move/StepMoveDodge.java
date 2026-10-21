@@ -1,8 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.move;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType.Factory;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerChoiceMode;
@@ -41,12 +38,14 @@ import com.fumbbl.ffb.report.mixed.ReportModifiedDodgeResultSuccessful;
 import com.fumbbl.ffb.server.ActionStatus;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.injury.injuryType.InjuryTypeDropDodge;
 import com.fumbbl.ffb.server.injury.injuryType.InjuryTypeDropDodgeForSpp;
 import com.fumbbl.ffb.server.injury.injuryType.InjuryTypeServer;
 import com.fumbbl.ffb.server.model.SteadyFootingContext;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences.UseCase;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
@@ -61,6 +60,10 @@ import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -105,6 +108,7 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	private String armBarPlayerId;
 	private boolean armBarChoice;
 	private boolean dtRerollAsked;
+	private boolean optionalTacklePendingRoll;
 
 	public StepMoveDodge(GameState pGameState) {
 		super(pGameState);
@@ -113,6 +117,8 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	public StepId getId() {
 		return StepId.MOVE_DODGE;
 	}
+
+	public boolean isPreDivingTackleReroll() { return dtRerollAsked && !fReRollUsed; }
 
 	@Override
 	public void init(StepParameterSet pParameterSet) {
@@ -176,8 +182,12 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 			if (commandUseSkill.getSkill().hasSkillProperty(NamedProperties.canAddStrengthToDodge)) {
 				usingModifyingSkill = commandUseSkill.isSkillUsed();
 				if (!usingModifyingSkill) {
-					ReRollSource skillRerollSource = findSkillReRollSource(ReRolledActions.DODGE);
+					ReRollSource skillRerollSource = uncanceledDodgeRerollSource(getGameState().getGame(), getGameState().getGame().getActingPlayer());
 					if (skillRerollSource != null) {
+						if (offerOptionalDodgeReroll(skillRerollSource)) {
+							usingModifyingSkill = null;
+							return StepCommandStatus.SKIP_STEP;
+						}
 						useSkillReRollSource(skillRerollSource);
 					}
 				}
@@ -185,7 +195,9 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 			} else if (commandUseSkill.getSkill().hasSkillProperty(NamedProperties.canChooseToIgnoreDodgeModifierAfterRoll)) {
 				usingModifierIgnoringSkill = commandUseSkill.isSkillUsed();
 				if (!usingModifierIgnoringSkill) {
-					setReRollSource(findSkillReRollSource(ReRolledActions.DODGE));
+					ReRollSource source = uncanceledDodgeRerollSource(getGameState().getGame(), getGameState().getGame().getActingPlayer());
+					if (source != null && offerOptionalDodgeReroll(source)) return StepCommandStatus.SKIP_STEP;
+					setReRollSource(source);
 				}
 				commandStatus = StepCommandStatus.EXECUTE_STEP;
 			} else if (commandUseSkill.getSkill().hasSkillProperty(NamedProperties.canRerollDodge)) {
@@ -245,7 +257,8 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 		}
 		boolean reRolledAction = getReRolledAction() == ReRolledActions.DODGE && getReRollSource() != null;
 		boolean doRoll = (reRolledAction || (fUsingDivingTackle == null && !dtRerollAsked)) 
-			&& !Boolean.TRUE.equals(usingModifyingSkill) &&	!Boolean.TRUE.equals(usingModifierIgnoringSkill);
+			&& !Boolean.TRUE.equals(usingModifyingSkill) && !Boolean.TRUE.equals(usingModifierIgnoringSkill)
+			&& !optionalTacklePendingRoll;
 		switch (dodge(doRoll)) {
 			case SUCCESS:
 				reRolledAction = (getReRolledAction() == ReRolledActions.DODGE) && (getReRollSource() != null);
@@ -441,11 +454,16 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 						}
 
 						if (failsWithDt && !fReRollUsed) {
+							if (waitForTackleChoice()) return ActionStatus.WAITING_FOR_RE_ROLL;
 							List<String> message = Collections.singletonList("Diving Tackle can make this dodge fail. Reroll the dodge now?");
 							ReRollSource rerollSource = uncanceledDodgeRerollSource(game, actingPlayer);
 							Skill rerollSkill = rerollSource != null ? rerollSource.getSkill(game) : null;
-							if (UtilServerReRoll.askForReRollIfAvailable(getGameState(), actingPlayer.getPlayer(),
-								ReRolledActions.DODGE, minimumWithDt, false, null, rerollSkill, null, null, message)) {
+							if (rerollSource != null && offerOptionalSkillReroll(actingPlayer.getPlayer(),
+								ReRolledActions.DODGE, rerollSource, minimumWithDt)) {
+								dtRerollAsked = true;
+								return ActionStatus.WAITING_FOR_RE_ROLL;
+							}
+							if (askForDodgeReroll(minimumWithDt, null, rerollSkill, message)) {
 								dtRerollAsked = true;
 								return ActionStatus.WAITING_FOR_RE_ROLL;
 							}
@@ -460,6 +478,7 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 
 			if (fUsingDivingTackle == null && !fReRollUsed && (getReRolledAction() != ReRolledActions.DODGE ||
 				(successWithoutModifiers && !Boolean.TRUE.equals(usingModifierIgnoringSkill)))) {
+				if (waitForTackleChoice()) return ActionStatus.WAITING_FOR_RE_ROLL;
 				setReRolledAction(ReRolledActions.DODGE);
 				ReRollSource skillRerollSource = uncanceledDodgeRerollSource(game, actingPlayer);
 				if (skillRerollSource != null) {
@@ -475,6 +494,9 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 							new DialogSkillUseParameter(actingPlayer.getPlayerId(), ignoreModifierSkill.get(), 0), false);
 						usingModifierIgnoringSkill = null;
 					} else {
+						if (offerOptionalSkillReroll(actingPlayer.getPlayer(), ReRolledActions.DODGE, skillRerollSource, minimumRoll)) {
+							return ActionStatus.WAITING_FOR_RE_ROLL;
+						}
 						fReRollUsed = true;
 						useSkillReRollSource(skillRerollSource);
 						status = dodge(true);
@@ -486,8 +508,7 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 						statusToSet = ActionStatus.WAITING_FOR_SKILL_USE;
 					}
 
-					if (UtilServerReRoll.askForReRollIfAvailable(getGameState(), actingPlayer.getPlayer(), ReRolledActions.DODGE,
-						minimumRoll, false, modifyingSkill, null)) {
+					if (askForDodgeReroll(minimumRoll, modifyingSkill, null, null)) {
 						if (modifyingSkill != null) {
 							getResult().addReport(new ReportModifiedDodgeResultSuccessful(modifyingSkill));
 							if (statusToSet == ActionStatus.WAITING_FOR_SKILL_USE) {
@@ -526,6 +547,24 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 		ActingPlayer actingPlayer = getGameState().getGame().getActingPlayer();
 		setReRollSource(skillRerollSource);
 		UtilServerReRoll.useReRoll(this, getReRollSource(), actingPlayer.getPlayer());
+	}
+
+	private boolean offerOptionalDodgeReroll(ReRollSource source) {
+		Game game = getGameState().getGame();
+		AgilityMechanic mechanic = game.getMechanic(Mechanic.Type.AGILITY);
+		return offerOptionalSkillReroll(game.getActingPlayer().getPlayer(), ReRolledActions.DODGE, source,
+			mechanic.minimumRollDodge(game, game.getActingPlayer().getPlayer(), dodgeModifiers));
+	}
+
+	private boolean askForDodgeReroll(int minimumRoll, Skill modifyingSkill, Skill rerollSkill, List<String> messages) {
+		Game game = getGameState().getGame();
+		if (!getGameState().getOptionalSkillUse().enabled()) return UtilServerReRoll.askForReRollIfAvailable(
+			getGameState(), game.getActingPlayer().getPlayer(), ReRolledActions.DODGE, minimumRoll, false,
+			modifyingSkill, rerollSkill, null, null, messages);
+		// A null source here means Tackle cancelled it; the generic request service would rediscover Dodge.
+		RollMechanic mechanic = game.getMechanic(Mechanic.Type.ROLL);
+		return mechanic.askForReRollIfAvailable(getGameState(), game.getActingPlayer().getPlayer(),
+			ReRolledActions.DODGE, minimumRoll, false, modifyingSkill, rerollSkill, null, null, messages);
 	}
 
 	private boolean showUseModifyingSkillDialog(AgilityMechanic mechanic, Set<DodgeModifier> dodgeModifiers) {
@@ -567,12 +606,31 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 			Team otherTeam = UtilPlayer.findOtherTeam(game, actingPlayer.getPlayer());
 			Player<?>[] opponents = UtilPlayer.findAdjacentPlayersWithTacklezones(game, otherTeam, fCoordinateFrom, false);
 			for (Player<?> opponent : opponents) {
-				if (UtilCards.cancelsSkill(opponent, source.getSkill(game))) {
+				if (UtilCards.cancelsSkill(opponent, source.getSkill(game)) && !Boolean.FALSE.equals(
+					getOptionalSkillChoices().answer("TACKLE_MOVEMENT:" + opponent.getId()))) {
 					return null;
 				}
 			}
 		}
 		return source;
+	}
+
+	private boolean waitForTackleChoice() {
+		Game game = getGameState().getGame();
+		ReRollSource source = findSkillReRollSource(ReRolledActions.DODGE);
+		if (getGameState().getOptionalSkillUse().enabled() && source != null) {
+			Team otherTeam = UtilPlayer.findOtherTeam(game, game.getActingPlayer().getPlayer());
+			for (Player<?> opponent : UtilPlayer.findAdjacentPlayersWithTacklezones(game, otherTeam, fCoordinateFrom, false)) {
+				Skill cancelling = UtilCards.getSkillCancelling(opponent, source.getSkill(game));
+				if (cancelling == null || !"Tackle".equals(cancelling.getName())) continue;
+				Boolean use = getGameState().getOptionalSkillUse().choice(this,
+					UseCase.TACKLE_MOVEMENT, opponent, cancelling);
+				if (use == null) { optionalTacklePendingRoll = true; return true; }
+				if (use) break;
+			}
+		}
+		optionalTacklePendingRoll = false;
+		return false;
 	}
 
 	@Override
@@ -590,6 +648,7 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+		if (optionalTacklePendingRoll) jsonObject.add("optionalTacklePendingRoll", true);
 		IServerJsonOption.GOTO_LABEL_ON_FAILURE.addTo(jsonObject, fGotoLabelOnFailure);
 		IServerJsonOption.COORDINATE_FROM.addTo(jsonObject, fCoordinateFrom);
 		IServerJsonOption.COORDINATE_TO.addTo(jsonObject, fCoordinateTo);
@@ -612,6 +671,7 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	public StepMoveDodge initFrom(IFactorySource source, JsonValue jsonValue) {
 		super.initFrom(source, jsonValue);
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+		optionalTacklePendingRoll = jsonObject.getBoolean("optionalTacklePendingRoll", false);
 		fGotoLabelOnFailure = IServerJsonOption.GOTO_LABEL_ON_FAILURE.getFrom(source, jsonObject);
 		fCoordinateFrom = IServerJsonOption.COORDINATE_FROM.getFrom(source, jsonObject);
 		fCoordinateTo = IServerJsonOption.COORDINATE_TO.getFrom(source, jsonObject);

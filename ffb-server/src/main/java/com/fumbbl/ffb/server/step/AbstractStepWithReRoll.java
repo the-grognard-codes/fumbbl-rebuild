@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.ReRollSource;
@@ -10,12 +8,14 @@ import com.fumbbl.ffb.ReRolledAction;
 import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
+import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.property.NamedProperties;
+import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
@@ -23,8 +23,13 @@ import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.skilluse.PendingSkillReroll;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences.UseCase;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.util.UtilCards;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,12 +44,45 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 	private ReRollSource fReRollSource;
 	private String playerIdForSingleUseReRoll;
 	private DeferredReRoll deferredReRoll;
+	private PendingSkillReroll optionalSkillReroll;
 
 	public AbstractStepWithReRoll(GameState pGameState) {
 		super(pGameState);
 	}
 
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
+		if (optionalSkillReroll != null && pReceivedCommand.getCommand() instanceof ClientCommandUseSkill) {
+			ClientCommandUseSkill choice = (ClientCommandUseSkill) pReceivedCommand.getCommand();
+			PendingSkillReroll offered = optionalSkillReroll;
+			if (!isOptionalSkillOwner(pReceivedCommand, offered.playerId)) return StepCommandStatus.SKIP_STEP;
+			Skill skill = offered.command.getReRollSource().getSkill(getGameState().getGame());
+			if (offered.playerId.equals(choice.getPlayerId()) && skill.equals(choice.getSkill())) {
+				optionalSkillReroll = null;
+				UtilServerDialog.hideDialog(getGameState());
+				setReRolledAction(offered.command.getReRolledAction());
+				setReRollSource(choice.isSkillUsed() ? offered.command.getReRollSource() : null);
+				if (!choice.isSkillUsed() && askForOtherRerolls(offered, null)) return StepCommandStatus.SKIP_STEP;
+				return StepCommandStatus.EXECUTE_STEP;
+			}
+			return StepCommandStatus.SKIP_STEP;
+		}
+		// Existing Pass prompts also decline only the skill, not the remaining resources.
+		if (getGameState().getOptionalSkillUse().enabled() && pReceivedCommand.getCommand() instanceof ClientCommandUseSkill
+			&& getGameState().getGame().getDialogParameter() instanceof DialogSkillUseParameter) {
+			ClientCommandUseSkill choice = (ClientCommandUseSkill) pReceivedCommand.getCommand();
+			DialogSkillUseParameter dialog = (DialogSkillUseParameter) getGameState().getGame().getDialogParameter();
+			ReRollSource source = choice.getSkill() == null ? null : choice.getSkill().getRerollSource(getReRolledAction());
+			if (!choice.isSkillUsed() && source != null && dialog.getSkill().equals(choice.getSkill())
+				&& dialog.getPlayerId().equals(choice.getPlayerId())
+				&& isOptionalSkillOwner(pReceivedCommand, choice.getPlayerId())
+				&& getGameState().getOptionalSkillUse().rerollCase(source, getReRolledAction()) != null) {
+				UtilServerDialog.hideDialog(getGameState());
+				setReRollSource(null);
+				if (askForOtherRerolls(new PendingSkillReroll(choice.getPlayerId(), dialog.getMinimumRoll(), getReRolledAction(), source),
+					dialog.getModifyingSkill())) return StepCommandStatus.SKIP_STEP;
+				return StepCommandStatus.EXECUTE_STEP;
+			}
+		}
 		if (deferredReRoll != null || pReceivedCommand.getCommand() instanceof ClientCommandUseReRoll) {
 			RollMechanic mechanic = (RollMechanic) getGameState().getGame().getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.ROLL.name());
 			StepCommandStatus intercepted = mechanic.handleDeferredReRoll(this, pReceivedCommand);
@@ -80,6 +118,27 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 			}
 		}
 		return commandStatus;
+	}
+
+	/** True means an optional native skill reroll now waits for its owner. */
+	protected boolean offerOptionalSkillReroll(Player<?> player, ReRolledAction action, ReRollSource source, int minimumRoll) {
+		UseCase useCase = getGameState().getOptionalSkillUse().rerollCase(source, action);
+		if (useCase == null || !getGameState().getOptionalSkillUse().alwaysAsk(useCase, player)) return false;
+		optionalSkillReroll = new PendingSkillReroll(player.getId(), minimumRoll, action, source);
+		setReRolledAction(action);
+		setReRollSource(null);
+		UtilServerDialog.showDialog(getGameState(), new DialogSkillUseParameter(player.getId(), source.getSkill(getGameState().getGame()), minimumRoll),
+			!getGameState().getGame().getActingTeam().hasPlayer(player));
+		getResult().setNextAction(StepAction.CONTINUE);
+		return true;
+	}
+
+	private boolean askForOtherRerolls(PendingSkillReroll offered, Skill modifyingSkill) {
+		RollMechanic mechanic = (RollMechanic) getGameState().getGame().getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.ROLL.name());
+		boolean waiting = mechanic.askForReRollIfAvailable(getGameState(), getGameState().getGame().getPlayerById(offered.playerId),
+			offered.command.getReRolledAction(), offered.minimumRoll, false, modifyingSkill, null, null, null, null);
+		if (waiting) getResult().setNextAction(StepAction.CONTINUE);
+		return waiting;
 	}
 
 	public ReRolledAction getReRolledAction() {
@@ -150,6 +209,7 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 		IServerJsonOption.RE_ROLL_SOURCE.addTo(jsonObject, fReRollSource);
 		IServerJsonOption.PLAYER_ID_SINGLE_USE_RE_ROLL.addTo(jsonObject, playerIdForSingleUseReRoll);
 		if (deferredReRoll != null) jsonObject.add("deferredReRoll", deferredReRoll.toJsonValue());
+		if (optionalSkillReroll != null) jsonObject.add("optionalSkillReroll", optionalSkillReroll.toJson());
 		return jsonObject;
 	}
 
@@ -162,6 +222,8 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 		playerIdForSingleUseReRoll = IServerJsonOption.PLAYER_ID_SINGLE_USE_RE_ROLL.getFrom(source, jsonObject);
 		JsonValue deferred = jsonObject.get("deferredReRoll");
 		deferredReRoll = deferred == null ? null : DeferredReRoll.fromJsonValue(deferred);
+		JsonValue optional = jsonObject.get("optionalSkillReroll");
+		optionalSkillReroll = optional == null ? null : PendingSkillReroll.restore(source, optional.asObject());
 		return this;
 	}
 

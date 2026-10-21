@@ -8,13 +8,16 @@ import { matchTeamName } from './match-team-name.ts';
 import { useThreatPreferences } from './use-threat-preferences.ts';
 import { stripeSkillControls, type ThreatPreferences } from './threat-preferences.ts';
 import { useSkillMarkerPreferences } from './use-skill-marker-preferences.ts';
+import { AutomaticSkillUse } from './AutomaticSkillUse.tsx';
+import type { SkillUseControls } from './skill-use-preferences.ts';
 
 type Tab = 'Game Options' | 'Game Settings' | 'Skills & Traits' | 'Interface' | 'Key Bindings' | 'Game Log';
 
-export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls, replay = false }: {
+export function GameMenu({ view, connected, pending, mutate, records, logLoading, logUnavailable, interfaceControls, replay = false, skillUseControls }: {
   view: SetupState; connected: boolean; pending: boolean; mutate: (operation: string, fields?: Record<string, unknown>) => void;
   records: TranscriptRecord[]; logLoading: boolean; logUnavailable: boolean;
   interfaceControls?: ReactNode; replay?: boolean;
+  skillUseControls?: SkillUseControls;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('Game Options');
@@ -31,6 +34,9 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   const close = () => { setOpen(false); setConfirmConcede(false); opener.current?.focus(); };
   useEffect(() => { if (open) dialog.current?.querySelector<HTMLButtonElement>('header button')?.focus(); }, [open]);
   useEffect(() => { if (view.phase === 'FULL_TIME') setConfirmConcede(false); }, [view.phase]);
+  useEffect(() => {
+    if (open && tab === 'Skills & Traits' && !neutral && connected) skillUseControls?.load();
+  }, [open, tab, neutral, connected]);
   const saved = view.saveResume;
   const canAct = connected && !pending && view.callerRole !== 'spectator' && view.phase !== 'FULL_TIME';
   return <>
@@ -51,7 +57,8 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
         <nav role="tablist" aria-label="Game Menu tabs">{(['Game Options', 'Game Settings', 'Skills & Traits', 'Interface', 'Key Bindings', 'Game Log'] as Tab[]).map(item =>
           <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item}</button>)}</nav>
         <div role="tabpanel" className="game-menu-content">
-          {tab === 'Skills & Traits' && <section className="threat-settings"><h3>Skill Markers</h3>
+          {tab === 'Skills & Traits' && <>{!neutral && skillUseControls && <AutomaticSkillUse controls={skillUseControls} connected={connected}/>}
+          <section className="threat-settings"><h3>Skill Markers</h3>
             <h4>Show Player Skills</h4>
             <div role="group" aria-label="Skill marker teams">
               {skillControl('showOwn', neutral ? 'Home team' : 'Own team')}
@@ -75,7 +82,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
               <output>{skillMarkers.size === 'small' ? 'Small' : skillMarkers.size === 'large' ? 'Large' : 'Medium'}</output>
             </label>
             <p>The Big Guy toggle controls Bone Head, Really Stupid, Always Hungry, Animal Savagery, Unchannelled Fury, and Secret Weapon. It does not hide Loner.</p>
-          </section>}
+          </section></>}
           {tab === 'Game Settings' && <section className="threat-settings"><h3>Opposing player threats</h3>
             <p>Show threats when selecting an unfinished friendly player during your turn or Charge!.</p>
             <div role="group" aria-label="Threat markings">

@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerState;
@@ -35,10 +33,14 @@ import com.fumbbl.ffb.server.model.SkillBehaviour;
 import com.fumbbl.ffb.server.model.StepModifier;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.net.SessionManager;
+import com.fumbbl.ffb.server.skilluse.OptionalSkillChoices;
 import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerGame;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.List;
 import java.util.Map;
@@ -52,6 +54,9 @@ public abstract class AbstractStep implements IStep {
 	private final GameState fGameState;
 	private StepResult fStepResult;
 	private String fLabel;
+	private final OptionalSkillChoices optionalSkillChoices = new OptionalSkillChoices();
+
+	public OptionalSkillChoices getOptionalSkillChoices() { return optionalSkillChoices; }
 
 	public AbstractStep(GameState pGameState) {
 		fGameState = pGameState;
@@ -102,6 +107,13 @@ public abstract class AbstractStep implements IStep {
 	}
 
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
+		if (optionalSkillChoices.pending() && pReceivedCommand.getCommand() instanceof ClientCommandUseSkill) {
+			ClientCommandUseSkill command = (ClientCommandUseSkill) pReceivedCommand.getCommand();
+			if (!isOptionalSkillOwner(pReceivedCommand, command.getPlayerId()) || !optionalSkillChoices.handle(command))
+				return StepCommandStatus.SKIP_STEP;
+			UtilServerDialog.hideDialog(getGameState());
+			return StepCommandStatus.EXECUTE_STEP;
+		}
 		StepCommandStatus commandStatus = StepCommandStatus.UNHANDLED_COMMAND;
 		switch (pReceivedCommand.getId()) {
 			case CLIENT_CONCEDE_GAME:
@@ -117,6 +129,14 @@ public abstract class AbstractStep implements IStep {
 				break;
 		}
 		return commandStatus;
+	}
+
+	protected boolean isOptionalSkillOwner(ReceivedCommand command, String playerId) {
+		Game game = getGameState().getGame();
+		Player<?> player = game.getPlayerById(playerId);
+		return player != null && (game.getTeamHome().hasPlayer(player)
+			? UtilServerSteps.checkCommandIsFromHomePlayer(getGameState(), command)
+			: game.getTeamAway().hasPlayer(player) && UtilServerSteps.checkCommandIsFromAwayPlayer(getGameState(), command));
 	}
 
 	private StepCommandStatus handleSetupCommand(ReceivedCommand command) {
@@ -224,11 +244,14 @@ public abstract class AbstractStep implements IStep {
 		IServerJsonOption.STEP_ID.addTo(jsonObject, getId());
 		IServerJsonOption.LABEL.addTo(jsonObject, fLabel);
 		IServerJsonOption.STEP_RESULT.addTo(jsonObject, fStepResult.toJsonValue());
+		JsonObject choices = optionalSkillChoices.toJson();
+		if (choices != null) jsonObject.add("optionalSkillChoices", choices);
 		return jsonObject;
 	}
 
 	public AbstractStep initFrom(IFactorySource source, JsonValue jsonValue) {
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+		optionalSkillChoices.restore(jsonObject.get("optionalSkillChoices"));
 		UtilServerSteps.validateStepId(this, (StepId) IServerJsonOption.STEP_ID.getFrom(source, jsonObject));
 		fLabel = IServerJsonOption.LABEL.getFrom(source, jsonObject);
 		fStepResult = null;

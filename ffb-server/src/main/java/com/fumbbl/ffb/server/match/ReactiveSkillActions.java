@@ -44,14 +44,16 @@ final class ReactiveSkillActions {
 
     private final Set<String> skills = new HashSet<>(Arrays.asList("divingtackle", "tentacles", "shadowing",
         "armbar", "dodge", "standfirm", "sidestep", "wrestle", "fend", "taunt", "dumpoff", "trickster",
-        "steadyfooting", "safepairofhands", "saboteur", "ontheball", "divingcatch", "catch", "dwarfengrit"));
+        "steadyfooting", "safepairofhands", "saboteur", "ontheball", "divingcatch", "catch", "dwarfengrit",
+        "tackle", "stripball", "pass", "surehands", "surefeet", "grab"));
 
     boolean covered(String name) { return name != null && skills.contains(name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z]", "")); }
 
     boolean covered(PlayerChoiceMode mode) {
         return mode == PlayerChoiceMode.DIVING_TACKLE || mode == PlayerChoiceMode.TENTACLES
             || mode == PlayerChoiceMode.SHADOWING || mode == PlayerChoiceMode.ARM_BAR
-            || mode == PlayerChoiceMode.DIVING_CATCH || mode == PlayerChoiceMode.DECLARE_DIVING_CATCH || mode == PlayerChoiceMode.CATCH;
+            || mode == PlayerChoiceMode.DIVING_CATCH || mode == PlayerChoiceMode.DECLARE_DIVING_CATCH || mode == PlayerChoiceMode.CATCH
+            || mode == PlayerChoiceMode.PICK_ME_UP;
     }
 
     List<Action> actions(GameState state, Set<String> selected) {

@@ -1,8 +1,5 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
@@ -17,7 +14,13 @@ import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.sql.SQLException;
 import java.time.Clock;
@@ -41,6 +44,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final BrowserSavedTeamJson teams;
 	private final ComputerOpponentService computers;
 	private final Clock clock;
+	private SkillUsePreferenceService skillUsePreferences;
 	private BrowserMatchAdapter.Connection computerDispatcher;
 	private final Set<BrowserMatchAdapter.Connection> computerConnections = new HashSet<>();
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
@@ -68,6 +72,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		this.clock = clock;
 		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
 	}
+
+	public void configureSkillUsePreferences(SkillUsePreferenceService service) { skillUsePreferences = service; }
 
 	@Override public synchronized void expireDecisions() {
 		setup.expireReactiveDecisions().forEach((id, state) -> publisher.publish(id, null, state));
@@ -123,6 +129,20 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
+			if ("skillUsePreferences".equals(type)) {
+				principal = access.require(principal, ApplicationScope.PLAYER);
+				String operation = request.getString("operation", "");
+				if ("load".equals(operation)) fields(request, "version", "type", "requestId", "operation");
+				else if ("update".equals(operation)) fields(request, "version", "type", "requestId", "operation", "useCase", "mode");
+				else throw new IllegalArgumentException();
+				if (skillUsePreferences == null) { fail(connection, requestId, "PREFERENCES_UNAVAILABLE"); return; }
+				SkillUsePreferences preferences = "load".equals(operation) ? skillUsePreferences.load(principal.accountId())
+					: skillUsePreferences.update(principal.accountId(), SkillUsePreferences.UseCase.fromKey(request.get("useCase").asString()),
+						SkillUsePreferences.Mode.fromKey(request.get("mode").asString()));
+				send(connection, new JsonObject().add("type", "skillUsePreferences").add("requestId", requestId)
+					.add("code", "ACCEPTED").add("preferences", preferences.toJson()));
+				return;
+			}
 			if ("currentMatches".equals(type)) {
 				fields(request, "version", "type", "requestId", "after");
 				JsonValue after = request.get("after");

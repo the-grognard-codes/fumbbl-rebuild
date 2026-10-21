@@ -15,7 +15,7 @@ export function ensureReviewCurrentMatchesIndex(run = (file, args, options) => e
     || database.Config.Labels['com.docker.compose.service'] !== 'database') throw Error('REVIEW_DATABASE_MISMATCH');
   const query = input => run('docker', ['exec', '-i', databaseName, 'sh', '-c',
     'export MYSQL_PWD; IFS= read -r MYSQL_PWD < /run/secrets/db_root_password; exec mariadb --user=root --database=ffb_local --batch --skip-column-names'], { input });
-  if (query('SELECT version FROM ffb_local_schema;').trim() !== '7') throw Error('REVIEW_SCHEMA_MISMATCH');
+  if (!['7', '8'].includes(query('SELECT version FROM ffb_local_schema;').trim())) throw Error('REVIEW_SCHEMA_MISMATCH');
   const indexes = query(indexQuery).trim().replaceAll('\r\n', '\n');
   if (indexes === expected) return false;
   if (indexes) throw Error('REVIEW_CURRENT_MATCH_INDEX_MISMATCH');

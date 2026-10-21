@@ -1,8 +1,10 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
+
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import com.fumbbl.ffb.server.FantasyFootballServer;
 
 import java.sql.SQLException;
 import java.time.Clock;
@@ -19,6 +21,16 @@ public final class SetupApplication {
 	private final boolean defaultSetup;
 	private final boolean saveResume;
 	private final Clock clock;
+	private SkillUsePreferenceService skillUsePreferences;
+
+	public void configureSkillUsePreferences(SkillUsePreferenceService service) {
+		this.skillUsePreferences = java.util.Objects.requireNonNull(service);
+	}
+
+	private void refreshSkillUsePreferences(String id, SetupSession session) throws SQLException {
+		if (skillUsePreferences != null) session.configureSkillUsePreferences(
+			skillUsePreferences.loadForMatch(id, "home"), skillUsePreferences.loadForMatch(id, "away"));
+	}
 	private static final long IDLE_MILLIS = 30 * 60 * 1000L;
 	private final Map<String, Long> lastAccess = new LinkedHashMap<>();
 	private final Map<String, Long> generations = new LinkedHashMap<>();
@@ -222,6 +234,7 @@ public final class SetupApplication {
 			if (!session.reactiveDecisionDue(clock.millis())) continue;
 			String before = recovery == null ? null : session.recoveryArtifact();
 			try {
+				refreshSkillUsePreferences(id, session);
 				if (!session.expireReactiveDecision(clock.millis())) continue;
 				checkpoint(session.checkpointOwner(), id, session, before);
 				if (session.isComplete()) matches.complete(session.checkpointOwner(), id, session.completedMatch());
@@ -287,6 +300,7 @@ public final class SetupApplication {
 			SetupSession session = recovered == null ? sessions.get(id) : recovered;
 			if (session == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 			if (session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+			refreshSkillUsePreferences(id, session);
 			if (recovery != null) lastAccess.put(id, clock.millis());
 			String before = recovery == null ? null : session.recoveryArtifact();
 			if (session.abandonIfInactive(clock.millis())) {

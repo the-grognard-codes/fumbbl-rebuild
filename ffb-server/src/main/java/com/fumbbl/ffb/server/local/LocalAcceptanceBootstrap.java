@@ -14,15 +14,15 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.ArrayList;
-import java.util.List;
 
-/** Explicit, schema-only marker-5 to marker-7 bootstrap for the isolated acceptance profile. */
+/** Explicit marker-5 through marker-8 bootstrap for the isolated acceptance profile. */
 public final class LocalAcceptanceBootstrap {
 	private static final Set<String> MARKER5_TABLES = new HashSet<>(Arrays.asList(
 		"ffb_coaches", "ffb_games_info", "ffb_games_serialized", "ffb_player_markers", "ffb_team_setups",
@@ -33,6 +33,8 @@ public final class LocalAcceptanceBootstrap {
 		"ffb_v2_match_members", "ffb_v2_account", "ffb_v2_identity", "ffb_v2_account_scope",
 		"ffb_v2_saved_teams", "ffb_v2_preparation_invites", "ffb_v2_preparation_requests"));
 	private static final Set<String> MARKER6_TABLES = new HashSet<>(MARKER7_TABLES);
+	private static final Set<String> MARKER8_TABLES = new HashSet<>(MARKER7_TABLES);
+	static { MARKER8_TABLES.add("ffb_v2_skill_use_preferences"); }
 	private static final String[] V2_MIGRATIONS = {
 		"/local-schema/006-v2-membership.sql", "/local-schema/006-v2-saved-teams.sql", "/local-schema/006-v2-invitations.sql"
 	};
@@ -53,7 +55,7 @@ public final class LocalAcceptanceBootstrap {
 		manager.setDbPassword(password);
 		manager.setDbType("mariadb");
 		bootstrap(manager);
-		System.out.println("Acceptance database schema verified at marker 7; no records were imported.");
+		System.out.println("Acceptance database schema verified at marker 8; no records were imported.");
 	}
 
 	static void validateBootstrapProfile(Properties properties) {
@@ -74,8 +76,8 @@ public final class LocalAcceptanceBootstrap {
 			tables = tableNames(manager);
 		}
 		int version = schemaVersion(manager);
-		if (version == 7) {
-			requireInventory(tables, MARKER7_TABLES);
+		if (version == 8) {
+			requireInventory(tables, MARKER8_TABLES);
 			schema.initialize(manager, "", true);
 			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 			return;
@@ -108,9 +110,18 @@ public final class LocalAcceptanceBootstrap {
 			}
 			version = 7;
 		}
-		if (version != 7) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-7 databases");
+		if (version == 7) {
+			requireInventory(tableNames(manager), MARKER7_TABLES);
+			try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
+				new Marker6Schema().verifyTables(connection);
+				executeResource(statement, "/local-schema/008-skill-use-preferences.sql");
+				connection.commit();
+			}
+			version = 8;
+		}
+		if (version != 8) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-8 databases");
 		tables = tableNames(manager);
-		requireInventory(tables, MARKER7_TABLES);
+		requireInventory(tables, MARKER8_TABLES);
 		schema.initialize(manager, "", true);
 		try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 	}
