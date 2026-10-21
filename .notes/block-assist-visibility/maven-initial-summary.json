@@ -1,0 +1,44 @@
+[
+    {
+        "module":  "ffb-common",
+        "tests":  175,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0
+    },
+    {
+        "module":  "ffb-tools",
+        "tests":  null,
+        "failures":  null,
+        "errors":  null,
+        "skipped":  null
+    },
+    {
+        "module":  "ffb-server",
+        "tests":  484,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  2
+    },
+    {
+        "module":  "ffb-client-logic",
+        "tests":  23,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0
+    },
+    {
+        "module":  "ffb-client",
+        "tests":  null,
+        "failures":  null,
+        "errors":  null,
+        "skipped":  null
+    },
+    {
+        "module":  "ffb-statetest",
+        "tests":  257,
+        "failures":  6,
+        "errors":  0,
+        "skipped":  7
+    }
+]

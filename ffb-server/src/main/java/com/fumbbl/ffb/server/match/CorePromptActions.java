@@ -13,6 +13,8 @@ import com.fumbbl.ffb.bb2020.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogOpponentBlockSelectionPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogReRollBlockForTargetsPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
 import com.fumbbl.ffb.dialog.DialogFollowupChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
@@ -76,7 +78,13 @@ public final class CorePromptActions {
 				return result;
 			}
 		}
-		if (dialog instanceof DialogBlockRollPropertiesParameter) {
+		if (dialog instanceof DialogReRollBlockForTargetsPropertiesParameter) {
+            DialogReRollBlockForTargetsPropertiesParameter multiple = (DialogReRollBlockForTargetsPropertiesParameter) dialog;
+            return new MultipleBlockPromptActions().project(game, multiple.getBlockRolls(), roleForPlayer(game, game.getPlayerById(multiple.getPlayerId())), false);
+        } else if (dialog instanceof DialogOpponentBlockSelectionPropertiesParameter) {
+            DialogOpponentBlockSelectionPropertiesParameter multiple = (DialogOpponentBlockSelectionPropertiesParameter) dialog;
+            return new MultipleBlockPromptActions().project(game, multiple.getBlockRolls(), roleForTeam(game, multiple.getTeamId()), true);
+        } else if (dialog instanceof DialogBlockRollPropertiesParameter) {
 			blockRoll(result, game, (DialogBlockRollPropertiesParameter) dialog);
 		} else if (dialog instanceof DialogReRollPropertiesParameter) {
 			reroll(result, game, (DialogReRollPropertiesParameter) dialog);

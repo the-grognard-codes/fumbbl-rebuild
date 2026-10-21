@@ -1243,6 +1243,10 @@ class SetupSessionMovementTest {
         }
 
         Fixture(int rerolls) {
+            this(rerolls, false);
+        }
+
+        Fixture(int rerolls, boolean captureNative) {
             RosterCatalog catalog = new RosterCatalog();
             List<TeamDraft.Player> players = new ArrayList<>();
             for (int slot = 1; slot <= 11; slot++)
@@ -1264,7 +1268,8 @@ class SetupSessionMovementTest {
             when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
             when(server.getGameCache()).thenReturn(mock(GameCache.class));
-            when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
+            ServerCommunication communication = captureNative ? new ServerCommunication(server) : mock(ServerCommunication.class);
+            when(server.getCommunication()).thenReturn(communication);
             when(server.getSessionManager()).thenReturn(new SessionManager());
             session = new SetupSession(server, document, -2, true, true, true, true, true, true);
         }

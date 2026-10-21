@@ -384,20 +384,39 @@ public final class MatchJson {
         if (state.get("blockPreview") != null) {
             if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
             JsonObject preview = state.get("blockPreview").asObject();
-            exact(preview, "version", "rolls");
+            if (preview.get("multiple") == null) exact(preview, "version", "rolls");
+            else exact(preview, "version", "rolls", "multiple");
             if (preview.getInt("version", -1) != 1) throw new IllegalArgumentException();
             JsonArray rolls = preview.get("rolls").asArray();
-            if (rolls.isEmpty() || rolls.size() > 256) throw new IllegalArgumentException();
+            if (rolls.isEmpty() && preview.get("multiple") == null || rolls.size() > 256) throw new IllegalArgumentException();
             Set<String> pairs = new HashSet<>();
             for (JsonValue item : rolls) {
                 JsonObject roll = item.asObject();
-                exact(roll, "playerId", "targetPlayerId", "dice");
+                if (roll.get("highlight") == null) exact(roll, "playerId", "targetPlayerId", "dice");
+                else {
+                    exact(roll, "playerId", "targetPlayerId", "dice", "highlight");
+                    new BlockHighlightJson().highlight(roll.get("highlight").asObject());
+                }
                 shortText(roll.get("playerId")); shortText(roll.get("targetPlayerId"));
                 int dice = roll.get("dice").asInt();
                 if (dice != 1 && dice != 2 && dice != 3 && dice != -2 && dice != -3
                     || !pairs.add(roll.getString("playerId", "") + "\n" + roll.getString("targetPlayerId", "")))
                     throw new IllegalArgumentException();
             }
+            if (preview.get("multiple") != null) {
+                JsonArray multiple = preview.get("multiple").asArray();
+                if (multiple.isEmpty() || multiple.size() > 120) throw new IllegalArgumentException();
+                Set<String> options = new HashSet<>();
+                for (JsonValue item : multiple) {
+                    JsonObject option = item.asObject(); exact(option, "actionId", "context"); shortText(option.get("actionId"));
+                    if (!options.add(option.getString("actionId", ""))) throw new IllegalArgumentException();
+                    new BlockHighlightJson().context(option.get("context").asObject(), state.get("players").asArray());
+                }
+            }
+        }
+        if (state.get("blockContext") != null) {
+            if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+            new BlockHighlightJson().context(state.get("blockContext").asObject(), state.get("players").asArray());
         }
         if (state.get("kickoff") != null) {
             if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
@@ -809,6 +828,7 @@ public final class MatchJson {
         if (object.get("kickPreview") != null) extended.add("kickPreview");
         if (object.get("movementForecast") != null) extended.add("movementForecast");
         if (object.get("blockPreview") != null) extended.add("blockPreview");
+        if (object.get("blockContext") != null) extended.add("blockContext");
         if (object.get("kickoff") != null) extended.add("kickoff");
         if (object.get("driveTracker") != null) extended.add("driveTracker");
         if (object.get("playerActionMenu") != null) extended.add("playerActionMenu");

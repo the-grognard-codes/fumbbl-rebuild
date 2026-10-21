@@ -18,7 +18,6 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,6 +32,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PushbackArtworkTest {
@@ -40,9 +41,7 @@ class PushbackArtworkTest {
 	@Test void nativeKnockdownPushRetainsFrozenArtThroughChainAndProneResolution() throws Exception {
 		JsonArray journeys = new JsonArray();
 		for (boolean chain : new boolean[] {false, true}) {
-			GameState state = new GameState(new TestServer().getServer()) {
-				@Override public boolean usesLegacyPersistence() { return false; }
-			};
+			SetupSessionFixtureState state = new SetupSessionFixtureState();
 			new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE)
 				.withTeam(true, team -> team.player("home:1", player -> player.at(10, 7).stats(6, 3, 3, 5, 8)))
 				.withTeam(false, team -> team.player("away:1", player -> player.at(11, 7).stats(6, 3, 3, 5, 8))
@@ -55,9 +54,7 @@ class PushbackArtworkTest {
 				MatchDocument.Lifecycle.ACTIVATED, new MatchDocument.Member("home", "home", frozen(catalog, "home", "human")),
 				new MatchDocument.Member("away", "away", frozen(catalog, "away", "orc")));
 			SetupSession session = new SetupSession(new TestServer().getServer(), document, -2);
-			Field engine = SetupSession.class.getDeclaredField("state");
-			engine.setAccessible(true);
-			engine.set(session, state);
+			state.attachTo(session);
 			TestRolls.on(state).block("pow").armor(2, 2);
 			perform(session, "selectBlock");
 			perform(session, "block");
@@ -120,6 +117,11 @@ class PushbackArtworkTest {
 		JsonObject spectator = session.spectatorView();
 		assertEquals(home.get("players"), away.get("players"));
 		assertEquals(home.get("players"), spectator.get("players"));
+		assertEquals(home.get("blockContext"), away.get("blockContext"));
+		assertEquals(home.get("blockContext"), spectator.get("blockContext"));
+		if ("push-choice".equals(checkpoint) || "chain-choice".equals(checkpoint))
+			assertNotNull(home.get("blockContext"), "Committed context remains while the original target waits to move");
+		else assertNull(home.get("blockContext"), "Pushing the target or finishing resolution clears committed context");
 		for (JsonValue item : home.get("players").asArray()) {
 			JsonObject player = item.asObject();
 			assertTrue(!player.get("art").isNull(), "Frozen art is available during every push checkpoint");

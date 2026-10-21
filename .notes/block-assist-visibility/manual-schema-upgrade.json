@@ -1,0 +1,6 @@
+{
+  "schemaBefore": 7,
+  "schemaAfter": 8,
+  "recordCountsPreserved": true,
+  "backup": ".tools/backups/dev-local-schema7-20261020-before-skill-preferences.sql"
+}

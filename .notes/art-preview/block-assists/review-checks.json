@@ -1,0 +1,186 @@
+{
+  "layouts": [
+    {
+      "variant": "A",
+      "camera": "perspective",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "A",
+      "camera": "perspective",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "A",
+      "camera": "top-down",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "A",
+      "camera": "top-down",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "B",
+      "camera": "perspective",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "B",
+      "camera": "perspective",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "B",
+      "camera": "top-down",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "B",
+      "camera": "top-down",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "C",
+      "camera": "perspective",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "C",
+      "camera": "perspective",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "C",
+      "camera": "top-down",
+      "view": "home",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    },
+    {
+      "variant": "C",
+      "camera": "top-down",
+      "view": "away",
+      "invalidPaths": false,
+      "markers": 5,
+      "overflow": false
+    }
+  ],
+  "scenarios": [
+    {
+      "variant": "A",
+      "situation": "Block",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "A",
+      "situation": "Blitz",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "A",
+      "situation": "Uphill",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "A",
+      "situation": "Multiple Block",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "B",
+      "situation": "Block",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "B",
+      "situation": "Blitz",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "B",
+      "situation": "Uphill",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "B",
+      "situation": "Multiple Block",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "C",
+      "situation": "Block",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "C",
+      "situation": "Blitz",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "C",
+      "situation": "Uphill",
+      "states": "active / target moved / cancelled / committed checked"
+    },
+    {
+      "variant": "C",
+      "situation": "Multiple Block",
+      "states": "active / target moved / cancelled / committed checked"
+    }
+  ],
+  "narrowLayouts": [
+    {
+      "variant": "A",
+      "content": 375,
+      "markers": 5,
+      "width": 390
+    },
+    {
+      "variant": "B",
+      "content": 375,
+      "markers": 5,
+      "width": 390
+    },
+    {
+      "variant": "C",
+      "content": 375,
+      "markers": 5,
+      "width": 390
+    }
+  ],
+  "animationOff": true,
+  "threatToggle": true,
+  "keyboardSwitching": true,
+  "urlReload": true
+}

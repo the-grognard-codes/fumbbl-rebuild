@@ -28,6 +28,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandCoinChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
 import com.fumbbl.ffb.net.commands.ClientCommandReceiveChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
+import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.option.GameOptionBoolean;
 import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.GameOptionString;
@@ -101,6 +102,7 @@ public final class SetupSession {
 	private long homeReserveUsedMs;
 	private long awayReserveUsedMs;
 	private final ReactiveDecision reactiveDecision = new ReactiveDecision();
+	private final CommittedBlockPresentation blockPresentation = new CommittedBlockPresentation();
 	private boolean expiringReaction;
 	private boolean reactiveSequencing = true;
 	private static final long TURN_ALLOWANCE_MS = 120_000L;
@@ -155,6 +157,7 @@ public final class SetupSession {
 		state = new GameState(server) {
 			@Override public boolean usesLegacyPersistence() { return false; }
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
+			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
 		};
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
@@ -197,12 +200,15 @@ public final class SetupSession {
 		state = new GameState(server) {
 			@Override public boolean usesLegacyPersistence() { return false; }
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
+			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
 		};
 		try {
 			JsonObject envelope = new MatchJson().parse(artifact, MAX_RECOVERY_ARTIFACT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			JsonValue savedBlockPresentation = payload.get("blockPresentation");
+			if (savedBlockPresentation != null) payload.remove("blockPresentation");
 			JsonValue savedComputer = payload.get("computerMemory");
 			if (savedComputer != null) {
 				if (document.computer == null) throw new IllegalArgumentException("Unexpected computer memory");
@@ -281,6 +287,7 @@ public final class SetupSession {
 			// Existing checkpoints may retain either iteration order for native sets.
 			JsonObject nativeSnapshot = new RecoveryNativeJson().normalize(payload.get("native").asObject());
 			state.initFrom(server.getFactorySource(), nativeSnapshot);
+			if (savedBlockPresentation != null) blockPresentation.restore(savedBlockPresentation.asObject(), state.getGame());
 			if (savedReaction != null && !savedReaction.isNull()) reactiveDecision.restore(savedReaction.asObject());
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
@@ -382,6 +389,7 @@ public final class SetupSession {
 			.add("eventsJson", events.toString()).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
 		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
 		payload.add("reactionVersion", 1);
+		payload.add("blockPresentation", blockPresentation.checkpoint());
 		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.json())
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
@@ -635,6 +643,7 @@ public final class SetupSession {
 		if (!"action".equals(request.getString("operation", null)) && !"concede".equals(request.getString("operation", null)) && !role.equals(actor())) throw new MatchService.Failure("WRONG_ACTOR");
 		String operation = request.getString("operation", null);
 		ClientCommand command;
+		JsonObject committedBlitz = null;
 		Action reactionAction = null;
 		Player<?> swapTarget = null;
 		FieldCoordinate swapOrigin = null;
@@ -664,6 +673,7 @@ public final class SetupSession {
 			JsonObject plan = movementPreview(role, revision, request.getString("playerId", null),
 				request.getString("kind", null), nullableString(request, "targetPlayerId"), request.get("waypoints").asArray());
 			JsonObject preview = plan.get("route").asObject();
+			if ("blitz".equals(plan.getString("kind", null))) committedBlitz = plan.get("blockHighlight").asObject();
 			PendingRoute proposed = new PendingRoute(role, revision, preview, plan.getString("kind", "move"),
 				nullableString(plan, "targetPlayerId"));
 			movement = narrative.movement(revision, proposed.playerId, proposed.origin);
@@ -774,6 +784,8 @@ public final class SetupSession {
 		String oldActor = actor();
 		try {
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
+			blockPresentation.prepare(state, command);
+			if (committedBlitz != null) blockPresentation.plan(committedBlitz);
 			if ("concede".equals(operation)) {
 				pendingRoute = null;
 				pendingActivation = null;
@@ -811,6 +823,7 @@ public final class SetupSession {
 			}
 			continueActivation();
 			if (pendingRoute != null && pendingActivation == null) continueRoute();
+			blockPresentation.finishCommand(state, pendingRoute != null);
 			if (oldTurnStarted > 0 && !game.isTurnTimeEnabled() && game.getFinished() == null)
 				game.setTurnTime(Math.max(0L, System.currentTimeMillis() - oldTurnStarted));
 			if (chatV1 && (oldHalf != game.getHalf() || oldHomeTurn != game.getTurnDataHome().getTurnNr() || oldAwayTurn != game.getTurnDataAway().getTurnNr())) {
@@ -1004,8 +1017,10 @@ public final class SetupSession {
 		}
 		if (passing != null && "PLAY".equals(projected.getString("phase", null))) projected.add("passing", passing);
 		if ("PLAY".equals(projected.getString("phase", null))) {
-			JsonObject blockPreview = new BlockPreviewPresentation(state).project(available);
+			JsonObject blockPreview = role.equals(actor()) ? new BlockPreviewPresentation(state).project(available, revision) : null;
 			if (blockPreview != null) projected.add("blockPreview", blockPreview);
+			JsonValue context = blockPresentation.json();
+			if (!context.isNull()) projected.add("blockContext", context);
 		}
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
@@ -1204,13 +1219,14 @@ public final class SetupSession {
         if (computerPolicy != null) computerPolicy.observe(snapshot,
             reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying());
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.
+        snapshot.remove("blockPreview"); // Proposals are never part of recorded replay presentation.
         JsonObject event = new JsonObject().add("revision", revision).add("kind", kind).add("state", snapshot);
         replayBytes += event.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
         events.add(event);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
             JsonArray nativeOutcomes = new JsonArray();
-            capture.modelSyncs.forEach(nativeOutcomes::add);
+            capture.modelSyncs.forEach(sync -> { blockPresentation.decorate(sync); nativeOutcomes.add(sync); });
             JsonValue accepted = JsonValue.NULL;
             if (decision.isObject()) {
                 JsonObject publicDecision = JsonObject.readFrom(decision.toString());
@@ -1220,6 +1236,7 @@ public final class SetupSession {
             transcript.append(revision, kind, role, Math.max(System.currentTimeMillis(), transcript.lastTime()), accepted,
                 nativeOutcomes, snapshot, capture.lastCommandNr);
         }
+        blockPresentation.recorded();
     }
 	public CompletedMatch completedMatch() {
         if (!isComplete() || failed) throw new MatchService.Failure("NOT_COMPLETED");
@@ -1370,8 +1387,9 @@ public final class SetupSession {
 		if ("blitz".equals(kind)) {
 			FieldCoordinate end = waypoints.isEmpty() ? game.getFieldModel().getPlayerCoordinate(player)
 				: waypoints.get(waypoints.size() - 1).coordinate();
-			plan.add("blockDice", new BlockPreviewPresentation(state).blitzDice(playerId, targetPlayerId, end,
-				active == player, !route.get("steps").asArray().isEmpty()));
+			JsonObject block = new BlockPreviewPresentation(state).blitzPreview(playerId, targetPlayerId, end,
+				active == player, !route.get("steps").asArray().isEmpty());
+			plan.add("blockDice", block.get("dice")).add("blockHighlight", block.get("highlight"));
 		}
 		return plan;
 	}

@@ -12,6 +12,7 @@ public class ChangeList {
 		versions.add(new VersionChangeList("3.4.0")
 			.addBugfix("Account teams can be saved and new games can start after the optional skill settings database upgrade")
 			.addFeature("Browser coaches can choose Always Use or Always Ask for optional skills in Game Settings, with preferences saved to their account")
+			.addFeature("Browser blocks and blitzes show their target and counted offensive and defensive assists, including replay and reconnect")
 			.addImprovement("Team Builder fits roster details more comfortably, shows player counts beside values, capitalizes roster names, and keeps validation feedback beside its button")
 			.addFeature("Team Builder can save an edited roster as a new team, enforces unique team names per account, and gives new Human and Orc recruits editable fantasy names")
 			.addFeature("Bogruk the Almost Clever joins computer opponents as a Weak BB2025 coach who pursues touchdowns and takes occasional purposeful risks")

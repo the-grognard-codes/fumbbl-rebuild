@@ -7,6 +7,9 @@ import { movementRoutePath, projectJumpLanding } from './jump-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { MatchDecision } from './match-decision.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
+import { currentBlockContext } from './block-context.ts';
+import type { BlockContext } from './block-context.ts';
+import { BlockVisibility } from './BlockVisibility.tsx';
 import { BallMarker } from './BallMarker.tsx';
 import { kickoffMarkerPosition } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
@@ -110,6 +113,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
+  blockPreview = null, animateBlockMarkers = true,
   jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
@@ -121,6 +125,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   jumpOptions?: RouteStep[] | null;
   plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
+  blockPreview?: BlockContext | null; animateBlockMarkers?: boolean;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -153,6 +158,17 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
   const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation });
   const cameraRef = useRef(camera); cameraRef.current = camera;
+  const [inspectedBlock, setInspectedBlock] = useState<{ revision: number; target: string } | null>(null);
+  const committedBlocks = currentBlockContext(view);
+  const inspectedBlocks = committedBlocks && inspectedBlock?.revision === view.revision
+    && committedBlocks.blocks.some(block => block.targetPlayerId === inspectedBlock.target)
+    ? { ...committedBlocks, activeTargetPlayerId: inspectedBlock.target } : committedBlocks;
+  const blocks = inspectedBlocks ?? currentBlockContext(view, !readOnly && !playback ? blockPreview : null);
+  const activeBlock = blocks?.blocks.find(block => block.targetPlayerId === blocks.activeTargetPlayerId);
+  const blockPlayerName = (id: string) => {
+    const player = view.players.find(player => player.id === id);
+    return player ? `${player.name} #${player.number ?? player.slot}` : id;
+  };
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
   const drag = useRef<{ x: number; y: number; pointerId: number; camera: PitchProjection; moved: boolean } | null>(null);
   useEffect(() => {
@@ -365,6 +381,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
               </g>;
             })}
           </g>}
+          <BlockVisibility context={blocks} camera={camera} layer="assists" animated={animateBlockMarkers}/>
           {occupants.map(player => {
             const center = centerOf({ x: player.x!, y: player.y! });
             const body = resolvePlayerArt(player, { end, facing: facings[player.id], setupPerspective, topDown: mode === 'top-down' })?.body;
@@ -444,6 +461,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
           onSelect={() => onSelectPlayer(player.id)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }
+        <svg className="live-block-marker-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
+          <BlockVisibility context={blocks} camera={camera} layer="blocks" animated={animateBlockMarkers}/>
+        </svg>
+        {activeBlock && <p className="sr-only" data-block-description="true">{`${blockPlayerName(activeBlock.playerId)} blocks ${blockPlayerName(activeBlock.targetPlayerId)}. Offensive assists: ${activeBlock.offensiveAssists.map(assist=>blockPlayerName(assist.playerId)).join(', ')||'none'}. Defensive assists: ${activeBlock.defensiveAssists.map(assist=>blockPlayerName(assist.playerId)).join(', ')||'none'}.`}</p>}
         {followUpTarget && followUpTo && followUpFrom && <div className="live-push-choice live-follow-up-preview" role="img"
           aria-label={`Follow-up destination: ${followUpTarget.x}, ${followUpTarget.y}`}
           data-x={followUpTarget.x} data-y={followUpTarget.y}
@@ -466,7 +487,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         <PitchDecisionOverlay decision={decision} diceMoment={diceMoment}
           potentialDice={(!readOnly && !playback || diceAwaiting) ? potentialDice : null} awaiting={diceAwaiting}
           attackerRole={activePlayer?.role} chooserRole={view.callerRole === 'spectator' ? undefined : view.callerRole}
-          disabled={decisionDisabled} viewport={viewport} onAction={onDecisionAction}/>
+          disabled={decisionDisabled} viewport={viewport} onAction={onDecisionAction}
+          onInspectTarget={target => setInspectedBlock(target ? {revision: view.revision, target} : null)}/>
         {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
       </div>
     </div>

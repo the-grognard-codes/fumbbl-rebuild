@@ -1,0 +1,6 @@
+{
+  "slice": "regressions",
+  "number": 320,
+  "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/issues/320",
+  "title": "Validate block visibility across live play, replay, recovery and Multiple Block"
+}

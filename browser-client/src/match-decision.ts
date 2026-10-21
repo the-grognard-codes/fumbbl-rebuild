@@ -4,7 +4,7 @@ import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { PresentedRoll } from './dice-presentation.ts';
 
-export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; choices?: DecisionOption[] };
+export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; targetPlayerId?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
   playerName?: string; instruction?: string; detail?: string; reaction?: Reaction & { matchId: string };
   originalFaces?: string[]; originalRolls?: PresentedRoll[]; originalLabel?: string; uphill?: boolean;
@@ -60,6 +60,12 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
       const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
       const option: DecisionOption = { id: action.id, label, kind: 'action', face, ...(face ? { dieKind: 'block' as const } : {}), icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
+      if (action.id.includes(':multi:') && action.target && 'playerId' in action.target) {
+        option.targetPlayerId = action.target.playerId;
+        const target = view.players.find(player => player.id === option.targetPlayerId);
+        option.playerName = `${target?.name ?? 'target'} #${target?.number ?? '?'}`;
+        option.label = `${label} against ${option.playerName}`;
+      }
       if (multipleInjuries && action.target && 'playerId' in action.target) {
         const playerId = action.target.playerId;
         option.playerName = view.players.find(player => player.id === playerId)?.name;
@@ -70,11 +76,12 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
   for (const option of options) {
     // Resource alternatives retain their native accounting choices; only skill
     // variants share a single source icon and a local, explicit choice list.
-    const existing = kind !== 'apothecary' && option.icon && option.icon !== 'resource' ? grouped.find(item => item.icon === option.icon) : undefined;
+    const existing = kind !== 'apothecary' && option.icon && option.icon !== 'resource' ? grouped.find(item => item.icon === option.icon && item.targetPlayerId === option.targetPlayerId) : undefined;
     if (existing) {
       existing.choices ??= [{ ...existing }]; existing.choices.push(option);
       const name = skillNames.find(name => decisionIcon(`Use ${name}`) === existing.icon);
       existing.label = name ? `Use ${name}` : existing.label.replace(/ on dice? .*/, '');
+      if (existing.targetPlayerId && existing.playerName) existing.label += ` against ${existing.playerName}`;
     } else grouped.push({ ...option });
   }
   if (kind === 'apothecary') {

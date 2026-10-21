@@ -1,0 +1,28 @@
+.block-visibility{pointer-events:none}
+.live-pitch-scene>svg.live-block-marker-layer{z-index:50;pointer-events:none}
+.block-signal{filter:drop-shadow(0 0 1px #071321)}
+.block-signal-block{filter:drop-shadow(0 2px 0 #071321) drop-shadow(0 -1px 1px #071321)}
+.block-signal.inactive{opacity:.35}
+.block-signal-line{fill:none;stroke:var(--block-signal);stroke-width:3;stroke-linecap:butt;stroke-linejoin:bevel;vector-effect:non-scaling-stroke}
+.block-signal-offense .shaft,.block-signal-defense .shaft{stroke-width:2}
+.block-signal-line.impact{stroke-width:2.5}
+.block-signal-line.trace,.block-signal-line.pulse{stroke:#fff9df;stroke-width:2;opacity:0;filter:drop-shadow(0 0 2px var(--block-signal)) drop-shadow(0 0 5px var(--block-signal));animation-duration:4.8s;animation-timing-function:linear;animation-iteration-count:infinite}
+.block-signal-line.trace{stroke-dasharray:12 200;stroke-dashoffset:12}
+.block-signal-line.phase-origin{animation-name:block-origin-glow}
+.block-signal-line.phase-assist-shaft{animation-name:block-assist-shaft-glow}
+.block-signal-line.phase-assist-head{animation-name:block-assist-head-glow}
+.block-signal-line.phase-block-shaft{animation-name:block-shaft-glow}
+.block-signal-line.phase-block-head{animation-name:block-head-glow}
+.block-signal-line.phase-impact{animation-name:block-impact-side-glow}
+.block-signal-line.phase-brighten{animation-name:block-impact-glow;stroke-width:3}
+.block-impact-flare{fill:#fff;opacity:0;filter:drop-shadow(0 0 3px #fff9df) drop-shadow(0 0 8px var(--block-signal));animation:block-impact-flare 4.8s linear infinite}
+.block-visibility.static .trace,.block-visibility.static .pulse,.block-visibility.static .block-impact-flare,.block-signal.inactive .trace,.block-signal.inactive .pulse,.block-signal.inactive .block-impact-flare{display:none}
+@keyframes block-origin-glow{0%,5%{stroke-dashoffset:12;opacity:0}6%{opacity:1}33%{stroke-dashoffset:-88;opacity:1}36%,100%{stroke-dashoffset:-100;opacity:0}}
+@keyframes block-assist-shaft-glow{0%,34%{stroke-dashoffset:12;opacity:0}35%{opacity:1}73%{stroke-dashoffset:-88;opacity:1}77%,100%{stroke-dashoffset:-100;opacity:0}}
+@keyframes block-assist-head-glow{0%,72%{opacity:0}78%{opacity:1}90%,100%{opacity:0}}
+@keyframes block-shaft-glow{0%,3%{stroke-dashoffset:12;opacity:0}4%{opacity:1}32%{stroke-dashoffset:-88;opacity:1}36%,100%{stroke-dashoffset:-100;opacity:0}}
+@keyframes block-head-glow{0%,29%{opacity:0}34%{opacity:1}41%,100%{opacity:0}}
+@keyframes block-impact-side-glow{0%,36%{stroke-dashoffset:12;opacity:0}37%{opacity:1}82%{stroke-dashoffset:-88;opacity:1}86%,100%{stroke-dashoffset:-100;opacity:0}}
+@keyframes block-impact-glow{0%,81%{opacity:0}86%{opacity:.85}96%,100%{opacity:0}}
+@keyframes block-impact-flare{0%,82%{opacity:0}86%{opacity:1}97%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.block-visibility .trace,.block-visibility .pulse,.block-visibility .block-impact-flare{animation:none;display:none}}

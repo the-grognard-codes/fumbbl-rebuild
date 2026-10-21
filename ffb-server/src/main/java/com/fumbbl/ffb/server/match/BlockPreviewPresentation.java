@@ -3,7 +3,10 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.BlockKind;
+import com.fumbbl.ffb.model.BlockTarget;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.net.commands.ClientCommandSynchronousMultiBlock;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.util.ServerUtilBlock;
@@ -25,9 +28,10 @@ final class BlockPreviewPresentation {
         this.state = state;
     }
 
-    JsonObject project(List<Action> actions) {
+    JsonObject project(List<Action> actions, int revision) {
         Game game = state.getGame();
         JsonArray rolls = new JsonArray();
+        JsonArray multiple = new JsonArray();
         Set<String> pairs = new LinkedHashSet<>();
         for (Action action : actions) {
             if ("selectBlock".equals(action.kind)) {
@@ -50,12 +54,28 @@ final class BlockPreviewPresentation {
                     && game.getFieldModel().getPlayerCoordinate(attacker).isAdjacent(
                         game.getFieldModel().getPlayerCoordinate(defender)))
                     add(rolls, pairs, attacker.getId(), defender.getId(), state);
+            } else if ("multiBlock".equals(action.kind) && action.command instanceof ClientCommandSynchronousMultiBlock) {
+                GameState preview = copy();
+                Game projected = preview.getGame();
+                List<BlockTarget> targets = ((ClientCommandSynchronousMultiBlock) action.command).getSelectedTargets();
+                for (BlockTarget target : targets) projected.getFieldModel().addMultiBlockTarget(target.getPlayerId(), BlockKind.BLOCK);
+                JsonArray blocks = new JsonArray();
+                for (BlockTarget target : targets) {
+                    JsonObject highlight = new BlockHighlightProjection().project(projected,
+                        projected.getActingPlayer().getPlayerId(), target.getPlayerId(), true);
+                    if (highlight != null) blocks.add(highlight);
+                }
+                if (blocks.size() == 2) multiple.add(new JsonObject().add("actionId", revision + ":" + action.id)
+                    .add("context", new JsonObject().add("version", 1).add("activeTargetPlayerId", targets.get(0).getPlayerId()).add("blocks", blocks)));
             }
         }
-        return rolls.isEmpty() ? null : new JsonObject().add("version", 1).add("rolls", rolls);
+        if (rolls.isEmpty() && multiple.isEmpty()) return null;
+        JsonObject result = new JsonObject().add("version", 1).add("rolls", rolls);
+        if (!multiple.isEmpty()) result.add("multiple", multiple);
+        return result;
     }
 
-    int blitzDice(String attackerId, String defenderId, FieldCoordinate endpoint, boolean active, boolean routeMoved) {
+    JsonObject blitzPreview(String attackerId, String defenderId, FieldCoordinate endpoint, boolean active, boolean routeMoved) {
         GameState preview = copy();
         Game game = preview.getGame();
         Player<?> attacker = game.getPlayerById(attackerId);
@@ -64,7 +84,8 @@ final class BlockPreviewPresentation {
         if (!active) game.getActingPlayer().setPlayerAction(PlayerAction.BLITZ_MOVE);
         game.getActingPlayer().setHasMoved(routeMoved || active && state.getGame().getActingPlayer().hasMoved());
         game.getFieldModel().setPlayerCoordinate(attacker, endpoint);
-        return ServerUtilBlock.findNrOfBlockDice(preview, attacker, defender, false, false);
+        return new JsonObject().add("dice", ServerUtilBlock.findNrOfBlockDice(preview, attacker, defender, false, false))
+            .add("highlight", new BlockHighlightProjection().project(game, attackerId, defenderId, false));
     }
 
     private void add(JsonArray rolls, Set<String> pairs, String attackerId, String defenderId, GameState preview) {
@@ -73,7 +94,10 @@ final class BlockPreviewPresentation {
         Player<?> attacker = game.getPlayerById(attackerId);
         Player<?> defender = game.getPlayerById(defenderId);
         int dice = ServerUtilBlock.findNrOfBlockDice(preview, attacker, defender, false, false);
-        rolls.add(new JsonObject().add("playerId", attackerId).add("targetPlayerId", defenderId).add("dice", dice));
+        JsonObject roll = new JsonObject().add("playerId", attackerId).add("targetPlayerId", defenderId).add("dice", dice);
+        JsonObject highlight = new BlockHighlightProjection().project(game, attackerId, defenderId, false);
+        if (highlight != null) roll.add("highlight", highlight);
+        rolls.add(roll);
     }
 
     private GameState copy() {

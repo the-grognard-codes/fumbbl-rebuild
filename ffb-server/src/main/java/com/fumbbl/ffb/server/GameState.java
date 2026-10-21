@@ -18,6 +18,7 @@ import com.fumbbl.ffb.model.change.ModelChange;
 import com.fumbbl.ffb.model.change.ModelChangeList;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ServerCommand;
+import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.server.factory.ObserverFactory;
 import com.fumbbl.ffb.server.marking.AutoMarkingConfig;
 import com.fumbbl.ffb.server.model.CarriedPlayer;
@@ -61,6 +62,9 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 
 	/** Whether the application commits limited actions when the player declares them. */
 	public boolean consumesDeclaredActions() { return false; }
+
+	/** Read-only application presentation observer; native sessions have no observer. */
+	public void observeModelSync(ServerCommandModelSync command) { }
 
 	private Game fGame;
 	private final GameLog fGameLog;
