@@ -1,11 +1,13 @@
 import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
 import type { DieKind } from './die-geometry.ts';
+import type { BlockContext } from './block-context.ts';
 
 export type PresentedRoll = { label: string; face: string; kind?: DieKind; rollKey?: string };
 
 export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null;
-  rollKey?: string; revision?: number; uphill?: boolean; chooser?: 'home' | 'away'; rolls?: PresentedRoll[]; groups?: DiceRollGroup[] };
+  rollKey?: string; revision?: number; uphill?: boolean; chooser?: 'home' | 'away'; rolls?: PresentedRoll[]; groups?: DiceRollGroup[];
+  blockContext?: BlockContext | null };
 
 export type DiceRollGroup = DiceMoment & { key: string };
 

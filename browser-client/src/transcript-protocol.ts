@@ -2,6 +2,7 @@ import { parseUniqueJson } from './saved-team-protocol.ts';
 import { decodeLogActors, decodeLogBlock, decodeLogOutcomes, decodeLogPresentation, decodeLogRoll, decodeLogTest } from './log-presentation.ts';
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
+import { decodeBlockContext } from './block-context.ts';
 
 export type TranscriptRecord = {
   index: number; revision: number; kind: string; actor: 'system' | 'home' | 'away'; at: number;
@@ -48,12 +49,14 @@ export function decodeTranscript(json: string): TranscriptResponse {
     if (record.decision && Object.hasOwn(record.decision, 'logPresentation'))
       decodeLogPresentation((record.decision as Record<string, unknown>).logPresentation, Number(record.revision));
     if (!Array.isArray(record.native) || record.native.length > 512) throw Error('Invalid native outcome list');
+    const state = decodeSetupStateValue(record.state);
     const native = record.native.map(value => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Invalid native outcome');
       const command = value as Record<string, unknown>;
       const number = integer(command.commandNr, 2_147_483_647);
       if (number <= priorCommand) throw Error('Native outcomes out of order');
       priorCommand = number;
+      if (Object.hasOwn(command, 'blockContext') && command.blockContext !== null) decodeBlockContext(command.blockContext, state.players);
       if (Object.hasOwn(command, 'logOutcomes')) decodeLogOutcomes(command.logOutcomes);
       const reports = (command.reportList as { reports?: unknown[] } | undefined)?.reports;
       if (Array.isArray(reports)) for (const report of reports) {
@@ -68,7 +71,6 @@ export function decodeTranscript(json: string): TranscriptResponse {
       }
       return command;
     });
-    const state = decodeSetupStateValue(record.state);
     if (state.matchId !== response.matchId || state.revision !== record.revision || state.callerRole !== 'home'
       || state.actions.length || state.prompt !== null) throw Error('Invalid transcript snapshot');
     return { ...record, decision: record.decision as Record<string, unknown> | null, native, state } as TranscriptRecord;

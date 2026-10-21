@@ -1,14 +1,12 @@
 package com.fumbbl.ffb.test;
 
 import com.fumbbl.ffb.Weather;
-import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.SetupSession;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -19,14 +17,14 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DiceProjectionTest {
 	@Test void revealedDiceKeepNativeFacesAndChoiceIdentityForBothCoaches() throws Exception {
 		JsonArray journeys = new JsonArray();
 		for (boolean home : new boolean[] {true, false}) for (int count : new int[] {0, 1, 2, 3}) {
-			GameState state = new GameState(new TestServer().getServer()) {
-				@Override public boolean usesLegacyPersistence() { return false; }
-			};
+			SetupSessionFixtureState state = new SetupSessionFixtureState();
 			int strength = count == 1 ? 3 : count == 2 ? 4 : 7;
 			new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(count == 0 ? 9 : 20, count == 0 ? 7 : 14)
 				.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, strength, 3, 3, 9)))
@@ -37,11 +35,13 @@ class DiceProjectionTest {
 			StepEngine.start(state);
 			TestRolls.on(state).block(Arrays.copyOf(new String[] {"skull", "pushback", "pow"}, count)).armor(1, 1).general(1, 6);
 			SetupSession session = new SetupSessionTest().session(11, true);
-			Field engine = SetupSession.class.getDeclaredField("state"); engine.setAccessible(true); engine.set(session, state);
+			state.attachTo(session);
 			String role = home ? "home" : "away";
 			if (count == 0) { submit(session, role, "declarePass"); submit(session, role, "move-9-7"); }
 			else { submit(session, role, "selectBlock"); submit(session, role, "block"); }
 			JsonObject offered = view(session, role);
+			if (count > 0) assertNotNull(offered.get("blockContext"), "Revealed native dice retain committed block context");
+			else assertNull(offered.get("blockContext"), "Pickup dice do not acquire block context");
 			JsonArray faces = new JsonArray();
 			for (JsonValue item : offered.get("actions").asArray()) if (item.asObject().getString("kind", "").equals("blockDie")) faces.add(item.asObject().get("label"));
 			assertEquals(count, faces.size());
@@ -50,8 +50,10 @@ class DiceProjectionTest {
 			if (count > 2) assertEquals("Choose POW (die 3)", faces.get(2).asString());
 			JsonObject spectator = session.spectatorView();
 			assertEquals(offered.get("actions"), spectator.get("actions"));
+			assertEquals(offered.get("blockContext"), spectator.get("blockContext"));
 			submit(session, role, count == 0 ? "reroll:team" : "block-die:" + (count - 1));
 			JsonObject chosen = view(session, role);
+			if (count == 1) assertNull(chosen.get("blockContext"), "A resolved skull clears context even without target movement");
 			for (JsonValue item : chosen.get("actions").asArray()) assertFalse(item.asObject().getString("kind", "").equals("blockDie"));
 			JsonArray reports = new JsonArray();
 			JsonArray reportIds = new JsonArray();

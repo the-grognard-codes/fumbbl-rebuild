@@ -7,7 +7,6 @@ import com.fumbbl.ffb.factory.InducementTypeFactory;
 import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.model.TurnData;
-import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupSession;
 import com.fumbbl.ffb.util.UtilCards;
@@ -16,7 +15,6 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -26,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,9 +39,7 @@ class RerollChoicesTest {
 			String skill = mode.contains("pro") ? "Pro" : mode.equals("skill") ? "Thinking Man's Troll"
 				: mode.endsWith("brawler") ? "Brawler" : mode.endsWith("consummate") ? "Thinking Man's Troll"
 			: mode.endsWith("single") ? "Woodland Fury" : mode.contains("multi") ? "Savage Blow" : "";
-			GameState state = new GameState(new TestServer().getServer()) {
-				@Override public boolean usesLegacyPersistence() { return false; }
-			};
+			SetupSessionFixtureState state = new SetupSessionFixtureState();
 			new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(block ? 20 : 9, block ? 14 : 7)
 				.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 4, 3, 3, 9).skill(skill).skill(!block && proFallback ? "Loner" : "")))
 				.withTeam(!home, team -> team.player("opponent", player -> player.at(block ? 11 : 20, 7).stats(6, mode.endsWith("opponent") ? 5 : 3, 3, 4, 9))).build();
@@ -61,10 +58,15 @@ class RerollChoicesTest {
 			TestRolls.on(state).general(first, second, third, 6, 6, 6, 6, 6, 6, 6, 6)
 				.block(mode.equals("block-success") ? "pushback" : "bothdown", mode.equals("block-success") ? "pow" : "skull", "pushback", "pushback", "pushback");
 			SetupSession session = new SetupSessionTest().session(11, true);
-			Field engine = SetupSession.class.getDeclaredField("state"); engine.setAccessible(true); engine.set(session, state);
+			state.attachTo(session);
 			String role = home ? "home" : "away", other = home ? "away" : "home";
 			submit(session, role, block ? "selectBlock" : "declarePass"); submit(session, role, block ? "block" : "move-9-7");
 			JsonObject offered = view(session, role), otherCoach = view(session, other), spectator = normalize(session.spectatorView());
+			if (block) {
+				assertNotNull(offered.get("blockContext"), "Revealed blocks retain their committed context");
+				assertEquals(offered.get("blockContext"), otherCoach.get("blockContext"));
+				assertEquals(offered.get("blockContext"), spectator.get("blockContext"));
+			}
 			JsonArray offeredReports = reports(session, offered.getInt("revision", -1));
 			int originalRerolls = (home ? state.getGame().getTurnDataHome() : state.getGame().getTurnDataAway()).getReRolls();
 			if (mode.contains("pro")) { find(offered, block ? "block-reroll:pro" : "reroll:pro"); find(offered, block ? "block-reroll:team" : "reroll:team"); }
@@ -93,6 +95,8 @@ class RerollChoicesTest {
 			}
 			if (!block && proFallback) submit(session, role, "pro-test:" + (mode.endsWith("mascot-team") ? "mascot-team" : mode.endsWith("mascot") ? "mascot" : "team"));
 			JsonObject accepted = view(session, role);
+			if (block) assertEquals(offered.get("blockContext"), accepted.get("blockContext"),
+				"Native reroll and opponent-choice prompts keep the rolled contributors frozen");
 			boolean teamSpent = mode.equals("team") || mode.equals("block-team") || mode.equals("block-success") || mode.endsWith("pro-team") || mode.endsWith("mascot-team");
 			assertEquals(originalRerolls - (teamSpent ? 1 : 0), (home ? state.getGame().getTurnDataHome() : state.getGame().getTurnDataAway()).getReRolls(), mode);
 			if (mode.contains("pro")) for (JsonValue item : accepted.get("actions").asArray()) assertFalse(item.asObject().getString("id", "").contains("reroll:pro"));

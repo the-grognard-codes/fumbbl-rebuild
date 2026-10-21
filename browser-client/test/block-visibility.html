@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Native block visibility review</title>
+  <style>
+    html,body{margin:0;background:#101c2b;color:#eee}
+    .block-review-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px;background:#14283a;position:relative;z-index:100}
+    .block-review-controls label{display:flex;align-items:center;gap:4px;font:13px sans-serif}
+    .block-review-controls span{font:12px sans-serif}
+    .block-review-pitch .live-pitch-viewport{height:calc(100dvh - 110px);min-height:380px}
+    .block-review-pitch .live-camera-controls{position:relative;top:auto;left:auto;transform:none;display:flex;flex-wrap:wrap}
+    .block-review-game{position:relative;height:calc(100dvh - 80px)}
+  </style>
+</head>
+<body class="game-match"><main id="app" class="play-runtime live-match-page"></main>
+<script type="module" src="/test/block-visibility-harness.tsx"></script></body>
+</html>

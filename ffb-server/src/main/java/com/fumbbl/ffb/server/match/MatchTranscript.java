@@ -44,6 +44,7 @@ final class MatchTranscript {
                 throw new IllegalArgumentException("Invalid transcript decision");
             priorTime = at;
             for (JsonValue nativeValue : record.get("native").asArray()) {
+                validateBlock(nativeValue.asObject(), record.get("state").asObject());
                 int number = nativeValue.asObject().getInt("commandNr", -1);
                 if (number <= priorNative || number > cursor) throw new IllegalArgumentException("Native transcript order");
                 priorNative = number;
@@ -70,6 +71,7 @@ final class MatchTranscript {
         if (state.getInt("revision", -1) != revision) throw new IllegalArgumentException("Transcript state mismatch");
         int priorNative = nativeCursor;
         for (JsonValue nativeValue : nativeOutcomes) {
+            validateBlock(nativeValue.asObject(), state);
             int number = nativeValue.asObject().getInt("commandNr", -1);
             if (number <= priorNative || number > cursor) throw new IllegalArgumentException("Native transcript order");
             priorNative = number;
@@ -91,6 +93,11 @@ final class MatchTranscript {
         JsonValue movement = decision.asObject().get("logPresentation").asObject().get("movement");
         return movement.isObject() && !movement.asObject().getBoolean("complete", true)
             ? JsonObject.readFrom(movement.toString()) : null;
+    }
+
+    private void validateBlock(JsonObject sync, JsonObject state) {
+        JsonValue context = sync.get("blockContext");
+        if (context != null && !context.isNull()) new BlockHighlightJson().context(context.asObject(), state.get("players").asArray());
     }
 
     int size() { return records.size(); }

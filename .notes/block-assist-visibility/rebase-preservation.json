@@ -1,0 +1,17 @@
+﻿{
+    "OriginalFiles":  109,
+    "UnchangedGitBlobs":  103,
+    "IntegratedFiles":  [
+                            "browser-client/src/SetupPanel.tsx",
+                            "ffb-client-logic/src/main/java/com/fumbbl/ffb/client/model/ChangeList.java",
+                            "ffb-server/src/main/java/com/fumbbl/ffb/server/GameState.java",
+                            "ffb-server/src/main/java/com/fumbbl/ffb/server/match/SetupSession.java",
+                            "ffb-server/src/test/java/com/fumbbl/ffb/server/match/BlockVisibilityTest.java",
+                            "tools/validation/browser-shards.json"
+                        ],
+    "MissingFiles":  [
+
+                     ],
+    "Stash":  "c648dcb263b1f3395be176d8ae07b7f9d5490330",
+    "NewBase":  "f10f348200bd45f4e813e701c5547f951bbcce55"
+}

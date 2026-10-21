@@ -1,0 +1,77 @@
+{
+  "layouts": [
+    {
+      "camera": "perspective",
+      "view": "home",
+      "aboveThreats": true,
+      "bars": 2,
+      "belowSprites": true,
+      "circles": 2,
+      "diamonds": 2,
+      "invalidPaths": false,
+      "onlyBlockAboveSprites": true,
+      "overflow": false
+    },
+    {
+      "camera": "perspective",
+      "view": "away",
+      "aboveThreats": true,
+      "bars": 2,
+      "belowSprites": true,
+      "circles": 2,
+      "diamonds": 2,
+      "invalidPaths": false,
+      "onlyBlockAboveSprites": true,
+      "overflow": false
+    },
+    {
+      "camera": "top-down",
+      "view": "home",
+      "aboveThreats": true,
+      "bars": 2,
+      "belowSprites": true,
+      "circles": 2,
+      "diamonds": 2,
+      "invalidPaths": false,
+      "onlyBlockAboveSprites": true,
+      "overflow": false
+    },
+    {
+      "camera": "top-down",
+      "view": "away",
+      "aboveThreats": true,
+      "bars": 2,
+      "belowSprites": true,
+      "circles": 2,
+      "diamonds": 2,
+      "invalidPaths": false,
+      "onlyBlockAboveSprites": true,
+      "overflow": false
+    }
+  ],
+  "blockArrowUnchanged": true,
+  "defensiveBarsUnchanged": true,
+  "scenarios": [
+    {
+      "situation": "Blitz",
+      "assists": 4,
+      "clearing": true
+    },
+    {
+      "situation": "Uphill",
+      "assists": 4,
+      "clearing": true
+    },
+    {
+      "situation": "Multiple Block",
+      "assists": 2,
+      "clearing": true
+    }
+  ],
+  "narrow": {
+    "circles": 2,
+    "content": 375,
+    "diamonds": 2,
+    "width": 390
+  }
+}

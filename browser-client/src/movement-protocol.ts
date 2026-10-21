@@ -1,12 +1,14 @@
 import { parseUniqueJson } from './saved-team-protocol.ts';
 import { decodeRoutePreviewValue, decodeRouteStep, decodeWaypoint, isJumpStep, routeCost } from './route-protocol.ts';
 import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
+import { decodeBlockHighlight } from './block-context.ts';
+import type { BlockHighlight } from './block-context.ts';
 
 export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
 export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul' | 'pass' | 'handOff'; targetPlayerId: string | null; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
-  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; range?: MovementRange; jumpOptions?: RouteStep[] };
+  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; blockHighlight?: BlockHighlight; range?: MovementRange; jumpOptions?: RouteStep[] };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
   code: 'ACCEPTED'; matchId: string; range: MovementRange };
 export type MovementPreviewResponse = { version: 2; type: 'movementPreview'; requestId: string;
@@ -72,7 +74,8 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const hasDice = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockDice');
   const hasRange = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'range');
   const hasJumps = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'jumpOptions');
-  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : [])]);
+  const hasHighlight = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockHighlight');
+  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : []), ...(hasHighlight ? ['blockHighlight'] : [])]);
   if (value.planVersion !== 1 || !['move', 'blitz', 'foul', 'pass', 'handOff'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
@@ -83,6 +86,9 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
   if (![3,4].includes(route.routeVersion) || targetPlayerId === route.playerId) throw Error('Invalid movement plan route');
   const waypoints = value.waypoints.map(decodeWaypoint);
   const end = route.steps.at(-1) ?? route.from, last = waypoints.at(-1);
+  const blockHighlight = hasHighlight ? decodeBlockHighlight(value.blockHighlight) : undefined;
+  if (blockHighlight && (kind !== 'blitz' || blockHighlight.playerId !== route.playerId || blockHighlight.targetPlayerId !== targetPlayerId
+    || blockHighlight.from.x !== end.x || blockHighlight.from.y !== end.y)) throw Error('Invalid planned block context');
   if (route.steps.length > 0 && !last || last && (last.x !== end.x || last.y !== end.y)) throw Error('Invalid movement endpoint');
   if (kind === 'move' && !waypoints.length && !hasJumps) throw Error('Missing movement destination');
   let cursor = 0;
@@ -108,5 +114,5 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
     });
   }
   return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route,
-    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(range ? { range } : {}), ...(jumpOptions ? {jumpOptions} : {}) } } as MovementPreviewResponse;
+    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(blockHighlight ? { blockHighlight } : {}), ...(range ? { range } : {}), ...(jumpOptions ? {jumpOptions} : {}) } } as MovementPreviewResponse;
 }

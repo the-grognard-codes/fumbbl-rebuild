@@ -26,6 +26,8 @@ import { matchesMovementRange } from './movement-range-read.ts';
 import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer, isBallTransfer } from './movement-interaction.ts';
 import { potentialBlockDice } from './block-dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
+import { proposedBlockContext } from './block-context.ts';
+import type { BlockContext } from './block-context.ts';
 import { blockFaceLabel } from './dice-presentation.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, passTargetForPlayer, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
@@ -229,7 +231,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [draggingPlayerId, setDraggingPlayerId] = useState('');
   const [solidDrop, setSolidDrop] = useState<{ playerId: string; to: RoutePoint; revision: number } | null>(null);
   const [targetPlayerId, setTargetPlayerId] = useState('');
-  const [confirmedDice, setConfirmedDice] = useState<{ preview: PotentialBlockDice; matchId: string;
+  const [confirmedDice, setConfirmedDice] = useState<{ preview: PotentialBlockDice | null; context: BlockContext | null; matchId: string;
     playerId: string; revision: number; pendingSeen: boolean } | null>(null);
   const autoActionRef = useRef('');
   const [explicitBlitz, setExplicitBlitz] = useState(false);
@@ -389,6 +391,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const potentialDice = connected && !requestPending && !suspended && !playbackActive && !decision
     ? potentialBlockDice(view, playerId, targetPlayerId, pinnedAction,
       movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
+  const proposedBlocks = connected && !requestPending && !suspended && !playbackActive && !decision
+    ? proposedBlockContext(view, playerId, targetPlayerId, pinnedAction,
+      movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
   useLayoutEffect(() => {
     if (!confirmedDice) return;
     const revealed = decision?.options.some(option => !!option.face)
@@ -402,7 +407,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   }, [confirmedDice, requestPending, playbackActive, decision, diceMoment, connected, suspended,
     view.matchId, view.revision, view.phase, view.actor, view.callerRole, view.activePlayerId]);
   const retainConfirmedDice = () => {
-    if (potentialDice) setConfirmedDice({ preview: potentialDice, matchId: view.matchId, playerId,
+    if (potentialDice || proposedBlocks) setConfirmedDice({ preview: potentialDice, context: proposedBlocks, matchId: view.matchId, playerId,
       revision: view.revision, pendingSeen: false });
   };
   const visibleDiceMoment = confirmedDice && (diceMoment?.revision ?? -1) <= confirmedDice.revision ? null : diceMoment;
@@ -421,6 +426,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const selectPlayer = (id: string) => {
     if (jumpMode) return;
+    if (canChoose && pinnedAction?.kind === 'multiBlock'
+      && view.blockPreview?.multiple?.find(option => option.actionId === pinnedAction.id)?.context.blocks.some(block => block.targetPlayerId === id)) {
+      setTargetPlayerId(id); setTargetFocus('player'); return;
+    }
     if (view.reaction) {
       const choices = availableActions.filter(action => action.kind === 'reactiveSkill' && action.target && 'playerId' in action.target && action.target.playerId === id);
       if (canChoose && choices.length === 1) { mutate('action', { actionId: choices[0].id }); return; }
@@ -947,6 +956,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
+        blockPreview={confirmedDice?.context ?? proposedBlocks}
         plannedTransfer={!playbackActive && movementReviewed && movementPlan && isBallTransfer(movementPlan.kind)
           ? { targetPlayerId: movementPlan.targetPlayerId!, from: movementPlan.route.steps.at(-1) ?? movementPlan.route.from } : null}
         jumpOptions={jumpMode && canChoose && !decision && !playbackActive ? jumpOptions : null}

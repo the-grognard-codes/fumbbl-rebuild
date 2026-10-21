@@ -2,11 +2,21 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import { reportedDice } from './dice-presentation.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
+import { decodeBlockContext, currentBlockContext } from './block-context.ts';
+import type { BlockContext } from './block-context.ts';
 
 export type ConfirmedMove = { playerId: string; x: number; y: number };
 type BallChanges = { coordinate?: { x: number; y: number } | null; inPlay?: boolean; moving?: boolean };
 export type PlaybackBeat = { kind: 'move'; move: ConfirmedMove; ballChanges?: BallChanges }
-  | { kind: 'ball'; ballChanges: BallChanges } | { kind: 'dice'; dice: DiceMoment };
+  | { kind: 'ball'; ballChanges: BallChanges } | { kind: 'dice'; dice: DiceMoment }
+  | { kind: 'block'; context: BlockContext | null };
+
+export function withBlockContext(view: SetupState, context: BlockContext | null): SetupState {
+  if (JSON.stringify(view.blockContext ?? null) === JSON.stringify(context)) return view;
+  const next = { ...view }; delete next.blockContext;
+  if (context) next.blockContext = context;
+  return next;
+}
 
 function nativeSquare(value: unknown): { x: number; y: number } | null {
   if (!value || typeof value !== 'object') return null;
@@ -33,7 +43,7 @@ export function withConfirmedMove(view: SetupState, move: ConfirmedMove): SetupS
   const next = { ...view,
     players: view.players.map(player => player.id === move.playerId ? { ...player, x: move.x, y: move.y } : player),
     ball: view.ball && view.ballState?.carrierPlayerId === move.playerId ? { x: move.x, y: move.y } : view.ball };
-  return withConfirmedBallChanges(next, {});
+  return withBlockContext(withConfirmedBallChanges(next, {}), currentBlockContext(next));
 }
 
 /** The native sync stream is ordered by command number inside each durable decision. */
@@ -41,11 +51,14 @@ export function playbackBeats(record: TranscriptRecord): PlaybackBeat[] {
   const beats: PlaybackBeat[] = [];
   const known = new Set(record.state.players.map(player => player.id));
   for (const sync of record.native) {
+    const hasBlock = Object.hasOwn(sync, 'blockContext');
+    const context = hasBlock && sync.blockContext !== null ? decodeBlockContext(sync.blockContext, record.state.players) : null;
+    if (hasBlock) beats.push({ kind: 'block', context });
     const reports = (sync.reportList as { reports?: unknown[] } | undefined)?.reports;
     if (Array.isArray(reports)) for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
       const dice = reportedDice(value as Record<string, unknown>, record.state.players);
-      if (dice) beats.push({ kind: 'dice', dice });
+      if (dice) beats.push({ kind: 'dice', dice: hasBlock ? { ...dice, blockContext: context } : dice });
     }
     const changes = (sync.modelChangeList as { modelChangeArray?: unknown[] } | undefined)?.modelChangeArray;
     if (!Array.isArray(changes)) continue;

@@ -103,6 +103,12 @@ public class StepBlockRollMultiple extends AbstractStepMultiple {
 		return StepId.BLOCK_ROLL_MULTIPLE;
 	}
 
+	/** Read-only identities for browser presentation at each native model-sync boundary. */
+	public List<String> getRolledTargetIds() {
+		return state.blockRolls.stream().filter(roll -> roll.getBlockRoll() != null && roll.getBlockRoll().length > 0)
+			.map(BlockRollProperties::getTargetId).collect(Collectors.toList());
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void init(StepParameterSet pParameterSet) {

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { playbackBeats, withConfirmedBallChanges, withConfirmedMove } from './pitch-playback.ts';
+import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext } from './pitch-playback.ts';
 import { recordDice } from './dice-presentation.ts';
 import { DiceStream } from './dice-stream.ts';
 import type { DiceMoment } from './dice-presentation.ts';
@@ -136,11 +136,12 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         }
         const current = presented.current;
         const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
-        const next = beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
+        const next = beat.kind === 'block' ? withBlockContext(current, beat.context)
+          : beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
         if (next === current) continue;
         // Start the next delay only after React commits this square. Separate
         // timer tasks alone can still be batched, especially in reduced motion.
-        pendingBeat.current = { view: next, advance: () => advance(index + 1), delay: reduced ? 16 : 190 / safeSpeed };
+        pendingBeat.current = { view: next, advance: () => advance(index + 1), delay: beat.kind === 'block' || reduced ? 16 : 190 / safeSpeed };
         presented.current = next; setPitchView(next);
         return;
       }

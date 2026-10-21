@@ -14,13 +14,14 @@ const skillIcons = `${import.meta.env.BASE_URL}assets/game/ui/skill-icons-v1.svg
 
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
 export function PitchDecisionOverlay({ decision = null, diceMoment: currentMoment = null, potentialDice = null, awaiting = false,
-  attackerRole, chooserRole, disabled, viewport, onAction }: {
+  attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget }: {
   decision?: MatchDecision | null; disabled: boolean; viewport: RefObject<HTMLDivElement | null>;
   diceMoment?: DiceMoment | null;
   potentialDice?: PotentialBlockDice | null; awaiting?: boolean;
   attackerRole?: 'home' | 'away';
   chooserRole?: 'home' | 'away';
   onAction?: (id: string) => void;
+  onInspectTarget?: (id: string | undefined) => void;
 }) {
   const diceMoment = potentialDice && !awaiting ? null : currentMoment;
   const panel = useRef<HTMLDivElement>(null);
@@ -122,7 +123,8 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
       const option = blockOptions[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
         disabled={!option || disabled} tabIndex={option ? undefined : -1} role={option ? undefined : 'presentation'}
-        aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}>
+        aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}
+        onFocus={() => onInspectTarget?.(option?.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option?.targetPlayerId)}>
         <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!preview && !awaiting} awaiting={!!preview && awaiting} index={index}
           selected={!option && diceMoment?.selected === index} rollKey={option ? optionRollKey : diceMoment?.rollKey}/>
         <span className="sr-only">{option?.label}</span>
@@ -143,6 +145,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
       className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}
       disabled={disabled} aria-label={option.label} title={option.choices ? option.choices.map(choice => choice.label).join('\n') : disabled ? `${option.label} (pending)` : option.label}
       aria-expanded={option.choices ? skillChoices?.id === option.id : undefined}
+      onFocus={() => onInspectTarget?.(option.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option.targetPlayerId)}
       onClick={() => option.choices ? setSkillChoices(skillChoices?.id === option.id ? null : option) : onAction?.(option.id)}>
       {option.icon === 'resource' && <img src={resourceIcon} alt="" aria-hidden="true"/>}
       {option.icon?.startsWith('custom:') && <svg aria-hidden="true" viewBox="0 0 48 48" className="pitch-dice-custom-icon">
@@ -153,6 +156,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     </button>)}</div>}
     {skillChoices && <div className="pitch-skill-choices" aria-label={`${skillChoices.label} choices`}>
       {skillChoices.choices?.map(option => <button key={option.id} type="button" disabled={disabled}
+        onFocus={() => onInspectTarget?.(option.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option.targetPlayerId)}
         onClick={() => onAction?.(option.id)}>{option.label}</button>)}
       <button type="button" disabled={disabled} onClick={() => setSkillChoices(null)}>Cancel skill choice</button>
     </div>}

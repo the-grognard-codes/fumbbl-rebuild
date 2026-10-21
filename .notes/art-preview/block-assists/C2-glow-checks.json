@@ -1,0 +1,150 @@
+{
+  "radiusScale": 0.75,
+  "diamondVertex": true,
+  "shaftJoins": true,
+  "barFlush": true,
+  "impactUnchanged": true,
+  "reducedDefault": {
+    "motionOff": true,
+    "reduced": true,
+    "visibleTraces": false
+  },
+  "early": [
+    {
+      "name": "block-shaft-glow",
+      "offset": "-46.6207px",
+      "opacity": "1",
+      "phase": "block-shaft-trace",
+      "state": "paused"
+    },
+    {
+      "name": "impact-side-glow",
+      "offset": "12px",
+      "opacity": "0",
+      "phase": "impact-trace",
+      "state": "paused"
+    },
+    {
+      "name": "impact-side-glow",
+      "offset": "12px",
+      "opacity": "0",
+      "phase": "impact-trace",
+      "state": "paused"
+    },
+    {
+      "name": "origin-glow",
+      "offset": "-41.5714px",
+      "opacity": "1",
+      "phase": "origin-trace",
+      "state": "paused"
+    },
+    {
+      "name": "origin-glow",
+      "offset": "-41.5714px",
+      "opacity": "1",
+      "phase": "origin-trace",
+      "state": "paused"
+    },
+    {
+      "name": "assist-shaft-glow",
+      "offset": "12px",
+      "opacity": "0",
+      "phase": "assist-shaft-trace",
+      "state": "paused"
+    },
+    {
+      "name": "origin-glow",
+      "offset": "-41.5714px",
+      "opacity": "1",
+      "phase": "origin-trace",
+      "state": "paused"
+    },
+    {
+      "name": "origin-glow",
+      "offset": "-41.5714px",
+      "opacity": "1",
+      "phase": "origin-trace",
+      "state": "paused"
+    },
+    {
+      "name": "assist-shaft-glow",
+      "offset": "12px",
+      "opacity": "0",
+      "phase": "assist-shaft-trace",
+      "state": "paused"
+    }
+  ],
+  "middle": {
+    "impact": "1",
+    "origin": "0",
+    "shaft": "1"
+  },
+  "convergence": {
+    "flare": "1",
+    "impact": "0.85"
+  },
+  "views": [
+    {
+      "camera": "perspective",
+      "view": "home",
+      "circles": 2,
+      "diamonds": 2,
+      "invalid": false,
+      "overflow": false,
+      "diamondVertex": true
+    },
+    {
+      "camera": "perspective",
+      "view": "away",
+      "circles": 2,
+      "diamonds": 2,
+      "invalid": false,
+      "overflow": false,
+      "diamondVertex": true
+    },
+    {
+      "camera": "top-down",
+      "view": "home",
+      "circles": 2,
+      "diamonds": 2,
+      "invalid": false,
+      "overflow": false,
+      "diamondVertex": true
+    },
+    {
+      "camera": "top-down",
+      "view": "away",
+      "circles": 2,
+      "diamonds": 2,
+      "invalid": false,
+      "overflow": false,
+      "diamondVertex": true
+    }
+  ],
+  "scenarios": [
+    {
+      "situation": "Blitz",
+      "traces": 8,
+      "clearing": true
+    },
+    {
+      "situation": "Uphill",
+      "traces": 8,
+      "clearing": true
+    },
+    {
+      "situation": "Multiple Block",
+      "traces": 4,
+      "clearing": true
+    }
+  ],
+  "narrow": {
+    "content": 375,
+    "width": 390
+  },
+  "motionOff": true,
+  "live": {
+    "name": "origin-glow",
+    "state": "running"
+  }
+}

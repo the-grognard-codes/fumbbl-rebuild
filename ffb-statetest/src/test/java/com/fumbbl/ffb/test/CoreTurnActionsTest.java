@@ -25,6 +25,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -170,10 +172,16 @@ class CoreTurnActionsTest {
         TestRolls.on(state).block("pushback");
         submit(session, "block", null);
         capture(session, frames, "block-dice");
+        assertNotNull(frames.get(frames.size() - 1).asObject().get("actor").asObject().get("blockContext"),
+            "The native block roll freezes a shared committed context");
         submit(session, "blockDie", null);
         capture(session, frames, "push-choice");
         submit(session, "push", null);
         capture(session, frames, "pushed");
+        assertTrue(!new FieldCoordinate(11, 7).equals(state.getGame().getFieldModel().getPlayerCoordinate(
+            state.getGame().getPlayerById("away1"))), "The native push moves the block target");
+        assertNull(frames.get(frames.size() - 1).asObject().get("actor").asObject().get("blockContext"),
+            "Moving the block target clears its committed context");
         Files.createDirectories(Paths.get("target"));
         Files.write(Paths.get("target", "m5a-blitz-projections.json"), frames.toString().getBytes(StandardCharsets.UTF_8));
         assertEquals(new String(Files.readAllBytes(Paths.get("..", "browser-client", "test", "fixtures", "m5a-blitz-projections.json")), StandardCharsets.UTF_8), frames.toString());
@@ -216,9 +224,7 @@ class CoreTurnActionsTest {
 
     private SetupSession sessionWithState(GameState state) throws Exception {
         SetupSession session = new SetupSessionTest().session(11);
-        Field field = SetupSession.class.getDeclaredField("state");
-        field.setAccessible(true);
-        field.set(session, state);
+        ((SetupSessionFixtureState) state).attachTo(session);
         return session;
     }
 
@@ -249,6 +255,8 @@ class CoreTurnActionsTest {
         assertEquals(actor.get("actions"), otherCoach.get("actions"));
         assertEquals(actor.get("prompt"), spectator.get("prompt"));
         assertEquals(actor.get("prompt"), otherCoach.get("prompt"));
+        assertEquals(actor.get("blockContext"), spectator.get("blockContext"));
+        assertEquals(actor.get("blockContext"), otherCoach.get("blockContext"));
         actor.set("matchId", "00000000-0000-0000-0000-000000000001");
         otherCoach.set("matchId", "00000000-0000-0000-0000-000000000001");
         spectator.set("matchId", "00000000-0000-0000-0000-000000000001");
@@ -317,7 +325,7 @@ class CoreTurnActionsTest {
     }
 
     private GameState fixture(boolean home) throws Exception {
-        GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+        GameState state = new SetupSessionFixtureState();
         new GameStateBuilder(state).withRule("BB2025")
             .withTeam(true, team -> team.player("home1", p -> p.at(7, 7).stats(6, 3, 3, 5, 8)))
             .withTeam(false, team -> team.player("away1", p -> p.at(8, 7).stats(6, 3, 3, 5, 8))).build();

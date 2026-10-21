@@ -660,6 +660,7 @@ public class ServerCommunication implements Runnable, IReceivedCommandHandler {
 		ServerCommandModelSync syncCommand = new ServerCommandModelSync(pModelChanges, pReports, pAnimation, pSound,
 			pGameTime, pTurnTime);
 		syncCommand.setCommandNr(gameState.generateCommandNr());
+		gameState.observeModelSync(syncCommand);
 		sendHomeAndSpectatorSessions(gameState, syncCommand);
 		sendAwaySession(gameState, syncCommand.transform(gameState.getGame().getRules()));
 	}
