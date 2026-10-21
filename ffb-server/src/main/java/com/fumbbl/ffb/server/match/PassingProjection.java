@@ -9,6 +9,7 @@ import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.PassModifierFactory;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.mechanics.PassMechanic;
+import com.fumbbl.ffb.mechanics.PassRangeService;
 import com.fumbbl.ffb.mechanics.TtmMechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
@@ -24,18 +25,21 @@ public final class PassingProjection {
 
 	public JsonObject project(Game game) {
 		ActingPlayer acting = game.getActingPlayer();
-		PlayerAction action = acting.getPlayerAction();
+        PlayerAction action = new HailMaryActions().action(game);
+        boolean hailMary = action == PlayerAction.HAIL_MARY_PASS || action == PlayerAction.HAIL_MARY_BOMB;
+        boolean bomb = action == PlayerAction.THROW_BOMB || action == PlayerAction.HAIL_MARY_BOMB;
 		boolean thrown = action == PlayerAction.THROW_TEAM_MATE || action == PlayerAction.THROW_TEAM_MATE_MOVE;
 		boolean kicked = action == PlayerAction.KICK_TEAM_MATE || action == PlayerAction.KICK_TEAM_MATE_MOVE;
 		boolean teammate = thrown || kicked;
-		if (acting.getPlayer() == null || acting.hasPassed()
-			|| (!teammate && action != PlayerAction.PASS_MOVE && action != PlayerAction.PASS)) return null;
+        if (acting.getPlayer() == null || !bomb && acting.hasPassed()
+            || (!teammate && !hailMary && !bomb && action != PlayerAction.PASS_MOVE && action != PlayerAction.PASS)) return null;
 		TtmMechanic ttm = game.getMechanic(Mechanic.Type.TTM);
 		if (teammate && (game.getDefender() == null || game.getPassCoordinate() != null
 			|| kicked && !ttm.handleKickLikeThrow())) return null;
 		FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(acting.getPlayer());
 		if (!FieldCoordinateBounds.FIELD.isInBounds(from)) return null;
 		PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
+        PassRangeService passRange = new PassRangeService();
 		JsonArray ranges = new JsonArray();
 		JsonArray targets = new JsonArray();
 		PassModifierFactory modifiers = game.getFactory(FactoryType.Factory.PASS_MODIFIER);
@@ -45,7 +49,9 @@ public final class PassingProjection {
 			for (int y = 0; y < 15; y++) {
 				FieldCoordinate to = new FieldCoordinate(x, y);
 				PassingDistance distance = mechanic.findPassingDistance(game, from, to, teammate);
-				boolean available = !to.equals(from) && distance != null;
+                boolean available = (hailMary || !to.equals(from)) && (hailMary
+                    ? passRange.isInRange(game, acting.getPlayer(), to, action) : distance != null);
+                if (hailMary && available) distance = PassingDistance.LONG_BOMB;
 				row.append(available ? distance.getShortcut() : '-');
 				if (teammate && available) {
 					PassContext flight = new PassContext(game, acting.getPlayer(), distance, true);
@@ -63,6 +69,7 @@ public final class PassingProjection {
 			.add("weatherPenalty", penalty).add("rangeLimited", game.getFieldModel().getWeather() == Weather.BLIZZARD)
 			.add("ranges", ranges);
 		if (teammate) result.add("action", kicked ? "kickMateTo" : "throwTeamMate").add("targets", targets);
+        if (hailMary || bomb) result.set("version", 3).add("action", bomb ? "bomb" : "pass").add("hailMary", hailMary);
 		return result;
 	}
 }

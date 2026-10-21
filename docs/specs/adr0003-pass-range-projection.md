@@ -18,3 +18,30 @@ Colors describe the range with any weather shift; they do not describe success p
 The browser rejects unknown fields or versions, malformed grids, mismatched active identity/origin, and issued pass targets outside the permitted grid. Legacy recovery comparison omits new guidance only when it was absent from the saved public view; present guidance must match the regenerated native projection.
 
 Native `PassRangeProjectionTest` exports deterministic fixtures and compares their contents. `passing-presentation.test.ts` validates decoding and presentation, while `pass-ranges-ui.mjs` checks production components and inputs. These fixture checks complement real-server acceptance.
+
+## BB2025 Hail Mary and bomb guidance
+
+Issues [#325](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/325) and
+[#329](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/329) introduce
+`passing.version: 3` for HMP ball throws and bomb throws. Versions 1 and 2 retain
+their existing contracts. Version 3 adds `action` (`pass` or `bomb`) and the
+boolean `hailMary` to the version-1 fields.
+
+For HMP, every permitted cell is `B`, including the thrower's square: distance
+does not change the Long Bomb PA test. During Blizzard, the server uses ordinary
+Quick/Short geometric eligibility while still publishing `B` for eligible
+squares. Ordinary bomb throws retain the native range bands. Weather penalties
+continue to shift colors; the HMP legend states Long Bomb difficulty and that
+the throw is inaccurate at best.
+
+The browser validates the action family and HMP-only `B`/`-` grid, and validates
+issued ball/bomb targets against that grid. A synchronized, checkpointed
+`ActingPlayer.hailMaryPassMode` preserves HMP selection during `PASS_MOVE`;
+the target commit resolves it to the existing native HMP action. Bomb modes use
+the existing bomb action values. Switching modes retains the current activation
+and allowance, including skill-permitted second bombs.
+
+`HailMaryWorkflowTest` exports ball/bomb journeys for both coaches and weather
+states, checks movement and recovery, and verifies PA roll facts. Browser unit
+and interaction tests decode those native captures, inspect the controls and
+range overlay, and exercise reload and replay presentation.

@@ -7,6 +7,7 @@ import com.fumbbl.ffb.ReRolledAction;
 import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.TurnMode;
+import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.mechanics.PassResult;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
@@ -134,9 +135,20 @@ public class PassMechanic extends com.fumbbl.ffb.mechanics.PassMechanic {
 
 	@Override
 	public boolean isInRange(Game game, Player<?> thrower, FieldCoordinate target, PlayerAction action) {
+		if (action == PlayerAction.HAIL_MARY_PASS || action == PlayerAction.HAIL_MARY_BOMB) {
+			return target != null && target.getX() >= 0 && target.getX() < FieldCoordinate.FIELD_WIDTH
+				&& target.getY() >= 0 && target.getY() < FieldCoordinate.FIELD_HEIGHT
+				&& (game.getFieldModel().getWeather() != Weather.BLIZZARD
+				|| super.findPassingDistance(game, game.getFieldModel().getPlayerCoordinate(thrower), target, false) != null);
+		}
 		if (action == PlayerAction.DUMP_OFF)
 			return super.findPassingDistance(game, game.getFieldModel().getPlayerCoordinate(thrower), target, false) == PassingDistance.QUICK_PASS;
 		return super.isInRange(game, thrower, target, action);
+	}
+
+	@Override
+	public boolean isHailMaryPassAvailable(Game game, Player<?> thrower) {
+		return thrower.hasSkillProperty(NamedProperties.canPassToAnySquare);
 	}
 
 	@Override

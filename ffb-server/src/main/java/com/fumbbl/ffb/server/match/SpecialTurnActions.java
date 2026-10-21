@@ -9,6 +9,7 @@ import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.mechanics.PassMechanic;
+import com.fumbbl.ffb.mechanics.PassRangeService;
 import com.fumbbl.ffb.mechanics.TtmMechanic;
 import com.fumbbl.ffb.mechanics.bb2025.GameMechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
@@ -44,8 +45,11 @@ final class SpecialTurnActions {
         boolean bombSpent = game.getTurnData().isBombUsed();
         if (rules.isBombActionAllowed(mode) && (menu || !bombSpent)
             && !game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
-            && !status.isProneOrStunned() && player.hasSkillProperty(NamedProperties.enableThrowBombAction))
+            && !status.isProneOrStunned() && player.hasSkillProperty(NamedProperties.enableThrowBombAction)) {
             declare(actions, player, role, "declareBomb", "Throw bomb", PlayerAction.THROW_BOMB, menu, bombSpent);
+            if (player.hasSkillProperty(NamedProperties.canPassToAnySquare))
+                declare(actions, player, role, "declareHailMaryBomb", "Hail Mary bomb", PlayerAction.HAIL_MARY_BOMB, menu, bombSpent);
+        }
         boolean puntSpent = game.getTurnData().isPuntUsed();
         if ((menu || !puntSpent) && player.hasSkillProperty(NamedProperties.canPunt)
             && !player.hasSkillProperty(NamedProperties.preventPuntAction)
@@ -80,7 +84,7 @@ final class SpecialTurnActions {
         ActingPlayer acting = game.getActingPlayer();
         Player<?> player = acting.getPlayer();
         if (player == null) return;
-        PlayerAction action = acting.getPlayerAction();
+        PlayerAction action = new HailMaryActions().action(game);
         FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
         if (action == PlayerAction.GAZE_MOVE || action == PlayerAction.GAZE) {
             if (UtilPlayer.canGaze(game, player)) for (Player<?> victim : game.getOtherTeam(player.getTeam()).getPlayers()) {
@@ -92,10 +96,10 @@ final class SpecialTurnActions {
             }
         }
         if (action == PlayerAction.THROW_BOMB || action == PlayerAction.HAIL_MARY_BOMB) {
-            PassMechanic pass = game.getMechanic(Mechanic.Type.PASS);
+            PassRangeService pass = new PassRangeService();
             for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                 FieldCoordinate at = new FieldCoordinate(x, y);
-                if (action != PlayerAction.HAIL_MARY_BOMB && pass.findPassingDistance(game, from, at, false) == null) continue;
+                if (action != PlayerAction.HAIL_MARY_BOMB && at.equals(from) || !pass.isInRange(game, player, at, action)) continue;
                 actions.add(new Action("bomb-" + x + "-" + y, "bomb", "Throw bomb towards " + x + ", " + y,
                     role, new ClientCommandPass(player.getId(), oriented(at, role)), at));
             }

@@ -8,7 +8,6 @@ import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
-import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.client.FantasyFootballClient;
 import com.fumbbl.ffb.client.factory.LogicPluginFactory;
 import com.fumbbl.ffb.client.state.logic.interaction.ActionContext;
@@ -18,6 +17,7 @@ import com.fumbbl.ffb.client.state.logic.plugin.LogicPlugin;
 import com.fumbbl.ffb.mechanics.GameMechanic;
 import com.fumbbl.ffb.mechanics.JumpMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
+import com.fumbbl.ffb.mechanics.PassMechanic;
 import com.fumbbl.ffb.mechanics.TtmMechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.FieldModel;
@@ -635,8 +635,8 @@ public abstract class LogicModule {
 	public boolean isHailMaryPassActionAvailable() {
 		Game game = client.getGame();
 		ActingPlayer actingPlayer = game.getActingPlayer();
-		return (actingPlayer.getPlayer().hasSkillProperty(NamedProperties.canPassToAnySquare)
-			&& !(game.getFieldModel().getWeather().equals(Weather.BLIZZARD)));
+		PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
+		return mechanic.isHailMaryPassAvailable(game, actingPlayer.getPlayer());
 	}
 
 	protected boolean isViciousVinesAvailable(Player<?> player) {

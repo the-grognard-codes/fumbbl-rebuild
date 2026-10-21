@@ -262,7 +262,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     }
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
     else if (action.target && 'x' in action.target && !['push', 'followUp', 'hitAndRun', 'move', 'jump', 'kickoff'].includes(action.kind)
-      && !(passing && action.kind === (passing.version === 2 ? passing.action : 'pass'))) {
+      && !(passing && action.kind === (passing.version === 1 ? 'pass' : passing.action))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
       if (action.kind === 'reactiveSquare') {

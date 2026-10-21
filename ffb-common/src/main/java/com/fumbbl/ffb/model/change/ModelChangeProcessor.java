@@ -95,6 +95,9 @@ public class ModelChangeProcessor {
 			case ACTING_PLAYER_SET_JUMPING:
 				pGame.getActingPlayer().setJumping((Boolean) pModelChange.getValue());
 				return true;
+			case ACTING_PLAYER_SET_HAIL_MARY_PASS_MODE:
+				pGame.getActingPlayer().setHailMaryPassMode((Boolean) pModelChange.getValue());
+				return true;
 			case ACTING_PLAYER_SET_OLD_PLAYER_STATE:
 				pGame.getActingPlayer().setOldPlayerState((PlayerState) pModelChange.getValue());
 				return true;

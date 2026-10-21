@@ -98,6 +98,7 @@ public final class CoreTurnActions {
                 result.add(new Action("move-" + to.getX() + "-" + to.getY(), acting.isJumping() ? "jump" : "move", label, role, command, to));
             }
         }
+        new HailMaryActions().modes(game, role, result);
         new BallAndFoulActions().targets(game, role, result);
         new SpecialTurnActions().targets(game, role, result);
         if (action == PlayerAction.MULTIPLE_BLOCK && !acting.hasBlocked())

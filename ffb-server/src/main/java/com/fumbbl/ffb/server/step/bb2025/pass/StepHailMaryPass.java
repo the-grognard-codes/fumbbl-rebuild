@@ -100,6 +100,7 @@ public final class StepHailMaryPass extends AbstractStepWithReRoll {
 		IServerJsonOption.MINIMUM_ROLL.addTo(jsonObject, state.minimumRoll);
 		IServerJsonOption.ROLL.addTo(jsonObject, state.roll);
 		IServerJsonOption.USING_SAFE_PASS.addTo(jsonObject, state.usingSafePass);
+		jsonObject.add("hailMaryReRolled", state.reRolled);
 		return jsonObject;
 	}
 
@@ -121,13 +122,16 @@ public final class StepHailMaryPass extends AbstractStepWithReRoll {
 		state.roll = IServerJsonOption.ROLL.getFrom(source, jsonObject);
 		state.minimumRoll = IServerJsonOption.MINIMUM_ROLL.getFrom(source, jsonObject);
 		state.usingSafePass = IServerJsonOption.USING_SAFE_PASS.getFrom(source, jsonObject);
+		state.reRolled = jsonObject.getBoolean("hailMaryReRolled", false);
 		return this;
 	}
 
 	public static class StepState {
 		public String goToLabelOnFailure;
+		// The PA test result before Hail Mary converts accurate flight to inaccurate.
 		public PassResult result;
 		public boolean passSkillUsed;
+		public boolean reRolled;
 		public Boolean usingModifyingSkill, usingSafePass;
 		public int minimumRoll, roll;
 	}

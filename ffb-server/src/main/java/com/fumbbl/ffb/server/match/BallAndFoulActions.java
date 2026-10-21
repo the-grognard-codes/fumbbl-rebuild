@@ -35,7 +35,11 @@ public final class BallAndFoulActions {
         boolean passSpent = game.getTurnData().isPassUsed();
         boolean handOverSpent = game.getTurnData().isHandOverUsed();
         if (game.getFieldModel().isBallInPlay()) {
-            if (menu || !passSpent) declare(actions, player, role, "declarePass", "Pass", PlayerAction.PASS_MOVE, menu, passSpent);
+            if (menu || !passSpent) {
+                declare(actions, player, role, "declarePass", "Pass", PlayerAction.PASS_MOVE, menu, passSpent);
+                if (player.hasSkillProperty(NamedProperties.canPassToAnySquare))
+                    declare(actions, player, role, "declareHailMaryPass", "Hail Mary Pass", PlayerAction.HAIL_MARY_PASS, menu, passSpent);
+            }
             if (menu || !handOverSpent) declare(actions, player, role, "declareHandOff", "Hand off", PlayerAction.HAND_OVER_MOVE, menu, handOverSpent);
         }
         boolean foulSpent = game.getTurnData().isFoulUsed();
@@ -83,14 +87,14 @@ public final class BallAndFoulActions {
         ActingPlayer acting = game.getActingPlayer();
         Player<?> player = acting.getPlayer();
         if (player == null) return;
-        PlayerAction action = acting.getPlayerAction();
+        PlayerAction action = new HailMaryActions().action(game);
         FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
         if (!acting.hasPassed() && UtilPlayer.hasBall(game, player)) {
-            if (action == PlayerAction.PASS_MOVE || action == PlayerAction.PASS) {
+            if (action == PlayerAction.PASS_MOVE || action == PlayerAction.PASS || action == PlayerAction.HAIL_MARY_PASS) {
                 PassRangeService range = new PassRangeService();
                 for (int x = 0; x < 26; x++) for (int y = 0; y < 15; y++) {
                     FieldCoordinate to = new FieldCoordinate(x, y);
-                    if (to.equals(from) || !range.isInRange(game, player, to, action)) continue;
+                    if (action != PlayerAction.HAIL_MARY_PASS && to.equals(from) || !range.isInRange(game, player, to, action)) continue;
                     actions.add(new Action("pass-" + x + "-" + y, "pass", targetLabel(game, "Pass to", to), role,
                         new ClientCommandPass(player.getId(), oriented(to, role)), to));
                 }

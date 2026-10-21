@@ -1,15 +1,20 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.PassingDistance;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.Weather;
+import com.fumbbl.ffb.mechanics.PassResult;
 import com.fumbbl.ffb.model.change.ModelChangeList;
+import com.fumbbl.ffb.modifiers.PassModifier;
 import com.fumbbl.ffb.modifiers.RollModifier;
+import com.fumbbl.ffb.modifiers.StatBasedRollModifier;
 import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.report.ReportList;
 import com.fumbbl.ffb.report.ReportStandUpRoll;
 import com.fumbbl.ffb.report.mixed.ReportHypnoticGazeRoll;
+import com.fumbbl.ffb.report.mixed.ReportPassRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.test.Commands;
 import com.fumbbl.ffb.test.GameStateBuilder;
@@ -27,6 +32,22 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NativeRollPresentationTest {
+    @Test void hailMaryStrengthBonusKeepsEffectiveTargetAndNetModifierInPublicLog() throws Exception {
+        GameState state = fixture("Shadowing");
+        state.getGame().getPlayerById("runner").setPassing(3);
+        ReportList reports = new ReportList();
+        reports.add(new ReportPassRoll("runner", 5, 3, false, new PassModifier[0], PassingDistance.LONG_BOMB,
+            false, PassResult.INACCURATE, true, new StatBasedRollModifier("Strong Passing Game", 3), true));
+        ServerCommandModelSync command = new ServerCommandModelSync(new ModelChangeList(), reports, null, null, 0, 0);
+        JsonObject projected = command.toJsonValue();
+        new NativeRollPresentation(state).decorate(command, projected);
+        JsonObject facts = projected.get("reportList").asObject().get("reports").asArray().get(0).asObject().get("logRoll").asObject();
+        assertEquals(3, facts.getInt("base", 0));
+        assertEquals(3, facts.getInt("target", 0));
+        assertEquals(0, facts.getInt("modifier", -1), "Strength offsets the Long Bomb penalty");
+        assertNull(command.toJsonValue().asObject().get("reportList").asObject().get("reports").asArray().get(0).asObject().get("logRoll"));
+    }
+
     @Test void reactionsFreezeTheNativeOwnerAndMovingPlayerWithoutChangingSourceReports() throws Exception {
         for (String skill : new String[] {"Shadowing", "Tentacles"}) for (int die : new int[] {1, 6}) {
             GameState state = fixture(skill);

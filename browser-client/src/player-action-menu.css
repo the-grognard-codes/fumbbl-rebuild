@@ -52,6 +52,7 @@
   .play-runtime .coach-match.hosted-match .live-match-scoreboard:has(.live-chess-clock.away .clock-end-turn) > .live-turn-track.away { top: 86px; }
 }
 @media(max-width:600px) {
+  .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { --action-button-width:32px; }
   .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { grid-template-columns: repeat(var(--action-count),minmax(0,32px)); }
   .play-runtime .coach-match.hosted-match .player-action-icons > button { width: 32px; height: 36px; padding: 3px; }
   .play-runtime .coach-match.hosted-match .player-action-icons > button > svg { width: 24px; height: 24px; }

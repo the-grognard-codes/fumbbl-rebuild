@@ -15,13 +15,9 @@ public class PassRangeService {
 
 	/**
 	 * Determines whether the given target coordinate is a valid, in-range pass
-	 * target for the given thrower. Hail Mary throws are not limited by the
-	 * passing range and are considered in range as long as a target is provided.
+	 * target for the given thrower, including ruleset-specific Hail Mary limits.
 	 */
 	public boolean isInRange(Game game, Player<?> thrower, FieldCoordinate targetCoordinate, PlayerAction throwerAction) {
-		if ((PlayerAction.HAIL_MARY_PASS == throwerAction) || (PlayerAction.HAIL_MARY_BOMB == throwerAction)) {
-			return targetCoordinate != null;
-		}
 		if ((game == null) || (thrower == null) || (targetCoordinate == null)) {
 			return false;
 		}

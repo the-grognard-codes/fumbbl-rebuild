@@ -239,7 +239,8 @@ public final class StepEndPassing extends AbstractStep {
 				|| ((catcher == null) && !actingPlayer.isSufferingAnimosity() && !actingPlayer.isSufferingBloodLust() &&
 				actingPlayer.hasPassed())
 				||
-				UtilPlayer.findOtherTeam(game, game.getThrower()).hasPlayer(catcher) && !actingPlayer.isSufferingBloodLust() ||
+				(game.getThrower() != null && UtilPlayer.findOtherTeam(game, game.getThrower()).hasPlayer(catcher)
+					&& !actingPlayer.isSufferingBloodLust()) ||
 				fPassFumble);
 			endGenerator.pushSequence(new EndPlayerAction.SequenceParams(getGameState(), true, fEndPlayerAction, fEndTurn));
 		} else {

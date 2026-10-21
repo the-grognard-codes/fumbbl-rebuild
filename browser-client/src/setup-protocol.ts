@@ -21,7 +21,8 @@ export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED'
 export type Reaction = { id: string; actor: MatchRole; title: string; detail?: string; expiresAt: number; serverNow: number };
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
 type RangeGuidance = { playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
-export type PassingRanges = RangeGuidance & ({ version: 1 } | { version: 2; action: 'throwTeamMate' | 'kickMateTo'; targets: (number | null)[][] });
+export type PassingRanges = RangeGuidance & ({ version: 1 } | { version: 2; action: 'throwTeamMate' | 'kickMateTo'; targets: (number | null)[][] }
+  | { version: 3; action: 'pass' | 'bomb'; hailMary: boolean });
 export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number };
 export type DriveTrackerPresentation = { version: 1; receivingRole: MatchRole; phase: 'KICKING_SETUP' | 'RECEIVING_SETUP' | 'KICK_TARGET' | 'KICKOFF'; secretWeapons: boolean; knockouts: boolean; event: KickoffPresentation['event'] | null; eventComplete: boolean };
 export type MovementForecast = { version: 1 | 2; playerId: string; steps: RouteStep[] };
@@ -230,15 +231,18 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	}
 	if (Object.hasOwn(result, 'passing')) {
 		const teammate = !!result.passing && typeof result.passing === 'object' && (result.passing as Record<string, unknown>).version === 2;
-		const value = object(result.passing, ['version','playerId','from','weatherPenalty','rangeLimited','ranges', ...(teammate ? ['action','targets'] : [])]);
+		const mode = !!result.passing && typeof result.passing === 'object' && (result.passing as Record<string, unknown>).version === 3;
+		const value = object(result.passing, ['version','playerId','from','weatherPenalty','rangeLimited','ranges', ...(teammate ? ['action','targets'] : mode ? ['action','hailMary'] : [])]);
 		const from = object(value.from, ['x','y']); integer(from.x, 25); integer(from.y, 14);
 		integer(value.weatherPenalty, 1);
 		const passer = players.find(player => player.id === value.playerId);
-		if (!teammate && value.version !== 1 || typeof value.rangeLimited !== 'boolean' || result.phase !== 'PLAY' || !passer
+		if (!teammate && !mode && value.version !== 1 || typeof value.rangeLimited !== 'boolean' || result.phase !== 'PLAY' || !passer
 			|| passer.id !== result.activePlayerId || passer.x !== from.x || passer.y !== from.y
 			|| !Array.isArray(value.ranges) || value.ranges.length !== 26
 			|| !value.ranges.every(row => typeof row === 'string' && /^[QSLBR-]{15}$/.test(row))
-			|| value.ranges[from.x][from.y] !== '-') throw Error('Invalid passing ranges');
+			|| !(mode && value.hailMary) && value.ranges[from.x][from.y] !== '-') throw Error('Invalid passing ranges');
+		if (mode && (!['pass', 'bomb'].includes(value.action as string) || typeof value.hailMary !== 'boolean'
+			|| value.hailMary && !value.ranges.every(row => /^[B-]{15}$/.test(row)))) throw Error('Invalid Hail Mary ranges');
 		if (teammate) {
 			if (!['throwTeamMate','kickMateTo'].includes(value.action as string)
 				|| !value.ranges.every(row => /^[QS-]{15}$/.test(row))
@@ -252,7 +256,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 				}
 			}
 		}
-		for (const action of actions) if (action.kind === (teammate ? value.action : 'pass') && (action.sourcePlayerId !== passer.id
+		for (const action of actions) if (action.kind === (teammate || mode ? value.action : 'pass') && (action.sourcePlayerId !== passer.id
 			|| !action.target || !('x' in action.target) || value.ranges[action.target.x][action.target.y] === '-')) throw Error('Unavailable pass target');
 		passing = value as PassingRanges;
 	}

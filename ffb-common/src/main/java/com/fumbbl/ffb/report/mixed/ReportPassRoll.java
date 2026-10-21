@@ -49,10 +49,18 @@ public class ReportPassRoll extends ReportSkillRoll {
 	public ReportPassRoll(String pPlayerId, int pRoll, int pMinimumRoll, boolean pReRolled,
 												PassModifier[] pRollModifiers, PassingDistance pPassingDistance,
 												boolean pBomb, PassResult result, boolean hailMaryPass, StatBasedRollModifier statBasedRollModifier) {
-		super(pPlayerId, PassResult.ACCURATE == result || (hailMaryPass && PassResult.INACCURATE == result), pRoll, pMinimumRoll, pReRolled, pRollModifiers);
+		this(pPlayerId, pRoll, pMinimumRoll, pReRolled, pRollModifiers, pPassingDistance, pBomb, result, hailMaryPass,
+			statBasedRollModifier, PassResult.ACCURATE == result || (hailMaryPass && PassResult.INACCURATE == result));
+	}
+
+	/** Records test success independently of skills that change the final flight result. */
+	public ReportPassRoll(String playerId, int roll, int minimumRoll, boolean reRolled,
+		PassModifier[] modifiers, PassingDistance distance, boolean bomb, PassResult result, boolean hailMaryPass,
+		StatBasedRollModifier statBasedRollModifier, boolean successful) {
+		super(playerId, successful, roll, minimumRoll, reRolled, modifiers);
 		this.result = result;
-		fPassingDistance = pPassingDistance;
-		fBomb = pBomb;
+		fPassingDistance = distance;
+		fBomb = bomb;
 		fHailMaryPass = hailMaryPass;
 		this.statBasedRollModifier = statBasedRollModifier;
 	}
@@ -91,7 +99,7 @@ public class ReportPassRoll extends ReportSkillRoll {
 
 	public IReport transform(IFactorySource source) {
 		return new ReportPassRoll(getPlayerId(), getRoll(), getMinimumRoll(), isReRolled(),
-			getRollModifiers(), getPassingDistance(), isBomb(), result, isHailMaryPass(), statBasedRollModifier);
+			getRollModifiers(), getPassingDistance(), isBomb(), result, isHailMaryPass(), statBasedRollModifier, isSuccessful());
 	}
 
 	// JSON serialization

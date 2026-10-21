@@ -130,7 +130,7 @@ final class NativeRollPresentation {
                         && ((com.fumbbl.ffb.report.bb2025.ReportPickupRoll) report).isSecureTheBall() ? 2 : agility.get(roll.getPlayerId());
                     break;
                 case PASS_ROLL:
-                    base = report instanceof ReportPassRoll && ((ReportPassRoll) report).isHailMaryPass() ? 2 : passing.get(roll.getPlayerId());
+                    base = passing.get(roll.getPlayerId());
                     break;
                 case GO_FOR_IT_ROLL: base = 2; break;
                 case DODGE_ROLL:
@@ -157,9 +157,12 @@ final class NativeRollPresentation {
             if (base == null || base < 1) continue;
             if (report instanceof ReportDodgeRoll && ((ReportDodgeRoll) report).getStatBasedRollModifier() != null)
                 modifier += ((ReportDodgeRoll) report).getStatBasedRollModifier().getModifier();
-            if (report instanceof ReportPassRoll && ((ReportPassRoll) report).getStatBasedRollModifier() != null)
-                modifier -= ((ReportPassRoll) report).getStatBasedRollModifier().getModifier();
-            if (report instanceof ReportPassRoll && !((ReportPassRoll) report).isHailMaryPass()
+            if (report instanceof ReportPassRoll && ((ReportPassRoll) report).getStatBasedRollModifier() != null) {
+                ReportPassRoll pass = (ReportPassRoll) report;
+                int statModifier = pass.getStatBasedRollModifier().getModifier();
+                modifier += pass.isHailMaryPass() ? statModifier : -statModifier;
+            }
+            if (report instanceof ReportPassRoll
                 && ((ReportPassRoll) report).getPassingDistance() != null)
                 modifier -= ((ReportPassRoll) report).getPassingDistance().getModifier2020();
             facts(publicReport, roll.getPlayerId(), base, roll.getMinimumRoll(), modifier);

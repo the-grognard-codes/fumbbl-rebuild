@@ -264,6 +264,7 @@ public interface IJsonOption {
 	JsonBooleanOption IS_OWN_CHOICE = new JsonBooleanOption("isOwnChoice");
 	JsonBooleanOption IS_SCATTER = new JsonBooleanOption("isScatter");
 	JsonBooleanOption JUMPING = new JsonBooleanOption("leaping");
+	JsonBooleanOption HAIL_MARY_PASS_MODE = new JsonBooleanOption("hailMaryPassMode");
 	JsonBooleanOption JUMPS_WITHOUT_MODIFIERS = new JsonBooleanOption("jumpsWithoutModifiers");
 	JsonStringOption KEYWORD_CHOICE_MODE = new JsonStringOption("keywordChoiceMode");
 	JsonStringOption KEYWORD = new JsonStringOption("keyword");
