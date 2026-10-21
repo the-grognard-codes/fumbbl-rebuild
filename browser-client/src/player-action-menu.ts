@@ -7,14 +7,16 @@ const definitions: { key: string; label: string; icon: ActionGlyphKind; kinds: s
   { key: 'blitz', label: 'Blitz', icon: 'blitz', kinds: ['blitz', 'blitzTarget'] },
   { key: 'foul', label: 'Foul', icon: 'foul', kinds: ['declareFoul', 'foul'] },
   { key: 'handOff', label: 'Hand Off', icon: 'handOff', kinds: ['declareHandOff', 'handOff'] },
-  { key: 'pass', label: 'Pass', icon: 'pass', kinds: ['declarePass', 'pass'] },
+  { key: 'pass', label: 'Pass', icon: 'pass', kinds: ['declarePass', 'pass', 'normalPassMode'] },
+  { key: 'hailMaryPass', label: 'Hail Mary Pass', icon: 'hailMaryPass', kinds: ['declareHailMaryPass', 'hailMaryPassMode'] },
   { key: 'chainsaw', label: 'Chainsaw', icon: 'chainsaw', kinds: ['declareChainsaw', 'blockChainsaw', 'foulChainsaw'] },
   { key: 'stab', label: 'Stab', icon: 'stab', kinds: ['declareStab', 'blockStab'] },
   { key: 'vomit', label: 'Projectile Vomit', icon: 'vomit', kinds: ['declareProjectileVomit', 'blockProjectileVomit'] },
   { key: 'fire', label: 'Breathe Fire', icon: 'fire', kinds: ['declareBreatheFire', 'blockBreatheFire'] },
   { key: 'chomp', label: 'Chomp', icon: 'chomp', kinds: ['declareChomp', 'blockChomp'] },
   { key: 'gaze', label: 'Hypnotic Gaze', icon: 'gaze', kinds: ['declareGaze', 'gaze'] },
-  { key: 'bomb', label: 'Throw Bomb', icon: 'bomb', kinds: ['declareBomb', 'bomb'] },
+  { key: 'bomb', label: 'Throw Bomb', icon: 'bomb', kinds: ['declareBomb', 'bomb', 'normalBombMode'] },
+  { key: 'hailMaryBomb', label: 'Hail Mary Bomb', icon: 'hailMaryBomb', kinds: ['declareHailMaryBomb', 'hailMaryBombMode'] },
   { key: 'throwMate', label: 'Throw Teammate', icon: 'throwMate', kinds: ['declareThrowTeamMate', 'liftTeamMate', 'throwTeamMate'] },
   { key: 'kickMate', label: 'Kick Teammate', icon: 'kickMate', kinds: ['declareKickTeamMate', 'kickMate', 'kickMateTo'] },
   { key: 'multipleBlock', label: 'Multiple Block', icon: 'multipleBlock', kinds: ['declareMultipleBlock', 'multiBlock'] },
@@ -30,9 +32,9 @@ export type PlayerMenuItem = { key: string; label: string; icon: ActionGlyphKind
 
 const nativeActions: Record<string, string[]> = {
   move: ['move', 'standUp'], block: ['block'], blitz: ['blitz', 'blitzMove', 'blitzSelect', 'standUpBlitz'],
-  foul: ['foul', 'foulMove'], handOff: ['handOver', 'handOverMove'], pass: ['pass', 'passMove', 'hailMaryPass'],
+  foul: ['foul', 'foulMove'], handOff: ['handOver', 'handOverMove'], pass: ['pass', 'passMove'], hailMaryPass: ['hailMaryPass'],
   chainsaw: ['chainsaw'], stab: ['stab'], vomit: ['projectileVomit'], fire: ['breatheFire'], chomp: ['chomp'],
-  gaze: ['gaze', 'gazeMove', 'gazeSelect'], bomb: ['throwBomb', 'hailMaryBomb'],
+  gaze: ['gaze', 'gazeMove', 'gazeSelect'], bomb: ['throwBomb'], hailMaryBomb: ['hailMaryBomb'],
   throwMate: ['throwTeamMate', 'throwTeamMateMove'], kickMate: ['kickTeamMate', 'kickTeamMateMove'],
   multipleBlock: ['multipleBlock'], secure: ['secureTheBall'], punt: ['punt', 'puntMove'],
   recover: ['removeConfusion'], forgo: ['forgo'],
@@ -54,7 +56,8 @@ export function playerActionMenu(view: SetupState, playerId: string): PlayerMenu
     const offered = actions.filter(action => definition.kinds.includes(action.kind));
     const metadata = declarations.filter(item => definition.kinds.includes(item.kind));
     if (!offered.length && !metadata.length) return [];
-    return [{ ...definition, actions: offered, spent: metadata.some(item => item.spent) }];
+    const mode = offered.filter(action => action.kind.endsWith('Mode'));
+    return [{ ...definition, actions: mode.length ? mode : offered, spent: !mode.length && metadata.some(item => item.spent) }];
   });
   // Native star declarations share one reusable icon, but retain their names and commands.
   const knownKinds = new Set(definitions.flatMap(definition => definition.kinds));

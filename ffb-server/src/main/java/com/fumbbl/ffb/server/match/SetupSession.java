@@ -997,7 +997,7 @@ public final class SetupSession {
 			.add("homeResources", resources(game.getTeamHome(), game.getTurnDataHome()))
 			.add("awayResources", resources(game.getTeamAway(), game.getTurnDataAway()));
 		if (game.getActingPlayer().getPlayer() != null && game.getActingPlayer().getPlayerAction() != null)
-			projected.add("activePlayerAction", game.getActingPlayer().getPlayerAction().getName());
+            projected.add("activePlayerAction", new HailMaryActions().action(game).getName());
         if (!playerActionMenu.isEmpty()) projected.add("playerActionMenu", playerActionMenu);
 		JsonObject passing = new PassingProjection().project(game);
 		projected.add("ballState", new BallPresentation().project(game));

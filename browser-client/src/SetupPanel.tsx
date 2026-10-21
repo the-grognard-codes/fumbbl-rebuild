@@ -243,6 +243,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [jumpSupportMatch, setJumpSupportMatch] = useState<string | null>(null);
   const [movementIntent, setMovementIntent] = useState<MovementRequest | null>(null);
   const transferRollback = useRef<{ intent: MovementRequest | null; targetId: string } | null>(null);
+  const passModeRoute = useRef<{ actionId: string; revision: number; matchId: string; playerId: string;
+    x: number; y: number } | null>(null);
   const movementFlow = hosted && !!requestMovementPreview;
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
   const [hoverPlayer, setHoverPlayer] = useState<{ id: string; anchor: DOMRect } | null>(null);
@@ -262,6 +264,19 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (displayedRevision.current === view.revision) return;
     displayedRevision.current = view.revision;
     setActionId(''); setActionFilter(''); setMenuChoices([]); setExplicitBlitz(false); setConfirmEndTurn(false);
+    const modeRoute = passModeRoute.current;
+    passModeRoute.current = null;
+    const actor = view.players.find(player => player.id === modeRoute?.playerId);
+    if (modeRoute && modeRoute.actionId === acceptedActionId && modeRoute.revision + 1 === view.revision
+      && modeRoute.matchId === view.matchId && modeRoute.playerId === view.activePlayerId
+      && view.actor === view.callerRole && actor?.x === modeRoute.x && actor?.y === modeRoute.y) {
+      // A mode change leaves the planned movement intact, but its preview must
+      // be reviewed again against the newly accepted revision.
+      setJumpMode(false);
+      if (movementIntent) requestMovementPreview?.(movementIntent);
+      else if (routeMode) requestRoutePreview?.(waypoints);
+      return;
+    }
     setRouteMode(false); setWaypoints([]); setJumpMode(false);
     setExplicitMove(false);
     setMovementIntent(null);
@@ -298,6 +313,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const menuPlayerId = selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '';
   const menuItems = playerActionMenu(view, menuPlayerId);
   const activeMenuKey = activeMenuAction(view, menuPlayerId);
+  const hailMaryTargeting = playerId === view.activePlayerId && !decision && !explicitMove && !movementIntent
+    && (activeMenuKey === 'hailMaryPass' || activeMenuKey === 'hailMaryBomb');
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const showEndTurn = hosted && view.phase === 'PLAY' && view.actor === view.callerRole && !!endTurnAction && !kickoff && !kickoffMovement;
   const canChoose = connected && !pending && !suspended;
@@ -504,6 +521,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       && ['pass', 'handOff', 'liftTeamMate', 'kickMate', 'throwTeamMate', 'kickMateTo'].includes(pinnedAction.kind)) {
       cancelProposal(); setPlayerId(id); setTargetFocus('player'); return;
     }
+    if (canChoose && hailMaryTargeting && player?.x != null && player.y != null) {
+      selectSquare(player.x, player.y); return;
+    }
     const flightTarget = teammateTargetForPlayer(view, availableActions, id);
     if (canChoose && flightTarget && player?.x != null && player.y != null) {
       if (movementFlow) clearMovement();
@@ -615,6 +635,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       && action.target && 'x' in action.target && action.target.x === column && action.target.y === row);
     if (kick?.kind === 'kickoff') { if (canChoose) mutate('action', { actionId: kick.id }); return; }
     if (kick) { setX(column); setY(row); setTargetFocus('square'); setActionId(kick.id); setSmartIntent(null); return; }
+    if (canChoose && hailMaryTargeting) {
+      const target = availableActions.find(action => action.kind === (activeMenuKey === 'hailMaryBomb' ? 'bomb' : 'pass')
+        && action.sourcePlayerId === playerId && action.target && 'x' in action.target
+        && action.target.x === column && action.target.y === row);
+      setX(column); setY(row); setTargetFocus('square'); setTargetPlayerId('');
+      setSmartIntent(null); setActionId(target?.id ?? ''); setConfirmEndTurn(false);
+      return;
+    }
     const occupant = view.players.find(player => player.x === column && player.y === row);
     if (movementFlow && view.phase === 'PLAY' && (!occupant || occupant.id === playerId)) {
       if (canChoose && movementIntent) {
@@ -830,6 +858,22 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const selectMenuItem = (item: PlayerMenuItem) => {
     if (!canChoose || item.spent) return;
     setMenuChoices([]);
+    const mode = item.actions.find(action => ['hailMaryPassMode', 'hailMaryBombMode', 'normalPassMode', 'normalBombMode'].includes(action.kind));
+    if (mode) {
+      passModeRoute.current = selectedPlayer?.x != null && selectedPlayer.y != null
+        && (movementIntent?.kind === 'move' || routeMode && !movementIntent)
+        ? { actionId: mode.id, revision: view.revision, matchId: view.matchId, playerId,
+          x: selectedPlayer.x, y: selectedPlayer.y } : null;
+      if (!passModeRoute.current) clearMovement();
+      setActionId(''); setSmartIntent(null);
+      mutate('action', { actionId: mode.id }); return;
+    }
+    if ((item.key === 'hailMaryPass' || item.key === 'hailMaryBomb') && pinnedAction && item.kinds.includes(pinnedAction.kind)) {
+      const normal = availableActions.find(action => action.sourcePlayerId === menuPlayerId
+        && action.kind === (item.key === 'hailMaryPass' ? 'declarePass' : 'declareBomb'));
+      if (normal) selectMore(normal);
+      return;
+    }
     if (item.key === 'jump' && localJump) { if (jumpMode || canJump) setJumpMode(!jumpMode); return; }
     if (item.key === 'move' && jumpMode) { setJumpMode(false); return; }
     if (item.key === 'move' && menuPlayerId === playerId && movementFlow && canMove) {
@@ -933,8 +977,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         </div> : availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong></div>
         {menuItems.length > 0 && <div className="command-buttons player-action-icons" role="group" aria-label="Player actions"
-          style={{ ['--action-count' as string]: menuItems.length }}>
-          {menuItems.map(item => <button key={item.key} type="button" className={item.key === 'jump' && localJump ? 'jump-companion' : item.spent ? 'spent' : undefined}
+          style={{ ['--action-count' as string]: menuItems.length,
+            gridTemplateColumns: menuItems.map(item => item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? '30px' : 'minmax(0,var(--action-button-width,42px))').join(' ') }}>
+          {menuItems.map(item => <button key={item.key} type="button" className={item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? 'jump-companion' : item.spent ? 'spent' : undefined}
             aria-label={item.label} title={`${item.label}${item.spent ? ' - Used' : ''}${!(item.key === 'jump' && localJump ? canJump : item.actions.length) && !item.spent ? ' - Unavailable now' : ''}`}
             aria-pressed={item.key === 'jump' && localJump ? jumpMode : !jumpMode && (!!pinnedAction && item.kinds.includes(pinnedAction.kind) || movementIntent?.kind === item.key
               || !pinnedAction && !movementIntent && !confirmEndTurn && (explicitMove ? item.key === 'move' : activeMenuKey === item.key))}

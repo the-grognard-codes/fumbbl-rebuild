@@ -99,8 +99,8 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 					game.getFieldModel().setBallMoving(true);
 					bombAction = false;
 				}
-				boolean doRoll = true;
-				boolean doNextStep = false;
+				boolean doRoll = state.usingSafePass == null;
+				boolean doNextStep = !doRoll;
 
 				PassMechanic mechanic = (PassMechanic) game.getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.PASS.name());
 				PassingDistance passingDistance = PassingDistance.LONG_BOMB;
@@ -108,7 +108,7 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 				PassContext passContext = new PassContext(game, game.getThrower(), passingDistance, false);
 				Set<PassModifier> modifiers = factory.findModifiers(passContext);
 
-				if (ReRolledActions.PASS == step.getReRolledAction()) {
+				if (doRoll && ReRolledActions.PASS == step.getReRolledAction()) {
 					if (state.usingModifyingSkill == null || !state.usingModifyingSkill) {
 						if (step.getReRollSource() == null) {
 							doRoll = false;
@@ -118,8 +118,12 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 								passingDistance, modifiers, bombAction)) {
 								doRoll = false;
 								doNextStep = true;
+							} else {
+								doRoll = false;
 							}
 						} else {
+							state.roll = 0;
+							state.reRolled = true;
 							step.setReRollSource(null);
 						}
 					}
@@ -142,21 +146,23 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 						state.result = mechanic.evaluatePass(game.getThrower(), state.roll, passingDistance, modifiers, bombAction, statBasedRollModifier);
 						game.getActingPlayer().markSkillUsed(modifyingSkill);
 					} else {
-						state.roll = step.getGameState().getDiceRoller().rollSkill();
-						PassResult result = mechanic.evaluatePass(game.getThrower(), state.roll, passingDistance, modifiers, bombAction);
-						state.minimumRoll = Math.max(2, 2 + passingDistance.getModifier2020() + modifiers.stream().mapToInt(PassModifier::getModifier).sum());
-						state.result = result == PassResult.ACCURATE ? PassResult.INACCURATE : result;
+						Optional<Integer> minimumRoll = mechanic.minimumRoll(game.getThrower(), passingDistance, modifiers);
+						state.minimumRoll = minimumRoll.orElse(0);
+						state.roll = minimumRoll.isPresent() ? step.getGameState().getDiceRoller().rollSkill() : 0;
+						state.result = mechanic.evaluatePass(game.getThrower(), state.roll, passingDistance, modifiers, bombAction);
 					}
 
-					passState.setResult(state.result);
+					// Keep the PA result for rerolls; only the resolved flight is downgraded.
+					passState.setResult(hailMaryResult(state.result));
 
-					boolean reRolled = ((step.getReRolledAction() == ReRolledActions.PASS) && (step.getReRollSource() != null));
-
-					step.getResult().addReport(new ReportPassRoll(game.getThrowerId(), state.roll, state.minimumRoll, reRolled,
-						modifiers.toArray(new PassModifier[0]), passingDistance, bombAction, state.result, true, statBasedRollModifier));
+					int reportedMinimumRoll = statBasedRollModifier == null ? state.minimumRoll
+						: Math.max(2, state.minimumRoll - statBasedRollModifier.getModifier());
+					step.getResult().addReport(new ReportPassRoll(game.getThrowerId(), state.roll, reportedMinimumRoll, state.reRolled,
+						modifiers.toArray(new PassModifier[0]), passingDistance, bombAction, hailMaryResult(state.result), true,
+						statBasedRollModifier, state.result == PassResult.ACCURATE));
 					doNextStep = true;
-					if (PassResult.FUMBLE == state.result || PassResult.SAVED_FUMBLE == state.result) {
-						if (step.getReRolledAction() != ReRolledActions.PASS) {
+					if (state.result != PassResult.ACCURATE) {
+						if (mechanic.eligibleToReRoll(step.getReRolledAction(), game.getThrower())) {
 							step.setReRolledAction(ReRolledActions.PASS);
 							Skill modificationSkill = getModifyingSkill(step, state, mechanic, passingDistance, modifiers, bombAction);
 							ReRollSource passingReroll = UtilCards.getRerollSource(game.getThrower(), ReRolledActions.PASS);
@@ -169,8 +175,8 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 								UtilServerDialog.showDialog(step.getGameState(),
 									new DialogSkillUseParameter(game.getThrowerId(), passingReroll.getSkill(game), state.minimumRoll, modificationSkill),
 									actingTeam.hasPlayer(game.getThrower()));
-							} else if (!reRolled && UtilServerReRoll.askForReRollIfAvailable(step.getGameState(), game.getActingPlayer(),
-								ReRolledActions.PASS, state.minimumRoll, false, modificationSkill)){
+							} else if (!state.reRolled && UtilServerReRoll.askForReRollIfAvailable(step.getGameState(), game.getActingPlayer(),
+								ReRolledActions.PASS, state.minimumRoll, state.result == PassResult.FUMBLE, modificationSkill)){
 								doNextStep = false;
 							}
 						} else if (state.usingModifyingSkill == null && showUseModifyingSkillDialog(step, state, mechanic,
@@ -218,6 +224,10 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 				return false;
 			}
 
+			private PassResult hailMaryResult(PassResult result) {
+				return result == PassResult.ACCURATE ? PassResult.INACCURATE : result;
+			}
+
 			private boolean showUseModifyingSkillDialog(StepHailMaryPass step, StepHailMaryPass.StepState state,
 																									PassMechanic mechanic, PassingDistance passingDistance, Set<PassModifier> passModifiers, boolean isBomb) {
 				if (state.usingModifyingSkill == null) {
@@ -240,7 +250,7 @@ public class PassBehaviour extends AbstractPassBehaviour<Pass> {
 					PassResult modifiedResult = mechanic.evaluatePass(game.getThrower(), state.roll, passingDistance, passModifiers, isBomb, actingPlayer.statBasedModifier(NamedProperties.canAddStrengthToPass));
 					if (state.result != modifiedResult) {
 						modificationSkill = actingPlayer.getPlayer().getSkillWithProperty(NamedProperties.canAddStrengthToPass);
-						step.getResult().addReport(new ReportModifiedPassResult(modificationSkill, modifiedResult));
+						step.getResult().addReport(new ReportModifiedPassResult(modificationSkill, hailMaryResult(modifiedResult)));
 					}
 				}
 				return modificationSkill;

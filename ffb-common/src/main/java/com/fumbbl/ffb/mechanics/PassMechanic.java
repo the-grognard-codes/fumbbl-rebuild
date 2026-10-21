@@ -8,6 +8,7 @@ import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.PassingDistanceFactory;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.PassModifier;
 import com.fumbbl.ffb.modifiers.StatBasedRollModifier;
 
@@ -76,7 +77,15 @@ public abstract class PassMechanic implements Mechanic {
 
 	/** Ruleset-specific range restrictions shared by native validation and browser offers. */
 	public boolean isInRange(Game game, Player<?> thrower, FieldCoordinate target, PlayerAction action) {
+		if (action == PlayerAction.HAIL_MARY_PASS || action == PlayerAction.HAIL_MARY_BOMB) {
+			return target != null;
+		}
 		return findPassingDistance(game, game.getFieldModel().getPlayerCoordinate(thrower), target, false) != null;
+	}
+
+	public boolean isHailMaryPassAvailable(Game game, Player<?> thrower) {
+		return thrower.hasSkillProperty(NamedProperties.canPassToAnySquare)
+			&& game.getFieldModel().getWeather() != Weather.BLIZZARD;
 	}
 
 	public abstract int passModifiers(Game game, Player<?> player);

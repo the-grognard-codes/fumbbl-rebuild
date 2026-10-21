@@ -1,19 +1,24 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
 import com.fumbbl.ffb.dialog.DialogSelectBlitzTargetParameter;
+import com.fumbbl.ffb.mechanics.PassRangeService;
+import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
+import com.fumbbl.ffb.net.commands.ClientCommandPass;
 import com.fumbbl.ffb.net.commands.ClientCommandTargetSelected;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
+import com.fumbbl.ffb.server.util.UtilServerGame;
 
 /** Commits browser declarations while leaving selection and route previews read-only. */
 final class PlayerActivation {
@@ -26,12 +31,39 @@ final class PlayerActivation {
         Game game = state.getGame();
         boolean home = "home".equals(role);
         if (!(command instanceof ClientCommandActingPlayer)) {
+            if (command instanceof ClientCommandPass && game.getActingPlayer().isHailMaryPassMode()
+                && !game.getActingPlayer().hasPassed()
+                && game.getActingPlayer().getPlayerId().equals(((ClientCommandPass) command).getActingPlayerId())) {
+                FieldCoordinate target = ((ClientCommandPass) command).getTargetCoordinate();
+                if (!home && target != null) target = target.transform();
+                if (!new PassRangeService().isInRange(game, game.getActingPlayer().getPlayer(), target, PlayerAction.HAIL_MARY_PASS)) return true;
+                game.getActingPlayer().setPlayerAction(PlayerAction.HAIL_MARY_PASS);
+            }
             state.handleCommand(new ReceivedCommand(command, home));
             return true;
         }
         ClientCommandActingPlayer declaration = (ClientCommandActingPlayer) command;
         Player<?> previous = game.getActingPlayer().getPlayer();
         String nextId = declaration.getPlayerId();
+        PlayerAction requested = declaration.getPlayerAction();
+        ActingPlayer acting = game.getActingPlayer();
+        if (previous != null && previous.getId().equals(nextId) && requested == acting.getPlayerAction()
+            && declaration.isJumping() != acting.isJumping()) {
+            state.handleCommand(new ReceivedCommand(command, home));
+            return true;
+        }
+        if (previous != null && previous.getId().equals(nextId)
+            && (!acting.hasPassed() || limitedAction(requested) == PlayerAction.THROW_BOMB && game.getPassCoordinate() == null)
+            && limitedAction(acting.getPlayerAction()) == limitedAction(requested)
+            && (requested == PlayerAction.PASS_MOVE || requested == PlayerAction.HAIL_MARY_PASS
+                || requested == PlayerAction.THROW_BOMB || requested == PlayerAction.HAIL_MARY_BOMB)) {
+            if (limitedAction(requested) == PlayerAction.PASS) {
+                acting.setHailMaryPassMode(requested == PlayerAction.HAIL_MARY_PASS);
+                acting.setPlayerAction(PlayerAction.PASS_MOVE);
+            } else acting.setPlayerAction(requested);
+            UtilServerGame.syncGameModel(state, null, null, null);
+            return true;
+        }
         if (previous != null && !previous.getId().equals(nextId)) {
             PlayerAction previousAction = game.getActingPlayer().getPlayerAction();
             TurnData turn = game.getTurnData();
@@ -55,7 +87,16 @@ final class PlayerActivation {
         }
         TurnData turn = game.getTurnData();
         int turnNr = turn.getTurnNr();
-        state.handleCommand(new ReceivedCommand(command, home));
+        ClientCommand nativeCommand = requested == PlayerAction.HAIL_MARY_PASS
+            ? new ClientCommandActingPlayer(nextId, PlayerAction.PASS_MOVE, declaration.isJumping())
+            : requested == PlayerAction.HAIL_MARY_BOMB
+                ? new ClientCommandActingPlayer(nextId, PlayerAction.THROW_BOMB, declaration.isJumping()) : command;
+        state.handleCommand(new ReceivedCommand(nativeCommand, home));
+        if (nextId != null && nextId.equals(acting.getPlayerId()) && !acting.hasPassed()) {
+            acting.setHailMaryPassMode(requested == PlayerAction.HAIL_MARY_PASS);
+            if (requested == PlayerAction.HAIL_MARY_BOMB) acting.setPlayerAction(requested);
+            UtilServerGame.syncGameModel(state, null, null, null);
+        }
         if (nextId != null && game.getTurnData() == turn && turn.getTurnNr() == turnNr)
             consume(turn, declaration.getPlayerAction());
         return true;

@@ -35,6 +35,7 @@ public class ActingPlayer implements IJsonSerializable {
 	private boolean fGoingForIt;
 	private boolean fDodging;
 	private boolean jumping;
+	private boolean hailMaryPassMode;
 	private boolean fHasBlocked;
 	private boolean fHasFouled;
 	private boolean fHasPassed;
@@ -85,6 +86,7 @@ public class ActingPlayer implements IJsonSerializable {
 		fHasMoved = false;
 		fHasFed = false;
 		jumping = false;
+		hailMaryPassMode = false;
 		fPlayerAction = null;
 		fStandingUp = false;
 		fSufferingBloodLust = false;
@@ -183,11 +185,28 @@ public class ActingPlayer implements IJsonSerializable {
 		return fPlayerAction;
 	}
 
+	/** BB2025 browser pass intent; the moving action remains PASS_MOVE until release. */
+	public boolean isHailMaryPassMode() {
+		return hailMaryPassMode;
+	}
+
+	public void setHailMaryPassMode(boolean hailMaryPassMode) {
+		if (this.hailMaryPassMode == hailMaryPassMode) {
+			return;
+		}
+		this.hailMaryPassMode = hailMaryPassMode;
+		notifyObservers(ModelChangeId.ACTING_PLAYER_SET_HAIL_MARY_PASS_MODE, hailMaryPassMode);
+	}
+
 	public void setPlayerAction(PlayerAction pPlayerAction) {
 		if (pPlayerAction == fPlayerAction) {
 			return;
 		}
 		fPlayerAction = pPlayerAction;
+		if (pPlayerAction != PlayerAction.PASS_MOVE && pPlayerAction != PlayerAction.PASS
+			&& pPlayerAction != PlayerAction.HAIL_MARY_PASS) {
+			setHailMaryPassMode(false);
+		}
 		notifyObservers(ModelChangeId.ACTING_PLAYER_SET_PLAYER_ACTION, fPlayerAction);
 	}
 
@@ -548,6 +567,9 @@ public class ActingPlayer implements IJsonSerializable {
 		IJsonOption.HAS_MOVED.addTo(jsonObject, fHasMoved);
 		IJsonOption.HAS_PASSED.addTo(jsonObject, fHasPassed);
 		IJsonOption.PLAYER_ACTION.addTo(jsonObject, fPlayerAction);
+		if (hailMaryPassMode) {
+			IJsonOption.HAIL_MARY_PASS_MODE.addTo(jsonObject, true);
+		}
 		IJsonOption.STANDING_UP.addTo(jsonObject, fStandingUp);
 		IJsonOption.SUFFERING_ANIMOSITY.addTo(jsonObject, fSufferingAnimosity);
 		IJsonOption.SUFFERING_BLOODLUST.addTo(jsonObject, fSufferingBloodLust);
@@ -579,6 +601,8 @@ public class ActingPlayer implements IJsonSerializable {
 		fHasMoved = IJsonOption.HAS_MOVED.getFrom(source, jsonObject);
 		fHasPassed = IJsonOption.HAS_PASSED.getFrom(source, jsonObject);
 		fPlayerAction = (PlayerAction) IJsonOption.PLAYER_ACTION.getFrom(source, jsonObject);
+		hailMaryPassMode = IJsonOption.HAIL_MARY_PASS_MODE.isDefinedIn(jsonObject)
+			&& IJsonOption.HAIL_MARY_PASS_MODE.getFrom(source, jsonObject);
 		fStandingUp = IJsonOption.STANDING_UP.getFrom(source, jsonObject);
 		fSufferingAnimosity = IJsonOption.SUFFERING_ANIMOSITY.getFrom(source, jsonObject);
 		fSufferingBloodLust = IJsonOption.SUFFERING_BLOODLUST.getFrom(source, jsonObject);

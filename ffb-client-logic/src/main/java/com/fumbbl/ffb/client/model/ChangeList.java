@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("BB2025 browser passes and bomb throws offer Hail Mary modes, Long Bomb range guidance and shared action limits, including Blizzard range restrictions")
+			.addBugfix("BB2025 Hail Mary throws use the player's Passing Ability, normal reroll eligibility and modifiers, and can never finish accurate")
 			.addBugfix("Account teams can be saved and new games can start after the optional skill settings database upgrade")
 			.addFeature("Browser coaches can choose Always Use or Always Ask for optional skills in Game Settings, with preferences saved to their account")
 			.addFeature("Browser blocks and blitzes show their target and counted offensive and defensive assists, including replay and reconnect")

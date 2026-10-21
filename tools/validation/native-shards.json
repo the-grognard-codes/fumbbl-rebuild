@@ -50,6 +50,11 @@
       "com.fumbbl.ffb.test.MovementChecksTest",
       "com.fumbbl.ffb.test.pass.HandOffTurnoverTest",
       "com.fumbbl.ffb.test.PassWorkflowTest",
+      "com.fumbbl.ffb.test.HailMaryWorkflowTest",
+      "com.fumbbl.ffb.test.HailMaryBombAllowanceTest",
+      "com.fumbbl.ffb.test.HailMaryTargetValidationTest",
+      "com.fumbbl.ffb.test.skill.pass.HailMaryPassTest",
+      "com.fumbbl.ffb.test.skill.pass.HailMaryPassRangeTest",
       "com.fumbbl.ffb.test.SetupSessionTest",
       "com.fumbbl.ffb.test.SpectatorProjectionTest",
       "com.fumbbl.ffb.test.TeammateActivationTest"
