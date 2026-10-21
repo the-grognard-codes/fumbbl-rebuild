@@ -82,7 +82,9 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		// must remain writable even when all retained slots are occupied.
 		try (PreparedStatement lock = connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE");
 			ResultSet rows = lock.executeQuery()) {
-			if (!rows.next() || (rows.getInt(1) != 5 && rows.getInt(1) != 6 && rows.getInt(1) != 7)) throw new SQLException("Recovery schema unavailable");
+			if (!rows.next()) throw new SQLException("Recovery schema unavailable");
+			int version = rows.getInt(1);
+			if (version < 5 || version > 8) throw new SQLException("Recovery schema unavailable");
 		}
 		try (PreparedStatement count = connection.prepareStatement(
 			"SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")) {

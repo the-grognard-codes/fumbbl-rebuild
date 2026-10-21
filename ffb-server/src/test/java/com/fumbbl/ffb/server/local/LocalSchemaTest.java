@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.db.DbConnectionManager;
+
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -10,14 +11,14 @@ import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.spy;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class LocalSchemaTest {
 	@Test
@@ -145,7 +146,7 @@ class LocalSchemaTest {
 		ResultSet version = mock(ResultSet.class);
 		when(manager.openDbConnection()).thenReturn(connection); when(connection.createStatement()).thenReturn(statement);
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
-		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(7);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(8);
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection);
 		doNothing().when(schema).verifyRecovery(connection); doNothing().when(schema).verifyMarker6(connection);

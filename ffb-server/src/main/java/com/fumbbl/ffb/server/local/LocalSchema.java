@@ -3,16 +3,16 @@ package com.fumbbl.ffb.server.local;
 import com.fumbbl.ffb.server.db.DbConnectionManager;
 import com.fumbbl.ffb.server.db.DbInitializer;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Scanner;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 
 /** Versioned migrations for the dedicated local database; never deletes existing data. */
@@ -89,7 +89,7 @@ public class LocalSchema {
 
 	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			if (schemaVersion(statement) != 7) throw new SQLException("Named-team startup requires a separately migrated schema version 7 database");
+			if (schemaVersion(statement) != 8) throw new SQLException("Skill-use startup requires a separately migrated schema version 8 database");
 			verifySavedTeams(connection);
 			verifyCompletedMatches(connection);
 			verifyRecovery(connection);

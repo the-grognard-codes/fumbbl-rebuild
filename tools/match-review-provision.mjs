@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFileSync } from 'node:fs';
 
 const run = promisify(execFile);
 const source = 'ffb-current-dev-database-1';
@@ -24,7 +25,8 @@ const dataMount = container => {
 };
 assert.notEqual(dataMount(oldContainer), dataMount(newContainer), 'Source and target volumes must differ');
 assert.match(dataMount(newContainer), /^ffb-match-review_database$/, 'Target is not the isolated review volume');
-assert.equal(await query(source, 'SELECT version FROM ffb_local_schema'), '7', 'Source must be marker 7');
+const sourceMarker = await query(source, 'SELECT version FROM ffb_local_schema');
+assert.ok(['7', '8'].includes(sourceMarker), 'Source must be marker 7 or 8');
 assert.equal(await query(target, 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()'), '0',
   'Review target must be empty; never overwrite a provisioned database');
 const dump = spawn('docker', ['exec', source, 'sh', '-c',
@@ -43,7 +45,7 @@ const exit = child => new Promise((resolve, reject) => {
 const [dumpCode, importCode] = await Promise.all([exit(dump), exit(importDb)]);
 assert.equal(dumpCode, 0, `Source snapshot failed: ${dumpError}`);
 assert.equal(importCode, 0, `Review import failed: ${importError}`);
-assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), '7', 'Imported schema marker mismatch');
+assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), sourceMarker, 'Imported schema marker mismatch');
 
 // Only the verified new volume is changed. Keep identities/scopes and saved teams;
 // old match documents and checkpoints stay solely in the retained source database.
@@ -64,4 +66,12 @@ const counts = await query(target, `SELECT
   (SELECT COUNT(*) FROM ffb_prepared_matches)`);
 assert.equal(counts, '0\t0\t0\t0\t0', 'Review match tables were not cleared');
 if (hasConsent) assert.equal(await query(target, 'SELECT COUNT(*) FROM ffb_match_spectator_consent'), '0');
-console.log('Isolated review schema verified at marker 7; match tables empty; accounts and teams retained.');
+if (sourceMarker === '7') {
+  const migration = spawn('docker', ['exec', '-i', target, 'sh', '-c', sql], { windowsHide: true, stdio: ['pipe', 'ignore', 'pipe'] });
+  let migrationError = '';
+  migration.stderr.on('data', chunk => { migrationError += chunk.toString().slice(0, 2000); });
+  migration.stdin.end(readFileSync(new URL('../ffb-server/src/main/resources/local-schema/008-skill-use-preferences.sql', import.meta.url), 'utf8'));
+  assert.equal(await exit(migration), 0, `Review schema migration failed: ${migrationError}`);
+}
+assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), '8', 'Review schema marker mismatch');
+console.log('Isolated review schema verified at marker 8; match tables empty; accounts, teams and skill use preferences retained.');

@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.block;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.BlockResult;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.RulesCollection;
@@ -19,6 +17,7 @@ import com.fumbbl.ffb.report.ReportSkillUse;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences.UseCase;
 import com.fumbbl.ffb.server.step.AbstractStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
@@ -27,10 +26,12 @@ import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.StepParameterSet;
-import com.fumbbl.ffb.server.step.action.block.UtilBlockSequence;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Optional;
 
@@ -183,40 +184,67 @@ public class StepBlockChoice extends AbstractStep {
 				}
 				if (defenderDodgeSkill != null) {
 					Skill attackerCanCancelDodgeSkill = UtilCards.getSkillCancelling(actingPlayer.getPlayer(), defenderDodgeSkill);
+					if (getGameState().getOptionalSkillUse().enabled() && !usesWatchOut && attackerCanCancelDodgeSkill != null
+						&& "Tackle".equals(attackerCanCancelDodgeSkill.getName()) && !defenderState.hasTacklezones()) {
+						attackerCanCancelDodgeSkill = null;
+					}
+					Skill ignoreTackleSkill = game.getDefender().getSkillWithProperty(NamedProperties.ignoreTackleWhenBlocked);
+					boolean tackleMatters = attackerCanCancelDodgeSkill != null
+						&& "Tackle".equals(attackerCanCancelDodgeSkill.getName()) && !usesWatchOut
+						&& defenderState.hasTacklezones()
+						&& (!actingPlayer.getPlayer().hasSkillProperty(NamedProperties.canBlockSameTeamPlayer) || blockedByOpponent)
+						&& !(UtilGameOption.isOptionEnabled(game, GameOptionId.RIGHT_STUFF_CANCELS_TACKLE) && ignoreTackleSkill != null);
+					if (tackleMatters) {
+						Boolean useTackle = getGameState().getOptionalSkillUse().choice(this, UseCase.TACKLE_BLOCK,
+							actingPlayer.getPlayer(), attackerCanCancelDodgeSkill);
+						if (useTackle == null) return;
+						if (!useTackle) attackerCanCancelDodgeSkill = null;
+					}
 					if ((attackerCanCancelDodgeSkill != null)
 						&& (!actingPlayer.getPlayer().hasSkillProperty(NamedProperties.canBlockSameTeamPlayer)
 						|| blockedByOpponent)) {
 
-						Skill ignoreTackleSkill = game.getDefender().getSkillWithProperty(NamedProperties.ignoreTackleWhenBlocked);
 						if (UtilGameOption.isOptionEnabled(game, GameOptionId.RIGHT_STUFF_CANCELS_TACKLE)
 							&& ignoreTackleSkill != null) {
 							getResult().addReport(
 								new ReportSkillUse(game.getDefenderId(), ignoreTackleSkill, true, SkillUse.CANCEL_TACKLE));
 							getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnDodge);
 						} else {
+							PushbackInitialization pushbackInitialization = new PushbackInitialization();
+							Boolean useStripBall = pushbackInitialization.chooseStripBall(this);
+							if (useStripBall == null) return;
 							getResult().addReport(new ReportSkillUse(actingPlayer.getPlayerId(), attackerCanCancelDodgeSkill, true,
 								usesWatchOut ? SkillUse.CANCEL_WATCH_OUT : SkillUse.CANCEL_DODGE));
 							game.getFieldModel().setPlayerState(game.getDefender(), defenderState.changeBase(PlayerState.FALLING));
-							publishParameters(UtilBlockSequence.initPushback(this));
+							publishParameters(pushbackInitialization.initPushback(this, useStripBall));
 							getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnPushback);
 						}
 					} else {
 						getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnDodge);
 					}
 				} else {
+					PushbackInitialization pushbackInitialization = new PushbackInitialization();
+					Boolean useStripBall = pushbackInitialization.chooseStripBall(this);
+					if (useStripBall == null) return;
 					game.getFieldModel().setPlayerState(game.getDefender(), defenderState.changeBase(PlayerState.FALLING));
-					publishParameters(UtilBlockSequence.initPushback(this));
+					publishParameters(pushbackInitialization.initPushback(this, useStripBall));
 					getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnPushback);
 				}
 				break;
 			case POW:
+				PushbackInitialization pushbackInitializationForPow = new PushbackInitialization();
+				Boolean useStripBallForPow = pushbackInitializationForPow.chooseStripBall(this);
+				if (useStripBallForPow == null) return;
 				game.getFieldModel().setPlayerState(game.getDefender(), defenderState.changeBase(PlayerState.FALLING));
-				publishParameters(UtilBlockSequence.initPushback(this));
+				publishParameters(pushbackInitializationForPow.initPushback(this, useStripBallForPow));
 				getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnPushback);
 				break;
 			case PUSHBACK:
+				PushbackInitialization pushbackInitializationForPushback = new PushbackInitialization();
+				Boolean useStripBallForPushback = pushbackInitializationForPushback.chooseStripBall(this);
+				if (useStripBallForPushback == null) return;
 				game.getFieldModel().setPlayerState(game.getDefender(), fOldDefenderState);
-				publishParameters(UtilBlockSequence.initPushback(this));
+				publishParameters(pushbackInitializationForPushback.initPushback(this, useStripBallForPushback));
 				getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnPushback);
 				break;
 			default:

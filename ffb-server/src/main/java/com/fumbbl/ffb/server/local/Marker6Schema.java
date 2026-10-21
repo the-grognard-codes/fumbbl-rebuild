@@ -14,6 +14,7 @@ final class Marker6Schema {
 	void verify(Connection connection) throws SQLException {
 		verifyMarker(connection);
 		verifyTables(connection);
+		verifySkillUsePreferences(connection);
 	}
 
 	void verifyTables(Connection connection) throws SQLException {
@@ -44,8 +45,16 @@ final class Marker6Schema {
 
 	private void verifyMarker(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			if (!rows.next() || rows.getInt(1) != 7 || rows.next()) throw new SQLException("Named-team schema version 7 is required");
+			if (!rows.next() || rows.getInt(1) != 8 || rows.next()) throw new SQLException("Skill-use schema version 8 is required");
 		}
+	}
+
+	void verifySkillUsePreferences(Connection connection) throws SQLException {
+		verifyTable(connection, "ffb_v2_skill_use_preferences",
+			new String[] {"account_id|char(36)|NO|ascii|ascii_bin", "use_case|varchar(32)|NO|ascii|ascii_bin", "mode|enum('always-use','always-ask')|NO|ascii|ascii_bin"},
+			set("PRIMARY|0|account_id", "PRIMARY|0|use_case"),
+			set("use_casein'catch','dodge-movement','dodge-block','sure-feet','fend','steady-footing','strip-ball','sure-hands','tackle-movement','tackle-block','taunt','wrestle-attacker','wrestle-defender','pass-ball','pass-bomb','grab','stand-firm','pick-me-up'"),
+			set("account_id|ffb_v2_account|account_id"));
 	}
 
 	private void verifyTable(Connection connection, String name, String[] expectedColumns, Set<String> expectedIndexes, Set<String> expectedChecks, Set<String> expectedReferences) throws SQLException {

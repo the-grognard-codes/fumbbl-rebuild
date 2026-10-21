@@ -25,6 +25,12 @@ test('provisions the missing current-games index and verifies it, then startup i
   assert.equal(ensureReviewCurrentMatchesIndex(database.run), false);
   assert.equal(database.writes.length, 1);
 });
+test('marker eight keeps the same current-games index contract', () => {
+  const database = fixture({ marker: '8' });
+  assert.equal(ensureReviewCurrentMatchesIndex(database.run), true);
+  assert.equal(ensureReviewCurrentMatchesIndex(database.run), false);
+  assert.equal(database.writes.length, 1);
+});
 test('rejects another container, unsupported schema marker and malformed existing index without writes', () => {
   for (const options of [{ container: { Name: '/another-database' } }, { marker: '6' },
     { indexes: '1\t1\tmatchid\n2\t1\taccount_id' }, { indexes: '1\t0\taccount_id\n2\t0\tmatchid' }]) {

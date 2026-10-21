@@ -106,7 +106,7 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 			ResultSet rows = lock.executeQuery()) {
 			if (!rows.next()) throw new SQLException("Saved-team schema unavailable");
 			int schemaVersion = rows.getInt(1);
-			if (accounts ? schemaVersion != 7 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
+			if (accounts ? schemaVersion < 7 || schemaVersion > 8 : schemaVersion < 2 || schemaVersion > 5) throw new SQLException("Saved-team schema unavailable");
 		}
 	}
 

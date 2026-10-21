@@ -1,5 +1,9 @@
 # DEV nginx-to-JVM handoff
 
+Current builds require separately provisioned schema marker 8 for account skill
+use preferences. See [the explicit migration procedure](../../../docs/operations/skill-use-preferences-schema.md)
+before an authorized rollout. Server startup verifies the database without migrating it.
+
 **2026-09-21:** DEV backend installed: nginx on 443, native marker-6 Java on
 127.0.0.1:22231, MariaDB on 127.0.0.1:3306. Two legacy DEV identity links were
 preserved with unchanged internal account IDs. The paired DEV Hosting artifact

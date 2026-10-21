@@ -8,6 +8,8 @@ import { decodeRoutePreview } from './route-protocol.ts';
 import { decodeMovementRange, decodeMovementPreview } from './movement-protocol.ts';
 import { decodeChat } from './chat-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
+import { decodeSkillUsePreferences } from './skill-use-preferences.ts';
+import type { SkillUseCase, SkillUseMode, SkillUsePreferences } from './skill-use-preferences.ts';
 
 export type V2Message = Record<string, any>;
 export type PendingIntent = { accountId: string; request: V2Message };
@@ -35,6 +37,10 @@ export class V2Client {
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
   lastAcceptedActionId: string | null = null;
+  skillUsePreferences: SkillUsePreferences | null = null;
+  skillUsePending: string | null = null;
+  skillUseError = '';
+  skillUseSaved = false;
 
   get recoveryPending(): boolean {
     return this.pending !== null && !this.requests.has(this.pending.request.requestId);
@@ -102,6 +108,8 @@ export class V2Client {
   }
 
   disconnect() {
+    if (this.skillUsePending) this.skillUseError = 'Preference outcome was not confirmed. Reconnect and reload your settings.';
+    this.skillUsePending = null; this.skillUsePreferences = null; this.skillUseSaved = false;
     const socket = this.socket; this.socket = null; this.accountId = ''; this.state = null; this.requests.clear();
     socket?.close(); this.options.onChange({ type: 'status', code: 'DISCONNECTED' });
   }
@@ -109,7 +117,7 @@ export class V2Client {
   request(type: string, fields: V2Message = {}, mutation = false) {
     if (!this.accountId || this.socket?.readyState !== 1) throw Error('Reconnect before continuing.');
     if (this.requests.size >= 128) throw Error('Too many unanswered requests. Reconnect before continuing.');
-    if (['routePreview', 'movementRange', 'movementPreview'].includes(type)
+    if (['routePreview', 'movementRange', 'movementPreview', 'skillUsePreferences'].includes(type)
       && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
     const browseFields = type === 'browse' && this.options.browseOnly && this.includeBrowseDetails ? { includeDetails: true } : {};
     const request = { ...fields, ...browseFields, version: 2, type, requestId: crypto.randomUUID() };
@@ -124,6 +132,20 @@ export class V2Client {
     this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
     this.options.onChange({ type: 'pending' });
     return request.requestId;
+  }
+
+  loadSkillUsePreferences() { this.requestSkillUsePreferences({ operation: 'load' }); }
+
+  updateSkillUsePreference(useCase: SkillUseCase, mode: SkillUseMode) {
+    this.requestSkillUsePreferences({ operation: 'update', useCase, mode });
+  }
+
+  private requestSkillUsePreferences(fields: V2Message) {
+    if (this.skillUsePending) return;
+    this.skillUseError = ''; this.skillUseSaved = false;
+    try { this.skillUsePending = this.request('skillUsePreferences', fields); }
+    catch (error) { this.skillUseError = error instanceof Error ? error.message : 'Preferences are unavailable.'; }
+    this.options.onChange({ type: 'pending' });
   }
 
   open(matchId: string, watch: boolean, concessionOnly = false) {
@@ -200,6 +222,16 @@ export class V2Client {
       const expected = request?.type === 'watch' || request?.type === 'setup' ? 'setupState'
         : request?.type === 'validateTeam' ? 'teamValidation' : request?.type;
       if (request ? message.type !== expected : message.type !== 'setupState' && message.type !== 'matchChat') throw Error('Uncorrelated response');
+    }
+    if (request?.type === 'skillUsePreferences') {
+      if (message.type === 'skillUsePreferences') {
+        this.skillUsePreferences = decodeSkillUsePreferences(message.preferences);
+        this.skillUseSaved = request.operation === 'update'; this.skillUseError = '';
+      } else {
+        this.skillUseError = 'Your preferences could not be confirmed. Reload and try again.';
+        this.skillUseSaved = false;
+      }
+      this.skillUsePending = null;
     }
     if (message.type === 'preparedMatch' && message.code === 'ACCEPTED') {
       const { invitationCode, ...response } = message;

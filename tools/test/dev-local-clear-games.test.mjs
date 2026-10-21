@@ -97,6 +97,19 @@ test('supports an absent optional consent table and leaves an already stopped se
   assert.equal(f.server.State.Running, false);
 });
 
+test('marker eight preserves account skill use preferences and rejects missing policy storage', () => {
+  const f = fixture(); f.state.marker = '8';
+  f.state.inventory += '\nffb_v2_skill_use_preferences\tInnoDB';
+  f.rows.ffb_v2_skill_use_preferences = '18';
+  f.invoke(true);
+  assert.equal(f.rows.ffb_v2_skill_use_preferences, '18');
+  assert.ok(f.operations.some(({ input }) => input?.includes("SELECT 'ffb_v2_skill_use_preferences'")));
+  assert.ok(f.operations.every(({ input }) => !input?.includes('DELETE FROM `ffb_v2_skill_use_preferences`')));
+  const missing = fixture(); missing.state.marker = '8';
+  assert.throws(() => missing.invoke(true), /REVIEW_TABLES_MISMATCH/);
+  assert.ok(missing.operations.every(({ args }) => args[0] !== 'stop'));
+});
+
 test('rejects wrong targets and unsupported schemas before stopping or deleting', () => {
   const mutations = [
     f => { f.state.endpoint = 'ssh://remote'; },

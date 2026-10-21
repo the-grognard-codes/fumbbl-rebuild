@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.move;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
@@ -45,6 +43,9 @@ import com.fumbbl.ffb.server.util.UtilServerReRoll;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -246,6 +247,9 @@ public class StepGoForIt extends AbstractStepWithReRoll {
 						setReRolledAction(null);
 						UtilServerDialog.showDialog(getGameState(), new DialogSkillUseParameter(actingPlayer.getPlayerId(), skill, 0), false);
 						return ActionStatus.WAITING_FOR_SKILL_USE;
+					}
+					if (offerOptionalSkillReroll(actingPlayer.getPlayer(), ReRolledActions.RUSH, gfiRerollSource, minimumRoll)) {
+						return ActionStatus.WAITING_FOR_RE_ROLL;
 					}
 					setReRollSource(gfiRerollSource);
 					UtilServerReRoll.useReRoll(this, getReRollSource(), actingPlayer.getPlayer());

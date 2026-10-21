@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.shared;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.ApothecaryMode;
 import com.fumbbl.ffb.CatchScatterThrowInMode;
 import com.fumbbl.ffb.Direction;
@@ -75,6 +73,9 @@ import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -600,6 +601,11 @@ public class StepCatchScatterThrowIn extends AbstractStepWithReRoll {
 					.filter(skill -> skill.getRerollSource(ReRolledActions.CATCH) != null).findFirst();
 
 				if (getReRolledAction() != ReRolledActions.CATCH) {
+					GameOptionBoolean optionalCatchForBombs = (GameOptionBoolean) game.getOptions()
+						.getOptionWithDefault(GameOptionId.CATCH_WORKS_FOR_BOMBS);
+					if (!successfulWithBlastIt && catchSkill.isPresent() && (!fCatchScatterThrowInMode.isBomb() || optionalCatchForBombs.isEnabled())
+						&& offerOptionalSkillReroll(catcher, ReRolledActions.CATCH,
+						catchSkill.get().getRerollSource(ReRolledActions.CATCH), minimumRoll)) return fCatchScatterThrowInMode;
 
 					boolean stopProcessing = getGameState().executeStepHooks(this, state);
 					GameOptionBoolean catchForBombs = (GameOptionBoolean) game.getOptions()

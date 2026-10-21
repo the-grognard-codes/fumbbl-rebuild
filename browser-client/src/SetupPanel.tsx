@@ -4,6 +4,7 @@ import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { PlayerHoverCard } from './PlayerHoverCard.tsx';
 import { GameMenu } from './GameMenu.tsx';
+import type { SkillUseControls } from './skill-use-preferences.ts';
 import { useThreatPreferences } from './use-threat-preferences.ts';
 import { LiveMatchScoreboard } from './LiveMatchScoreboard.tsx';
 import { ReactionCountdown } from './ReactionCountdown.tsx';
@@ -196,9 +197,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
   routePreview = null, routeError = '', requestRoutePreview, movementPlan = null,
-  movementError = '', requestMovementPreview, movementRange = null, requestMovementRange, matchControls, setupErrors = [] }: {
+  movementError = '', requestMovementPreview, movementRange = null, requestMovementRange, matchControls, setupErrors = [], skillUseControls }: {
   view: SetupState; connected: boolean; pending: string | null; results?: boolean; resultUrl?: string; hosted?: boolean;
   acceptedActionId?: string | null;
+  skillUseControls?: SkillUseControls;
   logRecords?: TranscriptRecord[]; logLoading?: boolean; logUnavailable?: boolean;
   chatMessages?: ChatMessage[]; chatLoading?: boolean; chatUnavailable?: boolean; chatSendError?: string;
   chatSent?: { text: string; id: string } | null; chatSending?: boolean; sendChat?: (text: string) => void;
@@ -977,7 +979,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
         <div className="match-menu-triggers"><button type="button" className="match-debug-toggle" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button><GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
-          interfaceControls={<>{matchControls && <div className="interface-window-controls">
+          skillUseControls={skillUseControls} interfaceControls={<>{matchControls && <div className="interface-window-controls">
             <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
             <button type="button" onClick={matchControls.exitMatch}>Exit match</button></div>}<button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setSmartIntent(null); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>
             <div className="interface-pitch-zoom" role="group" aria-label="Pitch size">

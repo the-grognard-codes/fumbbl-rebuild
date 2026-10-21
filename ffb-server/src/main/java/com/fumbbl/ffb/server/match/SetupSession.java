@@ -7,8 +7,8 @@ import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
-import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
+import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.factory.SkillFactory;
@@ -38,6 +38,7 @@ import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.match.bb2025.SkillMarkerProjection;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
@@ -81,6 +82,10 @@ public final class SetupSession {
 	private PendingActivation pendingActivation;
 	private boolean activationSequencing = true;
 	private final GameState state;
+
+	void configureSkillUsePreferences(SkillUsePreferences home, SkillUsePreferences away) {
+		state.getOptionalSkillUse().configure(home, away);
+	}
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
 	private final Set<String> kickoffSelection = new LinkedHashSet<>();

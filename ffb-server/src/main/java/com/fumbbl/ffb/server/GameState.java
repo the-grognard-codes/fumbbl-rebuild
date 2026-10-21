@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.GameStatus;
@@ -28,6 +26,7 @@ import com.fumbbl.ffb.server.model.StepModifier;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.net.commands.InternalServerCommandApplyAutomatedPlayerMarkings;
+import com.fumbbl.ffb.server.skilluse.OptionalSkillUse;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepException;
@@ -37,6 +36,9 @@ import com.fumbbl.ffb.server.step.StepStack;
 import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
 import com.fumbbl.ffb.server.util.ReRollService;
 import com.fumbbl.ffb.server.util.UtilServerGame;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import org.eclipse.jetty.ee8.websocket.api.Session;
 
 import java.util.ArrayList;
@@ -80,6 +82,9 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 	private PrayerState prayerState = new PrayerState();
 	private ActiveEffects activeEffects = new ActiveEffects();
 	private final StepExecutor stepExecutor = new StepExecutor(this);
+	private final OptionalSkillUse optionalSkillUse = new OptionalSkillUse(this);
+
+	public OptionalSkillUse getOptionalSkillUse() { return optionalSkillUse; }
 
 	enum StepExecutionMode {
 		Start, HandleCommand
