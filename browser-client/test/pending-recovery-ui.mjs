@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { assertPitchWithoutStadium } from './pitch-appearance-helper.mjs';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 
@@ -47,6 +48,7 @@ try {
   }, { frame });
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${matchId}`);
   await page.getByTestId('setup-status').waitFor({ state: 'attached' });
+  await assertPitchWithoutStadium(page);
   assert.equal(await page.locator('[data-skill-id="block"]').count(), 2, 'Initial socket snapshot shows authoritative acquired skills');
   await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   const request = await page.evaluate(() => window.testSocket.sent.findLast(item => item.type === 'setup' && item.operation === 'action'));
@@ -80,6 +82,7 @@ try {
   await page.getByTestId('setup-status').filter({ hasText: 'Revision 1' }).waitFor({ state: 'attached' });
   await page.locator('[data-skill-id="dodge"]').first().waitFor();
   assert.equal(await page.locator('[data-skill-id="dodge"]').count(), 2, 'Exact recovery retry restores current skill markers');
+  await assertPitchWithoutStadium(page);
   assert.equal(await page.getByRole('button', { name: 'Repeat retained request' }).count(), 0);
   assert.deepEqual(errors, []);
   console.log('PASS ordinary match action has no recovery popup; uncertain outcome retains exact retry');

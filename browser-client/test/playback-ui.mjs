@@ -4,6 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { assertPitchWithoutStadium } from './pitch-appearance-helper.mjs';
 import { verifyDiceStream } from './dice-stream-checks.mjs';
 import { DICE_GROUP_INTERVAL_MS, DICE_RETENTION_MS } from '../src/dice-stream.ts';
 
@@ -27,6 +28,7 @@ try {
   await page.route('**/playback-test', route => route.fulfill({ contentType: 'text/html', body: '<style>html,body{margin:0;background:#101c2b}#dice-specimens{display:flex;gap:8px;padding:8px}#dice-specimens svg{width:64px;height:64px}</style><div id="app"></div><script type="module" src="/test/playback-ui-harness.tsx"></script>' }));
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/playback-test`);
   await wait(0,7);
+  await assertPitchWithoutStadium(page);
   const rolled = record(1,7,[{ reportList: { reports:[dice] } }]);
   // Inspect the brief roll without racing real-time browser commands.
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
@@ -71,10 +73,12 @@ try {
   await page.waitForFunction(()=>document.querySelector('#playback-state').dataset.active==='true');
   await publish({ view:state(1), records:[record(0),rolled],mode:'replay' }); await wait(1,7);
   await page.waitForTimeout(500); await wait(1,7);
+  await assertPitchWithoutStadium(page);
   await publish({ view:state(8,20),records:[],mode:'replay' }); await wait(8,20);
   // Disconnect/reconnect is a late subscription, not historical catch-up.
   await publish({view:state(9,21),records:[],enabled:false}); await wait(9,21);
   await publish({view:state(9,21),records:[]}); await wait(9,21);
+  await assertPitchWithoutStadium(page);
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await page.evaluate(()=>{window.playbackFrames=[];});

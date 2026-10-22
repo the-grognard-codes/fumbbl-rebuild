@@ -158,11 +158,13 @@ try {
     const scenery = review.locator('.pitch-stadium-world');
     if (profile.name === 'android-portrait' && await scenery.count() === 0)
       console.log(`${theme}/${profile.name}: reaction controls pass; existing perspective scenery is absent at this aspect ratio.`);
-    else assert.equal(await scenery.getAttribute('data-stadium-league'), league);
+    else assert.ok(await scenery.locator('.pitch-stadium-turf').count() > 0, `${theme}/${profile.name}: existing turf remains`);
+    assert.equal(await review.locator('.pitch-stadium-structure, [data-jigsaw-piece], [data-stadium-role], .stadium-gesture').count(), 0,
+      `${theme}/${profile.name}: stadium and crowd graphics are absent`);
     if (profile.hasTouch) await declineButton.tap(); else await declineButton.click();
     assert.deepEqual(await review.evaluate(() => window.hudIntents), sent('decline'));
     await review.close();
   }
   assert.deepEqual(errors, []);
-  console.log('Reactive skill choices, square and movement controls, native roll timing, monotonic expiry, observer isolation and both stadium themes across desktop/Android viewports passed.');
+  console.log('Reactive skill choices, square and movement controls, native roll timing, monotonic expiry, observer isolation and both team themes without stadium graphics across desktop/Android viewports passed.');
 } finally { await browser.close(); await server.close(); }

@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser matches show the existing pitch without stadium and crowd graphics in preparation for their overhaul")
 			.addFeature("BB2025 browser passes and bomb throws offer Hail Mary modes, Long Bomb range guidance and shared action limits, including Blizzard range restrictions")
 			.addBugfix("BB2025 Hail Mary throws use the player's Passing Ability, normal reroll eligibility and modifiers, and can never finish accurate")
 			.addImprovement("Browser actions use smaller durable saves, reuse recent account verification, and take priority over waiting movement previews")
