@@ -1,5 +1,9 @@
 // Real Firebase /browser/v2 acceptance. No routes, fixtures, or engine commands
 // are substituted. Match-changing positive paths use the production UI.
+// Opt-in timing: COACH_ACCEPTANCE_PERFORMANCE=1 writes performance.json and
+// measurement.json to COACH_ACCEPTANCE_EVIDENCE. Defaults: 40 PLAY decisions,
+// 80 maximum; override with _PERFORMANCE_DECISIONS / _PERFORMANCE_MAX_DECISIONS.
+// A bounded measurement never claims full-match acceptance.
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -8,9 +12,17 @@ import { chromium } from 'playwright';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { capturePresentation, captureNativeZoom, captureEdgeSmoke } from './real-server-presentation.mjs';
+import { observeGameplayPerformance, summarizeGameplayPerformance } from './gameplay-performance-observer.mjs';
 
 const origin = 'http://localhost:5000';
 const computer = process.env.COACH_ACCEPTANCE_COMPUTER === '1';
+const performanceEnabled = process.env.COACH_ACCEPTANCE_PERFORMANCE === '1';
+const performanceTeamSuffix = performanceEnabled ? ` ${randomUUID().slice(0, 6)}` : '';
+const performanceTarget = Number(process.env.COACH_ACCEPTANCE_PERFORMANCE_DECISIONS ?? 40);
+const performanceLimit = Number(process.env.COACH_ACCEPTANCE_PERFORMANCE_MAX_DECISIONS ?? 80);
+if (performanceEnabled && (!Number.isSafeInteger(performanceTarget) || performanceTarget < 1 || performanceTarget > 200
+  || !Number.isSafeInteger(performanceLimit) || performanceLimit < performanceTarget || performanceLimit > 400))
+  throw Error('Performance decision target must be 1..200 and maximum must be target..400');
 const computerOpponent = process.env.COACH_ACCEPTANCE_OPPONENT ?? 'coach-bugman-random';
 if (!['coach-bugman-random', 'coach-bogruk-weak'].includes(computerOpponent)) throw Error('Unknown acceptance computer opponent');
 const output = resolve(process.env.COACH_ACCEPTANCE_EVIDENCE ?? '../.tools/coach-oriented-match-ui/real-server-evidence');
@@ -29,10 +41,15 @@ const browser = await chromium.launch({ channel: process.env.COACH_ACCEPTANCE_BR
   ...(proxyServer ? { proxy: { server: proxyServer, bypass: '<-loopback>' } } : {}) });
 const pages = [], contexts = [], assertions = [], checkpoints = [], errors = [];
 const invalidProjections = [];
+const performanceEvents = [], performanceActions = {};
+let performanceDecisions = 0, performanceOutcome = 'failed';
+let performanceEventLimit;
+let performanceVisualActions = 0;
 let matchId, lastState, lastAction, teams = [], retainedSpectatorOnly = false;
 const record = (name, details = {}) => { assertions.push({ name, ...details }); console.log(name); };
 
-async function observe(context) {
+async function observe(context, role) {
+  if (performanceEnabled) await observeGameplayPerformance(context, role, performanceEvents);
   await context.addInitScript(() => {
     const Native = window.WebSocket;
     window.__acceptance = { socket: null, incoming: [], outgoing: [] };
@@ -75,7 +92,14 @@ async function state(page) {
   return page.evaluate(() => window.__acceptance.incoming.filter(message => message.type === 'setupState' && message.state).at(-1)?.state ?? null);
 }
 function canonical(view) {
-  const { callerRole, clock, threats, ...fields } = view;
+  // Actor-only read-only forecasts differ by recipient, just like threats.
+  const { callerRole, clock, threats, blockPreview, ...fields } = view;
+  if (fields.reaction) {
+    // Each recipient gets its own clock sample; the shared deadline and choice
+    // remain authoritative and must still converge.
+    const { serverNow, ...reaction } = fields.reaction;
+    return { ...fields, reaction };
+  }
   return fields;
 }
 async function converge(revision) {
@@ -116,7 +140,7 @@ async function buildTeam(page, roster) {
   await page.goto(`${origin}/teambuilder`);
   await page.getByRole('status').filter({ hasText: /^Connected$/ }).waitFor();
   await page.getByLabel('Team', { exact: true }).selectOption(roster);
-  await page.getByLabel('Team name', { exact: true }).fill(roster === 'human' ? 'Acceptance Ironbank Rovers' : 'Acceptance Cinderclaw Crew');
+  await page.getByLabel('Team name', { exact: true }).fill((roster === 'human' ? 'Acceptance Ironbank Rovers' : 'Acceptance Cinderclaw Crew') + performanceTeamSuffix);
   const catalog = await page.evaluate(roster => window.__acceptance.incoming.filter(message => message.type === 'catalog' && message.rosterId === roster).at(-1), roster);
   const positions = roster === 'human'
     ? ['ogre', 'blitzer', 'blitzer', 'catcher', 'thrower', 'halfling', ...Array(5).fill('lineman')]
@@ -164,6 +188,10 @@ function selectAction(view) {
   if (view.actions.some(action => action.kind === 'blockDie'))
     return view.actions.find(action => action.kind === 'blockDie' && /Defender Down|Defender Stumbles|Push/i.test(action.label))
       ?? view.actions.find(action => action.kind === 'blockDie');
+  if (performanceEnabled) {
+    const block = view.actions.find(action => action.kind === 'block');
+    if (block) return block;
+  }
   const blockKey = `${view.half}:${view.actor}`;
   if (!view.activePlayerId && !blockAttempts.has(blockKey)) {
     const blocker = view.actions.find(action => action.kind === 'selectBlock'
@@ -203,7 +231,8 @@ function selectAction(view) {
 }
 async function routeUI(view, action) {
   lastAction = action;
-  const page = pages[action.actor === 'home' ? 0 : 1], target = action.target;
+  const page = pages[action.actor === 'home' ? 0 : 1];
+  let target = action.target;
   await page.locator('.live-pitch-viewport[aria-label="Pitch action preview"]').waitFor();
   const player = view.players.find(player => player.id === action.sourcePlayerId);
   const propose = async () => {
@@ -211,6 +240,20 @@ async function routeUI(view, action) {
     await squarePosition(page, player.x, player.y);
     await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
     await page.getByRole('button', { name: 'Move', exact: true }).click();
+    if (performanceEnabled && distance(player, target) <= 1) {
+      await page.waitForFunction(expected => window.__acceptance.incoming.some(message => message.type === 'movementRange'
+        && message.range?.revision === expected.revision && message.range?.playerId === expected.playerId),
+      { revision: view.revision, playerId: player.id });
+      const normal = await page.evaluate(expected => window.__acceptance.incoming.filter(message => message.type === 'movementRange'
+        && message.range?.revision === expected.revision && message.range?.playerId === expected.playerId).at(-1).range.normal,
+      { revision: view.revision, playerId: player.id });
+      const occupied = new Set(view.players.filter(item => item.x !== null).map(item => `${item.x},${item.y}`));
+      const goal = view.ball && !view.players.some(item => item.id === player.id && item.x === view.ball.x && item.y === view.ball.y)
+        ? view.ball : { x: action.actor === 'home' ? 25 : 0, y: player.y };
+      const choices = normal.filter(point => distance(player, point) >= 2 && distance(player, point) <= 3 && !occupied.has(`${point.x},${point.y}`));
+      choices.sort((a, b) => distance(a, goal) - distance(b, goal));
+      target = choices[0] ?? target;
+    }
     const position = await squarePosition(page, target.x, target.y);
     await page.locator('.live-pitch-scene').click({ position });
     await page.waitForFunction(expected => {
@@ -225,7 +268,23 @@ async function routeUI(view, action) {
   await converge(view.revision);
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isEnabled(), false, 'Reconnect discards an uncommitted route instead of sending it');
   await propose();
+  const sampledRoute = performanceEnabled ? await page.evaluate(revision => window.__acceptance.incoming
+    .filter(message => message.type === 'movementPreview' && message.plan?.route?.revision === revision).at(-1)?.plan?.route
+      ?? window.__acceptance.incoming.filter(message => message.type === 'routePreview' && message.route?.revision === revision).at(-1)?.route,
+  view.revision) : null;
   view = await advanced(view, () => page.getByRole('button', { name: 'Confirmed!', exact: true }).click());
+  if (performanceEnabled && sampledRoute?.steps.length > 1) {
+    // Retain the real synthetic-team route as a regression seed, separately from
+    // allowlisted timing traces. Observe the UI's existing fetch; never add one.
+    await page.waitForFunction(revision => window.__acceptance.incoming.some(message => message.type === 'matchTranscript'
+      && message.page?.records.some(record => record.revision === revision)), view.revision, { timeout: 5000 }).catch(() => {});
+    const records = await page.evaluate(revision => window.__acceptance.incoming.filter(message => message.type === 'matchTranscript')
+      .flatMap(message => message.page?.records ?? []).filter(record => record.revision === revision), view.revision);
+    const at = view.players.find(item => item.id === sampledRoute.playerId), destination = sampledRoute.steps.at(-1);
+    await writeFile(resolve(output, 'native-route-sample.json'), JSON.stringify({ protocol: '/browser/v2', syntheticTeams: true,
+      successful: at?.x === destination.x && at?.y === destination.y, transcriptAvailable: records.length > 0,
+      route: sampledRoute, revision: view.revision, records }, null, 2));
+  }
   record('Real server-bound route preview, reconnect discards the proposal and confirmed native route');
   return view;
 }
@@ -250,6 +309,7 @@ async function actionUI(view, action) {
     return advanced(view, () => dialog.getByRole('button', { name: label, exact: true }).click());
   }
   if (['blockDie', 'reroll', 'skill'].includes(action.kind) && await direct.count()) return advanced(view, () => direct.click());
+  if (action.kind === 'kickoffChoice' && await direct.count()) return advanced(view, () => direct.click());
   if (action.kind === 'push') {
     // Push arrows expose the authoritative label; the text companion also remains usable.
     if (await direct.count()) return advanced(view, () => direct.click());
@@ -311,7 +371,7 @@ async function pauseResume(view) {
 
 try {
   for (const role of ['home', 'away', 'spectator']) {
-    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } }); contexts.push(context); await observe(context);
+    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } }); contexts.push(context); await observe(context, role);
     const page = await context.newPage(); pages.push(page); await signIn(page, tokens[role]);
   }
   if (resumed) {
@@ -413,6 +473,10 @@ try {
       if (!permission && !computer) { await negative(view); permission = true; }
       if (view.phase === 'PLAY' && !continuity && view.actions.some(action => action.kind === 'endTurn')) { view = await pauseResume(view); continuity = true; }
       const action = selectAction(view);
+      if (performanceEnabled && view.phase === 'PLAY' && action) {
+        performanceDecisions++;
+        performanceActions[action.kind] = (performanceActions[action.kind] ?? 0) + 1;
+      }
       if (!route && action?.kind === 'move' && action.target && 'x' in action.target) {
         view = await routeUI(view, action); route = true;
       } else view = await actionUI(view, action);
@@ -421,7 +485,67 @@ try {
       checkpoints.push({ revision: view.revision, half: view.half, drive: view.drive, phase: view.phase, score: [view.homeScore, view.awayScore] });
       await Promise.all(pages.map((page, index) => page.screenshot({ path: resolve(output, `transition-${view.revision}-${computer && index > 0 ? 'spectator' : ['home','away','spectator'][index]}.png`) })));
     }
+    if (performanceEnabled && (performanceDecisions >= performanceLimit || performanceDecisions >= performanceTarget
+      && performanceActions.move && performanceActions.block)) break;
   }
+  if (performanceEnabled) {
+    // Allow the final accepted revision to become visible before closing pages.
+    await pages[0].waitForTimeout(1500);
+    await Promise.all(pages.map(page => page.evaluate(() => window.__gameplayPerformanceStop?.())));
+    performanceEventLimit = performanceEvents.length;
+    const measuredRevision = view.revision;
+    const visibleDecision = async () => (await Promise.all(pages.map(page =>
+      page.locator('.live-dice-overlay:visible, dialog[aria-label="Match decision"]:visible').count()))).some(Boolean);
+    // A bounded visual continuation is excluded from all performance samples.
+    // Prefer another real block so its native dice/choice can be inspected.
+    while (performanceVisualActions < 8 && view.phase === 'PLAY' && !view.prompt && !await visibleDecision()) {
+      const block = view.actions.find(action => action.kind === 'block');
+      const stop = view.activePlayerId ? view.actions.find(action => action.kind === 'endAction') : null;
+      const blocker = view.actions.find(action => action.kind === 'selectBlock' && view.players.some(enemy => {
+        const player = view.players.find(item => item.id === action.sourcePlayerId);
+        return player && enemy.role !== player.role && player.x !== null && enemy.x !== null
+          && /standing/i.test(enemy.state) && distance(player, enemy) <= 1;
+      }));
+      const action = block ?? stop ?? blocker ?? view.actions.find(action => action.kind === 'endTurn') ?? selectAction(view);
+      if (!action) break;
+      view = await actionUI(view, action); performanceVisualActions++;
+      await Promise.any(pages.map(page => page.locator('.live-dice-overlay:visible, dialog[aria-label="Match decision"]:visible')
+        .first().waitFor({ timeout: 1200 }))).catch(() => {});
+    }
+    // Reconnect acceptance and screenshots occur outside the timing window.
+    await pages[0].reload(); await pages[0].getByLabel('Live match pitch').waitFor();
+    view = await converge(view.revision);
+    await pages[0].waitForFunction(() => document.querySelector('.hosted-match')?.dataset.playbackActive === 'false');
+    await pages[0].evaluate(() => window.__gameplayPerformanceStop?.());
+    record('Native reconnect after measurement preserved the authoritative revision and participant convergence', {
+      revision: view.revision, measuredRevision, visualActionsOutsideMeasurement: performanceVisualActions });
+    assert.deepEqual(errors, [], 'No browser runtime exceptions during measurement');
+    assert.equal(invalidProjections.length, 0, 'Measured live projections satisfy the browser contract');
+    performanceOutcome = view.phase === 'FULL_TIME' ? 'full-time-during-measurement'
+      : performanceDecisions >= performanceLimit ? 'bounded-decision-limit'
+      : performanceDecisions >= performanceTarget && performanceActions.move && performanceActions.block
+        ? 'bounded-target-with-movement-and-block' : 'bounded-driver-limit';
+    record('Bounded performance measurement completed; full-match acceptance was not evaluated', {
+      decisions: performanceDecisions, actionKinds: performanceActions, phase: view.phase, outcome: performanceOutcome });
+    await writeFile(resolve(output, 'measurement.json'), JSON.stringify({ measurementCompleted: true, fullMatchAcceptance: false,
+      protocol: '/browser/v2', matchId, teams, assertions, checkpoints, state: view,
+      measuredRevision, visualActionsOutsideMeasurement: performanceVisualActions,
+      decisions: performanceDecisions, actionKinds: performanceActions, outcome: performanceOutcome }, null, 2));
+    const visualEvidence = [];
+    for (const [index, page] of pages.entries()) {
+      const role = computer && index > 0 ? 'spectator' : ['home', 'away', 'spectator'][index];
+      const file = `performance-${role}.png`;
+      await page.screenshot({ path: resolve(output, file) });
+      const overlays = page.locator('.live-dice-overlay, dialog[aria-label="Match decision"]');
+      let decisionVisible = false;
+      for (let overlay = 0; overlay < await overlays.count(); overlay++) decisionVisible ||= await overlays.nth(overlay).isVisible();
+      if (decisionVisible) await page.screenshot({ path: resolve(output, `performance-decision-${role}.png`) });
+      visualEvidence.push({ role, file, decisionVisible });
+    }
+    await writeFile(resolve(output, 'visual-evidence.json'), JSON.stringify({ revision: view.revision, phase: view.phase,
+      measuredRevision, visualActionsOutsideMeasurement: performanceVisualActions,
+      measurementsStoppedBeforeScreenshots: true, pages: visualEvidence }, null, 2));
+  } else {
   assert.equal(view.phase, 'FULL_TIME'); assert.ok(checkpoints.some(checkpoint => checkpoint.half === 2), 'Native halftime reached');
   assert.ok(view.homeScore + view.awayScore > 0, 'Native play includes at least one touchdown');
   record(computer ? 'Human-versus-Orc computer match reached native full time with browser coach decisions'
@@ -451,6 +575,7 @@ try {
     positions: [...new Set(view.players.filter(player => player.role === role).map(player => player.position))] }));
   await writeFile(resolve(output, 'acceptance.json'), JSON.stringify({ passed: true, protocol: '/browser/v2', browser: browser.version(),
     teams: frozenTeams, matchId, assertions, checkpoints, result, finalState: canonical(view) }, null, 2));
+  }
 } catch (failure) {
   await Promise.allSettled(pages.map((page, index) => page.screenshot({ path: resolve(output, `failure-${index}.png`) })));
   const protocol = await Promise.all(pages.map(page => page.evaluate(() => ({
@@ -463,4 +588,19 @@ try {
   })).catch(() => null);
   await writeFile(resolve(output, 'failure.json'), JSON.stringify({ passed: false, matchId, teams, assertions, checkpoints, state: latestState ?? lastState, lastAction, protocol, errors, invalidProjections, wireDiagnostic, failure: failure.message }, null, 2));
   throw failure;
-} finally { await browser.close(); }
+} finally {
+  if (performanceEnabled) {
+    await Promise.allSettled(pages.map(page => page.evaluate(() => window.__gameplayPerformanceFlush?.())));
+    const report = summarizeGameplayPerformance(performanceEvents.slice(0, performanceEventLimit), { browser: browser.version(),
+      recordedAt: new Date().toISOString(),
+      browserChannel: process.env.COACH_ACCEPTANCE_BROWSER ?? 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1',
+      origin, network: proxyServer ? 'explicit loopback proxy; no synthetic throttling' : 'localhost; no synthetic throttling',
+      computerOpponent: computer ? computerOpponent : null, protocol: '/browser/v2', nativeEngine: true,
+      outcome: performanceOutcome, fullMatchAcceptance: false, requestedPlayDecisions: performanceTarget,
+      maximumPlayDecisions: performanceLimit, observedPlayDecisions: performanceDecisions, selectedActionKinds: performanceActions,
+      visualActionsOutsideMeasurement: performanceVisualActions,
+      label: process.env.COACH_ACCEPTANCE_PERFORMANCE_LABEL ?? 'unlabelled' });
+    await writeFile(resolve(output, 'performance.json'), JSON.stringify(report, null, 2));
+  }
+  await browser.close();
+}

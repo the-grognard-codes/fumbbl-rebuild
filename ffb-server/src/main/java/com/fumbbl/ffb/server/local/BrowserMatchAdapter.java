@@ -52,6 +52,8 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 
 	public interface Connection {
 		void send(String message);
+		/** Transports without atomic optional admission preserve the mandatory state and use paged history. */
+		default void sendWithOptionalPredecessor(String optional, String mandatory) { send(mandatory); }
 		default void close(int statusCode, String reason) {
 		}
 	}

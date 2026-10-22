@@ -1,12 +1,57 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { chooseDecision } from '../src/policy.mjs';
+import { chooseBogrukDecision } from '../src/bogruk-policy.mjs';
 
 const base = {
   callerRole: 'away', actor: 'away', phase: 'PLAY', half: 1, drive: 1,
   players: [], actions: [], prompt: null
 };
 const action = (id, kind, actor = 'away') => ({ id, kind, actor, label: kind });
+const setupPolicies = [
+  ['Gobbo', chooseDecision],
+  ['Bogruk', state => chooseBogrukDecision({ ...state, computer: { seed: 42, attackDirection: -1,
+    progress: { turnKey: '2:3:away:0' }, policyState: null } }).decision],
+];
+
+for (const [name, choose] of setupPolicies) test(`${name}: captured second-half setup completes without returning a badly hurt player to the pitch`, () => {
+  // Native trace revision 273: five players placed, one badly hurt, five reserves.
+  const state = JSON.parse(readFileSync(new URL('./fixtures/halftime-badly-hurt-setup.json', import.meta.url), 'utf8'));
+  const injured = state.players.find(player => player.offPitch === 'casualty');
+  let complete = false;
+  for (let count = 0; count < 64; count++) {
+    const decision = choose(state);
+    if (decision.operation === 'confirm') { complete = true; break; }
+    assert.equal(decision.operation, 'place');
+    const player = state.players.find(player => player.id === decision.playerId);
+    assert.ok(['reserve', 'pitch'].includes(player.offPitch), `Cannot place ${player.state} from ${player.offPitch}`);
+    if (decision.to) {
+      assert.ok(decision.to.x >= 13 && decision.to.x <= 25);
+      assert.ok(!state.players.some(other => other.id !== player.id && other.x === decision.to.x && other.y === decision.to.y));
+      Object.assign(player, decision.to, { offPitch: 'pitch' });
+    } else Object.assign(player, { x: null, y: null, offPitch: 'reserve' });
+  }
+  assert.equal(complete, true, 'Setup reaches confirmation within a bounded number of placements');
+  assert.equal(injured.offPitch, 'casualty');
+  assert.equal(injured.x, null);
+  assert.equal(state.players.filter(player => player.offPitch === 'pitch').length, 10);
+  assert.equal(state.players.filter(player => player.x === 13).length, 3);
+});
+
+for (const [name, choose] of setupPolicies) test(`${name}: setup respects off-pitch categories and legacy injury descriptions`, () => {
+  for (const [offPitch, description] of [
+    ['casualty', 'has been badly hurt'], ['casualty', 'is in reserve'], ['knockedOut', 'is knocked out'],
+    ['sentOff', 'has been sent off'], ['other', 'is in reserve'],
+    [undefined, 'has been badly hurt'], [undefined, 'has been seriously injured'], [undefined, 'has been killed'],
+    [undefined, 'is knocked out'], [undefined, 'has been sent off'],
+  ]) {
+    const unavailable = { id: 'unavailable', role: 'away', offPitch, state: description, x: null, y: null };
+    const reserve = { id: 'reserve', role: 'away', state: 'is in reserve', x: null, y: null };
+    const state = { ...base, phase: 'SETUP', players: [unavailable, reserve] };
+    assert.equal(choose(state).playerId, reserve.id, `Excluded ${description} (${offPitch ?? 'legacy'})`);
+  }
+});
 
 test('uses and declines multi-injury apothecaries and resolves either injury from fresh offered IDs', () => {
   for (const role of ['home', 'away']) {

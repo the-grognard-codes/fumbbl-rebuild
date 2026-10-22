@@ -21,11 +21,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FirebaseV2PrincipalAuthenticatorTest {
 	private static final String PROJECT = "browser-project";
+
+	@Test void consecutiveOperationsReuseRecentProviderCheckButRefreshLocalPermissions() throws Exception {
+		FirebaseAuth auth = mock(FirebaseAuth.class); UserRecord user = mock(UserRecord.class);
+		when(auth.getUser("firebase-subject")).thenReturn(user);
+		Directory directory = new Directory();
+		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory);
+		verifier.reauthorize(principal()); verifier.reauthorize(principal());
+		verify(auth, times(1)).getUser("firebase-subject");
+		assertEquals(2, directory.reauthorizeCalls);
+	}
+
+	@Test void initialRevocationVerificationSeedsWindowButEachNewBearerStillVerifiesRevocation() throws Exception {
+		FirebaseAuth auth = mock(FirebaseAuth.class);
+		FirebaseToken token = token("firebase-subject", 1900000000L);
+		when(auth.verifyIdToken("bearer", true)).thenReturn(token);
+		Directory directory = new Directory();
+		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory);
+		AuthenticatedPrincipal principal = verifier.authenticate("bearer");
+		verifier.reauthorize(principal);
+		verifier.authenticate("bearer");
+		verify(auth, times(2)).verifyIdToken("bearer", true);
+		verify(auth, never()).getUser(anyString());
+		assertEquals(1, directory.reauthorizeCalls);
+	}
 
 	@Test void devAndProdCredentialsAreRejectedAcrossProjectsBeforeAccountCreation() throws Exception {
 		String[] projects = {"dev-moles-under-the-pitch-org", "molesunderthepitch-dotorg"};

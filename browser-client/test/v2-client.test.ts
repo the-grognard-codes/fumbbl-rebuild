@@ -379,17 +379,79 @@ test('preactivation Blitz previews bind origin, target, revision and waypoints t
   close() { this.closed = true; }
   reply(message: any) { this.onmessage?.({ data: JSON.stringify({ version: 2, ...message }) }); }
 }
-function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }, browseOnly = false) {
+function fixture(storageData = new Map<string, string>(), initialMatch?: { matchId: string; watch: boolean }, browseOnly = false,
+  purpose?: 'preparation' | 'play') {
   const sockets: Socket[] = []; const events: any[] = [];
   const storage = { getItem: (key: string) => storageData.get(key) ?? null, setItem: (key: string, value: string) => { storageData.set(key, value); }, removeItem: (key: string) => storageData.delete(key) } as Storage;
   const client = new V2Client({ url: 'ws://127.0.0.1/browser/v2', getToken: async () => 'secret-bearer',
-    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch, browseOnly });
-  async function connect() {
+    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: message => events.push(message), storage, initialMatch, browseOnly, purpose });
+  async function connect(liveTranscript = false) {
     client.connect(); const socket = sockets.at(-1)!; await socket.onopen!();
-    socket.reply({ type: 'authentication', code: 'ACCEPTED', requestId: socket.sent[0].requestId, accountId: account }); return socket;
+    socket.reply({ type: 'authentication', code: 'ACCEPTED', requestId: socket.sent[0].requestId, accountId: account,
+      ...(liveTranscript ? { liveTranscript: true } : {}) }); return socket;
   }
   return { client, connect, sockets, events, storageData };
 }
+
+test('negotiated live history precedes the state without acknowledging a pending action', async () => {
+  const { client, connect, events } = fixture(new Map(), { matchId: match, watch: false }, false, 'play');
+  const socket = await connect(true);
+  assert.equal(socket.closed, false, 'The negotiated live-delivery channel stays connected');
+  assert.equal(socket.sent[0].liveTranscript, true);
+  const view = { ...state, revision: 0, callerRole: 'home', prompt: null, actions: [] };
+  const push = (revision: number) => socket.reply({ type: 'matchTranscript', requestId: null, code: 'ACCEPTED', matchId: match,
+    page: { formatVersion: 2, from: revision, next: revision + 1, total: revision + 1, records: [{
+      index: revision, revision, kind: revision ? 'ACTION' : 'START', actor: revision ? 'home' : 'system',
+      at: 100 + revision, decision: revision ? { actionId: 'move' } : null, native: [], state: { ...view, revision }
+    }] } });
+  push(0);
+  const load = socket.sent.find(message => message.type === 'setup' && message.operation === 'load')!;
+  socket.reply({ type: 'setupState', requestId: load.requestId, code: 'ACCEPTED', duplicate: false, state: view });
+  const action = client.request('setup', { matchId: match, operation: 'action', expectedRevision: 0, actionId: 'move' }, true);
+  push(1);
+  assert.equal(socket.closed, false);
+  assert.equal(events.at(-1).type, 'matchTranscript');
+  assert.equal(client.pending?.request.requestId, action, 'Public history cannot clear a retained mutation');
+  assert.equal(client.state?.revision, 0, 'History is not a state acknowledgement');
+  socket.reply({ type: 'setupState', requestId: action, code: 'ACCEPTED', duplicate: false, state: { ...view, revision: 1 } });
+  assert.equal(client.pending, null);
+  assert.equal(client.state?.revision, 1);
+  client.disconnect();
+});
+
+test('a legacy server can decline live history without an authentication loop or automatic mutation', async () => {
+  const { client, sockets, events } = fixture(new Map(), { matchId: match, watch: false }, false, 'play');
+  client.connect(); const socket = sockets.at(-1)!; await socket.onopen!();
+  const firstAuth = socket.sent[0]; assert.equal(firstAuth.liveTranscript, true);
+  socket.reply({ type: 'error', requestId: firstAuth.requestId, code: 'MALFORMED_MESSAGE' });
+  await new Promise(done => setImmediate(done));
+  const fallback = socket.sent.at(-1);
+  assert.equal(fallback.type, 'authenticate'); assert.equal(Object.hasOwn(fallback, 'liveTranscript'), false);
+  assert.notEqual(fallback.requestId, firstAuth.requestId);
+  socket.reply({ type: 'authentication', requestId: fallback.requestId, code: 'ACCEPTED', accountId: account });
+  assert.equal(socket.closed, false); assert.equal(client.liveTranscript, false);
+  assert.equal(socket.sent.filter(message => message.type === 'setup').length, 1);
+  assert.equal(socket.sent.filter(message => message.type === 'setup' && message.operation !== 'load').length, 0);
+  assert.equal(events.some(message => message.code === 'INVALID_RESPONSE'), false);
+  client.disconnect();
+});
+
+test('live history rejects unnegotiated, foreign and nonlatest pages while preserving retained action intent', async () => {
+  for (const invalid of ['unnegotiated', 'foreign', 'nonlatest']) {
+    const { client, connect, storageData } = fixture(new Map(), { matchId: match, watch: false }, false, 'play');
+    const socket = await connect(invalid !== 'unnegotiated');
+    const mutation = client.request('setup', { matchId: match, operation: 'action', expectedRevision: 0, actionId: 'move' }, true);
+    const publicState = { ...state, revision: 0, callerRole: 'home', prompt: null, actions: [],
+      matchId: invalid === 'foreign' ? account : match };
+    socket.reply({ type: 'matchTranscript', requestId: null, code: 'ACCEPTED', matchId: publicState.matchId,
+      page: { formatVersion: 2, from: 0, next: 1, total: invalid === 'nonlatest' ? 2 : 1, records: [{
+        index: 0, revision: 0, kind: 'START', actor: 'system', at: 100, decision: null, native: [], state: publicState
+      }] } });
+    assert.equal(socket.closed, true);
+    assert.equal(client.pending?.request.requestId, mutation);
+    assert.ok(storageData.has(v2PendingKey));
+  }
+});
 
 test('the directory requests public details without restoring player intents or reading private teams', async () => {
   const retained = JSON.stringify({ accountId: account, request: { version: 2, type: 'setup', requestId: 'retained', matchId: match, operation: 'action' } });

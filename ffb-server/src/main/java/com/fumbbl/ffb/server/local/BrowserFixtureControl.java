@@ -46,7 +46,7 @@ public final class BrowserFixtureControl implements AutoCloseable {
 			if (Files.size(request) > 1024) throw new IllegalArgumentException("Operator request too large");
 			JsonObject command = JsonObject.readFrom(new String(Files.readAllBytes(request), StandardCharsets.UTF_8));
 			Files.delete(request);
-			if (!server.getCommunication().execute(() -> execute(command))) pending.set(false);
+			servlet.submitControl(() -> execute(command), () -> pending.set(false));
 		} catch (Exception failure) {
 			try { Files.deleteIfExists(request); } catch (Exception ignored) { }
 			pending.set(false);

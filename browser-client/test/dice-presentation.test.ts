@@ -1,7 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { blockFace, numericRolls, reportedDice } from '../src/dice-presentation.ts';
+import { blockFace, numericRolls, offeredBlockDice, reportedDice } from '../src/dice-presentation.ts';
+
+test('complete authoritative block choices expose ordered faces to any viewer without guessing partial rolls', () => {
+  const view = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  view.activePlayerId = view.players.find((player: { role: string }) => player.role === 'home').id;
+  const choices = [2, 1].map(index => ({ id: `choice:${index}`, kind: 'blockDie', actor: 'away',
+    label: `Choose ${index === 1 ? 'BOTH DOWN' : 'POW'} (die ${index})`, sourcePlayerId: view.activePlayerId, target: null }));
+  view.actions = choices;
+  for (const callerRole of ['home', 'away', 'spectator']) {
+    const dice = offeredBlockDice({ ...view, callerRole });
+    assert.deepEqual(dice?.faces, ['BOTH DOWN', 'POW']);
+    assert.equal(dice?.chooser, 'away');
+    assert.equal(dice?.uphill, true);
+  }
+  for (const actions of [[], choices.slice(0, 1), [choices[0], choices[0]],
+    choices.map(action => ({ ...action, kind: 'rerollDie' })),
+    [choices[0], { ...choices[1], actor: 'home' }],
+    [choices[0], { ...choices[1], label: 'Choose UNKNOWN (die 1)' }]]) {
+    assert.equal(offeredBlockDice({ ...view, actions }), null);
+  }
+});
 
 test('block graphics use the native six-face mapping and selected die index', () => {
   assert.deepEqual([1, 2, 3, 4, 5, 6].map(blockFace), ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW']);

@@ -45,12 +45,17 @@ public class BrowserMatchDelivery {
 	}
 
 	public boolean send(String message) {
+		return sendWithOptionalPredecessor(null, message);
+	}
+
+	/** Optional history is admitted only when the following mandatory state also fits the bounded queue. */
+	public boolean sendWithOptionalPredecessor(String optional, String mandatory) {
 		String next = null;
 		boolean close = false;
 		synchronized (this) {
-			int messageBytes = message.getBytes(StandardCharsets.UTF_8).length;
+			int messageBytes = mandatory.getBytes(StandardCharsets.UTF_8).length;
 			if (closed || !sink.isOpen()) return false;
-			if (messages.size() >= maximumMessages || bytes + messageBytes > maximumBytes) {
+			if (messages.size() >= maximumMessages || messageBytes > maximumBytes - bytes) {
 				closed = true;
 				writing = false;
 				metrics.outboundOverload();
@@ -60,7 +65,15 @@ public class BrowserMatchDelivery {
 				bytes = 0;
 				close = true;
 			} else {
-				messages.addLast(new QueuedMessage(message, messageBytes, clock.getAsLong()));
+				if (optional != null && messages.size() + 2 <= maximumMessages) {
+					int optionalBytes = optional.getBytes(StandardCharsets.UTF_8).length;
+					if (optionalBytes <= maximumBytes - bytes - messageBytes) {
+						messages.addLast(new QueuedMessage(optional, optionalBytes, clock.getAsLong()));
+						bytes += optionalBytes;
+						metrics.deliveryQueued(optionalBytes);
+					}
+				}
+				messages.addLast(new QueuedMessage(mandatory, messageBytes, clock.getAsLong()));
 				bytes += messageBytes;
 				metrics.deliveryQueued(messageBytes);
 				if (!writing) {

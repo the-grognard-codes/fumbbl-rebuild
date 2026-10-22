@@ -15,6 +15,7 @@ final class Marker6Schema {
 		verifyMarker(connection);
 		verifyTables(connection);
 		verifySkillUsePreferences(connection);
+		verifyRecoveryJournal(connection);
 	}
 
 	void verifyTables(Connection connection) throws SQLException {
@@ -45,7 +46,7 @@ final class Marker6Schema {
 
 	private void verifyMarker(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			if (!rows.next() || rows.getInt(1) != 8 || rows.next()) throw new SQLException("Skill-use schema version 8 is required");
+			if (!rows.next() || rows.getInt(1) != 9 || rows.next()) throw new SQLException("Recovery-journal schema version 9 is required");
 		}
 	}
 
@@ -55,6 +56,14 @@ final class Marker6Schema {
 			set("PRIMARY|0|account_id", "PRIMARY|0|use_case"),
 			set("use_casein'catch','dodge-movement','dodge-block','sure-feet','fend','steady-footing','strip-ball','sure-hands','tackle-movement','tackle-block','taunt','wrestle-attacker','wrestle-defender','pass-ball','pass-bomb','grab','stand-firm','pick-me-up'"),
 			set("account_id|ffb_v2_account|account_id"));
+	}
+
+	void verifyRecoveryJournal(Connection connection) throws SQLException {
+		verifyTable(connection, "ffb_match_recovery_journal",
+			new String[] {"matchid|char(36)|NO|ascii|ascii_bin", "generation|bigint|NO|null|null", "record_json|longtext|NO|utf8mb4|utf8mb4_bin", "decoded_bytes|int|NO|null|null"},
+			set("PRIMARY|0|matchid", "PRIMARY|0|generation"),
+			set("generation>0", "octet_lengthrecord_json<=4194304", "decoded_bytesbetween1and4194304"),
+			set("matchid|ffb_match_recovery|matchid"));
 	}
 
 	private void verifyTable(Connection connection, String name, String[] expectedColumns, Set<String> expectedIndexes, Set<String> expectedChecks, Set<String> expectedReferences) throws SQLException {

@@ -82,8 +82,16 @@ final class MatchTranscript {
         nativeCursor = cursor;
     }
 
+    /** Trusted package-internal read-only view; public pages and appended inputs are isolated snapshots. */
     JsonObject json() {
         return new JsonObject().add("formatVersion", FORMAT_VERSION).add("nativeCursor", nativeCursor).add("records", records);
+    }
+
+    JsonObject jsonFrom(int from) {
+        if (from < 0 || from > records.size()) throw new IllegalArgumentException("Invalid transcript cursor");
+        JsonArray tail = new JsonArray();
+        for (int index = from; index < records.size(); index++) tail.add(records.get(index));
+        return new JsonObject().add("formatVersion", FORMAT_VERSION).add("nativeCursor", nativeCursor).add("records", tail);
     }
 
     JsonObject pendingMovement() {
@@ -113,7 +121,7 @@ final class MatchTranscript {
             JsonValue record = records.get(index);
             int length = record.toString().getBytes(StandardCharsets.UTF_8).length;
             if (selected.size() > 0 && selectedBytes + length > 512 * 1024) break;
-            selected.add(record);
+            selected.add(JsonObject.readFrom(record.toString()));
             selectedBytes += length;
         }
         return new JsonObject().add("formatVersion", FORMAT_VERSION).add("from", from)
@@ -121,9 +129,10 @@ final class MatchTranscript {
     }
 
     private void add(JsonObject record) {
-        int length = record.toString().getBytes(StandardCharsets.UTF_8).length;
+        String json = record.toString();
+        int length = json.getBytes(StandardCharsets.UTF_8).length;
         if (length > 256 * 1024 || bytes + length > MAX_BYTES - 128 * 1024) throw new IllegalArgumentException("Transcript limit");
-        records.add(record);
+        records.add(JsonObject.readFrom(json));
         bytes += length;
     }
 

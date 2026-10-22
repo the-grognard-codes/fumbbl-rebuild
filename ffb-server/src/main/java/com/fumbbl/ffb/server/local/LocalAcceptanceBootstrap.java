@@ -35,6 +35,8 @@ public final class LocalAcceptanceBootstrap {
 	private static final Set<String> MARKER6_TABLES = new HashSet<>(MARKER7_TABLES);
 	private static final Set<String> MARKER8_TABLES = new HashSet<>(MARKER7_TABLES);
 	static { MARKER8_TABLES.add("ffb_v2_skill_use_preferences"); }
+	private static final Set<String> MARKER9_TABLES = new HashSet<>(MARKER8_TABLES);
+	static { MARKER9_TABLES.add("ffb_match_recovery_journal"); }
 	private static final String[] V2_MIGRATIONS = {
 		"/local-schema/006-v2-membership.sql", "/local-schema/006-v2-saved-teams.sql", "/local-schema/006-v2-invitations.sql"
 	};
@@ -55,7 +57,7 @@ public final class LocalAcceptanceBootstrap {
 		manager.setDbPassword(password);
 		manager.setDbType("mariadb");
 		bootstrap(manager);
-		System.out.println("Acceptance database schema verified at marker 8; no records were imported.");
+		System.out.println("Acceptance database schema verified at marker 9; no records were imported.");
 	}
 
 	static void validateBootstrapProfile(Properties properties) {
@@ -76,8 +78,8 @@ public final class LocalAcceptanceBootstrap {
 			tables = tableNames(manager);
 		}
 		int version = schemaVersion(manager);
-		if (version == 8) {
-			requireInventory(tables, MARKER8_TABLES);
+		if (version == 9) {
+			requireInventory(tables, MARKER9_TABLES);
 			schema.initialize(manager, "", true);
 			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 			return;
@@ -119,9 +121,20 @@ public final class LocalAcceptanceBootstrap {
 			}
 			version = 8;
 		}
-		if (version != 8) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-8 databases");
+		if (version == 8) {
+			requireInventory(tableNames(manager), MARKER8_TABLES);
+			try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
+				schema.verifyRecovery(connection);
+				new Marker6Schema().verifyTables(connection);
+				new Marker6Schema().verifySkillUsePreferences(connection);
+				executeResource(statement, "/local-schema/009-recovery-journal.sql");
+				connection.commit();
+			}
+			version = 9;
+		}
+		if (version != 9) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-9 databases");
 		tables = tableNames(manager);
-		requireInventory(tables, MARKER8_TABLES);
+		requireInventory(tables, MARKER9_TABLES);
 		schema.initialize(manager, "", true);
 		try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 	}

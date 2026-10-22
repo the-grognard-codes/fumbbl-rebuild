@@ -492,7 +492,18 @@
 .live-range-warning-mark { fill: #d9e2e6b8; font-family: sans-serif; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
 .live-selection-square { fill: #36ddff18; stroke: #36ddff; stroke-width: 3; }
 .live-keyboard-square { fill: #ffe17b18; stroke: #ffe17b; stroke-width: 2; stroke-dasharray: 4 3; }
-.play-runtime .projected-pitch .live-marker { border: 0; border-radius: 0; box-shadow: none; outline: none; transition: none; transform: none; background: transparent; overflow: visible; }
+.play-runtime .projected-pitch .live-marker { border: 0; border-radius: 0; box-shadow: none; outline: none; transform: none; background: transparent; overflow: visible;
+  transition: left var(--pitch-move-duration, 0ms) linear, top var(--pitch-move-duration, 0ms) linear,
+    width var(--pitch-move-duration, 0ms) linear, height var(--pitch-move-duration, 0ms) linear; }
+.projected-pitch .live-marker img { transition: left var(--pitch-move-duration, 0ms) linear, top var(--pitch-move-duration, 0ms) linear,
+  width var(--pitch-move-duration, 0ms) linear, height var(--pitch-move-duration, 0ms) linear; }
+.projected-pitch .live-ball-marker { transition: left var(--pitch-move-duration, 0ms) linear, top var(--pitch-move-duration, 0ms) linear; }
+.projected-pitch .live-ball-highlight { transition: left var(--pitch-move-duration, 0ms) linear, top var(--pitch-move-duration, 0ms) linear,
+  transform var(--pitch-move-duration, 0ms) linear; }
+@media (prefers-reduced-motion: reduce) {
+  .play-runtime .projected-pitch .live-marker, .projected-pitch .live-marker img,
+  .projected-pitch .live-ball-marker, .projected-pitch .live-ball-highlight { transition: none; }
+}
 .play-runtime .projected-pitch .live-marker:focus-visible { outline: none; }
 .projected-pitch .live-marker:focus-visible .live-number { color: #101c2b; background: #ffe17b; }
 .projected-pitch .live-marker.target .live-number { border: 1px dashed #36ddff; }

@@ -35,6 +35,7 @@ import java.util.WeakHashMap;
 
 /** One authenticated protocol for preparation, play and read-only observation. */
 public final class BrowserV2Adapter implements BrowserProtocol {
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	private final V2PrincipalAuthenticator authenticator;
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
@@ -89,7 +90,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
 			if (request.getInt("version", -1) != 2) { fail(connection, requestId, "UNSUPPORTED_VERSION"); return; }
 			String type = request.getString("type", "");
+			timing.selectRequest(request);
 			if ("authenticateComputer".equals(type)) {
+				publisher.liveTranscript(connection, false);
 				fields(request, "version", "type", "requestId", "serviceToken");
 				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
 					fail(connection, requestId, "IDENTITY_REBINDING_FORBIDDEN"); return;
@@ -103,8 +106,14 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			if ("authenticate".equals(type)) {
-				if (request.get("purpose") == null) fields(request, "version", "type", "requestId", "bearer");
-				else fields(request, "version", "type", "requestId", "bearer", "purpose");
+				publisher.liveTranscript(connection, false);
+				List<String> authenticationFields = new java.util.ArrayList<>(Arrays.asList("version", "type", "requestId", "bearer"));
+				if (request.get("purpose") != null) authenticationFields.add("purpose");
+				JsonValue requestedTranscript = request.get("liveTranscript");
+				if (requestedTranscript != null) authenticationFields.add("liveTranscript");
+				fields(request, authenticationFields.toArray(new String[0]));
+				if (requestedTranscript != null && !requestedTranscript.isBoolean()) throw new IllegalArgumentException();
+				boolean liveTranscript = requestedTranscript != null && requestedTranscript.asBoolean();
 				String purpose = request.getString("purpose", "play");
 				if (!"play".equals(purpose) && !"preparation".equals(purpose)) throw new IllegalArgumentException();
 				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
@@ -120,8 +129,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				}
 				principals.put(connection, principal);
 				connectionPurposes.put(connection, purpose);
-				send(connection, new JsonObject().add("type", "authentication").add("requestId", requestId)
-					.add("code", "ACCEPTED").add("accountId", principal.accountId()));
+				publisher.liveTranscript(connection, liveTranscript);
+				JsonObject authentication = new JsonObject().add("type", "authentication").add("requestId", requestId)
+					.add("code", "ACCEPTED").add("accountId", principal.accountId());
+				if (liveTranscript) authentication.add("liveTranscript", true);
+				send(connection, authentication);
 				return;
 			}
 			if (computerConnections.contains(connection)) {
@@ -212,7 +224,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				String id = request.get("matchId").asString();
 				JsonObject state = publisher.watch(connection, principal, id, requestId);
 				preparationSubscriptions.remove(connection);
-				send(connection, state); return;
+				publisher.sendState(connection, state, publisher.transcript(id, state.get("state").asObject())); return;
 			}
 			if ("matchTranscript".equals(type)) {
 				fields(request, "version", "type", "requestId", "matchId", "from", "limit");
@@ -318,8 +330,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					publisher.enrollPlayer(connection, principal, id);
 					preparationSubscriptions.remove(connection);
 				}
-				send(connection, response);
-				if (outcome.publish()) publisher.publish(id, connection, response.get("state").asObject());
+				JsonValue state = response.get("state");
+				LiveMatchTranscript transcript = publisher.transcript(id,
+					state != null && state.isObject() ? state.asObject() : new JsonObject());
+				publisher.sendState(connection, response, transcript);
+				if (outcome.publish()) publisher.publish(id, connection, state.asObject(), transcript);
 				return;
 			} else if ("matchResult".equals(type)) {
 				String role = access.playerRole(principal, request.get("matchId").asString());
@@ -452,7 +467,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	@Override public synchronized void disconnect(BrowserMatchAdapter.Connection connection) {
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
-		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.remove(connection); preparationSubscriptions.remove(connection);
+		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.disconnect(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserMatchAdapter.Connection connection) {
 		if (connection == computerDispatcher) computerDispatcher = null;
@@ -460,7 +475,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		principals.remove(connection);
 		connectionPurposes.remove(connection);
 		preparationCompletedAt.remove(connection);
-		publisher.remove(connection);
+		publisher.disconnect(connection);
 		preparationSubscriptions.remove(connection);
 		retired.add(connection);
 		fail(connection, null, "CONNECTION_REPLACED");

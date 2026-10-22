@@ -67,17 +67,18 @@ export function clearDevLocalGames({ apply = false, run = defaultRun, environmen
   // Use immutable container IDs after checking names/labels/mounts.
   const query = input => run('docker', ['exec', '-i', database.Id, 'sh', '-c', sqlCommand], { input });
   const marker = query('SELECT version FROM ffb_local_schema;').trim();
-  if (!['7', '8'].includes(marker)) throw Error('REVIEW_SCHEMA_MISMATCH');
-  const retainedForSchema = marker === '8' ? [...retainedTables, 'ffb_v2_skill_use_preferences'] : retainedTables;
+  if (!['7', '8', '9'].includes(marker)) throw Error('REVIEW_SCHEMA_MISMATCH');
+  const retainedForSchema = marker !== '7' ? [...retainedTables, 'ffb_v2_skill_use_preferences'] : retainedTables;
+  const gamesForSchema = marker === '9' ? ['ffb_match_recovery_journal', ...gameTables] : gameTables;
   const inventory = query('SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME;')
     .trim().split(/\r?\n/).map(line => line.split('\t'));
-  const expected = [...gameTables, ...retainedForSchema];
+  const expected = [...gamesForSchema, ...retainedForSchema];
   const names = inventory.map(([name]) => name);
   if (new Set(names).size !== names.length || names.some(name => !expected.includes(name))
     || expected.filter(name => name !== optionalTable).some(name => !names.includes(name))
-    || inventory.some(([name, engine]) => gameTables.includes(name) && engine !== 'InnoDB'))
+    || inventory.some(([name, engine]) => gamesForSchema.includes(name) && engine !== 'InnoDB'))
     throw Error('REVIEW_TABLES_MISMATCH');
-  const selected = gameTables.filter(name => names.includes(name));
+  const selected = gamesForSchema.filter(name => names.includes(name));
   const tableList = selected.map(name => `'${name}'`).join(',');
   if (query(`SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE IN (${tableList});`).trim() !== '0')
     throw Error('REVIEW_TRIGGERS_PRESENT');

@@ -73,7 +73,7 @@ paths before creating anything.
    marker 7 or 8. It streams a consistent database snapshot directly into the
    review container, retains accounts/scopes/saved teams, and clears match
    documents, membership, invitations, consent and recovery in the review copy
-   only, then upgrades the review copy to marker 8 for account skill use preferences.
+   only, then upgrades the review copy to marker 9 for account skill use preferences and recovery journaling.
    If import or cleanup is interrupted, inspect the target and provision
    a fresh empty review volume; the script refuses to overwrite populated data.
 3. Build and start the review game container with `docker compose -f
@@ -150,7 +150,7 @@ node tools/match-review-adc-check.mjs
 node tools/dev-local.mjs --start
 ```
 
-The explicit bootstrap creates schema marker 8 without importing accounts,
+The explicit bootstrap creates schema marker 9 without importing accounts,
 teams or matches. It can upgrade a verified marker-7 database while preserving
 its records, rejects populated marker-5/6 schemas, and never targets the
 retained current-dev database. Do not run the laptop-copy provisioning script

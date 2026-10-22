@@ -6,11 +6,12 @@ import { V2Client } from './v2-client.ts';
 import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
-import type { TranscriptRecord } from './transcript-protocol.ts';
+import type { TranscriptPage, TranscriptRecord } from './transcript-protocol.ts';
+import { TranscriptHistory } from './transcript-history.ts';
 import type { ChatMessage } from './chat-protocol.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange } from './movement-protocol.ts';
-import { MovementRangeRead } from './movement-range-read.ts';
+import { MovementRangeQueue, MovementRangeRead, matchesMovementRange } from './movement-range-read.ts';
 import { HostedResult } from './HostedResult.tsx';
 import { Spectate } from './Spectate.tsx';
 import { MatchupTeam } from './MatchupTeam.tsx';
@@ -97,7 +98,9 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
   const movementRequestRef = useRef<{ id: string; revision: number } | null>(null);
   const [rangeResult, setRangeResult] = useState<{ matchId: string; range: MovementRange } | null>(null);
   const rangeRead = useRef(new MovementRangeRead());
-  const logRecordsRef = useRef<TranscriptRecord[]>([]);
+  const rangeQueue = useRef<MovementRangeQueue | null>(null);
+  const selectedRangePlayer = useRef<string | null>(null);
+  const logHistory = useRef(new TranscriptHistory());
   const logRequestRef = useRef<string | null>(null);
   const logUnavailableRef = useRef(false);
   const client = useRef<V2Client | null>(null);
@@ -135,10 +138,20 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setLogLoading(true);
       } catch { setLogLoading(false); }
     };
+    const appendLog = (page: TranscriptPage) => {
+      if (!logHistory.current.accept(page)) return false;
+      setLogRecords(logHistory.current.records);
+      return true;
+    };
     const connection = new V2Client({ ...options, storage: sessionStorage, purpose: matchRoute || resultRoute ? 'play' : 'preparation',
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
       if (concessionRef.current?.receive(message)) requestCurrentMatches();
+      // Older servers need a queued read; negotiated live history arrives before
+      // the state on the same socket, without a second per-action request.
+      if (message.type === 'pending' && message.mutation && message.requestType === 'setup'
+        && ['action', 'route', 'movement'].includes(message.operation)
+        && !connection.liveTranscript && connection.state?.matchId === matchId) requestLog(logHistory.current.records.length);
       if (message.type === 'status') {
         currentMatchesRequestRef.current = null; currentMatchesRefreshRef.current = false;
         setCurrentMatches([]); setCurrentMatchesLoading(false);
@@ -173,7 +186,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setComputerAvailable(message.code === 'READY');
       }
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
-        && logRecordsRef.current.length <= message.state.revision) requestLog(logRecordsRef.current.length);
+        && logHistory.current.records.length <= message.state.revision) requestLog(logHistory.current.records.length);
       if (message.type === 'setupState' && message.state?.matchId === matchId && !chatInitializedRef.current) requestChat();
       if (message.type === 'setupState') setSetupErrors(message.code === 'ILLEGAL_SETUP'
         ? message.setupErrors?.length ? message.setupErrors : ['This setup is not legal. Adjust the formation and confirm again.'] : []);
@@ -209,12 +222,12 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         const current = rangeRead.current.expects(message.requestId);
         const range = rangeRead.current.accept({ requestId: message.requestId,
           matchId: message.matchId, range: message.range }, connection.state);
-        if (current) setRangeResult(range ? { matchId: message.matchId, range } : null);
+        if (current && range && range.playerId === selectedRangePlayer.current) setRangeResult({ matchId: message.matchId, range });
+        rangeQueue.current?.finish(message.requestId);
       }
       if (rangeFailure) {
-        const current = rangeRead.current.expects(message.requestId);
         rangeRead.current.finish(message.requestId);
-        if (current) setRangeResult(null);
+        rangeQueue.current?.finish(message.requestId);
       }
       if (message.type === 'movementPreview' && message.requestId === movementRequestRef.current?.id) {
         movementRequestRef.current = null; setMovementPlan(message.plan); setMovementError('');
@@ -227,12 +240,15 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setMovementPlan(plan => plan?.route.revision === revision ? plan : null);
         if (movementRequestRef.current?.revision !== revision) movementRequestRef.current = null;
         rangeRead.current.invalidate(message.state);
+        rangeQueue.current?.invalidate(message.state);
         setRangeResult(result => result && result.matchId === message.state.matchId && result.range.revision === revision ? result : null);
       }
       if (message.type === 'status' && message.code === 'DISCONNECTED') {
         movementRequestRef.current = null;
         setMovementPlan(null); setMovementError('');
         rangeRead.current.reset(); setRangeResult(null);
+        selectedRangePlayer.current = null;
+        rangeQueue.current?.reset();
       }
       if (message.type === 'routePreview' && message.requestId === routeRequestRef.current) {
         routeRequestRef.current = null; setRoutePreview(message.route); setRouteError('');
@@ -240,14 +256,16 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'error' && message.requestId === routeRequestRef.current) {
         routeRequestRef.current = null; setRoutePreview(null); setRouteError(message.code.replaceAll('_', ' '));
       }
-      if (message.type === 'matchTranscript' && message.requestId === logRequestRef.current) {
+      if (message.type === 'matchTranscript' && message.requestId === null && message.matchId === matchId) {
+        if (!appendLog(message.page)) requestLog(logHistory.current.records.length);
+      }
+      if (message.type === 'matchTranscript' && message.requestId !== null && message.requestId === logRequestRef.current) {
         logRequestRef.current = null;
         const page = message.page;
-        if (page.from !== logRecordsRef.current.length || page.next <= page.from && page.next < page.total) throw Error('Transcript page gap');
-        logRecordsRef.current = [...logRecordsRef.current, ...page.records];
-        setLogRecords(logRecordsRef.current);
+        if (!appendLog(page) || page.next <= page.from && page.next < page.total) throw Error('Transcript page gap');
         setLogLoading(false);
-        if (page.next < Math.max(page.total, (connection.state?.revision ?? -1) + 1)) requestLog(page.next);
+        if (logHistory.current.records.length < Math.max(page.total, (connection.state?.revision ?? -1) + 1))
+          requestLog(logHistory.current.records.length);
       }
       if (message.type === 'error' && message.requestId === logRequestRef.current) {
         logRequestRef.current = null; logUnavailableRef.current = true; setLogUnavailable(true); setLogLoading(false);
@@ -259,7 +277,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setResultPending(false);
         if (message.code === 'ACCEPTED') {
           if (message.result?.formatVersion >= 2 && !logRequestRef.current
-            && logRecordsRef.current.length < message.result.eventCount) requestLog(logRecordsRef.current.length);
+          && logHistory.current.records.length < message.result.eventCount) requestLog(logHistory.current.records.length);
           if (message.result?.formatVersion === 3 && !chatInitializedRef.current) requestChat();
           else if (message.result?.formatVersion < 3) { chatUnavailableRef.current = true; setChatUnavailable(true); setChatLoading(false); }
           setResult(message.result);
@@ -303,7 +321,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.code && !['ACCEPTED', 'OK', 'CONNECTING', 'DISCONNECTED'].includes(message.code)
         && !routeFailure
         && !movementFailure
-        && !rangeFailure
+        && !(rangeFailure && message.code === 'STALE_REVISION')
         && !currentMatchesFailure
         && !chatFailure
         && !(message.type === 'error' && message.code === 'REPLAY_UNSUPPORTED')
@@ -312,9 +330,24 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
           : message.code.replaceAll('_', ' '));
       redraw(value => value + 1);
     } });
-    const refresh = () => { if (connection.accountId) { connection.request('savedTeam', { operation: 'list' }); requestCurrentMatches(); } };
+    rangeQueue.current = new MovementRangeQueue(() => connection.pending ? null : connection.state, (state, playerId) => {
+      try {
+        const id = connection.request('movementRange', { matchId: state.matchId, expectedRevision: state.revision, playerId });
+        rangeRead.current.begin(id, state, playerId);
+        return id;
+      } catch (failure) {
+        setError(failure instanceof Error ? failure.message : 'Movement guidance could not be requested.');
+        return null;
+      }
+    });
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || matchRoute || resultRoute || !connection.accountId) return;
+      connection.request('savedTeam', { operation: 'list' }); requestCurrentMatches();
+    };
+    const pollCurrentMatches = () => { if (document.visibilityState === 'visible') requestCurrentMatches(); };
     window.addEventListener('focus', refresh);
-    const currentMatchesTimer = window.setInterval(requestCurrentMatches, 30_000);
+    document.addEventListener('visibilitychange', refresh);
+    const currentMatchesTimer = window.setInterval(pollCurrentMatches, 30_000);
     client.current = connection;
     concessionRef.current = new LobbyConcession(connection, setConcessionStatus);
     if (!matchRoute && !resultRoute && connection.pending?.request.type === 'setup' && connection.pending.request.operation !== 'concede')
@@ -323,7 +356,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
     else if (matchRoute && connection.pending?.request.type === 'setup' && (connection.pending.request.matchId !== matchId || watchRoute))
       location.replace(matchUrl(connection.pending.request.matchId, false));
     else connection.connect();
-    return () => { window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); concessionRef.current = null; };
+    return () => { rangeQueue.current?.reset(); window.clearInterval(currentMatchesTimer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); activationWindow.current?.popup?.close(); activationWindow.current = null; client.current = null; connection.disconnect(); concessionRef.current = null; };
   }, [options]);
   const connection = client.current;
   const connected = status === 'Connected';
@@ -497,15 +530,11 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       movementPlan={movementPlan} movementError={movementError}
       movementRange={rangeResult && rangeResult.matchId === connection.state?.matchId ? rangeResult.range : null}
       requestMovementRange={playerId => {
-        rangeRead.current.clear(); setRangeResult(null);
+        selectedRangePlayer.current = playerId;
         const state = connection.state;
-        if (playerId && state) {
-          try {
-            const id = connection.request('movementRange', { matchId: state.matchId,
-              expectedRevision: state.revision, playerId });
-            rangeRead.current.begin(id, state, playerId);
-          } catch { /* Guidance can be unavailable without interrupting an action. */ }
-        }
+        const cached = state && playerId && rangeResult?.matchId === state.matchId
+          && matchesMovementRange(rangeResult.range, state, playerId);
+        rangeQueue.current?.select(state, cached ? null : playerId);
       }}
       requestMovementPreview={intent => run(() => {
         movementRequestRef.current = null; setMovementPlan(null); setMovementError('');

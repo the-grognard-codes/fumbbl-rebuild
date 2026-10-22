@@ -31,11 +31,14 @@ export class V2Client {
   private selection: { matchId: string; watch: boolean } | null = null;
   private preparationMatchId: string | null = null;
   private authenticationId = '';
+  private offerLiveTranscript = true;
+  private authenticationOfferedLiveTranscript = false;
   private lastAutomaticRefresh = 0;
   private includeBrowseDetails = true;
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
+  liveTranscript = false;
   lastAcceptedActionId: string | null = null;
   skillUsePreferences: SkillUsePreferences | null = null;
   skillUsePending: string | null = null;
@@ -79,20 +82,7 @@ export class V2Client {
     const socket = (this.options.makeSocket ?? (url => new WebSocket(url)))(this.options.url);
     this.socket = socket;
     this.options.onChange({ type: 'status', code: 'CONNECTING' });
-    socket.onopen = async () => {
-      try {
-        const bearer = await this.options.getToken();
-        if (this.socket !== socket) return;
-        this.authenticationId = crypto.randomUUID();
-        socket.send(JSON.stringify({ version: 2, type: 'authenticate', requestId: this.authenticationId, bearer,
-          ...(this.options.purpose === 'preparation' ? { purpose: 'preparation' } : {}) }));
-      } catch {
-        if (this.socket === socket) {
-          this.options.onChange({ type: 'error', code: 'AUTHENTICATION_TOKEN_UNAVAILABLE' });
-          this.disconnect();
-        }
-      }
-    };
+    socket.onopen = () => this.authenticate(socket);
     socket.onmessage = event => {
       if (this.socket !== socket) return;
       try { this.receive(String(event.data)); }
@@ -107,10 +97,28 @@ export class V2Client {
     };
   }
 
+  private async authenticate(socket: WebSocket) {
+    try {
+      const bearer = await this.options.getToken();
+      if (this.socket !== socket) return;
+      this.authenticationId = crypto.randomUUID();
+      this.authenticationOfferedLiveTranscript = this.options.purpose === 'play' && this.offerLiveTranscript;
+      socket.send(JSON.stringify({ version: 2, type: 'authenticate', requestId: this.authenticationId, bearer,
+        ...(this.options.purpose === 'preparation' ? { purpose: 'preparation' } : {}),
+        ...(this.authenticationOfferedLiveTranscript ? { liveTranscript: true } : {}) }));
+    } catch {
+      if (this.socket === socket) {
+        this.options.onChange({ type: 'error', code: 'AUTHENTICATION_TOKEN_UNAVAILABLE' });
+        this.disconnect();
+      }
+    }
+  }
+
   disconnect() {
     if (this.skillUsePending) this.skillUseError = 'Preference outcome was not confirmed. Reconnect and reload your settings.';
     this.skillUsePending = null; this.skillUsePreferences = null; this.skillUseSaved = false;
     const socket = this.socket; this.socket = null; this.accountId = ''; this.state = null; this.requests.clear();
+    this.liveTranscript = false;
     socket?.close(); this.options.onChange({ type: 'status', code: 'DISCONNECTED' });
   }
 
@@ -130,7 +138,7 @@ export class V2Client {
       this.pending = pending;
     }
     this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
-    this.options.onChange({ type: 'pending' });
+    this.options.onChange({ type: 'pending', requestType: type, operation: fields.operation, mutation });
     return request.requestId;
   }
 
@@ -169,17 +177,20 @@ export class V2Client {
     const request = this.pending.request;
     if (request.type === 'setup') this.selection = { matchId: request.matchId, watch: false };
     this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
-    this.options.onChange({ type: 'pending' });
+    this.options.onChange({ type: 'pending', requestType: request.type, operation: request.operation, mutation: true });
   }
 
   private receive(raw: string) {
-    if (raw.length > 262144) throw Error('Oversized response');
+    if (raw.length > 768 * 1024) throw Error('Oversized response');
     const message = parseUniqueJson(raw) as V2Message;
+    if (message.type !== 'matchTranscript' && raw.length > 262144) throw Error('Oversized response');
     assertV2Projection(message);
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
     if (message.type === 'authentication') {
       if (message.requestId !== this.authenticationId || message.code !== 'ACCEPTED' || !uuid.test(message.accountId)) throw Error('Invalid authentication');
+      if (message.liveTranscript && !this.authenticationOfferedLiveTranscript) throw Error('Unrequested live transcript');
+      this.liveTranscript = message.liveTranscript === true;
       this.accountId = message.accountId; this.options.onChange(message);
       this.request('browse');
       if (!this.options.browseOnly) { this.request('savedTeam', { operation: 'list' }); this.request('catalog'); }
@@ -188,6 +199,11 @@ export class V2Client {
       return;
     }
     if (message.type === 'error' && message.requestId === this.authenticationId) {
+      if (this.authenticationOfferedLiveTranscript && ['MALFORMED_MESSAGE', 'UNSUPPORTED_MESSAGE'].includes(message.code)) {
+        this.offerLiveTranscript = false;
+        if (this.socket) void this.authenticate(this.socket);
+        return;
+      }
       this.disconnect(); this.options.onChange(message); return;
     }
     const request = message.requestId === null ? null : this.requests.get(message.requestId);
@@ -221,7 +237,8 @@ export class V2Client {
     if (message.type !== 'error') {
       const expected = request?.type === 'watch' || request?.type === 'setup' ? 'setupState'
         : request?.type === 'validateTeam' ? 'teamValidation' : request?.type;
-      if (request ? message.type !== expected : message.type !== 'setupState' && message.type !== 'matchChat') throw Error('Uncorrelated response');
+      if (request ? message.type !== expected : message.type !== 'setupState' && message.type !== 'matchChat'
+        && !(this.liveTranscript && message.type === 'matchTranscript')) throw Error('Uncorrelated response');
     }
     if (request?.type === 'skillUsePreferences') {
       if (message.type === 'skillUsePreferences') {
@@ -253,9 +270,11 @@ export class V2Client {
       message.result = decoded.result; message.event = decoded.event;
     }
     if (message.type === 'matchTranscript') {
-      const decoded = decodeTranscript(JSON.stringify(message));
-      if (!request || request.type !== 'matchTranscript' || decoded.matchId !== request.matchId
-        || this.selection && this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
+      const decoded = decodeTranscript(raw, this.liveTranscript);
+      const live = decoded.requestId === null;
+      if (live ? !this.liveTranscript || !this.selection || this.selection.matchId !== decoded.matchId
+        : !request || request.type !== 'matchTranscript' || decoded.matchId !== request.matchId
+          || this.selection && this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
         throw Error('Foreign transcript');
       message.page = decoded.page;
     }

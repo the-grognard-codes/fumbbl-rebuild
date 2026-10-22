@@ -9,7 +9,7 @@ export type TranscriptRecord = {
   decision: Record<string, unknown> | null; native: Record<string, unknown>[]; state: SetupState;
 };
 export type TranscriptPage = { formatVersion: 2; from: number; next: number; total: number; records: TranscriptRecord[] };
-export type TranscriptResponse = { version: 2; type: 'matchTranscript'; requestId: string; code: 'ACCEPTED'; matchId: string; page: TranscriptPage };
+export type TranscriptResponse = { version: 2; type: 'matchTranscript'; requestId: string | null; code: 'ACCEPTED'; matchId: string; page: TranscriptPage };
 
 function object(value: unknown, fields: string[]): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Expected transcript object');
@@ -22,17 +22,19 @@ function integer(value: unknown, maximum: number) {
   return value as number;
 }
 
-export function decodeTranscript(json: string): TranscriptResponse {
+export function decodeTranscript(json: string, allowLive = false): TranscriptResponse {
   if (new TextEncoder().encode(json).length > 512 * 1024 + 256 * 1024) throw Error('Transcript page too large');
   const response = object(parseUniqueJson(json), ['version', 'type', 'requestId', 'code', 'matchId', 'page']);
   if (response.version !== 2 || response.type !== 'matchTranscript' || response.code !== 'ACCEPTED'
-    || typeof response.requestId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(response.requestId)
+    || !(allowLive && response.requestId === null
+      || typeof response.requestId === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(response.requestId))
     || typeof response.matchId !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(response.matchId))
     throw Error('Invalid transcript response');
   const page = object(response.page, ['formatVersion', 'from', 'next', 'total', 'records']);
   const from = integer(page.from, 8193), next = integer(page.next, 8193), total = integer(page.total, 8193);
   if (page.formatVersion !== 2 || next < from || next > total || !Array.isArray(page.records)
     || page.records.length > 8 || page.records.length !== next - from) throw Error('Invalid transcript page');
+  if (response.requestId === null && (page.records.length !== 1 || next !== total)) throw Error('Invalid live transcript page');
   let priorTime = 0;
   let priorCommand = 0;
   const records = page.records.map((entry, offset) => {

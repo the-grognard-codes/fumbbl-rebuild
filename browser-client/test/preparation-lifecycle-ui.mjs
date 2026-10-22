@@ -13,6 +13,13 @@ const context = await browser.newContext();
 try {
   await context.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><div id="app"></div><script type="module">import { mountPlay } from '/src/play-entry.tsx'; mountPlay(document.getElementById('app'), { url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });</script>` }));
   await context.addInitScript(() => {
+    window.__lobbyVisible = true;
+    Object.defineProperty(window.document, 'visibilityState', { get: () => window.__lobbyVisible ? 'visible' : 'hidden' });
+    const setInterval = window.setInterval.bind(window);
+    window.setInterval = (callback, delay, ...args) => {
+      if (delay === 30_000) window.__pollCurrentMatches = callback;
+      return setInterval(callback, delay, ...args);
+    };
     const id = '12345678-1234-1234-1234-123456789abc';
     const member = role => ({ role, sourceTeamId: id, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'catalog', rosterId: 'human', presetId: 'starter', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: { rerolls: 0 }, players: [] } });
     const document = { formatVersion: 1, matchId: id, documentVersion: 2, lifecycle: 'AWAITING_SETUP', invitation: { intendedOpponent: 'away' }, home: member('home'), away: member('away') };
@@ -43,6 +50,31 @@ try {
   const page = await context.newPage();
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/test/fixtures/reconnect.html?view=play`);
+  await page.getByRole('button', { name: 'Refresh games', exact: true }).waitFor();
+  const reads = page => page.evaluate(() => window.__preparationRequests
+    .filter(request => ['currentMatches', 'savedTeam'].includes(request.type)).length);
+  const initialReads = await reads(page);
+  await page.evaluate(() => {
+    window.__lobbyVisible = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.__pollCurrentMatches(); window.dispatchEvent(new Event('focus'));
+  });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await reads(page), initialReads, 'A hidden preparation tab sends no automatic game/team refreshes');
+  await page.getByRole('button', { name: 'Refresh games', exact: true }).click();
+  await page.waitForFunction(before => window.__preparationRequests
+    .filter(request => ['currentMatches', 'savedTeam'].includes(request.type)).length > before, initialReads);
+  const explicitReads = await reads(page);
+  await page.evaluate(() => {
+    window.__lobbyVisible = true;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(before => window.__preparationRequests
+    .filter(request => ['currentMatches', 'savedTeam'].includes(request.type)).length > before, explicitReads);
+  const visibleReads = await reads(page);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(before => window.__preparationRequests
+    .filter(request => ['currentMatches', 'savedTeam'].includes(request.type)).length > before, visibleReads);
   for (const style of ['site.css', 'teambuilder.css', 'builder-layout.css']) await page.addStyleTag({ url: `${base}/assets/${style}` });
   await page.getByRole('button', { name: 'AI Opponent', exact: true }).click();
   const opponent = page.getByRole('region', { name: 'Computer opponent', exact: true });
@@ -81,6 +113,10 @@ try {
   const popup = await popupPromise;
   await popup.waitForURL('**/play/match?*');
   await popup.waitForFunction(() => window.__preparationRequests?.some(request => request.type === 'setup'));
+  const matchReads = await reads(popup);
+  await popup.evaluate(() => { window.__pollCurrentMatches(); window.dispatchEvent(new Event('focus')); });
+  await popup.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await reads(popup), matchReads, 'A match page sends no automatic lobby refreshes');
   assert.equal(await page.evaluate(() => window.__preparationSocket.readyState), 1);
   assert.equal(await page.getByRole('button', { name: 'Reconnect preparation here', exact: true }).count(), 0,
     'Launching a new match must not display a reconnect prompt on connected preparation');

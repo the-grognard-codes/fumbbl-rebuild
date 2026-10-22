@@ -354,6 +354,7 @@ public final class SetupSession {
 			}
 			assertSupported();
 			if (!ordered(recoveryNative()).equals(payload.get("native"))) throw new IllegalArgumentException("Native state did not round-trip");
+			state.getGameLog().restoreRecoveryJson(payload.get("native").asObject().get("gameLog").asObject());
 			// Validate old checkpoints using their original action projection before offering the new flow.
 			activationSequencing = activationVersion != null;
 			reactiveSequencing = reactionVersion != null;
@@ -368,13 +369,27 @@ public final class SetupSession {
 	}
 
 	public String recoveryArtifact() {
+		return new RecoveryArtifactJson().encode(ordered(recoveryPayload(null)).asObject(), MAX_RECOVERY_ARTIFACT_BYTES);
+	}
+
+	/** Bounded native continuation plus only the history appended after the committed cursor. */
+	JsonObject recoveryJournalPayload(int[] from) { return recoveryPayload(from); }
+	int[] recoveryJournalCounts() {
+		return new int[] {history.size(), events.size(), state.getGameLog().size(), transcriptV2 ? transcript.size() : 0};
+	}
+	long recoveryNativeEpoch() { return state.getGameLog().recoveryEpoch(); }
+
+	private JsonObject recoveryPayload(int[] from) {
 		if (recoveryDice == null) throw new IllegalStateException("Legacy lifetime cannot be upgraded");
 		JsonArray requests = new JsonArray(), selections = new JsonArray();
-		history.forEach((key, entry) -> {
+		int requestIndex = 0;
+		for (Map.Entry<String, Record> item : history.entrySet()) {
+			if (from != null && requestIndex++ < from[0]) continue;
+			String key = item.getKey(); Record entry = item.getValue();
 			JsonObject saved = new JsonObject().add("key", key).add("fingerprint", entry.fingerprint).add("code", entry.code);
 			if (entry.setupErrors != null) saved.add("setupErrors", entry.setupErrors);
 			requests.add(saved);
-		});
+		}
 		kickoffSelection.forEach(selections::add);
 		JsonObject rolls = new JsonObject();
 		state.getDiceRoller().getTestRolls().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
@@ -384,13 +399,13 @@ public final class SetupSession {
 			.add("runtimeVersion", chatV1 ? CHAT_RUNTIME : routeV2 ? ROUTE_RUNTIME : transcriptV2 ? TRANSCRIPT_RUNTIME : saveResume ? SAVE_RESUME_RUNTIME : defaultSetup ? DEFAULT_SETUP_RUNTIME : LEGACY_RUNTIME)
 			.add("engineVersion", "ffb-3.4.0-bb2025-m3d.1").add("replayVersion", transcriptV2 ? 2 : 1).add("matchId", matchId)
 			.add("frozen", frozen()).add("revision", revision).add("drive", drive).add("failed", failed)
-			.add("native", recoveryNative()).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
+			.add("native", recoveryNative(from == null ? -1 : from[2])).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
-			.add("eventsJson", events.toString()).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
+			.add("eventsJson", recoveryEvents(from == null ? 0 : from[1])).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
 		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
 		payload.add("reactionVersion", 1);
 		payload.add("blockPresentation", blockPresentation.checkpoint());
-		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.json())
+		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.jsonFrom(from == null ? 0 : from[3]))
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
 		if (routeV2) payload.add("pendingRoute", pendingRoute == null ? JsonValue.NULL : pendingRoute.json());
@@ -399,10 +414,13 @@ public final class SetupSession {
 		if (chatV1) payload.add("chat", chat.json()).add("clock", new JsonObject()
 			.add("homeUsedMs", homeReserveUsedMs).add("awayUsedMs", awayReserveUsedMs));
 		if (computerPolicy != null) payload.add("computerMemory", computerPolicy.json());
-		payload = ordered(payload).asObject();
-		String artifact = new JsonObject().add("payload", payload).add("sha256", new JsonDigest().sha256(payload)).toString();
-		if (artifact.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_RECOVERY_ARTIFACT_BYTES) throw new MatchService.Failure("RECOVERY_LIMIT");
-		return artifact;
+		return payload;
+	}
+
+	private String recoveryEvents(int from) {
+		JsonArray selected = new JsonArray();
+		for (int index = from; index < events.size(); index++) selected.add(events.get(index));
+		return selected.toString();
 	}
 
 	private JsonObject frozen() {
@@ -439,7 +457,12 @@ public final class SetupSession {
 	}
 
 	private JsonObject recoveryNative() {
-		JsonObject snapshot = state.toJsonValue(true, 0);
+		return recoveryNative(-1);
+	}
+
+	private JsonObject recoveryNative(int commandFrom) {
+		JsonObject snapshot = state.toJsonValue(false, 0);
+		snapshot.add("gameLog", state.getGameLog().recoveryJsonFrom(Math.max(0, commandFrom)));
 		// Native initFrom maps absent distance to zero. Before kickoff execution this value
 		// is always overwritten by the scatter roll; normalize only this versioned boundary.
 		for (JsonValue step : snapshot.get("stepStack").asObject().get("steps").asArray()) normalizeRecoveryStep(step.asObject());
@@ -504,9 +527,12 @@ public final class SetupSession {
 	}
 
 	/** An expired proposal must not be shown again when a saved match is loaded. */
-	public void expireSaveResumeProposal(long now) {
-		if (saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt)
+	public boolean expireSaveResumeProposal(long now) {
+		if (saveResume && saveResumeState.proposal != null && now >= saveResumeState.proposal.expiresAt) {
 			saveResumeState.proposal = null;
+			return true;
+		}
+		return false;
 	}
 
 	/** The save protocol performs no engine command and consumes no dice. */
@@ -1190,6 +1216,13 @@ public final class SetupSession {
 
 	private void refreshReaction(long now) {
 		reactiveDecision.refresh(state, actions(), revision, now);
+	}
+
+	/** The bounded durable fields that reaction refresh can change without executing a decision. */
+	String reactiveMaintenanceState() {
+		JsonObject reaction = reactiveDecision.checkpoint();
+		return new JsonObject().add("reaction", reaction == null ? JsonValue.NULL : reaction)
+			.add("turnTimeStarted", state.getTurnTimeStarted()).add("turnTime", state.getGame().getTurnTime()).toString();
 	}
 
 	/** Executed only on the communication worker, using the same command and checkpoint path as coach input. */

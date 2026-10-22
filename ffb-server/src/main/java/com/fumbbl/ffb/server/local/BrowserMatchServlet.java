@@ -61,6 +61,8 @@ public class BrowserMatchServlet extends JettyWebSocketServlet implements JettyW
 
 	public void closeConnections() { transport.closeConnections(); }
 
+	boolean submitControl(Runnable work, Runnable rejected) { return transport.submitControl(work, rejected); }
+
 	@Override
 	public void destroy() {
 		if (fixtureControl != null) fixtureControl.close();

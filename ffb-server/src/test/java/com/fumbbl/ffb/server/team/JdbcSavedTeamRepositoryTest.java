@@ -85,8 +85,8 @@ class JdbcSavedTeamRepositoryTest {
 		verify(statement, never()).executeUpdate();
 	}
 	@Test
-	void accountCreatesAndUpdatesSupportNamedTeamAndSkillPreferenceSchemas() throws Exception {
-		for (int version : new int[] { 7, 8 }) {
+	void accountCreatesAndUpdatesSupportNamedTeamSkillPreferenceAndJournalSchemas() throws Exception {
+		for (int version : new int[] { 7, 8, 9 }) {
 			for (boolean insert : new boolean[] { true, false }) {
 				setup(); repository = new JdbcSavedTeamRepository(() -> connection, true);
 				ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
@@ -102,7 +102,7 @@ class JdbcSavedTeamRepositoryTest {
 		for (boolean accounts : new boolean[] { true, false }) {
 			setup(); repository = new JdbcSavedTeamRepository(() -> connection, accounts);
 			ResultSet rows = mock(ResultSet.class); when(statement.executeQuery()).thenReturn(rows);
-			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(accounts ? 9 : 8);
+			when(rows.next()).thenReturn(true); when(rows.getInt(1)).thenReturn(accounts ? 10 : 9);
 			assertThrows(SQLException.class, () -> repository.insert(record));
 			verify(statement, never()).executeUpdate(); verify(connection).rollback();
 		}

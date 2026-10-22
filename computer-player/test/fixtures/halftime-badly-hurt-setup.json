@@ -1,0 +1,100 @@
+{
+  "phase": "SETUP",
+  "callerRole": "away",
+  "actor": "away",
+  "revision": 273,
+  "half": 2,
+  "drive": 3,
+  "prompt": null,
+  "actions": [],
+  "players": [
+    {
+      "id": "away-1",
+      "role": "away",
+      "state": "is standing",
+      "offPitch": "pitch",
+      "x": 13,
+      "y": 6
+    },
+    {
+      "id": "away-2",
+      "role": "away",
+      "state": "is standing",
+      "offPitch": "pitch",
+      "x": 13,
+      "y": 7
+    },
+    {
+      "id": "away-3",
+      "role": "away",
+      "state": "is standing",
+      "offPitch": "pitch",
+      "x": 13,
+      "y": 8
+    },
+    {
+      "id": "away-4",
+      "role": "away",
+      "state": "is standing",
+      "offPitch": "pitch",
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "away-5",
+      "role": "away",
+      "state": "is standing",
+      "offPitch": "pitch",
+      "x": 15,
+      "y": 5
+    },
+    {
+      "id": "away-6",
+      "role": "away",
+      "state": "has been badly hurt",
+      "offPitch": "casualty",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "away-7",
+      "role": "away",
+      "state": "is in reserve",
+      "offPitch": "reserve",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "away-8",
+      "role": "away",
+      "state": "is in reserve",
+      "offPitch": "reserve",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "away-9",
+      "role": "away",
+      "state": "is in reserve",
+      "offPitch": "reserve",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "away-10",
+      "role": "away",
+      "state": "is in reserve",
+      "offPitch": "reserve",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "away-11",
+      "role": "away",
+      "state": "is in reserve",
+      "offPitch": "reserve",
+      "x": null,
+      "y": null
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JdbcRecoveryRepositoryTest {
@@ -39,6 +40,28 @@ class JdbcRecoveryRepositoryTest {
 		when(connection.prepareStatement("SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")).thenReturn(count);
 		when(count.executeQuery()).thenReturn(retained); when(retained.next()).thenReturn(true);
 		repository = new JdbcRecoveryRepository(() -> connection);
+	}
+
+	@Test void generationLookupDoesNotFetchDecodeOrRewriteTheArtifact() throws Exception {
+		BoundedJsonStorageCodec codec = mock(BoundedJsonStorageCodec.class);
+		JdbcRecoveryRepository metadataRepository = new JdbcRecoveryRepository(() -> connection, 1024, codec);
+		ResultSet rows = mock(ResultSet.class);
+		when(statement.executeQuery()).thenReturn(rows);
+		when(rows.next()).thenReturn(true, false);
+		when(rows.getLong(1)).thenReturn(42L);
+		assertEquals(Long.valueOf(42L), metadataRepository.generation("match"));
+		assertEquals(null, metadataRepository.generation("missing"));
+		verify(connection, org.mockito.Mockito.times(2)).prepareStatement("SELECT generation FROM ffb_match_recovery WHERE matchid=?");
+		verify(statement).setString(1, "match");
+		verifyNoInteractions(codec);
+		verify(rows, never()).getString(org.mockito.ArgumentMatchers.anyInt());
+		verify(statement, never()).executeUpdate();
+	}
+
+	@Test void generationLookupPropagatesTransientSqlFailure() throws Exception {
+		when(statement.executeQuery()).thenThrow(new SQLException("temporary"));
+		assertThrows(SQLException.class, () -> repository.generation("match"));
+		verify(connection).close();
 	}
 
 	@Test void fullRetentionRejectsNewRecordsWithoutWritingOrCommitting() throws Exception {
@@ -72,7 +95,7 @@ class JdbcRecoveryRepositoryTest {
 	}
 
 	@Test void initialCheckpointsRejectUnsupportedSchemasBeforeWriting() throws Exception {
-		for (int version : new int[] { 4, 9 }) {
+		for (int version : new int[] { 4, 10 }) {
 			setup(); when(schema.getInt(1)).thenReturn(version);
 			assertThrows(SQLException.class, () -> repository.save(record(1), 0));
 			verify(statement, never()).executeUpdate(); verify(connection, never()).commit(); verify(connection).rollback();

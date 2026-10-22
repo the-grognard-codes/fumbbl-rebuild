@@ -12,6 +12,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
 	@Test
+	public void optionalHistoryAndMandatoryStateKeepOrderWithinTheSharedQueueBudget() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 100);
+		assertTrue(delivery.send("queued"));
+		assertTrue(delivery.sendWithOptionalPredecessor("history", "state"));
+		assertEquals(3, metrics.toJson().getLong("deliveryQueueDepth", -1));
+		assertEquals("queued", sink.messages.get(0));
+		sink.completeNext();
+		assertEquals("history", sink.messages.get(1));
+		sink.completeNext();
+		assertEquals("state", sink.messages.get(2));
+		sink.completeNext();
+		assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+		assertEquals(0, sink.closeCode);
+	}
+
+	@Test
+	public void optionalUtf8HistoryIsOmittedWhenOnlyTheMandatoryStateFits() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 2, 8);
+		assertTrue(delivery.sendWithOptionalPredecessor("\u20ac\u20ac", "ack"));
+		assertEquals(1, sink.messages.size());
+		assertEquals("ack", sink.messages.get(0));
+		assertEquals(3, metrics.toJson().getLong("deliveryQueueBytes", -1));
+		assertEquals(0, metrics.toJson().getLong("outboundOverload", -1));
+		assertEquals(0, sink.closeCode);
+	}
+
+	@Test
+	public void mandatoryStateOverflowStillDisconnectsWithOptionalDelivery() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 2, 3);
+		assertFalse(delivery.sendWithOptionalPredecessor("history", "\u20ac\u20ac"));
+		assertEquals(1013, sink.closeCode);
+		assertEquals(1, metrics.toJson().getLong("outboundOverload", -1));
+	}
+
+	@Test
 	public void repeatedOldCallbackCannotCompleteTheNextWrite() {
 		DelayedSink sink = new DelayedSink();
 		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
