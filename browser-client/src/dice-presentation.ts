@@ -1,5 +1,5 @@
 import type { TranscriptRecord } from './transcript-protocol.ts';
-import type { SetupPlayer } from './setup-protocol.ts';
+import type { SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { BlockContext } from './block-context.ts';
 
@@ -52,6 +52,27 @@ export function blockFace(roll: number): string | null { return Number.isInteger
 export function blockFaceLabel(face: string): string | undefined {
   const labels: Record<string, string> = { SKULL: 'Skull', 'BOTH DOWN': 'Both down', PUSHBACK: 'Push', 'POW/PUSH': 'Stumble', POW: 'Pow' };
   return Object.hasOwn(labels, face) ? labels[face] : undefined;
+}
+
+/** Complete server-offered block choices already contain authoritative faces. */
+export function offeredBlockDice(view: SetupState): DiceMoment | null {
+  const choices = view.actions.filter(action => action.kind === 'blockDie');
+  if (!choices.length || choices.length > 3) return null;
+  const chooser = choices[0].actor;
+  if (chooser !== 'home' && chooser !== 'away') return null;
+  const faces: string[] = [];
+  for (const choice of choices) {
+    const match = /^Choose (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die ([1-3])\)$/.exec(choice.label);
+    if (!match || choice.actor !== chooser) return null;
+    const index = Number(match[2]) - 1;
+    if (index >= choices.length || faces[index] !== undefined) return null;
+    faces[index] = match[1];
+  }
+  const attacker = view.players.find(player => player.id === view.activePlayerId);
+  return { label: 'Block dice rolled', faces, selected: null, chooser,
+    subjectId: view.blockContext?.activeTargetPlayerId ?? null,
+    blockContext: view.blockContext ?? null,
+    ...(attacker ? { uphill: faces.length > 1 && attacker.role !== chooser } : {}) };
 }
 
 /** Only values written by native reports become visible dice; no roll is generated in the browser. */

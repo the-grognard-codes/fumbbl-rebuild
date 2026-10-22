@@ -26,7 +26,7 @@ const dataMount = container => {
 assert.notEqual(dataMount(oldContainer), dataMount(newContainer), 'Source and target volumes must differ');
 assert.match(dataMount(newContainer), /^ffb-match-review_database$/, 'Target is not the isolated review volume');
 const sourceMarker = await query(source, 'SELECT version FROM ffb_local_schema');
-assert.ok(['7', '8'].includes(sourceMarker), 'Source must be marker 7 or 8');
+assert.ok(['7', '8', '9'].includes(sourceMarker), 'Source must be marker 7, 8 or 9');
 assert.equal(await query(target, 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()'), '0',
   'Review target must be empty; never overwrite a provisioned database');
 const dump = spawn('docker', ['exec', source, 'sh', '-c',
@@ -51,6 +51,7 @@ assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), source
 // old match documents and checkpoints stay solely in the retained source database.
 const hasConsent = await query(target, 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name="ffb_match_spectator_consent"') === '1';
 await query(target, `START TRANSACTION;
+${sourceMarker === '9' ? 'DELETE FROM ffb_match_recovery_journal;' : ''}
 DELETE FROM ffb_match_recovery;
 ${hasConsent ? 'DELETE FROM ffb_match_spectator_consent;' : ''}
 DELETE FROM ffb_v2_preparation_requests;
@@ -73,5 +74,13 @@ if (sourceMarker === '7') {
   migration.stdin.end(readFileSync(new URL('../ffb-server/src/main/resources/local-schema/008-skill-use-preferences.sql', import.meta.url), 'utf8'));
   assert.equal(await exit(migration), 0, `Review schema migration failed: ${migrationError}`);
 }
-assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), '8', 'Review schema marker mismatch');
-console.log('Isolated review schema verified at marker 8; match tables empty; accounts, teams and skill use preferences retained.');
+if (sourceMarker !== '9') {
+  const migration = spawn('docker', ['exec', '-i', target, 'sh', '-c', sql], { windowsHide: true, stdio: ['pipe', 'ignore', 'pipe'] });
+  let migrationError = '';
+  migration.stderr.on('data', chunk => { migrationError += chunk.toString().slice(0, 2000); });
+  migration.stdin.end(readFileSync(new URL('../ffb-server/src/main/resources/local-schema/009-recovery-journal.sql', import.meta.url), 'utf8'));
+  assert.equal(await exit(migration), 0, `Review journal migration failed: ${migrationError}`);
+}
+assert.equal(await query(target, 'SELECT version FROM ffb_local_schema'), '9', 'Review schema marker mismatch');
+assert.equal(await query(target, 'SELECT COUNT(*) FROM ffb_match_recovery_journal'), '0');
+console.log('Isolated review schema verified at marker 9; match tables empty; accounts, teams and skill use preferences retained.');

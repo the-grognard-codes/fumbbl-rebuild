@@ -29,6 +29,7 @@ class SetupApplicationTranscriptTest {
         JsonObject page = application.transcriptPage(id, 0, 8);
         assertEquals(1, page.getInt("total", -1));
         assertEquals("START", page.get("records").asArray().get(0).asObject().getString("kind", null));
+        assertEquals(page, application.liveTranscriptPage(id, 0));
         assertThrows(IllegalArgumentException.class, () -> application.transcriptPage(id, 0, 9));
     }
 }

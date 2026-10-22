@@ -50,6 +50,8 @@
       "browser-client/test/confirmation-position-ui.mjs",
       "browser-client/test/player-action-menu-ui.mjs",
       "browser-client/test/playback-ui.mjs",
+      "browser-client/test/playback-motion-ui.mjs",
+      "browser-client/test/provisional-movement-ui.mjs",
       "browser-client/test/teammate-ui.mjs",
       "browser-client/test/manual-reroll-ui.mjs",
       "browser-client/test/route-check-ui.mjs"

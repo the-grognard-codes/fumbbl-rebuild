@@ -6,19 +6,24 @@ import { DiceFace } from '../src/DiceFace.tsx';
 import { matchDecision } from '../src/match-decision.ts';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
+import type { RoutePreview } from '../src/route-protocol.ts';
 
-type Input = { view: SetupState; records: TranscriptRecord[]; enabled: boolean; mode: 'live' | 'replay'; interactive?: boolean };
+type Input = { view: SetupState; records: TranscriptRecord[]; enabled: boolean; mode: 'live' | 'replay'; interactive?: boolean;
+  requestPending?: string | null; speed?: number };
 declare global {
   interface Window {
     playbackInput: Input;
     publishPlayback: (input: Input) => void;
+    beginProvisional: (route: RoutePreview) => void;
     playbackFrames: { revision: number; x: number | null; actorX: number | null; ballX: number | null; carrier: string | null; active: boolean }[];
   }
 }
 function Harness() {
   const [input, setInput] = useState(window.playbackInput);
   window.publishPlayback = setInput;
-  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(input.view, input.records, input.enabled, 1, input.mode);
+  const { pitchView, playbackActive, diceMoment, movementDuration, beginProvisional, synchronizing } =
+    usePitchPlayback(input.view, input.records, input.enabled, input.speed ?? 1, input.mode, input.requestPending ?? null);
+  window.beginProvisional = beginProvisional;
   useLayoutEffect(() => {
     window.playbackFrames.push({ revision: pitchView.revision, x: pitchView.players[0]?.x ?? null,
       actorX: pitchView.players.find(player => player.id === 'actor')?.x ?? null,
@@ -26,9 +31,10 @@ function Harness() {
   }, [pitchView, playbackActive]);
   return <main className="play-runtime">
     <output id="playback-state" data-revision={pitchView.revision} data-x={pitchView.players[0]?.x}
-      data-active={playbackActive} data-roll-key={diceMoment?.rollKey ?? ''}/>
+      data-active={playbackActive} data-synchronizing={synchronizing} data-roll-key={diceMoment?.rollKey ?? ''}/>
     {!playbackActive && input.view.actions.some(action => action.kind === 'blockDie') && <button id="required-choice">Required block choice</button>}
     <LivePitch view={pitchView} selectedId="" actions={[]} diceMoment={diceMoment} readOnly={!input.interactive}
+      movementDuration={playbackActive ? movementDuration : 0}
       decision={input.interactive ? matchDecision(input.view, input.view.actions) : null}
       onSelectPlayer={() => {}} onSquare={() => {}}/>
     <div id="dice-specimens">{['1','2','3','4','5','6','SKULL','BOTH DOWN','PUSHBACK','PUSHBACK','POW/PUSH','POW','unknown'].map((face,index) => <DiceFace key={index} face={face} selected={index===11}/>)}</div>

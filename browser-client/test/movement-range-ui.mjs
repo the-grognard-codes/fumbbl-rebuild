@@ -51,6 +51,13 @@ async function open(role, distant = false, hold = false) {
         this.emit({ version: 2, type: 'movementRange', code: 'ACCEPTED', requestId: request.requestId,
           matchId: request.matchId, range });
       }
+      advance(actor = this.state.actor) {
+        this.state = { ...this.state, actor, actions: actor === ready.actor ? ready.actions : [], revision: this.state.revision + 1 };
+        const revision = this.state.revision;
+        this.records.push({ index: revision, revision, kind: 'ACTION', actor: ready.actor, at: revision,
+          decision: {}, native: [], state: snapshot(this.state) });
+        this.emit({ version: 2, type: 'setupState', requestId: null, code: 'ACCEPTED', duplicate: false, state: this.state });
+      }
       send(raw) {
         const request = JSON.parse(raw); this.sent.push(request);
         if (window.replyToInitialMovementPreview(request,this.state,value=>this.emit(value))) return;
@@ -167,30 +174,101 @@ try {
     assert.deepEqual(errors, []); await page.close();
   }
 
-  // Superseded responses arrive after a new selection and after a disconnect.
+  // A slow range read must not fill the ordered server queue as selection changes.
   const stale = await open(fixture.meta.role, false, true);
   await select(stale.page, fixture.meta.opponentId);
   await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 1);
   await select(stale.page, fixture.meta.playerId);
-  await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 2);
-  await stale.page.evaluate(() => window.rangeSocket.range(window.rangeSocket.ranges[1]));
-  await waitRange(stale.page, fixture.meta.playerId, fixture.readyState.revision);
+  await stale.page.locator('.live-pitch-viewport').focus(); await stale.page.keyboard.press('Escape');
+  await select(stale.page, fixture.meta.opponentId);
+  await select(stale.page, fixture.meta.playerId);
+  await stale.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await ranges(stale.page), 1, 'Only one range read occupies the server queue; intermediate selections are discarded');
   await stale.page.evaluate(() => window.rangeSocket.range(window.rangeSocket.ranges[0]));
+  await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 2);
+  assert.equal(await stale.page.evaluate(() => window.rangeSocket.ranges[1].playerId), fixture.meta.playerId);
+  await stale.page.evaluate(() => window.rangeSocket.range(window.rangeSocket.ranges[1]));
   await waitRange(stale.page, fixture.meta.playerId, fixture.readyState.revision);
   await stale.page.locator('.live-pitch-viewport').focus(); await stale.page.keyboard.press('Escape');
   await select(stale.page, fixture.meta.opponentId);
   await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 3);
   await select(stale.page, fixture.meta.playerId);
-  await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 4);
-  await stale.page.evaluate(() => {
-    window.rangeSocket.range(window.rangeSocket.ranges[3]);
-    window.rangeSocket.emit({ version: 2, type: 'error', requestId: window.rangeSocket.ranges[2].requestId, code: 'STALE_REVISION' });
-  });
+  await stale.page.evaluate(() => window.rangeSocket.emit({ version: 2, type: 'error',
+    requestId: window.rangeSocket.ranges[2].requestId, code: 'STALE_REVISION' }));
   await waitRange(stale.page, fixture.meta.playerId, fixture.readyState.revision);
+  assert.equal(await ranges(stale.page), 3, 'A valid same-revision range is reused when reselected');
   assert.equal(await stale.page.getByRole('alert').count(), 0, 'A superseded range error does not interrupt the new selection');
+  await stale.page.locator('.live-pitch-viewport').focus(); await stale.page.keyboard.press('Escape');
+  await select(stale.page, fixture.meta.opponentId);
+  await stale.page.waitForFunction(() => window.rangeSocket.ranges.length === 4);
+  await select(stale.page, fixture.meta.playerId);
+  await stale.page.evaluate(() => window.rangeSocket.range(window.rangeSocket.ranges[3]));
+  await waitRange(stale.page, fixture.meta.playerId, fixture.readyState.revision);
+  assert.equal(await ranges(stale.page), 4, 'A superseded success also preserves the cached selection');
   await stale.page.evaluate(() => window.rangeSocket.close());
   await stale.page.locator('.live-movement-range').waitFor({ state: 'detached' });
   assert.deepEqual(stale.errors, []); await stale.page.close();
+
+  // The native trace also advanced revisions while a read waited on the server.
+  const advancing = await open(fixture.meta.role, false, true);
+  await select(advancing.page, fixture.meta.opponentId);
+  await advancing.page.waitForFunction(() => window.rangeSocket.ranges.length === 1);
+  for (let revision = fixture.readyState.revision + 1; revision <= fixture.readyState.revision + 2; revision++) {
+    await advancing.page.evaluate(() => window.rangeSocket.advance());
+    await advancing.page.waitForFunction(revision => {
+      const section = document.querySelector('[aria-label="Authoritative setup"]');
+      return Number(section?.dataset.revision) === revision && section.dataset.playbackActive === 'false';
+    }, revision);
+    await advancing.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  }
+  assert.equal(await ranges(advancing.page), 1, 'New revisions replace unsent ranges while the old read is outstanding');
+  await advancing.page.evaluate(() => window.rangeSocket.emit({ version: 2, type: 'error',
+    requestId: window.rangeSocket.ranges[0].requestId, code: 'STALE_REVISION' }));
+  await advancing.page.waitForFunction(() => window.rangeSocket.ranges.length === 2);
+  assert.equal(await advancing.page.evaluate(() => window.rangeSocket.ranges[1].expectedRevision), fixture.readyState.revision + 2);
+  await advancing.page.evaluate(() => window.rangeSocket.emit({ version: 2, type: 'error',
+    requestId: window.rangeSocket.ranges[1].requestId, code: 'SESSION_UNAVAILABLE' }));
+  await advancing.page.getByRole('alert').filter({ hasText: 'SESSION UNAVAILABLE' }).waitFor();
+  assert.deepEqual(advancing.errors, []); await advancing.page.close();
+
+  // A retained selection must not poll guidance throughout the computer's turn.
+  const computerTurn = await open(fixture.meta.role);
+  const opponentRole = fixture.meta.role === 'home' ? 'away' : 'home';
+  await select(computerTurn.page, fixture.meta.playerId);
+  await computerTurn.page.waitForFunction(() => window.rangeSocket.ranges.length === 1);
+  for (let revision = fixture.readyState.revision + 1; revision <= fixture.readyState.revision + 2; revision++) {
+    await computerTurn.page.evaluate(actor => window.rangeSocket.advance(actor), opponentRole);
+    await computerTurn.page.waitForFunction(revision => {
+      const section = document.querySelector('[aria-label="Authoritative setup"]');
+      return Number(section?.dataset.revision) === revision && section.dataset.playbackActive === 'false';
+    }, revision);
+    await computerTurn.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await ranges(computerTurn.page), 1, 'Opponent-owned revisions do not refresh the retained player selection');
+  }
+  await select(computerTurn.page, fixture.meta.playerId);
+  await computerTurn.page.waitForFunction(() => window.rangeSocket.ranges.length === 2);
+  assert.equal(await computerTurn.page.evaluate(() => window.rangeSocket.ranges.at(-1).expectedRevision), fixture.readyState.revision + 2,
+    'Explicitly reselecting the retained player refreshes its stale guidance');
+  await computerTurn.page.locator('.live-pitch-viewport').focus(); await computerTurn.page.keyboard.press('Escape');
+  await select(computerTurn.page, fixture.meta.opponentId);
+  await computerTurn.page.waitForFunction(() => window.rangeSocket.ranges.length === 3);
+  assert.equal(await computerTurn.page.evaluate(() => window.rangeSocket.ranges.at(-1).playerId), fixture.meta.opponentId,
+    'Explicit opponent inspection still requests authoritative guidance');
+  await computerTurn.page.evaluate(actor => window.rangeSocket.advance(actor), opponentRole);
+  await computerTurn.page.waitForFunction(revision => {
+    const section = document.querySelector('[aria-label="Authoritative setup"]');
+    return Number(section?.dataset.revision) === revision && section.dataset.playbackActive === 'false';
+  }, fixture.readyState.revision + 3);
+  await computerTurn.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal(await ranges(computerTurn.page), 3, 'An explicitly inspected opponent also does not start automatic polling');
+  await select(computerTurn.page, fixture.meta.playerId);
+  await computerTurn.page.waitForFunction(() => window.rangeSocket.ranges.length === 4);
+  await computerTurn.page.evaluate(actor => window.rangeSocket.advance(actor), fixture.meta.role);
+  await computerTurn.page.waitForFunction(() => window.rangeSocket.ranges.length === 5);
+  assert.equal(await computerTurn.page.evaluate(() => window.rangeSocket.ranges.at(-1).expectedRevision), fixture.readyState.revision + 4,
+    'Current guidance resumes automatically when the coach owns the turn');
+  assert.deepEqual(await mutations(computerTurn.page), []);
+  assert.deepEqual(computerTurn.errors, []); await computerTurn.page.close();
 
   for (const distant of [false, true]) {
     const plan = (distant ? fixture.distantMovePlan : fixture.movePlan).plan;

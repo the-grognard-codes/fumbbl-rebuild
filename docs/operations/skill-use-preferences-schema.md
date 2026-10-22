@@ -1,6 +1,7 @@
 # Account skill use preferences: schema 8
 
-The authenticated `/browser/v2` runtime requires schema marker **8**. Startup
+Schema marker **8** introduced account skill use preferences. Current builds also
+require [schema 9 for recovery journaling](recovery-journal-schema.md). Startup
 checks the marker, account preference table, columns, primary key, enum modes,
 approved use-case constraint and account foreign key without changing the database.
 Desktop and the legacy local v1 profile retain their existing schema contracts.

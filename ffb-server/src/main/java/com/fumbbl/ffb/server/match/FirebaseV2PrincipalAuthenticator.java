@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -9,13 +11,19 @@ import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 
 import java.sql.SQLException;
+import java.time.Clock;
+import java.util.function.LongSupplier;
 
 /**
  * Firebase Admin token verifier for the marker-6 authority. Revocation is checked while a bearer
  * first enters this boundary. Operation-time checks retain only expiry, provider identifiers and auth_time,
- * then use Firebase's non-secret account lifecycle state without retaining a bearer.
+ * then reuse a positive provider lifecycle check for at most five seconds without retaining a bearer.
+ * Expiration and local account/identity/scopes are checked on every operation.
  */
 public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthenticator {
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
+	private final FirebaseSessionVerification verification;
+	private final Clock clock;
 	private final FirebaseAuth auth;
 	private final String projectId;
 	private final V2PrincipalDirectory principals;
@@ -23,6 +31,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	public FirebaseV2PrincipalAuthenticator(String projectId, V2PrincipalDirectory principals) {
 		if (projectId == null || projectId.isEmpty() || principals == null) throw new IllegalArgumentException("project and principal directory are required");
 		this.projectId = projectId; this.principals = principals;
+		this.clock = Clock.systemUTC(); this.verification = new FirebaseSessionVerification(System::nanoTime);
 		try {
 			FirebaseOptions options = FirebaseOptions.builder().setCredentials(GoogleCredentials.getApplicationDefault()).setProjectId(projectId).build();
 			auth = FirebaseAuth.getInstance(FirebaseApp.initializeApp(options, "ffb-browser-v2-" + projectId));
@@ -30,11 +39,17 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	}
 
 	FirebaseV2PrincipalAuthenticator(FirebaseAuth auth, String projectId, V2PrincipalDirectory principals) {
+		this(auth, projectId, principals, Clock.systemUTC(), System::nanoTime);
+	}
+
+	FirebaseV2PrincipalAuthenticator(FirebaseAuth auth, String projectId, V2PrincipalDirectory principals, Clock clock, LongSupplier nanos) {
 		if (auth == null || projectId == null || projectId.isEmpty() || principals == null) throw new IllegalArgumentException("auth, project and principal directory are required");
 		this.auth = auth; this.projectId = projectId; this.principals = principals;
+		this.clock = clock; this.verification = new FirebaseSessionVerification(nanos);
 	}
 
 	@Override public AuthenticatedPrincipal authenticate(String bearer) throws Rejected {
+		long started = verification.begin();
 		FirebaseToken token;
 		try {
 			token = auth.verifyIdToken(bearer, true);
@@ -55,7 +70,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 			}
 			long expiration = ((Number) expires).longValue() * 1000L;
 			long authenticatedAt = ((Number) authenticationTime).longValue() * 1000L;
-			if (expiration <= System.currentTimeMillis() || authenticatedAt < 1 || authenticatedAt > expiration) {
+			if (expiration <= clock.millis() || authenticatedAt < 1 || authenticatedAt > expiration) {
 				diagnostic("time_claims", "rejected");
 				throw new Rejected();
 			}
@@ -67,7 +82,10 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 			throw new Rejected();
 		}
 		try {
-			return principals.authenticate(identity);
+			AuthenticatedPrincipal principal = principals.authenticate(identity);
+			if (principal == null || principal.expiresAtMillis() <= clock.millis()) throw new Rejected();
+			verification.remember(principal, started);
+			return principal;
 		} catch (SQLException failure) {
 			diagnostic("principal_directory_sql", "state_" + failure.getSQLState() + "_" + failure.getClass().getSimpleName());
 			throw new Rejected();
@@ -89,12 +107,24 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 
 	@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws Rejected {
 		try {
-			if (principal == null || !(("https://securetoken.google.com/" + projectId).equals(principal.issuer())) || principal.subject() == null || principal.authenticationTimeMillis() < 1) throw new Rejected();
-			UserRecord user = auth.getUser(principal.subject());
-			if (user == null || user.isDisabled() || user.getTokensValidAfterTimestamp() > principal.authenticationTimeMillis()) throw new Rejected();
-			return principals.reauthorize(principal);
-		} catch (Rejected rejected) { throw rejected;
-		} catch (Exception failure) { throw new Rejected(); }
+			if (principal == null || !(("https://securetoken.google.com/" + projectId).equals(principal.issuer())) || principal.subject() == null || principal.authenticationTimeMillis() < 1
+				|| principal.expiresAtMillis() <= clock.millis()) throw new Rejected();
+			long started = verification.begin();
+			boolean cached = verification.verified(principal);
+			if (!cached) {
+				UserRecord user;
+				try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.FIREBASE_LOOKUP)) {
+					user = auth.getUser(principal.subject());
+				}
+				if (user == null || user.isDisabled() || user.getTokensValidAfterTimestamp() > principal.authenticationTimeMillis()) throw new Rejected();
+			}
+			// Local account/identity lifecycle and scopes are still refreshed on every authorization call.
+			AuthenticatedPrincipal current = principals.reauthorize(principal);
+			if (current == null || principal.expiresAtMillis() <= clock.millis()) throw new Rejected();
+			if (!cached) verification.remember(principal, started);
+			return current;
+		} catch (Rejected rejected) { verification.forget(principal); throw rejected;
+		} catch (Exception failure) { verification.forget(principal); throw new Rejected(); }
 	}
 
 	/** Supplies a directory whose refresh checks Firebase lifecycle before local lifecycle and scope state. */

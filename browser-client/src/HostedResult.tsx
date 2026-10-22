@@ -100,7 +100,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment, diceSnapshot } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
   const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
   const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);
@@ -116,6 +116,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
       animateBlockMarkers={!skipAnimations}
+      movementDuration={playbackActive ? movementDuration : 0}
       onSelectPlayer={() => {}} onSquare={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/>
     <div className="replay-dugouts"><LiveDugouts players={pitchView.players} homeName={matchTeamName(pitchView, 'home')}
       awayName={matchTeamName(pitchView, 'away')} onSelect={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/></div>

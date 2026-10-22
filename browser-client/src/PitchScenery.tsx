@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { createContext, memo, useContext, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { PitchProjection, type PlaneMatrix, type WorldPoint } from './pitch-projection.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { stadiumPresentation, stadiumMotion, stadiumGeometry as geometry,
@@ -114,14 +114,22 @@ function GrassGround({camera,onError}:{camera:PitchProjection;onError:()=>void})
 
 /** Interchangeable League bowl and fixed participating-team sections share the pitch lens. */
 export function PitchScenery({camera,view,onError}:{camera:PitchProjection;view:SetupState;onError:()=>void}) {
-  const presentation=stadiumPresentation(view),[failed,setFailed]=useState<ReadonlySet<string>>(new Set()),reported=useRef(new Set<string>());
+  const presentation=stadiumPresentation(view);
+  return <Scenery camera={camera} venue={presentation.venue} home={presentation.home} away={presentation.away}
+    league={presentation.league} fallback={presentation.fallback} diagnostic={presentation.diagnostics.join('; ')} onError={onError}/>;
+}
+
+// Player positions and match revisions do not change the stadium. Keep the costly
+// projected surfaces mounted while retaining camera, theme and asset-failure updates.
+const Scenery=memo(function Scenery({camera,venue,home,away,league,fallback,diagnostic,onError}:{camera:PitchProjection;
+  venue:StadiumProfile;home:StadiumProfile;away:StadiumProfile;league:string|null|undefined;fallback:boolean;diagnostic:string;onError:()=>void}) {
+  const presentation={venue,home,away,league,fallback},[failed,setFailed]=useState<ReadonlySet<string>>(new Set()),reported=useRef(new Set<string>());
   const mark=(profile:StadiumProfile,source?:string)=>{
     const key=source?'jigsaw/'+source:profile.id;
     if(reported.current.has(key))return;reported.current.add(key);
     console.warn('Stadium art unavailable: '+(source?import.meta.env.BASE_URL+'assets/game/pitch/stadiums/jigsaw/'+source:atlasUrl(profile))+'; inspect assets:check. Only this file uses a fallback.');
     setFailed(previous=>new Set([...previous,key]));
   };
-  const diagnostic=presentation.diagnostics.join('; ');
   useEffect(()=>{if(diagnostic)console.warn(diagnostic+'. Add canonical stadium catalog mappings to supply this theme.');},[diagnostic]);
   const top=camera.unproject({x:camera.center.x,y:0}),bottom=camera.unproject({x:camera.center.x,y:camera.height});
   if(!top||!bottom)return null;
@@ -155,4 +163,4 @@ export function PitchScenery({camera,view,onError}:{camera:PitchProjection;view:
       {modules.map(module=>'jigsaw' in module?<JigsawSurface key={module.id} camera={camera} module={module} onError={mark} failed={failed.has('jigsaw/'+module.art.file)} gestureFailed={failed.has('jigsaw/'+module.gesture?.file)}/>:<Surface key={module.id} camera={camera} module={module}/>)}
     </div></CrowdGestureProvider>
   </div></AtlasFailures.Provider>;
-}
+});

@@ -89,10 +89,10 @@ public class LocalSchema {
 
 	private void initializeMarker6(DbConnectionManager manager) throws SQLException {
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			if (schemaVersion(statement) != 8) throw new SQLException("Skill-use startup requires a separately migrated schema version 8 database");
+			if (schemaVersion(statement) != 9) throw new SQLException("Recovery-journal startup requires a separately migrated schema version 9 database");
 			verifySavedTeams(connection);
 			verifyCompletedMatches(connection);
-			verifyRecovery(connection);
+			verifyRecovery(connection, true);
 			verifyMarker6(connection);
 		}
 	}
@@ -215,11 +215,16 @@ public class LocalSchema {
 	}
 
 	void verifyRecovery(Connection connection) throws SQLException {
+		verifyRecovery(connection, false);
+	}
+
+	void verifyRecovery(Connection connection, boolean journal) throws SQLException {
 		try (Statement statement = connection.createStatement()) {
 			try (ResultSet table = statement.executeQuery("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ffb_match_recovery'")) {
 				if (!table.next() || !"InnoDB".equalsIgnoreCase(table.getString(1)) || table.next()) throw new SQLException("Recovery table engine mismatch");
 			}
 			String[] expected = {"matchid|char(36)|NO|ascii|ascii_bin", "generation|bigint|NO|null|null", "artifact_json|longtext|NO|utf8mb4|utf8mb4_bin"};
+			if (journal) expected = new String[] {expected[0], expected[1], expected[2], "checkpoint_generation|bigint|NO|null|null"};
 			try (ResultSet columns = statement.executeQuery("SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,CHARACTER_SET_NAME,COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='ffb_match_recovery' ORDER BY ORDINAL_POSITION")) {
 				for (String column : expected) {
 					if (!columns.next()) throw new SQLException("Recovery columns missing");
@@ -237,7 +242,9 @@ public class LocalSchema {
 			try (ResultSet rows = statement.executeQuery("SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='ffb_match_recovery'")) {
 				while (rows.next()) checks.add(rows.getString(1).toLowerCase(java.util.Locale.ROOT).replaceAll("[\\s`()]+", ""));
 			}
-			if (!checks.equals(new HashSet<>(Arrays.asList("generation>0", "octet_lengthartifact_json<=33554432")))) throw new SQLException("Recovery constraint mismatch");
+			Set<String> expectedChecks = new HashSet<>(Arrays.asList("generation>0", "octet_lengthartifact_json<=33554432"));
+			if (journal) expectedChecks.add("checkpoint_generation>0andcheckpoint_generation<=generation");
+			if (!checks.equals(expectedChecks)) throw new SQLException("Recovery constraint mismatch");
 			try (ResultSet rows = statement.executeQuery("SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND EVENT_OBJECT_TABLE='ffb_match_recovery'")) {
 				if (!rows.next() || rows.getInt(1) != 0) throw new SQLException("Unexpected recovery trigger");
 			}

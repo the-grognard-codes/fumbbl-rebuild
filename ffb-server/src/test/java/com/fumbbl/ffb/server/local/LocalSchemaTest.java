@@ -146,15 +146,15 @@ class LocalSchemaTest {
 		ResultSet version = mock(ResultSet.class);
 		when(manager.openDbConnection()).thenReturn(connection); when(connection.createStatement()).thenReturn(statement);
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
-		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(8);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(9);
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection);
-		doNothing().when(schema).verifyRecovery(connection); doNothing().when(schema).verifyMarker6(connection);
+		doNothing().when(schema).verifyRecovery(connection, true); doNothing().when(schema).verifyMarker6(connection);
 
 		schema.initialize(manager, "unused", true);
 
 		verify(schema).verifySavedTeams(connection); verify(schema).verifyCompletedMatches(connection);
-		verify(schema).verifyRecovery(connection); verify(schema).verifyMarker6(connection);
+		verify(schema).verifyRecovery(connection, true); verify(schema).verifyMarker6(connection);
 		verify(statement, never()).executeUpdate(anyString()); verify(connection, never()).commit();
 	}
 

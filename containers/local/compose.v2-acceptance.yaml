@@ -29,7 +29,8 @@ services:
     ports: ["127.0.0.1:22235:22227"]
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
-      JAVA_TOOL_OPTIONS: "-Dffb.v2.auth.diagnostics=${ACCEPTANCE_AUTH_DIAGNOSTICS:-false}"
+      GOOGLE_CLOUD_QUOTA_PROJECT: dev-moles-under-the-pitch-org
+      JAVA_TOOL_OPTIONS: "-Dffb.v2.auth.diagnostics=${ACCEPTANCE_AUTH_DIAGNOSTICS:-false} -Dffb.browser.timing=${ACCEPTANCE_GAMEPLAY_TIMING:-false}"
     extra_hosts: ["host.docker.internal:host-gateway"]
     secrets: [db_password, admin_password, coach_password]
     volumes:

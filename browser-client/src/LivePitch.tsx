@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
@@ -113,7 +113,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
-  blockPreview = null, animateBlockMarkers = true,
+  blockPreview = null, animateBlockMarkers = true, movementDuration = 0,
   jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
@@ -125,7 +125,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   jumpOptions?: RouteStep[] | null;
   plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
-  blockPreview?: BlockContext | null; animateBlockMarkers?: boolean;
+  blockPreview?: BlockContext | null; animateBlockMarkers?: boolean; movementDuration?: number;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -150,13 +150,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [cursor, setCursor] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
+  const onBackgroundError = useCallback(() => setBackgroundFailed(true), []);
   const [failedArt, setFailedArt] = useState<Set<string>>(() => new Set());
   const onArtError = (url: string) => setFailedArt(current => current.has(url) ? current : new Set([...current, url]));
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
   const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
   const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
   const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
-  const camera = new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation });
+  const camera = useMemo(() => new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation }),
+    [size, travel, end, mode, zoom, perspectiveElevation]);
   const cameraRef = useRef(camera); cameraRef.current = camera;
   const [inspectedBlock, setInspectedBlock] = useState<{ revision: number; target: string } | null>(null);
   const committedBlocks = currentBlockContext(view);
@@ -173,8 +175,15 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const drag = useRef<{ x: number; y: number; pointerId: number; camera: PitchProjection; moved: boolean } | null>(null);
   useEffect(() => {
     const element = viewport.current!;
-    const observer = new ResizeObserver(([entry]) => setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) }));
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.max(1, entry.contentRect.width), height = Math.max(1, entry.contentRect.height);
+      setSize(previous => previous.width === width && previous.height === height ? previous : { width, height });
+    });
     observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const element = viewport.current!;
     const wheel = (event: WheelEvent) => {
       if (event.ctrlKey || !event.deltaY) return;
       event.preventDefault(); onBlurPlayer?.();
@@ -182,7 +191,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       setZoom(Math.max(.75, Math.min(3, zoomRef.current * Math.exp(-delta * .0015))));
     };
     element.addEventListener('wheel', wheel, { passive: false });
-    return () => { observer.disconnect(); element.removeEventListener('wheel', wheel); };
+    return () => element.removeEventListener('wheel', wheel);
   }, [onBlurPlayer, setZoom]);
   useEffect(() => {
     if (!prior.current || prior.current.matchId !== view.matchId || view.revision < prior.current.revision) setFacings({});
@@ -310,7 +319,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       <button type="button" disabled={!view.ball && activePlayer?.x == null} onClick={() => reveal(view.ball ? centerOf(view.ball) : activePlayer?.x != null && activePlayer.y != null ? centerOf({ x: activePlayer.x, y: activePlayer.y }) : null)}>Reveal ball / active</button>
       {showToolbar && <>{[1, 1.5, 2].map(value => <button key={value} type="button" aria-pressed={zoom === value} onClick={() => { setZoom(value); onBlurPlayer?.(); }}>{value === 1 ? 'Fit' : `${value}×`}</button>)}</>}
     </div>;
-  return <section className="live-pitch projected-pitch" aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
+  return <section className="live-pitch projected-pitch"
+    style={{ ['--pitch-move-duration' as string]: `${movementDuration}ms` }}
+    aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
     {debugOpen && (cameraControlsHost === undefined ? cameraControls : cameraControlsHost && createPortal(cameraControls, cameraControlsHost))}
     {passing && <div className="live-pass-legend" role="note" aria-label={passing.version === 2 ? passing.action === 'throwTeamMate' ? 'Throw Team Mate distances' : 'Kick Team Mate distances' : 'Passing distances'}>
       {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}
@@ -352,7 +363,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); } }}>
-        {!backgroundFailed && <PitchScenery camera={camera} view={view} onError={() => setBackgroundFailed(true)}/>}
+        {!backgroundFailed && <PitchScenery camera={camera} view={view} onError={onBackgroundError}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
           {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => {

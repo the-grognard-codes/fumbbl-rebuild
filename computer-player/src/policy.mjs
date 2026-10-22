@@ -36,7 +36,8 @@ function pick(items, random) {
 
 function setupDecision(state, setupVariant) {
   const role = state.callerRole;
-  const available = state.players.filter(player => player.role === role && !/knocked out|casualty|dead|sent off/i.test(player.state));
+  const available = state.players.filter(player => player.role === role && (player.offPitch === 'reserve' || player.offPitch === 'pitch'
+    || !player.offPitch && !/knocked out|casualty|dead|killed|injur|hurt|banned|sent off|prevented|missing|stunned/i.test(player.state)));
   const eligible = available.slice(0, 11);
   if (setupVariant > 0) {
     const reserveIndex = Math.floor((setupVariant - 1) / 11) + 11;

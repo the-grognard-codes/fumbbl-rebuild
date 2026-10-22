@@ -50,7 +50,7 @@ class Marker6SchemaTest {
 	void missingNamedTeamTableFailsClosedWithoutWriting() throws Exception {
 		Connection connection = mock(Connection.class); Statement statement = mock(Statement.class); ResultSet version = mock(ResultSet.class), table = mock(ResultSet.class);
 		when(connection.createStatement()).thenReturn(statement); when(statement.executeQuery(anyString())).thenReturn(version, table);
-		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(8); when(table.next()).thenReturn(false);
+		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(9); when(table.next()).thenReturn(false);
 
 		assertThrows(SQLException.class, () -> new Marker6Schema().verify(connection));
 

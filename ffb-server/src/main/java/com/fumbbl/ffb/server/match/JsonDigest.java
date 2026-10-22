@@ -21,9 +21,18 @@ final class JsonDigest {
 				@Override public void write(byte[] bytes, int offset, int length) { }
 			};
 			try (Writer writer = new OutputStreamWriter(new DigestOutputStream(sink, digest), StandardCharsets.UTF_8)) { value.writeTo(writer); }
-			char[] hex = new char[64]; int index = 0;
-			for (byte item : digest.digest()) { hex[index++] = Character.forDigit((item & 0xff) >>> 4, 16); hex[index++] = Character.forDigit(item & 0xf, 16); }
-			return new String(hex);
+			return hex(digest.digest());
 		} catch (IOException | NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+	}
+
+	String sha256(byte[] json) {
+		try { return hex(MessageDigest.getInstance("SHA-256").digest(json)); }
+		catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+	}
+
+	private String hex(byte[] bytes) {
+		char[] hex = new char[64]; int index = 0;
+		for (byte item : bytes) { hex[index++] = Character.forDigit((item & 0xff) >>> 4, 16); hex[index++] = Character.forDigit(item & 0xf, 16); }
+		return new String(hex);
 	}
 }

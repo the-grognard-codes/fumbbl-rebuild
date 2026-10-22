@@ -20,6 +20,8 @@ import java.util.List;
 public class GameLog implements IJsonSerializable {
 
 	private final List<ServerCommand> fServerCommands;
+	private List<String> recoveryCommands;
+	private long recoveryEpoch;
 
 	private transient int fLastCommitedCommandNr;
 	private final transient GameState fGameState;
@@ -84,6 +86,35 @@ public class GameLog implements IJsonSerializable {
 	public void clear() {
 		synchronized (fServerCommands) {
 			fServerCommands.clear();
+			if (recoveryCommands != null) recoveryCommands.clear();
+			recoveryEpoch++;
+		}
+	}
+
+	/** Browser recovery only: freeze new committed command JSON without changing live engine references. */
+	public JsonObject recoveryJsonFrom(int from) {
+		synchronized (fServerCommands) {
+			if (from < 0 || from > fServerCommands.size()) throw new IllegalArgumentException("Invalid recovery log cursor");
+			if (recoveryCommands == null) recoveryCommands = new ArrayList<>();
+			for (int index = recoveryCommands.size(); index < fServerCommands.size(); index++)
+				recoveryCommands.add(fServerCommands.get(index).toJsonValue().toString());
+			JsonArray tail = new JsonArray();
+			for (int index = from; index < recoveryCommands.size(); index++) tail.add(JsonObject.readFrom(recoveryCommands.get(index)));
+			return new JsonObject().add("commandArray", tail);
+		}
+	}
+
+	/** A reset invalidates append-only recovery cursors even when the replacement has the same length. */
+	public long recoveryEpoch() { synchronized (fServerCommands) { return recoveryEpoch; } }
+
+	/** Preserve the stored prefix verbatim after the caller has validated the native deserialization round trip. */
+	public void restoreRecoveryJson(JsonObject saved) {
+		synchronized (fServerCommands) {
+			JsonArray commands = saved.get("commandArray").asArray();
+			if (commands.size() != fServerCommands.size()) throw new IllegalArgumentException("Recovery log boundary mismatch");
+			recoveryCommands = new ArrayList<>(commands.size());
+			for (JsonValue command : commands) recoveryCommands.add(command.toString());
+			recoveryEpoch++;
 		}
 	}
 
@@ -113,7 +144,7 @@ public class GameLog implements IJsonSerializable {
 		NetCommandFactory netCommandFactory = new NetCommandFactory(fGameState.getServer().getFactorySource());
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
 		JsonArray commandArray = IJsonOption.COMMAND_ARRAY.getFrom(source, jsonObject);
-		fServerCommands.clear();
+		clear();
 		for (int i = 0; i < commandArray.size(); i++) {
 			ServerCommand serverCommand = (ServerCommand) netCommandFactory.forJsonValue(source, commandArray.get(i));
 			add(serverCommand);

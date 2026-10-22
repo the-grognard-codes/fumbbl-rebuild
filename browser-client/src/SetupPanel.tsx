@@ -217,6 +217,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
+  const [rangeInspection, setRangeInspection] = useState<{ playerId: string; matchId: string; revision: number } | null>(null);
   const [pitchZoom, setPitchZoom] = useState(1);
   const { opacity, changeOpacity } = useHudOpacity();
   const { preferences: threatPreferences } = useThreatPreferences();
@@ -257,7 +258,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const blurPlayer = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setHoverPlayer(null); };
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  const { pitchView, playbackActive, diceMoment } = usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable);
+  const { pitchView, playbackActive, diceMoment, synchronizing, movementDuration, beginProvisional } =
+    usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable, 1, 'live', requestPending);
   const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
   useLayoutEffect(() => {
@@ -299,8 +301,12 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
   // The authoritative endpoint must also have finished local playback. Draft
   // waypoints and the intermediate animated squares never request a new range.
+  // During the other coach's turn, inspect only on an explicit selection at
+  // this revision; a retained selection must not read every computer action.
   const rangePlayerId = hosted && connected && !requestPending && !suspended && !playbackActive
     && pitchView.revision === view.revision && view.phase === 'PLAY' && !decision && !kickoffMovement
+    && (view.actor === view.callerRole || rangeInspection?.playerId === playerId
+      && rangeInspection.matchId === view.matchId && rangeInspection.revision === view.revision)
     && view.callerRole !== 'spectator' && selectedPlayer?.x != null && selectedPlayer.y != null ? playerId : null;
   const rangeRequest = useRef(requestMovementRange); rangeRequest.current = requestMovementRange;
   useEffect(() => { rangeRequest.current?.(rangePlayerId); }, [rangePlayerId, view.matchId, view.revision]);
@@ -443,6 +449,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const selectPlayer = (id: string) => {
     if (jumpMode) return;
+    setRangeInspection({ playerId: id, matchId: view.matchId, revision: view.revision });
     if (canChoose && pinnedAction?.kind === 'multiBlock'
       && view.blockPreview?.multiple?.find(option => option.actionId === pinnedAction.id)?.context.blocks.some(block => block.targetPlayerId === id)) {
       setTargetPlayerId(id); setTargetFocus('player'); return;
@@ -721,6 +728,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (movementFlow && movementIntent) {
       if (movementReady && movementPlan) {
         retainConfirmedDice();
+        beginProvisional(movementPlan.route);
         mutate('movement', {
         playerId: movementIntent.playerId, kind: movementIntent.kind,
         targetPlayerId: movementIntent.targetPlayerId, waypoints: movementPlan.waypoints,
@@ -730,6 +738,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     }
     if (routeMode) {
       if (canRoute && routeReady && routePreview) {
+        beginProvisional(routePreview);
         if (smartIntent?.stage === 'routing') setSmartIntent(smartIntent.kind === 'move'
           ? null : { ...smartIntent, stage: 'moving', revision: view.revision });
         mutate('route', { playerId: routePreview.playerId, waypoints });
@@ -923,7 +932,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     {saved.status === 'ABANDONED' && <p role="alert">This match is retained as abandoned after 30 days without a completed save/resume or play action.</p>}
     </>}
   </section>;
-  return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined} style={{ ['--support-panel-opacity' as string]: `${opacity}%` }} onKeyDown={event => {
+  return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined}
+    data-revision={view.revision} data-presented-revision={pitchView.revision}
+    data-playback-active={playbackActive} data-request-pending={requestPending ?? ''}
+    data-dice-revision={!playbackActive && decision?.options.some(option => !!option.face) ? view.revision : visibleDiceMoment?.revision ?? ''}
+    style={{ ['--support-panel-opacity' as string]: `${opacity}%` }} onKeyDown={event => {
     if (!routeMode || (movementIntent ? !canChoose : !canRoute) || !(event.target instanceof HTMLElement) || !event.target.closest('.live-pitch') || event.target.closest('input,textarea,select,[contenteditable]')) return;
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -933,6 +946,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     }
   }}>
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
+      {synchronizing && <p className="setup-feedback" role="status">Synchronizing match…</p>}
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? `${matchTeamName(view, 'home')} / ${matchTeamName(view, 'away')}` : view.callerRole === 'home' ? `${matchTeamName(view, 'home')}: You / ${matchTeamName(view, 'away')}: Opponent` : `${matchTeamName(view, 'home')}: Opponent / ${matchTeamName(view, 'away')}: You`}</p>
       {hosted && <LiveMatchScoreboard view={view} endTurn={showEndTurn ? { onClick: useEndTurn, disabled: !canChoose } : undefined}/>}
       {hosted && gameStep && <div className="match-game-step" role="status" aria-label="Current game step" aria-live="polite">
@@ -1000,7 +1014,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       <p data-testid="setup-status" className={hosted ? 'match-technical-status' : undefined}>Revision {view.revision} · you are {view.callerRole === 'spectator' ? 'spectator' : matchTeamName(view, view.callerRole)} · decision owner {matchTeamName(view, view.actor)} · half {view.half}, drive {view.drive} · turns {matchTeamName(view, 'home')} {view.homeTurn}, {matchTeamName(view, 'away')} {view.awayTurn} · score {matchTeamName(view, 'home')} {view.homeScore}, {matchTeamName(view, 'away')} {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls {matchTeamName(view, 'home')} {view.homeRerolls}, {matchTeamName(view, 'away')} {view.awayRerolls}</p>
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
-      <LivePitch view={pitchView} selectedId={playerId} actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
+      <LivePitch view={pitchView} selectedId={playerId} movementDuration={playbackActive ? movementDuration : 0}
+        actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
         blockPreview={confirmedDice?.context ?? proposedBlocks}
         plannedTransfer={!playbackActive && movementReviewed && movementPlan && isBallTransfer(movementPlan.kind)
           ? { targetPlayerId: movementPlan.targetPlayerId!, from: movementPlan.route.steps.at(-1) ?? movementPlan.route.from } : null}

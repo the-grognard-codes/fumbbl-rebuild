@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { MovementRangeRead, matchesMovementRange } from '../src/movement-range-read.ts';
+import { MovementRangeQueue, MovementRangeRead, matchesMovementRange } from '../src/movement-range-read.ts';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import type { MovementRange } from '../src/movement-protocol.ts';
 
@@ -59,4 +59,45 @@ test('late errors are recognized as disposable reads without clearing a newer re
   assert.equal(read.isRead('old'), false);
   read.reset();
   assert.equal(read.isRead('new'), false);
+});
+
+test('queued guidance follows only the latest authoritative revision after a slow read settles', context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  let current = view;
+  const sent: { id: string; revision: number; playerId: string }[] = [];
+  const queue = new MovementRangeQueue(() => current, (state, playerId) => {
+    const id = `read-${sent.length}`;
+    sent.push({ id, revision: state.revision, playerId }); return id;
+  });
+  queue.select(view, player.id); context.mock.timers.tick(0);
+  for (let revision = view.revision + 1; revision <= view.revision + 3; revision++) {
+    current = { ...view, revision };
+    queue.invalidate(current); queue.select(current, player.id); context.mock.timers.tick(0);
+  }
+  assert.equal(sent.length, 1);
+  queue.finish('unrelated'); context.mock.timers.tick(0);
+  assert.equal(sent.length, 1);
+  queue.finish('read-0'); context.mock.timers.tick(0);
+  assert.deepEqual(sent.map(request => request.revision), [view.revision, view.revision + 3]);
+  queue.reset();
+});
+
+test('pending actions, cleared selections, newer snapshots and disconnect cancel unsent guidance', context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  let current: typeof view | null = view;
+  const sent: string[] = [];
+  const queue = new MovementRangeQueue(() => current, (_state, playerId) => { sent.push(playerId); return `${sent.length}`; });
+  queue.select(view, player.id); queue.select(view, null); context.mock.timers.tick(0);
+  assert.deepEqual(sent, []);
+  queue.select(view, player.id); current = null; context.mock.timers.tick(0);
+  assert.deepEqual(sent, []);
+  queue.select(view, player.id); current = { ...view, revision: view.revision + 1 }; context.mock.timers.tick(0);
+  assert.deepEqual(sent, []);
+  current = view;
+  queue.select(view, player.id); queue.reset(); context.mock.timers.tick(0);
+  assert.deepEqual(sent, []);
+  queue.select(view, player.id); context.mock.timers.tick(0);
+  queue.select(view, player.id); queue.finish('1'); context.mock.timers.tick(0);
+  assert.deepEqual(sent, [player.id], 'Reselecting the in-flight player needs no duplicate read');
+  queue.reset();
 });

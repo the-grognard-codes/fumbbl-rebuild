@@ -26,6 +26,10 @@ export function assertV2Projection(message: Record<string, unknown>) {
   const specific = typeof message.type === 'string' && Object.hasOwn(fields, message.type) ? fields[message.type] : null;
   if (!specific) throw Error('Unknown recipient projection');
   const allowed = ['version', 'type', 'requestId', ...specific];
+  if (message.type === 'authentication' && Object.hasOwn(message, 'liveTranscript')) {
+    if (message.liveTranscript !== true) throw Error('Invalid live transcript negotiation');
+    allowed.push('liveTranscript');
+  }
   if (message.type === 'setupState' && message.code === 'ILLEGAL_SETUP' && Object.hasOwn(message, 'setupErrors')) {
     if (!Array.isArray(message.setupErrors) || message.setupErrors.length > 32 || message.setupErrors.some(reason => typeof reason !== 'string' || !reason || reason.length > 1000))
       throw Error('Invalid setup diagnostics');

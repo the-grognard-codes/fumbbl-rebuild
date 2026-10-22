@@ -1,3 +1,4 @@
+import { observeGameplayPerformance, summarizeGameplayPerformance } from '../../browser-client/test/gameplay-performance-observer.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'node:http';
@@ -15,6 +16,196 @@ const base = { projectionVersion: 3, matchId, revision: 2, phase: 'SETUP', actor
   weather: 'Nice', homeRerolls: 2, awayRerolls: 2, actions: [{ id: 'next', label: 'End turn', actor: 'home', kind: 'endTurn', target: null }],
   turn: 0, turnMode: 'setup', ball: { x: 13, y: 7 }, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 async function openGrid(page) { await page.getByLabel('Live match pitch').waitFor({ timeout: 5000 }); }
+
+test('hosted history read queues before delayed mutation acknowledgement and survives rejection, duplicates and a history gap', async t => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined) });
+  try {
+    for (const outcome of ['accepted', 'rejected', 'duplicate', 'history-gap']) await t.test(outcome, async () => {
+      const context = await browser.newContext({ reducedMotion: 'reduce' });
+      const requests = [], errors = [];
+      let send, pendingMutation, prefetchedRead, fallbackRead;
+      const state = revision => ({ ...base, callerRole: 'home', revision, phase: 'PLAY', turnMode: 'REGULAR',
+        homeTurn: revision, players: base.players.map(player => player.id === 'p1' ? { ...player, x: 3 + revision } : player) });
+      const records = [0, 1].map(revision => ({ index: revision, revision, kind: revision ? 'ACTION' : 'START',
+        actor: revision ? 'home' : 'system', at: 1000 + revision,
+        decision: revision ? { operation: 'action', actionId: 'next' } : null,
+        native: revision ? [{ commandNr: 1, modelChangeList: { modelChangeArray: [
+          { modelChangeId: 'fieldModelSetPlayerCoordinate', modelChangeKey: 'p1', modelChangeValue: [4, 4] },
+        ] } }] : [], state: { ...state(revision), actions: [], prompt: null } }));
+      const replyHistory = (request, next) => send({ type: 'matchTranscript', requestId: request.requestId, code: 'ACCEPTED', matchId,
+        page: { formatVersion: 2, from: request.from, next, total: next, records: records.slice(request.from, next) } });
+      try {
+        await context.route('https://fonts.googleapis.com/**', route => route.abort());
+        await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+        await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>"synthetic-history-order"}));return()=>{};}' }));
+        await context.routeWebSocket('**/browser/v2', socket => {
+          send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+          socket.onMessage(raw => {
+            const request = JSON.parse(raw); requests.push(request);
+            if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[0] });
+            if (request.type === 'setup' && request.operation === 'load') send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state(0) });
+            if (request.type === 'setup' && request.operation === 'action') pendingMutation = request;
+            if (request.type === 'matchTranscript') {
+              if (!pendingMutation) replyHistory(request, 1);
+              else if (!prefetchedRead) prefetchedRead = request;
+              else fallbackRead = request;
+            }
+          });
+        });
+        const page = await context.newPage();
+        page.on('pageerror', error => errors.push(error.message));
+        await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
+        await openGrid(page);
+        await page.waitForFunction(() => document.querySelector('.hosted-match')?.dataset.playbackActive === 'false');
+        const endTurn = page.getByRole('button', { name: 'End Turn', exact: true });
+        await endTurn.click();
+        const deadline = Date.now() + 5000;
+        while (!prefetchedRead && Date.now() < deadline) await page.waitForTimeout(10);
+        assert.ok(prefetchedRead, 'History request must arrive while mutation acknowledgement is deliberately withheld');
+        assert.equal(prefetchedRead.from, 1, 'The prefetched read starts after the retained public history');
+        assert.ok(requests.indexOf(prefetchedRead) > requests.indexOf(pendingMutation), 'Same-socket order places history after the mutation');
+        assert.equal(await endTurn.isEnabled(), false, 'A history read never releases the pending mutation lock');
+        await page.keyboard.press('Enter');
+        assert.equal(requests.filter(request => request.type === 'setup' && request.operation === 'action').length, 1);
+        assert.equal(await page.locator('.live-marker[data-player-id="p1"]').getAttribute('data-x'), '3', 'No unconfirmed movement is invented');
+        const rejected = outcome === 'rejected';
+        send({ type: 'setupState', requestId: pendingMutation.requestId,
+          code: rejected ? 'ILLEGAL_PLACEMENT' : 'ACCEPTED', duplicate: outcome === 'duplicate', state: state(rejected ? 0 : 1) });
+        replyHistory(prefetchedRead, rejected || outcome === 'history-gap' ? 1 : 2);
+        if (outcome === 'history-gap') {
+          const gapDeadline = Date.now() + 5000;
+          while (!fallbackRead && Date.now() < gapDeadline) await page.waitForTimeout(10);
+          assert.ok(fallbackRead, 'An early empty page triggers a bounded matching-history catch-up read');
+          assert.equal(fallbackRead.from, 1);
+          assert.equal(await page.locator('.live-marker[data-player-id="p1"]').getAttribute('data-x'), '3');
+          replyHistory(fallbackRead, 2);
+        }
+        await page.waitForFunction(x => document.querySelector('.live-marker[data-player-id="p1"]')?.dataset.x === x, rejected ? '3' : '4');
+        await page.waitForFunction(() => document.querySelector('.hosted-match')?.dataset.requestPending === ''
+          && document.querySelector('.hosted-match')?.dataset.playbackActive === 'false');
+        assert.equal(await endTurn.isEnabled(), true, 'Definitive outcome and completed matching playback release the control');
+        assert.equal(requests.filter(request => request.type === 'setup' && request.operation === 'action').length, 1, 'Neither history nor duplicate acknowledgement resubmits a mutation');
+        assert.equal(requests.filter(request => request.type === 'matchTranscript').length, outcome === 'history-gap' ? 3 : 2);
+        assert.deepEqual(errors, []);
+      } finally { await context.close(); }
+    });
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
+
+test('hosted live history avoids normal synchronization pauses and preserves overlap and gap recovery', async t => {
+  const server = createServer(async (request, response) => {
+    const path = new URL(request.url, 'http://local').pathname;
+    if (path === '/firebase-web-config.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(configurationScript(resolveEnvironment(['--environment', 'local-dev']))); return; }
+    const file = resolve(root, `.${path === '/play/match' ? '/play/index.html' : path}`);
+    if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
+    try { response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream'); response.end(await readFile(file)); }
+    catch { response.writeHead(404).end(); }
+  });
+  await new Promise(done => server.listen(0, '127.0.0.1', done));
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+    || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined) });
+  try {
+    for (const outcome of ['actor', 'spectator', 'overlap', 'gap']) await t.test(outcome, async () => {
+      const context = await browser.newContext({ reducedMotion: 'reduce' });
+      const requests = [], errors = [];
+      let send, pendingMutation, heldRead;
+      const watch = outcome === 'spectator';
+      const state = revision => ({ ...base, callerRole: watch ? 'spectator' : 'home', revision, phase: 'PLAY',
+        turnMode: 'REGULAR', homeTurn: revision,
+        players: base.players.map(player => player.id === 'p1' ? { ...player, x: 3 + revision } : player) });
+      const records = [0, 1].map(revision => ({ index: revision, revision, kind: revision ? 'ACTION' : 'START',
+        actor: revision ? 'home' : 'system', at: 1000 + revision,
+        decision: revision ? { operation: 'action', actionId: 'next' } : null,
+        native: revision ? [{ commandNr: 1, reportList: { reports: [{ reportId: 'dodgeRoll', roll: 4, successful: true }] },
+          modelChangeList: { modelChangeArray: [{ modelChangeId: 'fieldModelSetPlayerCoordinate', modelChangeKey: 'p1', modelChangeValue: [4, 4] }] } }] : [],
+        state: { ...state(revision), callerRole: 'home', actions: [], prompt: null } }));
+      const history = (from, next, requestId = null) => send({ type: 'matchTranscript', requestId, code: 'ACCEPTED', matchId,
+        page: { formatVersion: 2, from, next, total: next, records: records.slice(from, next) } });
+      try {
+        await context.route('https://fonts.googleapis.com/**', route => route.abort());
+        await context.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
+        await context.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>"synthetic-live-history"}));return()=>{};}' }));
+        await context.routeWebSocket('**/browser/v2', socket => {
+          send = message => socket.send(JSON.stringify({ version: 2, ...message }));
+          socket.onMessage(raw => {
+            const request = JSON.parse(raw); requests.push(request);
+            if (request.type === 'authenticate') {
+              assert.equal(request.liveTranscript, true);
+              send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: accounts[0], liveTranscript: true });
+            }
+            if (request.type === 'setup' && request.operation === 'load' || request.type === 'watch') {
+              if (outcome !== 'overlap') history(0, 1);
+              send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state(0) });
+            }
+            if (request.type === 'setup' && request.operation === 'action') pendingMutation = request;
+            if (request.type === 'matchTranscript') heldRead = request;
+          });
+        });
+        const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
+        await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}${watch ? '&watch=1' : ''}`);
+        await openGrid(page);
+        await page.waitForFunction(() => document.querySelector('.hosted-match')?.dataset.playbackActive === 'false');
+        if (outcome === 'overlap') {
+          while (!heldRead) await page.waitForTimeout(10);
+          assert.equal(heldRead.from, 0);
+          history(0, 1);
+        }
+        await page.evaluate(() => {
+          window.liveHistorySyncCount = 0; let visible = false;
+          window.liveHistoryObserver = new MutationObserver(() => {
+            const next = [...document.querySelectorAll('.setup-feedback')].some(node => node.textContent === 'Synchronizing match…');
+            if (next && !visible) window.liveHistorySyncCount++;
+            visible = next;
+          });
+          window.liveHistoryObserver.observe(document.querySelector('.hosted-match'), { childList: true, subtree: true, characterData: true });
+        });
+        if (!watch) {
+          await page.getByRole('button', { name: 'End Turn', exact: true }).click();
+          const deadline = Date.now() + 5000;
+          while (!pendingMutation && Date.now() < deadline) await page.waitForTimeout(10);
+          assert.ok(pendingMutation);
+          assert.equal(requests.filter(request => request.type === 'matchTranscript').length, outcome === 'overlap' ? 1 : 0,
+            'Negotiated normal actions do not enqueue a second per-action history read');
+        }
+        if (outcome !== 'gap') {
+          history(1, 2);
+          if (!watch) {
+            assert.equal(await page.getByRole('button', { name: 'End Turn', exact: true }).isEnabled(), false,
+              'A live history push does not acknowledge the pending mutation');
+            assert.equal(await page.locator('.live-marker[data-player-id="p1"]').getAttribute('data-x'), '3');
+          }
+        }
+        send({ type: 'setupState', requestId: watch ? null : pendingMutation.requestId, code: 'ACCEPTED', duplicate: false, state: state(1) });
+        if (outcome === 'gap') {
+          const deadline = Date.now() + 5000;
+          while (!heldRead && Date.now() < deadline) await page.waitForTimeout(10);
+          assert.ok(heldRead, 'A missing push retains the paged recovery path');
+          assert.equal(heldRead.from, 1);
+          await page.getByText('Synchronizing match…', { exact: true }).waitFor();
+          history(1, 2, heldRead.requestId);
+        }
+        await page.waitForFunction(() => document.querySelector('.live-marker[data-player-id="p1"]')?.dataset.x === '4'
+          && document.querySelector('.hosted-match')?.dataset.playbackActive === 'false');
+        if (outcome === 'overlap') history(0, 1, heldRead.requestId);
+        await page.locator('.live-dice-overlay .match-die').waitFor();
+        await page.waitForTimeout(50);
+        const flashes = await page.evaluate(() => window.liveHistorySyncCount);
+        assert.equal(flashes, outcome === 'gap' ? 1 : 0, 'Complete live delivery never flashes Synchronizing match');
+        assert.equal(requests.filter(request => request.type === 'setup' && request.operation === 'action').length, watch ? 0 : 1);
+        assert.deepEqual(errors, []);
+      } finally { await context.close(); }
+    });
+  } finally { await browser.close(); await new Promise(done => server.close(done)); }
+});
 
 test('hosted native numeric results retain D8 and D16 types on the main pitch', async () => {
   const server = createServer(async (request, response) => {
@@ -422,4 +613,97 @@ test('two players and spectator use one board; updates, read-only controls and r
     await pages[2].waitForURL(`http://127.0.0.1:${server.address().port}/spectate`);
     await pages[2].getByRole('link', { name: 'Watch Home vs Away' }).waitFor();
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
+});
+
+async function waitForObserver(condition) {
+  const deadline = Date.now() + 5000;
+  while (!condition()) {
+    assert.ok(Date.now() < deadline, 'Expected observer evidence arrived within 5 seconds');
+    await new Promise(done => setTimeout(done, 10));
+  }
+}
+test('observer correlates wire data and changed DOM while ignoring stale dice', async () => {
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : undefined) });
+  try {
+    const context = await browser.newContext(), events = [], errors = [];
+    context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
+    // Controlled wire only exercises instrumentation, never used by acceptance.
+    await context.addInitScript(() => {
+      window.WebSocket = class extends EventTarget { send() {} };
+    });
+    await observeGameplayPerformance(context, 'home', events);
+    const page = await context.newPage();
+    await page.route('http://localhost:9876/**', route => route.fulfill({ contentType: 'text/html', body: '<html></html>' }));
+    await page.goto('http://localhost:9876/observer-test');
+    await page.evaluate(() => { document.body.innerHTML = '<section class="hosted-match" data-revision="1" data-dice-revision="1"><button class="live-marker" style="position:absolute;left:0;top:0" data-player-id="p" data-x="1" data-y="1">Player</button><div class="live-dice-overlay">Old dice</div></section>'; });
+    await page.evaluate(() => {
+      const socket = new WebSocket('ws://unused'); window.testSocket = socket;
+      const incoming = message => socket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) }));
+      incoming({ type: 'setupState', state: { phase: 'PLAY', revision: 1, actions: [{ id: 'move-a', kind: 'move' }] } });
+      document.querySelector('button').click();
+      socket.send(JSON.stringify({ type: 'setup', requestId: 'request-a', operation: 'action', actionId: 'move-a', expectedRevision: 1 }));
+      document.querySelector('section').dataset.requestPending = 'request-a';
+      document.querySelector('button').disabled = true;
+    });
+    await waitForObserver(() => events.some(event => Number.isFinite(event.pendingPaintAt)));
+    await page.evaluate(() => {
+      window.testSocket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setupState', requestId: 'request-a', code: 'ACCEPTED',
+        state: { phase: 'PLAY', revision: 2, players: [{ id: 'p', x: 2, y: 1 }], actions: [{ kind: 'blockDie', label: 'Choose POW (die 1)' }] } }) }));
+      document.querySelector('section').dataset.revision = '2';
+      document.querySelector('button').dataset.x = '2';
+    });
+    await waitForObserver(() => events.some(event => Number.isFinite(event.movementPaintAt)));
+    let trace = summarizeGameplayPerformance(events).traces[0];
+    assert.ok(trace.pendingDomAt >= trace.inputAt);
+    assert.ok(trace.feedbackDomAt >= trace.inputAt);
+    assert.equal(trace.feedbackKind, 'controlDisabled');
+    assert.ok(trace.movementDomAt >= trace.responseAt);
+    assert.equal(trace.diceDomAt, undefined, 'Old visible dice must not satisfy a new request');
+    assert.equal(trace.transcriptAt, undefined, 'State response is not transcript availability');
+    assert.equal(trace.diceDataAt, trace.responseAt, 'Authoritative block faces are available before transcript fetch');
+    assert.equal(trace.diceDataSource, 'stateAction');
+    await page.evaluate(() => {
+      window.testSocket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'matchTranscript', page: { records: [{ revision: 2, native: [] }] } }) }));
+      document.querySelector('section').dataset.diceRevision = '2';
+    });
+    await waitForObserver(() => events.some(event => Number.isFinite(event.dicePaintAt)));
+    trace = summarizeGameplayPerformance(events).traces[0];
+    assert.ok(trace.transcriptAt >= trace.responseAt);
+    assert.equal(trace.hasRoll, true);
+    assert.equal(trace.diceDataAt, trace.responseAt);
+    assert.ok(trace.dicePaintAt >= trace.diceDomAt);
+    assert.equal('initialMarkers' in trace, false);
+    assert.equal('expectedMoves' in trace, false);
+    assert.equal(JSON.stringify(events).includes('move-a'), false);
+    await page.evaluate(() => {
+      document.querySelector('button').disabled = false;
+      document.querySelector('button').click();
+      window.testSocket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'movementPreview', plan: {
+        route: { revision: 2, playerId: 'p', steps: [{ x: 3, y: 1 }, { x: 4, y: 1 }] } } }) }));
+      window.testSocket.send(JSON.stringify({ type: 'setup', requestId: 'request-b', operation: 'movement', playerId: 'p', kind: 'move', expectedRevision: 2 }));
+      document.querySelector('button').dataset.x = '3';
+      document.querySelector('button').style.transition = 'left 200ms linear';
+      document.querySelector('button').style.left = '100px';
+    });
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.evaluate(() => {
+      window.testSocket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setupState', requestId: 'request-b', code: 'ACCEPTED',
+        state: { phase: 'PLAY', revision: 3, players: [{ id: 'p', x: 4, y: 1 }], actions: [] } }) }));
+      document.querySelector('section').dataset.revision = '3';
+    });
+    await waitForObserver(() => events.some(event => event.requestId === 'request-b' && Number.isFinite(event.movementPaintAt)));
+    const provisional = summarizeGameplayPerformance(events).traces.find(item => item.requestId === 'request-b');
+    assert.ok(provisional.movementDomAt < provisional.responseAt, 'First queued-route movement includes motion before confirmation');
+    assert.equal(provisional.provisionalMovementObserved, true);
+    assert.ok(provisional.movementPaintAt >= provisional.movementDomAt);
+    await waitForObserver(() => events.filter(event => event.kind === 'motion').length >= 3);
+    const motion = summarizeGameplayPerformance(events).routeMotion[0];
+    assert.ok(new Set(motion.samples.map(sample => sample[1])).size > 1, 'rAF geometry captures interpolated travel separately from the committed target coordinate');
+    assert.ok(summarizeGameplayPerformance(events).traces.find(item => item.requestId === 'request-b').firstScreenMovementAt >= provisional.movementDomAt);
+    assert.equal(JSON.stringify(events).includes('geometryPlayerId'), false);
+    const beforeReload = summarizeGameplayPerformance(events).traces.length;
+    await page.reload();
+    assert.equal(summarizeGameplayPerformance(events).traces.length, beforeReload, 'Node collection survives navigation');
+    assert.deepEqual(errors, [], 'Instrumentation also initializes on non-secure blank/auth frames');
+  } finally { await browser.close(); }
 });

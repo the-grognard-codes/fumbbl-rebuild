@@ -1,10 +1,13 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+
 import java.sql.SQLException;
 import java.util.List;
 
 /** Authorization-before-read boundary for the separately versioned browser runtime. */
 public final class V2MatchAccess {
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	private final MatchMembershipRepository memberships;
 	private final V2PrincipalDirectory directory;
 	private final java.time.Clock clock;
@@ -51,10 +54,12 @@ public final class V2MatchAccess {
 	}
 
 	public AuthenticatedPrincipal require(AuthenticatedPrincipal principal, ApplicationScope scope) throws SQLException {
-		if (principal == null || principal.expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
-		try { principal = directory.reauthorize(principal); }
-		catch (V2PrincipalAuthenticator.Rejected rejected) { throw new MatchService.Failure("AUTHENTICATION_REQUIRED"); }
-		if (!principal.hasScope(scope)) throw new MatchService.Failure("AUTHORIZATION");
-		return principal;
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.AUTHORIZATION)) {
+			if (principal == null || principal.expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
+			try { principal = directory.reauthorize(principal); }
+			catch (V2PrincipalAuthenticator.Rejected rejected) { throw new MatchService.Failure("AUTHENTICATION_REQUIRED"); }
+			if (!principal.hasScope(scope)) throw new MatchService.Failure("AUTHORIZATION");
+			return principal;
+		}
 	}
 }

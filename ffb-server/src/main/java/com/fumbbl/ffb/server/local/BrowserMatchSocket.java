@@ -52,7 +52,7 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 	@OnWebSocketMessage
 	public void onText(String message) {
 		if (!active.get() || session == null || !session.isOpen()) return;
-		transport.submit(() -> {
+		transport.submit(message, () -> {
 			if (!active.get() || !session.isOpen()) return;
 			try {
 				adapter.receive(this, message);
@@ -89,6 +89,13 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 		if (!active.get()) return;
 		BrowserMatchDelivery activeDelivery = delivery;
 		if (activeDelivery != null) activeDelivery.send(message);
+	}
+
+	@Override
+	public void sendWithOptionalPredecessor(String optional, String mandatory) {
+		if (!active.get()) return;
+		BrowserMatchDelivery activeDelivery = delivery;
+		if (activeDelivery != null) activeDelivery.sendWithOptionalPredecessor(optional, mandatory);
 	}
 
 	@Override

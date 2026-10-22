@@ -54,7 +54,7 @@ function fixture({ running = true, consent = true } = {}) {
       assert.match(sql, /\nCOMMIT;$/);
       if (state.sqlFailure) throw Error('SQL_FAILED');
       for (const match of sql.matchAll(/DELETE FROM `([^`]+)`;/g)) {
-        assert.ok(games.includes(match[1]), 'only game data may be deleted');
+        assert.ok(games.includes(match[1]) || match[1] === 'ffb_match_recovery_journal', 'only game data may be deleted');
         rows[match[1]] = state.unexpectedRows ? '1' : '0';
       }
       if (state.retainedChanged) rows.ffb_v2_saved_teams = '0';
@@ -130,6 +130,21 @@ test('rejects wrong targets and unsupported schemas before stopping or deleting'
     assert.throws(() => f.invoke(true), /REQUIRED|MISMATCH|PRESENT/);
     assert.ok(f.operations.every(({ args, input }) => args[0] !== 'stop' && !input?.includes('DELETE')));
   }
+});
+
+test('marker nine requires journal inventory and clears it before its parent without changing preferences', () => {
+  const f = fixture(); f.state.marker = '9';
+  f.state.inventory += '\nffb_v2_skill_use_preferences\tInnoDB\nffb_match_recovery_journal\tInnoDB';
+  f.rows.ffb_v2_skill_use_preferences = '18'; f.rows.ffb_match_recovery_journal = '12';
+  const result = f.invoke(true);
+  assert.equal(result.ffb_match_recovery_journal, '0');
+  assert.equal(f.rows.ffb_v2_skill_use_preferences, '18');
+  const deletion = f.operations.find(({ input }) => input?.includes('DELETE FROM')).input;
+  assert.ok(deletion.indexOf('DELETE FROM `ffb_match_recovery_journal`') < deletion.indexOf('DELETE FROM `ffb_match_recovery`'));
+  const missing = fixture(); missing.state.marker = '9';
+  missing.state.inventory += '\nffb_v2_skill_use_preferences\tInnoDB';
+  assert.throws(() => missing.invoke(true), /REVIEW_TABLES_MISMATCH/);
+  assert.ok(missing.operations.every(({ args }) => args[0] !== 'stop'));
 });
 
 test('honors Docker endpoint precedence and rejects remote DOCKER_HOST before any inspection', () => {
