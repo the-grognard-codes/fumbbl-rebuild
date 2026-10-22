@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { observeStadiumMotion } from './stadium-motion-helper.mjs';
+import { mkdir } from 'node:fs/promises';
+import { assertPitchWithoutStadium } from './pitch-appearance-helper.mjs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 import { squarePosition, travelToFocus } from './projected-pitch-helper.mjs';
 import { resolvePlayerArt } from '../src/player-art.ts';
 import { PitchProjection } from '../src/pitch-projection.ts';
-import { jigsawCatalog } from '../src/generated-stadium-jigsaw.ts';
 
 // Rendering/input regression evidence only; full live acceptance uses real v2.
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
@@ -24,15 +23,14 @@ await server.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 const errors = [];
+const stadiumRequests = [];
 const evidence = process.env.PITCH_SCENE_EVIDENCE_DIR;
 if (evidence) await mkdir(evidence, { recursive: true });
 async function open(role, failArt = false, diceMoment = null, pitchOptions = {}) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 660 },
-    recordVideo: pitchOptions.recordMotion ? {dir:evidence+'/motion-video',size:{width:1280,height:660}} : undefined });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 660 } });
+  page.on('request', request => { if (request.url().includes('/pitch/stadiums/')) stadiumRequests.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  if (pitchOptions.failGesture) await page.route('**/jigsaw/'+jigsawCatalog.families.human.crowd.gesture.file, route => route.fulfill({ status: 404, body: '' }));
-  if (pitchOptions.failIntermediate) await page.route('**/jigsaw/'+jigsawCatalog.families.human.crowd.gesture.frames[0].file, route => route.fulfill({ status: 404, body: '' }));
-  if (pitchOptions.failStadium) await page.route('**/stadiums/**/*.png', route => route.fulfill({ status: 404, body: '' }));
+  if (pitchOptions.failTurf) await page.route('**/pitch/stadium-v1.png', route => route.fulfill({ status: 404, body: '' }));
   if (failArt) await page.route('**/poses/**/master/*.png', route => route.fulfill({ status: 404, body: '' }));
   await page.addInitScript(({ state, dice, actions, pinnedAction }) => { window.initial = state; window.initialDice = dice;
     window.initialActions = actions; window.initialPinnedAction = pinnedAction; window.intents = []; },
@@ -48,7 +46,7 @@ async function open(role, failArt = false, diceMoment = null, pitchOptions = {})
   await page.waitForFunction(() => [...document.querySelectorAll('.live-marker img')].every(image => image.complete));
   return page;
 }
-async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x: 12, y: 8 }) {
+async function assertProjectedBallAndPitch(page, role, mode, angle, ball = { x: 12, y: 8 }) {
   const scene = page.locator('.live-pitch-scene');
   if (await scene.locator('.live-ball-football').count()) {
     const tip = await scene.locator('.live-ball-football').evaluate(image => {
@@ -69,15 +67,13 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
       return { x: p.x / p.w, y: p.y / p.w };
     });
     const rect = highlight.getBoundingClientRect(), sceneRect = element.getBoundingClientRect();
-    const structure = element.querySelector('.pitch-stadium-structure');
     return { width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height),
       focus: Number(element.dataset.focus), transverseFocus: Number(element.dataset.transverseFocus),
       zoom: Number(element.dataset.zoom), center: { x: parseFloat(ball.style.left), y: parseFloat(ball.style.top) }, corners,
       bounds: { x: rect.x - sceneRect.x, y: rect.y - sceneRect.y, width: rect.width, height: rect.height },
       pointerEvents: getComputedStyle(ball).pointerEvents, rotations: Array.from(element.querySelectorAll('.live-ball-highlight animateTransform')).map(animation => ({
         from: animation.getAttribute('from'), to: animation.getAttribute('to'), duration: animation.getAttribute('dur'), mode: animation.getAttribute('calcMode') })),
-      arrowFill: getComputedStyle(element.querySelector('.live-ball-arrow')).fill,
-      structureDisplay: getComputedStyle(structure).display };
+      arrowFill: getComputedStyle(element.querySelector('.live-ball-arrow')).fill };
   });
   const camera = new PitchProjection({ width: rendered.width, height: rendered.height, focus: rendered.focus,
     transverseFocus: rendered.transverseFocus, zoom: rendered.zoom, end: role, mode,
@@ -101,12 +97,8 @@ async function assertProjectedBallAndStands(page, role, mode, angle, ball = { x:
     { from: '0 16 16', to: '-360 16 16', duration: '18s', mode: 'linear' },
   ]);
   assert.notEqual(rendered.arrowFill, 'none');
-  assert.equal(rendered.structureDisplay, 'block');
+  await assertPitchWithoutStadium(page);
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
-  for (const edge of ['north', 'south', 'home', 'away']) {
-    assert.equal(await scene.locator(`.pitch-stadium-crowd[data-stand-edge="${edge}"]`).evaluateAll(parts=>new Set(parts.map(p=>p.dataset.jigsawPiece)).size),edge==="north"||edge==="south"?2:3);
-
-  }
 }
 try {
   for (const role of ['home', 'away']) for (const carried of [false, true]) {
@@ -117,7 +109,7 @@ try {
     for (const angle of [30, 40, 50, 90]) {
       if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
       else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
-      await assertProjectedBallAndStands(page, role, angle === 90 ? 'top-down' : 'perspective', angle === 90 ? 40 : angle, { x: 12, y: 7 });
+      await assertProjectedBallAndPitch(page, role, angle === 90 ? 'top-down' : 'perspective', angle === 90 ? 40 : angle, { x: 12, y: 7 });
       if (evidence && [40,90].includes(angle)) await page.screenshot({ path: `${evidence}/ball-${role}-${carried ? 'carried' : 'occupied-loose'}-${angle}.png` });
     }
     await page.close();
@@ -130,9 +122,7 @@ try {
     assert.equal(await scene.locator('[data-cell-x]').count(), 390);
     assert.equal(await scene.locator('.live-ball-marker[data-ball-x="12"][data-ball-y="8"]').count(), 1);
     assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
-    assert.equal(await scene.locator('.pitch-stadium-crowd[data-jigsaw-piece]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.jigsawPiece)).size), 10);
-    assert.ok(await scene.locator('[data-crowd-team="home"]').count() > 0);
-    assert.ok(await scene.locator('[data-crowd-team="away"]').count() > 0);
+    await assertPitchWithoutStadium(page);
     assert.equal(await scene.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
     assert.equal(await scene.locator('[data-player-id="stunned"]').getAttribute('data-pose'), 'stunned');
     assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-pose'), role === 'home' ? 'back' : 'front');
@@ -315,27 +305,23 @@ try {
       assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'opposing team faces the other end zone');
       assert.equal(await setup.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
       assert.equal(await setup.locator('[data-player-id="stunned"]').getAttribute('data-pose'), 'stunned');
-      await assertProjectedBallAndStands(setup, role, 'perspective', angle);
+      await assertProjectedBallAndPitch(setup, role, 'perspective', angle);
       if (evidence) await setup.screenshot({ path: `${evidence}/setup-perspective-${angle}-${role}.png` });
     }
     if (role === 'home') {
-      const hiddenCrowd = await setup.addStyleTag({ content: '.pitch-stadium-crowd { display: none !important; }' });
-      assert.equal(await setup.locator('.pitch-stadium-crowd').first().evaluate(element => getComputedStyle(element).display), 'none');
-      assert.equal(await setup.locator('.pitch-stadium-structure').evaluate(element => getComputedStyle(element).display), 'block');
-      assert.equal(await setup.locator('.pitch-stadium-crowd[data-jigsaw-piece]').evaluateAll(rows=>new Set(rows.map(r=>r.dataset.jigsawPiece)).size), 10);
-      assert.equal(await setup.locator('.pitch-stadium-world image[href$="stadium-v1.png"]:not([data-grass-sample])').count(), 0, 'no unmasked spectator-bearing side-tile images remain');
-      assert.ok(await setup.locator('.pitch-stadium-world .pitch-stadium-turf').evaluateAll(images => images.length > 0 && images.every(image =>
-        image.classList.contains('pitch-stadium-turf') && getComputedStyle(image).clipPath.startsWith('polygon('))),
-      'every source painting is clipped to its turf region');
-      if (evidence) await setup.screenshot({ path: `${evidence}/stadium-crowd-hidden-50-home.png` });
-      await hiddenCrowd.evaluate(element => element.remove());
+      await assertPitchWithoutStadium(setup);
+      assert.equal(await setup.locator('.pitch-stadium-world image[href$="stadium-v1.png"]:not([data-grass-sample])').count(), 0,
+        'no unmasked spectator-bearing side-tile images remain');
+      assert.ok(await setup.locator('.pitch-stadium-turf').evaluateAll(images => images.length > 0 && images.every(image =>
+        getComputedStyle(image).clipPath.startsWith('polygon('))), 'every source painting is clipped to its turf region');
+
     }
     await setup.getByRole('button', { name: 'Top-down view', exact: true }).click();
     await setup.waitForFunction(expected => document.querySelector('[data-player-id="human"]').dataset.pose === expected,
       role === 'home' ? 'back' : 'front');
     assert.equal(await marker.getAttribute('data-pose'), role === 'home' ? 'back' : 'front', 'top-down standing art ignores movement facing');
     assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'top-down opposing art ignores movement facing');
-    await assertProjectedBallAndStands(setup, role, 'top-down', 50);
+    await assertProjectedBallAndPitch(setup, role, 'top-down', 50);
     await setup.emulateMedia({ reducedMotion: 'reduce' });
     assert.deepEqual(await setup.locator('.live-ball-outer, .live-ball-inner').evaluateAll(elements =>
       elements.map(element => getComputedStyle(element).animationName)), ['none', 'none']);
@@ -346,74 +332,37 @@ try {
   for (const [host,homeTeamArt,awayTeamArt] of [['human',humanArt,orcArt],['orc',orcArt,humanArt]]) for (const role of ['home','away']) {
     const page=await open(role,false,null,{homeTeamArt,awayTeamArt});
     await page.emulateMedia({reducedMotion:'reduce'});
-    await page.waitForFunction(() => [...document.querySelectorAll('.stadium-ambient')].every(element => element.getAnimations().length === 0));
-    const world=page.locator('.pitch-stadium-world');
-    assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
-    assert.equal(await world.getAttribute('data-stadium-fallback'),'false');
-    assert.ok(await world.locator('[data-stadium-role="bench"], [data-stadium-role="pavilion"]').evaluateAll(parts=>parts.every(p=>Number(p.dataset.worldBase)===0)),'furniture bases share field level with their locker room');
-    const seatMap=()=>page.locator('[data-seat]').evaluateAll(seats=>[...new Map(seats.map(seat=>[seat.dataset.jigsawPiece,[seat.dataset.jigsawPiece,seat.dataset.crowdTeam,seat.dataset.sectionX0,seat.dataset.sectionX1,seat.dataset.sectionY0,seat.dataset.sectionY1]])).values()].sort((a,b)=>a[0].localeCompare(b[0])));
-    const fixedSeats=await seatMap();
-    assert.equal(new Set(fixedSeats.map(seat=>seat[0])).size,fixedSeats.length);
-    for (const [team,profile] of [['home',host==='human'?'old-world-classic':'badlands-brawl'],['away',host==='human'?'badlands-brawl':'old-world-classic']]) {
-      const crowd=world.locator('.pitch-stadium-crowd[data-team="'+team+'"]');
-      assert.ok(await crowd.count()>0);
-      assert.ok(await crowd.evaluateAll((fans,profile)=>fans.every(fan=>fan.dataset.stadiumProfile===profile),profile));
-      assert.equal(await world.locator('[data-stadium-role="bench"][data-team="'+team+'"]').getAttribute('data-stadium-profile'),profile);
-    }
+    await assertPitchWithoutStadium(page);
+    await page.evaluate(() => { window.retainedTurf = document.querySelector('.pitch-stadium-turf'); });
+    await page.evaluate(() => window.updatePitchView({ ...window.initial, revision: window.initial.revision + 1,
+      players: window.initial.players.map(player => player.id === 'human' ? { ...player, x: 11 } : player) }));
+    await page.waitForFunction(() => document.querySelector('[data-player-id="human"]').dataset.x === '11');
+    assert.equal(await page.evaluate(() => document.querySelector('.pitch-stadium-turf') === window.retainedTurf), true,
+      'accepted player movement retains the existing turf nodes');
     for (const mode of [30,40,50,90]) {
       if(mode===90)await page.getByRole('button',{name:'Top-down view',exact:true}).click();
       else await page.getByLabel('Perspective angle',{exact:true}).selectOption(String(mode));
       for (const [position,focus] of [['near',role==='home'?1:25],['mid',13],['far',role==='home'?25:1]]) {
         await travelToFocus(page,focus);
         assert.equal(await page.locator('[data-cell-x]').count(),390);
-        assert.deepEqual(await seatMap(),fixedSeats,'camera changes preserve canonical supporter ownership');
-        assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
-        if(mode!==90&&position==='near') {
-          const near=world.locator('[data-jigsaw-piece="'+role+'-bank"]').filter({visible:true});
-          assert.equal(await near.count(),1,'near end bank stays rendered');
-          assert.equal(await near.getAttribute('data-crowd-pose'),'home','near crowd uses inward-looking backs');
-          assert.ok((await near.boundingBox()).height>100,'foreground bank has meaningful height');
-          assert.ok(await near.evaluate(bank=>[...bank.parentElement.children].indexOf(bank)>[...bank.parentElement.children].findIndex(e=>e.dataset.stadiumRole==='wall'&&e.dataset.standEdge===bank.dataset.standEdge)),
-            'near spectators draw over their retaining wall');
-        }
-        if(mode===90){
-          assert.equal(await world.locator('[data-seat][data-art-view="top-down"]').count(),10);
-          assert.ok(await world.locator('[data-seat] img[src$="'+jigsawCatalog.families.human.overhead.file+'"], [data-seat] img[src$="'+jigsawCatalog.families.orc.overhead.file+'"]').count()>0);
-          if(position!=='mid')assert.ok(await world.locator('[data-overhead-pennant="true"]').count()>0);
-          assert.equal(await world.locator('[data-stadium-role="pavilionTop"]').count(),1);
-          assert.equal(await world.locator('[data-stadium-role="benchTop"]').count(),2);
-          assert.equal(await world.locator('[data-stadium-role="pennant"]').count(),4);
-        }
+        await assertPitchWithoutStadium(page);
         if(evidence)await page.screenshot({path:evidence+'/stadium-'+host+'-'+role+'-'+mode+'-'+position+'.png'});
       }
     }
     await page.evaluate(()=>window.updatePitchView({...window.initial,revision:window.initial.revision+1,actor:'away',half:2,homeTurn:8,awayTurn:8,players:[]}));
     await page.waitForFunction(()=>document.querySelectorAll('[data-player-id]').length===0);
-    assert.deepEqual(await seatMap(),fixedSeats,'halftime, acting team and empty positions cannot change sections');
-    assert.equal(await world.getAttribute('data-stadium-league'),homeTeamArt.league);
+    await assertPitchWithoutStadium(page);
     await page.close();
   }
-  console.log('PASS: 48 Human/Orc hosting, coach-end, angle and camera-position cases retain stadium and supporter identities.');
-  const motionEvidence=[];
-  for(const host of ['human','orc']) {
-    const human={rosterId:'human',league:'Old World Classic'}, orc={rosterId:'orc',league:'Badlands Brawl'};
-    const page=await open('spectator',false,null,{homeTeamArt:host==='human'?human:orc,awayTeamArt:host==='human'?orc:human,recordMotion:Boolean(evidence)});
-    await page.getByLabel('Perspective angle',{exact:true}).selectOption('40');
-    await travelToFocus(page,6);
-    motionEvidence.push({host,...await observeStadiumMotion(page,evidence?5000:2400)});
-    await page.getByRole('button',{name:'Top-down view',exact:true}).click();
-    await page.emulateMedia({reducedMotion:'no-preference'});
-    motionEvidence.push({host,view:90,...await observeStadiumMotion(page,2400)});
-    if(evidence)await page.screenshot({path:evidence+'/stadium-'+host+'-reduced-motion.png'});
-    const video=page.video();await page.close();if(video)await video.saveAs(evidence+'/stadium-'+host+'-motion.webm');
-  }
-  if(evidence)await writeFile(evidence+'/stadium-motion.json',JSON.stringify({observations:motionEvidence,limits:'Short foreground headless Chrome observation; no sustained hardware-wide GPU claim.'},null,2));
-  console.log('PASS: section-local crowd gestures trigger randomly; base banks and ownership remain fixed; fire/flags stay subtle; reduced motion is static.');
+  console.log('PASS: 48 Human/Orc hosting, coach-end, angle and camera-position cases preserve the pitch without stadium or crowds.');
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();
   await readonly.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 90 });
   await readonly.getByRole('button', { name: 'Away coach view', exact: true }).click();
   assert.deepEqual(await readonly.evaluate(() => window.intents), []);
+  await assertPitchWithoutStadium(readonly);
+  await readonly.emulateMedia({ reducedMotion: 'reduce' });
+  await assertPitchWithoutStadium(readonly);
   await readonly.close();
   const kickAction = { id: 'kick:10:9', label: 'Kick to 10,9', kind: 'kickoff', actor: 'home', target: { x: 10, y: 9 } };
   const kickoff = await open('home', false, null, { phase: 'READY_FOR_KICKOFF', actions: [kickAction], pinnedAction: kickAction });
@@ -477,28 +426,14 @@ try {
   assert.ok(fallbackShadows.every(s => s.mode === 'token' && Math.abs(s.x) < .05 && Math.abs(s.y) < .05), 'Missing-art tokens retain centered shadows in top-down view');
   await missing.close();
   assert.deepEqual(errors, []);
-  const missingGesture = await open('home',false,null,{failGesture:true,homeTeamArt:humanArt,awayTeamArt:orcArt});
-  await missingGesture.waitForFunction(file=>document.querySelector('[data-jigsaw-piece] img[src$="'+file+'"]')?.complete,jigsawCatalog.families.human.crowd.file);
-  await missingGesture.locator('[data-gesture-failed="true"]').first().waitFor({state:'attached'});
-  assert.equal(await missingGesture.locator('img[src$="'+jigsawCatalog.families.human.crowd.gesture.file+'"]').count(),0,'failed overlay is disabled');
-  assert.equal(await missingGesture.locator('[data-art-fallback]').count(),0,'optional gestures cannot hide healthy architecture, props or base crowds');
-  assert.ok(await missingGesture.locator('img[src$="'+jigsawCatalog.families.human.crowd.file+'"]').count()>0);
-  assert.ok(await missingGesture.locator('img[src$="human-walls-v1.png"]').count()>0);
-  assert.equal(await missingGesture.locator('[data-cell-x]').count(),390);
-  await missingGesture.locator('[data-player-id="human"]').click();
-  assert.deepEqual(await missingGesture.evaluate(()=>window.intents),[{player:'human'}]);
-  await missingGesture.close();
-  const missingIntermediate=await open('home',false,null,{failIntermediate:true,homeTeamArt:humanArt,awayTeamArt:orcArt});
-  await missingIntermediate.waitForFunction(file=>!document.querySelector('img[src$="'+file+'"]'),jigsawCatalog.families.human.crowd.gesture.frames[0].file);
-  assert.ok(await missingIntermediate.locator('img[src$="'+jigsawCatalog.families.human.crowd.gesture.file+'"]').count()>0,'missing middle frame retains the healthy peak gesture');
-  assert.equal(await missingIntermediate.locator('[data-art-fallback]').count(),0);
-  assert.equal(await missingIntermediate.locator('[data-cell-x]').count(),390);
-  await missingIntermediate.close();
-  const missingStadium = await open('home',false,null,{failStadium:true});
-  await missingStadium.locator('[data-art-fallback="wall"]').first().waitFor({state:'attached'});
-  assert.ok(await missingStadium.locator('.pitch-stadium-turf').count() > 0,'failed optional atlas retains healthy turf');
-  assert.equal(await missingStadium.locator('[data-cell-x]').count(),390,'failed atlas preserves playable squares');
-  assert.ok(await missingStadium.locator('.pitch-stadium-structure').count() > 0);
-  await missingStadium.close();
+  const missingTurf = await open('home',false,null,{failTurf:true});
+  await missingTurf.getByText('Pitch texture unavailable; plain field shown.', { exact: true }).waitFor();
+  assert.equal(await missingTurf.locator('[data-cell-x]').count(),390,'missing turf preserves playable squares');
+  assert.equal(await missingTurf.locator('.pitch-stadium-world').count(),0,'missing turf uses the plain pitch fallback');
+  await missingTurf.locator('[data-player-id="human"]').click();
+  assert.deepEqual(await missingTurf.evaluate(() => window.intents), [{ player: 'human' }]);
+  await missingTurf.close();
+  assert.deepEqual(stadiumRequests, [], 'no stadium or crowd atlases are requested');
+  assert.deepEqual(errors, []);
   console.log('PASS: both coach ends preserve canonical intents, bounded 30° scenery, player anchors/shadows, right-pan and wheel zoom, centered dice, kickoff targeting, and unavailable-art fallback.');
 } finally { if (errors.length) console.error(errors); await browser.close(); await server.close(); }

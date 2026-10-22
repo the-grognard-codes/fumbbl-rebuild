@@ -363,7 +363,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); } }}>
-        {!backgroundFailed && <PitchScenery camera={camera} view={view} onError={onBackgroundError}/>}
+        {!backgroundFailed && <PitchScenery camera={camera} onError={onBackgroundError}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
           {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => {
@@ -500,7 +500,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           attackerRole={activePlayer?.role} chooserRole={view.callerRole === 'spectator' ? undefined : view.callerRole}
           disabled={decisionDisabled} viewport={viewport} onAction={onDecisionAction}
           onInspectTarget={target => setInspectedBlock(target ? {revision: view.revision, target} : null)}/>
-        {backgroundFailed && <span className="live-pitch-error">Stadium image unavailable; plain field shown.</span>}
+        {backgroundFailed && <span className="live-pitch-error">Pitch texture unavailable; plain field shown.</span>}
       </div>
     </div>
     {routePreview && <ol className="sr-only" aria-label="Planned route">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}</li>)}</ol>}
