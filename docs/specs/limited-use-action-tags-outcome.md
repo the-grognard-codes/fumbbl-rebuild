@@ -48,3 +48,9 @@ The feature had never been integrated beyond its approved mockup. Added native o
 Refresh http://localhost:5000/play and use a fresh turn or new match. Existing actions performed before the feature was installed have no ownership metadata and do not gain retroactive tags. Old-game compatibility/migration was intentionally not implemented, and no user games or database volumes were deleted.
 
 Manual review on physical Android and Linux desktop browsers remains available to the user; automated browser runs used Windows Chrome, mobile viewport checks and the existing Android touch profile. The server build/tests ran in Linux containers. An authenticated manual game with the new feature has not been played on the user's behalf.
+
+## PR validation follow-up
+
+PR #343's first CI run caught five native golden fixtures that still expected player snapshots without tags. Regenerated adr0003-dice, adr0003-pass-ranges, adr0003-pass-workflow, adr0003-reroll-accounting and adr0003-reroll-choices from the real Linux engine. A recursive comparison proved the only changes were 222 expected limitedAction additions; dice, choices, sequencing, turn data and recovery content were unchanged.
+
+Strict rerun of DiceProjectionTest, RerollAccountingTest, RerollChoicesTest, PassRangeProjectionTest and PassWorkflowTest passed all eight methods. Browser units passed all 378 tests again. The eight affected browser journeys also passed: apothecary-decision-ui, dice-ui, pass-ranges-ui, pass-workflow-ui, playback-ui, provisional-movement-ui, reroll-accounting-ui and reroll-choices-ui. Product code was unchanged by this follow-up.
