@@ -63,6 +63,7 @@ public interface IJsonOption {
 	JsonObjectOption BLITZ_TURN_STATE = new JsonObjectOption("blitzTurnState");
 	JsonBooleanOption BLITZ_USED = new JsonBooleanOption("blitzUsed");
 	JsonStringOption BLITZING_PLAYER_ID = new JsonStringOption("blitzingPlayerId");
+	JsonObjectOption LIMITED_ACTIONS = new JsonObjectOption("limitedActions");
 	JsonIntOption BLOCK_DIE_INDEX = new JsonIntOption("blockDieIndex");
 	JsonIntArrayOption BLOCK_DICE_INDEXES = new JsonIntArrayOption("blockDiceIndexes");
 	JsonStringOption BLOCK_KIND = new JsonStringOption("blockKind");

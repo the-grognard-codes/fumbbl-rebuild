@@ -549,6 +549,12 @@ public final class MatchJson {
 						shortText(player.get("positionRace")); shortText(player.get("positionRole"));
 					}
 					if (player.get("skillMarkers") != null) fields.add("skillMarkers");
+					if (player.get("limitedAction") != null) {
+						fields.add("limitedAction");
+						if (!Arrays.asList("blitz", "pass", "handOff", "foul", "bomb", "throwMate", "kickMate", "punt", "secure")
+							.contains(player.get("limitedAction").asString()) || player.get("x").isNull()
+							|| !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
+					}
 					exact(player, fields.toArray(new String[0]));
 					bounded(player.get("number"), 1, 99); shortText(player.get("position"));
 					for (String stat : Arrays.asList("ma", "st", "ag", "pa", "av")) bounded(player.get(stat), 0, 30);

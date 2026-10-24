@@ -30,6 +30,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
   try {
     const page = await browser.newPage({ viewport: { width: 1224, height: 800 } });
     page.setDefaultTimeout(5000);
+    page.setDefaultNavigationTimeout(30000);
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js', route => route.fulfill({ contentType: 'text/javascript', body:
       'export function initializeApp(config){window.__initializations=(window.__initializations||0)+1;return {config};}' }));
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: `

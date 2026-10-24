@@ -158,6 +158,9 @@ try {
       await select(selection.page, player.id);
       await selection.page.waitForFunction(id => document.querySelector(`.live-selection-square[data-selection="${id}"]`), player.id);
       await assertNoMovementMarkings(selection.page);
+      // Range reads are queued after the selection's React commit.
+      await selection.page.waitForFunction(id => window.testSocket.sent.some(request => request.type === 'movementRange'
+        && request.playerId === id), player.id);
       assert.ok(await selection.page.evaluate(id => window.testSocket.sent.some(request => request.type === 'movementRange'
         && request.playerId === id), player.id), 'Either coach requests a read-only range, including off-turn');
       assert.deepEqual(await mutations(selection.page), [], 'Selection does not activate a player');

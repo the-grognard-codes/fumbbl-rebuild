@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
+import { idleWorkerExitCode } from './worker-lifecycle.mjs';
 
 const url = option('--url');
 const origin = option('--origin');
@@ -11,11 +12,13 @@ const tokenFile = option('--service-token-file', false);
 // The server admits sixteen sockets total, including coaches, spectators and this dispatcher.
 const maxMatches = Number(option('--max-matches', false) ?? 4);
 const refreshMs = Number(option('--refresh-ms', false) ?? 30000);
+const idleTimeoutMs = Number(option('--idle-timeout-ms', false) ?? 15000);
 if (!url || !origin || !['ws:', 'wss:'].includes(new URL(url).protocol)
   || new URL(url).pathname !== '/browser/v2' || new URL(url).search || new URL(url).hash
   || !/^https?:\/\/[^/]+$/.test(origin) || (!tokenFile && !process.env.FFB_COMPUTER_SERVICE_TOKEN)
   || !Number.isInteger(maxMatches) || maxMatches < 1 || maxMatches > 64
-  || !Number.isInteger(refreshMs) || refreshMs < 1000 || refreshMs > 300000) {
+  || !Number.isInteger(refreshMs) || refreshMs < 1000 || refreshMs > 300000
+  || !Number.isInteger(idleTimeoutMs) || idleTimeoutMs < 100 || idleTimeoutMs > 300000) {
   console.error('Usage: node src/daemon.mjs --url <ws(s)://host/browser/v2> --origin <allowed origin> --service-token-file <path> [--max-matches 4] [--refresh-ms 30000]');
   process.exit(2);
 }
@@ -59,7 +62,7 @@ function startQueued() {
     if (children.has(matchId) || completed.has(matchId)
       || (failures.get(matchId)?.retryAt ?? 0) > Date.now()) continue;
     const args = [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--match', matchId,
-      '--url', url, '--origin', origin];
+      '--url', url, '--origin', origin, '--idle-timeout-ms', String(idleTimeoutMs)];
     if (tokenFile) args.push('--service-token-file', tokenFile);
     const child = spawn(process.execPath, args, { stdio: 'inherit', env: process.env, windowsHide: true });
     children.set(matchId, child);
@@ -72,7 +75,11 @@ function startQueued() {
     child.once('exit', code => {
       if (children.get(matchId) !== child) return;
       children.delete(matchId);
-      if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
+      if (code === idleWorkerExitCode && !stopped) {
+        failures.delete(matchId);
+        queued.add(matchId);
+        log(`Match ${matchId} yielded its idle worker; queued for a fresh state load.`);
+      } else if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
       else if (code === 0) { completed.add(matchId); failures.delete(matchId); log(`Match ${matchId} completed.`); }
       startQueued();
     });

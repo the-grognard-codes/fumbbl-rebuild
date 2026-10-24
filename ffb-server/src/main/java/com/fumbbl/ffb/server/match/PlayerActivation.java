@@ -68,6 +68,7 @@ final class PlayerActivation {
             PlayerAction previousAction = game.getActingPlayer().getPlayerAction();
             TurnData turn = game.getTurnData();
             int turnNr = turn.getTurnNr();
+            long actionWindow = turn.getActionWindow();
             ClientCommand end = game.getTurnMode() == TurnMode.SELECT_BLITZ_TARGET
                 ? new ClientCommandTargetSelected(previous.getId()) : new ClientCommandActingPlayer(null, null, false);
             state.handleCommand(new ReceivedCommand(end, home));
@@ -76,9 +77,9 @@ final class PlayerActivation {
             if (game.getActingPlayer().getPlayer() == null
                 && game.getDialogParameter() instanceof DialogSelectBlitzTargetParameter)
                 UtilServerDialog.hideDialog(state);
-            if (game.getTurnData() != turn || turn.getTurnNr() != turnNr) return true;
+            if (game.getTurnData() != turn || turn.getTurnNr() != turnNr || turn.getActionWindow() != actionWindow) return true;
             // Native selection may undo an unperformed action. A browser declaration is already committed.
-            consume(turn, previousAction);
+            consume(turn, previous.getId(), previousAction);
             game.getFieldModel().setPlayerState(previous,
                 game.getFieldModel().getPlayerState(previous).changeActive(false));
             // End-of-activation skill decisions must resolve before another player can start.
@@ -87,6 +88,7 @@ final class PlayerActivation {
         }
         TurnData turn = game.getTurnData();
         int turnNr = turn.getTurnNr();
+        long actionWindow = turn.getActionWindow();
         ClientCommand nativeCommand = requested == PlayerAction.HAIL_MARY_PASS
             ? new ClientCommandActingPlayer(nextId, PlayerAction.PASS_MOVE, declaration.isJumping())
             : requested == PlayerAction.HAIL_MARY_BOMB
@@ -97,14 +99,15 @@ final class PlayerActivation {
             if (requested == PlayerAction.HAIL_MARY_BOMB) acting.setPlayerAction(requested);
             UtilServerGame.syncGameModel(state, null, null, null);
         }
-        if (nextId != null && game.getTurnData() == turn && turn.getTurnNr() == turnNr)
-            consume(turn, declaration.getPlayerAction());
+        if (nextId != null && game.getTurnData() == turn && turn.getTurnNr() == turnNr && turn.getActionWindow() == actionWindow)
+            consume(turn, nextId, declaration.getPlayerAction());
         return true;
     }
 
-    private void consume(TurnData turn, PlayerAction action) {
+    private void consume(TurnData turn, String playerId, PlayerAction action) {
         action = limitedAction(action);
         if (action == null) return;
+        turn.recordLimitedAction(playerId, action);
         if (action.isBlitzing()) turn.setBlitzUsed(true);
         switch (action) {
             case PASS:
@@ -143,7 +146,7 @@ final class PlayerActivation {
 
     private PlayerAction limitedAction(PlayerAction action) {
         if (action == null) return null;
-        if (action.isBlitzing()) return PlayerAction.BLITZ_MOVE;
+        if (action.isBlitzing() || action == PlayerAction.STAND_UP_BLITZ) return PlayerAction.BLITZ_MOVE;
         if (action.getDelegate() != null) action = action.getDelegate();
         switch (action) {
             case PASS: case PASS_MOVE: case HAIL_MARY_PASS: return PlayerAction.PASS;

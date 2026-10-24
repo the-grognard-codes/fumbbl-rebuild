@@ -28,7 +28,8 @@ const publish = async next => {
 };
 const sent = id => [{ operation: 'action', fields: { actionId: id } }];
 try {
-  await page.clock.install();
+  await page.clock.install({ time: reaction.serverNow });
+  await page.clock.pauseAt(reaction.serverNow + 60_000);
   await page.addInitScript(state => { window.hudState = state; window.hudIntents = []; window.hudMessages = []; }, state);
   await page.route('**/reaction-test', route => route.fulfill({ contentType: 'text/html', body:
     '<style>html,body{margin:0;background:#101c2b}</style><main id="app" class="play-runtime live-match-page"></main><script type="module" src="/test/coach-hud-harness.tsx"></script>' }));
@@ -37,6 +38,7 @@ try {
   const timer = page.getByRole('timer', { name: 'Reaction time remaining' });
   assert.equal(await timer.textContent().then(text => text.trim()), '30s remaining');
   assert.equal(await page.getByText(reaction.detail, { exact: true }).isVisible(), true);
+  await page.clock.resume();
   await page.clock.runFor(2100);
   assert.match(await timer.textContent(), /28s remaining/);
   await publish({ ...state, revision: state.revision + 1 });
