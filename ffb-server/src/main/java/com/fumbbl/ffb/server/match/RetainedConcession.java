@@ -71,6 +71,7 @@ final class RetainedConcession {
             .set("activePlayerId", JsonValue.NULL).set("homeScore", "home".equals(role) ? 0 : Math.max(2, view("home").getInt("homeScore", 0)))
             .set("awayScore", "away".equals(role) ? 0 : Math.max(2, view("home").getInt("awayScore", 0)));
           for (String field : Arrays.asList("passing", "blockPreview", "kickoff", "driveTracker", "playerActionMenu", "kickPreview", "activePlayerAction")) terminal.remove(field);
+          for (JsonValue player : terminal.get("players").asArray()) player.asObject().remove("limitedAction");
           events.add(new JsonObject().add("revision", revision + 1).add("kind", "FULL_TIME").add("state", terminal));
         }
         boolean transcript = payload.get("transcript") != null;

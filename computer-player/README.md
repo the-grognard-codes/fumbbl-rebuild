@@ -30,6 +30,16 @@ For hosted DEV use `wss://game-dev.molesunderthepitch.org/browser/v2` and Origin
 
 The daemon registers for computer work and starts a separate game client for each activated computer match. Each worker reads its coach identity from the server; no separate daemon is needed for Bogruk. It defaults to four concurrent clients, matching hosted DEV/PROD and leaving browser capacity within the server's sixteen-connection limit. Local startup also explicitly selects four. `--max-matches N` overrides the worker limit (1 to 64); account for the dispatcher and browsers when configuring it. Additional matches wait in a queue. Every 30 seconds the daemon refreshes the server's active match list, recovering missed notices and checking that its connection is still healthy. A failed game client is retried while its match remains active, with a delay that grows to at most five minutes; `--refresh-ms N` changes the refresh interval (1,000 to 300,000 milliseconds).
 
+A worker waiting on a human team turn yields its slot after 15 seconds, so old unfinished
+matches cannot indefinitely block the computer's opening choice in a new match. The daemon
+returns that match to the tail of the queue without failure backoff or marking it complete.
+Its next worker reloads authoritative state before choosing an action. Own team turns,
+computer-owned prompts/reactions, and unanswered gameplay requests are never evicted by
+the idle lease. The four-worker bound stays in place; idle matches are periodically
+revisited rather than retaining a socket forever. `--idle-timeout-ms N` adjusts the lease
+(100 to 300,000 milliseconds). Direct single-match clients keep their connection unless
+this option is explicitly supplied.
+
 For a single existing computer match, the game client can run directly:
 
 ```powershell

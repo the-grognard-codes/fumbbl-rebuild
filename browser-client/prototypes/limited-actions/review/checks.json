@@ -1,0 +1,33 @@
+{
+  "scope": "Visual prototype only; no live-play/replay/recovery validation",
+  "checks": [
+    "Busy scene loads all 22 player poses",
+    "Four consumed-action badges appear on the pitch",
+    "All nine actions appear in the catalog",
+    "gold: prone player retains badge",
+    "gold: stunned player retains badge",
+    "gold: distracted player retains badge",
+    "gold-circle: prone player retains badge",
+    "gold-circle: stunned player retains badge",
+    "gold-circle: distracted player retains badge",
+    "gold-circle: action stays horizontally centered when skill badges are toggled",
+    "gold-fade: prone player retains badge",
+    "gold-fade: stunned player retains badge",
+    "gold-fade: distracted player retains badge",
+    "gold-fade: action stays horizontally centered when skill badges are toggled",
+    "ice: prone player retains badge",
+    "ice: stunned player retains badge",
+    "ice: distracted player retains badge",
+    "Off-pitch player and associated badge are hidden",
+    "Visibility toggle hides all action badges",
+    "Visibility toggle restores remaining badges",
+    "mobile-portrait: no horizontal page overflow",
+    "mobile-landscape: no horizontal page overflow",
+    "Arrow keys in select controls do not switch treatment",
+    "Arrow keys outside controls switch palette",
+    "Palette choice is reflected in the URL",
+    "Palette survives a page reload",
+    "No browser, image, font, or HTTP errors: []"
+  ],
+  "errors": []
+}

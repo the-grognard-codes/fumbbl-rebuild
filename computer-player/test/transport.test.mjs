@@ -231,6 +231,98 @@ test('default daemon leaves browser slots and starts queued matches when a worke
   }
 });
 
+test('idle human-turn matches yield capacity and are resumed after queued computer work', { timeout: 12000 }, async () => {
+  const sockets = new Set(), actions = [], loads = [];
+  let secondFinished = false;
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else if (body.operation === 'register') {
+        send(socket, { version: 2, type: 'computer', requestId: body.requestId, code: 'READY' });
+        send(socket, { version: 2, type: 'computerJobs', requestId: null, code: 'AVAILABLE', matches: [matchId, secondMatchId] });
+      } else if (body.operation === 'load') {
+        loads.push(body.matchId);
+        const waiting = body.matchId === matchId && !secondFinished;
+        send(socket, response(body.requestId, { ...state, matchId: body.matchId, callerRole: 'away',
+          revision: secondFinished ? 1 : 0, actor: waiting ? 'home' : 'away',
+          prompt: { ...state.prompt, actor: waiting ? 'home' : 'away' } }));
+      } else if (body.operation === 'choice') {
+        actions.push(body);
+        if (body.matchId === secondMatchId) secondFinished = true;
+        send(socket, response(body.requestId, { ...state, matchId: body.matchId, callerRole: 'away', phase: 'FULL_TIME', prompt: null }));
+      }
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/daemon.mjs', '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
+    '--origin', origin, '--max-matches', '1', '--idle-timeout-ms', '150'], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  try {
+    const deadline = Date.now() + 6000;
+    while (actions.length < 2 && Date.now() < deadline) await new Promise(done => setTimeout(done, 25));
+    assert.deepEqual(actions.map(action => action.matchId), [secondMatchId, matchId], output);
+    assert.deepEqual(loads, [matchId, secondMatchId, matchId], 'waiting match returns to the queue rather than being completed or lost');
+    assert.equal(actions[1].expectedRevision, 1, 'resumed worker loads fresh authoritative state');
+  } finally {
+    await stopChild(child);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+  }
+});
+
+test('idle lease never discards an unanswered gameplay request', { timeout: 10000 }, async () => {
+  const sockets = new Set(), timers = [];
+  let choices = 0, acknowledged = false, closedBeforeAcknowledgement = false;
+  const humanTurn = { ...state, callerRole: 'away' };
+  const server = createServer();
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('error', () => {});
+    socket.on('close', () => { sockets.delete(socket); if (choices && !acknowledged) closedBeforeAcknowledgement = true; });
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else if (body.operation === 'load') {
+        send(socket, response(body.requestId, humanTurn));
+        timers.push(setTimeout(() => send(socket, response(null, { ...humanTurn, revision: 1,
+          actor: 'away', prompt: { ...state.prompt, actor: 'away' } })), 50));
+      } else if (body.operation === 'choice') {
+        choices++;
+        // A human-turn broadcast can arrive before this request's acknowledgement.
+        send(socket, response(null, { ...humanTurn, revision: 2 }));
+        timers.push(setTimeout(() => { acknowledged = true; send(socket, response(body.requestId, { ...humanTurn, revision: 2 })); }, 350));
+      }
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId, '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
+    '--origin', origin, '--idle-timeout-ms', '150'], { cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  let timeout;
+  try {
+    const [code] = await Promise.race([once(child, 'exit'), new Promise((_, reject) => {
+      timeout = setTimeout(() => reject(Error(`Worker did not yield safely: ${output}`)), 5000);
+    })]);
+    assert.equal(code, 75, output);
+    assert.equal(choices, 1, 'the pending mutation is not duplicated or replaced');
+    assert.equal(acknowledged, true);
+    assert.equal(closedBeforeAcknowledgement, false);
+  } finally {
+    clearTimeout(timeout); timers.forEach(clearTimeout);
+    await stopChild(child);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+  }
+});
+
 test('authenticates over the browser route and acts from received state', { timeout: 15000 }, async () => {
   const seen = [];
   let choices = 0;

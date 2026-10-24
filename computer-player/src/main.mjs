@@ -4,12 +4,15 @@ import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.t
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
+import { idleWorkerExitCode } from './worker-lifecycle.mjs';
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const matchId = value('--match');
 const url = value('--url');
 const origin = value('--origin');
 const tokenFile = value('--service-token-file', false);
+// Direct single-match clients retain their connection unless explicitly leased.
+const idleTimeoutMs = Number(value('--idle-timeout-ms', false) ?? 0);
 if (!uuid.test(matchId ?? '') || !url || !origin || !['ws:', 'wss:'].includes(new URL(url).protocol)) {
   console.error('Usage: node src/main.mjs --match <uuid> --url <ws(s)://host/browser/v2> --origin <allowed origin> [--service-token-file <path>]');
   process.exit(2);
@@ -18,6 +21,7 @@ if (new URL(url).pathname !== '/browser/v2' || new URL(url).search || new URL(ur
   throw Error('Use the exact /browser/v2 endpoint and its allowed Origin.');
 }
 if (!tokenFile && !process.env.FFB_COMPUTER_SERVICE_TOKEN) throw Error('Set FFB_COMPUTER_SERVICE_TOKEN or pass --service-token-file.');
+if (!Number.isInteger(idleTimeoutMs) || idleTimeoutMs !== 0 && (idleTimeoutMs < 100 || idleTimeoutMs > 300000)) throw Error('Invalid idle timeout');
 
 let socket;
 let authenticated = false;
@@ -33,6 +37,7 @@ let lastDecisionKey;
 let sentAt = 0;
 let setupKey;
 let setupVariant = 0;
+let idleTimer;
 
 function value(flag, required = true) {
   const index = process.argv.indexOf(flag);
@@ -45,6 +50,22 @@ function send(request) {
   if (request.type === 'setup') sentAt = Date.now();
 }
 function log(message) { console.log(`[computer-player] ${message}`); }
+function clearIdleTimer() { clearTimeout(idleTimer); idleTimer = undefined; }
+function waitingForHuman() {
+  return state && state.phase !== 'FULL_TIME' && state.actor !== state.callerRole
+    && state.prompt?.actor !== state.callerRole && state.reaction?.actor !== state.callerRole;
+}
+function yieldIdleWorker() {
+  idleTimer = undefined;
+  if (!waitingForHuman()) return;
+  // Never discard an unanswered read or an uncertain gameplay mutation.
+  if (pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) {
+    idleTimer = setTimeout(yieldIdleWorker, 250); return;
+  }
+  log(`Match ${matchId} is waiting for the human coach; yielding worker capacity.`);
+  process.exitCode = idleWorkerExitCode;
+  stop();
+}
 function requestLoad() {
   if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN || loadId || pending) return;
   loadId = randomUUID();
@@ -53,6 +74,8 @@ function requestLoad() {
 function decide() {
   if (!state || pending || loadId || !authenticated || socket?.readyState !== WebSocket.OPEN) return;
   if (state.phase === 'FULL_TIME') { log(`Match complete at revision ${state.revision}.`); stop(); return; }
+  if (!waitingForHuman()) clearIdleTimer();
+  else if (idleTimeoutMs && !idleTimer) idleTimer = setTimeout(yieldIdleWorker, idleTimeoutMs);
   const decisionKey = `${state.revision}:${state.saveResume?.status ?? ''}:${state.saveResume?.proposalId ?? ''}`;
   if (decisionKey === lastDecisionKey) return;
   const key = `${state.half}:${state.drive}:${state.homeTurn}:${state.awayTurn}:${state.actor}`;
@@ -68,6 +91,7 @@ function decide() {
       && state.actions.every(action => action.actor !== state.callerRole)) throw Error(`No server actions at ${state.phase}/${state.turnMode}`);
     return;
   }
+  clearIdleTimer();
   pending = { version: 2, type: 'setup', requestId: randomUUID(), matchId, expectedRevision: state.revision, ...decision };
   if (state.computer?.opponentId === 'coach-bogruk-weak' && isComputerGameOperation(decision.operation)) pending.computerDecision = {
     policyVersion: state.computer.policyVersion, reason: outcome.reason, nextPolicyState: outcome.nextPolicyState
@@ -144,6 +168,7 @@ async function connect() {
   current.addEventListener('error', event => { if (current === socket) log(`Transport error: ${event.message ?? 'connection failed'}`); });
   current.addEventListener('close', () => {
     if (current !== socket || stopped) return;
+    clearIdleTimer();
     socket = null; loadId = null; state = null; sentAt = 0; authenticated = false;
     const delay = retryDelay;
     retryDelay = Math.min(retryDelay * 2, 30000);
@@ -156,7 +181,7 @@ function fail(error) {
   stop();
   process.exitCode = 1;
 }
-function stop() { stopped = true; try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
+function stop() { stopped = true; clearIdleTimer(); try { socket?.close(); } catch { /* A connecting socket may already be closing. */ } socket = null; }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 setInterval(requestLoad, 30000).unref();

@@ -950,6 +950,7 @@ public final class SetupSession {
 	private JsonObject view(String role) {
 		Game game = state.getGame();
 		JsonArray players = new JsonArray();
+		LimitedActionProjection limitedActions = new LimitedActionProjection();
 		SkillMarkerProjection markers = new SkillMarkerProjection((SkillFactory) game.getFactory(FactoryType.Factory.SKILL));
 		for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
 			for (Player<?> player : team.getPlayers()) {
@@ -977,6 +978,10 @@ public final class SetupSession {
 				FrozenTeam.Player source = frozenPlayer(frozen, player);
 				if (source != null && !source.race.isEmpty() && !source.role.isEmpty())
 					projected.add("positionRace", source.race).add("positionRole", source.role);
+				String limitedAction = limitedActions.kind((team == game.getTeamHome()
+					? game.getTurnDataHome() : game.getTurnDataAway()).getLimitedAction(player.getId()));
+				if (onPitch && "PLAY".equals(browsePhase()) && limitedAction != null)
+					projected.add("limitedAction", limitedAction);
 				players.add(projected);
 			}
 		}

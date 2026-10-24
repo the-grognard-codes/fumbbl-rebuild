@@ -4,12 +4,16 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.ApothecaryType;
 import com.fumbbl.ffb.LeaderState;
+import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.json.IJsonOption;
 import com.fumbbl.ffb.json.IJsonSerializable;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.model.change.ModelChange;
 import com.fumbbl.ffb.model.change.ModelChangeId;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 
@@ -45,7 +49,23 @@ public class TurnData implements IJsonSerializable {
 	private int cheeringFansBlockAssist;
 	private String fBlitzingPlayerId;
 
+	// Browser presentation metadata, independent of the action allowance flags.
+	private final Map<String, PlayerAction> limitedActions = new LinkedHashMap<>();
+	private transient long actionWindow;
 	private transient Game fGame;
+
+	public PlayerAction getLimitedAction(String playerId) { return limitedActions.get(playerId); }
+
+	public void recordLimitedAction(String playerId, PlayerAction action) {
+		if (playerId != null && action != null) limitedActions.putIfAbsent(playerId, action);
+	}
+
+	public long getActionWindow() { return actionWindow; }
+
+	public void clearLimitedActions() {
+		limitedActions.clear();
+		actionWindow++;
+	}
 
 	public TurnData(Game pGame, boolean pHomeData) {
 		fGame = pGame;
@@ -390,6 +410,7 @@ public class TurnData implements IJsonSerializable {
 	}
 
 	public void startTurn() {
+		clearLimitedActions();
 		setBlitzUsed(false);
 		setBlitzingPlayerId(null);
 		setHandOverUsed(false);
@@ -405,6 +426,9 @@ public class TurnData implements IJsonSerializable {
 
 	public void init(TurnData pTurnData) {
 		if (pTurnData != null) {
+			limitedActions.clear();
+			limitedActions.putAll(pTurnData.limitedActions);
+			actionWindow = pTurnData.actionWindow;
 			fTurnNr = pTurnData.getTurnNr();
 			fReRolls = pTurnData.getReRolls();
 			fApothecaries = pTurnData.getApothecaries();
@@ -471,6 +495,10 @@ public class TurnData implements IJsonSerializable {
 		IJsonOption.PUNT_USED.addTo(jsonObject, puntUsed);
 		IJsonOption.CHEERING_FANS_BLOCK_ASSIST.addTo(jsonObject, cheeringFansBlockAssist);
 		IJsonOption.BLITZING_PLAYER_ID.addTo(jsonObject, fBlitzingPlayerId);
+		JsonObject actions = new JsonObject();
+		for (Map.Entry<String, PlayerAction> entry : limitedActions.entrySet())
+			actions.add(entry.getKey(), entry.getValue().name());
+		IJsonOption.LIMITED_ACTIONS.addTo(jsonObject, actions);
 		return jsonObject;
 	}
 
@@ -511,6 +539,12 @@ public class TurnData implements IJsonSerializable {
 		wanderingApothecaries = IJsonOption.WANDERING_APOTHECARIES.getFrom(source, jsonObject);
 		plagueDoctors = IJsonOption.PLAGUE_DOCTORS.getFrom(source, jsonObject);
 		fBlitzingPlayerId = IJsonOption.BLITZING_PLAYER_ID.getFrom(source, jsonObject);
+		clearLimitedActions();
+		JsonObject actions = IJsonOption.LIMITED_ACTIONS.getFrom(source, jsonObject);
+		if (actions != null) {
+			for (JsonObject.Member member : actions)
+				limitedActions.put(member.getName(), PlayerAction.valueOf(member.getValue().asString()));
+		}
 		return this;
 	}
 

@@ -34,6 +34,7 @@
       "browser-client/test/game-menu-events-ui.mjs",
       "browser-client/test/skill-use-preferences-ui.mjs",
       "browser-client/test/skill-markers-ui.mjs",
+      "browser-client/test/limited-action-tags-ui.mjs",
       "browser-client/test/round-four-ui.mjs"
     ],
     [

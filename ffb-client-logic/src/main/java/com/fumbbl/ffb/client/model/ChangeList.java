@@ -10,6 +10,8 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser players show gold limited-action tags for consumed turn allowances, with an Interface toggle and support for replays and reconnects")
+			.addBugfix("Computer opponents no longer leave new matches waiting behind other matches awaiting human input")
 			.addImprovement("Browser matches show the existing pitch without stadium and crowd graphics in preparation for their overhaul")
 			.addFeature("BB2025 browser passes and bomb throws offer Hail Mary modes, Long Bomb range guidance and shared action limits, including Blizzard range restrictions")
 			.addBugfix("BB2025 Hail Mary throws use the player's Passing Ability, normal reroll eligibility and modifiers, and can never finish accurate")

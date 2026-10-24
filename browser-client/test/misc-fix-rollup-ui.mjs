@@ -28,6 +28,7 @@ after(async () => { await browser?.close(); await server?.close(); });
 async function journey(t, state) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(5000);
+  page.setDefaultNavigationTimeout(30000);
   t.after(() => page.close());
   await page.addInitScript(state => { window.hudState = state; window.hudIntents = []; window.hudMessages = []; }, state);
   await page.route('**/rollup-test', route => route.fulfill({ contentType: 'text/html', body:
@@ -116,6 +117,7 @@ async function waypointJourney(t, state = {}) {
   const view = { ...ready, ...state, players: [player, { ...enemy, x: 16, y: 7 }] };
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(5000); t.after(() => page.close());
+  page.setDefaultNavigationTimeout(30000);
   await page.addInitScript(state => { window.waypointState = state; window.waypointRequests = []; window.waypointMutations = []; }, view);
   await page.route('**/waypoint-test', route => route.fulfill({ contentType: 'text/html', body:
     '<main id="app" class="play-runtime live-match-page"></main><script type="module" src="/test/waypoint-regression-harness.tsx"></script>' }));
