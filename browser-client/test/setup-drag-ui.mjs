@@ -58,14 +58,15 @@ async function open(initial) {
         if (request.type === 'setup' && request.operation === 'confirm') queueMicrotask(() => this.emit({version:2,type:'setupState',requestId:request.requestId,code:'ILLEGAL_SETUP',duplicate:false,state:this.state,
           setupErrors:['Too many players in a wide zone.','Minimum of 3 players on the Line of Scrimmage.']}));
         if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':event-pick:home1')) {
-          this.state = { ...this.state, revision: this.state.revision + 1, actions: [
+          this.state = { ...this.state, revision: this.state.revision + 1,
+            players: this.state.players.map(player => player.id === 'home1' ? { ...player, x: null, y: null, offPitch: 'reserve', state: 'is in reserve' } : player), actions: [
             { id: `${this.state.revision + 1}:solid-place:home1:8:7`, label: 'Place home1 at 8, 7',
               kind: 'kickoffMove', actor: 'home', sourcePlayerId: null, target: { x: 8, y: 7 } }
           ] };
           this.reply(request.requestId);
         } else if (request.type === 'setup' && request.operation === 'action' && request.actionId.includes(':solid-place:')) {
           this.state = { ...this.state, revision: this.state.revision + 1, actions: [],
-            players: this.state.players.map(player => player.id === 'home1' ? { ...player, x: 8, y: 7 } : player) };
+            players: this.state.players.map(player => player.id === 'home1' ? { ...player, x: 8, y: 7, offPitch: 'pitch', state: 'is standing' } : player) };
           this.reply(request.requestId);
         }
       }
@@ -218,7 +219,68 @@ try {
     ['0:event-pick:home1', '1:solid-place:home1:8:7']);
   assert.deepEqual(event.errors, []);
   await event.page.close();
-  console.log('PASS: expanded dugout drag/drop in both directions for both coaches, opponent/summary rejection, vertical responsive fit; setup keyboard placement, required choices and Solid Defence remain intact.');
+
+  const reserveEvent = await open({ ...solid, players: solid.players.map(player => player.id === 'home1'
+    ? { ...player, x: null, y: null, state: 'is in reserve', offPitch: 'reserve' } : player), actions: [
+      { id: '0:solid-place:home1:8:7', label: 'Place home1 at 8, 7', kind: 'kickoffMove', actor: 'home',
+        sourcePlayerId: null, target: { x: 8, y: 7 } }
+    ] });
+  const reserveDugout = reserveEvent.page.locator('.live-dugout.home');
+  await reserveDugout.getByRole('button', { name: /Reserves: 1; expand dugout/ }).click();
+  const savedReserve = reserveDugout.getByRole('button', { name: /^home1, number 1, Reserves$/ });
+  await savedReserve.dragTo(reserveEvent.page.locator('.live-pitch-scene'), { targetPosition: await squarePosition(reserveEvent.page, 8, 7) });
+  await reserveEvent.page.waitForFunction(() => window.testSocket.state.revision === 1, null, { timeout: 3000 });
+  assert.deepEqual(await reserveEvent.page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').map(request => request.actionId)), ['0:solid-place:home1:8:7']);
+  assert.deepEqual(reserveEvent.errors, []);
+  await reserveEvent.page.close();
+
+  for (const callerRole of ['home', 'away']) {
+    const facing = await open({ ...frame, callerRole, players: frame.players.map(player => ({ ...player,
+      x: player.role === 'home' ? 12 : 13, art: { rosterId: 'human', positionId: 'lineman' } })) });
+    const current = facing.page;
+    const pose = id => current.locator(`.live-marker[data-player-id="${id}"]`).getAttribute('data-pose');
+    const update = changes => current.evaluate(changes => {
+      const socket = window.testSocket;
+      socket.state = { ...socket.state, ...changes, revision: socket.state.revision + 1 };
+      if (socket.state.phase !== 'PLAY') delete socket.state.playerActionMenu;
+      socket.reply(null);
+    }, changes);
+    const moveSideways = async () => {
+      const players = await current.evaluate(() => window.testSocket.state.players.map(player => ({ ...player, y: player.y + 1 })));
+      await update({ players });
+      await current.waitForFunction(() => [...document.querySelectorAll('.live-marker')].every(player => player.dataset.pose === 'side'));
+    };
+    const expectAttackDirection = async () => {
+      await current.waitForFunction(role => [...document.querySelectorAll('.live-marker')].every(player =>
+        player.dataset.pose === (player.classList.contains(role) ? 'back' : 'front')), callerRole);
+      assert.equal(await pose('home1'), callerRole === 'home' ? 'back' : 'front');
+      assert.equal(await pose('away1'), callerRole === 'away' ? 'back' : 'front');
+    };
+    await moveSideways();
+    await update({ drive: frame.drive + 1, phase: 'SETUP', actions: [] });
+    await expectAttackDirection();
+    const players = await current.evaluate(() => window.testSocket.state.players.map(player => ({ ...player, y: player.y + 1 })));
+    await update({ players, phase: 'READY_FOR_KICKOFF' });
+    await update({ phase: 'PLAY', turnMode: 'REGULAR' });
+    await expectAttackDirection();
+    await moveSideways();
+    await update({ actor: callerRole === 'home' ? 'away' : 'home' });
+    assert.equal(await pose('home1'), 'side', 'A normal team turn preserves facing');
+    await update({ drive: frame.drive + 2, half: 2 });
+    await expectAttackDirection();
+    const facingEvidence = process.env.FACING_EVIDENCE_DIR;
+    if (facingEvidence) {
+      await mkdir(facingEvidence, { recursive: true });
+      await current.screenshot({ path: `${facingEvidence}/drive-facing-${callerRole}-perspective.png` });
+    }
+    await current.getByRole('button', { name: 'Debug', exact: true }).click();
+    await current.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await expectAttackDirection();
+    if (facingEvidence) await current.screenshot({ path: `${facingEvidence}/drive-facing-${callerRole}-top-down.png` });
+    assert.deepEqual(facing.errors, []);
+    await current.close();
+  }
+  console.log('PASS: expanded dugout drag/drop, setup keyboard placement, required choices, Solid Defence reserve redeployment, and drive-start facing in both coach views and top-down.');
 } finally {
   await browser.close();
   await server.close();

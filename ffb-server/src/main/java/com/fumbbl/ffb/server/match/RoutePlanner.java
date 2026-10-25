@@ -37,6 +37,7 @@ import com.eclipsesource.json.JsonObject;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -286,33 +287,11 @@ final class RoutePlanner {
 		JsonArray prefix = route.get("steps").asArray();
 		int used = cost(route);
 		if (origin.isAdjacent(target)) return origin;
-		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
-		Map<String, Node> best = new HashMap<>();
 		boolean ballHandled = prefix.values().stream().anyMatch(value -> value.asObject().get("checks").asArray().values()
 			.stream().anyMatch(check -> "Pickup".equals(check.asObject().getString("name", null))
 				|| "Ball scatter".equals(check.asObject().getString("name", null))));
-		Node root = new Node(origin, used, 0, 0, 0, ballHandled, 0, 0, 0, 0, null, null);
-		queue.add(root);
-		best.put(key(root), root);
-		while (!queue.isEmpty()) {
-			Node node = queue.remove();
-			if (best.get(key(node)) != node) continue;
-			if (node.at.isAdjacent(target)) return node.at;
-			if (node.used >= (blitz ? blitzApproachSteps() : allowance - currentMove)) continue;
-			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
-				if (x == 0 && y == 0) continue;
-				FieldCoordinate next = node.at.add(x, y);
-				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || occupied(next)) continue;
-				Step step = step(node.at, next, node.used, node.ballHandled, false);
-				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
-				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
-				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
-				Node candidate = nextNode(node, next, step, reactions, rolls, risk, origin, target);
-				String key = key(candidate);
-				Node prior = best.get(key);
-				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
-			}
-		}
+		Node result = preferredPath(origin, target, used, ballHandled, blitz ? blitzApproachSteps() : allowance - currentMove, true);
+		if (result != null) return result.at;
 		throw new MatchService.Failure("NO_ROUTE");
 	}
 
@@ -337,37 +316,64 @@ final class RoutePlanner {
 	}
 
 	private List<Step> span(FieldCoordinate from, FieldCoordinate target, int used, boolean ballHandled) {
-		int remaining = allowance - currentMove - used;
-		if (remaining <= 0) return null;
+		Node result = preferredPath(from, target, used, ballHandled, allowance - currentMove, false);
+		if (result == null) return null;
+		List<Step> path = new ArrayList<>();
+		for (Node cursor = result; cursor.step != null; cursor = cursor.previous) path.add(0, cursor.step);
+		return path;
+	}
+
+	/** Compare ball-free alternatives to the ordinary movement route, without trading checks or distance. */
+	private Node preferredPath(FieldCoordinate from, FieldCoordinate target, int used, boolean ballHandled, int limit, boolean approach) {
+		Node baseline = findPath(from, target, used, ballHandled, limit, approach, null);
+		if (baseline == null || ballHandled || !baseline.ballHandled
+			|| !approach && target.equals(game.getFieldModel().getBallCoordinate())) return baseline;
+		Node alternate = findPath(from, target, used, false, Math.min(limit, baseline.used), approach, baseline);
+		return alternate == null ? baseline : alternate;
+	}
+
+	private Node findPath(FieldCoordinate from, FieldCoordinate target, int used, boolean ballHandled, int limit,
+		boolean approach, Node baseline) {
 		PriorityQueue<Node> queue = new PriorityQueue<>(Comparator.comparing((Node node) -> node, RoutePlanner::compare));
 		Map<String, Node> best = new HashMap<>();
 		Node root = new Node(from, used, 0, 0, 0, ballHandled, 0, 0, 0, 0, null, null);
 		queue.add(root);
-		best.put(key(root), root);
+		best.put(key(root, baseline != null), root);
 		while (!queue.isEmpty()) {
 			Node node = queue.remove();
-			if (best.get(key(node)) != node) continue;
-			if (node.at.equals(target)) {
-				List<Step> result = new ArrayList<>();
-				for (Node cursor = node; cursor.step != null; cursor = cursor.previous) result.add(0, cursor.step);
-				return result;
-			}
-			if (node.used - used >= remaining) continue;
+			if (best.get(key(node, baseline != null)) != node) continue;
+			if (approach ? node.at.isAdjacent(target) : node.at.equals(target)) return node;
+			if (node.used >= limit) continue;
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
 				FieldCoordinate next = node.at.add(x, y);
-				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || occupied(next)) continue;
+				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || occupied(next)
+					|| baseline != null && next.equals(game.getFieldModel().getBallCoordinate())) continue;
 				Step step = step(node.at, next, node.used, node.ballHandled, false);
-				int reactions = node.reactions + step.reactions.size() + (step.checks.ballContact && step.checks.pickupTarget == 0 ? 1 : 0);
-				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0) + (step.checks.pickupTarget > 0 ? 1 : 0);
-				double risk = node.risk + loss(step.dodge) + loss(step.rush) + loss(step.checks.pickupTarget);
+				int reactions = node.reactions + step.reactions.size();
+				int rolls = node.rolls + (step.dodge > 0 ? 1 : 0) + (step.rush > 0 ? 1 : 0);
+				double risk = node.risk + loss(step.dodge) + loss(step.rush);
 				Node candidate = nextNode(node, next, step, reactions, rolls, risk, from, target);
-				String key = key(candidate);
+				if (baseline != null && (candidate.reactions > baseline.reactions || !noHarderChecks(candidate, baseline))) continue;
+				String key = key(candidate, baseline != null);
 				Node prior = best.get(key);
 				if (prior == null || compare(candidate, prior) < 0) { best.put(key, candidate); queue.add(candidate); }
 			}
 		}
 		return null;
+	}
+
+	private boolean noHarderChecks(Node candidate, Node baseline) {
+		// Cumulative counts match each Dodge/Rush to an equally hard or harder original roll.
+		for (int offset = 0; offset < 16; offset += 8) {
+			int candidateCount = 0, baselineCount = 0;
+			for (int target = 7; target >= 1; target--) {
+				candidateCount += candidate.rollTargets[offset + target];
+				baselineCount += baseline.rollTargets[offset + target];
+				if (candidateCount > baselineCount) return false;
+			}
+		}
+		return true;
 	}
 
 	private Step step(FieldCoordinate from, FieldCoordinate to, int used, boolean ballHandled, boolean legacy) {
@@ -415,9 +421,9 @@ final class RoutePlanner {
 		return new Node(next, previous.used + 1, reactions, rolls, risk,
 			previous.ballHandled || step.checks.ballContact, turns, deviation, dx, dy, previous, step);
 	}
-	private static String key(Node node) {
+	private static String key(Node node, boolean includeChecks) {
 		return node.at.getX() + ":" + node.at.getY() + ":" + node.used + ":" + node.ballHandled
-			+ ":" + node.dx + ":" + node.dy;
+			+ ":" + node.dx + ":" + node.dy + (includeChecks ? ":" + Arrays.toString(node.rollTargets) : "");
 	}
 	private static int compare(Node first, Node second) {
 		boolean firstSafe = first.rolls == 0 && first.reactions == 0;
@@ -447,6 +453,7 @@ final class RoutePlanner {
 	private static final class Node {
 		final FieldCoordinate at;
 		final int used, reactions, rolls, turns, dx, dy;
+		final int[] rollTargets;
 		final long deviation;
 		final double risk;
 		final boolean ballHandled;
@@ -457,6 +464,13 @@ final class RoutePlanner {
 			this.at = at; this.used = used; this.reactions = reactions; this.rolls = rolls;
 			this.risk = risk; this.ballHandled = ballHandled; this.turns = turns; this.deviation = deviation;
 			this.dx = dx; this.dy = dy; this.previous = previous; this.step = step;
+			int[] targets = previous == null ? new int[16] : previous.rollTargets;
+			if (step != null && (step.dodge > 0 || step.rush > 0)) {
+				targets = targets.clone();
+				if (step.dodge > 0) targets[Math.min(7, step.dodge)]++;
+				if (step.rush > 0) targets[8 + Math.min(7, step.rush)]++;
+			}
+			rollTargets = targets;
 		}
 	}
 	private static final class Step {

@@ -12,6 +12,7 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.bb2020.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
+import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogOpponentBlockSelectionPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReRollBlockForTargetsPropertiesParameter;
@@ -24,6 +25,8 @@ import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecariesParameter;
 import com.fumbbl.ffb.factory.BlockResultFactory;
+import com.fumbbl.ffb.inducement.InducementType;
+import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -41,6 +44,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecaries;
+import com.fumbbl.ffb.net.commands.ClientCommandUseInducement;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
@@ -164,6 +168,21 @@ public final class CorePromptActions {
 				add(result, "argue:no", "argueTheCall", "Do not argue the call", role, new ClientCommandArgueTheCall(new String[0]));
 				for (String playerId : choice.getPlayerIds()) add(result, "argue:" + playerId, "argueTheCall", "Argue the call for " + game.getPlayerById(playerId).getName(), role,
 					new ClientCommandArgueTheCall(playerId));
+			}
+		} else if (dialog instanceof DialogBribesParameter && state.getCurrentStep() != null
+			&& state.getCurrentStep().getId() == StepId.BRIBES) {
+			DialogBribesParameter choice = (DialogBribesParameter) dialog;
+			String role = roleForTeam(game, choice.getTeamId());
+			if (role != null && choice.getPlayerIds().length == 1 && choice.getMaxNrOfBribes() > 0) {
+				InducementType bribe = ("home".equals(role) ? game.getTurnDataHome() : game.getTurnDataAway())
+					.getInducementSet().getInducementMapping().keySet().stream()
+					.filter(type -> type.hasUsage(Usage.AVOID_BAN)).findFirst().orElse(null);
+				if (bribe != null) {
+					String playerId = choice.getPlayerIds()[0];
+					add(result, "bribe:no", "bribe", "Do not use a bribe", role, new ClientCommandUseInducement(bribe));
+					add(result, "bribe:" + playerId, "bribe", "Use a bribe for " + game.getPlayerById(playerId).getName(), role,
+						new ClientCommandUseInducement(bribe, playerId));
+				}
 			}
 		} else if (dialog instanceof DialogInterceptionParameter) {
 			DialogInterceptionParameter choice = (DialogInterceptionParameter) dialog;

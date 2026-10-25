@@ -495,7 +495,7 @@ public class StepEndBlocking extends AbstractStep {
 		bloodlustAction = (PlayerAction) IServerJsonOption.PLAYER_ACTION.getFrom(source, jsonObject);
 		usingBreatheFire = toPrimitive(IServerJsonOption.USING_BREATHE_FIRE.getFrom(source, jsonObject));
 		oldDefenderState = IServerJsonOption.OLD_DEFENDER_STATE.getFrom(source, jsonObject);
-		targetsRegularMultibLock.addAll(Arrays.stream(IServerJsonOption.PLAYER_IDS_HIT.getFrom(source, jsonObject)).collect(Collectors.toSet()));
+		targetsRegularMultibLock.addAll(Arrays.stream(IServerJsonOption.PLAYER_IDS_HIT.getFrom(source, jsonObject)).collect(Collectors.toList()));
 		checkForgo = toPrimitive(IServerJsonOption.CHECK_FORGO.getFrom(source, jsonObject));
 		usingChomp = toPrimitive(IServerJsonOption.USING_CHOMP.getFrom(source, jsonObject));
 		return this;

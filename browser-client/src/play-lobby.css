@@ -21,7 +21,7 @@
 .play-lobby .ai-coach-availability { margin-top: auto; padding-top: .5rem; color: #a9d7ec; font-size: .72rem; font-weight: 700; }
 .play-lobby .ai-coach-card[aria-pressed="true"] { background: #142b3c; border-color: #ffe17b; box-shadow: 3px 3px 0 #6b321f; }
 .play-lobby .ai-coach-card[aria-pressed="true"] :is(.ai-coach-name, .ai-coach-availability) { color: #ffe17b; }
-.play-lobby .ai-coach-card:not(:disabled):hover { transform: translateY(-2px); border-color: #ffe17b; }
+.play-lobby .ai-coach-card:not(:disabled):hover { border-color: #ffe17b; }
 .play-lobby .ai-coach-card:disabled { opacity: 1; color: #96a6b5; background: #0b1420; border-color: #283b4c; cursor: default; }
 .play-lobby .ai-coach-card:disabled img { filter: grayscale(1); opacity: .55; }
 .play-lobby .ai-coach-card:disabled .ai-coach-name { color: #9badbe; }

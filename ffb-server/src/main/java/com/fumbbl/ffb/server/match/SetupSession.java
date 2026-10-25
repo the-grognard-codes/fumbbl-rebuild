@@ -7,6 +7,7 @@ import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
+import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
@@ -1132,8 +1133,11 @@ public final class SetupSession {
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		// Older browser checkpoints could stop at this native choice without projecting any actions.
-		if (savedActions.isEmpty() && state.getGame().getTurnMode() == TurnMode.HIT_AND_RUN
-			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN) {
+		boolean legacyBribeChoice = state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.BRIBES
+			&& state.getGame().getDialogParameter() instanceof DialogBribesParameter
+			&& ((DialogBribesParameter) state.getGame().getDialogParameter()).getPlayerIds().length == 1;
+		if (savedActions.isEmpty() && (legacyBribeChoice || state.getGame().getTurnMode() == TurnMode.HIT_AND_RUN
+			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN)) {
 			current.set("actions", new JsonArray());
 		}
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {

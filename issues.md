@@ -6,6 +6,41 @@ and add its URL here alongside the local notes.
 - sketches for games
 - spec interaction for games
 
+## Bug fix roundup #4
+
+Follow-up [#355 Offer a bribe after declining Argue the Call on a spotted foul](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/355)
+tracks the newly reported stalled foul decision on the same working branch.
+Implemented and automated validation is recorded in the follow-up report and
+issue. The owner could not resume the specific live game. Keep #355 and #347
+open after merge for manual validation when their kickoff events occur.
+The owner has confirmed Multiple Block now works as expected (#351).
+
+Owner observations from 2026-10-24. All ten reports have individual issues on
+the single working branch `fix/bug-fix-roundup-4`. Scope, acceptance criteria,
+and validation plans are mirrored in
+[the roundup ticket plan](docs/specs/bug-fix-roundup-4.md).
+The owner resolved #344, #346, #348, #349, #350, #352 and #353.
+#345, #347 and #351 remain open; the owner has confirmed #345 works as expected.
+[#354](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/354)
+tracks the requested bottom-aligned log-dice preview. See the
+[review follow-up](docs/specs/bug-fix-roundup-4-followup.md). For item 10, the owner confirmed that an
+equal-length ball-free route must add no risk or distance: no additional or
+harder Dodge, Rush, Jump, or Leap rolls. Implementation, review and validation
+are recorded in [the outcome report](docs/specs/bug-fix-roundup-4-outcome.md).
+The apothecary timing report did not reproduce; its current behavior is protected
+  by new regressions. CI-gated PR delivery is authorized; review servers are stopped.
+
+- [x] [#344 Keep apothecary-saved KO players stunned through their next active-team turn](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/344).
+- [ ] [#345 Allow unactivated standing and prone players to Blitz adjacent opponents directly](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/345).
+- [x] [#346 Prevent position-changing hover effects from oscillating under a stationary pointer](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/346).
+- [ ] [#347 Allow Solid Defence players moved to reserves to redeploy legally](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/347).
+- [x] [#348 Scale game-event-log dice with the selected text size](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/348).
+- [x] [#349 Center log d8 values and use a triangular d16 face that fits every value](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/349).
+- [x] [#350 Display each armor and injury roll once with both d6 on one row](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/350).
+- [ ] [#351 Resolve BB2025 Multiple Block in selected target order with clear targeting guidance](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/351).
+- [x] [#352 Start every drive with players facing the opposing end zone](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/352).
+- [x] [#353 Prefer equal-length safe movement routes that avoid the grounded ball](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/353).
+
 # season 3
 
 ## MUTP site and match fixes

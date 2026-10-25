@@ -107,6 +107,11 @@ public class StepBribes extends AbstractStepWithReRoll {
 				case CLIENT_USE_INDUCEMENT:
 					ClientCommandUseInducement inducementCommand = (ClientCommandUseInducement) pReceivedCommand.getCommand();
 					if (inducementCommand.getInducementType().hasUsage(Usage.AVOID_BAN)) {
+						// Older saves omit the Argue the Call fields. A pending bribe
+						// dialog proves that decision already ended without avoiding the ban.
+						if (fArgueTheCallChoice == null && game.getDialogParameter() instanceof DialogBribesParameter) {
+							fArgueTheCallChoice = false;
+						}
 						fBribesChoice = inducementCommand.hasPlayerId(actingPlayer.getPlayerId());
 						fBribeSuccessful = null;
 					}

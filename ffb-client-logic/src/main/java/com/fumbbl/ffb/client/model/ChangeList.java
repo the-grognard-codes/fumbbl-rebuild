@@ -10,6 +10,18 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser coaches can use or decline a bribe after a spotted foul, including after reconnecting")
+			.addBugfix("Multiple Block applies Both Down to unprotected defenders before resolving the other block")
+			.addBugfix("Multiple Block reveals each target's dice in order without repeating selection reports")
+			.addImprovement("Game-log dice align their lower edges with the text line")
+			.addBugfix("Browser coaches can choose Blitz after selecting an adjacent opponent, including with a prone player, and continue moving after the block")
+			.addBugfix("Menu and button hover effects remain stable at their edges")
+			.addBugfix("Solid Defence players selected for redeployment can return to the pitch from reserves")
+			.addImprovement("Game-log dice scale with text size, with centered triangular d8 and d16 faces")
+			.addBugfix("Armor and injury rolls appear once over the pitch with both dice together")
+			.addImprovement("Multiple Block explains target selection and preserves the coach's chosen target order")
+			.addBugfix("Players start each drive facing the opposing end zone")
+			.addImprovement("Movement routes avoid an unselected grounded ball when an equivalent route adds no risk or distance")
 			.addFeature("Browser players show gold limited-action tags for consumed turn allowances, with an Interface toggle and support for replays and reconnects")
 			.addBugfix("Computer opponents no longer leave new matches waiting behind other matches awaiting human input")
 			.addImprovement("Browser matches show the existing pitch without stadium and crowd graphics in preparation for their overhaul")

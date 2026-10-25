@@ -5,42 +5,23 @@
 .play-runtime .hosted-match .match-event-log[data-font-size="small"] .match-event-scroll > p { margin: 0; padding-top: 0; padding-bottom: 0; }
 .play-runtime .hosted-match .match-event-log[data-font-size="medium"] .match-event-scroll > p { margin: 0; padding-top: 1px; padding-bottom: 1px; }
 .match-log-debug { display: block; color: #93aabc; font: 10px system-ui, sans-serif; overflow-wrap: anywhere; }
-.match-log-dice { display: inline-flex; gap: 3px; margin-right: 5px; vertical-align: middle; align-items: center; }
-.match-log-dice .polygon-die { width: 28px; height: 28px; flex: 0 0 28px; perspective: 190px; }
-.match-log-dice .block-die { width: 26px; height: 26px; flex-basis: 26px; }
-.match-log-dice .block-die-cube { width: 22px; height: 22px; left: calc(50% - 11px); top: calc(50% - 11px); }
-.match-log-dice .block-die-side { border: 0; }
-.match-log-dice .block-die-side.side-0 { transform: translateZ(11px); }
-.match-log-dice .block-die-side.side-1 { transform: rotateY(90deg) translateZ(11px); }
-.match-log-dice .block-die-side.side-2 { transform: rotateY(180deg) translateZ(11px); }
-.match-log-dice .block-die-side.side-3 { transform: rotateY(-90deg) translateZ(11px); }
-.match-log-dice .block-die-side.side-4 { transform: rotateX(90deg) translateZ(11px); }
-.match-log-dice .block-die-side.side-5 { transform: rotateX(-90deg) translateZ(11px); }
-.match-log-dice .polyhedron.block-die-cube { width: 30px; height: 30px; left: calc(50% - 15px); top: calc(50% - 15px); }
-.match-log-dice .polyhedron-face polygon { stroke: none; }
+/* Every log die follows the inherited text size, including grouped block rolls. */
+.match-log-dice { display: inline-flex; gap: .2em; margin-right: .35em; vertical-align: text-bottom; align-items: flex-end; }
+.match-event-scroll .polygon-die { display: inline-block; position: relative; width: 1.9em; height: 1.9em; flex: 0 0 1.9em; vertical-align: text-bottom; margin: 0 .08em; perspective: none; }
+.match-event-scroll .block-die-cube { width: 1.5em; height: 1.5em; left: calc(50% - .75em); top: auto; bottom: 0; }
+.match-event-scroll .block-die-side { border: 0; }
+.match-event-scroll .block-die-side.side-0 { transform: translateZ(.75em); }
+.match-event-scroll .block-die-side.side-1 { transform: rotateY(90deg) translateZ(.75em); }
+.match-event-scroll .block-die-side.side-2 { transform: rotateY(180deg) translateZ(.75em); }
+.match-event-scroll .block-die-side.side-3 { transform: rotateY(-90deg) translateZ(.75em); }
+.match-event-scroll .block-die-side.side-4 { transform: rotateX(90deg) translateZ(.75em); }
+.match-event-scroll .block-die-side.side-5 { transform: rotateX(-90deg) translateZ(.75em); }
+.match-event-scroll .block-die-side svg { transform: translateY(-.5px); }
 .match-log-dice .polygon-die.selected { outline: 2px solid #49dfff; outline-offset: 1px; filter: none; }
 .match-log-dice .polygon-die.away-selected { outline-color: #e44a50; }
-.match-log-dice .polygon-die.uphill-selected { outline-color: #e44a50; border-radius: 5px; }
-.match-event-scroll > p > .polygon-die { display: inline-block; width: max(1.9em, 22px); height: max(1.9em, 22px); vertical-align: middle; margin: 0 .08em; }
-.match-event-scroll > p > .polygon-die .block-die-cube { width: 1.5em; height: 1.5em; left: calc(50% - .75em); top: calc(50% - .75em); }
-.match-event-scroll > p > .polygon-die .block-die-side { border: 0; }
-.match-event-scroll > p > .polygon-die .block-die-side.side-0 { transform: translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .block-die-side.side-1 { transform: rotateY(90deg) translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .block-die-side.side-2 { transform: rotateY(180deg) translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .block-die-side.side-3 { transform: rotateY(-90deg) translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .block-die-side.side-4 { transform: rotateX(90deg) translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .block-die-side.side-5 { transform: rotateX(-90deg) translateZ(.75em); }
-.match-event-scroll > p > .polygon-die .polyhedron.block-die-cube { width: 2em; height: 2em; left: calc(50% - 1em); top: calc(50% - 1em); }
-.match-event-scroll > p > .polygon-die .polyhedron-face polygon { stroke: none; }
-.match-log-dice .block-die-side svg,
-.match-event-scroll > p > .block-die .block-die-side svg { transform: translateY(-.5px); }
-.match-log-dice .polyhedron-face text,
-.match-event-scroll > p > .polygon-die .polyhedron-face text { transform: none; }
-.match-log-dice .d8 .polyhedron-face text,
-.match-event-scroll > p > .d8 .polyhedron-face text { font-size: 22px; transform: translateY(-1px); }
-.match-log-dice .d16 .polyhedron-face text,
-.match-event-scroll > p > .d16 .polyhedron-face text { font-size: 20px; transform: translateY(-4px); }
-.match-log-dice .polyhedron-face:not([data-result="true"]),
-.match-event-scroll > p > .polygon-die .polyhedron-face:not([data-result="true"]) { display: none; }
+.match-log-dice .polygon-die.uphill-selected { outline-color: #e44a50; border-radius: .25em; }
 .match-event-scroll > p > .polygon-die.selected { outline: none; filter: none; }
 .match-event-scroll > p > .polygon-die.uphill-selected { outline: 2px solid #e44a50; border-radius: .25em; }
+.log-triangle-die > svg { display: block; width: 100%; height: 100%; }
+.log-triangle-die polygon { fill: #f4e2bd; }
+.log-triangle-die text { fill: #14283e; font: 700 16px MUTP, sans-serif; }

@@ -3,6 +3,7 @@ import { pitchPushChoices } from './push-choice.ts';
 import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { PresentedRoll } from './dice-presentation.ts';
+import { visibleBlockActions } from './dice-presentation.ts';
 
 export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; targetPlayerId?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
@@ -29,15 +30,15 @@ export function decisionIcon(label: string): string | undefined {
 
 const promptTitles: Record<string, string> = {
   kickSkill: 'Use the Kick skill?', blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
-  apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?',
+  apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?', bribe: 'Use a bribe?',
   interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square'
 };
-const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'interception', 'followUp', 'push'];
+const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
 function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
   if (view.callerRole === 'spectator') return null;
-  const ownActions = actions.filter(action => action.actor === view.callerRole);
+  const ownActions = visibleBlockActions(view, actions.filter(action => action.actor === view.callerRole));
   if (view.prompt?.actor === view.callerRole) return {
     title: view.prompt.kind === 'coin' ? 'Call the coin toss' : 'Choose to receive or kick',
     key: view.prompt.id,

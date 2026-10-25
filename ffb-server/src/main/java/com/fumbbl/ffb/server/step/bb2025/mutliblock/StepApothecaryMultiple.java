@@ -62,8 +62,10 @@ import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.mechanic.StateMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStep;
+import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
+import com.fumbbl.ffb.server.step.StepException;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
@@ -122,11 +124,13 @@ public class StepApothecaryMultiple extends AbstractStep {
 	@Override
 	public void start() {
 		super.start();
+		restoreTeamId();
 		executeStep();
 	}
 
 	@Override
 	public StepCommandStatus handleCommand(ReceivedCommand pReceivedCommand) {
+		restoreTeamId();
 		Game game = getGameState().getGame();
 		StepCommandStatus commandStatus = super.handleCommand(pReceivedCommand);
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND) {
@@ -356,6 +360,7 @@ public class StepApothecaryMultiple extends AbstractStep {
 			if (parameter.getKey() == StepParameterKey.INJURY_RESULT) {
 				InjuryResult injuryResult = (InjuryResult) parameter.getValue();
 				if (injuryResult != null) {
+					restoreTeamId();
 					String defenderId = injuryResult.injuryContext().getDefenderId();
 					if (teamId.equals(getGameState().getGame().getPlayerById(defenderId).getTeam().getId())) {
 						injuryResults.add(injuryResult);
@@ -798,10 +803,37 @@ public class StepApothecaryMultiple extends AbstractStep {
 	}
 
 	// JSON serialization
+	private void restoreTeamId() {
+		if (teamId != null) {
+			return;
+		}
+		// The BB2025 MultiBlock sequence always resolves the defending team's
+		// injuries first, then the acting team's. The current step is popped
+		// from the stack, so include it separately when recovering old saves.
+		List<StepApothecaryMultiple> steps = new ArrayList<>();
+		IStep current = getGameState().getCurrentStep();
+		if (current instanceof StepApothecaryMultiple) {
+			steps.add((StepApothecaryMultiple) current);
+		}
+		for (IStep step : getGameState().getStepStack().toArray()) {
+			if (step instanceof StepApothecaryMultiple && !steps.contains(step)) {
+				steps.add((StepApothecaryMultiple) step);
+			}
+		}
+		int index = steps.indexOf(this);
+		if (index < 0 || steps.size() > 2) {
+			throw new StepException("Cannot restore Multiple Block apothecary owner outside its injury sequence.");
+		}
+		Game game = getGameState().getGame();
+		Team actingTeam = game.getActingTeam();
+		teamId = steps.size() == 2 && index == 0 ? game.getOtherTeam(actingTeam).getId() : actingTeam.getId();
+	}
 
 	@Override
 	public JsonObject toJsonValue() {
+		restoreTeamId();
 		JsonObject jsonObject = super.toJsonValue();
+		IServerJsonOption.TEAM_ID.addTo(jsonObject, teamId);
 		if (regenerationFailedResults != null) {
 			addInjuriesToJson(regenerationFailedResults, IServerJsonOption.INJURY_RESULTS_REGENERATION_FAILED, jsonObject);
 		}
@@ -833,6 +865,19 @@ public class StepApothecaryMultiple extends AbstractStep {
 		injuryResults = initInjuries(IServerJsonOption.INJURY_RESULTS, source, jsonObject);
 		deadResults = initInjuries(IServerJsonOption.INJURY_RESULTS_DEAD, source, jsonObject);
 		gettingEvenResults = initInjuries(IServerJsonOption.INJURY_RESULTS_GETTING_EVEN, source, jsonObject);
+		teamId = IServerJsonOption.TEAM_ID.getFrom(source, jsonObject);
+		// Older checkpoints omitted the owner. Queued injuries identify it only
+		// after at least one injury has already been received by this step.
+		if (teamId == null && !injuryResults.isEmpty()) {
+			Player<?> player = injuredPlayer(injuryResults.get(0), getGameState().getGame());
+			if (player != null) {
+				teamId = player.getTeam().getId();
+			}
+		}
+		// Empty legacy steps resolve once the complete stack has been restored.
+		if (teamId != null && getGameState().getGame().getTeamById(teamId) == null) {
+			throw new StepException("Cannot restore Multiple Block apothecary step without its owning team.");
+		}
 
 		availableKeyWordsMap = IServerJsonOption.AVAILABLE_KEYWORDS_MAP.getFrom(source, jsonObject).entrySet().stream()
 			.collect(

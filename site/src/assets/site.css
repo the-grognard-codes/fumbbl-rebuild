@@ -36,7 +36,8 @@ main { width: min(72rem, calc(100% - 2rem)); margin: 0 auto 3rem; }
 .kicker { margin: 0; color: #ffe17b; font-size: .66rem; line-height: 1.8; letter-spacing: .08em; text-transform: uppercase; text-shadow: 2px 2px 0 #874a2d; }
 h1, h2 { font-family: 'Chakra Petch', Inter, sans-serif; font-weight: 700; letter-spacing: .015em; } h1 { max-width: 15ch; font-size: clamp(2rem, 4.8vw, 3.8rem); line-height: 1.08; margin: .75rem 0 1.5rem; color: #f3f8ff; text-shadow: 4px 4px 0 #182c40; } h2 { color: #bdeaff; font-size: clamp(1.25rem, 2.4vw, 1.75rem); line-height: 1.15; }
 .button, button { display: inline-block; appearance: none; border: 3px solid #fff0a8; border-radius: 0; background: #e6a83f; color: #101823; padding: .85rem 1rem; box-shadow: 4px 4px 0 #6b321f; font-size: .68rem; line-height: 1.45; font-weight: 800; text-decoration: none; cursor: pointer; }
-.button:hover, button:hover { background: #ffe17b; transform: translate(2px, 2px); box-shadow: 2px 2px 0 #6b321f; }
+/* Keep the pointer target fixed at every edge while retaining pressed feedback. */
+.button:hover, button:hover { background: #ffe17b; box-shadow: 2px 2px 0 #6b321f; }
 .panel, .notice { position: relative; padding: clamp(1.25rem, 4vw, 2.25rem); border: 3px solid #40637e; background: #111f2e; box-shadow: 6px 6px 0 #05090e; margin: 1.75rem 0; }
 .panel::before, .notice::before { content: '◆'; position: absolute; top: .45rem; right: .6rem; color: #ffe17b; font-family: 'Press Start 2P', monospace; font-size: .7rem; }
 .notice { border-color: #e6a83f; background: #202235; }.reading { max-width: 52rem; padding: 3rem 1.25rem 0; }.reading h1 { max-width: 18ch; }.date { color: #a9d7ec; font-family: 'Press Start 2P', monospace; font-size: .62rem; }

@@ -7,6 +7,8 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.MechanicsFactory;
+import com.fumbbl.ffb.factory.DodgeModifierFactory;
+import com.fumbbl.ffb.factory.PickupModifierFactory;
 import com.fumbbl.ffb.factory.common.GoForItModifierFactory;
 import com.fumbbl.ffb.mechanics.AgilityMechanic;
 import com.fumbbl.ffb.mechanics.Mechanic;
@@ -18,6 +20,8 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
+import com.fumbbl.ffb.modifiers.DodgeContext;
+import com.fumbbl.ffb.modifiers.DodgeModifier;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.PrayerState;
 import com.fumbbl.ffb.util.ArrayTool;
@@ -166,6 +170,129 @@ class RoutePlannerTest {
 			assertEquals(expected[i].getX(), steps.get(i).asObject().getInt("x", -1), "step " + i + " x");
 			assertEquals(expected[i].getY(), steps.get(i).asObject().getInt("y", -1), "step " + i + " y");
 		}
+	}
+
+	@Test void ballAvoidanceDoesNotLengthenTheMovementRoute() {
+		RoutePlanner planner = planner();
+		groundedBall(7, 7);
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(9, 9))),
+			new FieldCoordinate(6, 6), new FieldCoordinate(7, 7), new FieldCoordinate(8, 8), new FieldCoordinate(9, 9));
+	}
+
+	@Test void equalLengthMovementRoutesPreferToAvoidAnUnselectedBall() {
+		RoutePlanner planner = planner();
+		groundedBall(7, 5);
+		JsonArray steps = planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))).get("steps").asArray();
+		assertEquals(4, steps.size());
+		assertFalse(contains(steps, 7, 5));
+		assertTrue(steps.values().stream().allMatch(value -> value.asObject().get("checks").asArray().isEmpty()));
+	}
+
+	@Test void explicitlySelectedBallSquareStillAllowsPickupAndContinuation() {
+		RoutePlanner planner = planner();
+		groundedBall(7, 5);
+		JsonArray steps = planner.preview(Arrays.asList(new FieldCoordinate(7, 5), new FieldCoordinate(9, 5))).get("steps").asArray();
+		assertEquals(4, steps.size());
+		assertTrue(contains(steps, 7, 5));
+		assertEquals("Pickup", steps.get(1).asObject().get("checks").asArray().get(0).asObject().getString("name", null));
+	}
+
+	@Test void ballAvoidanceDoesNotAddADodgeInAnEqualLengthCorridor() {
+		RoutePlanner planner = planner();
+		groundedBall(7, 5);
+		Player<?> wall = mock(Player.class), defender = mock(Player.class);
+		Team away = game.getTeamAway();
+		when(defender.getTeam()).thenReturn(away);
+		when(field.getPlayerState(defender)).thenReturn(new PlayerState(PlayerState.STANDING));
+		when(field.getPlayer(any(FieldCoordinate.class))).thenAnswer(invocation -> {
+			FieldCoordinate at = invocation.getArgument(0);
+			if (at.equals(new FieldCoordinate(7, 3))) return defender;
+			if (at.getY() == 5 && at.getX() >= 5 && at.getX() <= 9
+				|| at.getY() == 4 && at.getX() >= 6 && at.getX() <= 8) return null;
+			return wall;
+		});
+		DodgeModifierFactory modifiers = mock(DodgeModifierFactory.class);
+		when(game.getFactory(FactoryType.Factory.DODGE_MODIFIER)).thenReturn(modifiers);
+		when(modifiers.findModifiers(any(), eq(player))).thenReturn(Collections.emptySet());
+		AgilityMechanic movement = (AgilityMechanic) game.getRules().getFactory(FactoryType.Factory.MECHANIC)
+			.forName(Mechanic.Type.AGILITY.name());
+		when(movement.minimumRollDodge(eq(game), eq(player), any())).thenReturn(3);
+		assertRoute(planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))),
+			new FieldCoordinate(6, 5), new FieldCoordinate(7, 5), new FieldCoordinate(8, 5), new FieldCoordinate(9, 5));
+	}
+
+	private void groundedBall(int x, int y) {
+		when(field.isBallInPlay()).thenReturn(true);
+		when(field.isBallMoving()).thenReturn(true);
+		when(field.getBallCoordinate()).thenReturn(new FieldCoordinate(x, y));
+		PickupModifierFactory modifiers = mock(PickupModifierFactory.class);
+		when(game.getFactory(FactoryType.Factory.PICKUP_MODIFIER)).thenReturn(modifiers);
+		when(modifiers.findModifiers(any())).thenReturn(Collections.emptySet());
+		AgilityMechanic pickup = mock(AgilityMechanic.class);
+		when(game.getMechanic(Mechanic.Type.AGILITY)).thenReturn(pickup);
+		when(pickup.minimumRollPickup(eq(player), any())).thenReturn(3);
+	}
+
+	@Test void equalNonzeroDodgeAndRushProfilesStillAllowBallAvoidance() {
+		twoCorridors(3, 6, 3, 6);
+		when(player.getMovementWithModifiers()).thenReturn(2);
+		groundedBall(7, 4);
+		JsonArray steps = new RoutePlanner(state).preview(Collections.singletonList(new FieldCoordinate(9, 5))).get("steps").asArray();
+		assertEquals(4, steps.size());
+		assertTrue(contains(steps, 7, 6));
+		assertFalse(contains(steps, 7, 4));
+		assertEquals(2, steps.values().stream().filter(value -> value.asObject().getInt("dodge", 0) > 0).count());
+		assertEquals(2, steps.values().stream().filter(value -> value.asObject().getInt("rush", 0) > 0).count());
+	}
+
+	@Test void equalOverallOddsDoNotJustifyMakingAnIndividualDodgeHarder() {
+		RoutePlanner planner = twoCorridors(3, 6, 5, 5);
+		JsonObject baseline = planner.preview(Collections.singletonList(new FieldCoordinate(9, 5)));
+		assertTrue(contains(baseline.get("steps").asArray(), 7, 4));
+		groundedBall(7, 4);
+		JsonArray steps = planner.preview(Collections.singletonList(new FieldCoordinate(9, 5))).get("steps").asArray();
+		assertTrue(contains(steps, 7, 4), "Avoiding the ball cannot exchange Dodge 3+/6+ for 5+/5+");
+		assertEquals(4, steps.size());
+	}
+
+	private RoutePlanner twoCorridors(int topFirst, int topSecond, int bottomFirst, int bottomSecond) {
+		RoutePlanner planner = planner();
+		Player<?> wall = mock(Player.class), defender = mock(Player.class);
+		Team away = game.getTeamAway();
+		when(defender.getTeam()).thenReturn(away);
+		when(field.getPlayerState(defender)).thenReturn(new PlayerState(PlayerState.STANDING));
+		FieldCoordinate defenderAt = new FieldCoordinate(20, 14);
+		when(field.getPlayer(any(FieldCoordinate.class))).thenAnswer(invocation -> {
+			FieldCoordinate at = invocation.getArgument(0);
+			if (at.equals(defenderAt)) return defender;
+			if (at.equals(new FieldCoordinate(5, 5)) || at.equals(new FieldCoordinate(9, 5))
+				|| (at.getY() == 4 || at.getY() == 6) && at.getX() >= 6 && at.getX() <= 8) return null;
+			return wall;
+		});
+		when(field.findAdjacentCoordinates(any(FieldCoordinate.class), eq(FieldCoordinateBounds.FIELD), anyInt(), eq(false)))
+			.thenAnswer(invocation -> {
+				FieldCoordinate at = invocation.getArgument(0);
+				return at.equals(new FieldCoordinate(5, 5)) || at.getX() == 7
+					? new FieldCoordinate[] {defenderAt} : new FieldCoordinate[0];
+			});
+		DodgeModifierFactory modifiers = mock(DodgeModifierFactory.class);
+		when(game.getFactory(FactoryType.Factory.DODGE_MODIFIER)).thenReturn(modifiers);
+		when(modifiers.findModifiers(any(), eq(player))).thenAnswer(invocation -> {
+			DodgeContext context = invocation.getArgument(0);
+			boolean first = context.getSourceCoordinate().equals(new FieldCoordinate(5, 5));
+			boolean top = context.getTargetCoordinate().getY() < 5;
+			int target = first ? top ? topFirst : bottomFirst : top ? topSecond : bottomSecond;
+			DodgeModifier modifier = mock(DodgeModifier.class);
+			when(modifier.getModifier()).thenReturn(target);
+			return Collections.singleton(modifier);
+		});
+		AgilityMechanic movement = (AgilityMechanic) game.getRules().getFactory(FactoryType.Factory.MECHANIC)
+			.forName(Mechanic.Type.AGILITY.name());
+		when(movement.minimumRollDodge(eq(game), eq(player), any())).thenAnswer(invocation -> {
+			Set<DodgeModifier> values = invocation.getArgument(2);
+			return values.iterator().next().getModifier();
+		});
+		return planner;
 	}
 
 	@Test void occupiedWaypointAndExhaustedAllowanceAreRejected() {

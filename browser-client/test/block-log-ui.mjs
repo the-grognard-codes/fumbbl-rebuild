@@ -63,17 +63,31 @@ try {
       assert.ok(markerOffset < .75 && markerOffset > -.75, `${input.name}: D6 pips are optically centered on the face (${markerOffset}px)`);
     }
     for (const image of await log.getByRole('img').all()) assert.match(await image.getAttribute('aria-label'), /^Ivory and cyan die: /);
-    const bounds = await log.locator('.match-die').first().boundingBox(); assert.ok(bounds.width >= 20); assert.ok(bounds.height >= 20);
     const blockGeometry = await log.locator('.match-log-dice .block-die').first().evaluate(die => ({
       bounds: die.getBoundingClientRect().toJSON(),
-      position: getComputedStyle(die).position,
-      cube: getComputedStyle(die.querySelector('.block-die-cube')).width,
+      fontSize: parseFloat(getComputedStyle(die).fontSize),
+      cube: parseFloat(getComputedStyle(die.querySelector('.block-die-cube')).width),
       mark: getComputedStyle(die.querySelector('.block-die-side svg')).transform
     }));
-    assert.equal(blockGeometry.bounds.width, 26, `${input.name}: block die matches numeric log dice size`);
-    assert.equal(blockGeometry.bounds.height, 26, `${input.name}: block die matches numeric log dice size`);
-    assert.equal(blockGeometry.position, 'static', `${input.name}: selection outline does not shift the die`);
-    assert.equal(blockGeometry.cube, '22px', `${input.name}: block die face fills its compact log slot`);
+    const slotSize = blockGeometry.fontSize * 1.9;
+    assert.ok(Math.abs(blockGeometry.bounds.width - slotSize) < .05, `${input.name}: block die width scales with log text`);
+    assert.ok(Math.abs(blockGeometry.bounds.height - slotSize) < .05, `${input.name}: block die height scales with log text`);
+    if (await d6.count()) {
+      const numericBounds = await d6.boundingBox();
+      assert.ok(Math.abs(blockGeometry.bounds.width - numericBounds.width) < .05, `${input.name}: block and numeric log dice share a slot size`);
+    }
+    const selectionShift = await log.locator('.match-log-dice .block-die.selected').evaluateAll(dice => dice.map(die => {
+      const before = die.getBoundingClientRect();
+      const face = die.querySelector('.block-die-side[data-result="true"]');
+      const graphicBefore = face.getBoundingClientRect();
+      die.classList.remove('selected');
+      const after = die.getBoundingClientRect(), graphicAfter = face.getBoundingClientRect();
+      die.classList.add('selected');
+      return Math.max(...['x', 'y', 'width', 'height'].map(key => Math.max(
+        Math.abs(before[key] - after[key]), Math.abs(graphicBefore[key] - graphicAfter[key]))));
+    }));
+    assert.ok(selectionShift.every(shift => shift < .05), `${input.name}: selection outline does not shift the die or its face`);
+    assert.ok(Math.abs(blockGeometry.cube - blockGeometry.fontSize * 1.5) < .05, `${input.name}: block die face scales within its log slot`);
     assert.equal(blockGeometry.mark, 'matrix(1, 0, 0, 1, 0, -0.5)', `${input.name}: face marking is centered without moving the die`);
     await page.waitForFunction(() => [...document.querySelectorAll('.match-log-dice image')].every(image => {
       const probe = new Image(); probe.src = image.getAttribute('href'); return probe.complete && probe.naturalWidth > 0;

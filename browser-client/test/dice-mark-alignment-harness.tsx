@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { PolygonDie } from '../src/PolygonDie.tsx';
+import { LogDie } from '../src/LogDie.tsx';
 import '../src/match-log.css';
 
 const samples = [
@@ -13,6 +13,6 @@ const samples = [
 
 createRoot(document.getElementById('app')!).render(<main className="match-event-scroll" data-die-mark-probe>
   {samples.map(sample => <p key={sample.name}>{sample.name}: {sample.grouped
-    ? <span className="match-log-dice"><PolygonDie kind={sample.kind} face={sample.face} selected={sample.selected} chosenBy={sample.chosenBy}/></span>
-    : <PolygonDie kind={sample.kind} face={sample.face} selected={sample.selected}/>}</p>)}
+    ? <span className="match-log-dice"><LogDie kind={sample.kind} face={sample.face} selected={sample.selected} chosenBy={sample.chosenBy}/></span>
+    : <LogDie kind={sample.kind} face={sample.face} selected={sample.selected}/>}</p>)}
 </main>);

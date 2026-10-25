@@ -8,6 +8,24 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RecoveryNativeJsonTest {
+	@Test void onlyParameterKeySetsNormalizeWhileDropKeysAndHitTargetsKeepTheirOrder() {
+		JsonObject first = fixture(false), permuted = fixture(true);
+		for (JsonObject snapshot : new JsonObject[] {first, permuted}) {
+			JsonArray keys = snapshot == first ? new JsonArray().add("NR_OF_DICE").add("BLOCK_ROLL")
+				: new JsonArray().add("BLOCK_ROLL").add("NR_OF_DICE");
+			JsonObject step = snapshot.get("currentStep").asObject();
+			step.add("stepId", "blockRollMultiple").add("stepParameterKeys", keys)
+				.add("pending", new JsonObject().add("stepId", "consumeParameter").add("stepParameterKeys", keys))
+				.add("dropPlayerContext", new JsonObject().add("stepParameterKeys", new JsonArray().add("second").add("first")))
+				.add("playerIdsHit", new JsonArray().add("second").add("first"));
+		}
+		RecoveryNativeJson format = new RecoveryNativeJson();
+		assertEquals(format.normalize(first), format.normalize(permuted), "Native parameter sets ignore iteration order");
+		JsonObject step = first.get("currentStep").asObject();
+		assertEquals("[\"second\",\"first\"]", step.get("dropPlayerContext").asObject().get("stepParameterKeys").toString());
+		assertEquals("[\"second\",\"first\"]", step.get("playerIdsHit").toString());
+	}
+
 	@Test void unorderedNativeCollectionsNormalizeButStackDiceAndReportsKeepTheirOrder() {
 		JsonObject first = fixture(false), permuted = fixture(true);
 		RecoveryNativeJson format = new RecoveryNativeJson();

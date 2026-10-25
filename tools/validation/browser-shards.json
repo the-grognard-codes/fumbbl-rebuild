@@ -14,7 +14,10 @@
       "browser-client/test/native-check-log-ui.mjs",
       "browser-client/test/block-log-ui.mjs",
       "browser-client/test/block-visibility-ui.mjs",
-      "browser-client/test/dice-mark-alignment-ui.mjs"
+      "browser-client/test/multiple-block-dice-ui.mjs",
+      "browser-client/test/foul-bribe-ui.mjs",
+      "browser-client/test/dice-mark-alignment-ui.mjs",
+      "browser-client/test/roundup-dice-hover-ui.mjs"
     ],
     [
       "browser-client/test/reroll-accounting-ui.mjs",

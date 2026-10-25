@@ -91,7 +91,7 @@ class MultipleBlockActionsTest {
         availablePair();
         List<Action> actions = new ArrayList<>();
         projection.targets(game, attacker, "home", actions);
-        assertEquals(1, actions.size());
+        assertEquals(2, actions.size(), "Both coach-selected target orders must be available");
         assertEquals("multiBlock", actions.get(0).kind);
         assertEquals("Block First and Second", actions.get(0).label);
         ClientCommandSynchronousMultiBlock command = (ClientCommandSynchronousMultiBlock) actions.get(0).command;
@@ -99,6 +99,9 @@ class MultipleBlockActionsTest {
         assertEquals("second", command.getSelectedTargets().get(1).getPlayerId());
         assertEquals(standing, command.getSelectedTargets().get(0).getOriginalPlayerState());
         assertEquals(BlockKind.BLOCK, command.getSelectedTargets().get(1).getKind());
+        ClientCommandSynchronousMultiBlock reverse = (ClientCommandSynchronousMultiBlock) actions.get(1).command;
+        assertEquals("second", reverse.getSelectedTargets().get(0).getPlayerId());
+        assertEquals("first", reverse.getSelectedTargets().get(1).getPlayerId());
         when(field.getDiceDecoration(atSecond)).thenReturn(null);
         actions.clear();
         projection.targets(game, attacker, "home", actions);

@@ -232,6 +232,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [draggingPlayerId, setDraggingPlayerId] = useState('');
   const [solidDrop, setSolidDrop] = useState<{ playerId: string; to: RoutePoint; revision: number } | null>(null);
   const [targetPlayerId, setTargetPlayerId] = useState('');
+  const [multipleTargets, setMultipleTargets] = useState<string[]>([]);
   const [confirmedDice, setConfirmedDice] = useState<{ preview: PotentialBlockDice | null; context: BlockContext | null; matchId: string;
     playerId: string; revision: number; pendingSeen: boolean } | null>(null);
   const autoActionRef = useRef('');
@@ -265,6 +266,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useLayoutEffect(() => {
     if (displayedRevision.current === view.revision) return;
     displayedRevision.current = view.revision;
+    setMultipleTargets([]);
     setActionId(''); setActionFilter(''); setMenuChoices([]); setExplicitBlitz(false); setConfirmEndTurn(false);
     const modeRoute = passModeRoute.current;
     passModeRoute.current = null;
@@ -319,6 +321,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const menuPlayerId = selectedPlayer?.role === view.callerRole ? playerId : view.activePlayerId ?? '';
   const menuItems = playerActionMenu(view, menuPlayerId);
   const activeMenuKey = activeMenuAction(view, menuPlayerId);
+  const planningBlitz = explicitBlitz || playerId === view.activePlayerId && activeMenuKey === 'blitz';
   const hailMaryTargeting = playerId === view.activePlayerId && !decision && !explicitMove && !movementIntent
     && (activeMenuKey === 'hailMaryPass' || activeMenuKey === 'hailMaryBomb');
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
@@ -411,6 +414,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   };
   const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
   const pinnedAction = availableActions.find(action => action.id === actionId);
+  const multipleOptions = availableActions.filter(action => action.kind === 'multiBlock');
+  const selectingMultiple = activeMenuKey === 'multipleBlock' && multipleOptions.length > 0 && !decision;
+  const multipleCandidates = new Set(view.blockPreview?.multiple?.filter(option => multipleOptions.some(action => action.id === option.actionId))
+    .flatMap(option => option.context.blocks.map(block => block.targetPlayerId)) ?? []);
   const potentialDice = connected && !requestPending && !suspended && !playbackActive && !decision
     ? potentialBlockDice(view, playerId, targetPlayerId, pinnedAction,
       movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
@@ -438,6 +445,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
   const cancelProposal = () => {
+    setMultipleTargets([]);
     transferRollback.current = null;
     if (jumpMode) { setJumpMode(false); return; }
     if (!requestPending) setConfirmedDice(null);
@@ -450,6 +458,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const selectPlayer = (id: string) => {
     if (jumpMode) return;
     setRangeInspection({ playerId: id, matchId: view.matchId, revision: view.revision });
+    if (canChoose && selectingMultiple && multipleCandidates.has(id)) {
+      const targets = multipleTargets.includes(id) ? multipleTargets.filter(target => target !== id)
+        : [...multipleTargets.slice(0, 1), id];
+      setMultipleTargets(targets); setTargetPlayerId(id); setTargetFocus('player');
+      const pair = targets.length === 2 ? view.blockPreview?.multiple?.find(option =>
+        option.context.blocks[0]?.targetPlayerId === targets[0] && option.context.blocks[1]?.targetPlayerId === targets[1]) : null;
+      setActionId(pair?.actionId ?? ''); setSmartIntent(null); return;
+    }
     if (canChoose && pinnedAction?.kind === 'multiBlock'
       && view.blockPreview?.multiple?.find(option => option.actionId === pinnedAction.id)?.context.blocks.some(block => block.targetPlayerId === id)) {
       setTargetPlayerId(id); setTargetFocus('player'); return;
@@ -572,15 +588,16 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         cancelProposal(); setPlayerId(id); setTargetFocus('player'); return;
       }
       if (selectedPlayer?.role !== view.callerRole) return;
+      setTargetPlayerId(id); setTargetFocus('player');
       const explicitOtherAction = pinnedAction && !['select', 'stand', 'blitz', 'blitzTarget'].includes(pinnedAction.kind);
-      const foul = smartAttack(view, availableActions, playerId, id, explicitBlitz);
+      const foul = smartAttack(view, availableActions, playerId, id, planningBlitz);
       if (canChoose && foul?.kind === 'foul' && (!explicitOtherAction || pinnedAction.kind === 'declareFoul')
         && canPlanMovement(view, availableActions, playerId, 'foul')) {
         setTargetPlayerId(id); setTargetFocus('player'); previewMovement('foul', id, []); return;
       }
       if (!explicitOtherAction) {
         const plannedMove = movementIntent?.kind === 'move' && displayedWaypoints.length > 0;
-        const attack = smartAttack(view, availableActions, playerId, id, explicitBlitz || plannedMove);
+        const attack = smartAttack(view, availableActions, playerId, id, planningBlitz || plannedMove);
         if (canChoose && attack?.kind === 'block' && !plannedMove) {
           clearMovement(); setTargetPlayerId(id); setTargetFocus('player'); setActionId(attack.action.id);
           setSmartIntent(attack.action.kind === 'selectBlock'
@@ -589,7 +606,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         }
         const adjacent = selectedPlayer.x != null && selectedPlayer.y != null
           && Math.max(Math.abs(selectedPlayer.x - player.x), Math.abs(selectedPlayer.y - player.y)) === 1;
-        if (adjacent && !explicitBlitz && !plannedMove) {
+        if (adjacent && !planningBlitz && !plannedMove && !/prone/i.test(selectedPlayer.state)) {
           clearMovement(); setActionId(''); setSmartIntent(null);
           return;
         }
@@ -867,6 +884,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const selectMenuItem = (item: PlayerMenuItem) => {
     if (!canChoose || item.spent) return;
     setMenuChoices([]);
+    if (item.key === 'blitz' && movementFlow && menuPlayerId === playerId
+      && canPlanMovement(view, availableActions, playerId, 'blitz')
+      && view.players.some(player => player.id === targetPlayerId && player.role !== view.callerRole && /standing/i.test(player.state))) {
+      setExplicitBlitz(true); previewMovement('blitz', targetPlayerId, waypoints); return;
+    }
+    if (item.key === 'multipleBlock' && selectingMultiple) {
+      setMultipleTargets([]); setActionId(''); setTargetPlayerId(''); return;
+    }
     const mode = item.actions.find(action => ['hailMaryPassMode', 'hailMaryBombMode', 'normalPassMode', 'normalBombMode'].includes(action.kind));
     if (mode) {
       passModeRoute.current = selectedPlayer?.x != null && selectedPlayer.y != null
@@ -990,6 +1015,15 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
             disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}
         </div> : availableActions.length > 0 ? <>
         <div className="command-heading"><strong>{selectedPlayer ? `#${selectedPlayer.number ?? selectedPlayer.slot} ${selectedPlayer.name} · ${selectedPlayer.position ?? selectedPlayer.role}` : 'No player selected'}</strong></div>
+        {selectingMultiple && <div className="action-target-choices" role="group" aria-label="Multiple Block targets">
+          <span role="status">{multipleTargets.length === 0 ? 'Multiple Block: select the first target.'
+            : multipleTargets.length === 1 ? 'Multiple Block: select the second target.' : 'Multiple Block: confirm the targets in the order shown.'}</span>
+          {[...multipleCandidates].map(id => <button key={id} type="button" disabled={!canChoose}
+            aria-pressed={multipleTargets.includes(id)} onClick={() => selectPlayer(id)}>
+            {multipleTargets.includes(id) ? `${multipleTargets.indexOf(id) + 1}. ` : ''}{view.players.find(player => player.id === id)?.name}</button>)}
+          <button type="button" disabled={!canChoose || !multipleTargets.length}
+            onClick={() => { setMultipleTargets([]); setActionId(''); setTargetPlayerId(''); }}>Clear targets</button>
+        </div>}
         {menuItems.length > 0 && <div className="command-buttons player-action-icons" role="group" aria-label="Player actions"
           style={{ ['--action-count' as string]: menuItems.length,
             gridTemplateColumns: menuItems.map(item => item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? '30px' : 'minmax(0,var(--action-button-width,42px))').join(' ') }}>

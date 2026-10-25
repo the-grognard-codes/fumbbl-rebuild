@@ -39,7 +39,8 @@ final class MultipleBlockActions {
         if (!hasMultipleBlockSkill(player)) return;
         Player<?>[] defenders = defenders(game, player);
         Arrays.sort(defenders, (left, right) -> left.getId().compareTo(right.getId()));
-        for (int first = 0; first < defenders.length; first++) for (int second = first + 1; second < defenders.length; second++) {
+        for (int first = 0; first < defenders.length; first++) for (int second = 0; second < defenders.length; second++) {
+            if (first == second) continue;
             Player<?> left = defenders[first];
             Player<?> right = defenders[second];
             FieldCoordinate leftAt = game.getFieldModel().getPlayerCoordinate(left);

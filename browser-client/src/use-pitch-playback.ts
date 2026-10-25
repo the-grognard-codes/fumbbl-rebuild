@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext } from './pitch-playback.ts';
-import { offeredBlockDice, recordDice } from './dice-presentation.ts';
+import { offeredBlockDice } from './dice-presentation.ts';
+import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
 import type { ConfirmedMove } from './pitch-playback.ts';
@@ -10,7 +11,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
+const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
 function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');
@@ -37,6 +38,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const pinnedDice = useRef(false);
   const responseDiceKey = useRef<string | null>(null);
   const snapshotRevision = useRef(view.revision);
+  const multipleReveals = useRef(new MultipleBlockDiceReveals());
   latest.current = view;
   const clearDice = () => { pinnedDice.current = false; diceStream.current!.clear(); };
   const cancel = () => {
@@ -56,12 +58,14 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (!enabled || previous.matchId !== view.matchId || view.revision < previous.revision
       || mode === 'replay' && Math.abs(view.revision - previous.revision) > 1) {
       snapshotRevision.current = view.revision;
+      multipleReveals.current.reset();
       cancel(); completed.current = view.revision;
       responseDiceKey.current = null;
       presented.current = view; setPitchView(view); clearDice(); setActive(false);
       setMoveMillis(0); setSynchronizing(false);
       return;
     }
+    multipleReveals.current.update(view);
     const prediction = provisional.current;
     if (prediction && view.revision === prediction.base.revision) {
       if (!requestPending) {
@@ -87,8 +91,11 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (view.revision > diceRevision.current && pinnedDice.current) clearDice();
     const responseKey = `${view.matchId}:${view.revision}`;
     const finalRecord = records[view.revision];
-    const responseDice = (finalRecord?.revision === view.revision ? recordDice(finalRecord).at(-1) : null)
-      ?? (mode === 'live' ? offeredBlockDice(view) : null);
+    const reportDice = finalRecord?.revision === view.revision ? playbackBeats(finalRecord)
+      .filter(beat => beat.kind === 'dice').map(beat => beat.dice)
+      .filter(moment => multipleReveals.current.allows(moment, finalRecord.state)).at(-1) : null;
+    const offered = mode === 'live' ? offeredBlockDice(view) : null;
+    const responseDice = (view.activePlayerAction === 'multipleBlock' && offered ? offered : reportDice) ?? offered;
     const requiresResponse = !!view.prompt || view.actions.some(action => responseKinds.has(action.kind));
     const nextRecord = records[completed.current + 1];
     const precedingMoves = nextRecord?.revision === completed.current + 1
@@ -103,6 +110,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       // A current snapshot may arrive before its transcript, including after
       // reconnect. Restore that result once without replaying it on every render.
       const dice = responseDice;
+      if (dice) multipleReveals.current.remember(dice, view);
       responseDiceKey.current = dice ? responseKey : null;
       diceRevision.current = view.revision;
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -180,6 +188,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     const presentDice = (index: number) => {
       const beat = beats[index];
       if (beat.kind === 'dice') {
+        if (!multipleReveals.current.allows(beat.dice, record.state)) return;
+        multipleReveals.current.remember(beat.dice, record.state);
         diceRevision.current = record.revision;
         const response = mode === 'live' && record.revision === latest.current.revision
           && (latest.current.prompt || latest.current.actions.some(action => responseKinds.has(action.kind)));
