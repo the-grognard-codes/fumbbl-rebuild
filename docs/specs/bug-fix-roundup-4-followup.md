@@ -291,3 +291,9 @@ resumption is claimed.
 Review services were stopped with `node tools/dev-local.mjs --stop`; the review
 database volume was retained. The review Hosting, proxy and game/database ports
 have no listeners. This delivery does not publish DEV or production Hosting.
+
+PR delivery initially exposed an incorrect registration of `FoulBribeFlowTest`
+in the state-test-only shard manifest. That class belongs to `ffb-server`, whose
+tests already run upstream of the selected state tests. The extra registration
+was removed; production behavior and regression tests were unchanged. The actual
+state-test manifest is checked against its source inventory before the CI retry.

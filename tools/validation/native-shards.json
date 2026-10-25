@@ -20,7 +20,6 @@
     ],
     [
       "com.fumbbl.ffb.test.BallAndFoulActionsTest",
-      "com.fumbbl.ffb.server.match.FoulBribeFlowTest",
       "com.fumbbl.ffb.test.BallPresentationTest",
       "com.fumbbl.ffb.test.BrowserTeamAdapterTest",
       "com.fumbbl.ffb.test.kickoff.SwarmingEndTurnTest",
