@@ -30,6 +30,44 @@ try {
         && (!input.view || frame.dataset.revision === String(input.view.revision) && frame.dataset.role === input.view.callerRole);
     }, { serial, input });
   };
+  // Native command ordering is covered by RoundupActionFlowTest. Extend the
+  // historical frozen view with the reverse offer to exercise both UI choices.
+  const orderedMultiple = structuredClone(nativeMultiple.ready);
+  const forward = orderedMultiple.blockPreview.multiple[0];
+  const reverse = structuredClone(forward);
+  reverse.context.blocks.reverse();
+  reverse.context.activeTargetPlayerId = reverse.context.blocks[0].targetPlayerId;
+  reverse.actionId = `${forward.actionId.split(':multi-block-')[0]}:multi-block-${reverse.context.blocks.map(block => block.targetPlayerId).join('-')}`;
+  orderedMultiple.blockPreview.multiple.push(reverse);
+  const reverseAction = structuredClone(orderedMultiple.actions.find(action => action.id === forward.actionId));
+  reverseAction.id = reverse.actionId; reverseAction.label = 'Block targets in reverse order';
+  orderedMultiple.actions.push(reverseAction);
+  const multipleIds = forward.context.blocks.map(block => block.targetPlayerId);
+  for (const ids of [multipleIds, [...multipleIds].reverse()]) {
+    await publish({ mode: 'game', view: orderedMultiple, records: [], proposal: null, dice: null }, true);
+    await page.evaluate(() => { window.blockVisibilityIntents = []; });
+    const group = page.getByRole('group', { name: 'Multiple Block targets', exact: true });
+    await group.getByText('Multiple Block: select the first target.', { exact: true }).waitFor();
+    const confirm = page.getByRole('button', { name: 'Confirmed!', exact: true });
+    assert.equal(await confirm.isDisabled(), true);
+    await page.locator(`.live-marker[data-player-id="${ids[0]}"]`).click();
+    await group.getByText('Multiple Block: select the second target.', { exact: true }).waitFor();
+    assert.equal(await confirm.isDisabled(), true, 'One target cannot submit Multiple Block');
+    await page.locator(`.live-marker[data-player-id="${ids[1]}"]`).click();
+    await group.getByText('Multiple Block: confirm the targets in the order shown.', { exact: true }).waitFor();
+    assert.equal(await confirm.isEnabled(), true);
+    const expected = orderedMultiple.blockPreview.multiple.find(option =>
+      option.context.blocks.every((block, index) => block.targetPlayerId === ids[index]));
+    assert.ok(expected, 'Native projection must offer each coach-selected order');
+    assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents), []);
+    await confirm.click();
+    assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents),
+      [{ operation: 'action', fields: { actionId: expected.actionId } }]);
+    await group.getByRole('button', { name: 'Clear targets', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await confirm.isDisabled(), true);
+  }
+  await page.evaluate(() => { window.blockVisibilityIntents = []; });
   const markers = kind => page.locator(`[data-block-marker="${kind}"]`);
   const waitMarkers = async (block, offense, defense) => {
     try {
@@ -200,19 +238,24 @@ try {
     const decoded = decodeSetupStateValue(committed);
     if (role !== nativeAttacker.role) assert.equal(decoded.actions.every(action => action.sourcePlayerId === null), true,
       'opponent chooser actions intentionally have no acting player source');
-    const decision = matchDecision(decoded, decoded.actions);
-    assert.equal(decision.options.filter(option => option.face).length, decoded.actions.filter(action => action.kind === 'blockDie').length);
-    for (const block of blocks) {
-      const target = decoded.players.find(player => player.id === block.targetPlayerId);
-      for (const option of decision.options.filter(option => option.targetPlayerId === target.id))
-        assert.ok(option.label.endsWith(`against ${target.name} #${target.number}`), 'every target-specific choice, including a skill group, identifies its target');
-    }
-    await publish({ mode: 'game', view: decoded, records: nativeMultiple.records }, true);
     const dialog = page.getByRole('dialog', { name: 'Choose a block die', exact: true });
-    await dialog.waitFor();
     for (const [index, block] of blocks.entries()) {
+      const remaining = blocks.slice(index).map(item => item.targetPlayerId);
+      const staged = { ...decoded, revision: decoded.revision + index,
+        blockContext: { ...decoded.blockContext, activeTargetPlayerId: block.targetPlayerId },
+        actions: decoded.actions.filter(action => !action.id.includes(':multi:') || !action.target
+          || !('playerId' in action.target) || remaining.includes(action.target.playerId))
+          .map(action => ({ ...action, id: action.id.replace(/^\d+:/, `${decoded.revision + index}:`) })) };
+      const decision = matchDecision(staged, staged.actions);
       const target = decoded.players.find(player => player.id === block.targetPlayerId);
-      const nativeChoice = decoded.actions.find(action => action.kind === 'blockDie' && action.target.playerId === target.id);
+      assert.equal(decision.options.filter(option => option.face).length,
+        staged.actions.filter(action => action.kind === 'blockDie' && action.target.playerId === target.id).length,
+        'Only the current target contributes dice choices');
+      for (const option of decision.options)
+        assert.ok(option.label.endsWith(`against ${target.name} #${target.number}`), 'every visible target-specific choice identifies the current target');
+      await publish({ mode: 'game', view: staged, records: nativeMultiple.records }, true);
+      await dialog.waitFor();
+      const nativeChoice = staged.actions.find(action => action.kind === 'blockDie' && action.target.playerId === target.id);
       const choice = dialog.getByRole('button', { name: `${nativeChoice.label} against ${target.name} #${target.number}`, exact: true });
       // Initial automatic focus may already be here while a stationary pointer inspects another die.
       // Establish an actual keyboard focus transition rather than refocusing the same element.
@@ -230,19 +273,15 @@ try {
         block.offensiveAssists.map(assist => assist.playerId).sort(), 'only this native target\'s counted assists are visible');
       assert.equal(await page.locator('[data-block-marker="block"].inactive').count(), 1);
       // Pointer inspection must follow the same target contract as keyboard focus.
-      const otherBlock = blocks[1 - index], otherTarget = decoded.players.find(player => player.id === otherBlock.targetPlayerId);
-      const otherChoice = decoded.actions.find(action => action.kind === 'blockDie' && action.target.playerId === otherTarget.id);
       await page.getByLabel('Component', { exact: true }).hover();
-      await dialog.getByRole('button', { name: `${otherChoice.label} against ${otherTarget.name} #${otherTarget.number}`, exact: true }).hover();
-      await page.waitForFunction(target => document.querySelector('[data-block-layer="assists"]').dataset.blockTarget === target, otherTarget.id, { timeout: 5000 });
-      await waitMarkers(2, otherBlock.offensiveAssists.length, otherBlock.defensiveAssists.length);
+      await choice.hover();
+      await page.waitForFunction(target => document.querySelector('[data-block-layer="assists"]').dataset.blockTarget === target, target.id, { timeout: 5000 });
+      await waitMarkers(2, block.offensiveAssists.length, block.defensiveAssists.length);
+      assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents), [], 'focus and pointer inspection never submit a choice');
+      await choice.click();
+      assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents.pop()), { operation: 'action',
+        fields: { actionId: nativeChoice.id } });
     }
-    assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents), [], 'focus and pointer inspection never submit a choice');
-    const selectedAction = decoded.actions.find(action => action.kind === 'blockDie' && action.target.playerId === blocks[1].targetPlayerId);
-    const selectedTarget = decoded.players.find(player => player.id === blocks[1].targetPlayerId);
-    await dialog.getByRole('button', { name: `${selectedAction.label} against ${selectedTarget.name} #${selectedTarget.number}`, exact: true }).click();
-    assert.deepEqual(await page.evaluate(() => window.blockVisibilityIntents.pop()), { operation: 'action',
-      fields: { actionId: selectedAction.id } });
   }
 
   const nativeActive = nativeMultiple.rolled.blockContext.blocks.find(block => block.targetPlayerId === nativeMultiple.rolled.blockContext.activeTargetPlayerId);

@@ -27,7 +27,7 @@ test('touchback and High Kick give their current required placement instruction'
 });
 test('required decisions temporarily suppress kickoff broadcasts for both coaches and spectators', () => {
   for (const callerRole of ['home', 'away', 'spectator']) {
-    for (const kind of ['followUp', 'blockDie', 'reroll', 'skill', 'push', 'apothecary', 'interception', 'argueTheCall']) {
+    for (const kind of ['followUp', 'blockDie', 'reroll', 'skill', 'push', 'apothecary', 'interception', 'argueTheCall', 'bribe']) {
       const state = decodeSetupStateValue({ ...live, callerRole, kickoff,
         actions: [{ id: 'required', actor: 'home', kind, label: 'Required choice', sourcePlayerId: null, target: null }] }, callerRole === 'spectator');
       assert.equal(currentGameStep(state), null, kind);

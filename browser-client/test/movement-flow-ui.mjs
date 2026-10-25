@@ -9,6 +9,7 @@ import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
 import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/movement-interaction-projections.json', import.meta.url), 'utf8'));
+const adjacentFixture = JSON.parse(readFileSync(new URL('./fixtures/adjacent-blitz-native.json', import.meta.url), 'utf8'));
 const evidence = process.env.MOVEMENT_FLOW_EVIDENCE;
 if (evidence) mkdirSync(evidence, { recursive: true });
 const server = await createServer({ root: fileURLToPath(new URL('../', import.meta.url)), configFile: false,
@@ -85,6 +86,62 @@ const clickSquare = async (page, square, button = 'left') => page.locator('.live
   position: await squarePosition(page, square.x, square.y), button });
 
 try {
+  const proneTargetFirst = adjacentFixture.proneDirect;
+  const targetJourney = await openJourney(proneTargetFirst.ready.state, proneTargetFirst.preview, proneTargetFirst.accepted.state);
+  await select(targetJourney.page, proneTargetFirst.playerId);
+  await select(targetJourney.page, proneTargetFirst.targetPlayerId);
+  await targetJourney.page.waitForFunction(() => window.testSocket.sent.some(request => request.type === 'movementPreview'
+    && request.kind === 'blitz' && request.waypoints.length === 0), undefined, { timeout: 4000 });
+  assert.deepEqual(await mutations(targetJourney.page), [], 'Selecting the prone player\'s adjacent target only previews Blitz');
+  await targetJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  await targetJourney.confirmed.click();
+  await targetJourney.page.waitForFunction(() => window.testSocket.sent.some(request => request.operation === 'movement'));
+  assert.deepEqual((await mutations(targetJourney.page)).map(request => [request.kind, request.targetPlayerId, request.waypoints]),
+    [['blitz', proneTargetFirst.targetPlayerId, []]], 'Target-first prone Blitz needs no move away and back');
+  assert.deepEqual(targetJourney.errors, []); await targetJourney.page.close();
+  const declaredBlitz = adjacentFixture.proneDeclaredBlitz;
+  const declarationJourney = await openJourney(declaredBlitz.ready.state, declaredBlitz.preview,
+    declaredBlitz.accepted.state, 0, { [declaredBlitz.declaration.id]: declaredBlitz.declared.state });
+  await select(declarationJourney.page, declaredBlitz.playerId);
+  await declarationJourney.page.getByRole('button', { name: 'Blitz', exact: true }).click();
+  await declarationJourney.confirmed.click();
+  await declarationJourney.page.waitForFunction(() => window.testSocket.state.turnMode === 'SELECT_BLITZ_TARGET');
+  await select(declarationJourney.page, declaredBlitz.targetPlayerId);
+  await declarationJourney.page.waitForFunction(() => window.testSocket.sent.some(request => request.type === 'movementPreview'
+    && request.kind === 'blitz' && request.waypoints.length === 0), undefined, { timeout: 4000 });
+  await declarationJourney.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+  await declarationJourney.confirmed.click();
+  await declarationJourney.page.waitForFunction(() => window.testSocket.sent.some(request => request.operation === 'movement'));
+  assert.deepEqual((await mutations(declarationJourney.page)).map(request => request.operation), ['action', 'movement'],
+    'Declaring Blitz stands the prone player; choosing the adjacent target then commits exactly one block');
+  assert.deepEqual(declarationJourney.errors, []); await declarationJourney.page.close();
+  const moveDeclared = adjacentFixture.proneStandFirst;
+  const standJourney = await openJourney(moveDeclared.declared.state, declaredBlitz.preview, declaredBlitz.accepted.state);
+  await select(standJourney.page, moveDeclared.playerId);
+  await select(standJourney.page, moveDeclared.targetPlayerId);
+  assert.equal(await standJourney.page.evaluate(() => window.testSocket.sent.some(request => request.type === 'movementPreview'
+    && request.kind === 'blitz')), false, 'Standing through Move does not grant a later Blitz declaration');
+  assert.deepEqual(await mutations(standJourney.page), []);
+  assert.deepEqual(standJourney.errors, []); await standJourney.page.close();
+  for (const state of ['Standing', 'Prone']) {
+    const ready = structuredClone(fixture.blitzReadyState);
+    const source = ready.players.find(player => player.id === fixture.meta.blitzPlayerId);
+    source.state = `is ${state.toLowerCase()}`; source.status = state;
+    const adjacent = await openJourney(ready, fixture.blitzPlan.plan, fixture.blitzAcceptedState);
+    await select(adjacent.page, source.id);
+    await select(adjacent.page, fixture.meta.blitzTargetId);
+    await adjacent.page.getByRole('button', { name: 'Blitz', exact: true }).click();
+    await adjacent.page.waitForFunction(() => window.testSocket.sent.some(request => request.type === 'movementPreview'
+      && request.kind === 'blitz' && request.waypoints.length === 0), undefined, { timeout: 4000 });
+    await adjacent.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
+    assert.deepEqual(await mutations(adjacent.page), [], 'Choosing an adjacent Blitz stays read-only before confirmation');
+    await adjacent.confirmed.click();
+    await adjacent.page.waitForFunction(() => window.testSocket.sent.some(request => request.operation === 'movement'));
+    const sent = await mutations(adjacent.page);
+    assert.equal(sent.length, 1);
+    assert.deepEqual([sent[0].kind, sent[0].targetPlayerId, sent[0].waypoints], ['blitz', fixture.meta.blitzTargetId, []]);
+    assert.deepEqual(adjacent.errors, []); await adjacent.page.close();
+  }
   // Presentation forecasts are controlled here; native calculations are tested in the server suite.
   const blocker = fixture.readyState.players.find(player => player.id === fixture.meta.blitzPlayerId);
   const targets = fixture.readyState.players.filter(player => player.role !== blocker.role && player.x !== null

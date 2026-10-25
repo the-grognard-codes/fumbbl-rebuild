@@ -4,7 +4,7 @@ export type CurrentGameStep = { title: string; instruction: string; progress?: s
 /** Broadcast only drive setup and kickoff instructions from the accepted public state. */
 export function currentGameStep(view: SetupState): CurrentGameStep | null {
   if (view.phase === 'FULL_TIME' || view.saveResume?.status === 'SUSPENDED' || view.saveResume?.status === 'RESUME_PENDING'
-    || view.prompt || view.actions.some(action => ['followUp', 'blockDie', 'reroll', 'skill', 'push', 'apothecary', 'interception', 'argueTheCall'].includes(action.kind)))
+    || view.prompt || view.actions.some(action => ['followUp', 'blockDie', 'reroll', 'skill', 'push', 'apothecary', 'interception', 'argueTheCall', 'bribe'].includes(action.kind)))
     return null;
   const kickoff = view.kickoff;
   const event = kickoff?.event ?? (view.turnMode === 'BLITZ' ? 'CHARGE' : view.turnMode);

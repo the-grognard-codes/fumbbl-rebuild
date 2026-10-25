@@ -1,5 +1,5 @@
 import type { TranscriptRecord } from './transcript-protocol.ts';
-import type { SetupPlayer, SetupState } from './setup-protocol.ts';
+import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { BlockContext } from './block-context.ts';
 
@@ -56,7 +56,7 @@ export function blockFaceLabel(face: string): string | undefined {
 
 /** Complete server-offered block choices already contain authoritative faces. */
 export function offeredBlockDice(view: SetupState): DiceMoment | null {
-  const choices = view.actions.filter(action => action.kind === 'blockDie');
+  const choices = visibleBlockActions(view, view.actions).filter(action => action.kind === 'blockDie');
   if (!choices.length || choices.length > 3) return null;
   const chooser = choices[0].actor;
   if (chooser !== 'home' && chooser !== 'away') return null;
@@ -70,9 +70,22 @@ export function offeredBlockDice(view: SetupState): DiceMoment | null {
   }
   const attacker = view.players.find(player => player.id === view.activePlayerId);
   return { label: 'Block dice rolled', faces, selected: null, chooser,
-    subjectId: view.blockContext?.activeTargetPlayerId ?? null,
+    subjectId: choices[0].target && 'playerId' in choices[0].target ? choices[0].target.playerId
+      : view.blockContext?.activeTargetPlayerId ?? null,
     blockContext: view.blockContext ?? null,
     ...(attacker ? { uphill: faces.length > 1 && attacker.role !== chooser } : {}) };
+}
+
+/** Native Multiple Block rolls are simultaneous; reveal their choices in the coach's target order. */
+export function visibleBlockActions(view: SetupState, actions: SetupAction[]): SetupAction[] {
+  const multiple = view.actions.filter(action => action.id.includes(':multi:') && action.target && 'playerId' in action.target);
+  if (!multiple.length) return actions;
+  const firstTarget = multiple[0].target;
+  const target = view.blockContext?.blocks.find(block => multiple.some(action => action.target
+    && 'playerId' in action.target && action.target.playerId === block.targetPlayerId))?.targetPlayerId
+    ?? (firstTarget && 'playerId' in firstTarget ? firstTarget.playerId : null);
+  return actions.filter(action => !action.id.includes(':multi:') || !action.target || !('playerId' in action.target)
+    || action.target.playerId === target);
 }
 
 /** Only values written by native reports become visible dice; no roll is generated in the browser. */
@@ -104,14 +117,24 @@ export function reportedDice(report: Record<string, unknown>, players: SetupPlay
   }
   if (id === 'injury') {
     const rolls: PresentedRoll[] = [];
+    // Outcome-only updates retain the earlier arrays but omit numericDice.
+    // Respect their native skip flags before adapting legacy reports.
+    const skip = String(report.skipInjuryParts ?? 'NONE');
+    const skipped = {
+      armorRoll: ['ARMOUR', 'ARMOUR_AND_CAS', 'ARMOUR_AND_INJURY', 'EVERYTHING_BUT_CAS'].includes(skip),
+      injuryRoll: ['ARMOUR_AND_INJURY', 'EVERYTHING_BUT_CAS', 'INJURY'].includes(skip),
+      casualtyRoll: ['ARMOUR_AND_CAS', 'ARMOUR_AND_INJURY', 'INJURY', 'CAS'].includes(skip),
+      casualtyRollDecay: ['ARMOUR_AND_CAS', 'ARMOUR_AND_INJURY', 'INJURY', 'CAS'].includes(skip)
+    };
     for (const [field, sides, label] of [['armorRoll', 6, 'Armor'], ['injuryRoll', 6, 'Injury'],
       ['casualtyRoll', 16, 'Casualty'], ['casualtyRollDecay', 16, 'Decay casualty']] as const) {
+      if (skipped[field]) continue;
       const values = report[field];
       if (!Array.isArray(values)) continue;
       values.forEach((value, index) => {
         const dieSides = sides === 16 && index > 0 ? 6 : sides;
         if (Number.isInteger(value) && value >= 1 && value <= dieSides)
-          rolls.push({ kind: dieSides === 16 ? 'd16' : 'd6', face: String(value), label: `${label}${index ? ' detail' : ''}` });
+          rolls.push({ kind: dieSides === 16 ? 'd16' : 'd6', face: String(value), label });
       });
     }
     if (rolls.length) return { label: [...new Set(rolls.map(roll => roll.label))].join('; '), faces: rolls.map(roll => roll.face),

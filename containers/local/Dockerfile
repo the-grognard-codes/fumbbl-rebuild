@@ -4,7 +4,8 @@ COPY --from=maven /usr/share/maven /usr/share/maven
 ENV PATH="/usr/share/maven/bin:${PATH}"
 WORKDIR /source
 COPY . .
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -pl ffb-server -am package
+# Recovery tests include complete match histories and need a predictable test heap.
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -DargLine=-Xmx3g -pl ffb-server -am package
 WORKDIR /out
 RUN jar xf /source/ffb-server/target/ffb-server.zip && rm server.ini
 

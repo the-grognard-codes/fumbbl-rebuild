@@ -17,6 +17,7 @@ import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
 import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
 import { resolvePlayerArt, resolvePlayerPortrait, playerArtPlacement, type PlayerFacing } from './player-art.ts';
+import { updatePlayerFacings } from './player-facing.ts';
 import { canPlaceReserve } from './setup-protocol.ts';
 import { matchTeamName } from './match-team-name.ts';
 import type { PushChoice } from './push-choice.ts';
@@ -37,7 +38,6 @@ import './limited-action-tags.css';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
 const centerOf = (point: Point) => ({ x: point.x + .5, y: point.y + .5 });
-const directions: PlayerFacing[] = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 /** Off-pitch consumers share the portrait catalog. */
 export const spriteUrl = resolvePlayerPortrait;
 
@@ -167,7 +167,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [failedArt, setFailedArt] = useState<Set<string>>(() => new Set());
   const onArtError = (url: string) => setFailedArt(current => current.has(url) ? current : new Set([...current, url]));
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
-  const prior = useRef<{ matchId: string; revision: number; players: SetupPlayer[] } | null>(null);
+  const prior = useRef<SetupState | null>(null);
   const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
   const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
   const camera = useMemo(() => new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation }),
@@ -207,20 +207,10 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     return () => element.removeEventListener('wheel', wheel);
   }, [onBlurPlayer, setZoom]);
   useEffect(() => {
-    if (!prior.current || prior.current.matchId !== view.matchId || view.revision < prior.current.revision) setFacings({});
-    else {
-      const old = new Map(prior.current.players.map(player => [player.id, player]));
-      const changes: Record<string, PlayerFacing> = {};
-      for (const player of view.players) {
-        const before = old.get(player.id);
-        if (before?.x == null || before.y == null || player.x == null || player.y == null) continue;
-        const dx = player.x - before.x, dy = player.y - before.y;
-        if (dx || dy) changes[player.id] = directions[(Math.round(Math.atan2(dy, dx) * 4 / Math.PI) + 8) % 8];
-      }
-      if (Object.keys(changes).length) setFacings(current => ({ ...current, ...changes }));
-    }
-    prior.current = { matchId: view.matchId, revision: view.revision, players: view.players };
-  }, [view.matchId, view.revision, view.players]);
+    const previous = prior.current;
+    setFacings(current => updatePlayerFacings(current, previous, view));
+    prior.current = view;
+  }, [view]);
   const activePlayer = view.players.find(player => player.id === view.activePlayerId), selected = view.players.find(player => player.id === selectedId);
   const followUpAction = !readOnly && !playback ? actions.find(action => action.kind === 'followUp'
     && action.actor === view.callerRole && action.target && 'x' in action.target) : undefined;

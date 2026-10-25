@@ -482,6 +482,8 @@ public class StepBlockRollMultiple extends AbstractStepMultiple {
 
 		sequence.add(StepId.DROP_FALLING_PLAYERS, IStepLabel.DROP_FALLING_PLAYERS);
 		sequence.add(StepId.STEADY_FOOTING, from(StepParameterKey.APOTHECARY_MODE, ApothecaryMode.DEFENDER));
+		// Consume the defender's drop before the attacker's context can replace it.
+		sequence.add(StepId.HANDLE_DROP_PLAYER_CONTEXT);
 		sequence.add(StepId.STEADY_FOOTING, from(StepParameterKey.APOTHECARY_MODE, ApothecaryMode.ATTACKER));
 		sequence.add(StepId.HANDLE_DROP_PLAYER_CONTEXT);
 		sequence.add(StepId.CONSUME_PARAMETER, from(StepParameterKey.CONSUME_PARAMETER, parameterToConsume));

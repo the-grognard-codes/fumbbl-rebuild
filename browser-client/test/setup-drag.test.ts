@@ -44,3 +44,17 @@ test('Solid Defence drag first selects the offered player, then uses the offered
   assert.equal(solidDefenceDrop(event, [choice, place], 'home1', { x: 13, y: 7 }), null);
   assert.equal(solidDefenceDrop(event, [choice, place], 'reserve', { x: 8, y: 7 }), null);
 });
+
+test('Solid Defence redeploys a selected reserve only through its authoritative placement', () => {
+  const reserve = { ...setup.players[0], x: null, y: null, offPitch: 'reserve' as const, state: 'is in reserve' };
+  const event: SetupState = { ...setup, phase: 'PLAY', turnMode: 'SOLID_DEFENCE', players: [reserve, ...setup.players.slice(1)] };
+  assert.equal(canDragSetupPlayer(event, reserve, [place]), true);
+  assert.equal(solidDefenceDrop(event, [place], reserve.id, { x: 8, y: 7 })?.action.id, place.id);
+  assert.equal(solidDefenceDrop(event, [place], reserve.id, { x: 13, y: 7 }), null);
+  assert.equal(solidDefenceDrop(event, [place], reserve.id, { x: 8, y: 8 }), null);
+  assert.equal(canDragSetupPlayer(event, reserve, []), false);
+  assert.equal(solidDefenceDrop(event, [choice], reserve.id, { x: 8, y: 7 }), null);
+  assert.equal(canDragSetupPlayer({ ...event, callerRole: 'away' }, reserve, [place]), false);
+  const injured = { ...reserve, offPitch: 'knockedOut' as const };
+  assert.equal(canDragSetupPlayer(event, injured, [place]), false);
+});

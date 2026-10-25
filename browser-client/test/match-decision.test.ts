@@ -4,9 +4,53 @@ import test from 'node:test';
 import { decisionIcon, matchDecision } from '../src/match-decision.ts';
 import { pitchPushChoices } from '../src/push-choice.ts';
 import { withProTest } from '../src/reroll-presentation.ts';
+import { offeredBlockDice } from '../src/dice-presentation.ts';
 import type { SetupState } from '../src/setup-protocol.ts';
 
 const frames = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'));
+
+test('bribe decisions preserve native use/decline actions and belong only to the fouling coach', () => {
+  for (const actor of ['home', 'away'] as const) {
+    const frame: SetupState = { ...frames[6].actor, callerRole: actor, actor };
+    const actions = [
+      { id: '12:bribe:no', actor, kind: 'bribe', label: 'Do not use a bribe' },
+      { id: '12:bribe:fouler', actor, kind: 'bribe', label: 'Use a bribe for Fouler' }
+    ];
+    const decision = matchDecision(frame, actions)!;
+    assert.equal(decision.title, 'Use a bribe?');
+    assert.equal(decision.kind, 'bribe');
+    assert.deepEqual(decision.options.map(option => ({ id: option.id, label: option.label, kind: option.kind })),
+      actions.map(action => ({ id: action.id, label: action.label, kind: 'action' })));
+    assert.equal(matchDecision({ ...frame, callerRole: 'spectator' }, actions), null);
+    assert.equal(matchDecision({ ...frame, callerRole: actor === 'home' ? 'away' : 'home' }, actions), null);
+  }
+});
+
+test('simultaneously rolled Multiple Block choices reveal only the first remaining target in selected order', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/block-visibility-multiple.json', import.meta.url), 'utf8'));
+  for (const reverse of [false, true]) {
+    const view: SetupState = structuredClone(fixture.rolled);
+    if (reverse) view.blockContext!.blocks.reverse();
+    view.blockContext!.activeTargetPlayerId = view.blockContext!.blocks[0].targetPlayerId;
+    const first = view.blockContext!.blocks[0].targetPlayerId, second = view.blockContext!.blocks[1].targetPlayerId;
+    const original = structuredClone(view.actions);
+    const decision = matchDecision(view, view.actions)!;
+    assert.equal(decision.options.filter(option => option.face).length, 2, 'Only target 1 dice are offered initially');
+    assert.ok(decision.options.every(option => option.targetPlayerId === first));
+    const afterFirst = { ...view, revision: view.revision + 1, blockContext: { ...view.blockContext!, activeTargetPlayerId: second },
+      actions: view.actions.filter(action => action.target && 'playerId' in action.target && action.target.playerId === second) };
+    assert.ok(matchDecision(afterFirst, afterFirst.actions)!.options.every(option => option.targetPlayerId === second));
+    assert.deepEqual(view.actions, original, 'Native simultaneous outcomes and commands remain intact');
+    view.actions = view.actions.map(action => ({ ...action, actor: action.target && 'playerId' in action.target
+      && action.target.playerId === first ? 'away' : 'home' }));
+    assert.equal(matchDecision(view, view.actions.filter(action => action.actor === 'home')), null,
+      'The attacker must wait when the first target is uphill, even if they choose target 2');
+    assert.ok(matchDecision({ ...view, callerRole: 'away' }, view.actions.filter(action => action.actor === 'away'))!
+      .options.every(option => option.targetPlayerId === first));
+    assert.equal(offeredBlockDice(view)?.subjectId, first);
+    assert.equal(offeredBlockDice(view)?.chooser, 'away');
+  }
+});
 
 test('die-specific choices share one skill icon and retain each native command', () => {
   const frame = frames[6].actor as SetupState;

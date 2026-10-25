@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { appendMatchLogLines } from './match-log.ts';
 import type { MatchLogLine } from './match-log.ts';
-import { PolygonDie } from './PolygonDie.tsx';
+import { LogDie } from './LogDie.tsx';
 import { readMatchLogPreferences, saveMatchLogPreferences, subscribeMatchLogPreferences } from './match-log-preferences.ts';
 import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
@@ -25,11 +25,11 @@ function LogText({ line }: { line: MatchLogLine }) {
     const found = expression.exec(line.text);
     if (!found) { unmatched.push(index); return; }
     if (found.index > cursor) parts.push(line.text.slice(cursor, found.index));
-    parts.push(<PolygonDie key={`die-${index}`} kind={dice.kinds[index] ?? 'd6'} face={face}/>);
+    parts.push(<LogDie key={`die-${index}`} kind={dice.kinds[index] ?? 'd6'} face={face}/>);
     cursor = found.index + found[0].length;
   });
   if (unmatched.length) parts.unshift(<span key="unmatched" className="match-log-dice">{unmatched.map(index =>
-    <PolygonDie key={index} kind={dice.kinds[index] ?? 'd6'} face={dice.faces[index]}/>)}</span>);
+    <LogDie key={index} kind={dice.kinds[index] ?? 'd6'} face={dice.faces[index]}/>)}</span>);
   if (cursor < line.text.length) parts.push(line.text.slice(cursor));
   return <>{parts.map((part, index) => <Fragment key={index}>{part}</Fragment>)}</>;
 }
@@ -103,7 +103,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
       onScroll={rememberPosition}>
       {lines.map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision}>
         {line.dice && !line.dice.inline && <span className="match-log-dice">{line.dice.faces.map((face, index) =>
-          <PolygonDie key={index} kind={line.dice?.kinds[index] ?? 'block'} face={face}
+          <LogDie key={index} kind={line.dice?.kinds[index] ?? 'block'} face={face}
             selected={line.dice?.selected === index} uphill={line.dice?.uphill} chosenBy={line.dice?.chooser}/>)}</span>}
         <LogText line={line}/>{line.debug && <small className="match-log-debug">{line.debug}</small>}</p>)}
     </div>

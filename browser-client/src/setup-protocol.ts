@@ -146,7 +146,7 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 			pairs.add(key);
 		}
 		if (hasMultiple) {
-			if (!Array.isArray(preview.multiple) || !preview.multiple.length || preview.multiple.length > 120) throw Error('Invalid Multiple Block forecasts');
+			if (!Array.isArray(preview.multiple) || !preview.multiple.length || preview.multiple.length > 240) throw Error('Invalid Multiple Block forecasts');
 			const ids = new Set<string>();
 			for (const item of preview.multiple) {
 				const option = object(item, ['actionId','context']); text(option.actionId, 200);

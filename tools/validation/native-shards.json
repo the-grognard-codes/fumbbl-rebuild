@@ -5,6 +5,7 @@
       "com.fumbbl.ffb.server.match.NativeRollPresentationTest",
       "com.fumbbl.ffb.server.match.NumericDicePresentationTest",
       "com.fumbbl.ffb.test.BlockTest",
+      "com.fumbbl.ffb.test.ApothecaryStunRecoveryTest",
       "com.fumbbl.ffb.test.CoreTurnActionsTest",
       "com.fumbbl.ffb.test.DiceProjectionTest",
       "com.fumbbl.ffb.test.MatchChatTest",
@@ -40,6 +41,7 @@
       "com.fumbbl.ffb.test.PushbackArtworkTest",
       "com.fumbbl.ffb.test.RecoveryScenariosTest",
       "com.fumbbl.ffb.test.SecureBallRerollTest",
+      "com.fumbbl.ffb.test.SolidDefenceRedeploymentTest",
       "com.fumbbl.ffb.test.ServerCommunicationWorkTest"
     ],
     [
