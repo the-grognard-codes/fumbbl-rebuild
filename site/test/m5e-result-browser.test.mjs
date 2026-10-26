@@ -284,7 +284,7 @@ test('hosted final decision leads to participant result and read-only replay aft
     await offPitch.focus();
     await page.getByRole('tooltip', { name: /Blitzer player card/ }).waitFor();
     const card = page.getByRole('tooltip', { name: /Blitzer player card/ });
-    assert.match(await card.textContent(), /Blitzer \(Human, Blitzer\).*StatusStunned/s);
+    assert.match(await card.textContent(), /Blitzer \(Human, Blitzer\).*Status:Stunned/s);
     assert.doesNotMatch(await card.textContent(), /Square \d|Match notes/i);
     const portraitLayout = await card.evaluate(element => {
       const stat = element.querySelector('.live-player-stats > div').getBoundingClientRect();

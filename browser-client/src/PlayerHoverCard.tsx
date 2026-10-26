@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { spriteUrl } from './LivePitch.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
-import { playerCardStatus, playerCardSubtypes } from './player-card-details.ts';
+import { playerCardStatuses, playerCardSubtypes } from './player-card-details.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
 
 export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: SetupPlayer; anchor: DOMRect; teamName: string; dock?: 'left' | 'right' }) {
@@ -32,6 +32,7 @@ export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: Se
       {image && failedImage !== image ? <img src={image} alt="" onError={() => setFailedImage(image)}/>
         : <span className="live-player-card-token" aria-label={`${teamName} number ${player.number ?? player.slot}`}>{player.number ?? player.slot}</span>}</div></header>
     <div className="live-player-card-detail"><strong>Skills & traits</strong><p>{(player.skillMarkers?.details ?? player.skills)?.join(', ') || 'None'}</p></div>
-    <div className="live-player-card-detail"><strong>Status</strong><p>{playerCardStatus(player)}</p></div>
+    <div className="live-player-card-detail"><strong>Status:</strong><p>{playerCardStatuses(player).map((entry, index) =>
+      <span key={entry.label}>{index > 0 && ', '}<span className={entry.negative ? 'live-negative-status' : undefined}>{entry.label}</span></span>)}</p></div>
   </aside>;
 }
