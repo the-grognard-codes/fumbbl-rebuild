@@ -952,6 +952,7 @@ public final class SetupSession {
 		Game game = state.getGame();
 		JsonArray players = new JsonArray();
 		LimitedActionProjection limitedActions = new LimitedActionProjection();
+		NegativeConditionProjection conditions = new NegativeConditionProjection();
 		SkillMarkerProjection markers = new SkillMarkerProjection((SkillFactory) game.getFactory(FactoryType.Factory.SKILL));
 		for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
 			for (Player<?> player : team.getPlayers()) {
@@ -971,6 +972,7 @@ public final class SetupSession {
 					.add("ag", player.getAgilityWithModifiers(game)).add("pa", player.getPassingWithModifiers(game))
 					.add("av", player.getArmourWithModifiers(game)).add("skills", skills)
 					.add("skillMarkers", markers.project(player))
+					.add("conditions", conditions.project(game, player))
 					.add("offPitch", offPitch(playerState, onPitch))
 					.add("role", team == game.getTeamHome() ? "home" : "away")
 					.add("state", playerState.getDescription()).add("status", playerStatus(playerState))
@@ -1168,7 +1170,7 @@ public final class SetupSession {
 		for (int index = 0; index < savedPlayers.size(); index++) {
 			JsonObject previous = savedPlayers.get(index).asObject();
 			JsonObject now = currentPlayers.get(index).asObject();
-			for (String field : new String[] { "status", "positionRace", "positionRole", "skillMarkers" })
+			for (String field : new String[] { "status", "positionRace", "positionRole", "skillMarkers", "conditions" })
 				if (previous.get(field) == null) now.remove(field);
 		}
 		if (version < 4) {

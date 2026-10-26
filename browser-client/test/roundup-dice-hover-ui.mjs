@@ -103,6 +103,8 @@ try {
   await check('D8 and D16 use matching triangles and every numeral fits and centers at every size', async () => {
     for (const size of ['Small', 'Medium', 'Large']) {
       await page.getByRole('button', { name: `${size} log text` }).click();
+      // The die's ResizeObserver centers glyphs after the new font size reaches layout.
+      await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
       const values = await page.locator('.match-event-scroll :is(.d8,.d16)').evaluateAll(dice => dice.map(die => {
         const svg = die.querySelector('svg'), text = svg.querySelector('text'), polygon = svg.querySelector('polygon');
         const box = text.getBBox(), transform = text.transform.baseVal.consolidate()?.matrix;

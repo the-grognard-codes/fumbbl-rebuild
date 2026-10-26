@@ -11,6 +11,7 @@ mkdirSync(evidence, { recursive: true });
 const harness = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { MatchDecisionDialog } from '/src/MatchDecisionDialog.tsx';
 import { LiveMatchScoreboard } from '/src/LiveMatchScoreboard.tsx';
 import { matchDecision } from '/src/match-decision.ts';
@@ -19,7 +20,7 @@ import '/src/coach-match.css';
 import '/src/ui-round-four.css';
 function Review() {
   const [view, setView] = React.useState(null), [pending, setPending] = React.useState(false);
-  window.showView = next => { setPending(false); setView(next); };
+  window.showView = next => flushSync(() => { setPending(false); setView(next); });
   const decision = view ? matchDecision(view, view.actions) : null;
   return React.createElement('main', { className: 'play-runtime live-match-page' },
     React.createElement('section', { className: 'hosted-match coach-match' },
