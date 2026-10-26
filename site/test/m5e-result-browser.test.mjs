@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { revealPlayer } from '../../browser-client/test/projected-pitch-helper.mjs';
+import { setCameraAngle } from '../../browser-client/test/camera-controls.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -311,9 +312,9 @@ test('hosted final decision leads to participant result and read-only replay aft
     const replayScene = replay.locator('.live-pitch-scene');
     const cameraFocus = await replayScene.getAttribute('data-focus');
     const canonicalIds = await replay.locator('.live-marker').evaluateAll(nodes => nodes.map(node => node.dataset.playerId).sort());
-    await replay.getByRole('button', { name: 'Away coach view', exact: true }).click();
+    await replay.getByRole('button', { name: /^Flip perspective:/ }).click();
     assert.equal(await replayScene.getAttribute('data-end'), 'away');
-    await replay.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraAngle(replay, 90);
     assert.equal(await replayScene.getAttribute('data-projection'), 'top-down');
     assert.equal(await replayScene.getAttribute('data-focus'), cameraFocus);
     assert.equal(await replayScene.locator('polygon[data-cell-x]').count(), 390);
@@ -321,7 +322,7 @@ test('hosted final decision leads to participant result and read-only replay aft
     const replayPlayer = replay.locator('.live-marker').first();
     await revealPlayer(page, replayPlayer); await replayPlayer.focus();
     await page.getByRole('tooltip', { name: /player card$/ }).waitFor();
-    await replay.getByRole('button', { name: 'Home coach view', exact: true }).click();
+    await replay.getByRole('button', { name: /^Flip perspective:/ }).click();
     assert.equal(await page.getByRole('tooltip', { name: /player card$/ }).count(), 0, 'Camera changes dismiss the previous inspector');
     await page.locator('.replay-dugouts .live-dugout.away .live-dugout-zone-summary').first().click();
     await page.locator('.replay-dugouts .live-dugout.away .live-dugout-players button').first().focus();

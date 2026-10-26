@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -107,7 +108,7 @@ try {
       for (const camera of ['top-down', 'perspective']) {
         const scene = page.locator('.live-pitch-scene');
         if (await scene.getAttribute('data-projection') !== camera)
-          await page.getByRole('button', { name: camera === 'top-down' ? 'Top-down view' : 'Perspective view', exact: true }).click();
+          await setCameraMode(page, camera);
         await page.waitForFunction(camera => document.querySelector('.live-pitch-scene').dataset.projection === camera, camera);
         assert.equal(await page.locator('[data-block-marker] path').evaluateAll(paths =>
           paths.every(path => !/NaN|undefined|Infinity/.test(path.getAttribute('d')))), true);

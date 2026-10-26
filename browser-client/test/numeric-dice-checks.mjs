@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -103,9 +104,7 @@ export async function verifyNumericDice(browser, url, view, evidence) {
     for (const role of ['home', 'away']) {
       const roleView = journeys.find(journey => journey.count === 0 && journey.role === role).offered;
       for (const camera of ['perspective', 'top-down']) {
-        const cameraButton = page.getByRole('button', { name: camera === 'top-down' ? 'Top-down view' : 'Perspective view', exact: true });
-        if (await cameraButton.count()) await cameraButton.click();
-        await page.getByRole('button', { name: camera === 'top-down' ? 'Perspective view' : 'Top-down view', exact: true }).waitFor();
+        await setCameraMode(page, camera);
         await publish({ view: roleView, report: { reportId: 'injury', numericDice: { version: 1, dice: [
           { sides: 6, value: 6, label: 'Armour' }, { sides: 8, value: 8, label: 'Scatter' }, { sides: 16, value: 16, label: 'Casualty' }] } } });
         if (evidence) await page.screenshot({ path: resolve(evidence, `numeric-${viewport.width}-${role}-${camera}.png`) });

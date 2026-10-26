@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Browser coaches and spectators can flip pitch perspective and cycle camera angles from match and replay controls, with choices retained for each match")
 			.addBugfix("Browser coaches can use or decline a bribe after a spotted foul, including after reconnecting")
 			.addBugfix("Multiple Block applies Both Down to unprotected defenders before resolving the other block")
 			.addBugfix("Multiple Block reveals each target's dice in order without repeating selection reports")

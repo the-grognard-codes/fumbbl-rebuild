@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -50,8 +51,8 @@ try {
     assert.equal(await page.locator('[data-threat-square="12,7"]').count(), 0, 'Occupied squares remain clear');
     assert.equal(await page.locator('[data-threat-square="15,8"]').getAttribute('data-threat-striped'), 'false', 'Arm Bar does not stripe');
     await page.getByRole('button', { name: 'Debug', exact: true }).click();
-    for (const projection of ['Top-down view', 'Perspective view']) {
-      await page.getByRole('button', { name: projection, exact: true }).click();
+    for (const projection of ['top-down', 'perspective']) {
+      await setCameraMode(page, projection);
       const squareCenter = await squarePosition(page, 11, 7);
       const symbols = await overlap.evaluate(element => {
         const tackle = element.querySelector('[data-tackle-warning] path'), letter = element.querySelector('[data-tackle-warning] text');

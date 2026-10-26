@@ -80,8 +80,9 @@ export async function squarePosition(page, x, y) {
       options = ready; camera = new PitchProjection(options); continue;
     }
     await page.mouse.down({ button: 'right' });
-    await page.mouse.move(start.x + delta.x * bounds.width / options.width,
-      start.y + delta.y * bounds.height / options.height, { steps: 5 });
+    // LivePitch pans by client-pixel deltas. The viewport's border is not part
+    // of the camera surface and must not scale the drag (especially at 30°).
+    await page.mouse.move(start.x + delta.x, start.y + delta.y, { steps: 5 });
     await page.mouse.up({ button: 'right' });
     await page.waitForFunction(({ before, expected }) => {
       const current = document.querySelector('.live-pitch-scene');

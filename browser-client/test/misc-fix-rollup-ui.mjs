@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -200,9 +201,9 @@ test('Hit and Run uses push-style destination arrows and a Decline Hit and Run o
   assert.equal(await page.getByRole('button', { name: 'Hit and Run', exact: true }).count(), 0,
     'Destination selection must not include a separate skill-use choice');
   await page.getByRole('button', { name: 'Debug', exact: true }).click();
-  await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  await setCameraMode(page, 'top-down');
   assert.equal(await arrow.count(), 1, 'The same square remains selectable in top-down');
-  await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+  await setCameraMode(page, 'perspective');
   await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   if (process.env.ROLLUP_EVIDENCE) await page.screenshot({ path: process.env.ROLLUP_EVIDENCE });
   await arrow.click();

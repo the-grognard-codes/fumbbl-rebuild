@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -30,8 +31,8 @@ try {
     await page.locator('.live-selection-square').waitFor();
     await page.getByRole('button', { name: 'Reveal selected', exact: true }).click();
     for (const angle of [30, 40, 50, 90]) {
-      if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
-      else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      if (angle === 90) await setCameraMode(page, 'top-down');
+      else await setCameraAngle(page, String(angle));
       for (const input of cases) {
         decodeSetupStateValue(input.state);
         const route = input.route && decodeRoutePreview(JSON.stringify({ version: 2, type: 'routePreview', requestId: 'checks',

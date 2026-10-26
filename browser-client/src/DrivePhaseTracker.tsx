@@ -14,7 +14,7 @@ export function DrivePhaseTracker({ tracker }: { tracker: DriveTrackerPresentati
     if (!list || !scoreboard || !host) return;
     const resources = scoreboard.querySelector<HTMLElement>(`.live-resources.${side}`)
       ?? scoreboard.querySelector<HTMLElement>('.coach-score-center');
-    const menu = side === 'away' ? host.querySelector<HTMLElement>('.match-menu-triggers') : null;
+    const menu = host.querySelector<HTMLElement>(side === 'away' ? '.match-menu-triggers' : '.match-debug-toggle');
     const docks = Array.from(host.querySelectorAll<HTMLElement>(`.live-dugout.${side}, .match-history > section`));
     const align = () => {
       const start = Math.max(resources?.getBoundingClientRect().bottom ?? 0, menu?.getBoundingClientRect().bottom ?? 0) + 6;

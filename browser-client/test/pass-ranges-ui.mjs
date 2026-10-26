@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -94,11 +95,11 @@ try {
     const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
-      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(page, String(angle));
       assert.equal(await cell(14, 7).getAttribute('data-pass-range'), 'S');
       assert.notEqual(await cell(14, 7).getAttribute('points'), '');
     }
-    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(page, 'top-down');
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     if (journey.weather === 'BLIZZARD') {
       await page.locator('.live-pitch-scene').click({ position: await squarePosition(page, 17, 7) });

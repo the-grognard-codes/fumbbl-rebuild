@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -114,8 +115,8 @@ try {
       : [fixture.meta.playerId, fixture.meta.opponentId]) {
       await select(page, id); await waitRange(page, id, fixture.readyState.revision);
       await page.getByRole('button', { name: 'Debug', exact: true }).click();
-      for (const projection of ['Top-down view', 'Perspective view']) {
-        await page.getByRole('button', { name: projection, exact: true }).click();
+      for (const projection of ['top-down', 'perspective']) {
+        await setCameraMode(page, projection);
         assert.ok(await page.locator('.live-range-normal').count() > 0);
         assert.ok(await page.locator('.live-range-full').count() > 0);
         assert.ok(await page.locator('[data-rush-warning]').count() > 0);

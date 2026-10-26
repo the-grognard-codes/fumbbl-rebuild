@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -57,13 +58,13 @@ try {
   const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {
-    await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+    await setCameraAngle(page, String(angle));
     assert.equal(await arrows.count(), 3, 'Camera changes retain the pending push decision');
     assert.deepEqual(await page.evaluate(() => window.testSocket.sent), [], 'Camera changes never answer the decision');
   }
-  await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  await setCameraMode(page, 'top-down');
   assert.equal(await arrows.count(), 3);
-  await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+  await setCameraMode(page, 'perspective');
   await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   await page.evaluate(() => document.fonts.ready);
   assert.equal(await page.locator('.live-team-nameplate strong').evaluateAll(elements => elements.every(element =>

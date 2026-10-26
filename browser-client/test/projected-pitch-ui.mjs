@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -107,8 +108,8 @@ try {
     assert.equal(await page.locator('.live-ball-football').count(), carried ? 0 : 1,
       'An occupied loose ball remains distinct from native possession');
     for (const angle of [30, 40, 50, 90]) {
-      if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
-      else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      if (angle === 90) await setCameraMode(page, 'top-down');
+      else await setCameraAngle(page, String(angle));
       await assertProjectedBallAndPitch(page, role, angle === 90 ? 'top-down' : 'perspective', angle === 90 ? 40 : angle, { x: 12, y: 7 });
       if (evidence && [40,90].includes(angle)) await page.screenshot({ path: `${evidence}/ball-${role}-${carried ? 'carried' : 'occupied-loose'}-${angle}.png` });
     }
@@ -147,7 +148,7 @@ try {
     const focus = await scene.getAttribute('data-focus');
     for (const angle of [30, 50, 40]) {
       const reportsBefore = await page.evaluate(() => window.selectionReports.length);
-      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(page, String(angle));
       await page.waitForFunction(before => window.selectionReports.length > before, reportsBefore, { timeout: 1500 });
       assert.equal(await scene.getAttribute('data-elevation'), String(angle));
       assert.equal(await scene.locator('[data-shadow-player]').count(), players.length);
@@ -181,7 +182,7 @@ try {
       await page.evaluate(() => { window.intents.pop(); });
       if (evidence && angle !== 40) await page.screenshot({ path: `${evidence}/perspective-${angle}-${role}.png` });
     }
-    await page.getByLabel('Perspective angle', { exact: true }).selectOption('30');
+    await setCameraAngle(page, '30');
     await page.getByRole('button', { name: '2×', exact: true }).click();
     await frame.dispatchEvent('wheel', { deltaY: -1000 });
     await page.waitForFunction(() => Number(document.querySelector('.live-pitch-scene').dataset.zoom) === 3);
@@ -201,8 +202,8 @@ try {
     await page.getByRole('button', { name: 'Midfield', exact: true }).click();
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await frame.dispatchEvent('wheel', { deltaY: 120 });
-    await page.getByLabel('Perspective angle', { exact: true }).selectOption('40');
-    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraAngle(page, '40');
+    await setCameraMode(page, 'top-down');
     assert.equal(await scene.getAttribute('data-focus'), focus);
     assert.equal(await scene.getAttribute('data-projection'), 'top-down');
     assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'body-center');
@@ -286,7 +287,7 @@ try {
     await page.setViewportSize({ width: 1280, height: 660 });
     await page.waitForFunction(() => Math.abs(parseFloat(document.querySelector('.live-pitch-scene').style.width) - document.querySelector('.live-pitch-viewport').clientWidth) < 3);
     if (evidence) await page.screenshot({ path: `${evidence}/tactical-${role}.png` });
-    await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+    await setCameraMode(page, 'perspective');
     if (evidence) await page.screenshot({ path: `${evidence}/perspective-${role}.png` });
     await page.close();
   }
@@ -300,7 +301,7 @@ try {
         : player.id === 'orc' ? { ...player, x: 14 } : player) }));
     await setup.waitForFunction(() => document.querySelector('[data-player-id="human"]').dataset.x === '11');
     for (const angle of [30, 40, 50]) {
-      await setup.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(setup, String(angle));
       assert.equal(await marker.getAttribute('data-pose'), role === 'home' ? 'back' : 'front', 'setup facing ignores movement direction in perspective');
       assert.equal(await opponent.getAttribute('data-pose'), role === 'home' ? 'front' : 'back', 'opposing team faces the other end zone');
       assert.equal(await setup.locator('[data-player-id="prone"]').getAttribute('data-pose'), 'prone');
@@ -316,7 +317,7 @@ try {
         getComputedStyle(image).clipPath.startsWith('polygon('))), 'every source painting is clipped to its turf region');
 
     }
-    await setup.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(setup, 'top-down');
     await setup.waitForFunction(expected => document.querySelector('[data-player-id="human"]').dataset.pose === expected,
       role === 'home' ? 'back' : 'front');
     assert.equal(await marker.getAttribute('data-pose'), role === 'home' ? 'back' : 'front', 'top-down standing art ignores movement facing');
@@ -340,8 +341,8 @@ try {
     assert.equal(await page.evaluate(() => document.querySelector('.pitch-stadium-turf') === window.retainedTurf), true,
       'accepted player movement retains the existing turf nodes');
     for (const mode of [30,40,50,90]) {
-      if(mode===90)await page.getByRole('button',{name:'Top-down view',exact:true}).click();
-      else await page.getByLabel('Perspective angle',{exact:true}).selectOption(String(mode));
+      if(mode===90)await setCameraMode(page, 'top-down');
+      else await setCameraAngle(page, String(mode));
       for (const [position,focus] of [['near',role==='home'?1:25],['mid',13],['far',role==='home'?25:1]]) {
         await travelToFocus(page,focus);
         assert.equal(await page.locator('[data-cell-x]').count(),390);
@@ -358,7 +359,7 @@ try {
   const readonly = await open('spectator');
   await readonly.locator('[data-player-id="human"]').click();
   await readonly.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 90 });
-  await readonly.getByRole('button', { name: 'Away coach view', exact: true }).click();
+  await readonly.getByRole('button', { name: /^Flip perspective:/ }).click();
   assert.deepEqual(await readonly.evaluate(() => window.intents), []);
   await assertPitchWithoutStadium(readonly);
   await readonly.emulateMedia({ reducedMotion: 'reduce' });
@@ -381,8 +382,8 @@ try {
     console.log('Camera dice checks:', role, faces.join(','));
     const area = dice.locator('.live-pitch-viewport'), overlay = dice.locator('.live-dice-overlay');
     for (const angle of [30, 40, 50, 90]) {
-      if (angle === 90) await dice.getByRole('button', { name: 'Top-down view', exact: true }).click();
-      else await dice.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      if (angle === 90) await setCameraMode(dice, 'top-down');
+      else await setCameraAngle(dice, String(angle));
       const viewportRect = await area.boundingBox(), diceRect = await overlay.boundingBox();
       assert.ok(diceRect.x >= viewportRect.x && diceRect.x + diceRect.width <= viewportRect.x + viewportRect.width,
         `${role} ${angle}° ${faces.length} dice fit horizontally`);
@@ -396,7 +397,7 @@ try {
   }
   if (evidence) {
     const comparison = await open('home');
-    await comparison.getByLabel('Perspective angle', { exact: true }).selectOption('30');
+    await setCameraAngle(comparison, '30');
     await travelToFocus(comparison, 11.56);
     await comparison.screenshot({ path: `${evidence}/perspective-30-home-original-camera-tiled.png` });
     await comparison.getByRole('button', { name: '2×', exact: true }).click();
@@ -416,7 +417,7 @@ try {
   assert.ok(tokenOffsets.every(offset => Math.abs(offset.dx) < .02 && Math.abs(offset.dy) < .02), `unavailable art stays centered at the canonical ground anchor: ${JSON.stringify(tokenOffsets)}`);
   await missing.locator('[data-player-id="human"]').click();
   assert.deepEqual(await missing.evaluate(() => window.intents), [{ player: 'human' }]);
-  await missing.getByRole('button', { name: 'Top-down view', exact: true }).click();
+  await setCameraMode(missing, 'top-down');
   const fallbackShadows = await missing.locator('[data-shadow-player]').evaluateAll(shadows => shadows.map(shadow => {
     const marker = shadow.closest('.live-pitch-scene').querySelector(`[data-player-id="${shadow.dataset.shadowPlayer}"]`);
     const coordinates = shadow.getAttribute('points').split(' ').map(pair => pair.split(',').map(Number));
