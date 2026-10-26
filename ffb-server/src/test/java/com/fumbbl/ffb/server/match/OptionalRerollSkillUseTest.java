@@ -4,6 +4,7 @@ import com.fumbbl.ffb.CatchScatterThrowInMode;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.ReRollSource;
 import com.fumbbl.ffb.ReRollSources;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
@@ -30,6 +31,7 @@ import com.fumbbl.ffb.server.step.bb2025.shared.StepCatchScatterThrowIn;
 import com.fumbbl.ffb.util.UtilBox;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -39,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class OptionalRerollSkillUseTest {
     private final UseCase[] cases = {UseCase.DODGE_MOVEMENT, UseCase.SURE_FEET, UseCase.SURE_HANDS, UseCase.CATCH};
@@ -46,8 +49,8 @@ class OptionalRerollSkillUseTest {
     @Test void answeringAnOlderCombinedRerollPromptDoesNotApplyChangedPolicyToItsStaleSkill() throws Exception {
         Fixture fixture = new Fixture(UseCase.DODGE_MOVEMENT, Mode.ALWAYS_ASK);
         fixture.game.getTurnData().setReRolls(1);
+        fixture.game.getActingPlayer().markSkillUsed(fixture.skill);
         fixture.state.pushCurrentStepOnStack(); fixture.state.getStepStack().push(fixture.step); fixture.state.startNextStep();
-        fixture.step.handleCommand(fixture.answer(false));
         DialogReRollPropertiesParameter menu = (DialogReRollPropertiesParameter) fixture.game.getDialogParameter();
         JsonObject oldMenu = menu.toJsonValue();
         com.fumbbl.ffb.json.IJsonOption.SKILL.addTo(oldMenu, fixture.skill);
@@ -75,7 +78,7 @@ class OptionalRerollSkillUseTest {
         }
     }
 
-    @Test void declinePreservesTeamAndProChoicesWithoutReofferingTheDeclinedSkill() throws Exception {
+    @Test void decliningAvailableSkillAcceptsOriginalRollWithoutOfferingTeamOrPro() throws Exception {
         for (UseCase useCase : cases) {
             Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
             ((RosterPlayer) fixture.player).addSkill(fixture.game.getRules().getSkillFactory().forName("Pro"));
@@ -85,14 +88,8 @@ class OptionalRerollSkillUseTest {
             assertEquals(1, fixture.rolls.get(), useCase.name());
             assertEquals(1, fixture.game.getTurnData().getReRolls());
             assertFalse(fixture.game.getFieldModel().getPlayerState(fixture.player).hasUsedPro());
-            assertTrue(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
-            DialogReRollPropertiesParameter alternatives = (DialogReRollPropertiesParameter) fixture.game.getDialogParameter();
-            assertNull(alternatives.getReRollSkill(), useCase.name());
-            fixture.step.handleCommand(new ReceivedCommand(new ClientCommandUseReRoll(
-                alternatives.getReRolledAction(), ReRollSources.TEAM_RE_ROLL), true));
-            assertEquals(2, fixture.rolls.get(), useCase.name());
-            assertEquals(0, fixture.game.getTurnData().getReRolls());
-            assertEquals(StepAction.NEXT_STEP, fixture.step.getResult().getNextAction(), useCase.name());
+            assertFalse(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
+            assertFalse(fixture.game.getDialogParameter() instanceof DialogSkillUseParameter, useCase.name());
         }
     }
 
@@ -106,23 +103,89 @@ class OptionalRerollSkillUseTest {
         }
     }
 
-    @Test void declinedSkillCanUseProWithoutSpendingATeamRerollOrLeavingAStaleMenu() throws Exception {
+    @Test void laterRollWithSpentLimitedSkillCanUseTeamOrPro() throws Exception {
+        for (UseCase useCase : new UseCase[] {UseCase.DODGE_MOVEMENT, UseCase.SURE_FEET}) {
+            for (ReRollSource source : new ReRollSource[] {ReRollSources.TEAM_RE_ROLL, ReRollSources.PRO}) {
+                Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
+                fixture.game.getActingPlayer().markSkillUsed(fixture.skill);
+                ((RosterPlayer) fixture.player).addSkill(fixture.game.getRules().getSkillFactory().forName("Pro"));
+                fixture.game.getTurnData().setReRolls(1);
+                fixture.step.start();
+                assertTrue(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
+                DialogReRollPropertiesParameter alternatives = (DialogReRollPropertiesParameter) fixture.game.getDialogParameter();
+                assertNull(alternatives.getReRollSkill(), "A skill spent on an earlier roll is unavailable");
+                fixture.step.handleCommand(new ReceivedCommand(new ClientCommandUseReRoll(alternatives.getReRolledAction(), source), true));
+                assertEquals(source == ReRollSources.PRO ? 3 : 2, fixture.rolls.get());
+                assertEquals(source == ReRollSources.PRO ? 1 : 0, fixture.game.getTurnData().getReRolls());
+                assertEquals(StepAction.NEXT_STEP, fixture.step.getResult().getNextAction());
+            }
+        }
+    }
+
+    @Test void failingTheSkillRerollCannotOfferAnotherSourceForTheSameRoll() throws Exception {
+        for (UseCase useCase : cases) {
+            Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
+            ((RosterPlayer) fixture.player).addSkill(fixture.game.getRules().getSkillFactory().forName("Pro"));
+            fixture.game.getTurnData().setReRolls(1);
+            fixture.state.getDiceRoller().setRecoveryRoll(sides -> { fixture.rolls.incrementAndGet(); return 1; });
+            fixture.step.start();
+            fixture.step.handleCommand(fixture.answer(true));
+            assertEquals(2, fixture.rolls.get(), useCase.name());
+            assertEquals(1, fixture.game.getTurnData().getReRolls());
+            assertFalse(fixture.game.getFieldModel().getPlayerState(fixture.player).hasUsedPro());
+            assertFalse(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter);
+        }
+    }
+
+    @Test void decliningAvailableSkillThroughExecutorDoesNotSpendOtherResourcesOrLeaveAStaleMenu() throws Exception {
         for (UseCase useCase : cases) {
             Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
             ((RosterPlayer) fixture.player).addSkill(fixture.game.getRules().getSkillFactory().forName("Pro"));
             fixture.game.getTurnData().setReRolls(1);
             fixture.state.pushCurrentStepOnStack(); fixture.state.getStepStack().push(fixture.step); fixture.state.startNextStep();
             fixture.state.handleCommand(fixture.answer(false));
-            DialogReRollPropertiesParameter menu = (DialogReRollPropertiesParameter) fixture.game.getDialogParameter();
-            fixture.state.handleCommand(new ReceivedCommand(new ClientCommandUseReRoll(menu.getReRolledAction(), ReRollSources.PRO), true));
-            assertEquals(3, fixture.rolls.get(), useCase.name());
-            assertTrue(fixture.game.getFieldModel().getPlayerState(fixture.player).hasUsedPro());
+            assertEquals(useCase == UseCase.CATCH ? 2 : 1, fixture.rolls.get(), "A declined catch still rolls its native bounce: " + useCase);
+            assertFalse(fixture.game.getFieldModel().getPlayerState(fixture.player).hasUsedPro());
             assertEquals(1, fixture.game.getTurnData().getReRolls());
-            assertFalse(fixture.game.getDialogParameter() == menu);
+            assertFalse(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
         }
     }
 
-    @Test void openSkillRerollsRecoverWithTheirDeadlineAndTimeoutOnlyDeclinesTheSkill() throws Exception {
+    @Test void catchRerollRecoversOldThrowerPointerWithoutChangingChoicesOrDeadline() throws Exception {
+        Fixture fixture = new Fixture(UseCase.CATCH, Mode.ALWAYS_ASK);
+        ((RosterPlayer) fixture.player).removeSkill(fixture.skill);
+        Player<?> thrower = fixture.game.getTeamHome().getPlayers()[0];
+        fixture.place(thrower, 5, 7);
+        fixture.game.getActingPlayer().setPlayerId(thrower.getId());
+        fixture.game.getActingPlayer().setPlayerAction(PlayerAction.PASS);
+        fixture.game.setThrowerId(thrower.getId());
+        fixture.game.setThrowerAction(PlayerAction.PASS);
+        fixture.game.setPassCoordinate(new FieldCoordinate(9, 7));
+        fixture.step.setParameter(StepParameter.from(StepParameterKey.CATCH_SCATTER_THROW_IN_MODE, CatchScatterThrowInMode.CATCH_ACCURATE_PASS));
+        fixture.game.getTurnData().setReRolls(1);
+        fixture.state.pushCurrentStepOnStack(); fixture.state.getStepStack().push(fixture.step); fixture.state.startNextStep();
+        fixture.base.session.expireReactiveDecision(System.currentTimeMillis());
+        JsonObject before = fixture.base.session.decorateSaveResume(fixture.base.session.reply("load", "ACCEPTED", false, "home")).get("state").asObject();
+        assertEquals(fixture.player.getId(), ((DialogReRollPropertiesParameter) fixture.game.getDialogParameter()).getPlayerId());
+        for (JsonValue value : before.get("actions").asArray())
+            assertEquals(fixture.player.getId(), value.asObject().getString("sourcePlayerId", null));
+        JsonObject payload = JsonObject.readFrom(fixture.base.session.recoveryArtifact()).get("payload").asObject();
+        for (String seat : new String[] { "homeView", "awayView" })
+            for (JsonValue value : payload.get(seat).asObject().get("actions").asArray())
+                value.asObject().set("sourcePlayerId", thrower.getId());
+        String legacy = new RecoveryArtifactJson().encode(payload, 128 * 1024 * 1024);
+        SetupSession restored = new SetupSession(fixture.base.server, fixture.base.document, legacy);
+        JsonObject after = restored.decorateSaveResume(restored.reply("load", "ACCEPTED", false, "home")).get("state").asObject();
+        assertEquals(before.get("actions"), after.get("actions"), "Native choices survive while the graphical owner is corrected");
+        assertEquals(before.get("reaction").asObject().get("expiresAt"), after.get("reaction").asObject().get("expiresAt"), "Recovery preserves the authoritative deadline");
+        assertEquals(1, fixture.rolls.get(), "Recovery cannot roll again");
+        payload.get("homeView").asObject().get("actions").asArray().get(0).asObject().set("sourcePlayerId", "unrelated-player");
+        MatchService.Failure invalid = assertThrows(MatchService.Failure.class, () -> new SetupSession(fixture.base.server,
+            fixture.base.document, new RecoveryArtifactJson().encode(payload, 128 * 1024 * 1024)));
+        assertEquals("RECOVERY_CORRUPT", invalid.code, "Only the historical thrower mapping is compatible");
+    }
+
+    @Test void openSkillRerollsRecoverWithTheirDeadlineAndTimeoutAcceptsOriginalRollWithoutFallback() throws Exception {
         for (UseCase useCase : cases) {
             Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
             fixture.game.getTurnData().setReRolls(1);
@@ -139,7 +202,10 @@ class OptionalRerollSkillUseTest {
             recovered.configureSkillUsePreferences(SkillUsePreferences.defaults(), SkillUsePreferences.defaults());
             Field field = SetupSession.class.getDeclaredField("state"); field.setAccessible(true);
             GameState state = (GameState) field.get(recovered);
-            state.getDiceRoller().setRecoveryRoll(sides -> { throw new AssertionError("Timeout cannot roll or spend a reroll"); });
+            state.getDiceRoller().setRecoveryRoll(sides -> {
+                if (sides == 8 && useCase == UseCase.CATCH) return 6;
+                throw new AssertionError("Timeout cannot reroll the failed skill roll");
+            });
             assertFalse(recovered.expireReactiveDecision(deadline - 1));
             JsonObject after = recovered.decorateSaveResume(recovered.reply("load", "ACCEPTED", false, "home"))
                 .get("state").asObject().get("reaction").asObject();
@@ -148,12 +214,11 @@ class OptionalRerollSkillUseTest {
             assertTrue(recovered.expireReactiveDecision(deadline));
             assertFalse(recovered.isFailed());
             assertEquals(1, state.getGame().getTurnData().getReRolls());
-            assertTrue(state.getGame().getDialogParameter() instanceof DialogReRollPropertiesParameter);
-            assertNull(((DialogReRollPropertiesParameter) state.getGame().getDialogParameter()).getReRollSkill());
+            assertFalse(state.getGame().getDialogParameter() instanceof DialogReRollPropertiesParameter);
             JsonObject remainingView = recovered.decorateSaveResume(recovered.reply("load", "ACCEPTED", false, "home")).get("state").asObject();
             if (remainingView.get("reaction") != null) {
                 JsonObject remaining = remainingView.get("reaction").asObject();
-                assertTrue(remaining.getLong("expiresAt", -1) > deadline, "Remaining resources need their own deadline");
+                assertFalse(remaining.getString("title", "").contains("re-roll"), "No replacement reroll prompt after timeout");
                 assertFalse(before.getString("id", null).equals(remaining.getString("id", null)));
             }
         }
@@ -250,6 +315,7 @@ class OptionalRerollSkillUseTest {
             configure(mode);
             StepParameterSet parameters = new StepParameterSet();
             parameters.add(StepParameter.from(StepParameterKey.GOTO_LABEL_ON_FAILURE, "failed"));
+            state.getCurrentStep().setLabel("failed");
             if (useCase == UseCase.SURE_HANDS) step = new StepPickUp(state);
             else if (useCase == UseCase.SURE_FEET) {
                 step = new StepGoForIt(state);

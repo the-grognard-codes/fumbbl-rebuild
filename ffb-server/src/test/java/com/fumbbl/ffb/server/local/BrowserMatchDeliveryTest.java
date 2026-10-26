@@ -3,6 +3,7 @@ package com.fumbbl.ffb.server.local;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -11,6 +12,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test
+	public void productionQueueStillRejectsOneByteBeyondItsBudgetAndClearsQueuedState() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics,
+			BrowserMatchTransport.MAX_OUTBOUND_MESSAGES, BrowserMatchTransport.MAX_OUTBOUND_BYTES);
+		char[] characters = new char[BrowserMatchTransport.MAX_OUTBOUND_BYTES];
+		Arrays.fill(characters, 'x');
+		assertTrue(delivery.send(new String(characters)));
+		assertFalse(delivery.send("x"));
+		assertEquals(1013, sink.closeCode);
+		assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+	}
 	@Test
 	public void optionalHistoryAndMandatoryStateKeepOrderWithinTheSharedQueueBudget() {
 		DelayedSink sink = new DelayedSink();

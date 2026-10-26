@@ -6,6 +6,7 @@
       "browser-client/test/reroll-readiness-ui.mjs",
       "browser-client/test/apothecary-decision-ui.mjs",
       "browser-client/test/reactive-decisions-ui.mjs",
+      "browser-client/test/skill-prompts-ui.mjs",
       "browser-client/test/smart-pitch-ui.mjs",
       "browser-client/test/push-choice-ui.mjs",
       "browser-client/test/end-player-action-ui.mjs",

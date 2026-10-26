@@ -294,9 +294,10 @@ class BrowserV2LiveTranscriptTest {
 			history.get("records").asArray().get(0).asObject().add("padding", repeat('h', historyBytes));
 			when(fixture.setup.liveTranscriptPage(MATCH, 10)).thenReturn(history);
 			SetupApplication.HandleOutcome mutation = outcome("move", 10, true);
-			mutation.response().get("state").asObject().add("padding", repeat('s', 30 * 1024));
+			int stateBytes = scenario == 0 ? BrowserMatchTransport.MAX_OUTBOUND_BYTES - 200 * 1024 : 30 * 1024;
+			mutation.response().get("state").asObject().add("padding", repeat('s', stateBytes));
 			when(fixture.setup.handleWithOutcome(eq("home"), any(JsonObject.class))).thenReturn(mutation);
-			if (scenario == 2) connection.send(repeat('q', 200 * 1024));
+			if (scenario == 2) connection.send(repeat('q', BrowserMatchTransport.MAX_OUTBOUND_BYTES - 56 * 1024));
 			if (scenario == 3) for (int index = 0; index < 63; index++) connection.send("queued");
 
 			fixture.adapter.receive(connection, request("setup", "move").add("operation", "move").add("matchId", MATCH)

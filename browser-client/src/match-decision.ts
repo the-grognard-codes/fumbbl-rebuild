@@ -1,13 +1,14 @@
 import type { Reaction, SetupAction, SetupState } from './setup-protocol.ts';
-import { pitchPushChoices } from './push-choice.ts';
+import { pitchPushChoices, pitchSidestepChoices, type PushChoice } from './push-choice.ts';
 import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { PresentedRoll } from './dice-presentation.ts';
 import { visibleBlockActions } from './dice-presentation.ts';
 
-export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; targetPlayerId?: string; choices?: DecisionOption[] };
+export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; targetPlayerId?: string; sourcePlayerId?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
-  playerName?: string; instruction?: string; detail?: string; reaction?: Reaction & { matchId: string };
+  playerName?: string; instruction?: string; detail?: string; circular?: boolean; reaction?: Reaction & { matchId: string };
+  pitchSelection?: { playerId: string; choices: PushChoice[]; committed: boolean };
   originalFaces?: string[]; originalRolls?: PresentedRoll[]; originalLabel?: string; uphill?: boolean;
   proTest?: { face: string; successful: boolean; rollKey?: string } };
 
@@ -61,6 +62,7 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
       const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
       const option: DecisionOption = { id: action.id, label, kind: 'action', face, ...(face ? { dieKind: 'block' as const } : {}), icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
+      if (action.sourcePlayerId) option.sourcePlayerId = action.sourcePlayerId;
       if (action.id.includes(':multi:') && action.target && 'playerId' in action.target) {
         option.targetPlayerId = action.target.playerId;
         const target = view.players.find(player => player.id === option.targetPlayerId);
@@ -102,14 +104,36 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
 export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
   const decision = nativeDecision(view, actions);
   const reaction = view.reaction;
-  if (!reaction) return decision;
+  if (!reaction) return circularPresentation(decision);
   if (view.callerRole !== reaction.actor) return null;
   const offered = actions.filter(action => action.actor === reaction.actor);
+  const sidestep = pitchSidestepChoices(view, offered);
+  if (sidestep.length) {
+    const committed = sidestep.every(choice => choice.action.kind === 'push');
+    const playerId = committed ? /^\d+:push:(.+):\d+:\d+$/.exec(sidestep[0].action.id)![1] : sidestep[0].action.sourcePlayerId!;
+    return { title: committed ? 'Choose a Sidestep arrow' : reaction.title, key: `reaction:${reaction.id}`, kind: 'reaction', circular: true,
+      detail: reaction.detail, reaction: { ...reaction, matchId: view.matchId }, pitchSelection: { playerId, choices: sidestep, committed },
+      options: offered.filter(action => /(?:^|:)reaction-decline$/.test(action.id)).map(action => ({
+        id: action.id, label: action.label, kind: 'action', ...(action.sourcePlayerId ? { sourcePlayerId: action.sourcePlayerId } : {}) })) };
+  }
   const reactive = offered.filter(action => ['reactiveSkill', 'reactionEnd'].includes(action.kind));
   const base = decision ?? { title: reaction.title, key: `reaction:${reaction.id}`, kind: 'reaction',
     instruction: offered.some(action => action.kind === 'reactionMove') ? 'Select a player, then a highlighted destination.'
       : offered.some(action => ['reactiveSquare', 'push'].includes(action.kind)) ? 'Choose a highlighted square on the pitch.' : undefined,
-    options: reactive.map(action => ({ id: action.id, label: action.label, kind: 'action' as const })) };
-  return { ...base, ...(base.kind === 'push' ? { kind: 'reaction', instruction: 'Choose a highlighted square on the pitch.' } : {}),
-    title: reaction.title, detail: reaction.detail, reaction: { ...reaction, matchId: view.matchId } };
+    options: reactive.map(action => ({ id: action.id, label: action.label, kind: 'action' as const,
+      ...(action.sourcePlayerId ? { sourcePlayerId: action.sourcePlayerId } : {}) })) };
+  return circularPresentation({ ...base, ...(base.kind === 'push' ? { kind: 'reaction', instruction: 'Choose a highlighted square on the pitch.' } : {}),
+    title: reaction.title, detail: reaction.detail, reaction: { ...reaction, matchId: view.matchId } });
+}
+
+/** Block rerolls keep their established interface even when their decision kind is 'reroll'. */
+function circularPresentation(decision: MatchDecision | null): MatchDecision | null {
+  if (!decision) return null;
+  const options = decision.options.flatMap(option => option.choices ?? [option]);
+  if (options.some(option => /(?:^|:)(?:block-die|block-reroll|block-reroll-die|block-pro-test):/.test(option.id))) return decision;
+  if (['skill', 'reroll', 'kickSkill', 'proTestReroll'].includes(decision.kind)
+    || decision.kind === 'reaction' && !decision.instruction && options.length > 0
+      && options.some(option => /^Use\b/.test(option.label))
+      && options.every(option => /^(?:Use|Decline)\b/.test(option.label))) return { ...decision, circular: true };
+  return decision;
 }

@@ -12,11 +12,13 @@ import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepStack;
 
 import com.eclipsesource.json.JsonObject;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
@@ -73,5 +75,27 @@ class KickoffPresentationTest {
         assertNull(presentation.project(state, Collections.emptySet()));
         when(game.getTurnMode()).thenReturn(TurnMode.HIGH_KICK);
         assertEquals(1, presentation.project(state, Collections.emptySet()).getInt("allowed", -1));
+    }
+
+    @Test void solidDefenceMovementUsesNativeSelectionDespiteRetainedChoiceDialog() {
+        Team home = mock(Team.class);
+        IStep step = mock(IStep.class);
+        when(state.getCurrentStep()).thenReturn(step);
+        when(game.getTeamHome()).thenReturn(home);
+        when(home.getId()).thenReturn("home-team");
+        when(game.isHomePlaying()).thenReturn(true);
+        when(game.getDialogParameter()).thenReturn(new DialogPlayerChoiceParameter("home-team", PlayerChoiceMode.SOLID_DEFENCE,
+            new String[] { "one", "two", "three" }, null, 6, 0));
+        when(step.getId()).thenReturn(StepId.APPLY_KICKOFF_RESULT);
+        JsonObject nativeState = new JsonObject();
+        IServerJsonOption.NR_OF_PLAYERS_ALLOWED.addTo(nativeState, 6);
+        IServerJsonOption.PLAYER_IDS_SELECTED.addTo(nativeState, new String[] { "one", "two", "three" });
+        when(step.toJsonValue()).thenReturn(nativeState);
+        when(game.getTurnMode()).thenReturn(TurnMode.KICKOFF);
+        assertEquals("selection", presentation.project(state, Collections.singleton("one")).getString("stage", null));
+        when(game.getTurnMode()).thenReturn(TurnMode.SOLID_DEFENCE);
+        JsonObject movement = presentation.project(state, Collections.emptySet());
+        assertEquals("movement", movement.getString("stage", null));
+        assertEquals(3, movement.getInt("selected", -1));
     }
 }

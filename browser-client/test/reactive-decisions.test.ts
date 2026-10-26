@@ -77,11 +77,26 @@ test('server offset and monotonic elapsed preserve remaining time across refresh
 });
 
 
+test('reaction allowance supports future durations and remains bounded on reconnect', () => {
+  for (const allowanceMs of [15_000, 60_000]) {
+    const timed = { ...reaction, allowanceMs, expiresAt: reaction.serverNow + allowanceMs };
+    assert.deepEqual(decodeSetupStateValue({ ...live, reaction: timed }).reaction, timed);
+    const anchor = reactionAnchor(timed, 0);
+    assert.equal(reactionSeconds(anchor, 0), allowanceMs / 1000);
+    const refreshed = reactionAnchor(timed, allowanceMs * .8, anchor);
+    assert.equal(reactionSeconds(refreshed, allowanceMs * .8), allowanceMs / 5000);
+  }
+  for (const allowanceMs of [0, -1, 1.5, null, '30000'])
+    assert.throws(() => decodeSetupStateValue({ ...live, reaction: { ...reaction, allowanceMs } }));
+});
+
 test('committed legacy Side Step destinations keep their native push commands and reaction timing', () => {
   const push = { ...action('push', { x: 12, y: 7 }), id: '9:push:away1:12:7', label: 'Push to 12, 7' };
-  const decision = matchDecision({ ...live, actions: [push] }, [push])!;
+  const decision = matchDecision({ ...live, reaction: { ...reaction, title: 'Choose a Sidestep destination' }, actions: [push] }, [push])!;
   assert.equal(decision.kind, 'reaction');
-  assert.match(decision.instruction!, /highlighted square/);
+  assert.equal(decision.circular, true);
+  assert.equal(decision.pitchSelection?.committed, true);
+  assert.equal(decision.pitchSelection?.choices[0].action.id, push.id);
   assert.equal(decision.reaction?.expiresAt, reaction.expiresAt);
   assert.deepEqual(decision.options, [], 'Valid native arrows provide the mandatory square choice');
   const fallback = { ...push, id: 'older-push-format' };

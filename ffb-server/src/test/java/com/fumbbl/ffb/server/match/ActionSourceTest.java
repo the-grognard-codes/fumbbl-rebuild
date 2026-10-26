@@ -1,10 +1,13 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 
@@ -48,6 +51,42 @@ class ActionSourceTest {
         assertEquals("home-player", source.playerId(game,
             new Action("block", "block", "Block", "home", null, "away-player")));
         assertNull(source.playerId(game, new Action("block", "block", "Block", "away", null, "home-player")));
+    }
+
+    @Test void catchRerollAndProTestBelongToTheReceiverInsteadOfTheActiveThrower() {
+        Player<?> receiver = mock(Player.class);
+        doReturn(receiver).when(game).getPlayerById("receiver");
+        when(receiver.getTeam()).thenReturn(home);
+        when(acting.getPlayerId()).thenReturn("home-player");
+        DialogReRollPropertiesParameter dialog = mock(DialogReRollPropertiesParameter.class);
+        when(dialog.getPlayerId()).thenReturn("receiver");
+        when(game.getDialogParameter()).thenReturn(dialog);
+        for (String kind : new String[] { "reroll", "proTestReroll" }) {
+            assertEquals("receiver", source.playerId(game, new Action("catch", kind, "Use team re-roll for Catch", "home", null)), kind);
+        }
+    }
+
+    @Test void opposingReceiverRerollUsesItsOwnPlayerAndRetainsTeamValidation() {
+        when(acting.getPlayerId()).thenReturn("home-player");
+        DialogReRollPropertiesParameter dialog = mock(DialogReRollPropertiesParameter.class);
+        when(dialog.getPlayerId()).thenReturn("away-player");
+        when(game.getDialogParameter()).thenReturn(dialog);
+        assertEquals("away-player", source.playerId(game, new Action("catch", "reroll", "Use Catch", "away", null)));
+        assertNull(source.playerId(game, new Action("catch", "reroll", "Use Catch", "home", null)));
+    }
+
+    @Test void sidestepDestinationsAndDeclineBelongToTheNativeSkillOwner() {
+        when(acting.getPlayerId()).thenReturn("home-player");
+        DialogSkillUseParameter dialog = mock(DialogSkillUseParameter.class);
+        Skill skill = mock(Skill.class);
+        when(skill.getName()).thenReturn("Sidestep");
+        when(dialog.getSkill()).thenReturn(skill);
+        when(dialog.getPlayerId()).thenReturn("away-player");
+        when(game.getDialogParameter()).thenReturn(dialog);
+        for (String kind : new String[] { "reactiveSquare", "reactiveSkill" }) {
+            assertEquals("away-player", source.playerId(game, new Action("side", kind, "Use Sidestep", "away", null)));
+            assertNull(source.playerId(game, new Action("side", kind, "Use Sidestep", "home", null)));
+        }
     }
 
     @Test void kickoffMovementBelongsToItsMovedPlayerWithoutAnActingPlayer() {

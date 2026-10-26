@@ -276,7 +276,9 @@ test('real-engine Blitz actions pin and commit once across both players and spec
     const reroll = actor.getByRole('dialog', { name: 'Use a re-roll?' });
     await reroll.waitFor();
     assert.equal(await reroll.getByRole('button', { name: 'Use Dodge re-roll' }).count(), 1);
-    assert.equal(await reroll.getByRole('button', { name: 'Use team re-roll for Dodge' }).count(), 1);
+    assert.equal(await reroll.getByRole('button', { name: 'Use team re-roll for Dodge' }).count(), 0,
+      'An eligible Dodge is offered first without a team reroll alternative');
+    assert.equal(await reroll.getByRole('button', { name: 'Do not re-roll Dodge' }).count(), 1);
     assert.equal(await actor.locator('dialog.match-decision-dialog').count(), 0);
     overrideState = { ...overrideState, revision: 10, actions: [
       { id: '10:follow:no', kind: 'followUp', label: 'Do not follow up', actor: 'home', target: null, sourcePlayerId: null },

@@ -102,6 +102,17 @@ try {
   await page.locator('.live-marker[data-player-id="home1"]').focus();
   await page.getByRole('tooltip', { name: 'Test Star player card' }).waitFor();
   await page.screenshot({ path: `${evidence}/recovered-live-pitch.png` });
+  // Historical replay and recovery projections can have distraction but no conditions metadata.
+  for (const replay of [true, false]) for (const [posture, label] of [['is prone', 'Prone'], ['has been stunned', 'Stunned']]) {
+    const legacy = { ...state, players: state.players.map(({ conditions, ...player }) => player.id === 'home1'
+      ? { ...player, state: posture, status: 'Distracted' } : player) };
+    await publish(legacy, replay);
+    await page.locator('.live-marker[data-player-id="home1"]').focus();
+    const legacyCard = page.getByRole('tooltip', { name: 'Test Star player card' });
+    await legacyCard.waitFor();
+    const status = legacyCard.locator('.live-player-card-detail').filter({ has: page.locator('strong', { hasText: /^Status:?$/ }) });
+    assert.equal(await status.locator('p').innerText(), `${label}, Distracted`);
+  }
   assert.deepEqual(await page.evaluate(() => window.markerIntents), []);
   assert.deepEqual(errors, []); assert.deepEqual(missing, []);
   // Touch inspection on an Android browser profile preserves player targeting and full cards.
@@ -116,5 +127,5 @@ try {
   await mobile.screenshot({ path: `${evidence}/android-touch-pitch.png` });
   assert.deepEqual(await mobile.evaluate(() => window.markerIntents), []);
   await touch.close();
-  console.log('Skill marker UI PASS: all controls, persistence, zoom, dense pitch, cards, replay seeks, recovered snapshots, short viewport.');
+  console.log('Skill marker UI PASS: all controls, persistence, zoom, dense pitch, cards, replay seeks, recovered snapshots, legacy prone/stunned distraction, short viewport.');
 } finally { await browser.close(); await server.close(); }

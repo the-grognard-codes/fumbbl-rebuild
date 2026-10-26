@@ -48,6 +48,15 @@ test('Status preserves posture and authoritative conditions, in canonical order 
     'Stunned, Greasy Cleats, Eye Gouged');
 });
 
+test('legacy distraction is additive while explicit empty condition metadata stays authoritative', () => {
+  for (const [state, posture] of [['is prone', 'Prone'], ['has been stunned', 'Stunned']]) {
+    const player: SetupPlayer = { id: 'legacy', name: 'Legacy Player', slot: 1, role: 'home', x: 1, y: 1,
+      state, status: 'Distracted' };
+    assert.deepEqual(playerCardStatuses(player), [{ label: posture, negative: true }, { label: 'Distracted', negative: true }]);
+    assert.deepEqual(playerCardStatuses({ ...player, conditions: [] }), [{ label: posture, negative: true }]);
+  }
+});
+
 test('one tag preserves its head anchor; combined rows center individually, wrap at three and clear the skill strip', () => {
   assert.deepEqual(playerTagPlacements(1, 50, 10, 23, 0), [{ size: 20, left: 23, top: -15 }]);
   assert.deepEqual(playerTagPlacements(0, 50, 10, 23, 0), []);

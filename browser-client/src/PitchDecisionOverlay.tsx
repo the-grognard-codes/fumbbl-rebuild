@@ -14,8 +14,9 @@ const skillIcons = `${import.meta.env.BASE_URL}assets/game/ui/skill-icons-v1.svg
 
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
 export function PitchDecisionOverlay({ decision = null, diceMoment: currentMoment = null, potentialDice = null, awaiting = false,
-  attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget }: {
+  attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget, rollContext = null }: {
   decision?: MatchDecision | null; disabled: boolean; viewport: RefObject<HTMLDivElement | null>;
+  rollContext?: MatchDecision | null;
   diceMoment?: DiceMoment | null;
   potentialDice?: PotentialBlockDice | null; awaiting?: boolean;
   attackerRole?: 'home' | 'away';
@@ -23,17 +24,18 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   onAction?: (id: string) => void;
   onInspectTarget?: (id: string | undefined) => void;
 }) {
+  const rollDecision = decision ?? rollContext;
   const diceMoment = potentialDice && !awaiting ? null : currentMoment;
   const panel = useRef<HTMLDivElement>(null);
   const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
   const [scrollable, setScrollable] = useState(false);
   const [bounds, setBounds] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
-  const active = !!(decision || diceMoment || potentialDice);
+  const active = !!(decision || diceMoment || potentialDice || rollContext?.proTest || rollContext?.originalFaces?.length);
   const blockOptions = decision?.options.filter(option => option.face) ?? [];
   const momentIsBlock = (!potentialDice || awaiting) && (!diceMoment?.groups || !!potentialDice)
     && !!diceMoment?.faces.length && diceMoment.faces.every(face => blockFaceLabel(face));
   const resultFaces = blockOptions.length ? blockOptions.map(option => option.face!)
-    : momentIsBlock && !decision?.proTest ? diceMoment!.faces : [];
+    : momentIsBlock && !rollDecision?.proTest ? diceMoment!.faces : [];
   const preview = resultFaces.length ? null : potentialDice;
   const primaryFaces: (string | undefined)[] = resultFaces.length ? resultFaces
     : preview ? Array.from({ length: Math.abs(preview.dice) }, () => undefined) : [];
@@ -41,7 +43,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const uphill = decision?.uphill ?? diceMoment?.uphill ?? (preview ? preview.dice < 0
     : blockOptions.length > 1 && attackerRole !== undefined && chooserRole !== undefined && chooserRole !== attackerRole
       || !!diceMoment && diceMoment.faces.length > 1 && !!decision?.options.some(option => /opponent chooses/i.test(option.label)));
-  const label = decision?.title ?? (preview
+  const label = decision?.title ?? rollContext?.title ?? (preview
     ? `${awaiting ? 'Pending' : 'Potential'} block: ${Math.abs(preview.dice)} ${preview.dice === 1 ? 'die' : 'dice'}${preview.dice < 0 ? ', opponent chooses (uphill)' : ', attacker chooses'}${awaiting ? '; awaiting native result' : '; confirm to roll'}`
     : `${diceMoment?.label}: ${diceMoment?.faces.join(', ')}`);
   // Ancestor pitch refs are attached after child layout effects on first mount.
@@ -110,15 +112,15 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
     <div className="pitch-dice-content" style={{ maxHeight: bounds ? Math.max(1, bounds.maxHeight - 24) : undefined,
       pointerEvents: scrollable ? 'auto' : undefined }}>
-    <strong className={diceMoment || primaryFaces.length || decision?.reaction ? 'sr-only' : undefined}>{label}</strong>
+    <strong className={diceMoment || primaryFaces.length || decision?.reaction || rollContext ? 'sr-only' : undefined}>{label}</strong>
     {decision?.reaction && <><strong>{decision.title}</strong>
       {decision.detail && <p>{decision.detail}</p>}
       <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/></>}
-    {decision?.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={decision.originalLabel ?? 'Original block dice'}>
-      {decision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
-        kind={decision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}
-    {decision?.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${decision.proTest.face}, ${decision.proTest.successful ? 'success' : 'failure'}`}>
-      <span>Pro</span><PolygonDie kind="d6" face={decision.proTest.face} rollKey={diceMoment?.rollKey ? decision.proTest.rollKey : undefined}/></div>}
+    {rollDecision?.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={rollDecision.originalLabel ?? 'Original block dice'}>
+      {rollDecision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
+        kind={rollDecision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}
+    {rollDecision?.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${rollDecision.proTest.face}, ${rollDecision.proTest.successful ? 'success' : 'failure'}`}>
+      <span>Pro</span><PolygonDie kind="d6" face={rollDecision.proTest.face} rollKey={diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined}/></div>}
     {primaryFaces.length > 0 && <div className="live-dice-choices pitch-block-dice">{primaryFaces.map((face, index) => {
       const option = blockOptions[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
@@ -130,7 +132,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
         <span className="sr-only">{option?.label}</span>
       </button>;
     })}</div>}
-    {diceMoment && !decision?.proTest && !primaryFaces.length && (diceMoment.groups ?? [{ ...diceMoment, key: 'result' }]).map(group =>
+    {diceMoment && !rollDecision?.proTest && !primaryFaces.length && (diceMoment.groups ?? [{ ...diceMoment, key: 'result' }]).map(group =>
       <div className="pitch-roll-group" key={group.key}>
         {diceMoment.groups && <span className="pitch-roll-caption">{group.label}</span>}
         <div className="pitch-decision-roll" role={decision || (diceMoment.groups?.length ?? 0) > 1 ? 'status' : undefined}

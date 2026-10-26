@@ -13,8 +13,8 @@ test('cards show roster subtypes and a short status without pitch coordinates', 
   assert.equal(playerCardStatus({ ...troll, state: 'has been seriously injured' }), 'Seriously Injured');
 });
 
-test('authoritative subtype and distracted status take precedence over legacy labels', () => {
+test('authoritative subtype and distraction preserve the legacy posture', () => {
   const player = { ...troll, positionRace: 'Troll', positionRole: 'Big Guy', status: 'Distracted' };
   assert.equal(playerCardSubtypes(player), 'Troll, Big Guy');
-  assert.equal(playerCardStatus(player), 'Distracted');
+  assert.equal(playerCardStatus(player), 'Standing, Distracted');
 });

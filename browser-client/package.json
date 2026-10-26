@@ -7,6 +7,7 @@
     "node": ">=26 <27"
   },
   "scripts": {
+    "mockups:skill-prompts": "node prototypes/skill-prompts/serve.mjs",
     "mockups:limited-actions": "node prototypes/limited-actions/serve.mjs",
     "mockups:block-assists": "node prototypes/block-assists/serve.mjs",
     "assets:sync": "node ../assets/game/scripts/sync-browser-assets.mjs",

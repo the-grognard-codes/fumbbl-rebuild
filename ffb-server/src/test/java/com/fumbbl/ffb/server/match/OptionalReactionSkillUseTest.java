@@ -165,7 +165,7 @@ class OptionalReactionSkillUseTest {
 		}
 	}
 
-	@Test void decliningPassSkillPreservesOtherRerollSourcesWithoutSpendingThem() throws Exception {
+	@Test void decliningPassSkillResolvesOriginalResultWithoutOfferingOtherRerollSources() throws Exception {
 		for (UseCase useCase : new UseCase[] {UseCase.PASS_BALL, UseCase.PASS_BOMB}) {
 			Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
 			fixture.game.getTurnData().setReRolls(1);
@@ -173,12 +173,11 @@ class OptionalReactionSkillUseTest {
 			fixture.start();
 			fixture.state.handleCommand(new ReceivedCommand(new ClientCommandUseSkill(fixture.skill, false, fixture.attacker.getId(), null, false), true));
 			assertEquals(1, fixture.rolls.get()); assertEquals(1, fixture.game.getTurnData().getReRolls());
-			assertTrue(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
-			assertNull(((DialogReRollPropertiesParameter) fixture.game.getDialogParameter()).getReRollSkill());
+			assertFalse(fixture.game.getDialogParameter() instanceof DialogReRollPropertiesParameter, useCase.name());
 		}
 	}
 
-	@Test void passTimeoutKeepsOtherResourcesAvailableWithAFreshDeadline() throws Exception {
+	@Test void passTimeoutResolvesOriginalResultWithoutAnotherRerollDeadline() throws Exception {
 		for (UseCase useCase : new UseCase[] {UseCase.PASS_BALL, UseCase.PASS_BOMB}) {
 			Fixture fixture = new Fixture(useCase, Mode.ALWAYS_ASK);
 			fixture.game.getTurnData().setReRolls(1);
@@ -188,9 +187,7 @@ class OptionalReactionSkillUseTest {
 			long deadline = before.getLong("expiresAt", -1);
 			assertTrue(fixture.session.expireReactiveDecision(deadline));
 			assertEquals(1, fixture.rolls.get()); assertEquals(1, fixture.game.getTurnData().getReRolls());
-			JsonObject remaining = fixture.live("home").get("reaction").asObject();
-			assertTrue(remaining.getLong("expiresAt", -1) > deadline);
-			assertFalse(before.getString("id", null).equals(remaining.getString("id", null)));
+			assertNull(fixture.live("home").get("reaction"));
 			assertFalse(fixture.session.isFailed());
 		}
 	}

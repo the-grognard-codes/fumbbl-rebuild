@@ -4,6 +4,8 @@ import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { test } from 'node:test';
+import { solidDefenceState } from '../../browser-client/test/fixtures/solid-defence-state.ts';
+import { idleWorkerExitCode } from '../src/worker-lifecycle.mjs';
 
 const matchId = '00000000-0000-0000-0000-000000000001';
 const secondMatchId = '00000000-0000-0000-0000-000000000002';
@@ -33,7 +35,10 @@ async function stopChild(child) {
 
 function send(socket, object) {
   const body = Buffer.from(JSON.stringify(object));
-  const header = body.length < 126 ? Buffer.from([0x81, body.length]) : Buffer.from([0x81, 126, body.length >> 8, body.length & 255]);
+  let header;
+  if (body.length < 126) header = Buffer.from([0x81, body.length]);
+  else if (body.length <= 65535) header = Buffer.from([0x81, 126, body.length >> 8, body.length & 255]);
+  else { header = Buffer.alloc(10); header[0] = 0x81; header[1] = 127; header.writeBigUInt64BE(BigInt(body.length), 2); }
   socket.write(Buffer.concat([header, body]));
 }
 function response(requestId, next) {
@@ -59,6 +64,44 @@ function readFrames(socket, onMessage) {
     }
   });
 }
+
+test('computer worker loads a large Solid Defence state while waiting for its opponent', { timeout: 10000 }, async () => {
+  const sockets = new Set();
+  const server = createServer();
+  const next = { ...solidDefenceState(matchId), callerRole: 'away' };
+  assert.ok(Buffer.byteLength(JSON.stringify(response('load', next))) > 256 * 1024);
+  server.on('upgrade', (request, socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.on('error', () => {});
+    const accept = createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    readFrames(socket, body => {
+      if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
+      else if (body.operation === 'load') send(socket, response(body.requestId, next));
+      else assert.fail('A waiting worker must not submit a gameplay decision');
+    });
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const child = spawn(process.execPath, ['src/main.mjs', '--match', matchId, '--url', `ws://127.0.0.1:${server.address().port}/browser/v2`,
+    '--origin', origin, '--idle-timeout-ms', '100'], {
+    cwd: new URL('..', import.meta.url), windowsHide: true,
+    env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }
+  });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
+  let timer;
+  try {
+    const [code] = await Promise.race([once(child, 'exit'), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 7000);
+    })]);
+    assert.equal(code, idleWorkerExitCode, output);
+    assert.match(output, /waiting for the human coach; yielding worker capacity/);
+    assert.doesNotMatch(output, /Oversized response|aaaaaaaaaa/);
+  } finally {
+    clearTimeout(timer);
+    if (child.exitCode === null && child.signalCode === null) await stopChild(child);
+    for (const socket of sockets) socket.destroy();
+    server.close();
+  }
+});
 
 test('Bogruk retries a gameplay checkpoint and save/resume controls preserve it without metadata', { timeout: 15000 }, async () => {
   const sockets = new Set(), seen = [];

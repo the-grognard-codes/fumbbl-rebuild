@@ -21,7 +21,10 @@ public class BrowserMatchTransport {
 	static final int MAX_INGRESS_WORK = 128;
 	static final int MAX_ADVISORY_WORK = MAX_INGRESS_WORK - MAX_CONNECTIONS;
 	static final int MAX_FOREGROUND_BURST = 8;
-	static final int MAX_OUTBOUND_BYTES = 256 * 1024;
+	// A Solid Defence state includes destinations for every selected player.
+	// Keep each connection bounded while admitting the match clients' largest response family.
+	static final int MAX_OUTBOUND_BYTES = 2 * 1024 * 1024;
+	static final int MAX_LIVE_TRANSCRIPT_BYTES = 256 * 1024;
 	static final int MAX_OUTBOUND_MESSAGES = 64;
 	static final long OUTBOUND_WRITE_TIMEOUT_MS = 2000;
 	private final BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();

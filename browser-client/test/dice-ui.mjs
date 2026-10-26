@@ -33,10 +33,10 @@ try {
     assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
     assert.equal(await dialog.evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
     assert.equal(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth),true,'Dice surface has no horizontal scrollbar');
-    assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'none', 'Empty overlay space does not intercept pitch input');
+    if (journey.count) assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'none', 'Empty overlay space does not intercept pitch input');
     const offered = journey.offered.actions.filter(action => action.kind === 'blockDie');
     assert.equal(await dialog.locator('.live-dice-choices .match-die').count(), journey.count);
-    if (journey.count === 0) assert.equal(await dialog.getByRole('status').locator('.match-die').getAttribute('data-face'), '1', 'The failed pickup remains visible beside its reroll choices');
+    if (journey.count === 0) assert.equal(await page.locator('.pitch-decision-overlay .match-die').getAttribute('data-face'), '1', 'The failed pickup remains on the board outside the circular prompt');
     for (const action of offered) {
       const choice = dialog.getByRole('button', { name: action.label, exact: true });
       await assertUnboxed(choice);
@@ -61,7 +61,10 @@ try {
     const choice = dialog.getByRole('button', { name: action.label, exact: true });
     await page.keyboard.press('Tab');
     await choice.focus();
-    assert.notEqual(await choice.evaluate(element => getComputedStyle(element).outlineStyle), 'none');
+    if (journey.count) assert.notEqual(await choice.evaluate(element => getComputedStyle(element).outlineStyle), 'none');
+    else assert.deepEqual(await choice.evaluate(element => ({ outline: getComputedStyle(element).outlineStyle,
+      background: getComputedStyle(element).backgroundColor })), { outline: 'none', background: 'rgb(36, 73, 102)' },
+    'Circular rerolls indicate keyboard focus through the background; answer outlines indicate timeout defaults');
     await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
     assert.deepEqual(await page.evaluate(() => window.diceActions), [action.id], 'One keyboard choice retains its exact native identity');
     assert.equal(await dialog.getByRole('button').first().isDisabled(), true);

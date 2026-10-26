@@ -47,12 +47,8 @@ const negativeStates = new Set(['Prone', 'Stunned', 'Distracted', 'Knocked Out',
   'Seriously Injured', 'Killed', 'Missing', 'Sent Off', 'Exhausted', 'Falling Down', 'Cannot Be Set Up']);
 
 export function playerCardStatuses(player: SetupPlayer): { label: string; negative: boolean }[] {
-  if (player.conditions === undefined) {
-    const label = legacyPlayerStatus(player);
-    return [{ label, negative: negativeStates.has(label) }];
-  }
   // The old single status can say Distracted instead of showing the base posture.
-  const base = legacyStatuses[player.state.toLowerCase()] ?? player.status ?? player.state;
+  const base = legacyStatuses[player.state.toLowerCase()] ?? legacyPlayerStatus(player);
   const conditions: string[] = playerNegativeConditions(player).map(kind => negativeConditionLabels[kind]);
   return [base, ...conditions.filter(label => label !== base)]
     .map(label => ({ label, negative: negativeStates.has(label) || conditions.includes(label) }));

@@ -24,7 +24,7 @@ function Harness() {
     potentialDice={input.potentialDice}
     diceAwaiting={input.diceAwaiting}
     diceMoment={input.moment ?? (input.report ? { ...reportedDice(input.report, view.players)!, rollKey: input.rollKey } : null)}
-    decision={decision && ['blockDie', 'reroll', 'skill', 'rerollDie', 'proTestReroll'].includes(decision.kind) ? decision : null} decisionDisabled={input.disabled ?? false}
+    decision={decision && (decision.circular || ['blockDie', 'reroll', 'skill', 'rerollDie', 'proTestReroll'].includes(decision.kind)) ? decision : null} decisionDisabled={input.disabled ?? false}
     readOnly={input.readOnly ?? false} playback={input.replay ?? false}
     onDecisionAction={id => { window.diceActions.push(id); setInput({ ...input, disabled: true }); }}
     onSelectPlayer={() => {}} onSquare={() => {}}/>

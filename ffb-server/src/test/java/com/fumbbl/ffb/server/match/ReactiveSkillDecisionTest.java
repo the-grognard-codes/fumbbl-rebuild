@@ -312,10 +312,39 @@ class ReactiveSkillDecisionTest {
             assertEquals(role, choice.getString("actor", null));
             if (own) assertTrue(state(fixture.session).getTurnTimeStarted() > 0, "Own-turn choices must keep the normal clock running");
             Player<?> defender = state(fixture.session).getGame().getDefender();
-            JsonObject result = fixture.session.apply(role, fixture.request("action", "choose-square", before).add("actionId", choice.get("id")));
+            assertEquals(defender.getId(), choice.getString("sourcePlayerId", null));
+            JsonObject payload = JsonObject.readFrom(fixture.session.recoveryArtifact()).get("payload").asObject();
+            String legacySource = new ActionSource().actingPlayerId(state(fixture.session).getGame(), role);
+            for (String seat : new String[] { "homeView", "awayView" })
+                for (JsonValue value : payload.get(seat).asObject().get("actions").asArray())
+                    value.asObject().set("sourcePlayerId", legacySource == null ? JsonValue.NULL : JsonValue.valueOf(legacySource));
+            SetupSession restored = new SetupSession(fixture.server, fixture.document,
+                new RecoveryArtifactJson().encode(payload, 128 * 1024 * 1024));
+            JsonObject recovered = live(restored, role);
+            assertEquals(before.get("actions"), recovered.get("actions"), "Recovery retains exact destinations and corrects their graphical owner");
+            assertEquals(before.get("reaction").asObject().get("expiresAt"), recovered.get("reaction").asObject().get("expiresAt"));
+            payload.get("homeView").asObject().get("actions").asArray().get(0).asObject().set("sourcePlayerId", "unrelated-player");
+            assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class, () -> new SetupSession(fixture.server, fixture.document,
+                new RecoveryArtifactJson().encode(payload, 128 * 1024 * 1024))).code);
+            JsonObject result = restored.apply(role, fixture.request("action", "choose-square", recovered).add("actionId", choice.get("id")));
             assertEquals("ACCEPTED", result.getString("code", null));
             JsonObject target = choice.get("target").asObject();
-            assertEquals(new FieldCoordinate(target.getInt("x", -1), target.getInt("y", -1)), state(fixture.session).getGame().getFieldModel().getPlayerCoordinate(defender));
+            assertEquals(new FieldCoordinate(target.getInt("x", -1), target.getInt("y", -1)), state(restored).getGame().getFieldModel().getPlayerCoordinate(state(restored).getGame().getPlayerById(defender.getId())));
+        }
+    }
+
+    @Test void sidestepTimeoutDeclinesOptionalUseWithoutChoosingADestination() throws Exception {
+        for (boolean own : new boolean[] { false, true }) {
+            SetupSessionMovementTest.Fixture fixture = pushback("Sidestep", own);
+            fixture.session.expireReactiveDecision(System.currentTimeMillis());
+            String role = own ? "home" : "away";
+            JsonObject before = live(fixture.session, role);
+            Player<?> defender = state(fixture.session).getGame().getDefender();
+            assertTrue(fixture.session.expireReactiveDecision(before.get("reaction").asObject().getLong("expiresAt", -1)));
+            assertEquals(new FieldCoordinate(8, 7), state(fixture.session).getGame().getFieldModel().getPlayerCoordinate(defender));
+            assertFalse(fixture.session.isFailed());
+            assertTrue(live(fixture.session, "home").get("actions").asArray().values().stream()
+                .anyMatch(value -> "push".equals(value.asObject().getString("kind", null))));
         }
     }
 

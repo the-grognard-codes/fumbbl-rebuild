@@ -21,7 +21,7 @@ export type PlayerActionMenuEntry = { playerId: string; kind: string; spent: boo
 export type MatchTeamArt = { rosterId: string; league: string | null };
 export type TeamResources = { apothecaries: number; assistantCoaches: number; cheerleaders: number; bribes?: number };
 export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED' | 'RESUME_PENDING' | 'ABANDONED'; proposalId: string | null; proposer: MatchRole | null; expiresAt: number | null };
-export type Reaction = { id: string; actor: MatchRole; title: string; detail?: string; expiresAt: number; serverNow: number };
+export type Reaction = { id: string; actor: MatchRole; title: string; detail?: string; expiresAt: number; serverNow: number; allowanceMs?: number };
 export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; homeReserveMs: number; awayReserveMs: number };
 type RangeGuidance = { playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
 export type PassingRanges = RangeGuidance & ({ version: 1 } | { version: 2; action: 'throwTeamMate' | 'kickMateTo'; targets: (number | null)[][] }
@@ -57,7 +57,9 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	if (Object.hasOwn(source, 'reaction')) {
 		const value = source.reaction;
 		const hasDetail = !!value && typeof value === 'object' && Object.hasOwn(value, 'detail');
-		const reaction = object(value, ['id', 'actor', 'title', 'expiresAt', 'serverNow', ...(hasDetail ? ['detail'] : [])]);
+		const hasAllowance = !!value && typeof value === 'object' && Object.hasOwn(value, 'allowanceMs');
+		const reaction = object(value, ['id', 'actor', 'title', 'expiresAt', 'serverNow', ...(hasDetail ? ['detail'] : []), ...(hasAllowance ? ['allowanceMs'] : [])]);
+		if (hasAllowance) { integer(reaction.allowanceMs, Number.MAX_SAFE_INTEGER); if ((reaction.allowanceMs as number) <= 0) throw Error('Invalid reaction allowance'); }
 		text(reaction.id, 200); role(reaction.actor); text(reaction.title, 200);
 		if (hasDetail) text(reaction.detail, 1000);
 		integer(reaction.expiresAt, Number.MAX_SAFE_INTEGER); integer(reaction.serverNow, Number.MAX_SAFE_INTEGER);
