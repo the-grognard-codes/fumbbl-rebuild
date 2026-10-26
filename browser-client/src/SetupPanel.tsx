@@ -227,6 +227,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [actionFilter, setActionFilter] = useState('');
   const [menuChoices, setMenuChoices] = useState<SetupAction[]>([]);
   const [debugCameraHost, setDebugCameraHost] = useState<HTMLDivElement | null>(null);
+  const [cameraButtonsHost, setCameraButtonsHost] = useState<HTMLDivElement | null>(null);
   const [targetAssist, setTargetAssist] = useState(true);
   const [smartIntent, setSmartIntent] = useState<SmartIntent | null>(null);
   const [draggingPlayerId, setDraggingPlayerId] = useState('');
@@ -1059,7 +1060,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !suspended && !playbackActive
           && pitchView.revision === view.revision && !decision}
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
-        debugOpen={debugOpen} cameraControlsHost={debugCameraHost}
+        debugOpen={debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment}
         onRightClick={() => {
           if (decision || playbackActive || requestPending) return;
@@ -1082,7 +1083,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
-        <div className="match-menu-triggers"><button type="button" className="match-debug-toggle" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button><GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
+        <button type="button" className="match-debug-toggle" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button>
+        <div className="match-menu-triggers"><div ref={setCameraButtonsHost}/><GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
           skillUseControls={skillUseControls} interfaceControls={<>{matchControls && <div className="interface-window-controls">
             <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
             <button type="button" onClick={matchControls.exitMatch}>Exit match</button></div>}<button type="button" aria-pressed={targetAssist} onClick={() => { setTargetAssist(!targetAssist); setSmartIntent(null); setActionId(''); }}>Target assist: {targetAssist ? 'on' : 'off'}</button>

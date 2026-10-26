@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,8 +21,8 @@ try {
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/ball-zoom-test`);
     await page.locator('.live-ball-football').waitFor();
     for (const angle of [30, 40, 50, 90]) {
-      if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
-      else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      if (angle === 90) await setCameraMode(page, 'top-down');
+      else await setCameraAngle(page, String(angle));
       const samples = [];
       for (const zoom of [.75, 1, 1.5, 2, 3]) {
         const current = Number(await page.locator('.live-pitch-scene').getAttribute('data-zoom'));

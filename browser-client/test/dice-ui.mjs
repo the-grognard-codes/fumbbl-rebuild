@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -44,11 +45,11 @@ try {
       assert.match(await choice.locator('.match-die').evaluate(element => getComputedStyle(element).filter), /drop-shadow/);
     }
     for (const angle of [30, 50, 40]) {
-      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(page, String(angle));
       assert.deepEqual(await page.evaluate(() => window.diceActions), []);
       assert.equal(await dialog.locator('.live-dice-choices .match-die').count(), journey.count);
     }
-    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(page, 'top-down');
     await page.setViewportSize({ width: 560, height: 500 });
     await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] button')].every(button => {
       const rect = button.getBoundingClientRect(); return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight;
@@ -225,7 +226,7 @@ try {
     await page.route('**/dice-test', route => route.fulfill({ contentType: 'text/html', body:
       '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module" src="/test/dice-ui-harness.tsx"></script>' }));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/dice-test`);
-    if (projection === 'top-down') await page.getByRole('button', { name: 'Top-down view' }).click();
+    if (projection === 'top-down') await setCameraMode(page, 'top-down');
     await page.evaluate(view => window.publishDice({ view }), followUp);
     const dialog = page.getByRole('dialog', { name: 'Match decision' }); await dialog.waitFor();
     assert.equal(await dialog.evaluate(element => getComputedStyle(element, '::backdrop').backgroundColor), 'rgba(0, 0, 0, 0)',

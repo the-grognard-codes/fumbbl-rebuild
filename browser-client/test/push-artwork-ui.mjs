@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -68,12 +69,12 @@ try {
     const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 40, 50]) {
-      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(page, String(angle));
       await checkArtwork(states[0], end);
     }
-    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(page, 'top-down');
     await checkArtwork(states[0], end, true);
-    await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+    await setCameraMode(page, 'perspective');
     if (await page.getByRole('button', { name: 'Close debug panel', exact: true }).count()) await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     for (let index = 1; index < states.length; index++) {
       if (role === 'home') {

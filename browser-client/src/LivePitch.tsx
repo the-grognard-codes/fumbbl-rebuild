@@ -35,6 +35,9 @@ import { ActionGlyph } from './ActionGlyph.tsx';
 import { limitedActionLabels, limitedActionPlacement } from './limited-action-presentation.ts';
 import { useLimitedActionTags } from './use-limited-action-tags.ts';
 import './limited-action-tags.css';
+import { CameraButtons } from './CameraButtons.tsx';
+import { effectiveCameraEnd } from './camera-preferences.ts';
+import { useCameraPreferences } from './use-camera-preferences.ts';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
 const centerOf = (point: Point) => ({ x: point.x + .5, y: point.y + .5 });
@@ -131,7 +134,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
-  zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
+  zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, cameraButtonsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
@@ -146,6 +149,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
   zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean; debugOpen?: boolean; cameraControlsHost?: HTMLElement | null;
+  cameraButtonsHost?: HTMLElement | null;
   onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
@@ -156,9 +160,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = controlledZoom ?? internalZoom, setZoom = onZoomChange ?? setInternalZoom;
   const zoomRef = useRef(zoom); zoomRef.current = zoom;
-  const [mode, setMode] = useState<PitchProjectionMode>('perspective');
-  const [perspectiveElevation, setPerspectiveElevation] = useState<PerspectiveElevation>(40);
-  const [viewerEnd, setViewerEnd] = useState<'home' | 'away'>(view.callerRole === 'away' ? 'away' : 'home');
+  const { preferences: cameraPreferences, update: updateCameraPreferences } = useCameraPreferences(view.matchId, view.callerRole);
+  const mode: PitchProjectionMode = cameraPreferences.angle === 90 ? 'top-down' : 'perspective';
+  const perspectiveElevation: PerspectiveElevation = cameraPreferences.angle === 90 ? 50 : cameraPreferences.angle;
   const [travel, setTravel] = useState({ focus: 13, transverseFocus: 7.5 });
   const [cursor, setCursor] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
@@ -168,8 +172,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const onArtError = (url: string) => setFailedArt(current => current.has(url) ? current : new Set([...current, url]));
   const [facings, setFacings] = useState<Record<string, PlayerFacing>>({});
   const prior = useRef<SetupState | null>(null);
-  const canChooseEnd = view.callerRole === 'spectator' || (readOnly && allowEndChoice);
-  const end = canChooseEnd ? viewerEnd : view.callerRole === 'away' ? 'away' : 'home';
+  const end = effectiveCameraEnd(cameraPreferences);
   const camera = useMemo(() => new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation }),
     [size, travel, end, mode, zoom, perspectiveElevation]);
   const cameraRef = useRef(camera); cameraRef.current = camera;
@@ -310,13 +313,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     (camera.project(centerOf({ x: b.x!, y: b.y! }))?.depth ?? 0) - (camera.project(centerOf({ x: a.x!, y: a.y! }))?.depth ?? 0) || a.id.localeCompare(b.id))
     .map((player, index) => [player.id, index]));
   const chalk = (from: Point, to: Point) => routePath([{ x: from.x - .5, y: from.y - .5 }, { x: to.x - .5, y: to.y - .5 }], camera);
+  const cameraButtons = <CameraButtons key={`${view.matchId}.${view.callerRole}`} preferences={cameraPreferences}
+    onChange={next => { updateCameraPreferences(next); onBlurPlayer?.(); setHover(null); }}/>;
   const cameraControls = <div className={`live-camera-controls${showToolbar ? '' : ' compact'}`} aria-label="Pitch camera controls">
-      <button type="button" aria-pressed={mode === 'top-down'} onClick={() => { setMode(mode === 'perspective' ? 'top-down' : 'perspective'); onBlurPlayer?.(); }}>{mode === 'perspective' ? 'Top-down view' : 'Perspective view'}</button>
-      <label><span>Perspective angle</span> <select aria-label="Perspective angle" title="Perspective angle" value={perspectiveElevation}
-        onChange={event => { setPerspectiveElevation(Number(event.target.value) as PerspectiveElevation); setMode('perspective'); onBlurPlayer?.(); }}>
-        {[30, 40, 50].map(angle => <option key={angle} value={angle}>{angle}°</option>)}
-      </select></label>
-      {canChooseEnd && <button type="button" onClick={() => { setViewerEnd(end === 'home' ? 'away' : 'home'); onBlurPlayer?.(); }}>{end === 'home' ? 'Away coach view' : 'Home coach view'}</button>}
       <button type="button" onClick={() => changeCamera(camera.with({ focus: 13, transverseFocus: 7.5 }))}>Midfield</button>
       <button type="button" disabled={selected?.x == null} onClick={() => selected?.x != null && selected.y != null && reveal(centerOf({ x: selected.x, y: selected.y }))}>Reveal selected</button>
       <button type="button" disabled={!view.ball && activePlayer?.x == null} onClick={() => reveal(view.ball ? centerOf(view.ball) : activePlayer?.x != null && activePlayer.y != null ? centerOf({ x: activePlayer.x, y: activePlayer.y }) : null)}>Reveal ball / active</button>
@@ -325,6 +324,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   return <section className="live-pitch projected-pitch"
     style={{ ['--pitch-move-duration' as string]: `${movementDuration}ms` }}
     aria-label={playback ? 'Live match pitch' : readOnly ? 'Read-only replay pitch' : 'Live match pitch'}>
+    {cameraButtonsHost === undefined ? <div className="live-camera-buttons">{cameraButtons}</div> : cameraButtonsHost && createPortal(cameraButtons, cameraButtonsHost)}
     {debugOpen && (cameraControlsHost === undefined ? cameraControls : cameraControlsHost && createPortal(cameraControls, cameraControlsHost))}
     {passing && <div className="live-pass-legend" role="note" aria-label={passing.version === 2 ? passing.action === 'throwTeamMate' ? 'Throw Team Mate distances' : 'Kick Team Mate distances' : 'Passing distances'}>
       {passingLegend(passing).map(item => <span key={item.name}><i style={{ backgroundColor: item.color }}/>{item.text}</span>)}

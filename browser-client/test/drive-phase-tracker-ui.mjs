@@ -49,7 +49,7 @@ try {
       assert.ok(box.x >= 0 && box.x + box.width <= width && box.y + box.height <= height, `${width}: tracker stays inside viewport`);
       assert.equal(overlaps(box, menu), false, `${width}: tracker does not overlap the menu`);
       const dugout = await page.locator(`.live-dugout.${side}`).boundingBox();
-      assert.equal(overlaps(box, dugout), false, `${width}: tracker does not overlap the dugout`);
+      assert.equal(overlaps(box, dugout), false, `${width}: tracker does not overlap the dugout: ${JSON.stringify({ side, box, menu, dugout })}`);
       const activeBox = await list.locator('[aria-current=step]').boundingBox();
       assert.ok(activeBox.y >= box.y && activeBox.y + activeBox.height <= box.y + box.height + 1,
         `${width}: current phase remains visible when the stack scrolls: ${JSON.stringify({ box, activeBox, side })}`);

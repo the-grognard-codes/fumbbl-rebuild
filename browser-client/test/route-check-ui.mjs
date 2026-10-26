@@ -1,3 +1,4 @@
+import { setCameraAngle } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -70,20 +71,28 @@ try {
         && markers.every(marker => Number(getComputedStyle(marker).zIndex) < Number(style.zIndex));
     }), 'Waypoint dots stay above sprites without intercepting pitch input');
     for (const angle of [30, 40, 50, 90]) {
-      if (angle === 90) await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
-      else await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
       for (const input of cases) {
         decodeSetupStateValue(input.state);
         const route = decodeRoutePreview(JSON.stringify({ version: 2, type: 'routePreview', requestId: 'forecast',
           code: 'ACCEPTED', matchId: input.state.matchId, route: input.route })).route;
         await page.evaluate(input => window.updateRouteCase(input), { state: { ...input.state, callerRole: end }, route });
+        // Fixture journeys use different match IDs; select the angle after
+        // loading each match because camera choices are intentionally match scoped.
+        await setCameraAngle(page, angle);
         await ensureSprites(page);
         await assertNoMovementMarkings(page);
         assert.equal(await page.locator('.live-target-square').count(), 0, 'Move destinations have no fallback highlighting');
         assert.equal(await page.locator('.live-route-line').count(), 1, 'The reviewed route remains visible');
         assert.equal(await page.getByLabel('Planned route', { exact: true }).locator('li').count(), route.steps.length);
         const destination = route.steps.at(-1);
-        const position = await squarePosition(page, destination.x, destination.y);
+        let position;
+        try { position = await squarePosition(page, destination.x, destination.y); }
+        catch (error) {
+          throw new Error(`${end} ${angle}° ${input.name}: ${JSON.stringify(await page.locator('.live-pitch-scene').evaluate(scene => ({
+            data: { ...scene.dataset }, bounds: scene.getBoundingClientRect().toJSON(),
+            viewport: scene.parentElement.getBoundingClientRect().toJSON(),
+          })))}`, { cause: error });
+        }
         const dot = page.locator('.live-route-waypoint circle');
         assert.ok(Math.abs(Number(await dot.getAttribute('cx')) - position.x) < .01, 'Waypoint dot remains at the destination center');
         assert.ok(Math.abs(Number(await dot.getAttribute('cy')) - position.y) < .01, 'Waypoint dot remains at the destination center');

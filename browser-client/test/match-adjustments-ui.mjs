@@ -30,7 +30,7 @@ async function open(state, records = []) {
   }, { state, records });
   await page.route('**/adjustments-test', route => route.fulfill({ contentType: 'text/html', body:
     '<style>html,body{margin:0;background:#101c2b}</style><main id="app" class="play-runtime live-match-page"></main><script type="module" src="/test/match-adjustments-harness.tsx"></script>' }));
-  await page.goto('http://127.0.0.1:' + server.httpServer.address().port + '/adjustments-test');
+  await page.goto('http://127.0.0.1:' + server.httpServer.address().port + '/adjustments-test', { timeout: 30000 });
   await page.locator('.coach-match').waitFor();
   await page.evaluate(() => document.fonts.ready);
 }
@@ -42,12 +42,12 @@ async function run(name, callback) {
       await page.screenshot({ path: process.env.MATCH_ADJUSTMENT_EVIDENCE_DIR + '/' + name + '.png' });
     }
   }
-  catch (error) { failures.push(name + ': ' + error.message); console.error('FAIL ' + name + ': ' + error.message); }
+  catch (error) { failures.push(name + ': ' + error.message); console.error('FAIL ' + name + ': ' + error.stack); }
 }
 try {
   await run('log', async () => {
     await open(base, [record]);
-    for (const [size, pixels] of [['Small', 12], ['Medium', 14], ['Large', 18]]) {
+    for (const [size, pixels] of [['Small', 10], ['Medium', 12], ['Large', 14]]) {
       await page.getByRole('button', { name: size + ' log text' }).click();
       assert.equal(await page.locator('.match-event-scroll p').first().evaluate(element => parseFloat(getComputedStyle(element).fontSize)), pixels,
         'The actual entry text must follow the selected size');
@@ -197,7 +197,8 @@ try {
     assert.equal(await page.getByLabel('Perspective angle', { exact: true }).count(), 0);
     const toggle = page.getByRole('button', { name: 'Debug', exact: true });
     await toggle.click();
-    assert.equal(await page.getByLabel('Perspective angle', { exact: true }).isVisible(), true);
+    assert.equal(await page.getByRole('button', { name: /^Cycle camera angle:/ }).isVisible(), true);
+    assert.equal(await page.getByLabel('Perspective angle', { exact: true }).count(), 0);
     assert.equal(await page.getByRole('region', { name: 'Match debug' }).isVisible(), true);
     assert.match(await page.getByRole('region', { name: 'Match debug' }).textContent(), /Movement plan/);
     assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), []);

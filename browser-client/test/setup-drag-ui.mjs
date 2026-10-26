@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -274,7 +275,7 @@ try {
       await current.screenshot({ path: `${facingEvidence}/drive-facing-${callerRole}-perspective.png` });
     }
     await current.getByRole('button', { name: 'Debug', exact: true }).click();
-    await current.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(current, 'top-down');
     await expectAttackDirection();
     if (facingEvidence) await current.screenshot({ path: `${facingEvidence}/drive-facing-${callerRole}-top-down.png` });
     assert.deepEqual(facing.errors, []);

@@ -1,3 +1,4 @@
+import { setCameraAngle, setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -83,12 +84,12 @@ try {
     assert.equal(await page.locator('[data-pass-range="L"], [data-pass-range="B"]').count(), 0);
     await page.getByRole('button', { name: 'Debug', exact: true }).click();
     for (const angle of [30, 50, 40]) {
-      await page.getByLabel('Perspective angle', { exact: true }).selectOption(String(angle));
+      await setCameraAngle(page, String(angle));
       assert.equal(await page.locator('[data-cell-x="14"][data-cell-y="7"][data-pass-range="Q"]').count(), 1);
     }
-    await page.getByRole('button', { name: 'Top-down view', exact: true }).click();
+    await setCameraMode(page, 'top-down');
     assert.equal(await page.locator('[data-pass-range]').count(), 390);
-    await page.getByRole('button', { name: 'Perspective view', exact: true }).click();
+    await setCameraMode(page, 'perspective');
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     await choose('own-target');
     assert.match(await page.locator('.command-preview').textContent(), /landing-own/,

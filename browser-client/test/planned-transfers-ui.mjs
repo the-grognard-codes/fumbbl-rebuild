@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -138,7 +139,7 @@ try {
     const {page,errors}=await open(journey,mobile);
     if(mobile){
       await page.getByRole('button',{name:'Debug',exact:true}).click();
-      await page.getByRole('button',{name:'Top-down view',exact:true}).click();
+      await setCameraMode(page, 'top-down');
       await page.getByRole('button',{name:'Debug',exact:true}).click();
     }
     await select(page,journey.sourceId);

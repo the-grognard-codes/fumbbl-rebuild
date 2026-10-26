@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 // Read-only cutover verification against a retained, genuinely completed v2 match.
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -60,10 +61,10 @@ try {
     assert.ok(ids.length > 0);
     const focus = await scene.getAttribute('data-focus');
     for (const end of ['home', 'away']) {
-      if (await scene.getAttribute('data-end') !== end) await pitch.getByRole('button', { name: `${end === 'home' ? 'Home' : 'Away'} coach view`, exact: true }).click();
-      if (await scene.getAttribute('data-projection') !== 'perspective') await pitch.getByRole('button', { name: 'Perspective view', exact: true }).click();
+      if (await scene.getAttribute('data-projection') !== 'perspective') await setCameraMode(pitch, 'perspective');
+      if (await scene.getAttribute('data-end') !== end) await pitch.getByRole('button', { name: /^Flip perspective:/ }).click();
       await page.screenshot({ path: resolve(output, `${role}-${end}-perspective.png`), fullPage: true });
-      await pitch.getByRole('button', { name: 'Top-down view', exact: true }).click();
+      await setCameraMode(pitch, 'top-down');
       assert.equal(await scene.getAttribute('data-focus'), focus);
       assert.equal(await scene.locator('polygon[data-cell-x]').count(), 390);
       assert.deepEqual(await pitch.locator('.live-marker').evaluateAll(nodes => nodes.map(node => node.dataset.playerId).sort()), ids);

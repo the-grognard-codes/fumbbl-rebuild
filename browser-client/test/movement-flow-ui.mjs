@@ -1,3 +1,4 @@
+import { setCameraAngle } from './camera-controls.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -272,7 +273,7 @@ try {
   assert.equal(await page.locator('.live-route-waypoint text').count(), 0);
   if (evidence) await page.screenshot({ path: resolve(evidence, 'move-plan.png') });
   await page.getByRole('button', { name: 'Debug', exact: true }).click();
-  await page.getByLabel('Perspective angle', { exact: true }).selectOption('30');
+  await setCameraAngle(page, '30');
   assert.equal(await confirmed.isEnabled(), true, 'Camera changes retain the reviewed plan');
   assert.equal(await page.getByLabel('Route squares', { exact: true }).locator('li').count(), fixture.movePlan.plan.route.steps.length);
   const endTurn = fixture.readyState.actions.find(action => action.kind === 'endTurn');

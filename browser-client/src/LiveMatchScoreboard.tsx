@@ -15,13 +15,14 @@ function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName:
   useLayoutEffect(() => {
     const element = resourceElement.current;
     const host = element?.closest<HTMLElement>('.coach-match');
-    if (role !== 'away' || !element || !host) return;
-    const alignMenu = () => host.style.setProperty('--away-resource-bottom',
+    if (!element || !host) return;
+    const property = `--${role}-resource-bottom`;
+    const alignMenu = () => host.style.setProperty(property,
       `${element.getBoundingClientRect().bottom - host.getBoundingClientRect().top}px`);
     const observer = new ResizeObserver(alignMenu);
     observer.observe(element);
     alignMenu();
-    return () => { observer.disconnect(); host.style.removeProperty('--away-resource-bottom'); };
+    return () => { observer.disconnect(); host.style.removeProperty(property); };
   }, [role, items.length]);
   if (!items.length) return null;
   return <section ref={resourceElement} className={`live-resources ${role}`} aria-label={`${teamName} resources`}>

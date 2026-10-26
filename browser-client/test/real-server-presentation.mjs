@@ -1,3 +1,4 @@
+import { setCameraMode } from './camera-controls.mjs';
 // Production presentation acceptance helpers for an already-authenticated,
 // suspended /play/match from the isolated real-server acceptance run.
 // Native zoom uses Chrome's tabs.setZoom API (https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom)
@@ -175,15 +176,14 @@ export async function capturePresentation(pages, output) {
         const initialMode = await scene(page).getAttribute('data-projection');
         const initialFocus = Number(await scene(page).getAttribute('data-focus'));
         const idsBefore = await page.locator('.live-marker[data-player-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-player-id')).sort());
-        const toggle = page.getByRole('button', { name: initialMode === 'perspective' ? 'Top-down view' : 'Perspective view' });
-        await toggle.click();
         const switchedMode = initialMode === 'perspective' ? 'top-down' : 'perspective';
+        await setCameraMode(page, switchedMode);
         await page.waitForFunction(mode => document.querySelector('.live-pitch-scene')?.getAttribute('data-projection') === mode, switchedMode);
         assert.equal(Number(await scene(page).getAttribute('data-focus')), initialFocus, 'Camera mode switch must preserve focus');
         const idsAfter = await page.locator('.live-marker[data-player-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-player-id')).sort());
         assert.deepEqual(idsAfter, idsBefore, 'Camera mode switch must preserve player identity');
         await page.screenshot({ path: join(evidenceDir, `${baseName}-${switchedMode}.png`), fullPage: false });
-        await page.getByRole('button', { name: switchedMode === 'top-down' ? 'Perspective view' : 'Top-down view' }).click();
+        await setCameraMode(page, initialMode);
         await page.waitForFunction(mode => document.querySelector('.live-pitch-scene')?.getAttribute('data-projection') === mode, initialMode);
         await page.screenshot({ path: join(evidenceDir, `${baseName}-${initialMode}.png`), fullPage: false });
 
@@ -217,7 +217,7 @@ export async function capturePresentation(pages, output) {
     await marker.focus();
     await fallbackPage.getByRole('tooltip', { name: /player card$/ }).waitFor();
     await revealCameraControls(fallbackPage);
-    await fallbackPage.getByLabel('Pitch camera controls').getByRole('button', { name: 'Top-down view' }).click();
+    await setCameraMode(fallbackPage, 'top-down');
     await fallbackPage.locator('.live-pitch-scene[data-projection="top-down"]').waitFor();
     evidence.fallback = { reducedMotion: true, textPlayerFallback: true, hoverCardReachable: true, cameraReachable: true };
     await fallbackPage.screenshot({ path: join(evidenceDir, 'reduced-motion-blocked-art-fallback.png'), fullPage: false });
@@ -396,9 +396,9 @@ export async function captureNativeZoom({ origin, matchId, token, output, comple
 async function assertNativeControls(page, inspectPlayer = true) {
   await revealCameraControls(page);
   const camera = page.getByLabel('Pitch camera controls');
-  await camera.getByRole('button', { name: 'Top-down view' }).click();
+  await setCameraMode(camera, 'top-down');
   await page.locator('.live-pitch-scene[data-projection="top-down"]').waitFor();
-  await camera.getByRole('button', { name: 'Perspective view' }).click();
+  await setCameraMode(camera, 'perspective');
   await page.locator('.live-pitch-scene[data-projection="perspective"]').waitFor();
   if (inspectPlayer) {
     const marker = page.locator('.live-marker:visible').first();

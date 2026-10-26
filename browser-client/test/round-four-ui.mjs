@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 
 const base = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
-const state = { ...base, homeTeamName: 'Ironbank Rovers', awayTeamName: 'Cinderclaw Crew', homeResources: { apothecaries: 1 }, homeRerolls: 2,
+const state = { ...base, homeTeamName: 'Ironbank Rovers', awayTeamName: 'Cinderclaw Crew', homeResources: { apothecaries: 1 }, homeRerolls: 2, awayRerolls: 2,
   clock:{activeRole:'home',turnElapsedMs:0,homeReserveMs:600000,awayReserveMs:600000} };
 const server = await createServer({ root: fileURLToPath(new URL('../', import.meta.url)), configFile: false, server: { host: '127.0.0.1', port: 0 } });
 await server.listen();
@@ -44,12 +44,17 @@ try {
   for (const [width,height] of [[1280,720],[640,330],[375,300]]) {
     await page.setViewportSize({width,height});
     const d = await debug.boundingBox(), m = await menu.boundingBox();
-    assert.ok(d.x + d.width <= m.x && Math.abs(d.y-m.y)<2 && d.x>=0 && m.x+m.width<=width,'Debug sits immediately left of Game Menu');
+    const controls = await page.getByRole('group',{name:'Camera perspective controls',exact:true}).boundingBox();
+    const home = await page.locator('.live-resources.home').boundingBox();
+    const away = await page.locator('.live-resources.away').boundingBox();
+    assert.ok(d.x < width / 2 && controls.x > width / 2 && d.y >= home.y + home.height && controls.y >= away.y + away.height
+      && Math.abs(d.y-controls.y)<2 && d.x>=0 && m.x+m.width<=width,'Debug is below home inducements, opposite camera buttons and Game Menu below away inducements');
   }
   await page.setViewportSize({width:1280,height:720});
   await debug.click();
   assert.equal(await page.getByLabel('Match debug',{exact:true}).isVisible(),true);
-  assert.equal(await page.getByLabel('Perspective angle',{exact:true}).isVisible(),true);
+  assert.equal(await page.getByRole('button',{name:/^Cycle camera angle:/}).isVisible(),true);
+  assert.equal(await page.getByLabel('Perspective angle',{exact:true}).count(),0,'Duplicate camera angle selector removed');
   assert.deepEqual(await page.evaluate(() => window.hudIntents),[],'Opening Debug sends no game action');
   await debug.click();
   for (const [kind,options] of [['coin',['heads','tails']],['receive',['receive','kick']]]) {
@@ -84,6 +89,6 @@ try {
   assert.equal(await page.locator('.match-log-count').count(),0,'HUD log counter removed');
   await page.evaluate(state => window.publishHud({...state,phase:'PLAY',turnMode:'SOLID_DEFENCE',prompt:null,actions:[]},['Minimum of 3 players on the Line of Scrimmage.']),state);
   assert.match(await page.getByRole('alert').innerText(),/Minimum of 3 players/,'Native redeployment errors remain visible during kickoff setup');
-  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive Debug adjacency, exact MUTP kickoff choices, and unboxed center-right block dice and numeric reroll choices.');
+  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive opposite-side Debug and public camera controls, exact MUTP kickoff choices, and unboxed center-right block dice and numeric reroll choices.');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); await server.close(); }

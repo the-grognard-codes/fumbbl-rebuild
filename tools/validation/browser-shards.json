@@ -38,7 +38,8 @@
       "browser-client/test/skill-use-preferences-ui.mjs",
       "browser-client/test/skill-markers-ui.mjs",
       "browser-client/test/limited-action-tags-ui.mjs",
-      "browser-client/test/round-four-ui.mjs"
+      "browser-client/test/round-four-ui.mjs",
+      "browser-client/test/camera-perspective-ui.mjs"
     ],
     [
       "browser-client/test/pass-workflow-ui.mjs",
