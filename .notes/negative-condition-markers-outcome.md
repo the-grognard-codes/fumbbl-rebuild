@@ -201,6 +201,26 @@ setting and symbols. Existing database volumes and unrelated services were retai
 
 ## Process retrospective
 
+### CI snapshot follow-up
+
+PR #362's Java state-test shards found eight golden projection snapshots and
+the explicit recipient-player field contract that predated `conditions` metadata.
+Regenerated the snapshots with the native test generators and compared parsed
+JSON before replacing them: removing only the newly added `conditions` arrays
+made every generated snapshot exactly equal to its existing fixture. All arrays
+in these scenarios are empty; gameplay values and ordering are unchanged.
+The recipient contract now explicitly includes the public field and asserts its
+empty value for an unaffected player. The native snapshot assertions remain strict.
+
+The focused native selector covers `PushbackArtworkTest`, `PassRangeProjectionTest`,
+`DiceProjectionTest`, `CoreTurnActionsTest`, `RerollChoicesTest`,
+`RerollAccountingTest`, `PassWorkflowTest` and `RecipientProjectionTest` under
+Java 21 with the `mockito5` profile. Browser unit and consuming interaction suites
+validate the refreshed fixtures. Final results and fresh CI evidence are recorded
+on PR #362 and issue #360.
+
+### Environment findings
+
 Candidates for future environment improvement, in priority order:
 
 1. Add a navigation pointer for public player projection changes to cover all

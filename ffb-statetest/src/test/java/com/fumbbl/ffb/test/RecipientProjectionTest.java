@@ -35,7 +35,8 @@ class RecipientProjectionTest {
 			keys(view.get("homeResources").asObject(), "apothecaries", "assistantCoaches", "cheerleaders");
 			for (JsonValue value : view.get("players").asArray()) {
 				JsonObject player = value.asObject();
-				keys(player, "id", "name", "slot", "role", "state", "status", "x", "y", "art", "number", "position", "positionRace", "positionRole", "ma", "st", "ag", "pa", "av", "skills", "skillMarkers", "offPitch");
+				keys(player, "id", "name", "slot", "role", "state", "status", "x", "y", "art", "number", "position", "positionRace", "positionRole", "ma", "st", "ag", "pa", "av", "skills", "skillMarkers", "conditions", "offPitch");
+				assertEquals(0, player.get("conditions").asArray().size());
 				assertEquals(player.get("x").isNull() ? "reserve" : "pitch", player.getString("offPitch", null));
 				assertEquals(6, player.getInt("ma", -1));
 				keys(player.get("art").asObject(), "rosterId", "positionId");
