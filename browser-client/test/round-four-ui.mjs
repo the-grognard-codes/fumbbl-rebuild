@@ -83,12 +83,14 @@ try {
   assert.equal(await dice.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight),true,'Dice need no scrollbars at normal size');
   await page.evaluate(state => window.publishHud({...state,prompt:null,actions:[{id:'generic-team-reroll',kind:'reroll',label:'Use team reroll',actor:'home',sourcePlayerId:null,target:null}]}),state);
   const reroll = page.getByRole('dialog', { name: 'Use a re-roll?', exact: true }); await reroll.waitFor();
-  assert.equal(await reroll.evaluate(el => getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','Numeric reroll choices use the shared unboxed surface');
-  assert.equal(await reroll.evaluate(el => getComputedStyle(el).borderTopWidth),'0px');
-  assert.match(await reroll.evaluate(el => getComputedStyle(el, '::before').backgroundImage),/radial-gradient/);
+  assert.equal(await reroll.locator('.skill-circle').evaluate(el => getComputedStyle(el).backgroundColor),'rgb(7, 17, 30)','Non-block rerolls use the selected high-contrast circular surface');
+  assert.equal(await reroll.locator('.skill-circle').evaluate(el => getComputedStyle(el).borderRadius),'50%');
+  assert.equal(await reroll.locator('.skill-ribbon-track').count(),1,'Untimed rerolls retain a static perimeter');
+  await reroll.getByRole('button',{name:'Use team reroll',exact:true}).click();
+  assert.deepEqual((await page.evaluate(() => window.hudIntents)).at(-1),{operation:'action',fields:{actionId:'generic-team-reroll'}},'Circular confirmation preserves the offered action ID');
   assert.equal(await page.locator('.match-log-count').count(),0,'HUD log counter removed');
   await page.evaluate(state => window.publishHud({...state,phase:'PLAY',turnMode:'SOLID_DEFENCE',prompt:null,actions:[]},['Minimum of 3 players on the Line of Scrimmage.']),state);
   assert.match(await page.getByRole('alert').innerText(),/Minimum of 3 players/,'Native redeployment errors remain visible during kickoff setup');
-  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive opposite-side Debug and public camera controls, exact MUTP kickoff choices, and unboxed center-right block dice and numeric reroll choices.');
+  console.log('PASS: held selection, opacity endpoints/persistence/readable contents, responsive opposite-side Debug and public camera controls, exact MUTP kickoff choices, unboxed center-right block dice and circular non-block reroll confirmation.');
   assert.deepEqual(errors, []);
 } finally { await browser.close(); await server.close(); }

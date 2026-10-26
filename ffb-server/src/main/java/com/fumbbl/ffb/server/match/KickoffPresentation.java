@@ -17,7 +17,7 @@ final class KickoffPresentation {
     JsonObject project(GameState state, Set<String> selection) {
         Game game = state.getGame();
         String actor = game.isHomePlaying() ? "home" : "away";
-        if (game.getDialogParameter() instanceof DialogPlayerChoiceParameter) {
+        if (game.getTurnMode() != TurnMode.SOLID_DEFENCE && game.getDialogParameter() instanceof DialogPlayerChoiceParameter) {
             DialogPlayerChoiceParameter dialog = (DialogPlayerChoiceParameter) game.getDialogParameter();
             PlayerChoiceMode mode = dialog.getPlayerChoiceMode();
             if (mode == PlayerChoiceMode.CHARGE || mode == PlayerChoiceMode.SOLID_DEFENCE) {

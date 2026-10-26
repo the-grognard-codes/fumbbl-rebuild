@@ -10,6 +10,13 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addBugfix("Browser player cards preserve prone and stunned posture alongside distraction in older replays and recovered matches")
+			.addBugfix("Browser Solid Defence lets coaches redeploy every selected reserve in any order and confirm their setup")
+			.addImprovement("Browser Sidestep uses the circular skill prompt and shared pitch arrows, preserving native choices and recovery")
+			.addImprovement("Browser skill prompts mark the timeout answer with a gold outline; hover and keyboard focus change only answer backgrounds")
+			.addBugfix("Browser Catch reroll prompts point to the receiver, with clear timer borders and no duplicate player-name label")
+			.addImprovement("Browser skill decisions use compact circular prompts with a perimeter countdown and clear text dividers, preferring the dice side while keeping players and dice visible")
+			.addBehaviorChange("Browser rerolls offer an available built-in skill first; declining it accepts the original roll without offering Pro or a team re-roll")
 			.addFeature("Browser coaches and spectators can flip pitch perspective and cycle camera angles from match and replay controls, with choices retained for each match")
 			.addBugfix("Browser coaches can use or decline a bribe after a spotted foul, including after reconnecting")
 			.addBugfix("Multiple Block applies Both Down to unprotected defenders before resolving the other block")
@@ -18,6 +25,7 @@ public class ChangeList {
 			.addBugfix("Browser coaches can choose Blitz after selecting an adjacent opponent, including with a prone player, and continue moving after the block")
 			.addBugfix("Menu and button hover effects remain stable at their edges")
 			.addBugfix("Solid Defence players selected for redeployment can return to the pitch from reserves")
+			.addBugfix("Browser and computer clients stay connected when Solid Defence offers a large set of redeployment squares")
 			.addImprovement("Game-log dice scale with text size, with centered triangular d8 and d16 faces")
 			.addBugfix("Armor and injury rolls appear once over the pitch with both dice together")
 			.addImprovement("Multiple Block explains target selection and preserves the coach's chosen target order")

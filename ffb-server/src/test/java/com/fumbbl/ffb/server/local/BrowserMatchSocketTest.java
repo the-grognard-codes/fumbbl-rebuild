@@ -2,25 +2,72 @@ package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.net.ServerCommunication;
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
 import org.eclipse.jetty.ee8.websocket.api.Session;
+import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
+import org.eclipse.jetty.ee8.websocket.api.WriteCallback;
 import org.eclipse.jetty.ee8.websocket.server.JettyServerUpgradeRequest;
 import org.eclipse.jetty.ee8.websocket.server.JettyServerUpgradeResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchSocketTest {
+	@Test
+	public void largeSolidDefenceReplyReachesTheClientWithoutClosingItsSocket() throws Exception {
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		BrowserProtocol adapter = mock(BrowserProtocol.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		Session session = mock(Session.class);
+		RemoteEndpoint remote = mock(RemoteEndpoint.class);
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> { ((Runnable) invocation.getArgument(0)).run(); return true; });
+		when(session.isOpen()).thenReturn(true);
+		when(session.getRemote()).thenReturn(remote);
+		List<String> received = new ArrayList<>();
+		doAnswer(invocation -> {
+			received.add(invocation.getArgument(0));
+			((WriteCallback) invocation.getArgument(1)).writeSuccess();
+			return null;
+		}).when(remote).sendString(any(String.class), any(WriteCallback.class));
+		BrowserMatchTransport transport = new BrowserMatchTransport(server);
+		try {
+			BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport);
+			socket.onConnect(session);
+			JsonArray actions = new JsonArray();
+			for (int player = 0; player < 6; player++) for (int square = 0; square < 195; square++) {
+				String playerId = "00000000-0000-0000-0000-00000000000" + player;
+				actions.add(new JsonObject().add("id", "event-" + playerId + "-" + square)
+					.add("label", "Redeploy selected defence player to square " + square).add("actor", "home")
+					.add("kind", "kickoffMove").add("sourcePlayerId", playerId)
+					.add("target", new JsonObject().add("x", square % 13).add("y", square / 13)));
+			}
+			String reply = new JsonObject().add("version", 2).add("type", "setupState")
+				.add("state", new JsonObject().add("turnMode", "SOLID_DEFENCE").add("actions", actions)).toString();
+			assertTrue(reply.getBytes(StandardCharsets.UTF_8).length > 256 * 1024);
+			socket.sendWithOptionalPredecessor("history", reply);
+			assertEquals(Arrays.asList("history", reply), received);
+			verify(session, never()).close(anyInt(), any(String.class));
+			assertEquals(0, transport.getMetrics().toJson().getLong("deliveryQueueBytes", -1));
+		} finally { transport.destroy(); }
+	}
 	@Test
 	public void committedGameplayBypassesQueuedAdvisoryReadsWithoutReorderingOtherRequests() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);

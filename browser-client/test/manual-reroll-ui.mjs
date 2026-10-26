@@ -78,7 +78,9 @@ try {
       }
       if (evidence && stage > 0) await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-pro-phase-${stage}.png`) });
       if (stage === 0) await page.evaluate(() => { window.testTransport.dropReply = true; });
+      const choosingSource = await button.evaluate(element => !!element.closest('.skill-source-chooser'));
       await button.click();
+      if (choosingSource) await page.locator('.circular-skill-prompt .skill-answer.yes').click();
       if (stage === 0) {
         await page.getByRole('button', { name: 'Reconnect', exact: true }).click();
         await page.getByRole('button', { name: 'Repeat retained request', exact: true }).click();

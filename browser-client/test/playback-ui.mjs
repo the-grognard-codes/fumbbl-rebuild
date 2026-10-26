@@ -103,7 +103,10 @@ try {
     revision===12?[{reportList:{reports:[pickupReport]}}]:[]));
   await publish({ view: pending, interactive: true, records: pendingHistory });
   await wait(12,22);
-  const promptDice = page.getByRole('dialog').getByRole('status').locator('.match-die');
+  const rerollPrompt = page.locator('.circular-skill-prompt');
+  await rerollPrompt.waitFor();
+  assert.equal(await rerollPrompt.locator('.match-die').count(),0,'Pending reroll dice remain separate from the circular prompt');
+  const promptDice = page.locator('.pitch-decision-overlay[role="status"] .match-die');
   await promptDice.waitFor(); await page.waitForTimeout(500);
   assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after 310ms');
   assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after 310ms');

@@ -38,6 +38,11 @@ public final class OptionalSkillUse {
 
 	public boolean enabled() { return home != null && away != null; }
 
+	/** Browser skill-first policy: declining an available built-in reroll accepts the original roll. */
+	public boolean declineEndsRerollChoice(ReRollSource source, ReRolledAction action) {
+		return enabled() && rerollCase(source, action) != null;
+	}
+
 	public boolean alwaysAsk(UseCase useCase, Player<?> player) {
 		return enabled() && preferences(player).mode(useCase) == Mode.ALWAYS_ASK;
 	}

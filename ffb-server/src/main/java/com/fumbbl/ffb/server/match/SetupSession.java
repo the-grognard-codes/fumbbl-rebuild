@@ -9,6 +9,7 @@ import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
+import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSetupErrorParameter;
 import com.fumbbl.ffb.factory.MechanicsFactory;
@@ -1148,6 +1149,14 @@ public final class SetupSession {
 				String legacyLabel = new CoreTurnActions(state).legacyMovementLabel(
 					new FieldCoordinate(target.getInt("x", -1), target.getInt("y", -1)), "jump".equals(previous.getString("kind", null)));
 				if (previous.getString("label", "").equals(legacyLabel)) now.set("label", legacyLabel);
+			}
+			// Reroll and Sidestep checkpoints previously used the active player rather than the native dialog owner.
+			if (state.getGame().getDialogParameter() instanceof DialogReRollPropertiesParameter
+				&& ("reroll".equals(previous.getString("kind", null)) || "proTestReroll".equals(previous.getString("kind", null)))
+				|| new ActionSource().isSidestepChoice(state.getGame(), previous.getString("kind", null))) {
+				String legacyId = new ActionSource().actingPlayerId(state.getGame(), previous.getString("actor", null));
+				JsonValue legacySource = legacyId == null ? JsonValue.NULL : JsonValue.valueOf(legacyId);
+				if (legacySource.equals(previous.get("sourcePlayerId"))) now.set("sourcePlayerId", legacySource);
 			}
 			// Old kickoff checkpoints omitted the moved player's source, but retained its exact target and action ID.
 			if ("kickoffMove".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("sourcePlayerId")))

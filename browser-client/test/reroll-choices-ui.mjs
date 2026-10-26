@@ -109,7 +109,7 @@ try {
     for (const option of decision.options) assert.equal(await page.getByRole('button', { name: option.label, exact: true }).count(), 1, option.id);
     const skillIcons = decision.options.filter(option => option.icon && option.icon !== 'resource').map(option => option.icon);
     assert.equal(new Set(skillIcons).size, skillIcons.length, 'One icon per manually offered skill source');
-    for (const option of decision.options.filter(option => /^(?:Use|Try)\b/.test(option.label))) {
+    for (const option of decision.circular ? [] : decision.options.filter(option => /^(?:Use|Try)\b/.test(option.label))) {
       const offeredButton = page.getByRole('button', { name: option.label, exact: true });
       const resource = /^(?:Use|Try) (?:team|mascot|brilliant coaching|pump up the crowd|star of the show)/i.test(option.label);
       if (resource) {
@@ -148,8 +148,10 @@ try {
       const rect = choice.getBoundingClientRect();
       return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight;
     })), 'All offered choices fit the compact viewport');
-    assert.equal(await page.getByRole('dialog').evaluate(dialog => dialog.scrollHeight <= dialog.clientHeight + 1), true,
-      'The roll overlay has no vertical display scrollbar');
+    if (decision.circular) assert.equal(await page.getByRole('dialog').evaluate(dialog => getComputedStyle(dialog).overflowY), 'visible',
+      'The circle does not clip its adjacent source chooser');
+    else assert.equal(await page.getByRole('dialog').evaluate(dialog => dialog.scrollHeight <= dialog.clientHeight + 1), true,
+      'The block roll overlay has no vertical display scrollbar');
     await page.keyboard.press('Tab');
     await button.focus();
     if (evidence && ['pro', 'mascot', 'block-pro', 'block-opponent', 'block-multi-3'].includes(journey.mode))
@@ -157,6 +159,10 @@ try {
     const loseReply = journey.mode === 'pro' || journey.mode === 'block-pro';
     if (loseReply) await page.evaluate(() => { window.testTransport.dropReply = true; });
     if (group) { await button.click(); await page.getByRole('button', { name: selected.label, exact: true }).focus(); }
+    if (await button.evaluate(element => !!element.closest('.skill-source-chooser'))) {
+      await page.keyboard.press('Enter');
+      await page.getByRole('button', { name: selected.label, exact: true }).focus();
+    }
     await page.keyboard.press('Enter');
     if (!loseReply) {
       assert.equal(await page.getByRole('dialog').getAttribute('aria-busy'), 'true', 'Duplicate input is tested while the request is pending');

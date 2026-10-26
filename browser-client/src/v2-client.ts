@@ -1,6 +1,7 @@
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
-import { decodeSavedTeam, parseUniqueJson } from './saved-team-protocol.ts';
+import { decodeSavedTeam } from './saved-team-protocol.ts';
+import { parseV2Response } from './v2-response.ts';
 import { decodePreparedMatch } from './prepared-match-protocol.ts';
 import { decodeMatchResult } from './result-protocol.ts';
 import { decodeTranscript } from './transcript-protocol.ts';
@@ -181,9 +182,7 @@ export class V2Client {
   }
 
   private receive(raw: string) {
-    if (raw.length > 768 * 1024) throw Error('Oversized response');
-    const message = parseUniqueJson(raw) as V2Message;
-    if (message.type !== 'matchTranscript' && raw.length > 262144) throw Error('Oversized response');
+    const message = parseV2Response(raw) as V2Message;
     assertV2Projection(message);
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');

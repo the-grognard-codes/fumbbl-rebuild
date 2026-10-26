@@ -413,8 +413,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (smartIntent?.stage === 'routing') setSmartIntent({ ...smartIntent, approachIndex: -1 });
     setWaypoints(points); requestRoutePreview?.(points);
   };
-  const mayAct = connected && !pending && !suspended && availableActions.some(action => action.id === actionId);
-  const pinnedAction = availableActions.find(action => action.id === actionId);
+  const pinnedAction = availableActions.find(action => action.id === actionId)
+    ?? (view.phase === 'PLAY' && view.turnMode === 'SOLID_DEFENCE'
+      ? availableActions.find(action => action.id.endsWith(':confirm-solid-defence')) : undefined);
+  const mayAct = canChoose && !!pinnedAction;
   const multipleOptions = availableActions.filter(action => action.kind === 'multiBlock');
   const selectingMultiple = activeMenuKey === 'multipleBlock' && multipleOptions.length > 0 && !decision;
   const multipleCandidates = new Set(view.blockPreview?.multiple?.filter(option => multipleOptions.some(action => action.id === option.actionId))
@@ -979,7 +981,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         <strong>{gameStep.title}</strong><span>{gameStep.instruction}</span>{gameStep.progress && <small>{gameStep.progress}</small>}
       </div>}
       {hosted && setupErrors.length > 0 && <p className="setup-feedback" role="alert">{setupErrors.join(' · ')}</p>}
-      {!playbackActive && decision && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
+      {!playbackActive && decision && !decision.circular && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
         activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
@@ -1068,7 +1070,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           if (isBallTransfer(movementIntent?.kind) || routeMode && displayedWaypoints.length) { undoWaypoint(); return; }
           cancelProposal(); setPlayerId('');
         }}
-        decision={!playbackActive && decision && ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) ? decision : null}
+        decision={!playbackActive && decision && (decision.circular || ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind)) ? decision : null}
         decisionDisabled={!connected || !!pending || suspended}
         onDecisionAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}
         pushChoices={canChoose && !playbackActive ? pushChoices : []}

@@ -61,12 +61,14 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 				UtilServerDialog.hideDialog(getGameState());
 				setReRolledAction(offered.command.getReRolledAction());
 				setReRollSource(choice.isSkillUsed() ? offered.command.getReRollSource() : null);
-				if (!choice.isSkillUsed() && askForOtherRerolls(offered, null)) return StepCommandStatus.SKIP_STEP;
+				if (!choice.isSkillUsed()
+					&& !getGameState().getOptionalSkillUse().declineEndsRerollChoice(offered.command.getReRollSource(), offered.command.getReRolledAction())
+					&& askForOtherRerolls(offered, null)) return StepCommandStatus.SKIP_STEP;
 				return StepCommandStatus.EXECUTE_STEP;
 			}
 			return StepCommandStatus.SKIP_STEP;
 		}
-		// Existing Pass prompts also decline only the skill, not the remaining resources.
+		// Browser policy also applies to the native Pass skill dialog.
 		if (getGameState().getOptionalSkillUse().enabled() && pReceivedCommand.getCommand() instanceof ClientCommandUseSkill
 			&& getGameState().getGame().getDialogParameter() instanceof DialogSkillUseParameter) {
 			ClientCommandUseSkill choice = (ClientCommandUseSkill) pReceivedCommand.getCommand();
@@ -78,7 +80,8 @@ public abstract class AbstractStepWithReRoll extends AbstractStep implements Has
 				&& getGameState().getOptionalSkillUse().rerollCase(source, getReRolledAction()) != null) {
 				UtilServerDialog.hideDialog(getGameState());
 				setReRollSource(null);
-				if (askForOtherRerolls(new PendingSkillReroll(choice.getPlayerId(), dialog.getMinimumRoll(), getReRolledAction(), source),
+				if (!getGameState().getOptionalSkillUse().declineEndsRerollChoice(source, getReRolledAction())
+					&& askForOtherRerolls(new PendingSkillReroll(choice.getPlayerId(), dialog.getMinimumRoll(), getReRolledAction(), source),
 					dialog.getModifyingSkill())) return StepCommandStatus.SKIP_STEP;
 				return StepCommandStatus.EXECUTE_STEP;
 			}

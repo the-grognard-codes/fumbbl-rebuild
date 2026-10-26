@@ -66,8 +66,20 @@ async function open(initial) {
           ] };
           this.reply(request.requestId);
         } else if (request.type === 'setup' && request.operation === 'action' && request.actionId.includes(':solid-place:')) {
+          const [, id, x, y] = request.actionId.slice(request.actionId.indexOf(':') + 1).split(':');
           this.state = { ...this.state, revision: this.state.revision + 1, actions: [],
-            players: this.state.players.map(player => player.id === 'home1' ? { ...player, x: 8, y: 7, offPitch: 'pitch', state: 'is standing' } : player) };
+            players: this.state.players.map(player => player.id === id ? { ...player, x: Number(x), y: Number(y), offPitch: 'pitch', state: 'is standing' } : player) };
+          if (initial.kickoff?.event === 'SOLID_DEFENCE') this.state.actions = [
+            ...this.state.players.filter(player => player.role === this.state.actor && player.offPitch === 'reserve')
+              .map(player => ({ id: `${this.state.revision}:solid-place:${player.id}:${x}:${Number(y) + 1}`,
+                label: `Place ${player.name}`, kind: 'kickoffMove', actor: this.state.actor,
+                sourcePlayerId: null, target: { x: Number(x), y: Number(y) + 1 } })),
+            { id: `${this.state.revision}:confirm-solid-defence`, label: 'Confirm Solid Defence', kind: 'kickoffChoice',
+              actor: this.state.actor, sourcePlayerId: null, target: null }
+          ];
+          this.reply(request.requestId);
+        } else if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':confirm-solid-defence')) {
+          this.state = { ...this.state, revision: this.state.revision + 1, turnMode: 'KICKOFF', kickoff: null, actions: [] };
           this.reply(request.requestId);
         }
       }
@@ -234,6 +246,41 @@ try {
   assert.deepEqual(await reserveEvent.page.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').map(request => request.actionId)), ['0:solid-place:home1:8:7']);
   assert.deepEqual(reserveEvent.errors, []);
   await reserveEvent.page.close();
+
+  for (const callerRole of ['home', 'away']) {
+    const x = callerRole === 'home' ? 12 : 13;
+    const reserves = [0, 1, 2].map(index => ({ ...reserve, id: `redeploy${index}`, name: `Redeploy ${index}`,
+      role: callerRole, slot: index + 2, number: index + 2 }));
+    const redeployment = await open({ ...solid, callerRole, actor: callerRole,
+      kickoff: { version: 1, event: 'SOLID_DEFENCE', actor: callerRole, stage: 'movement', allowed: 3, completed: 0, selected: 3 },
+      players: [...solid.players, ...reserves], actions: [
+        ...reserves.map(player => ({ id: `0:solid-place:${player.id}:${x}:5`, label: `Place ${player.name}`,
+          kind: 'kickoffMove', actor: callerRole, sourcePlayerId: null, target: { x, y: 5 } })),
+        { id: '0:confirm-solid-defence', label: 'Confirm Solid Defence', kind: 'kickoffChoice', actor: callerRole,
+          sourcePlayerId: null, target: null }
+      ] });
+    const current = redeployment.page;
+    await current.locator(`.live-dugout.${callerRole}`).getByRole('button', { name: /Reserves: 3; expand dugout/ }).click();
+    for (const [row, index] of [2, 0, 1].entries()) {
+      const player = current.getByRole('button', { name: `Redeploy ${index}, number ${index + 2}, Reserves`, exact: true });
+      assert.equal(await player.getAttribute('draggable'), 'true', 'Every selected reserve can be dragged');
+      await player.dragTo(current.locator('.live-pitch-scene'), { targetPosition: await squarePosition(current, x, row + 5) });
+      await current.waitForFunction(revision => window.testSocket.state.revision === revision, row + 1, { timeout: 3000 });
+    }
+    const confirm = current.getByRole('button', { name: 'Confirmed!', exact: true });
+    assert.equal(await confirm.isEnabled(), true, 'A redeployed formation can be confirmed without selecting an action in Debug');
+    if (callerRole === 'home') await confirm.click();
+    else {
+      await current.locator('.live-pitch-scene').focus();
+      await current.keyboard.press('Space');
+    }
+    await current.waitForFunction(() => window.testSocket.state.turnMode === 'KICKOFF', null, { timeout: 3000 });
+    assert.deepEqual(await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').map(request => request.actionId)), [
+      `0:solid-place:redeploy2:${x}:5`, `1:solid-place:redeploy0:${x}:6`, `2:solid-place:redeploy1:${x}:7`, '3:confirm-solid-defence'
+    ]);
+    assert.deepEqual(redeployment.errors, []);
+    await current.close();
+  }
 
   for (const callerRole of ['home', 'away']) {
     const facing = await open({ ...frame, callerRole, players: frame.players.map(player => ({ ...player,

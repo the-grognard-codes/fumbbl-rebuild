@@ -40,9 +40,9 @@ final class LiveMatchTranscript {
 				String candidate = new JsonObject().add("version", 2).add("type", "matchTranscript")
 					.add("requestId", JsonValue.NULL).add("code", "ACCEPTED").add("matchId", matchId)
 					.add("page", page).toString();
-				// Live delivery has a smaller queue budget than the paged transcript protocol. The transport
+				// Live history retains its smaller frame budget than the paged transcript protocol. The transport
 				// additionally reserves the following state and all already queued messages before admission.
-				if (candidate.getBytes(StandardCharsets.UTF_8).length <= BrowserMatchTransport.MAX_OUTBOUND_BYTES) frame = candidate;
+				if (candidate.getBytes(StandardCharsets.UTF_8).length <= BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES) frame = candidate;
 			} catch (SQLException | RuntimeException unavailable) {
 				// A committed action must still receive its state acknowledgement; paged catch-up remains available.
 			}

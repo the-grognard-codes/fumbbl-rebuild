@@ -13,6 +13,7 @@ import { BlockVisibility } from './BlockVisibility.tsx';
 import { BallMarker } from './BallMarker.tsx';
 import { kickoffMarkerPosition } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
+import { CircularSkillPrompt } from './CircularSkillPrompt.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
 import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
@@ -153,6 +154,16 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
+  const [destinationStage, setDestinationStage] = useState<string | null>(null);
+  const selection = decision?.pitchSelection;
+  const selectingDestination = !!selection && (selection.committed || destinationStage === decision?.key);
+  const shownPushChoices = selection ? selectingDestination && !readOnly && !playback ? selection.choices : [] : pushChoices;
+  const chooseSquare = (x: number, y: number) => {
+    if (!selection) { onSquare(x, y); return; }
+    const choice = selectingDestination && selection.choices.find(choice => choice.x === x && choice.y === y);
+    if (choice && !decisionDisabled && !readOnly && !playback) onDecisionAction?.(choice.action.id);
+  };
+  useEffect(() => { setDestinationStage(null); }, [decision?.key]);
   const markerId = useId().replace(/:/g, '');
   const { preferences: markerPreferences } = useSkillMarkerPreferences();
   const { visible: showLimitedActions } = useLimitedActionTags();
@@ -236,7 +247,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   }, [selected?.x, selected?.y, end, mode, perspectiveElevation, travel.focus, travel.transverseFocus, size.width, size.height, zoom, onSelectionPosition]);
   const reveal = (point: Point | null | undefined) => { if (point) changeCamera(cameraRef.current.reveal(point, 50)); };
   useEffect(() => {
-    if (!decision) return;
+    if (!decision || decision.pitchSelection) return;
     const subject = view.players.find(player => player.id === view.activePlayerId);
     if (subject?.x != null && subject.y != null) {
       const next = cameraRef.current.reveal(centerOf({ x: subject.x, y: subject.y }), 50);
@@ -271,6 +282,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
     view.kickPreview?.withKick.x, view.kickPreview?.withKick.y, size.width, size.height, end, mode, perspectiveElevation, zoom]);
   const targetSquares = new Map<string, Point>(), targetPlayers = new Set<string>();
   for (const action of actions) {
+    if (selection?.choices.some(choice => choice.action.id === action.id)) continue;
     if (action.kind === 'reactionMove' && action.sourcePlayerId) {
       targetPlayers.add(action.sourcePlayerId);
       if (action.sourcePlayerId !== selectedId) continue;
@@ -341,7 +353,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         if (direction) { event.preventDefault(); setHover(null);
           const origin = cursor ?? (selected?.x != null && selected.y != null ? { x: selected.x, y: selected.y } : { x: Math.min(25, Math.floor(camera.focus)), y: 7 });
           const next = camera.neighbor(origin, direction); setCursor(next); reveal(centerOf(next));
-        } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); onSquare(cursor.x, cursor.y); }
+        } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); chooseSquare(cursor.x, cursor.y); }
       }}
       onContextMenu={event => event.preventDefault()}
       onAuxClickCapture={event => { if (event.button === 2) { event.preventDefault(); event.stopPropagation(); } }}
@@ -365,7 +377,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDragOver={event => { if (onDropPlayer) event.preventDefault(); }}
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
-        onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) onSquare(square.x, square.y); } }}>
+        onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) chooseSquare(square.x, square.y); } }}>
         {!backgroundFailed && <PitchScenery camera={camera} onError={onBackgroundError}/>}
         <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
@@ -488,21 +500,29 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             <path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/>
           </svg>
         </div>}
-        {pushChoices.map(choice => {
+        {shownPushChoices.map(choice => {
           const p = camera.project(centerOf({ x: choice.x, y: choice.y })), from = camera.project(centerOf({ x: choice.fromX, y: choice.fromY }));
           if (!p || !from) return null;
-          return <button key={choice.action.id} type="button" className={`live-push-choice${choice.action.kind === 'hitAndRun' ? ' live-hit-and-run-choice' : ''}`} aria-label={choice.action.label} title={choice.action.label}
+          return <button key={choice.action.id} type="button" className={`live-push-choice${selection ? ' live-sidestep-choice' : ''}${choice.action.kind === 'hitAndRun' ? ' live-hit-and-run-choice' : ''}`} aria-label={choice.action.label} title={choice.action.label}
+            disabled={decisionDisabled || readOnly || playback}
             data-x={choice.x} data-y={choice.y}
             style={{ left: p.x - p.pixelsPerSquare / 2, top: p.y - p.pixelsPerSquare / 2, width: p.pixelsPerSquare, height: p.pixelsPerSquare }}
-            onClick={event => { event.stopPropagation(); onPushChoice?.(choice.action.id); }}>
+            onClick={event => { event.stopPropagation(); if (decisionDisabled || readOnly || playback) return;
+              if (selection) onDecisionAction?.(choice.action.id); else onPushChoice?.(choice.action.id); }}>
             <svg viewBox="0 0 32 32" aria-hidden="true" style={{ transform: `rotate(${Math.atan2(p.y - from.y, p.x - from.x) * 180 / Math.PI}deg)` }}><path className="live-push-shaft" d="M5 16h19"/><path className="live-push-head" d="m17 9 7 7-7 7"/></svg>
           </button>;
         })}
-        <PitchDecisionOverlay decision={decision} diceMoment={diceMoment}
+        <PitchDecisionOverlay decision={decision?.circular ? null : decision} diceMoment={diceMoment}
+          rollContext={decision?.circular ? decision : null}
           potentialDice={(!readOnly && !playback || diceAwaiting) ? potentialDice : null} awaiting={diceAwaiting}
           attackerRole={activePlayer?.role} chooserRole={view.callerRole === 'spectator' ? undefined : view.callerRole}
           disabled={decisionDisabled} viewport={viewport} onAction={onDecisionAction}
           onInspectTarget={target => setInspectedBlock(target ? {revision: view.revision, target} : null)}/>
+        {decision?.circular && !readOnly && !playback && <CircularSkillPrompt key={decision.key} decision={decision}
+          disabled={decisionDisabled} viewport={viewport} activePlayerId={view.activePlayerId}
+          selectingDestination={selectingDestination} onDestinationStage={selecting => setDestinationStage(selecting ? decision.key : null)}
+          layoutKey={`${camera.focus}:${camera.transverseFocus}:${camera.zoom}:${camera.end}:${camera.mode}`}
+          onAction={onDecisionAction}/>}
         {backgroundFailed && <span className="live-pitch-error">Pitch texture unavailable; plain field shown.</span>}
       </div>
     </div>

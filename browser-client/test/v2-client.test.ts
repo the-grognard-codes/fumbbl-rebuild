@@ -3,6 +3,44 @@ import test from 'node:test';
 import { V2Client, v2PendingKey } from '../src/v2-client.ts';
 import { canPlaceReserve, decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { skillUseCases } from '../src/skill-use-preferences.ts';
+import { solidDefenceState } from './fixtures/solid-defence-state.ts';
+
+test('large Solid Defence decisions load and reconnect without losing a retained intent', async () => {
+  const { client, connect } = fixture();
+  const socket = await connect();
+  const requestId = client.open(match, false);
+  const next = solidDefenceState(match);
+  const response = { type: 'setupState', requestId, code: 'ACCEPTED', duplicate: false, state: next };
+  assert.ok(Buffer.byteLength(JSON.stringify(response)) > 256 * 1024);
+  socket.reply(response);
+  assert.equal(socket.closed, false);
+  assert.equal(client.state?.actions.length, 1170);
+  const actionId = next.actions[0].id;
+  const pendingId = client.request('setup', { operation: 'action', matchId: match, expectedRevision: 35, actionId }, true);
+  const pending = client.pending;
+  const reconnected = await connect();
+  const load = reconnected.sent.find(request => request.type === 'setup' && request.operation === 'load');
+  reconnected.reply({ ...response, requestId: load.requestId });
+  assert.equal(reconnected.closed, false);
+  assert.equal(client.state?.turnMode, 'SOLID_DEFENCE');
+  assert.deepEqual(client.pending, pending, 'Loading the checkpoint does not acknowledge an uncertain action');
+  client.retry();
+  assert.equal(reconnected.sent.at(-1).requestId, pendingId);
+  assert.equal(reconnected.sent.at(-1).actionId, actionId);
+});
+
+test('large setup replies still reject invalid actions and unknown projection fields', async () => {
+  for (const corrupt of [
+    (next: ReturnType<typeof solidDefenceState>) => { next.actions[0].sourcePlayerId = 'unknown-player'; },
+    (next: ReturnType<typeof solidDefenceState>) => Object.assign(next, { privateNativeState: {} })
+  ]) {
+    const { client, connect, events } = fixture(); const socket = await connect();
+    const requestId = client.open(match, false);
+    const next = solidDefenceState(match); corrupt(next);
+    socket.reply({ type: 'setupState', requestId, code: 'ACCEPTED', duplicate: false, state: next });
+    assert.equal(socket.closed, true); assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+  }
+});
 
 test('account preferences acknowledge only server replies and preserve unrelated pending gameplay', async () => {
   const { client, connect, storageData } = fixture(); const socket = await connect();

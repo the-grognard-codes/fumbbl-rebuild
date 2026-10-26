@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { decodeSetupStateValue } from '../../browser-client/src/setup-protocol.ts';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
-import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
+import { parseV2Response } from '../../browser-client/src/v2-response.ts';
 import { chooseComputerDecision, isComputerGameOperation } from './computer-policy.mjs';
 import { idleWorkerExitCode } from './worker-lifecycle.mjs';
 
@@ -107,8 +107,7 @@ function applyState(raw) {
   if (!state || next.revision >= state.revision) state = next;
 }
 function receive(raw) {
-  if (Buffer.byteLength(raw, 'utf8') > 262144) throw Error('Oversized response');
-  const message = parseUniqueJson(raw);
+  const message = parseV2Response(raw);
   assertV2Projection(message);
   if (message.version !== 2) throw Error('Wrong protocol version');
   if (message.type === 'computerAuthentication') {

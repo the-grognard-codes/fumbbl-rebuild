@@ -24,6 +24,7 @@ final class ReactiveDecision {
     static final long ALLOWANCE_MS = 30_000L;
     private String id, key, actor, title, detail;
     private long expiresAt;
+    private long allowanceMs = ALLOWANCE_MS;
     private boolean paused, normalHome;
     private boolean optionalSkillPrompt;
     private Object step;
@@ -125,6 +126,7 @@ final class ReactiveDecision {
             interruptedMovement = movement;
             movementRemainingMs = remaining;
             id = "reaction-" + revision;
+            allowanceMs = ALLOWANCE_MS;
             expiresAt = now + ALLOWANCE_MS;
             normalHome = game.isHomePlaying();
             if (onTheBall || trickster) normalHome = !normalHome;
@@ -169,7 +171,7 @@ final class ReactiveDecision {
     JsonObject publicJson(long now) {
         if (!pending()) return null;
         JsonObject result = new JsonObject().add("id", id).add("actor", actor).add("title", title)
-            .add("expiresAt", expiresAt).add("serverNow", now);
+            .add("expiresAt", expiresAt).add("serverNow", now).add("allowanceMs", allowanceMs);
         if (detail != null && !detail.isEmpty()) result.add("detail", detail);
         return result;
     }
@@ -185,6 +187,8 @@ final class ReactiveDecision {
     void restore(JsonObject saved) {
         id = saved.get("id").asString(); key = saved.get("key").asString(); actor = saved.get("actor").asString();
         title = saved.get("title").asString(); detail = saved.getString("detail", ""); expiresAt = saved.get("expiresAt").asLong();
+        allowanceMs = saved.getLong("allowanceMs", ALLOWANCE_MS);
+        if (allowanceMs <= 0) throw new IllegalArgumentException("Invalid reactive allowance");
         paused = saved.get("paused").asBoolean(); normalHome = saved.get("normalHome").asBoolean();
         optionalSkillPrompt = saved.getBoolean("optionalSkillPrompt", false);
         interruptedMovement = saved.get("interruptedMovement") == null ? null : saved.get("interruptedMovement").asObject();

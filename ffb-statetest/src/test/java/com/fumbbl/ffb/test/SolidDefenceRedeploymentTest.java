@@ -30,6 +30,50 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class SolidDefenceRedeploymentTest {
+    @Test void everySelectedReserveCanRedeployInAnyOrderForEitherCoach() throws Exception {
+        for (boolean home : new boolean[] { true, false }) {
+            TestServer server = new TestServer();
+            Session session = mock(Session.class);
+            int line = home ? 12 : 13;
+            GameState state = new GameStateBuilder(server.getGameState()).withRule("BB2025").withWeather(Weather.NICE)
+                .withTeam(home, team -> {
+                    for (int index = 0; index < 3; index++) {
+                        final int row = index + 5;
+                        team.player("own" + index, player -> player.at(line, row).stats(6, 3, 3, 4, 9));
+                    }
+                })
+                .withTeam(!home, team -> team.player("opponent", player -> player.at(home ? 20 : 5, 7).stats(6, 3, 3, 4, 9)))
+                .build();
+            Game game = state.getGame();
+            game.setHomePlaying(home);
+            game.setTurnMode(TurnMode.KICKOFF);
+            server.getServer().getSessionManager().addSession(session, state.getId(), "coach", ClientMode.PLAYER, home,
+                Collections.emptyList());
+            StepApplyKickoffResult kickoff = new StepApplyKickoffResult(state);
+            StepParameterSet parameters = new StepParameterSet();
+            parameters.add(StepParameter.from(StepParameterKey.GOTO_LABEL_ON_END, "end"));
+            parameters.add(StepParameter.from(StepParameterKey.GOTO_LABEL_ON_BLITZ, "blitz"));
+            kickoff.init(parameters);
+            kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, KickoffResult.SOLID_DEFENCE));
+            state.getStepStack().push(kickoff);
+            TestRolls.on(state).general(1);
+            StepEngine.start(state);
+            StepEngine.respond(state, new ClientCommandPlayerChoice(PlayerChoiceMode.SOLID_DEFENCE,
+                new Player<?>[] { game.getPlayerById("own0"), game.getPlayerById("own1"), game.getPlayerById("own2") }), session);
+            List<Action> actions = new KickoffActions(state).actions();
+            for (int index = 0; index < 3; index++) {
+                String id = "solid-place:own" + index + ":" + line + ":8";
+                assertTrue(actions.stream().anyMatch(action -> action.id.equals(id)), "Every reserve must have a placement: " + id);
+            }
+            for (int index : new int[] { 2, 0, 1 }) {
+                perform(state, session, "solid-place:own" + index + ":" + line + ":" + (index + 8));
+                assertEquals(new FieldCoordinate(line, index + 8), game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own" + index)));
+            }
+            perform(state, session, "confirm-solid-defence");
+            assertEquals(TurnMode.KICKOFF, game.getTurnMode());
+        }
+    }
+
     @Test void selectedReserveCanRedeployAndConfirmOnlyALegalFormationForEitherCoach() throws Exception {
         for (boolean home : new boolean[] { true, false }) {
             TestServer server = new TestServer();

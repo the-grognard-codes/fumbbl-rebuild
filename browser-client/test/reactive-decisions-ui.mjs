@@ -36,11 +36,11 @@ try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/reaction-test`);
   await page.locator('.coach-match').waitFor();
   const timer = page.getByRole('timer', { name: 'Reaction time remaining' });
-  assert.equal(await timer.textContent().then(text => text.trim()), '30s remaining');
+  assert.equal(parseInt(await timer.textContent()), 30);
   assert.equal(await page.getByText(reaction.detail, { exact: true }).isVisible(), true);
   await page.clock.resume();
   await page.clock.runFor(2100);
-  assert.match(await timer.textContent(), /28s remaining/);
+  assert.equal(parseInt(await timer.textContent()), 28);
   await publish({ ...state, revision: state.revision + 1 });
   assert.ok(parseInt(await timer.textContent()) <= 28, 'View revisions cannot restart the countdown');
   await publish({ ...state, callerRole: 'home' });
@@ -48,7 +48,8 @@ try {
   await publish(state);
   assert.ok(parseInt(await timer.textContent()) <= 28, 'Remounting a coach decision retains its deadline');
   await page.clock.fastForward(35_000);
-  assert.match(await timer.textContent(), /0s.*Awaiting server/);
+  assert.equal(parseInt(await timer.textContent()), 0);
+  assert.equal(await page.getByText('Awaiting server', { exact: true }).isVisible(), true);
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Expiry never sends a client decline');
   await page.getByRole('button', { name: decline.label, exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('decline'));
@@ -60,18 +61,22 @@ try {
   await player.click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('use-away'), 'The inactive coach can select a reactive player on the pitch');
 
-  const square = action('square-12-7', 'reactiveSquare', 'Use Side Step at 12, 7', { x: 12, y: 7 });
-  const squareState = { ...state, revision: state.revision + 2, reaction: { ...nextReaction, id: 'square', title: 'Choose a Side Step square' }, actions: [square] };
+  const square = action('9:reaction-use:12:7', 'reactiveSquare', 'Use Sidestep at 12, 7', { x: 12, y: 7 }, 'away1');
+  const squareState = { ...state, revision: state.revision + 2, reaction: { ...nextReaction, id: 'square', title: 'Use Sidestep?' }, actions: [square, action('9:reaction-decline', 'reactiveSkill', 'Decline', null, 'away1')] };
   await publish(squareState);
-  assert.equal(await page.locator('.live-target-square').count(), 1);
+  assert.equal(await page.locator('.live-target-square').count(), 0);
+  await page.getByRole('button', { name: 'Use Sidestep', exact: true }).click();
+  assert.equal(await page.locator('.live-sidestep-choice').count(), 1);
+  assert.deepEqual(await page.evaluate(() => window.hudIntents), []);
   const target = await squarePosition(page, 12, 7); await page.mouse.click(target.x, target.y);
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent(square.id));
 
   const committedPush = action('9:push:away1:12:7', 'push', 'Push to 12, 7', { x: 12, y: 7 });
   await publish({ ...squareState, reaction: { ...nextReaction, id: 'legacy-side-step', title: 'Side Step' }, actions: [committedPush] });
-  const committedDialog = page.getByRole('dialog', { name: 'Match decision', exact: true });
+  const committedDialog = page.locator('.circular-skill-prompt');
   assert.equal(await committedDialog.getAttribute('aria-modal'), 'false');
-  assert.match(await committedDialog.textContent(), /highlighted square/);
+  assert.match(await committedDialog.textContent(), /Choose a Sidestep arrow/);
+  assert.equal(await committedDialog.locator('.skill-answer').count(), 0, 'Committed use cannot be declined');
   assert.equal(await committedDialog.getByRole('timer').count(), 1);
   await page.getByRole('button', { name: committedPush.label, exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent(committedPush.id));
@@ -97,7 +102,7 @@ try {
   const rolls = { ...state, revision: state.revision + 4, reaction: { ...nextReaction, id: 'reroll', title: 'Diving Tackle reroll' },
     actions: [action('roll-keep', 'reroll', 'Keep the roll'), action('roll-use', 'reroll', 'Use team reroll')] };
   await publish(rolls);
-  assert.equal(await page.locator('.pitch-decision-overlay').getByRole('timer').count(), 1);
+  assert.equal(await page.locator('.circular-skill-prompt').getByRole('timer').count(), 1);
   await page.getByRole('button', { name: 'Keep the roll', exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('roll-keep'));
 
@@ -140,7 +145,7 @@ try {
     await review.goto(`http://127.0.0.1:${server.httpServer.address().port}/reactive-visual-test`);
     await review.addStyleTag({ content: playCss });
     await review.evaluate(() => document.fonts.ready);
-    const dialog = review.getByRole('dialog', { name: 'Match decision', exact: true });
+    const dialog = review.locator('.circular-skill-prompt');
     await dialog.waitFor();
     const countdown = review.getByRole('timer', { name: 'Reaction time remaining' });
     const declineButton = review.getByRole('button', { name: decline.label, exact: true });

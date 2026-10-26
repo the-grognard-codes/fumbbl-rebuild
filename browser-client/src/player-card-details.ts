@@ -39,7 +39,8 @@ const legacyStatuses: Record<string, string> = {
 };
 
 export function playerCardStatus(player: SetupPlayer): string {
-  if (player.status) return player.status;
-  if (/distract|confus|hypnotiz/i.test(player.state)) return 'Distracted';
-  return legacyStatuses[player.state.toLowerCase()] ?? player.state;
+  const distracted = /distract|confus|hypnotiz/i.test(`${player.status ?? ''} ${player.state}`);
+  const base = legacyStatuses[player.state.toLowerCase()] ?? player.status
+    ?? (distracted ? 'Distracted' : player.state);
+  return distracted && base !== 'Distracted' ? `${base}, Distracted` : base;
 }

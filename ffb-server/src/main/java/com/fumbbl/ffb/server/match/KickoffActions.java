@@ -129,16 +129,14 @@ public final class KickoffActions {
                 reserves.add(player);
             }
         }
-        // One player at a time bounds the snapshot and permits correcting a placed formation.
-        Player<?> placing = reserves.isEmpty() ? null : reserves.get(0);
-        if (placing == null) for (Player<?> player : team.getPlayers()) {
+        List<Player<?>> placing = new ArrayList<>(reserves);
+        if (placing.isEmpty()) for (Player<?> player : team.getPlayers()) {
             if (!game.getFieldModel().getPlayerState(player).isActive()
                 || !FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) continue;
-            if (selectedPlayers.contains(player.getId()) && placing == null) placing = player;
+            if (selectedPlayers.contains(player.getId()) && placing.isEmpty()) placing.add(player);
             actions.add(new Action("event-pick:" + player.getId(), "kickoffChoice", "Reposition " + player.getName(), role, null, player.getId()));
         }
-        if (placing != null) {
-            Player<?> player = placing;
+        for (Player<?> player : placing) {
             for (int x = "home".equals(role) ? 0 : 13; x < ("home".equals(role) ? 13 : 26); x++) for (int y = 0; y < 15; y++) {
                 FieldCoordinate to = new FieldCoordinate(x, y);
                 if (game.getFieldModel().getPlayer(to) == null) actions.add(new Action("solid-place:" + player.getId() + ":" + x + ":" + y,

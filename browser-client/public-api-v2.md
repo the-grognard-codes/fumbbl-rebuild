@@ -1,5 +1,11 @@
 # Authenticated game protocol v2
 
+V2 match clients bound incoming responses by UTF-8 byte length: `setupState` permits
+2 MiB for large legal destination sets such as Solid Defence, `matchTranscript`
+permits 768 KiB, and all other families remain limited to 256 KiB. The size gate
+does not replace strict projection validation, the 8,192-action limit, recipient
+checks, or request correlation. Browser and computer match clients share this gate.
+
 **DEV transport update, 2026-09-21:** the installed backend accepts exactly
 `wss://game-dev.molesunderthepitch.org/browser/v2`, Origin
 `https://dev.molesunderthepitch.org`, with nginx forwarding only to Java loopback.
@@ -309,6 +315,32 @@ two fresh agreements. A suspended game returns `MATCH_SUSPENDED` for gameplay;
 after 30 days without a successful player action/save-control operation/resume it
 becomes retained `MATCH_ABANDONED`. See the lifecycle contract for checkpoint,
 restart, backup, expiry and deletion limits.
+
+### Reactive decision timing and skill-first prompts
+
+Optional `reaction` metadata in a version-4 setup state contains `id`, `actor`,
+`title`, `expiresAt`, `serverNow`, optional `detail`, and optional positive
+integer `allowanceMs`. New server projections include `allowanceMs`; older
+checkpoints/messages without it use the legacy 30,000 ms allowance. The original
+allowance is retained with the reaction checkpoint. This display metadata does
+not change the server deadline or its legal timeout continuation.
+
+The browser uses monotonic elapsed time against the reported deadline. Its
+circular perimeter and numeric seconds represent the same remaining time,
+turning red at 20% of the original allowance. Revisions, source selection and
+remounts cannot extend that deadline. The client does not send an action when
+the display reaches zero. Untimed decisions have no countdown.
+
+Browser BB2025 built-in rerolls (Pass, Catch, Sure Hands, Dodge and Sure Feet)
+retain account Always Use/Always Ask policy. Available skills are offered before
+Pro/team alternatives. Declining an available skill resolves the original roll
+without offering another reroll source; it does not force a turnover or replace
+the native result-resolution sequence. A limited skill spent on an earlier
+distinct roll can leave Pro/team alternatives available for a later roll. A roll
+already rerolled cannot be rerolled again. Block-dice reroll selection is unchanged.
+
+Older browser bundles reject unknown reaction fields, so deploy the matching
+server/browser projection readers together.
 
 ### Frozen stadium presentation identity
 

@@ -243,6 +243,17 @@ Run focused regressions first, followed by the affected native/game-server build
 ### Completion Notes
 Selected Solid Defence reserves can use native placement actions again. Both coach orientations are covered through removal and redeployment; native tests retain missing-player and line-of-scrimmage legality checks.
 
+2026-10-26: [Payload investigation note](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/347#issuecomment-6425938152)
+records a 289 KB state/reply exceeding the former 256 KiB transport/client limits,
+causing WebSocket close `1013`, browser `INVALID_RESPONSE`, and computer
+`Oversized response`. The legal action list accounted for 270,822 bytes (93.6%):
+five players times 189 squares, plus Confirm. Repeated action/source identifiers
+accounted for approximately 181 KB. The saved checkpoint remained intact;
+[incident #364](solid-defence-response-recovery.md) records local recovery.
+The owner deferred payload optimization to this Solid Defence follow-up, outside
+the skill-prompt work. Shared destination sets and compact action handles are
+recorded as investigation options; no further implementation is authorized here.
+
 Implementation and validation results: [outcome report](bug-fix-roundup-4-outcome.md).
 GitHub remains open pending review and an authorized delivery step.
 
