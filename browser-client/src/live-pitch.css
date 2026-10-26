@@ -452,6 +452,7 @@
 .live-player-card-detail strong { color: #83b6e9; font: 500 13px 'Match Alegreya', Georgia, serif; text-transform: uppercase; }
 .live-player-hover.away .live-player-card-detail strong { color: #e9a36c; }
 .live-player-card-detail p { margin: 2px 0 6px; }
+.live-player-hover .live-negative-status { color: #ff7b88; }
 .game-menu-shade { position: fixed; z-index: 4000; inset: 0; display: grid; place-items: center; padding: 12px; background: #02080cbb; }
 .game-menu-dialog { box-sizing: border-box; width: min(650px, 100%); max-height: min(680px, calc(100dvh - 24px)); overflow: auto; padding: 14px; color: #e8dfc8; background: linear-gradient(145deg, #26343a, #0b141a); border: 2px solid #a5926d; box-shadow: 0 18px 60px #000e; }
 .game-menu-dialog > header { display: flex; align-items: center; justify-content: space-between; }

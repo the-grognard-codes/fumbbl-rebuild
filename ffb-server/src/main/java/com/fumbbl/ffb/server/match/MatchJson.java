@@ -549,6 +549,17 @@ public final class MatchJson {
 						shortText(player.get("positionRace")); shortText(player.get("positionRole"));
 					}
 					if (player.get("skillMarkers") != null) fields.add("skillMarkers");
+					if (player.get("conditions") != null) {
+						fields.add("conditions");
+						JsonArray conditions = player.get("conditions").asArray();
+						if (conditions.size() > 6) throw new IllegalArgumentException();
+						Set<String> uniqueConditions = new HashSet<>();
+						for (JsonValue condition : conditions) {
+							String kind = condition.asString();
+							if (!Arrays.asList("distracted", "chomped", "rooted", "dodgySnack", "greasyCleats", "eyeGouged").contains(kind)
+								|| !uniqueConditions.add(kind)) throw new IllegalArgumentException();
+						}
+					}
 					if (player.get("limitedAction") != null) {
 						fields.add("limitedAction");
 						if (!Arrays.asList("blitz", "pass", "handOff", "foul", "bomb", "throwMate", "kickMate", "punt", "secure")

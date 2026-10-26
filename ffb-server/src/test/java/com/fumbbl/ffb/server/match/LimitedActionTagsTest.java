@@ -177,6 +177,8 @@ class LimitedActionTagsTest {
             assertEquals("pass", fixture.player(after, player.getId()).getString("limitedAction", null), skillName);
             if ("Bloodlust".equals(skillName)) assertTrue(game.getActingPlayer().isSufferingBloodLust());
             else assertTrue(game.getFieldModel().getPlayerState(player).isDistracted(), skillName);
+            if (!"Bloodlust".equals(skillName)) assertEquals(new JsonArray().add("distracted"),
+                fixture.player(after, player.getId()).get("conditions"), skillName);
             SetupSession recovered = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
             assertEquals("pass", fixture.player(view(recovered, role), player.getId()).getString("limitedAction", null));
         }

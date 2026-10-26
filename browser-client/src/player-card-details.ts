@@ -1,4 +1,5 @@
 import type { SetupPlayer } from './setup-protocol.ts';
+import { negativeConditionLabels, playerNegativeConditions } from './negative-condition-presentation.ts';
 
 const legacySubtypes: Record<string, readonly [string, string]> = {
   'human:lineman': ['Human', 'Lineman'],
@@ -39,8 +40,22 @@ const legacyStatuses: Record<string, string> = {
 };
 
 export function playerCardStatus(player: SetupPlayer): string {
-  const distracted = /distract|confus|hypnotiz/i.test(`${player.status ?? ''} ${player.state}`);
-  const base = legacyStatuses[player.state.toLowerCase()] ?? player.status
-    ?? (distracted ? 'Distracted' : player.state);
-  return distracted && base !== 'Distracted' ? `${base}, Distracted` : base;
+  return playerCardStatuses(player).map(entry => entry.label).join(', ');
+}
+
+const negativeStates = new Set(['Prone', 'Stunned', 'Distracted', 'Knocked Out', 'Badly Hurt',
+  'Seriously Injured', 'Killed', 'Missing', 'Sent Off', 'Exhausted', 'Falling Down', 'Cannot Be Set Up']);
+
+export function playerCardStatuses(player: SetupPlayer): { label: string; negative: boolean }[] {
+  // The old single status can say Distracted instead of showing the base posture.
+  const base = legacyStatuses[player.state.toLowerCase()] ?? legacyPlayerStatus(player);
+  const conditions: string[] = playerNegativeConditions(player).map(kind => negativeConditionLabels[kind]);
+  return [base, ...conditions.filter(label => label !== base)]
+    .map(label => ({ label, negative: negativeStates.has(label) || conditions.includes(label) }));
+}
+
+function legacyPlayerStatus(player: SetupPlayer): string {
+  if (player.status) return player.status;
+  if (/distract|confus|hypnotiz/i.test(player.state)) return 'Distracted';
+  return legacyStatuses[player.state.toLowerCase()] ?? player.state;
 }

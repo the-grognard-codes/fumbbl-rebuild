@@ -33,8 +33,11 @@ import { markerStripLayout, playerSkillMarkers, skillMarkerUrl } from './skill-m
 import type { SkillMarkerPreferences } from './skill-marker-preferences.ts';
 import './skill-markers.css';
 import { ActionGlyph } from './ActionGlyph.tsx';
-import { limitedActionLabels, limitedActionPlacement } from './limited-action-presentation.ts';
+import { limitedActionLabels } from './limited-action-presentation.ts';
 import { useLimitedActionTags } from './use-limited-action-tags.ts';
+import { ConditionGlyph } from './ConditionGlyph.tsx';
+import { negativeConditionLabels, playerNegativeConditions, playerTagPlacements } from './negative-condition-presentation.ts';
+import { useNegativeConditionMarkers } from './use-negative-condition-markers.ts';
 import './limited-action-tags.css';
 import { CameraButtons } from './CameraButtons.tsx';
 import { effectiveCameraEnd } from './camera-preferences.ts';
@@ -50,13 +53,13 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
 }
 
 function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
-  onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag, failedArt, onArtError, markers, markerPreferences, showLimitedActions }: {
+  onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag, failedArt, onArtError, markers, markerPreferences, showLimitedActions, showConditions }: {
   player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; setupPerspective: boolean; order: number;
   active: boolean; selected: boolean; target: boolean; onSelect: () => void; onGround: (x: number, y: number) => void;
   onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
   failedArt: Set<string>; onArtError: (url: string) => void;
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
-  markers: ReturnType<typeof playerSkillMarkers>; markerPreferences: SkillMarkerPreferences; showLimitedActions: boolean;
+  markers: ReturnType<typeof playerSkillMarkers>; markerPreferences: SkillMarkerPreferences; showLimitedActions: boolean; showConditions: boolean;
 }) {
   const art = resolvePlayerArt(player, { end: camera.end, facing, setupPerspective, topDown: camera.mode === 'top-down' });
   const position = camera.project(centerOf({ x: player.x!, y: player.y! }));
@@ -73,7 +76,9 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   const metrics = markerStripLayout(markers.map(marker => marker.label), markerPreferences.size, width, markerPreferences.style);
   const displayed = markers.slice(0, metrics.count);
   const stripTop = body && !failedArt.has(body.url) ? height / 2 + (body.bounds.y - anchor.y) * scale : 0;
-  const actionPlacement = limitedActionPlacement(width, stripTop,
+  const conditions = showConditions ? playerNegativeConditions(player) : [];
+  const limitedAction = showLimitedActions ? player.limitedAction : undefined;
+  const placements = playerTagPlacements(conditions.length + (limitedAction ? 1 : 0), width, stripTop,
     body && !failedArt.has(body.url) ? width / 2 + (body.bounds.x + body.bounds.width / 2 - anchor.x) * scale : width / 2,
     displayed.length ? metrics.height : 0);
   return <button type="button" data-player-id={player.id} data-x={player.x} data-y={player.y}
@@ -112,10 +117,16 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
         top: height / 2 - anchor.y * scale, transform: body.mirror ? 'scaleX(-1)' : 'none' }}/>
       : <span className="live-token">{player.role === 'home' ? 'H' : 'A'}{number}</span>}
     <span className="live-number">{number}</span>
-    {showLimitedActions && player.limitedAction && <span className="live-limited-action" role="img"
-      aria-label={`${limitedActionLabels[player.limitedAction]} consumed this turn`} data-limited-action={player.limitedAction}
-      style={{ left: actionPlacement.left, top: actionPlacement.top, width: actionPlacement.size, height: actionPlacement.size }}>
-      <ActionGlyph kind={player.limitedAction}/>
+    {conditions.map((kind, index) => <span key={kind} className="live-condition-marker" role="img"
+      aria-label={negativeConditionLabels[kind]} data-condition={kind}
+      style={{ left: placements[index].left, top: placements[index].top, width: placements[index].size, height: placements[index].size }}>
+      <ConditionGlyph kind={kind}/>
+    </span>)}
+    {limitedAction && <span className="live-limited-action" role="img"
+      aria-label={`${limitedActionLabels[limitedAction]} consumed this turn`} data-limited-action={limitedAction}
+      style={{ left: placements[conditions.length].left, top: placements[conditions.length].top,
+        width: placements[conditions.length].size, height: placements[conditions.length].size }}>
+      <ActionGlyph kind={limitedAction}/>
     </span>}
     {displayed.length > 0 && <span className="live-skill-markers" aria-label={`Skills: ${markers.map(marker => marker.name).join(', ')}`}
       style={{ top: stripTop - metrics.height - 3, height: metrics.height, gap: metrics.gap }}>
@@ -167,6 +178,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const markerId = useId().replace(/:/g, '');
   const { preferences: markerPreferences } = useSkillMarkerPreferences();
   const { visible: showLimitedActions } = useLimitedActionTags();
+  const { visible: showConditions } = useNegativeConditionMarkers();
   const [size, setSize] = useState({ width: 1280, height: 720 });
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = controlledZoom ?? internalZoom, setZoom = onZoomChange ?? setInternalZoom;
@@ -483,6 +495,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         </svg>
         {occupants.map(player => <PlayerMarker failedArt={failedArt} onArtError={onArtError} key={player.id} player={player} teamName={matchTeamName(view, player.role)} camera={camera} facing={facings[player.id]}
           markers={playerSkillMarkers(player, view.callerRole, markerPreferences, readOnly && allowEndChoice)} markerPreferences={markerPreferences} showLimitedActions={showLimitedActions && view.phase === 'PLAY'}
+          showConditions={showConditions}
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
