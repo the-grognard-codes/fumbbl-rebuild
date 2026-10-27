@@ -33,6 +33,76 @@ try {
     await page.evaluate(view => window.publishHud(view), view);
     await page.waitForFunction(view => document.querySelector('.drive-phase-tracker')?.classList.contains(view.driveTracker.receivingRole), view);
   };
+  const settle = () => page.evaluate(() => new Promise((resolve, reject) => {
+    let prior = '', stable = 0, frames = 0;
+    const check = () => {
+      const bounds = JSON.stringify([...document.querySelectorAll('.drive-phase-tracker, .live-dugout, .match-history > section')]
+        .map(element => element.getBoundingClientRect().toJSON()));
+      stable = bounds === prior ? stable + 1 : 0;
+      prior = bounds;
+      if (stable >= 3) resolve();
+      else if (++frames >= 20) reject(new Error('Side stack geometry did not settle'));
+      else requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }));
+  const historySize = async (subject, target) => {
+    const panel = page.locator(`.match-history-${subject}`);
+    const sizes = ['minimized', 'default', 'maximized'];
+    while (await panel.getAttribute('data-window-size') !== target) {
+      const current = await panel.getAttribute('data-window-size');
+      await panel.locator('.match-window-controls button').nth(
+        sizes.indexOf(current) < sizes.indexOf(target) ? 0 : current === 'maximized' ? 0 : 1).click();
+    }
+    await settle();
+  };
+  for (const [width, height] of [[1680,1380],[1280,720],[375,660],[640,330]]) {
+    await page.setViewportSize({ width, height });
+    for (const side of ['home', 'away']) {
+      await historySize('chat', 'default'); await historySize('log', 'default');
+      await publish({ ...state, driveTracker: { ...tracker, receivingRole: side, secretWeapons: true, knockouts: true } });
+      await settle();
+      const subject = side === 'home' ? 'chat' : 'log';
+      const otherSubject = side === 'home' ? 'log' : 'chat';
+      const ownPanel = page.locator(`.match-history-${subject}`);
+      const ownDugout = page.locator(`.live-dugout.${side}`);
+      const before = [await list.boundingBox(), await ownPanel.boundingBox(), await ownDugout.boundingBox()];
+      await historySize(otherSubject, 'maximized');
+      assert.deepEqual([await list.boundingBox(), await ownPanel.boundingBox(), await ownDugout.boundingBox()], before,
+        `${width}x${height}: opposite history expansion cannot move or shrink ${side} objects`);
+      await historySize(otherSubject, 'minimized');
+      assert.deepEqual([await list.boundingBox(), await ownPanel.boundingBox(), await ownDugout.boundingBox()], before,
+        `${width}x${height}: opposite history minimization cannot move or shrink ${side} objects`);
+      const otherDugout = page.locator(`.live-dugout.${side === 'home' ? 'away' : 'home'}`);
+      await otherDugout.locator('.live-dugout-controls button').first().click(); await settle();
+      assert.deepEqual([await list.boundingBox(), await ownPanel.boundingBox(), await ownDugout.boundingBox()], before,
+        `${width}x${height}: opposite dugout expansion cannot affect ${side} objects`);
+      await otherDugout.locator('.live-dugout-controls button').last().click(); await settle();
+      await historySize(subject, 'maximized');
+      const box = await list.boundingBox();
+      assert.deepEqual(box, before[0], 'Maximizing history preserves the tracker view');
+      assert.equal(overlaps(box, await ownDugout.boundingBox()), false,
+        `${width}x${height}: maximized ${subject} keeps its dugout clear of the drive tracker`);
+      assert.equal(overlaps(box, await ownPanel.boundingBox()), false,
+        `${width}x${height}: maximized ${subject} clears the drive tracker`);
+      const stable = [box, await ownPanel.boundingBox(), await ownDugout.boundingBox()];
+      await settle();
+      assert.deepEqual([await list.boundingBox(), await ownPanel.boundingBox(), await ownDugout.boundingBox()], stable,
+        'Tracker and maximized history settle without a sizing feedback loop');
+      // Expanded-dugout clearance at 640x330 was explicitly deferred by the
+      // user to minimum-display requirements; keep its selected height intact.
+      if (height > 330) {
+        await ownDugout.locator('.live-dugout-controls button').first().click(); await settle();
+        assert.equal(overlaps(await list.boundingBox(), await ownDugout.boundingBox()), false,
+          `${width}x${height} ${side}: expanded dugout clears the tracker`);
+        assert.equal(overlaps(await list.boundingBox(), await ownPanel.boundingBox()), false);
+        await ownDugout.locator('.live-dugout-controls button').last().click(); await settle();
+      }
+      await page.screenshot({ path: `${evidence}/${side}-maximized-${width}x${height}.png` });
+      await historySize(subject, 'default');
+      await historySize(otherSubject, 'default');
+    }
+  }
   for (const [width, height] of [[1920,1080],[1280,720],[640,330],[375,300]]) {
     await page.setViewportSize({ width, height });
     for (const side of ['home','away']) {

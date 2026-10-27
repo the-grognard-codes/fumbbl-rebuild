@@ -34,8 +34,9 @@ function LogText({ line }: { line: MatchLogLine }) {
   return <>{parts.map((part, index) => <Fragment key={index}>{part}</Fragment>)}</>;
 }
 
-export function MatchEventLog({ records, loading, unavailable, showSettings = true }: {
+export function MatchEventLog({ records, loading, unavailable, showSettings = true, minimized = false, headerControls }: {
   records: TranscriptRecord[]; loading: boolean; unavailable: boolean; showSettings?: boolean;
+  minimized?: boolean; headerControls?: ReactNode;
 }) {
   const [preferences, setPreferences] = useState(readMatchLogPreferences);
   const signature = JSON.stringify(preferences);
@@ -53,11 +54,12 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
   const pane = useRef<HTMLDivElement>(null);
   const anchor = useRef<{ key: string; revision: number; offset: number } | null>(null);
   const follow = useRef(true);
+  const wasMinimized = useRef(minimized);
   const matchId = records[0]?.state.matchId;
   useLayoutEffect(() => { anchor.current = null; follow.current = true; }, [matchId]);
   const rememberPosition = () => {
     const element = pane.current;
-    if (!element) return;
+    if (!element || minimized) return;
     if (element.scrollHeight - element.scrollTop - element.clientHeight <= 36) {
       follow.current = true;
       anchor.current = null;
@@ -73,6 +75,8 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
   useLayoutEffect(() => {
     const element = pane.current;
     if (!element) return;
+    if (minimized) { wasMinimized.current = true; return; }
+    if (wasMinimized.current) { anchor.current = null; follow.current = true; wasMinimized.current = false; }
     if (anchor.current) {
       const saved = anchor.current;
       const rows = Array.from(element.querySelectorAll<HTMLElement>('[data-log-key]'));
@@ -80,7 +84,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
       if (row) element.scrollTop += row.getBoundingClientRect().top - element.getBoundingClientRect().top - saved.offset;
       anchor.current = null;
     } else if (follow.current) element.scrollTop = element.scrollHeight;
-  }, [lines, fontSize]);
+  }, [lines, fontSize, minimized]);
   useEffect(() => subscribeMatchLogPreferences(next => {
     if (JSON.stringify(next) === signature) return;
     rememberPosition();
@@ -89,9 +93,9 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
   const choosePreference = (name: keyof MatchLogPreferences, value: boolean) =>
     saveMatchLogPreferences({ ...preferences, [name]: value });
   return <section className="match-event-log" data-font-size={fontSize} aria-label="Match log">
-    <header><h3>Game Log</h3><MatchTextSizeControls subject="log" size={fontSize} onChange={size => {
+    <header><h3>Game Log</h3>{!minimized && <MatchTextSizeControls subject="log" size={fontSize} onChange={size => {
       rememberPosition(); setFontSize(size); saveMatchTextSize(fontKey, size);
-    }}/></header>
+    }}/>} {headerControls}</header>
     {showSettings && <div className="match-log-settings" role="group" aria-label="Game Log settings">
       {([['debug', 'Debug'], ['movement', 'Movement'], ['rollModifiers', 'Roll modifiers']] as const).map(([name, label]) =>
         <label key={name}><input type="checkbox" checked={preferences[name]}

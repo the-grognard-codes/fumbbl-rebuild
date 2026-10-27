@@ -15,12 +15,23 @@ export function DrivePhaseTracker({ tracker }: { tracker: DriveTrackerPresentati
     const resources = scoreboard.querySelector<HTMLElement>(`.live-resources.${side}`)
       ?? scoreboard.querySelector<HTMLElement>('.coach-score-center');
     const menu = host.querySelector<HTMLElement>(side === 'away' ? '.match-menu-triggers' : '.match-debug-toggle');
-    const docks = Array.from(host.querySelectorAll<HTMLElement>(`.live-dugout.${side}, .match-history > section`));
+    const history = side === 'home' ? 'chat' : 'log';
+    const docks = Array.from(host.querySelectorAll<HTMLElement>(`.live-dugout.${side}, .match-history-${history}`));
     const align = () => {
       const start = Math.max(resources?.getBoundingClientRect().bottom ?? 0, menu?.getBoundingClientRect().bottom ?? 0) + 6;
       setTop(start - scoreboard.getBoundingClientRect().top);
       const visibleDocks = docks.map(dock => dock.getBoundingClientRect()).filter(box => box.height > 0);
-      const lowerEdge = Math.min(host.getBoundingClientRect().bottom, ...visibleDocks.map(box => box.top));
+      let lowerEdge = Math.min(host.getBoundingClientRect().bottom, ...visibleDocks.map(box => box.top));
+      if (host.dataset.historyDocked === 'true') {
+        // Reserve the default history height, independently of its selected
+        // size. History can then grow up to this tracker without a sizing loop.
+        const style = getComputedStyle(host);
+        const bottom = parseFloat(style.getPropertyValue('--history-panel-bottom')) || 0;
+        const baseline = parseFloat(style.getPropertyValue('--history-panel-height')) || 152;
+        const gap = parseFloat(style.getPropertyValue('--dugout-panel-gap')) || 8;
+        const dugoutHeight = host.querySelector(`.live-dugout.${side}`)?.getBoundingClientRect().height ?? 0;
+        lowerEdge = host.getBoundingClientRect().bottom - bottom - baseline - gap - dugoutHeight;
+      }
       setMaximumHeight(Math.max(24, lowerEdge - start - 8));
     };
     const observer = new ResizeObserver(align);
