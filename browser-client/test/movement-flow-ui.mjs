@@ -223,7 +223,7 @@ try {
         && request.playerId === id), player.id), 'Either coach requests a read-only range, including off-turn');
       assert.deepEqual(await mutations(selection.page), [], 'Selection does not activate a player');
       await selection.page.locator(`.live-marker[data-player-id="${player.id}"]`).click({ button: 'right' });
-      assert.equal(await selection.page.locator('.live-selection-square').count(), 0, 'A short right click deselects without a waypoint');
+    assert.equal(await selection.page.locator('.live-selection-square[data-selection]').count(), 0, 'A short right click deselects without a waypoint');
       assert.deepEqual(await mutations(selection.page), [], 'Right-click deselection does not change the native match');
     }
     assert.deepEqual(selection.errors, []);
@@ -339,7 +339,7 @@ try {
   await blitz.page.waitForFunction(() => !document.querySelector('.commit-action').disabled);
   assert.equal(await blitz.page.locator('.block-dice-surface .block-die.potential').count(), 3);
   assert.match(await blitz.page.locator('.block-dice-surface[role="status"]').getAttribute('class'), /uphill/);
-  assert.equal(await blitz.page.locator('.live-selection-square').getAttribute('data-selection'), fixture.meta.blitzPlayerId);
+  assert.equal(await blitz.page.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), fixture.meta.blitzPlayerId);
   await assertNoMovementMarkings(blitz.page);
   assert.equal(await blitz.page.evaluate(() => window.testSocket.sent.filter(request => request.type === 'movementRange'
     && request.playerId === window.testSocket.state.players.find(player => player.role !== window.testSocket.state.callerRole)?.id).length), 0);

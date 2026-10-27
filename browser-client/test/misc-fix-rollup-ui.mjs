@@ -101,7 +101,7 @@ test('an active Hand Off reviews the clicked friendly receiver and confirms its 
   const page = await journey(t, { ...ready, activePlayerId: 'carrier', activePlayerAction: 'handOverMove',
     actions: [handoff, action('move', 'carrier', { x: 11, y: 7 })] });
   await select(page, 'carrier'); await select(page, 'friend');
-  assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'carrier');
+  assert.equal(await page.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'carrier');
   assert.equal(await page.locator('.commit-action').isEnabled(), true);
   await page.locator('.commit-action').click();
   assert.deepEqual((await intents(page)).map(intent => intent.fields.actionId), [handoff.id]);

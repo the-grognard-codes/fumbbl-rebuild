@@ -42,6 +42,7 @@ import './limited-action-tags.css';
 import { CameraButtons } from './CameraButtons.tsx';
 import { effectiveCameraEnd } from './camera-preferences.ts';
 import { useCameraPreferences } from './use-camera-preferences.ts';
+import { usePitchHover } from './use-pitch-hover.ts';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
 const centerOf = (point: Point) => ({ x: point.x + .5, y: point.y + .5 });
@@ -145,7 +146,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
-  onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false,
+  onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false, interactionBlocked = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, cameraButtonsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
   view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
@@ -158,7 +159,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
   onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
-  onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean;
+  onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean; interactionBlocked?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
   zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean; debugOpen?: boolean; cameraControlsHost?: HTMLElement | null;
   cameraButtonsHost?: HTMLElement | null;
@@ -199,6 +200,11 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const camera = useMemo(() => new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation }),
     [size, travel, end, mode, zoom, perspectiveElevation]);
   const cameraRef = useRef(camera); cameraRef.current = camera;
+  const specialTargeting = !!decision || !!view.prompt || !!view.reaction || !!view.kickPreview
+    || view.phase === 'PRE_MATCH' || view.phase === 'READY_FOR_KICKOFF' || !!pushChoices.length || jumpOptions !== null
+    || actions.some(action => ['followUp', 'push', 'hitAndRun', 'kickoffMove', 'reactiveSquare'].includes(action.kind));
+  const { square: hoverSquare, clear: clearHoverSquare } = usePitchHover(scene, camera,
+    !interactionBlocked && !specialTargeting && !draggingPlayerId);
   const [inspectedBlock, setInspectedBlock] = useState<{ revision: number; target: string } | null>(null);
   const committedBlocks = currentBlockContext(view);
   const inspectedBlocks = committedBlocks && inspectedBlock?.revision === view.revision
@@ -362,7 +368,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onKeyDown={event => {
         if (event.target !== event.currentTarget) return;
         const direction = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[event.key] as PitchDirection | undefined;
-        if (direction) { event.preventDefault(); setHover(null);
+        if (direction) { event.preventDefault(); setHover(null); clearHoverSquare();
           const origin = cursor ?? (selected?.x != null && selected.y != null ? { x: selected.x, y: selected.y } : { x: Math.min(25, Math.floor(camera.focus)), y: 7 });
           const next = camera.neighbor(origin, direction); setCursor(next); reveal(centerOf(next));
         } else if (event.key === 'Enter' && cursor && !readOnly && !event.repeat) { event.preventDefault(); chooseSquare(cursor.x, cursor.y); }
@@ -372,8 +378,11 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       onPointerDown={event => { if (event.button !== 2 || draggingPlayerId) return; event.preventDefault();
         drag.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, camera, moved: false }; }}
       onPointerMove={event => { const start = drag.current; if (start && start.pointerId !== event.pointerId) return;
-        if (!start) { const square = point(event.clientX, event.clientY);
-        setHover(previous => previous?.x === square?.x && previous?.y === square?.y ? previous : square); return; } const dx = event.clientX - start.x, dy = event.clientY - start.y;
+        if (!start) {
+          if (view.phase === 'READY_FOR_KICKOFF') { const square = point(event.clientX, event.clientY);
+            setHover(previous => previous?.x === square?.x && previous?.y === square?.y ? previous : square); }
+          return;
+        } const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
         if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
       onPointerUp={event => { const start = drag.current;
@@ -391,7 +400,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) chooseSquare(square.x, square.y); } }}>
         {!backgroundFailed && <PitchScenery camera={camera} onError={onBackgroundError}/>}
-        <svg viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
+        <svg data-pitch-ground="true" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
           {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => {
             const guidance = passing && passingSquare(passing, square.x, square.y);
@@ -466,6 +475,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           })()}
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
           {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
+          {hoverSquare && (hoverSquare.x !== selected?.x || hoverSquare.y !== selected?.y) && <polygon
+            className="live-selection-square live-hover-square" data-hover-square={`${hoverSquare.x},${hoverSquare.y}`}
+            points={points(camera.square(hoverSquare, .06, true))}/>}
           {cursor && <polygon className="live-keyboard-square" points={points(camera.square(cursor, .1, true))}/>}
           {jumpOptions && !readOnly && !playback && <g className="live-jump-landings" aria-label="Jump landing guidance">
             {jumpOptions.map(step => {

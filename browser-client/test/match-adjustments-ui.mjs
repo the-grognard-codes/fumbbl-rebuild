@@ -174,7 +174,7 @@ try {
     await page.locator('[data-player-id="p1"]').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.live-target-square').count(), 1, 'Only the selected player has move highlights');
     await page.locator('[data-player-id="p3"]').focus(); await page.keyboard.press('Enter');
-    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'p1', 'An opponent without an offered kickoff move cannot replace the selected player');
+  assert.equal(await page.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'p1', 'An opponent without an offered kickoff move cannot replace the selected player');
     assert.deepEqual(await page.evaluate(() => window.adjustmentIntents), []);
     const square = await squarePosition(page, 13, 5), rect = await page.locator('.live-pitch-scene').boundingBox();
     await page.mouse.click(rect.x + square.x, rect.y + square.y);

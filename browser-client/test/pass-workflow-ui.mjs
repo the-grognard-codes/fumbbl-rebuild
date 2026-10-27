@@ -105,19 +105,19 @@ try {
     await pitch.locator('[data-player-id="mate"]').click();
     if (evidence) await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-target.png`) });
     assert.equal(await confirmed.isEnabled(), true, 'Clicking the legal recipient stages the offered throw');
-    assert.equal(await pitch.locator('.live-selection-square').getAttribute('data-selection'), 'actor', 'The passer remains selected');
+    assert.equal(await pitch.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'actor', 'The passer remains selected');
     assert.equal(await pitch.locator('.live-target-line').count(), 1, 'The recipient has a visible target path');
     assert.equal(await pitch.locator('[data-player-id="mate"]').evaluate(element => element.classList.contains('target')), true);
     assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount, 'Target selection does not throw');
     await pitch.locator('[data-player-id="mate"]').click();
-    assert.equal(await pitch.locator('.live-selection-square').getAttribute('data-selection'), 'mate',
+    assert.equal(await pitch.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'mate',
       'Clicking the same recipient again switches to that player');
     assert.equal(await confirmed.isDisabled(), true, 'Switching selection cancels the unconfirmed Pass');
     assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount);
     await pitch.locator('[data-player-id="actor"]').click();
     await pitch.locator('[data-player-id="mate"]').click();
     assert.equal(await confirmed.isEnabled(), true, 'A fresh recipient click can stage Pass again');
-    assert.equal(await pitch.locator('.live-selection-square').getAttribute('data-selection'), 'actor');
+    assert.equal(await pitch.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'actor');
     const debug = page.getByRole('button', { name: 'Debug', exact: true });
     if (await debug.count()) await debug.click();
     for (const angle of [30, 50, 40]) {

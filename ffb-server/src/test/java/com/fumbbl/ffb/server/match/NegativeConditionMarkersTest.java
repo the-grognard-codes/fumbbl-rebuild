@@ -116,13 +116,16 @@ class NegativeConditionMarkersTest {
         Player<?> victim = game.getActingTeam().getPlayers()[0];
         Player<?> first = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
         Player<?> second = game.getOtherTeam(game.getActingTeam()).getPlayers()[1];
+        // Kickoff may already grant this independent effect; pin it so chomp
+        // lifetime assertions never depend on a random kickoff result.
+        game.getFieldModel().addEnhancements(victim, KickoffResult.DODGY_SNACK.getName());
         game.getFieldModel().addChomp(first, victim);
         game.getFieldModel().addChomp(second, victim);
-        assertEquals(new JsonArray().add("chomped"), new NegativeConditionProjection().project(game, victim));
+        assertEquals(new JsonArray().add("chomped").add("dodgySnack"), new NegativeConditionProjection().project(game, victim));
         game.getFieldModel().removeChomp(first, victim);
-        assertEquals(new JsonArray().add("chomped"), new NegativeConditionProjection().project(game, victim));
+        assertEquals(new JsonArray().add("chomped").add("dodgySnack"), new NegativeConditionProjection().project(game, victim));
         game.getFieldModel().removeChomp(second, victim);
-        assertEquals(new JsonArray(), new NegativeConditionProjection().project(game, victim));
+        assertEquals(new JsonArray().add("dodgySnack"), new NegativeConditionProjection().project(game, victim));
     }
 
     @Test void activeEffectsSurviveAcceptedTurnChangesReplayAndRecoveryIncludingOffPitchPlayers() throws Exception {

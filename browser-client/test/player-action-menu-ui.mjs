@@ -54,6 +54,7 @@ try {
   for (const name of ['Throw Teammate', 'Kick Teammate', 'Throw Bomb', 'Chainsaw']) {
     const button = icons.getByRole('button', { name, exact: true });
     await button.hover();
+    await page.locator('.live-hover-square').waitFor({ state: 'detached' });
     assert.equal(await button.getAttribute('title'), name, 'Hover retains the full action name');
   }
   assert.equal(await icons.getByRole('button', { name: 'Blitz', exact: true }).isDisabled(), true);

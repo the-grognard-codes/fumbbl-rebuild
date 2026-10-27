@@ -86,7 +86,7 @@ export function HostedResult({ matchId, result, event, index, pending, connected
         <p>Half {event.state.half} · Drive {event.state.drive} · {matchTeamName(event.state, 'home')} turn {event.state.homeTurn} · {matchTeamName(event.state, 'away')} turn {event.state.awayTurn} · {event.state.weather}</p>
         <div className="replay-menu"><GameMenu view={{ ...event.state, callerRole: 'spectator' }} replay connected={connected} pending={pending}
           mutate={() => {}} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}/></div>
-        <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
+        <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed} interactionBlocked={!ready} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
       </section> : <p>Choose First or Last to view the recorded pitch.</p>}
       {result.formatVersion >= 2 && <MatchHistory matchId={matchId} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}
         homeTeamName={matchTeamName(names, 'home')} awayTeamName={matchTeamName(names, 'away')}
@@ -96,8 +96,9 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   </section>;
 }
 
-function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision }: {
+function ReplayBoard({ event, records, skipAnimations, speed, interactionBlocked, onBusy, onRevision }: {
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
+  interactionBlocked: boolean;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
   const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
@@ -115,6 +116,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, onBusy, onRevision
   const visibleDice = diceMoment ?? (!playbackActive && (skipAnimations || diceSnapshot) ? moments.at(-1) ?? null : null);
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
+      interactionBlocked={interactionBlocked}
       animateBlockMarkers={!skipAnimations}
       movementDuration={playbackActive ? movementDuration : 0}
       onSelectPlayer={() => {}} onSquare={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/>
