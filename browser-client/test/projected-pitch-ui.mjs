@@ -135,7 +135,7 @@ try {
     await page.evaluate(() => { window.intents = []; });
     await scene.locator('[data-player-id="human"]').click();
     assert.deepEqual(await page.evaluate(() => window.intents), [{ player: 'human' }]);
-    assert.equal(await scene.locator('.live-selection-square').getAttribute('data-selection'), 'human');
+    assert.equal(await scene.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'human');
     assert.equal(await scene.locator('.live-marker.selected').evaluate(element => getComputedStyle(element).outlineStyle), 'none');
     const before = await scene.locator('.pitch-stadium-plate').first().getAttribute('style');
     await frame.dispatchEvent('wheel', { deltaY: 120 });
@@ -173,7 +173,7 @@ try {
         assert.ok(Math.abs(shadowOffset.x) < 2 && Math.abs(shadowOffset.y) < 2, `${role} ${angle}° ${player.id} shadow follows square`);
       }
       assert.equal(await scene.getAttribute('data-focus'), focus);
-      assert.equal(await scene.locator('.live-selection-square').getAttribute('data-selection'), 'human');
+    assert.equal(await scene.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'human');
       assert.equal(await scene.locator('.live-route-line').count(), 1);
       assert.deepEqual(await page.evaluate(() => window.intents), [{ player: 'human' }]);
       const target = await squarePosition(page, 12, 10);

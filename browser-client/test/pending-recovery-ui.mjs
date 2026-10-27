@@ -5,6 +5,7 @@ import { assertPitchWithoutStadium } from './pitch-appearance-helper.mjs';
 import { setCameraAngle } from './camera-controls.mjs';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { squarePosition } from './projected-pitch-helper.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const matchId = '3b551645-5774-4d99-a28e-b0e37cafc5ad';
@@ -49,19 +50,27 @@ try {
   }, { frame });
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/play/match?matchId=${matchId}`);
   await page.getByTestId('setup-status').waitFor({ state: 'attached' });
+  const hoverPitch = async () => {
+    const local = await squarePosition(page, 12, 8), bounds = await page.locator('.live-pitch-scene').boundingBox();
+    await page.mouse.move(bounds.x + local.x, bounds.y + local.y);
+  };
+  const hoverMarker = page.locator('.live-hover-square[data-hover-square="12,8"]');
   await setCameraAngle(page, 50);
   await page.getByRole('button', { name: /^Flip perspective:/ }).click();
   await assertPitchWithoutStadium(page);
   assert.equal(await page.locator('[data-skill-id="block"]').count(), 2, 'Initial socket snapshot shows authoritative acquired skills');
+  await hoverPitch(); await hoverMarker.waitFor();
   await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   const request = await page.evaluate(() => window.testSocket.sent.findLast(item => item.type === 'setup' && item.operation === 'action'));
   assert.ok(request, 'The match action must be sent');
   assert.equal(request.actionId, '0:end-turn');
   assert.equal(await page.getByRole('button', { name: 'Repeat retained request' }).count(), 0,
     'An ordinary in-flight match action must not show recovery');
+  await hoverPitch(); await hoverMarker.waitFor({ state: 'detached' });
   await page.evaluate(({ frame, request }) => window.testSocket.emit({ ...frame.after, version: 2,
     requestId: request.requestId }), { frame, request });
   await page.getByTestId('setup-status').filter({ hasText: 'Revision 1' }).waitFor({ state: 'attached' });
+  await hoverMarker.waitFor(); // Accepted response restores the stationary pointer.
   await page.locator('[data-skill-id="block"]').first().waitFor({ state: 'detached' });
   assert.equal(await page.locator('[data-skill-id="block"]').count(), 0);
   assert.equal(await page.locator('[data-skill-id="dodge"]').count(), 2, 'Accepted snapshot replaces expired skills');
@@ -80,9 +89,11 @@ try {
     'Recovery must repeat the original request exactly');
   assert.equal(await page.getByRole('button', { name: 'Repeat retained request' }).count(), 0,
     'Recovery prompt should hide while the exact retry is in flight');
+  await hoverPitch(); await hoverMarker.waitFor({ state: 'detached' });
   await page.evaluate(({ frame, request }) => window.testSocket.emit({ ...frame.after,
     requestId: request.requestId, duplicate: true }), { frame, request: uncertainRequest });
   await page.getByTestId('setup-status').filter({ hasText: 'Revision 1' }).waitFor({ state: 'attached' });
+  await hoverMarker.waitFor(); // Exact retry restores hover without a new move.
   await page.locator('[data-skill-id="dodge"]').first().waitFor();
   assert.equal(await page.locator('[data-skill-id="dodge"]').count(), 2, 'Exact recovery retry restores current skill markers');
   assert.equal(await page.locator('.camera-angle').innerText(), '50°', 'Camera angle survives uncertain-action recovery and reload');

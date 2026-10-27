@@ -38,7 +38,7 @@ try {
       <style>html,body{margin:0;height:100%;background:#101c2b;font-family:system-ui,sans-serif}.play-runtime{height:100%}#app .live-pitch{height:100%;display:flex;flex-direction:column;margin:0;padding:0;box-sizing:border-box}#app .live-pitch-viewport{flex:1;max-height:none;min-height:0;aspect-ratio:auto}</style>
       <div id="app" class="play-runtime"></div><script type="module" src="/test/route-check-harness.tsx"></script>` }));
     await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/route-check-test`);
-    await page.locator('.live-selection-square').waitFor();
+  await page.locator('.live-selection-square[data-selection]').waitFor();
     await page.getByRole('button', { name: 'Reveal selected', exact: true }).click();
     await ensureSprites(page);
     const frame = await page.locator('.live-pitch-viewport').boundingBox();

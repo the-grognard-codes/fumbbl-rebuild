@@ -37,7 +37,7 @@ try {
     assert.match(await page.locator('.command-preview').textContent(), /first-choice/);
     assert.deepEqual(await intents(), []);
     await choose('first');
-    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'first',
+    assert.equal(await page.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'first',
       'A second click on the selected teammate switches player selection');
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
     assert.deepEqual(await intents(), []);
@@ -95,7 +95,7 @@ try {
     assert.match(await page.locator('.command-preview').textContent(), /landing-own/,
       'The first click targets the own player at the offered flight square');
     await choose('own-target');
-    assert.equal(await page.locator('.live-selection-square').getAttribute('data-selection'), 'own-target',
+  assert.equal(await page.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'own-target',
       'A second click on a flight target switches player selection');
     assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
     assert.equal((await intents()).length, 1);
