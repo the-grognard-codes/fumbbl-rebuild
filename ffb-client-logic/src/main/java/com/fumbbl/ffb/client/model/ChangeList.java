@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("Browser gameplay uses steady player movement, readable dice sequences and paced ball bounces before dependent decisions")
 			.addImprovement("Browser pitch highlights the square under a hovering pointer while preserving player selection and special action markers")
 			.addFeature("Live browser chat and game log resize independently with linked dugouts, saved sizes, unread chat notification and drive-tracker clearance")
 			.addBugfix("Browser player cards preserve prone and stunned posture alongside distraction in older replays and recovered matches")

@@ -149,14 +149,22 @@ try {
       await pitch.waitForFunction(() => !!window.publishPlayback);
       await pitch.clock.pauseAt(await pitch.evaluate(() => Date.now() + 100));
       await pitch.evaluate(input => window.publishPlayback(input), { view: state(1), records: [record(0), record(1, scenario.reports)], enabled: true, mode: 'live' });
-      await pitch.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '1');
-      await pitch.clock.runFor(350 * (scenario.expected.length - 1));
+      await pitch.waitForFunction(() => document.querySelectorAll('.pitch-roll-group').length === 1);
+      for (let index = 1; index < scenario.expected.length; index++) {
+        await pitch.clock.runFor(499);
+        assert.equal(await pitch.locator('.pitch-roll-group').count(), index, `${scenario.name}: the next logical roll waits 500ms`);
+        await pitch.clock.runFor(1);
+        await pitch.waitForFunction(count => document.querySelectorAll('.pitch-roll-group').length === count, index + 1);
+      }
       assert.deepEqual(await pitch.locator('.pitch-roll-group').evaluateAll(groups => groups.map(group => [...group.querySelectorAll('.polygon-die')].map(die => die.dataset.face))), scenario.expected, scenario.name);
       for (const group of await pitch.locator('.pitch-roll-group').all()) {
         const boxes = await group.locator('.polygon-die').evaluateAll(dice => dice.map(die => die.getBoundingClientRect().y));
         assert.equal(boxes.length, 2); assert.ok(Math.abs(boxes[0] - boxes[1]) < 1, `${scenario.name}: both D6 occupy the same row`);
       }
       if (evidence && scenario.name === 'armor-injury') await pitch.screenshot({ path: resolve(evidence, 'armor-injury-once.png') });
+      await pitch.clock.runFor(500);
+      await pitch.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '1'
+        && document.querySelector('#playback-state').dataset.active === 'false');
       await pitch.clock.runFor(2500);
       assert.equal(await pitch.locator('.pitch-roll-group').count(), 0, `${scenario.name}: no duplicate is queued after the original dice expire`);
       await pitch.close();

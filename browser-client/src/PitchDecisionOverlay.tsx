@@ -93,7 +93,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   // Offered block faces are also native outcomes. Start once per decision even
   // if its transcript is late, and do not restart when that transcript arrives.
   const optionRollKey = decision?.kind === 'blockDie' && !decision.proTest
-    && (!diceMoment || diceMoment.selected === null && diceMoment.faces.some(face => blockFaceLabel(face)))
+    && !diceMoment?.groups && (!diceMoment || diceMoment.selected === null && diceMoment.faces.some(face => blockFaceLabel(face)))
     ? decision.key : undefined;
   useEffect(() => {
     setSkillChoices(null);
@@ -120,7 +120,9 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
       {rollDecision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
         kind={rollDecision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}
     {rollDecision?.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${rollDecision.proTest.face}, ${rollDecision.proTest.successful ? 'success' : 'failure'}`}>
-      <span>Pro</span><PolygonDie kind="d6" face={rollDecision.proTest.face} rollKey={diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined}/></div>}
+      <span>Pro</span><PolygonDie kind="d6" face={rollDecision.proTest.face}
+        rollKey={!diceMoment?.groups && diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined}
+        rollDuration={diceMoment?.rollDuration}/></div>}
     {primaryFaces.length > 0 && <div className="live-dice-choices pitch-block-dice">{primaryFaces.map((face, index) => {
       const option = blockOptions[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
@@ -128,7 +130,8 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
         aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}
         onFocus={() => onInspectTarget?.(option?.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option?.targetPlayerId)}>
         <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!preview && !awaiting} awaiting={!!preview && awaiting} index={index}
-          selected={!option && diceMoment?.selected === index} rollKey={option ? optionRollKey : diceMoment?.rollKey}/>
+          selected={!option && diceMoment?.selected === index} rollKey={option ? optionRollKey : diceMoment?.rollKey}
+          rollDuration={diceMoment?.rollDuration}/>
         <span className="sr-only">{option?.label}</span>
       </button>;
     })}</div>}
@@ -140,7 +143,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
           {group.faces.map((face, index) => <span key={index} title={group.rolls?.[index]?.label ?? group.label}>
             <PolygonDie kind={group.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')} face={face}
               selected={group.selected === index} index={index}
-              rollKey={group.rolls?.[index]?.rollKey ?? group.rollKey}/></span>)}
+              rollKey={group.rolls?.[index]?.rollKey ?? group.rollKey} rollDuration={group.rollDuration}/></span>)}
         </div>
       </div>)}
     {otherOptions.length > 0 && <div className="live-dice-choices">{otherOptions.map(option => <button key={option.id} type="button"

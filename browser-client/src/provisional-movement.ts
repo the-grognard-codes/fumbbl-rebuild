@@ -1,6 +1,7 @@
 import type { RoutePreview } from './route-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
+import { PLAYER_STEP_MS, playbackRate } from './presentation-timing.ts';
 
 /** A forecast permits presentation only; native commands and outcomes remain authoritative. */
 export function provisionalMoves(view: SetupState, route: RoutePreview): ConfirmedMove[] {
@@ -47,9 +48,8 @@ export function remainingConfirmedBeats(beats: PlaybackBeat[], shown: ConfirmedM
   return consumed === shown.length ? remaining : null;
 }
 
-/** Keep ordinary steps readable, but bound a queued route's presentation lag. Replay keeps its selected speed. */
-export function movementBeatMillis(remainingMoves: number, speed: number, mode: 'live' | 'replay', reduced: boolean): number {
+/** Queue length never changes square speed. Reduced motion still commits each discrete square. */
+export function movementBeatMillis(speed: number, mode: 'live' | 'replay', reduced: boolean): number {
   if (reduced) return 16;
-  const rate = Number.isFinite(speed) && speed > 0 ? speed : 1;
-  return mode === 'replay' ? 140 / rate : Math.max(40, Math.min(140, 600 / Math.max(1, remainingMoves))) / rate;
+  return PLAYER_STEP_MS / playbackRate(speed, mode);
 }

@@ -34,19 +34,19 @@ test('adjacent native reports stream and expire independently with stable identi
   stream.enqueue(roll('4'), 'action');
   stream.enqueue(roll('3', 'Rush'), 'action');
   assert.deepEqual(current()?.faces, ['5']);
-  context.mock.timers.tick(250);
+  context.mock.timers.tick(400);
   assert.deepEqual(current()?.faces, ['5', '4']);
   assert.equal(current()?.groups?.[0].key, firstKey);
   const second = current()!.groups![1];
-  context.mock.timers.tick(350);
+  context.mock.timers.tick(500);
   assert.deepEqual(current()?.faces, ['5', '4', '3']);
   assert.deepEqual(current()?.groups?.map(group => group.rollKey), ['native:5', 'native:4', 'native:3']);
-  context.mock.timers.tick(500);
+  context.mock.timers.tick(200);
   assert.deepEqual(current()?.faces, ['4', '3']);
   assert.equal(current()?.groups?.[0], second);
-  context.mock.timers.tick(350);
+  context.mock.timers.tick(500);
   assert.deepEqual(current()?.faces, ['3']);
-  context.mock.timers.tick(350);
+  context.mock.timers.tick(500);
   assert.equal(current(), null);
 });
 
@@ -79,5 +79,22 @@ test('a different sequence and a reconnect snapshot cancel pending and expiry ti
   assert.deepEqual(current()?.faces, ['2']);
   stream.clear();
   context.mock.timers.tick(3000);
+  assert.equal(current(), null);
+});
+
+test('replay scales group eligibility without shortening retained result lifetimes', context => {
+  context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 10000 });
+  let shown: DiceMoment | null = null;
+  const stream = new DiceStream(moment => { shown = moment; });
+  const current = () => shown as DiceMoment | null;
+  stream.enqueue(roll('5'), 'replay', false, false, 4);
+  stream.enqueue(roll('4'), 'replay', false, false, 4);
+  context.mock.timers.tick(124);
+  assert.deepEqual(current()?.faces, ['5']);
+  context.mock.timers.tick(1);
+  assert.deepEqual(current()?.faces, ['5', '4']);
+  context.mock.timers.tick(1075);
+  assert.deepEqual(current()?.faces, ['4']);
+  context.mock.timers.tick(125);
   assert.equal(current(), null);
 });

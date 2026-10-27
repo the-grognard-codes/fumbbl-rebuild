@@ -33,8 +33,9 @@ try {
   // Inspect the brief roll without racing real-time browser commands.
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view: { ...state(1), actions: [{ id:'choice',kind:'blockDie',actor:'home',label:'Choose POW (die 3)',sourcePlayerId:'home1',target:null }] }, records:[record(0),rolled] });
-  await page.locator('#required-choice').waitFor();
-  assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'false', 'Dice decoration cannot hold the mandatory response');
+  await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 3);
+  assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'true', 'A dependent response waits for its roll presentation');
+  assert.equal(await page.locator('#required-choice').count(), 0);
   const shown = page.locator('.live-dice-overlay .match-die');
   assert.equal(await shown.count(),3);
   assert.deepEqual(await shown.evaluateAll(elements => elements.map(element => element.dataset.face)), ['SKULL','PUSHBACK','POW']);
@@ -52,6 +53,8 @@ try {
     'The second diagonal opposes the first');
   assert.notEqual(turns[0][1][0][2], turns[1][1][0][2], 'Adjacent dice tumble in opposite directions');
   assert.ok(animations.every(animation => animation.frames.every(frame => !frame.transform || !/translate\([^)]*[4-9]px/.test(frame.transform))));
+  await page.clock.runFor(500);
+  await page.locator('#required-choice').waitFor();
   // A newer accepted board takes effect while old dice are still spinning.
   await publish({ view: state(2,8), records:[record(0),rolled,record(2,8)] });
   await page.clock.resume();
@@ -83,12 +86,14 @@ try {
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await page.evaluate(()=>{window.playbackFrames=[];});
   await publish({view:state(10,24),records:Array.from({length:11},(_,revision)=>record(revision,revision===10?24:21,revision===10?[{reportList:{reports:[dice]},modelChangeList:{modelChangeArray:[change(22),change(23),change(24)]}}]:[]))});
+  await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 3);
+  await page.clock.runFor(500);
   await page.waitForFunction(()=>document.querySelector('#playback-state').dataset.x==='22');
   // Advance the short timers together to catch updates batched before a commit.
   await page.clock.runFor(64);
   await page.clock.resume();
   await wait(10,24);
-  assert.deepEqual(await page.evaluate(()=>window.playbackFrames.map(frame=>frame.x).filter((x,index,all)=>!index||all[index-1]!==x)),[22,23,24], 'Reduced motion exposes every ordered discrete square');
+  assert.deepEqual(await page.evaluate(()=>window.playbackFrames.map(frame=>frame.x).filter((x,index,all)=>!index||all[index-1]!==x)),[21,22,23,24], 'Reduced motion presents the roll before every ordered discrete square');
   assert.equal(await page.locator('#playback-state').getAttribute('data-roll-key'),'');
   assert.equal(await page.locator('.live-dice-overlay .match-die').evaluateAll(elements=>elements.flatMap(element=>element.getAnimations({subtree:true})).length),0);
   // A mandatory prompt must stay reachable even when its transcript is late.
@@ -121,32 +126,37 @@ try {
     reportList:{reports:[{reportId:index===3?'goForItRoll':'dodgeRoll',roll,successful:true,playerId:'home1'}]},
     modelChangeList:{modelChangeArray:[change([23,24,25,24][index])]}
   })));
-  // Four independently expiring groups overlap for only 150ms. Keep decorative
-  // time paused while React commits each move, so a busy build cannot miss it.
+  // Rolls and moves share the queue. Each roll retains its own visibility
+  // interval while the next square waits for readable presentation.
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
     revision===14?success:record(revision,22)) });
   const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');
   for (const x of [23,24,25,24]) {
+    await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
     await page.waitForFunction(x => Number(document.querySelector('#playback-state').dataset.x) === x, x);
     await page.clock.runFor(200);
   }
   await wait(14,24);
-  await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
-  await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay[role="status"] .match-die').length === 4);
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['5','4','6','2'],
-    'Three dodges and one rush stream in across movement playback');
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['2'],
+    'Earlier rolls expire independently while the final rush stays visible');
+  const rollOrder = await page.evaluate(() => window.playbackFrames.flatMap((frame,index,all) =>
+    frame.faces.length && frame.faces.at(-1) !== all[index-1]?.faces.at(-1) ? [frame.faces.at(-1)] : []));
+  assert.deepEqual(rollOrder.slice(-4), ['5','4','6','2']);
   const continuation = record(15,25,[{reportList:{reports:[{reportId:'goForItRoll',roll:3,successful:true,playerId:'home1'}]},
     modelChangeList:{modelChangeArray:[change(25)]}}]);
   await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
     revision===15?continuation:revision===14?success:record(revision,22)) });
-  await page.waitForFunction(() => document.querySelector('#playback-state').dataset.x === '25');
+  await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['2','3'],
+    'A later authoritative revision joins the retained roll stream');
   await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
+  await page.waitForFunction(() => document.querySelector('#playback-state').dataset.x === '25');
+  await page.clock.runFor(200);
   await wait(15,25);
   await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
   const continuedFaces = await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face));
   assert.equal(continuedFaces.at(-1), '3', 'A later authoritative revision joins the same stream');
-  assert.ok(continuedFaces.includes('2'), 'The preceding rush stays visible for its own interval');
   await page.clock.runFor(DICE_RETENTION_MS);
   await page.waitForFunction(() => !document.querySelector('.live-dice-overlay[role="status"] .match-die'));
   await page.clock.resume();
@@ -167,5 +177,5 @@ try {
   if (process.env.DICE_EVIDENCE_DIR) { await mkdir(process.env.DICE_EVIDENCE_DIR,{recursive:true}); await page.locator('#dice-specimens').screenshot({path:`${process.env.DICE_EVIDENCE_DIR}/ivory-cyan.png`}); }
   assert.deepEqual(errors,[]);
   await verifyDiceStream(browser, `http://127.0.0.1:${server.httpServer.address().port}`);
-  console.log('PASS: exact authoritative dice, short nonblocking animation, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');
+  console.log('PASS: exact authoritative dice, paced dependent decisions, ordered moves, stale-timer-safe seek, current reconnect snapshot, reduced motion and missing-transcript required prompts.');
 } finally { await browser.close(); await server.close(); }

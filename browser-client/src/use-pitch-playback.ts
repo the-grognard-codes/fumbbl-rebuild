@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext } from './pitch-playback.ts';
-import { offeredBlockDice } from './dice-presentation.ts';
+import { blockFaceLabel, diceRollGroups, offeredBlockDice } from './dice-presentation.ts';
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
-import type { ConfirmedMove } from './pitch-playback.ts';
+import { BALL_STEP_MS, DICE_ANIMATION_MS, DICE_GROUP_INTERVAL_MS, playbackRate } from './presentation-timing.ts';
+import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
 import type { RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
@@ -17,9 +18,9 @@ function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');
 }
 
-/** Movement is ordered. Decorative dice never hold the authoritative decision queue. */
+/** Present native events in order before exposing decisions; never delay server processing. */
 export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], enabled: boolean, speed = 1,
-  mode: 'live' | 'replay' = 'live', requestPending: string | null = null) {
+  mode: 'live' | 'replay' = 'live', requestPending: string | null = null, snapshotKey?: number) {
   const [pitchView, setPitchView] = useState(view);
   const [active, setActive] = useState(false);
   const [diceMoment, setDiceMoment] = useState<DiceMoment | null>(null);
@@ -39,6 +40,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const responseDiceKey = useRef<string | null>(null);
   const snapshotRevision = useRef(view.revision);
   const multipleReveals = useRef(new MultipleBlockDiceReveals());
+  const recoveringVisibility = useRef(false);
+  const receivedSnapshotKey = useRef(snapshotKey);
+  const currentSpeed = useRef(speed); currentSpeed.current = speed;
   latest.current = view;
   const clearDice = () => { pinnedDice.current = false; diceStream.current!.clear(); };
   const cancel = () => {
@@ -50,22 +54,55 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     timer.current = null; running.current = false; waiting.current = false;
   };
   useEffect(() => () => cancel(), []);
+  useEffect(() => {
+    const recover = () => { recoveringVisibility.current = true; setTick(value => value + 1); };
+    document.addEventListener('visibilitychange', recover);
+    return () => document.removeEventListener('visibilitychange', recover);
+  }, []);
   useLayoutEffect(() => {
     const previous = received.current;
     received.current = view;
-    // Reconnect, a different match, backward seek and nonadjacent replay seeks
-    // establish a snapshot. No stale timer may write over that snapshot.
-    if (!enabled || previous.matchId !== view.matchId || view.revision < previous.revision
-      || mode === 'replay' && Math.abs(view.revision - previous.revision) > 1) {
+    const seeking = snapshotKey !== undefined && snapshotKey !== receivedSnapshotKey.current;
+    if (seeking) receivedSnapshotKey.current = snapshotKey;
+    const rate = playbackRate(speed, mode);
+    const requiresResponse = !!view.prompt || view.actions.some(action => responseKinds.has(action.kind));
+    const responseKey = `${view.matchId}:${view.revision}`;
+    const responseDice = () => {
+      const finalRecord = records[view.revision];
+      const report = finalRecord?.revision === view.revision ? playbackBeats(finalRecord)
+        .filter(beat => beat.kind === 'dice').map(beat => beat.dice)
+        .filter(moment => multipleReveals.current.allows(moment, finalRecord.state)).at(-1) : null;
+      const offered = mode === 'live' ? offeredBlockDice(view) : null;
+      return (view.activePlayerAction === 'multipleBlock' && offered ? offered : report) ?? offered;
+    };
+    const restoreResponse = () => {
+      const dice = responseDice();
+      responseDiceKey.current = dice ? responseKey : null;
+      diceRevision.current = view.revision;
+      if (!dice) return;
+      multipleReveals.current.remember(dice, view);
+      pinnedDice.current = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
+      // Recovery restores the result, never an old roll animation or backlog.
+      diceStream.current!.enqueue({ ...dice, revision: view.revision }, sequenceKey(view), pinnedDice.current, true, rate);
+    };
+    const snapshot = () => {
       snapshotRevision.current = view.revision;
       multipleReveals.current.reset();
+      multipleReveals.current.update(view);
       cancel(); completed.current = view.revision;
       responseDiceKey.current = null;
-      presented.current = view; setPitchView(view); clearDice(); setActive(false);
+      presented.current = view; setPitchView(view); setActive(false);
       setMoveMillis(0); setSynchronizing(false);
+      if (enabled && mode === 'live' && requiresResponse && !document.hidden) restoreResponse();
+    };
+    // Reconnect, a different match, backward seek and nonadjacent replay seeks
+    // establish a snapshot. No stale timer may write over that snapshot.
+    if (!enabled || document.hidden || recoveringVisibility.current || seeking || previous.matchId !== view.matchId || view.revision < previous.revision
+      || mode === 'replay' && Math.abs(view.revision - previous.revision) > 1) {
+      recoveringVisibility.current = false;
+      snapshot();
       return;
     }
-    multipleReveals.current.update(view);
     const prediction = provisional.current;
     if (prediction && view.revision === prediction.base.revision) {
       if (!requestPending) {
@@ -76,7 +113,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const move = prediction.moves[prediction.shown.length];
       const next = withConfirmedMove(presented.current, move);
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-      const delay = movementBeatMillis(prediction.moves.length, 1, 'live', reduced);
+      const delay = movementBeatMillis(1, 'live', reduced);
       running.current = true; setActive(true); setMoveMillis(reduced ? 0 : delay);
       const token = generation.current;
       pendingBeat.current = { view: next, delay, committed: () => prediction.shown.push(move), advance: () => {
@@ -88,56 +125,20 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     }
     // A resolved response releases its pinned roll. Ordinary groups keep their
     // individual lifetimes across newer revisions of the same action.
-    if (view.revision > diceRevision.current && pinnedDice.current) clearDice();
-    const responseKey = `${view.matchId}:${view.revision}`;
-    const finalRecord = records[view.revision];
-    const reportDice = finalRecord?.revision === view.revision ? playbackBeats(finalRecord)
-      .filter(beat => beat.kind === 'dice').map(beat => beat.dice)
-      .filter(moment => multipleReveals.current.allows(moment, finalRecord.state)).at(-1) : null;
-    const offered = mode === 'live' ? offeredBlockDice(view) : null;
-    const responseDice = (view.activePlayerAction === 'multipleBlock' && offered ? offered : reportDice) ?? offered;
-    const requiresResponse = !!view.prompt || view.actions.some(action => responseKinds.has(action.kind));
-    const nextRecord = records[completed.current + 1];
-    const precedingMoves = nextRecord?.revision === completed.current + 1
-      && playbackBeats(nextRecord).some(beat => beat.kind === 'move');
-    if (requiresResponse && !running.current && !precedingMoves
-      && (completed.current < view.revision || responseDice && responseDiceKey.current !== responseKey)) {
-      // Responses use the current authoritative board, even when an older
-      // movement sequence is still being presented. Old timers cannot hide it.
-      cancel(); completed.current = view.revision; presented.current = view;
-      setPitchView(view); setActive(false);
-      setMoveMillis(0); setSynchronizing(false);
-      // A current snapshot may arrive before its transcript, including after
-      // reconnect. Restore that result once without replaying it on every render.
-      const dice = responseDice;
-      if (dice) multipleReveals.current.remember(dice, view);
-      responseDiceKey.current = dice ? responseKey : null;
-      diceRevision.current = view.revision;
-      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-      // A coach may pause before choosing a reroll or skill. Keep the revealed
-      // result with that prompt until an accepted revision resolves it.
-      const pendingRoll = view.actions.some(action => ['blockDie', 'reroll', 'skill', 'kickSkill'].includes(action.kind));
-      // Restoring a snapshot exposes its result without replaying an old numeric roll.
-      pinnedDice.current = pendingRoll;
-      if (dice) diceStream.current!.enqueue({ ...dice, revision: view.revision, rollKey: !reduced && dice.selected === null
-        && view.revision > snapshotRevision.current ? `${view.revision}:response` : undefined },
-        sequenceKey(view), pendingRoll, view.revision <= snapshotRevision.current);
-      else clearDice();
-      return;
-    }
     if (running.current) return;
+    if (view.revision > diceRevision.current && pinnedDice.current) clearDice();
     if (completed.current >= view.revision) {
+      multipleReveals.current.update(view);
       presented.current = view; setPitchView(view); setActive(false);
       setSynchronizing(false);
+      if (mode === 'live' && requiresResponse && responseDiceKey.current !== responseKey) restoreResponse();
       return;
     }
     const record = records[completed.current + 1];
     if (!record || record.revision !== completed.current + 1) {
       // A missing transcript cannot postpone a newly offered mandatory response.
       if (view.prompt || view.actions.some(action => responseKinds.has(action.kind)) || view.phase === 'FULL_TIME') {
-        cancel(); completed.current = view.revision; presented.current = view;
-        setPitchView(view); clearDice(); setActive(false);
-        setMoveMillis(0); setSynchronizing(false);
+        snapshot();
         return;
       }
       setActive(true);
@@ -156,7 +157,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (waiting.current && timer.current) clearTimeout(timer.current);
     waiting.current = false; timer.current = null;
     setSynchronizing(false);
-    let beats = playbackBeats(record);
+    multipleReveals.current.update(record.state);
+    let beats = playbackBeats(record, presented.current.ball);
     if (prediction) {
       const remaining = remainingConfirmedBeats(beats, prediction.shown);
       provisional.current = null;
@@ -168,11 +170,19 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       }
       beats = remaining;
     }
+    // Some native decisions (notably Multiple Block) offer authoritative faces
+    // before emitting a report. Present those faces once at the queue boundary.
+    const offered = mode === 'live' && record.revision === latest.current.revision ? offeredBlockDice(latest.current) : null;
+    if (offered && (latest.current.activePlayerAction === 'multipleBlock' || !beats.some(beat => beat.kind === 'dice'
+      && beat.dice.selected === null && beat.dice.faces.some(face => blockFaceLabel(face))))) {
+      beats.push({ kind: 'dice', dice: offered });
+    }
+    // Armour/injury/casualty in one report are separate logical rolls. Keep
+    // simultaneous dice together while using the same queue as board events.
+    beats = beats.flatMap<PlaybackBeat>(beat => beat.kind === 'dice'
+      ? diceRollGroups(beat.dice).map(dice => ({ kind: 'dice' as const, dice })) : [beat]);
     const token = generation.current;
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const moveCount = beats.filter(beat => beat.kind === 'move').length;
-    const queuedMoves = mode === 'live' ? records.slice(record.revision + 1, view.revision + 1)
-      .reduce((count, queued) => count + playbackBeats(queued).filter(beat => beat.kind === 'move').length, 0) : 0;
     const finalDiceIndex = beats.reduce((last, beat, index) => beat.kind === 'dice' ? index : last, -1);
     running.current = true; setActive(true);
     const finish = () => {
@@ -186,9 +196,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       setTick(value => value + 1);
     };
     const presentDice = (index: number) => {
+      const rate = playbackRate(currentSpeed.current, mode);
       const beat = beats[index];
       if (beat.kind === 'dice') {
-        if (!multipleReveals.current.allows(beat.dice, record.state)) return;
+        if (!multipleReveals.current.allows(beat.dice, record.state)) return false;
         multipleReveals.current.remember(beat.dice, record.state);
         diceRevision.current = record.revision;
         const response = mode === 'live' && record.revision === latest.current.revision
@@ -199,15 +210,25 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           responseDiceKey.current = `${latest.current.matchId}:${record.revision}`;
           pinnedDice.current = keep;
         }
-        diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
-          sequenceKey(record.state), keep);
+        diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollDuration: DICE_ANIMATION_MS / rate,
+          rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
+          sequenceKey(record.state), keep, false, rate);
+        return true;
       }
     };
     const advance = (index: number) => {
       if (generation.current !== token) return;
+      const rate = playbackRate(currentSpeed.current, mode);
       for (; index < beats.length; index += 1) {
         const beat = beats[index];
-        if (beat.kind === 'dice') { presentDice(index); continue; }
+        if (beat.kind === 'dice') {
+          if (!presentDice(index)) continue;
+          setMoveMillis(0);
+          const nextIndex = index + 1;
+          pendingBeat.current = { view: presented.current, delay: DICE_GROUP_INTERVAL_MS / rate,
+            advance: () => advance(nextIndex) };
+          return;
+        }
         const current = presented.current;
         const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
         const next = beat.kind === 'block' ? withBlockContext(current, beat.context)
@@ -215,37 +236,25 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         if (next === current) continue;
         // Start the next delay only after React commits this square. Separate
         // timer tasks alone can still be batched, especially in reduced motion.
-        const response = mode === 'live' && (latest.current.prompt || latest.current.actions.some(action => responseKinds.has(action.kind)));
-        const delay = beat.kind === 'block' || reduced ? 16 : response
-          ? Math.max(16, 120 / Math.max(1, moveCount)) : movementBeatMillis(moveCount + queuedMoves, speed, mode, reduced);
-        setMoveMillis(reduced ? 0 : delay);
-        let nextIndex = index + 1;
-        pendingBeat.current = { view: next, delay, advance: () => advance(nextIndex), committed: () => {
-          if (generation.current !== token || mode !== 'live' || beat.kind !== 'move') return;
-          // The authoritative square has committed. Reveal its following rolls
-          // while the sprite travels, retaining the full animation interval
-          // before another board change or completion can reset its duration.
-          while (nextIndex < beats.length) {
-            const following = beats[nextIndex];
-            if (following.kind === 'dice') presentDice(nextIndex++);
-            else if (following.kind === 'block' && withBlockContext(presented.current, following.context) === presented.current) nextIndex++;
-            else break;
-          }
-        } };
+        const delay = beat.kind === 'block' ? 16 : beat.kind === 'ball' ? BALL_STEP_MS / rate
+          : movementBeatMillis(currentSpeed.current, mode, reduced);
+        setMoveMillis(reduced || beat.kind === 'block' ? 0 : delay);
+        const nextIndex = index + 1;
+        pendingBeat.current = { view: next, delay, advance: () => advance(nextIndex) };
         presented.current = next; setPitchView(next);
         return;
       }
       finish();
     };
     advance(0);
-  }, [view, records, enabled, tick, speed, mode, requestPending]);
+  }, [view, records, enabled, tick, speed, mode, requestPending, snapshotKey]);
   useLayoutEffect(() => {
     const pending = pendingBeat.current;
     if (!pending || pending.view !== pitchView) return;
     pendingBeat.current = null;
     pending.committed?.();
     timer.current = setTimeout(pending.advance, pending.delay);
-  }, [pitchView]);
+  }, [pitchView, diceMoment]);
   const beginProvisional = (route: RoutePreview) => {
     if (!enabled || mode !== 'live' || running.current || waiting.current || provisional.current) return;
     const moves = provisionalMoves(latest.current, route);

@@ -1,10 +1,12 @@
 import { diceRollGroups } from './dice-presentation.ts';
 import type { DiceMoment, DiceRollGroup } from './dice-presentation.ts';
+import { DICE_GROUP_INTERVAL_MS } from './presentation-timing.ts';
+
+export { DICE_GROUP_INTERVAL_MS } from './presentation-timing.ts';
 
 export const DICE_RETENTION_MS = 1200;
-export const DICE_GROUP_INTERVAL_MS = 350;
 
-/** Decorative time is independent of authoritative movement and required choices. */
+/** Retain revealed groups independently; ordered playback owns when each roll is eligible. */
 export class DiceStream {
   private sequence: string | null = null;
   private pending: DiceRollGroup[] = [];
@@ -13,6 +15,7 @@ export class DiceStream {
   private nextAt = 0;
   private serial = 0;
   private pinned = false;
+  private interval = DICE_GROUP_INTERVAL_MS;
   private readonly present: (moment: DiceMoment | null) => void;
 
   constructor(present: (moment: DiceMoment | null) => void) { this.present = present; }
@@ -24,9 +27,10 @@ export class DiceStream {
     this.present(null);
   }
 
-  enqueue(moment: DiceMoment, sequence: string, pinned = false, snapshot = false) {
+  enqueue(moment: DiceMoment, sequence: string, pinned = false, snapshot = false, rate = 1) {
     if (this.sequence !== sequence || pinned || this.pinned || snapshot) this.clear();
     this.sequence = sequence; this.pinned = pinned;
+    this.interval = DICE_GROUP_INTERVAL_MS / rate;
     const groups = diceRollGroups(moment).map(group => ({ ...group, key: `roll:${++this.serial}` }));
     if (pinned || snapshot) {
       this.visible = groups.map(group => ({ group, expires: pinned ? Infinity : Date.now() + DICE_RETENTION_MS }));
@@ -41,7 +45,7 @@ export class DiceStream {
     this.visible = this.visible.filter(item => item.expires > now);
     if (this.pending.length && now >= this.nextAt) {
       this.visible.push({ group: this.pending.shift()!, expires: now + DICE_RETENTION_MS });
-      this.nextAt = now + DICE_GROUP_INTERVAL_MS;
+      this.nextAt = now + this.interval;
     }
     const groups = this.visible.map(item => item.group);
     const last = groups.at(-1);
