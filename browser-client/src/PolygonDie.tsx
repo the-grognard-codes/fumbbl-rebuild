@@ -3,10 +3,10 @@ import { BlockMark, PipMark } from './DiceFace.tsx';
 import { blockFaceLabel } from './dice-presentation.ts';
 import { numericSolids } from './die-geometry.ts';
 import type { DieKind } from './die-geometry.ts';
+import { DICE_ANIMATION_MS } from './presentation-timing.ts';
 import './block-dice.css';
 
 const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
-const rollDuration = 310;
 const resultAngles: Record<string, [number, number, number]> = {
   SKULL: [0, 0, 0], 'BOTH DOWN': [0, -90, 0], PUSHBACK: [0, 180, 0], 'POW/PUSH': [-90, 0, 0], POW: [90, 0, 0]
 };
@@ -16,11 +16,11 @@ const numericAngles: Record<string, [number, number, number]> = {
 
 export type PolygonDieProps = {
   kind: DieKind;
-  face?: string; potential?: boolean; awaiting?: boolean; selected?: boolean; uphill?: boolean; chosenBy?: 'home' | 'away'; rollKey?: string; index?: number;
+  face?: string; potential?: boolean; awaiting?: boolean; selected?: boolean; uphill?: boolean; chosenBy?: 'home' | 'away'; rollKey?: string; rollDuration?: number; index?: number;
 };
 
 /** One motion lifecycle for all physical dice. Only native results choose the resting face. */
-export function PolygonDie({ kind, face, potential = false, awaiting = false, selected = false, uphill = false, chosenBy, rollKey, index = 0 }: PolygonDieProps) {
+export function PolygonDie({ kind, face, potential = false, awaiting = false, selected = false, uphill = false, chosenBy, rollKey, rollDuration = DICE_ANIMATION_MS, index = 0 }: PolygonDieProps) {
   const solid = kind === 'd8' || kind === 'd16' ? numericSolids[kind] : null;
   const faces = kind === 'block' ? blockFaces : ['1', '2', '6', '5', '3', '4'];
   const valid = potential || awaiting || (solid ? solid.some(side => side.value === face) : faces.includes(face ?? ''));
@@ -90,7 +90,7 @@ export function PolygonDie({ kind, face, potential = false, awaiting = false, se
     };
     preference.addEventListener('change', reduce);
     return () => { if (timer) clearTimeout(timer); freeze(); preference.removeEventListener('change', reduce); };
-  }, [motion, rollKey, index, face, kind]);
+  }, [motion, rollKey, index, face, kind, rollDuration]);
   const resultSide = potential || awaiting ? -1 : faces.indexOf(face ?? '');
   const name = kind === 'block' ? 'Block die' : kind.toUpperCase();
   return <span className={`match-die polygon-die ${kind === 'block' ? 'block-die' : 'numeric-die'} ${kind} ${phase}${selected ? ' selected' : ''}${selected && chosenBy ? ` ${chosenBy}-selected` : ''}${selected && uphill ? ' uphill-selected' : ''}`}

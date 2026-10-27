@@ -47,13 +47,15 @@ export function withConfirmedMove(view: SetupState, move: ConfirmedMove): SetupS
 }
 
 /** The native sync stream is ordered by command number inside each durable decision. */
-export function playbackBeats(record: TranscriptRecord): PlaybackBeat[] {
+export function playbackBeats(record: TranscriptRecord, initialBall?: { x: number; y: number } | null): PlaybackBeat[] {
   const beats: PlaybackBeat[] = [];
+  let knownBall = initialBall;
   const known = new Set(record.state.players.map(player => player.id));
   for (const sync of record.native) {
     const hasBlock = Object.hasOwn(sync, 'blockContext');
     const context = hasBlock && sync.blockContext !== null ? decodeBlockContext(sync.blockContext, record.state.players) : null;
     if (hasBlock) beats.push({ kind: 'block', context });
+    const reportStart = beats.length;
     const reports = (sync.reportList as { reports?: unknown[] } | undefined)?.reports;
     if (Array.isArray(reports)) for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
@@ -62,11 +64,15 @@ export function playbackBeats(record: TranscriptRecord): PlaybackBeat[] {
     }
     const changes = (sync.modelChangeList as { modelChangeArray?: unknown[] } | undefined)?.modelChangeArray;
     if (!Array.isArray(changes)) continue;
-    const moves: ConfirmedMove[] = [], ballChanges: BallChanges = {};
+    const moves: ConfirmedMove[] = [], ballSteps: BallChanges[] = [];
+    let ballChanges: BallChanges = {};
     for (const value of changes) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
       const change = value as Record<string, unknown>, id = change.modelChangeId;
-      if (id === 'fieldModelSetBallCoordinate') ballChanges.coordinate = nativeSquare(change.modelChangeValue);
+      if (id === 'fieldModelSetBallCoordinate') {
+        if (ballChanges.coordinate !== undefined) ballSteps.push(ballChanges);
+        ballChanges = { ...ballChanges, coordinate: nativeSquare(change.modelChangeValue) };
+      }
       else if (id === 'fieldModelSetBallMoving' && typeof change.modelChangeValue === 'boolean') ballChanges.moving = change.modelChangeValue;
       else if (id === 'fieldModelSetBallInPlay' && typeof change.modelChangeValue === 'boolean') ballChanges.inPlay = change.modelChangeValue;
       else if (id === 'fieldModelSetPlayerCoordinate' && typeof change.modelChangeKey === 'string' && known.has(change.modelChangeKey)) {
@@ -77,11 +83,49 @@ export function playbackBeats(record: TranscriptRecord): PlaybackBeat[] {
     // A native sync is one atomic board update. Retain each movement square, and
     // apply its ball changes with the last moved player before the playback wait.
     const hasBallChanges = Object.keys(ballChanges).length > 0;
+    // Native three-way scatters publish directions and just the final square.
+    // Expand only a fully reported, in-bounds path that reaches that endpoint.
+    const scatter = Array.isArray(reports) && reports.length === 1 ? reports[0] as Record<string, unknown> : null;
+    const path = !moves.length && !ballSteps.length && scatter?.reportId === 'scatterBall'
+      ? reportedScatterPath(knownBall, ballChanges.coordinate, scatter) : null;
+    if (ballChanges.coordinate !== undefined) knownBall = ballChanges.coordinate;
+    if (path && scatter) {
+      beats.splice(reportStart);
+      path.forEach((coordinate, index) => {
+        const dice = reportedDice({ ...scatter, rolls: [(scatter.rolls as number[])[index]] }, record.state.players);
+        if (dice) beats.push({ kind: 'dice', dice });
+        beats.push({ kind: 'ball', ballChanges: { ...ballChanges, coordinate,
+          moving: index === path.length - 1 ? ballChanges.moving ?? true : true } });
+      });
+      continue;
+    }
+    // Carrier travel already advances the ball at each player square; splitting
+    // its atomic ball updates ahead of those moves would briefly detach it.
+    if (!moves.length) ballSteps.forEach(changes => beats.push({ kind: 'ball', ballChanges: changes }));
     moves.forEach((move, index) => beats.push({ kind: 'move', move,
       ...(hasBallChanges && index === moves.length - 1 ? { ballChanges } : {}) }));
     if (!moves.length && hasBallChanges) beats.push({ kind: 'ball', ballChanges });
   }
   return beats;
+}
+
+function reportedScatterPath(start: { x: number; y: number } | null | undefined,
+  end: { x: number; y: number } | null | undefined, report: Record<string, unknown>): { x: number; y: number }[] | null {
+  if (!start || !end || !Array.isArray(report.directionArray) || !Array.isArray(report.rolls)
+    || report.directionArray.length !== report.rolls.length || !report.rolls.length
+    || !report.rolls.every(roll => Number.isInteger(roll) && roll >= 1 && roll <= 8)) return null;
+  const offsets: Record<string, [number, number]> = { North: [0, -1], Northeast: [1, -1], East: [1, 0],
+    Southeast: [1, 1], South: [0, 1], Southwest: [-1, 1], West: [-1, 0], Northwest: [-1, -1] };
+  const path: { x: number; y: number }[] = [];
+  let previous = start;
+  for (const direction of report.directionArray) {
+    const offset = typeof direction === 'string' && Object.hasOwn(offsets, direction) ? offsets[direction] : null;
+    if (!offset) return null;
+    const square = nativeSquare({ x: previous.x + offset[0], y: previous.y + offset[1] });
+    if (!square) return null;
+    path.push(square); previous = square;
+  }
+  return previous.x === end.x && previous.y === end.y ? path : null;
 }
 
 export function confirmedMoves(record: TranscriptRecord): ConfirmedMove[] {

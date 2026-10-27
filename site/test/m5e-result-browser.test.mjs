@@ -427,7 +427,9 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
     const streamed = page.locator('.live-dice-overlay .match-die');
     assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.face)), ['3']);
-    await page.clock.runFor(350);
+    await page.clock.runFor(499);
+    assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.face)), ['3'], 'Consecutive replay rolls wait the readable cadence');
+    await page.clock.runFor(1);
     assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.dieKind)), ['d6', 'd16', 'd6']);
     await page.clock.runFor(1200);
     assert.equal(await streamed.count(), 0, 'Expired replay groups do not return through the static fallback');

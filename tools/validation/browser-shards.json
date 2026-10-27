@@ -58,6 +58,7 @@
       "browser-client/test/confirmation-position-ui.mjs",
       "browser-client/test/player-action-menu-ui.mjs",
       "browser-client/test/playback-ui.mjs",
+      "browser-client/test/cadence-ui.mjs",
       "browser-client/test/playback-motion-ui.mjs",
       "browser-client/test/provisional-movement-ui.mjs",
       "browser-client/test/teammate-ui.mjs",

@@ -28,6 +28,11 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   const [seekInput, setSeekInput] = useState('1');
   const [replayBusy, setReplayBusy] = useState(false);
   const [displayRevision, setDisplayRevision] = useState<number | null>(null);
+  const [seekRequest, setSeekRequest] = useState({ revision: -1, serial: 0 });
+  const seek = (revision: number) => {
+    setSeekRequest(previous => ({ revision, serial: previous.serial + 1 }));
+    onReplay(revision);
+  };
   useEffect(() => { if (index !== null) setSeekInput(String(index + 1)); }, [index]);
   useEffect(() => { if (!connected) setPlaying(false); }, [connected]);
   useEffect(() => { if (!event) { setReplayBusy(false); setDisplayRevision(null); } }, [event]);
@@ -60,18 +65,18 @@ export function HostedResult({ matchId, result, event, index, pending, connected
       <div className="match-scoreboard" aria-label="Final score"><div><span>{matchTeamName(names, 'home')}</span><strong>{result.homeScore}</strong></div><p>Full time</p><div><span>{matchTeamName(names, 'away')}</span><strong>{result.awayScore}</strong></div></div>
       <p>{result.eventCount} recorded events · {result.ruleset}</p>
       <nav className="replay-controls" aria-label="Replay controls">
-        <button type="button" onClick={() => onReplay(0)} disabled={!ready || index === 0}>First</button>
-        <button type="button" onClick={() => onReplay(Math.max(0, (index ?? 0) - 1))} disabled={!ready || index === null || index <= 0}>Previous</button>
+        <button type="button" onClick={() => seek(0)} disabled={!ready || index === 0}>First</button>
+        <button type="button" onClick={() => seek(Math.max(0, (index ?? 0) - 1))} disabled={!ready || index === null || index <= 0}>Previous</button>
         <button type="button" onClick={() => onReplay(Math.min(result.eventCount - 1, (index ?? -1) + 1))} disabled={!ready || index === result.eventCount - 1}>Next</button>
-        <button type="button" onClick={() => onReplay(result.eventCount - 1)} disabled={!ready || index === result.eventCount - 1}>Last</button>
+        <button type="button" onClick={() => seek(result.eventCount - 1)} disabled={!ready || index === result.eventCount - 1}>Last</button>
       </nav>
       <div className="replay-seek" aria-label="Replay navigation">
         <label>Turn <select value={[...turnStops].reverse().find(stop => stop.index <= (index ?? 0))?.index ?? 0}
-          onChange={choice => onReplay(Number(choice.target.value))} disabled={!ready}>
+          onChange={choice => seek(Number(choice.target.value))} disabled={!ready}>
           {turnStops.map(stop => <option key={stop.index} value={stop.index}>{stop.label}</option>)}
         </select></label>
         <form onSubmit={submit => { submit.preventDefault(); const number = Number(seekInput);
-          if (ready && Number.isInteger(number) && number >= 1 && number <= result.eventCount) onReplay(number - 1); }}>
+          if (ready && Number.isInteger(number) && number >= 1 && number <= result.eventCount) seek(number - 1); }}>
           <label>Event <input type="number" min="1" max={result.eventCount} value={seekInput} onChange={change => setSeekInput(change.target.value)}/></label>
           <button type="submit" disabled={!ready}>Seek</button>
         </form>
@@ -86,7 +91,9 @@ export function HostedResult({ matchId, result, event, index, pending, connected
         <p>Half {event.state.half} · Drive {event.state.drive} · {matchTeamName(event.state, 'home')} turn {event.state.homeTurn} · {matchTeamName(event.state, 'away')} turn {event.state.awayTurn} · {event.state.weather}</p>
         <div className="replay-menu"><GameMenu view={{ ...event.state, callerRole: 'spectator' }} replay connected={connected} pending={pending}
           mutate={() => {}} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}/></div>
-        <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed} interactionBlocked={!ready} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
+        <ReplayBoard event={event} records={logRecords} skipAnimations={skipAnimations} speed={speed}
+          snapshotKey={seekRequest.revision === event.revision ? seekRequest.serial : undefined}
+          interactionBlocked={!ready} onBusy={setReplayBusy} onRevision={setDisplayRevision}/>
       </section> : <p>Choose First or Last to view the recorded pitch.</p>}
       {result.formatVersion >= 2 && <MatchHistory matchId={matchId} records={logRecords.filter(record => record.revision <= shownRevision)} logLoading={logLoading} logUnavailable={logUnavailable}
         homeTeamName={matchTeamName(names, 'home')} awayTeamName={matchTeamName(names, 'away')}
@@ -96,12 +103,13 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   </section>;
 }
 
-function ReplayBoard({ event, records, skipAnimations, speed, interactionBlocked, onBusy, onRevision }: {
+function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, interactionBlocked, onBusy, onRevision }: {
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
+  snapshotKey?: number;
   interactionBlocked: boolean;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay');
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
   const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
   const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);

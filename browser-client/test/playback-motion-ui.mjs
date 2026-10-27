@@ -62,6 +62,36 @@ try {
   await page.screenshot({ path: resolve(evidence, 'pitch.png') });
   assert.ok(distance > 3, 'Fixture changes the on-screen position');
   assert.ok(intermediate.length >= 2, `Ordinary movement needs intermediate positions; observed ${intermediate.length}, CSS ${after.transition}`);
+  const loose = (revision, x) => ({ ...state(revision, 8), ball: { x, y: 7 },
+    ballState: { version: 1, inPlay: true, moving: true, carrierPlayerId: null } });
+  await page.evaluate(view => window.publishPlayback({ view, records: [], enabled: false, mode: 'live' }), loose(1, 7));
+  const ballMarker = page.locator('.live-ball-marker');
+  await page.waitForFunction(() => document.querySelector('.live-ball-marker')?.getAttribute('data-ball-x') === '7');
+  const ballBefore = await ballMarker.evaluate(node => { const rect = node.getBoundingClientRect(); return { x: rect.x, y: rect.y }; });
+  const ballFrames = await page.evaluate(async input => {
+    const marker = document.querySelector('.live-ball-marker');
+    const frames = [], start = performance.now();
+    window.publishPlayback(input);
+    await new Promise(done => {
+      const frame = () => {
+        const rect = marker.getBoundingClientRect();
+        frames.push({ ms: performance.now() - start, x: rect.x, y: rect.y });
+        if (performance.now() - start < 400) requestAnimationFrame(frame); else done();
+      };
+      requestAnimationFrame(frame);
+    });
+    return frames;
+  }, { view: loose(2, 8), records: [record(0, 7), record(1, 8), { ...record(2, 8), state: loose(2, 8), native: [
+    { modelChangeList: { modelChangeArray: [{ modelChangeId: 'fieldModelSetBallCoordinate', modelChangeValue: [8, 7] }] } }
+  ] }], enabled: true, mode: 'live' });
+  const ballAfter = await ballMarker.evaluate(node => { const rect = node.getBoundingClientRect(); return { x: rect.x, y: rect.y }; });
+  const ballIntermediate = ballFrames.filter(frame => Math.hypot(frame.x - ballBefore.x, frame.y - ballBefore.y) > 1
+    && Math.hypot(frame.x - ballAfter.x, frame.y - ballAfter.y) > 1);
+  assert.ok(Math.hypot(ballAfter.x - ballBefore.x, ballAfter.y - ballBefore.y) > 3);
+  assert.ok(ballIntermediate.length >= 2, `Ball movement needs painted intermediate positions; observed ${ballIntermediate.length}`);
+  writeFileSync(resolve(evidence, 'ball-motion.json'), JSON.stringify({ before: ballBefore, after: ballAfter,
+    frames: ballFrames, intermediateFrames: ballIntermediate.length }, null, 2));
+  await page.screenshot({ path: resolve(evidence, 'loose-ball.png') });
   assert.deepEqual(errors, []);
-  console.log(`PASS: movement traversed ${intermediate.length} intermediate browser frames.`);
+  console.log(`PASS: movement traversed ${intermediate.length} intermediate browser frames; ball traversed ${ballIntermediate.length}.`);
 } finally { await browser.close(); await server.close(); }

@@ -112,39 +112,42 @@ try {
   assert.equal(await page.evaluate(() => new Set(window.responseRollKeys).size), 1, 'A failed roll after movement animates exactly once and remains pinned');
   await page.evaluate(() => window.responseRollObserver.disconnect());
 
-  // Revealing an authoritative roll must not wait for its preceding sprite
-  // animation, or prematurely finish that animation and skip the next square.
+  // A roll follows its preceding square and finishes before the next square.
   await reset();
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   const movingRoll = record(1, [8, 9]);
   movingRoll.native.splice(1, 0, { blockContext: null }, { reportList: { reports: [pickup] } });
   await publish({ view: state(1, 9), records: [record(0), movingRoll] });
   await at(8, true);
+  assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 0);
+  await page.clock.runFor(199); await at(8, true);
+  await page.clock.runFor(1);
   await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(139); await at(8, true);
+  await page.clock.runFor(499); await at(8, true);
   await page.clock.runFor(1); await at(9, true);
-  await page.clock.runFor(140); await at(9, false);
+  await page.clock.runFor(200); await at(9, false);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 1, 'Committed roll is not replayed by the movement timer');
 
   await reset();
   await publish({ view: state(1, 9), records: [record(0), movingRoll], mode: 'replay' });
   await at(8, true);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 0, 'Replay preserves its ordered animation timing');
-  await page.clock.runFor(140); await at(9, true);
+  await page.clock.runFor(200); await at(8, true);
   await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(140); await at(9, false);
+  await page.clock.runFor(500); await at(9, true);
+  await page.clock.runFor(200); await at(9, false);
 
   await reset();
   const finalMovingRoll = record(1, [8]);
   finalMovingRoll.native.push({ blockContext: null }, { reportList: { reports: [pickup] } });
   await publish({ view: state(1, 8), records: [record(0), finalMovingRoll] });
-  await at(8, true); await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(139); await at(8, true);
+  await at(8, true); await page.clock.runFor(200); await page.locator('.live-dice-overlay .match-die').waitFor();
+  await page.clock.runFor(499); await at(8, true);
   await page.clock.runFor(1); await at(8, false);
 
   await reset();
   await publish({ view: state(1, 9), records: [record(0), movingRoll] });
-  await at(8, true); await page.locator('.live-dice-overlay .match-die').waitFor();
+  await at(8, true); await page.clock.runFor(200); await page.locator('.live-dice-overlay .match-die').waitFor();
   await publish({ view: state(0), records: [record(0)], enabled: false }); await at(7, false);
   await page.clock.runFor(500); await at(7, false);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 0, 'Recovery cancels the early roll and remaining movement');

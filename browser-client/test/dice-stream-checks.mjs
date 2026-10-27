@@ -53,13 +53,13 @@ export async function verifyDiceStream(browser, url) {
     const publish = input => page.evaluate(input => window.publishPlayback(input), { enabled: true, mode: 'live', ...input });
     const faces = () => page.locator('.live-dice-overlay .match-die').evaluateAll(dice => dice.map(die => die.dataset.face));
     await publish({ view: state(1), records: [record(0), record(1, [report])] });
-    await page.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '1');
-    assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'false', 'Decorative queue cannot delay authoritative playback');
+    await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 2);
+    assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'true', 'Playback owns logical roll timing');
     assert.deepEqual(await faces(), ['6', '5'], 'Armour arrives together before injury');
-    await page.clock.runFor(349);
+    await page.clock.runFor(499);
     assert.deepEqual(await faces(), ['6', '5'], 'The next roll waits its turn');
     await page.clock.runFor(1);
-    assert.deepEqual(await faces(), ['6', '5', '4', '3'], 'Injury streams in 350ms later');
+    assert.deepEqual(await faces(), ['6', '5', '4', '3'], 'Injury streams in 500ms later');
     await page.locator('.pitch-roll-caption', { hasText: 'Injury' }).waitFor();
     await page.locator('.live-dice-overlay .match-die').evaluateAll(dice => { window.injuryDice = dice.slice(2); });
     await page.clock.runFor(310);
@@ -69,28 +69,34 @@ export async function verifyDiceStream(browser, url) {
         await page.screenshot({ path: resolve(evidence, `armour-injury-stream-${width}.png`) });
       }
     }
-    await page.clock.runFor(540);
+    await page.clock.runFor(390);
     assert.deepEqual(await faces(), ['4', '3'], 'Armour expires after its own 1,200ms');
     assert.equal(await page.locator('.live-dice-overlay .match-die').evaluateAll(dice => dice.every((die, i) => die === window.injuryDice[i])), true,
       'Expiring an older group cannot remount or reroll surviving dice');
-    await page.clock.runFor(349);
+    await page.clock.runFor(499);
     assert.deepEqual(await faces(), ['4', '3']);
     await page.clock.runFor(1);
     assert.deepEqual(await faces(), [], 'Injury receives its own full visibility interval');
-    // A later native revision can finish while the previous decoration is queued.
+    // A later required choice waits behind all known logical rolls.
     await publish({ view: state(2), records: [record(0), record(1), record(2, [report])] });
-    await page.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '2');
+    await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 2);
     assert.deepEqual(await faces(), ['6', '5']);
     const pending = { ...state(3), actions: [{ id: 'block-choice', kind: 'blockDie', actor: 'home',
       label: 'Choose POW (die 1)', sourcePlayerId: 'home1', target: null }] };
     const block = { reportId: 'blockRoll', blockRoll: [6], defenderId: 'away1' };
     await publish({ view: pending, records: [record(0), record(1), record(2), record(3, [block])] });
+    assert.equal(await page.locator('#required-choice').count(), 0);
+    await page.clock.runFor(500);
+    assert.deepEqual(await faces(), ['6', '5', '4', '3']);
+    await page.clock.runFor(500);
+    assert.deepEqual(await faces(), ['POW'], 'The required roll follows the complete injury sequence');
+    assert.equal(await page.locator('#required-choice').count(), 0);
+    await page.clock.runFor(500);
     await page.locator('#required-choice').waitFor();
-    assert.deepEqual(await faces(), ['POW'], 'A required native choice immediately replaces the backlog');
     await page.clock.runFor(2000);
     assert.deepEqual(await faces(), ['POW'], 'The choice stays pinned and old injury never arrives');
     await publish({ view: state(4), records: [record(0), record(1), record(2), record(3), record(4, [report])] });
-    await page.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '4');
+    await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 2);
     assert.deepEqual(await faces(), ['6', '5']);
     await publish({ view: state(4), records: [], enabled: false });
     await page.waitForFunction(() => !document.querySelector('.live-dice-overlay'));
@@ -99,9 +105,9 @@ export async function verifyDiceStream(browser, url) {
     assert.deepEqual(await faces(), [], 'Reconnect cancels queued groups and old expiry timers');
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await publish({ view: state(5), records: [record(0), record(1), record(2), record(3), record(4), record(5, [report])], mode: 'replay' });
-    await page.waitForFunction(() => document.querySelector('#playback-state').dataset.revision === '5');
+    await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 2);
     assert.deepEqual(await faces(), ['6', '5']);
-    await page.clock.runFor(350);
+    await page.clock.runFor(500);
     assert.deepEqual(await faces(), ['6', '5', '4', '3'], 'Reduced motion retains roll chronology');
     assert.equal(await page.locator('.match-die').evaluateAll(dice => dice.flatMap(die => die.getAnimations({ subtree: true })).length), 0);
     await publish({ view: state(1), records: [record(0), record(1)], mode: 'replay' });
@@ -109,7 +115,7 @@ export async function verifyDiceStream(browser, url) {
     await page.clock.runFor(2500);
     assert.deepEqual(await faces(), [], 'Replay seeking cancels the decorative queue');
     assert.deepEqual(errors, []);
-    console.log('PASS: animated D16 has no scrollbars; armour/injury stream independently without blocking gameplay.');
+    console.log('PASS: animated D16 has no scrollbars; armour/injury retain independent lifetimes and gate dependent input.');
   } finally { await page.close(); }
 }
 

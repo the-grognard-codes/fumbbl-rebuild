@@ -147,7 +147,10 @@ try {
     await replay.evaluate(input => window.publishPlayback(input), { view: last, records: journey.records, enabled: true, mode: 'replay' });
     await replay.clock.runFor(100);
     assert.ok(await replay.locator('.live-dice-overlay .match-die').count() > 0, 'Native HMP dice render in replay');
-    await replay.clock.runFor(3000);
+    // Native direction reports now present every scatter square and logical
+    // roll. Drain the observed queue instead of assuming a fixed 3s catch-up.
+    for (let elapsed = 0; elapsed < 15000 && await replay.locator('#playback-state').getAttribute('data-active') === 'true'; elapsed += 250)
+      await replay.clock.runFor(250);
     assert.equal(await replay.locator('#playback-state').getAttribute('data-revision'), String(last.revision));
     assert.equal(await replay.locator('#playback-state').getAttribute('data-active'), 'false');
     if (!journey.bomb) assert.equal(await replay.evaluate(() => window.playbackFrames.some(frame => frame.active)), true, 'HMP ball scattering animates during replay');

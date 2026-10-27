@@ -45,6 +45,11 @@ try {
     await page.getByRole('dialog', { name: 'Choose a block die', exact: true }).waitFor();
     assert.equal(await dice.count(), 2, 'Target 2 dice must not appear alongside target 1');
     assert.deepEqual(await dice.evaluateAll(elements => elements.map(element => element.dataset.face)), ['PUSHBACK', 'PUSHBACK']);
+    // Background recovery must remember the restored target's roll so deferred
+    // selection reports still cannot replay it after the second choice.
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange')); });
+    await page.getByRole('dialog', { name: 'Choose a block die', exact: true }).waitFor();
     if (process.env.MULTIPLE_BLOCK_DICE_EVIDENCE) {
       mkdirSync(process.env.MULTIPLE_BLOCK_DICE_EVIDENCE, { recursive: true });
       await page.waitForTimeout(350);
@@ -53,6 +58,7 @@ try {
     await page.getByRole('dialog').getByRole('button').first().click();
     assert.ok((await page.evaluate(() => window.blockVisibilityIntents)).at(-1).fields.actionId.includes(first));
     await publish({ view: secondView, records: records.slice(0, 10) });
+    await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .polygon-die').length === 2);
     assert.equal(await dice.count(), 2, 'Target 2 appears only after target 1 is selected');
     assert.deepEqual(await dice.evaluateAll(elements => elements.map(element => element.dataset.face)), secondFaces);
     if (process.env.MULTIPLE_BLOCK_DICE_EVIDENCE) {

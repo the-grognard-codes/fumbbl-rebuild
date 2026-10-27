@@ -51,3 +51,49 @@ test('each confirmed carrier step moves the ball while an occupied loose ball st
   assert.deepEqual(withConfirmedMove(initial, { playerId: 'opponent', x: 12, y: 7 }).ball, initial.ball);
   assert.equal(withConfirmedMove(initial, { playerId: 'missing', x: 12, y: 7 }), initial);
 });
+
+test('reported scatter directions expand into ordered rolls and squares only when the endpoint agrees', () => {
+  const state = decodeSetupStateValue(base);
+  const scatter = { reportId: 'scatterBall', directionArray: ['North', 'Northwest', 'East'], rolls: [1, 8, 3] };
+  const record = { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: null, state,
+    native: [{ reportList: { reports: [scatter] }, modelChangeList: { modelChangeArray: [
+      { modelChangeId: 'fieldModelSetBallCoordinate', modelChangeValue: [10, 5] }
+    ] } }] };
+  const beats = playbackBeats(record, { x: 10, y: 7 });
+  assert.deepEqual(beats.map(beat => beat.kind), ['dice', 'ball', 'dice', 'ball', 'dice', 'ball']);
+  assert.deepEqual(beats.flatMap(beat => beat.kind === 'ball' ? [beat.ballChanges.coordinate] : []),
+    [{ x: 10, y: 6 }, { x: 9, y: 5 }, { x: 10, y: 5 }]);
+  assert.deepEqual(beats.flatMap(beat => beat.kind === 'dice' ? beat.dice.faces : []), ['1', '8', '3']);
+  assert.deepEqual(playbackBeats(record, { x: 0, y: 0 }).map(beat => beat.kind), ['dice', 'ball'],
+    'An inconsistent or out-of-bounds path keeps only actual native changes');
+  assert.deepEqual(playbackBeats(record).map(beat => beat.kind), ['dice', 'ball'], 'No unknown starting square is invented');
+});
+
+test('one native sync retains every ball coordinate instead of collapsing to its endpoint', () => {
+  const state = decodeSetupStateValue(base);
+  const record = { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: null, state,
+    native: [{ modelChangeList: { modelChangeArray: [8, 9, 10].map(x => ({
+      modelChangeId: 'fieldModelSetBallCoordinate', modelChangeValue: [x, 7]
+    })) } }] };
+  assert.deepEqual(playbackBeats(record).flatMap(beat => beat.kind === 'ball' ? [beat.ballChanges.coordinate] : []),
+    [{ x: 8, y: 7 }, { x: 9, y: 7 }, { x: 10, y: 7 }]);
+});
+
+test('atomic carrier travel keeps the ball attached instead of playing its coordinates ahead of the player', () => {
+  const initial = decodeSetupStateValue({ ...base, ball: { x: 10, y: 7 },
+    ballState: { version: 1, carrierPlayerId: 'actor', inPlay: true, moving: false } });
+  const record = { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: null, state: initial,
+    native: [{ modelChangeList: { modelChangeArray: [9, 8].flatMap(x => [
+      { modelChangeId: 'fieldModelSetPlayerCoordinate', modelChangeKey: 'actor', modelChangeValue: [x, 7] },
+      { modelChangeId: 'fieldModelSetBallCoordinate', modelChangeValue: [x, 7] }
+    ]) } }] };
+  let shown = initial;
+  for (const beat of playbackBeats(record, initial.ball)) {
+    assert.equal(beat.kind, 'move');
+    if (beat.kind === 'move') shown = withConfirmedMove(shown, beat.move);
+    if (beat.kind !== 'dice' && beat.ballChanges) shown = withConfirmedBallChanges(shown, beat.ballChanges);
+    const carrier = shown.players.find(player => player.id === 'actor')!;
+    assert.deepEqual(shown.ball, { x: carrier.x, y: carrier.y });
+    assert.equal(shown.ballState?.carrierPlayerId, 'actor');
+  }
+});
