@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { spriteUrl } from './LivePitch.tsx';
+import { WindowArrow } from './MatchWindowControls.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
 import type { OffPitchCategory, SetupPlayer } from './setup-protocol.ts';
 import './live-dugouts.css';
@@ -15,12 +16,6 @@ const zones: Zone[] = [
   { id: 'sentOff', label: 'Sent off' },
   { id: 'other', label: 'Other' },
 ];
-
-function DugoutArrow({ direction }: { direction: 'up' | 'down' }) {
-  return <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-    <path d={direction === 'up' ? 'M4 13 10 7 16 13' : 'M4 7 10 13 16 7'}/>
-  </svg>;
-}
 
 export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlayer, onBlurPlayer,
   draggableIds, reserveDropIds, draggingPlayerId = '', onStartDrag, onEndDrag, onDropReserve }: {
@@ -49,9 +44,9 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
       }}>
       <header className="live-dugout-heading"><strong>{name} Dugout</strong><div className="live-dugout-controls">
         {mode !== 'expanded' && <button type="button" aria-label={`${mode === 'condensed' ? 'Restore' : 'Expand'} ${name} dugout`}
-          title={mode === 'condensed' ? 'Show state counts' : 'Show players'} onClick={() => setMode(role, mode === 'condensed' ? 'compact' : 'expanded')}><DugoutArrow direction="up"/></button>}
+          title={mode === 'condensed' ? 'Show state counts' : 'Show players'} onClick={() => setMode(role, mode === 'condensed' ? 'compact' : 'expanded')}><WindowArrow direction="up"/></button>}
         {mode !== 'condensed' && <button type="button" aria-label={`${mode === 'expanded' ? 'Minimize' : 'Condense'} ${name} dugout`}
-          title={mode === 'expanded' ? 'Show state counts' : 'Show header only'} onClick={() => setMode(role, mode === 'expanded' ? 'compact' : 'condensed')}><DugoutArrow direction="down"/></button>}
+          title={mode === 'expanded' ? 'Show state counts' : 'Show header only'} onClick={() => setMode(role, mode === 'expanded' ? 'compact' : 'condensed')}><WindowArrow direction="down"/></button>}
       </div></header>
       {mode !== 'condensed' && <div className={`live-dugout-zones${mode === 'compact' ? ' compact-summary' : ''}`}>{zones.map(zone => {
         const members = team.filter(player => player.x === null && (player.offPitch ?? 'reserve') === zone.id);

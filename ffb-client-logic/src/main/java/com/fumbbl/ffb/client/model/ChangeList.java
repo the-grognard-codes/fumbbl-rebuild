@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addFeature("Live browser chat and game log resize independently with linked dugouts, saved sizes, unread chat notification and drive-tracker clearance")
 			.addBugfix("Browser player cards preserve prone and stunned posture alongside distraction in older replays and recovered matches")
 			.addFeature("Browser coaches and spectators can see six negative player conditions above players and in their Status list, with an independent marker display setting")
 			.addBugfix("Browser Solid Defence lets coaches redeploy every selected reserve in any order and confirm their setup")

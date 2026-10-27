@@ -2,6 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { MatchEventLog } from './MatchEventLog.tsx';
+import { MatchWindowControls } from './MatchWindowControls.tsx';
+import { readMatchWindowSize, saveMatchWindowSize } from './match-window-size.ts';
+import type { MatchWindow, MatchWindowSize } from './match-window-size.ts';
+import { useMatchHistoryDock } from './useMatchHistoryDock.ts';
 import { MatchTextSizeControls, matchTextPixels, readMatchTextSize, saveMatchTextSize } from './MatchTextSizeControls.tsx';
 import type { MatchTextSize } from './MatchTextSizeControls.tsx';
 import type { ChatMessage } from './chat-protocol.ts';
@@ -20,6 +24,14 @@ type Props = {
 };
 
 export function MatchHistory(props: Props) {
+  const dock = useRef<HTMLDivElement>(null);
+  const [sizes, setSizes] = useState(() => ({ chat: readMatchWindowSize('chat'), log: readMatchWindowSize('log') }));
+  const docked = Boolean(props.stacked && props.overlay);
+  useMatchHistoryDock(dock, docked, sizes.chat, sizes.log);
+  const changeSize = (subject: MatchWindow, size: MatchWindowSize) => {
+    setSizes(current => ({ ...current, [subject]: size }));
+    saveMatchWindowSize(subject, size);
+  };
   const [tab, setTab] = useState<'log' | 'chat'>('log');
   const [unread, setUnread] = useState(0);
   const seen = useRef<number | null>(null);
@@ -31,9 +43,11 @@ export function MatchHistory(props: Props) {
     if (tab === 'chat' || props.stacked) { seen.current = props.messages.length; setUnread(0); }
     else if (props.messages.length > seen.current) setUnread(props.messages.length - seen.current);
   }, [props.messages.length, props.chatLoading, props.stacked, tab]);
-  if (props.stacked) return <div className="match-history" aria-label="Match history">
-    <section className="match-history-log" aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable} showSettings={!props.overlay}/></section>
-    <section className="match-history-chat" aria-label="Chat"><MatchChatPanel {...props} active overlay={Boolean(props.overlay)}/></section>
+  if (props.stacked) return <div ref={dock} className="match-history" aria-label="Match history">
+    <section className="match-history-log" data-window-size={docked ? sizes.log : undefined} aria-label="Game log"><MatchEventLog records={props.records} loading={props.logLoading} unavailable={props.logUnavailable} showSettings={!props.overlay}
+      minimized={docked && sizes.log === 'minimized'} headerControls={docked && <MatchWindowControls subject="game log" size={sizes.log} onChange={size => changeSize('log', size)}/>}/></section>
+    <section className="match-history-chat" data-window-size={docked ? sizes.chat : undefined} aria-label="Chat"><MatchChatPanel key={props.matchId} {...props} active={!docked || sizes.chat !== 'minimized'} overlay={Boolean(props.overlay)}
+      windowSize={docked ? sizes.chat : undefined} onWindowSize={size => changeSize('chat', size)}/></section>
   </div>;
   return <section className="match-history" aria-label="Match history">
     <div className="match-history-tabs" role="tablist" aria-label="History view" onKeyDown={event => {
@@ -55,7 +69,9 @@ export function MatchHistory(props: Props) {
 }
 
 function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, connected, sending, canSend, onSend, sendError, sent, active,
-  homeTeamName, awayTeamName, overlay }: Props & { active: boolean; overlay: boolean }) {
+  homeTeamName, awayTeamName, overlay, windowSize, onWindowSize }: Props & {
+    active: boolean; overlay: boolean; windowSize?: MatchWindowSize; onWindowSize?: (size: MatchWindowSize) => void;
+  }) {
   const fontKey = 'ffb.match.chat.font-size';
   const draftKey = `ffb.match.chat.draft.${matchId}`;
   const scrollKey = `ffb.match.chat.scroll.${matchId}`;
@@ -69,25 +85,56 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
   const follow = useRef(true);
   const restored = useRef(false);
   const previousCount = useRef(0);
+  const previousActive = useRef(active);
+  const position = useRef(0);
+  const seenCount = useRef<number | null>(null);
+  const [hasUnread, setHasUnread] = useState(false);
+  const markRead = () => {
+    const element = pane.current;
+    if (!active || !element || chatLoading || element.clientHeight === 0) return;
+    if (element.scrollHeight - element.scrollTop - element.clientHeight <= 1) {
+      seenCount.current = messages.length;
+      setHasUnread(false);
+    }
+  };
   useLayoutEffect(() => {
     const element = pane.current;
-    if (!element || !active) return;
+    if (!element) return;
+    if (!active) { previousActive.current = false; return; }
     if (!restored.current && !chatLoading) {
       restored.current = true;
       let saved = 0;
       try { saved = Number(sessionStorage.getItem(scrollKey)); } catch { /* Use the latest message. */ }
       if (Number.isFinite(saved) && saved > 0) { element.scrollTop = saved; follow.current = false; }
       else element.scrollTop = element.scrollHeight;
-    } else if (messages.length > previousCount.current && follow.current) element.scrollTop = element.scrollHeight;
+    } else if (!previousActive.current) element.scrollTop = position.current;
+    else if (messages.length > previousCount.current && follow.current) element.scrollTop = element.scrollHeight;
+    previousActive.current = true;
+    position.current = element.scrollTop;
+    follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
     previousCount.current = messages.length;
   }, [messages.length, chatLoading, scrollKey, active]);
+  useLayoutEffect(() => {
+    if (chatLoading) return;
+    if (seenCount.current === null) seenCount.current = messages.length;
+    else if (messages.length > seenCount.current) setHasUnread(true);
+    markRead();
+  }, [messages.length, chatLoading, active]);
+  useEffect(() => {
+    const element = pane.current;
+    if (!element || !active) return;
+    const observer = new ResizeObserver(markRead);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [active, messages.length, chatLoading]);
+  useEffect(() => { if (!active) setEntryOpen(false); }, [active]);
   const setText = (value: string) => {
     setDraft(value);
     try { sessionStorage.setItem(draftKey, value); } catch { /* Draft remains in memory. */ }
   };
   const chooseFontSize = (size: MatchTextSize) => { setFontSize(size); saveMatchTextSize(fontKey, size); };
   const openEntry = () => {
-    if (!overlay || !canSend || chatUnavailable || entryOpen) return;
+    if (!active || !overlay || !canSend || chatUnavailable || entryOpen) return;
     previousFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     setEntryOpen(true);
     requestAnimationFrame(() => entry.current?.focus());
@@ -119,10 +166,16 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
     onSend(text);
   };
   return <div ref={root} className={`match-chat${overlay && entryOpen ? ' composing' : ''}`} data-font-size={fontSize} tabIndex={overlay ? -1 : undefined}>
-    <header><h3>Match chat</h3><MatchTextSizeControls subject="chat" size={fontSize} onChange={chooseFontSize}/></header>
+    <header><h3>{windowSize ? 'Chat' : 'Match chat'}</h3>
+      {windowSize && hasUnread && <span className="match-chat-unread" role="status" aria-label="Unread chat messages" title="Unread chat messages">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v10H9l-5 4v-4H3z"/></svg>
+      </span>}
+      {windowSize !== 'minimized' && <MatchTextSizeControls subject="chat" size={fontSize} onChange={chooseFontSize}/>}
+      {windowSize && onWindowSize && <MatchWindowControls subject="chat" size={windowSize} onChange={onWindowSize}/>}</header>
     <div ref={pane} role="log" aria-label="Match chat messages" aria-live="polite" className="match-chat-scroll"
       style={{ fontSize: `${matchTextPixels[fontSize]}px` }} onClick={openEntry}
-      onScroll={event => { const element = event.currentTarget; follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36;
+      onScroll={event => { if (!active) return; const element = event.currentTarget; position.current = element.scrollTop;
+        follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 36; markRead();
         try { sessionStorage.setItem(scrollKey, String(element.scrollTop)); } catch { /* Scroll position remains in memory. */ } }}>
       {(chatUnavailable || chatLoading) && <p role="status"><strong data-speaker-role="system">Match</strong> {chatUnavailable ? 'Chat is unavailable for this match.' : 'Loading conversation…'}</p>}
       {messages.map(message => <p key={message.index}><time dateTime={new Date(message.at).toISOString()}>{new Date(message.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>

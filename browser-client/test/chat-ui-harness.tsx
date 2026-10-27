@@ -13,19 +13,22 @@ declare global {
     chatSent: string[];
     publishChatScenario: (input: { messages: ChatMessage[]; names?: { home: string; away: string }; unavailable?: boolean }) => void;
     publishChatMessages: (messages: ChatMessage[]) => void;
+    publishLogRecords: (records: TranscriptRecord[]) => void;
   }
 }
 
 function App() {
   const [messages, setMessages] = useState(window.chatFixture.messages);
+  const [records, setRecords] = useState(window.chatFixture.records);
+  window.publishLogRecords = setRecords;
   const [names, setNames] = useState({ home: 'Rovers', away: 'Crew' });
   const [unavailable, setUnavailable] = useState(false);
   window.publishChatScenario = input => { setMessages(input.messages); setNames(input.names ?? { home: 'Rovers', away: 'Crew' }); setUnavailable(Boolean(input.unavailable)); };
   const [sent, setSent] = useState<{ text: string; id: string } | null>(null);
   window.publishChatMessages = setMessages;
   return <main className="play-runtime live-match-page"><section className="coach-match hosted-match">
-    <MatchHistory stacked overlay matchId="00000000-0000-0000-0000-000000000154"
-      records={window.chatFixture.records} logLoading={false} logUnavailable={false}
+    <MatchHistory stacked={!location.search.includes('replay')} overlay={!location.search.includes('replay')} matchId="00000000-0000-0000-0000-000000000154"
+      records={records} logLoading={false} logUnavailable={false}
       messages={messages} chatLoading={false} chatUnavailable={unavailable}
       homeTeamName={names.home} awayTeamName={names.away} connected sending={false} canSend sendError="" sent={sent}
       onSend={text => {

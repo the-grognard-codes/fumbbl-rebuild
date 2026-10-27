@@ -1,5 +1,33 @@
 @font-face { font-family: MUTP; src: url('/assets/game/ui/fonts/ChakraPetch-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 
+/* Live history and dugouts form independent vertical stacks. The measured
+   heights reserve actual resource/menu bounds without changing dugout mode. */
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history-chat { height: var(--chat-panel-height, var(--history-panel-height)); }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history-log { height: var(--log-panel-height, var(--history-panel-height)); }
+.play-runtime .coach-match.hosted-match[data-history-docked] .live-dugouts { inset: 0 12px; display: block; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .live-dugout { position: absolute; top: auto; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .live-dugout.compact { max-width: min(245px,45%); }
+.play-runtime .coach-match.hosted-match[data-history-docked] .live-dugout.home { left: 0; bottom: calc(var(--history-panel-bottom) + var(--chat-panel-height, var(--history-panel-height)) + var(--dugout-panel-gap)); }
+.play-runtime .coach-match.hosted-match[data-history-docked] .live-dugout.away { right: 0; bottom: calc(var(--history-panel-bottom) + var(--log-panel-height, var(--history-panel-height)) + var(--dugout-panel-gap)); }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history header { display: flex; flex: none; flex-wrap: nowrap; align-items: center; gap: 4px; min-height: 20px; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history header h3 { min-width: 0; white-space: nowrap; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history .log-font-controls { flex: none; margin-left: auto; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-window-controls { flex: none; margin-left: 6px; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history [data-window-size="minimized"] .match-window-controls { margin-left: auto; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history [data-window-size="minimized"] :is(.match-chat, .match-event-log) > :not(header) { display: none; }
+.play-runtime .coach-match.hosted-match[data-history-docked] .match-history > section { overflow: hidden; }
+.match-chat-unread { display: inline-flex; flex: none; width: 16px; height: 16px; color: #49e6ff; animation: chat-unread-pulse 1.8s ease-in-out infinite; }
+.match-chat-unread svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+@keyframes chat-unread-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .match-chat-unread { animation: none; } }
+@media (max-width: 600px) {
+  .play-runtime .coach-match.hosted-match[data-history-docked] .match-history > section { padding-inline: 4px; }
+  .play-runtime .coach-match.hosted-match[data-history-docked] .match-history header { gap: 2px; }
+  .play-runtime .coach-match.hosted-match[data-history-docked] .match-history header h3 { font-size: 9px; letter-spacing: 0; }
+  .play-runtime .coach-match.hosted-match[data-history-docked] .match-window-controls { margin-left: 4px; }
+  .play-runtime .coach-match.hosted-match[data-history-docked] .match-history .log-font-controls { gap: 1px; }
+}
+
 /* One camera fills the match window. The supporting HUD uses a shared alpha. */
 .play-runtime.live-match-page:has(.coach-match) { padding: 0; height: 100dvh; min-height: 0; overflow: clip; }
 .play-runtime.live-match-page > .coach-match.hosted-match { --support-panel-opacity: 30%; --command-bar-left: 27%; --command-bar-width: 46%; --command-bar-bottom: 16px; --command-button-height: 54px; --score-panel-height: 52px; --history-panel-height: 152px; --history-panel-bottom: 16px; --dugout-panel-gap: 8px; position: relative; display: block; width: 100%; height: 100%; margin: 0; padding: 0; color: #d9e9f7; font: 700 14px/1.35 MUTP, sans-serif; }
