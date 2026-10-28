@@ -1,5 +1,11 @@
 # issues
 
+Backlog review completed **2026-10-28**: 29 completed and six superseded issues
+were closed at the owner's request, each with a dated review note. Exactly 25
+issues remain open for owner manual review. See the
+[issue-by-issue audit and closure outcome](docs/reviews/open-issue-audit-2026-10-28.md).
+Historical implementation notes below retain their original validation limits.
+
 These are untriaged ideas. When one becomes scoped work, create a GitHub issue
 and add its URL here alongside the local notes.
 - dump off + pass block
@@ -105,33 +111,33 @@ Owner observations from 2026-10-05. Rollup:
 Recovery integration branch: `recovery/completed-local-work-20261007`. Scope, acceptance criteria and confirmed
 product decisions are mirrored in
 [the second ticket batch](docs/specs/adr0003-follow-up-tickets.md#second-match-ui-adjustment-batch-2026-10-05).
-Implementation and per-ticket evidence are in [the verification report](docs/specs/adr0003-ui-adjustment-verification.md). All 17 child tickets remain open for review; #129 also needs confirmation of the reported black pixels on the owner's display. GitHub retains the canonical `ready-for-agent` label pending delivery/review.
+Implementation and per-ticket evidence are in [the verification report](docs/specs/adr0003-ui-adjustment-verification.md). The 2026-10-28 review closed the completed and superseded tickets selected in the audit. #129 remains open for confirmation of the reported black pixels on the owner's display; historical validation limits still apply. GitHub remains authoritative for issue states and labels.
 
-- [ ] [#128 Fix Quick Snap player selection, square highlights and movement counter](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/128) — `ready-for-agent`; observation 1.
+- [x] [#128 Fix Quick Snap player selection, square highlights and movement counter](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/128) — `ready-for-agent`; observation 1.
 - [ ] [#129 Fix black or missing pitch and scenery regions in the 30 degree view](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/129) — `ready-for-agent`; observation 2.
-- [ ] [#130 Use held right mouse button for pitch travel and the mouse wheel for zoom](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/130) — `ready-for-agent`; observation 3.
-- [ ] [#131 Add projected player ground shadows matching the approved design](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/131) — `ready-for-agent`; observation 4.
+- [x] [#130 Use held right mouse button for pitch travel and the mouse wheel for zoom](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/130) — `ready-for-agent`; observation 3.
+- [x] [#131 Add projected player ground shadows matching the approved design](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/131) — `ready-for-agent`; observation 4.
 - [ ] [#132 Correct player square alignment across every pitch viewing angle](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/132) — `ready-for-agent`; observation 5.
-- [ ] [#133 Explain touchbacks and the required receiving-player choice in game-status text](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/133) — `ready-for-agent`; observation 6.
+- [x] [#133 Explain touchbacks and the required receiving-player choice in game-status text](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/133) — `ready-for-agent`; observation 6.
 - [ ] [#134 Add a general current-game-status text area to the match UI](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/134) — `ready-for-agent`; observation 7.
-- [ ] [#135 Remove follow-up screen fading and compact the MUTP decision prompt](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/135) — `ready-for-agent`; observation 8.
-- [ ] [#136 Place rolled dice nearer the center of the visible pitch](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/136) — `ready-for-agent`; observation 9.
-- [ ] [#137 Make the game-log font size selector change the displayed text](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/137) — `ready-for-agent`; observation 10.
-- [ ] [#138 Fit block dice and their choices without display scrollbars](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/138) — `ready-for-agent`; observation 11a.
-- [ ] [#139 Use the existing inducement reroll icon for the roll's reroll button](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/139) — `ready-for-agent`; observation 11b.
-- [ ] [#140 Add distinct MUTP icon buttons for Pro, Brawler, Dodge and other reroll skills](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/140) — `ready-for-agent`; observation 11c.
-- [ ] [#141 Keep successful d6 rolls visible for about one second without a decision](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/141) — `ready-for-agent`; observation 12.
-- [ ] [#142 Move camera options, server actions and movement-plan details into a debug drawer](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/142) — `ready-for-agent`; observation 13.
-- [ ] [#143 Select the ball's kickoff target square directly with the mouse](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/143) — `ready-for-agent`; observation 14.
-- [ ] [#144 Keep standing sprites direction-independent in top-down and retain prone/stunned art](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/144) — `ready-for-agent`; observation 15.
+- [x] [#135 Remove follow-up screen fading and compact the MUTP decision prompt](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/135) — `ready-for-agent`; observation 8.
+- [x] [#136 Place rolled dice nearer the center of the visible pitch](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/136) — `ready-for-agent`; observation 9.
+- [x] [#137 Make the game-log font size selector change the displayed text](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/137) — `ready-for-agent`; observation 10.
+- [x] [#138 Fit block dice and their choices without display scrollbars](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/138) — `ready-for-agent`; observation 11a.
+- [x] [#139 Use the existing inducement reroll icon for the roll's reroll button](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/139) — `ready-for-agent`; observation 11b.
+- [x] [#140 Add distinct MUTP icon buttons for Pro, Brawler, Dodge and other reroll skills](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/140) — `ready-for-agent`; observation 11c.
+- [x] [#141 Keep successful d6 rolls visible for about one second without a decision](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/141) — `ready-for-agent`; observation 12.
+- [x] [#142 Move camera options, server actions and movement-plan details into a debug drawer](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/142) — `ready-for-agent`; observation 13.
+- [x] [#143 Select the ball's kickoff target square directly with the mouse](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/143) — `ready-for-agent`; observation 14.
+- [x] [#144 Keep standing sprites direction-independent in top-down and retain prone/stunned art](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/144) — `ready-for-agent`; observation 15.
 
 
-- [#145 Third match UI adjustment batch](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/145): 11 child tickets #146–#156 cover the 14 annotated comments; recovered on `recovery/completed-local-work-20261007`. [Scope](docs/specs/adr0003-follow-up-tickets.md#third-match-ui-adjustment-batch--annotated-comments) and [verification](docs/specs/adr0003-ui-comment-verification.md). Open pending review/merge.
+- [#145 Third match UI adjustment batch](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/145): 11 child tickets #146–#156 cover the 14 annotated comments; recovered on `recovery/completed-local-work-20261007` and merged through PR #184. [Scope](docs/specs/adr0003-follow-up-tickets.md#third-match-ui-adjustment-batch--annotated-comments) and [verification](docs/specs/adr0003-ui-comment-verification.md). Closed as completed after the 2026-10-28 review; later stadium criteria are superseded, while #161 weather artwork remains open independently.
 
 
 - [#157–#160 HUD refinements](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/157): equal resource height, removed window-controls row, short unboxed weather and quiet regular turns with narrower required banners. Implemented locally; [verification](docs/specs/adr0003-hud-refinement-verification.md). [#161 weather artwork](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/161) is deferred in TODO.md.
 
-- [#162 MUTP Game Menu](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/162) and [#163 setup/kickoff-only broadcasts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/163): implemented locally on `codex/fix-new-match-ui` under #145; [verification](docs/specs/adr0003-menu-event-verification.md). #163 narrows the broadcast scope in #134/#160. Open pending review/merge.
+- [#162 MUTP Game Menu](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/162) and [#163 setup/kickoff-only broadcasts](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/163): recovered with #145 and merged through PR #184; [verification](docs/specs/adr0003-menu-event-verification.md). #163 narrows the broadcast scope in #134/#160. Both closed as completed after the 2026-10-28 review.
 
 - [#166 Fourth match UI round](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/166): 13 child tickets #167–#179; [scope and acceptance criteria](docs/specs/adr0003-fourth-ui-round.md). #174 was merged in PR #181; the remaining fourth-round changes, including atomic friendly setup swaps, were merged in PR #182. All fourth-round tickets are closed. Those newer behaviors take precedence over older archived UI prototypes.
 

@@ -16,16 +16,316 @@
   <main class="updates-page">
     <div class="updates-intro"><p class="kicker">Project updates</p><h1>What's new under the pitch.</h1>
       <p>A brief look at the work behind MUTP, from game-day improvements to the tools that keep the project moving. Each entry links to its merged pull request for the full details.</p>
-      <p class="updates-coverage">105 merged pull requests · Latest merge October 6, 2026 · Newest first</p></div>
+      <p class="updates-coverage">180 merged pull requests · Latest merge October 28, 2026 · Newest first</p></div>
     <form id="updates-search" class="updates-tools" action="/updates" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">105 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">180 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-377" data-pr="377" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-28T05:34:11Z">October 28, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/377" target="_blank" rel="noreferrer">PR #377<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Give pitch dice more time and clearer outcomes</h2><p>Pitch dice now materialize and evaporate smoothly, with football graphics highlighting armor breaks, stuns, knockouts and casualty results. Important rolls stay visible longer, while required choices remain available until resolved. Live play, replay and reduced-motion views share the updated presentation.</p>
+    </article>
+    <article class="panel update-entry" id="pr-372" data-pr="372" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-27T21:26:41Z">October 27, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/372" target="_blank" rel="noreferrer">PR #372<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Pace movement, dice and ball events consistently</h2><p>Players now move smoothly at a steady pace, with grouped dice and ball bounces presented in native order before dependent decisions appear. Coaches and spectators follow events independently; replay speed, skipping and recovery retain their existing controls.</p>
+    </article>
+    <article class="panel update-entry" id="pr-370" data-pr="370" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-27T19:51:37Z">October 27, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/370" target="_blank" rel="noreferrer">PR #370<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Highlight the square beneath the pointer</h2><p>Moving a mouse, trackpad or hovering pen over the pitch now outlines the square beneath it while preserving player selection. The guide follows camera changes and hides beneath panels or special targeting, across coach, spectator and replay views.</p>
+    </article>
+    <article class="panel update-entry" id="pr-368" data-pr="368" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-27T16:31:06Z">October 27, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/368" target="_blank" rel="noreferrer">PR #368<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Resize chat and game log independently</h2><p>Chat and game log now offer minimized, default and maximized sizes, with saved choices and room for their dugouts and drive tracker. Minimized chat preserves its reading position and signals unread messages; the game log returns to the latest entries.</p>
+    </article>
+    <article class="panel update-entry" id="pr-365" data-pr="365" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-26T21:51:41Z">October 26, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/365" target="_blank" rel="noreferrer">PR #365<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Make skill prompts smaller and rerolls clearer</h2><p>Skill decisions now use compact circular prompts with a countdown, clear player pointers and a source picker when needed. Non-block rerolls offer available built-in skills first, Sidestep uses pitch arrows, and large Solid Defence setup responses remain recoverable.</p>
+    </article>
+    <article class="panel update-entry" id="pr-362" data-pr="362" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-26T04:35:59Z">October 26, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/362" target="_blank" rel="noreferrer">PR #362<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Show negative player conditions on the pitch</h2><p>Distracted, chomped, rooted, Dodgy Snack, Greasy Cleats and Eye Gouged now appear as red pitch symbols and alongside posture in the player card&#39;s Status list. A saved Interface setting controls the markers, which follow native effect lifetimes through play, replay and recovery.</p>
+    </article>
+    <article class="panel update-entry" id="pr-358" data-pr="358" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-26T01:43:34Z">October 25, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/358" target="_blank" rel="noreferrer">PR #358<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Put camera controls beside match and replay menus</h2><p>Coaches and spectators can now flip perspective and cycle through 30-, 40-, 50-degree and overhead views using visible match and replay buttons. Choices are retained for each match, and overhead view remembers the selected end for a return to angled play.</p>
+    </article>
+    <article class="panel update-entry" id="pr-356" data-pr="356" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-25T04:47:27Z">October 25, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/356" target="_blank" rel="noreferrer">PR #356<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Repair match decisions and polish dice presentation</h2><p>Adjacent Blitz and ordered Multiple Block targeting now continue through their required decisions more reliably. The roundup also steadies hover effects, restores drive-facing direction, prefers equivalent routes around a loose ball and presents paired injury dice once. Solid Defence and foul-bribe flows retain manual-review follow-ups.</p>
+    </article>
+    <article class="panel update-entry" id="pr-343" data-pr="343" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-24T07:14:25Z">October 24, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/343" target="_blank" rel="noreferrer">PR #343<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Mark consumed limited actions above players</h2><p>Gold pitch icons now identify the player who consumed a limited team action, with a saved Interface toggle. Tags follow players through movement, replay and recovery, then clear at the appropriate turn or drive boundary. Computer matches also avoid waiting behind workers that are idle for human input.</p>
+    </article>
+    <article class="panel update-entry" id="pr-341" data-pr="341" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-22T22:16:26Z">October 22, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/341" target="_blank" rel="noreferrer">PR #341<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Clear stadium scenery for the next overhaul</h2><p>Browser matches now show the existing turf without stadium architecture, crowd banks or sideline props, preparing the scene for a later overhaul. All 390 pitch squares, players, ball, controls and targeting remain available in live play, spectator views and replay.</p>
+    </article>
+    <article class="panel update-entry" id="pr-339" data-pr="339" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-22T18:54:23Z">October 22, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/339" target="_blank" rel="noreferrer">PR #339<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Make live actions and match delivery more responsive</h2><p>Confirmed actions now take priority over queued movement guidance, use a durable recovery journal and deliver match state with its event history. Immediate feedback and conservative movement previews reduce waiting, while native results, exact recovery and replay remain authoritative. Separate measurements track remaining latency.</p>
+    </article>
+    <article class="panel update-entry" id="pr-331" data-pr="331" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-21T15:21:20Z">October 21, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/331" target="_blank" rel="noreferrer">PR #331<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Offer BB2025 Hail Mary passes and bombs</h2><p>Pass and Throw Bomb actions now offer normal and Hail Mary modes with distinct controls and range guides. BB2025 resolution uses the player&#39;s Passing Ability, preserves eligible rerolls and prevents accurate Hail Mary results; Blizzard retains Quick and Short range limits.</p>
+    </article>
+    <article class="panel update-entry" id="pr-323" data-pr="323" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-21T03:29:24Z">October 20, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/323" target="_blank" rel="noreferrer">PR #323<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Show block targets and counted assists</h2><p>Block and Blitz previews now mark the blocking square, target and counted attacking and defending assists. Committed markers remain through dice choices, rerolls and skill prompts, including spectators, replay and recovery. Multiple Block keeps separate context and native dice choices for each target.</p>
+    </article>
+    <article class="panel update-entry" id="pr-322" data-pr="322" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-21T02:09:51Z">October 20, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/322" target="_blank" rel="noreferrer">PR #322<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Save optional skill-use preferences</h2><p>Coaches can choose Always Use or Always Ask for eighteen approved BB2025 skill-use cases in Game Settings. Preferences follow the account through play, reconnect and recovery, while required player or square choices and other eligible reroll resources remain available.</p>
+    </article>
+    <article class="panel update-entry" id="pr-314" data-pr="314" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-20T01:59:08Z">October 19, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/314" target="_blank" rel="noreferrer">PR #314<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Refresh Play and Team Builder</h2><p>Play now shares Team Builder styling, with Human and AI buttons and illustrated coach cards showing skill levels and upcoming opponents. Team Builder adds Save as new, unique account team names, editable fantasy recruit names, player counts and clearer roster details and validation feedback.</p>
+    </article>
+    <article class="panel update-entry" id="pr-308" data-pr="308" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-19T19:51:30Z">October 19, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/308" target="_blank" rel="noreferrer">PR #308<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Meet Bogruk the Almost Clever</h2><p>Bogruk joins the selectable computer coaches at Weak difficulty, pursuing touchdowns and taking occasional purposeful risks through an independent BB2025 policy. His identity survives save and resume. Acceptance work also repairs Secure the Ball reroll choices, spectator subscriptions and memory use when saving completed matches.</p>
+    </article>
+    <article class="panel update-entry" id="pr-312" data-pr="312" data-category="Project notes">
+      <div class="update-meta"><span class="update-category">Project notes</span><time datetime="2026-10-19T16:45:32Z">October 19, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/312" target="_blank" rel="noreferrer">PR #312<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Clarify the standard delivery workflow</h2><p>The documented usual method now carries agreed work through issue tracking, a working branch, implementation, review, validation and a results report. Publishing, merging and deployment are recorded as separately authorized steps, giving future handoffs a clearer stopping point.</p>
+    </article>
+    <article class="panel update-entry" id="pr-310" data-pr="310" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-19T16:37:39Z">October 19, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/310" target="_blank" rel="noreferrer">PR #310<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Wait for reroll choices and artwork in browser checks</h2><p>Browser validation now waits for the offered reroll state and its resource artwork before checking choices. A delayed-state and delayed-image regression covers those readiness boundaries, improving parallel local checks while preserving the existing gameplay assertions.</p>
+    </article>
+    <article class="panel update-entry" id="pr-307" data-pr="307" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-19T03:16:14Z">October 18, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/307" target="_blank" rel="noreferrer">PR #307<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Plan movement and a ball transfer together</h2><p>Coaches can now plan movement, pickup and a pass or handoff to a teammate before activating the player, then confirm the sequence once. Recipient changes preserve the route, right-click removes the transfer before waypoints, and native decisions pause and resume the committed plan.</p>
+    </article>
+    <article class="panel update-entry" id="pr-300" data-pr="300" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-18T21:10:17Z">October 18, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/300" target="_blank" rel="noreferrer">PR #300<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Restore local sign-in after credential refresh</h2><p>Local startup now repairs missing or incorrect development quota-project metadata in refreshed Google credentials, even when the access probe succeeds. The server restarts only when the credential file changes, restoring game sign-in without unnecessary restarts.</p>
+    </article>
+    <article class="panel update-entry" id="pr-299" data-pr="299" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-18T20:53:36Z">October 18, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/299" target="_blank" rel="noreferrer">PR #299<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Keep every confirmed movement square visible</h2><p>Movement playback now waits for each displayed board state to commit before starting the next delay. This prevents short timers from skipping confirmed squares, including reduced-motion playback, while cancellation clears pending beats and ball rotation retains its existing behavior.</p>
+    </article>
+    <article class="panel update-entry" id="pr-298" data-pr="298" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-18T06:01:14Z">October 18, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/298" target="_blank" rel="noreferrer">PR #298<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Plan Jump, Leap and Pogo movement</h2><p>BB2025 movement plans now support explicit Jump, Leap and Pogo segments, including approaches before Blitz or Foul. A compact Jump control shows legal landings, difficulty and Rush warnings; confirmation follows native commands, with rerolls and recovery preserving the chosen jump.</p>
+    </article>
+    <article class="panel update-entry" id="pr-296" data-pr="296" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-18T04:15:37Z">October 18, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/296" target="_blank" rel="noreferrer">PR #296<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Display core player skills above the pitch</h2><p>The 108 core BB2025 skills and traits can now appear as text badges or illustrated markers above players. Saved settings control teams, base and acquired skills, traits, size and presentation. Complete player cards, readable zoom limits and crowded-marker overflow remain available in live play and replay.</p>
+    </article>
+    <article class="panel update-entry" id="pr-295" data-pr="295" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-17T22:15:14Z">October 17, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/295" target="_blank" rel="noreferrer">PR #295<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Offer timed BB2025 reactive skill decisions</h2><p>Optional reactive skills now prompt the owning coach with native effects, required destinations and a server-enforced thirty-second deadline. Unanswered optional choices decline normally, while interrupted routes, nested reactions and reconnects retain their sequence. The update also corrects Shadowing, Dump-Off and Safe Pair of Hands handling.</p>
+    </article>
+    <article class="panel update-entry" id="pr-292" data-pr="292" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-16T21:32:41Z">October 16, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/292" target="_blank" rel="noreferrer">PR #292<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Make the game log easier to read</h2><p>The game log now shows a complete scrollable history with revised event wording and current block and numeric dice graphics. Compact text, tighter line spacing and coach-colored selection outlines improve readability across the main log, Game Settings, replay and recovered history.</p>
+    </article>
+    <article class="panel update-entry" id="pr-291" data-pr="291" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-16T21:02:07Z">October 16, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/291" target="_blank" rel="noreferrer">PR #291<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Repair preparation, movement and BB2025 skill flows</h2><p>Match preparation now stays connected independently of play, and older retained matches can be conceded. Space confirms proposals, Blitz preserves waypoints, Hand Off selects its receiver, and movement ranges update along planned routes. Hit and Run, stun recovery, kickoff bribes and computer apothecary flows also gain fixes or coverage.</p>
+    </article>
+    <article class="panel update-entry" id="pr-278" data-pr="278" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-15T05:53:51Z">October 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/278" target="_blank" rel="noreferrer">PR #278<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Animate numeric dice in ordered roll groups</h2><p>Native d6, d8 and d16 rolls now share the polygon-dice tumble, with grouped results, armor and injury captions and independent visibility. Numeric reroll choices and replay use the same presentation, preserving native outcomes, pending decisions, reduced motion and restored snapshots.</p>
+    </article>
+    <article class="panel update-entry" id="pr-277" data-pr="277" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-15T04:46:36Z">October 15, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/277" target="_blank" rel="noreferrer">PR #277<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Compact the player action menu</h2><p>Player actions now appear as eligible icon tiles with full-name tooltips, faded spent actions and a yellow selection highlight. End Turn moves beneath the active coach&#39;s timer, while Backspace uses the same confirmation flow. Pass and Hand Off declarations also allow collecting the ball during movement.</p>
+    </article>
+    <article class="panel update-entry" id="pr-276" data-pr="276" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-14T22:51:35Z">October 14, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/276" target="_blank" rel="noreferrer">PR #276<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Keep follow-up decisions clear of the action</h2><p>Follow-up prompts now sit near screen center while leaving the block initiator and destination arrow visible. Coaches can pan and scroll before deciding, and the movement preview follows the initiating player through chain pushes while preserving the original Yes and No commands.</p>
+    </article>
+    <article class="panel update-entry" id="pr-275" data-pr="275" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-14T18:52:35Z">October 14, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/275" target="_blank" rel="noreferrer">PR #275<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Preview block strength with native polygon dice</h2><p>Block and Blitz proposals now show the native signed dice count as hovering cubes, continuing through confirmation until the result arrives. One tumble reveals the authoritative faces, with red glows for uphill blocks and matching reroll presentation. Native rules and coach choices determine the outcome.</p>
+    </article>
+    <article class="panel update-entry" id="pr-274" data-pr="274" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-14T17:29:06Z">October 14, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/274" target="_blank" rel="noreferrer">PR #274<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Explain apothecary injury choices</h2><p>Apothecary prompts now name the injured player, pending injury and its effects, including stat reductions, niggling injuries and missed games. Distinct icons accompany Accept, Use, Keep and Choose options; multi-player treatment and remaining apothecary counts continue to use native decisions.</p>
+    </article>
+    <article class="panel update-entry" id="pr-273" data-pr="273" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-14T05:00:32Z">October 14, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/273" target="_blank" rel="noreferrer">PR #273<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Place kickoff balls and compare Kick landings</h2><p>Kick placement now follows the pointer with a snapping ball marker and submits on the first click. New browser matches offer Kick after deviation, showing normal and alternative landings linked by an arrow. Coaches can pan while comparing them; existing matches retain their saved timing.</p>
+    </article>
+    <article class="panel update-entry" id="pr-272" data-pr="272" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-13T17:02:14Z">October 13, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/272" target="_blank" rel="noreferrer">PR #272<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Align local maintenance and Node tooling</h2><p>Browser packages, computer-player tools and CI now use Node 26 consistently. A guarded local maintenance command previews stale-game cleanup before an explicit apply step, verifies transactional removal and restarts services while preserving accounts, saved teams, settings and archived backups.</p>
+    </article>
+    <article class="panel update-entry" id="pr-270" data-pr="270" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-13T15:23:40Z">October 13, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/270" target="_blank" rel="noreferrer">PR #270<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Align the pixel ball with pitch perspective</h2><p>The ball highlight now sits on the pitch plane, using a slowly rotating pixel ring and counter-rotating inner arrows. Loose footballs and their shadows scale with the projected square at every zoom; carried balls retain the marker without drawing a second football.</p>
+    </article>
+    <article class="panel update-entry" id="pr-269" data-pr="269" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-13T05:49:49Z">October 13, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/269" target="_blank" rel="noreferrer">PR #269<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Switch player activations through the next action</h2><p>Coaches can plan another player&#39;s activation without explicitly ending the current one; confirmation commits the switch and waits for any required native decisions. Movement and Foul can be reviewed together, teammate clicks distinguish recipients from activation changes, and queued actions survive checkpoint recovery.</p>
+    </article>
+    <article class="panel update-entry" id="pr-268" data-pr="268" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-13T04:07:46Z">October 13, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/268" target="_blank" rel="noreferrer">PR #268<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Compare original and modular stadium studies</h2><p>The development pitch preview now opens with the original stadium painting and offers hybrid-crowd and crowd-free modular wall studies. Artwork, provenance and review captures are retained. Asset synchronization preserves unchanged files, and camera checks wait for the pitch&#39;s measured size.</p>
+    </article>
+    <article class="panel update-entry" id="pr-267" data-pr="267" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-13T03:28:46Z">October 12, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/267" target="_blank" rel="noreferrer">PR #267<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Provision a fresh local review database</h2><p>A new explicit bootstrap service creates the isolated review database schema before daily local startup. Fresh-PC instructions cover container setup and credential files, while profile and data guards keep the bootstrap away from the retained development database.</p>
+    </article>
+    <article class="panel update-entry" id="pr-266" data-pr="266" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-12T20:18:23Z">October 12, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/266" target="_blank" rel="noreferrer">PR #266<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Tidy site navigation and match interactions</h2><p>The site now uses one sign-in or account link, and Game Menu options fit without horizontal scrolling. Matches gain straighter equivalent routes, right-click deselection, clearer Block and Blitz targeting, teammate throw ranges and longer idle connections. Legacy saved-team cleanup is limited to reviewed team records.</p>
+    </article>
+    <article class="panel update-entry" id="pr-255" data-pr="255" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-11T13:21:14Z">October 11, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/255" target="_blank" rel="noreferrer">PR #255<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Follow each drive from setup to kickoff</h2><p>A start-of-drive tracker now shows completed, current and upcoming BB2025 phases beneath the receiving team&#39;s resources. It skips inapplicable checks and highlights interactive kickoff events, then disappears before ordinary player actions. Replay and recovery retain compatible native phase information.</p>
+    </article>
+    <article class="panel update-entry" id="pr-251" data-pr="251" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-11T05:44:01Z">October 11, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/251" target="_blank" rel="noreferrer">PR #251<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Recover Dodgy Snack checkpoints consistently</h2><p>Match saves now order temporary stat modifiers consistently, fixing intermittent recovery failures involving Dodgy Snack. Existing snapshots are normalized after checksum validation, allowing valid saved games to restore without depending on the native modifier set&#39;s iteration order.</p>
+    </article>
+    <article class="panel update-entry" id="pr-250" data-pr="250" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-11T04:42:50Z">October 11, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/250" target="_blank" rel="noreferrer">PR #250<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Inspect opposing movement threats</h2><p>Selecting an unfinished friendly player now reveals opposing tackle zones and movement-skill threats during regular turns and Charge! Saved Game Settings control zone colors, Tackle warnings and striped skill areas. Local browser validation also gains isolated parallel shards with complete coverage checks.</p>
+    </article>
+    <article class="panel update-entry" id="pr-246" data-pr="246" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-10T18:08:01Z">October 10, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/246" target="_blank" rel="noreferrer">PR #246<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Keep generated site output out of version control</h2><p>Generated public-site files now stay local and ignored, with tracked source pages and build scripts providing the published inputs. The update removes previously tracked output and documents how rebuilding and Firebase Hosting assembly recreate it.</p>
+    </article>
+    <article class="panel update-entry" id="pr-244" data-pr="244" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-10T06:59:54Z">October 10, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/244" target="_blank" rel="noreferrer">PR #244<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Add modular stadium crowds and accessories</h2><p>Modular stadium pieces now combine mixed Human, Dwarf and Halfling supporters or Orc, Goblin, Ogre and Troll crowds. Rounded overhead stands, wall caps, recessed towels and spare jerseys complete the scene, with local gestures, source provenance and assembled review captures.</p>
+    </article>
+    <article class="panel update-entry" id="pr-243" data-pr="243" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-10T06:51:32Z">October 10, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/243" target="_blank" rel="noreferrer">PR #243<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Outline player movement ranges</h2><p>Selected players now show blue normal-movement and yellow Rush perimeters, with small warnings in Rush-only squares. Active players use their remaining allowance; inactive-team inspection shows the next activation. Ranges refresh after committed routes, while Jump, Leap and Pogo shortcuts remain outside the ordinary forecast.</p>
+    </article>
+    <article class="panel update-entry" id="pr-239" data-pr="239" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-09T23:54:29Z">October 9, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239" target="_blank" rel="noreferrer">PR #239<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Split validation by delivery environment</h2><p>Validation now uses isolated native shards and checks browser coverage at the required deployment stage. Local review runs full browser checks before restart; DEV publication requires an explicit command and local preflight, while production verifies the exact tagged release before approval and publication.</p>
+    </article>
+    <article class="panel update-entry" id="pr-237" data-pr="237" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-09T22:04:28Z">October 9, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/237" target="_blank" rel="noreferrer">PR #237<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Remove filled movement and risk markings</h2><p>Live matches no longer show filled movement ranges, Dodge and Rush squares or risk legends from the earlier movement flow. Player selection, route lines, waypoint dots, right-click undo and single-confirmation Move and Blitz remain, with native legality, rolls and logs preserved.</p>
+    </article>
+    <article class="panel update-entry" id="pr-236" data-pr="236" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-09T04:24:18Z">October 9, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/236" target="_blank" rel="noreferrer">PR #236<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Recover startup checks and diagnostic routing</h2><p>Preserved startup and documentation work now joins the current implementation, including bounded DEV WebSocket health checks and production SSH readiness. Diagnostic routes retain the Play prefix, query and fragment, and project links return to the README. Browser fixtures also follow the revised movement flow.</p>
+    </article>
+    <article class="panel update-entry" id="pr-235" data-pr="235" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-09T03:10:12Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/235" target="_blank" rel="noreferrer">PR #235<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Confirm movement and Blitz in one step</h2><p>Selecting a player and destination now prepares movement for one confirmation, including adjacent squares. Waypoint dots unify route planning, right-click undoes the latest segment, and selecting an opponent prepares a Blitz approach. The change also introduced movement-range guidance later revised by subsequent updates.</p>
+    </article>
+    <article class="panel update-entry" id="pr-229" data-pr="229" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T22:48:32Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/229" target="_blank" rel="noreferrer">PR #229<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Give game displays the full browser area</h2><p>Coach, spectator and result-replay displays now hide the shared site top bar, giving the pitch and game controls more room. Play setup and ordinary site pages retain their navigation.</p>
+    </article>
+    <article class="panel update-entry" id="pr-227" data-pr="227" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T22:11:34Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/227" target="_blank" rel="noreferrer">PR #227<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Use one logo across site headers</h2><p>Every site page now shares the existing mole-and-wordmark logo at a consistent proportional size, alongside the same navigation and account menu. The account popover follows the header&#39;s actual position as fonts load, pages scroll and layouts resize.</p>
+    </article>
+    <article class="panel update-entry" id="pr-225" data-pr="225" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T21:17:39Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/225" target="_blank" rel="noreferrer">PR #225<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Streamline Play setup and live controls</h2><p>Play now puts game creation first and lists current games afterward using matchup cards with Resume and guarded Concede controls. Routine connection labels and duplicate setup hints are removed. Live log preferences are shared with Game Menu, and confirmation stays centered without the setup background bar.</p>
+    </article>
+    <article class="panel update-entry" id="pr-223" data-pr="223" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T20:38:38Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/223" target="_blank" rel="noreferrer">PR #223<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Unify navigation and anchor action confirmation</h2><p>Static pages now share one header renderer, navigation order and account highlighting. Match confirmation uses a fixed dock across setup and play, keeping previews and pending actions from moving its button. The account menu also scrolls on short screens so Sign out remains reachable.</p>
+    </article>
+    <article class="panel update-entry" id="pr-221" data-pr="221" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-08T19:25:34Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/221" target="_blank" rel="noreferrer">PR #221<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Restore local game access and add account navigation</h2><p>Local startup now provisions the current-games query index and limits concurrent computer workers, fixing unavailable game lists and exhausted browser connections. A shared My account menu adds sign-in state, sign-out and future account links with keyboard dismissal and mobile layout support.</p>
+    </article>
+    <article class="panel update-entry" id="pr-219" data-pr="219" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-08T17:09:34Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/219" target="_blank" rel="noreferrer">PR #219<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Manage local computer-player startup and shutdown</h2><p>Local review startup now launches the computer-player daemon and waits for registration before reporting readiness. Stop and restart manage the recorded daemon and its match clients, with hidden Windows console processes and checks for the required token and Node version.</p>
+    </article>
+    <article class="panel update-entry" id="pr-214" data-pr="214" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T15:11:38Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/214" target="_blank" rel="noreferrer">PR #214<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Assemble packed Human and Orc stadium bowls</h2><p>Human and Orc stadiums now assemble distinct modular paintings into dense crowd banks, wall runs and corners around a clear pitch apron. Home League selects architecture while each team supplies its supporters and bench details, with restrained gestures and preserved source artwork.</p>
+    </article>
+    <article class="panel update-entry" id="pr-218" data-pr="218" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T07:50:10Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/218" target="_blank" rel="noreferrer">PR #218<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Explain block choices and resolved outcomes in the log</h2><p>The Game Log now shows native block faces, the selected die and the coach making the final choice, including uphill blocks. Rerolls, skill use, pushes and knockdowns follow native order, with pending falling states waiting for resolution before a knockdown is reported.</p>
+    </article>
+    <article class="panel update-entry" id="pr-217" data-pr="217" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T06:27:35Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/217" target="_blank" rel="noreferrer">PR #217<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Keep checks and rerolls in chronological order</h2><p>The Game Log now preserves original trait checks, reroll sources, retry attempts and final results in order. Native mechanics and typed reports supply the thresholds and actor details, keeping the recorded history aligned with the actual sequence.</p>
+    </article>
+    <article class="panel update-entry" id="pr-216" data-pr="216" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T05:45:53Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/216" target="_blank" rel="noreferrer">PR #216<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Narrate actions and committed movement</h2><p>The Game Log now names native actions and primary rolls, including base and adjusted thresholds and outcomes. Movement summaries distinguish one planned route from separately confirmed steps. Saved Debug, Movement and Roll modifiers controls reformat the existing history as well as new entries.</p>
+    </article>
+    <article class="panel update-entry" id="pr-215" data-pr="215" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T04:49:36Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/215" target="_blank" rel="noreferrer">PR #215<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Identify chat speakers by team and spectator number</h2><p>Coach chat now uses team names, adding Home or Away only when names collide. Spectators receive stable numbered labels in muted violet after their first accepted message, consistent across viewers, paging, retries and restarts. System messages use Match.</p>
+    </article>
+    <article class="panel update-entry" id="pr-213" data-pr="213" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T04:22:28Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/213" target="_blank" rel="noreferrer">PR #213<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Explain additional movement checks before confirmation</h2><p>Movement guidance now identifies native pickup and jump targets alongside possible Diving Tackle, Tentacles and Shadowing reactions. Square details distinguish conditional effects from required rolls, use Secure the Ball&#39;s native target and show ball scatter for players unable to hold it.</p>
+    </article>
+    <article class="panel update-entry" id="pr-212" data-pr="212" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T04:06:45Z">October 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/212" target="_blank" rel="noreferrer">PR #212<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Prepare modular Human and Orc stadium artwork</h2><p>Original Human and Orc stadium sheets now provide measured modular pieces, source hashes and a generated asset catalog for the next renderer integration. The art follows shared pitch dimensions, a clear apron and two sideline portals, preserving the approved dense-bowl reference.</p>
+    </article>
+    <article class="panel update-entry" id="pr-210" data-pr="210" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T03:11:45Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/210" target="_blank" rel="noreferrer">PR #210<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Show native movement difficulty by square</h2><p>Movement squares and planned routes now show native Dodge difficulty and final Dodge and Rush targets before confirmation. Combined checks keep both labels, while safe squares retain their own color after earlier risks. Older projections and checkpoints remain readable.</p>
+    </article>
+    <article class="panel update-entry" id="pr-209" data-pr="209" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T01:48:22Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/209" target="_blank" rel="noreferrer">PR #209<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Center player bodies and their shadows</h2><p>Reviewed Human and Orc pose anchors now align visible torsos and feet with their pitch squares, correcting shifts caused by transparent padding and asymmetric artwork. Ground shadows follow the rendered contact point in angled and overhead views.</p>
+    </article>
+    <article class="panel update-entry" id="pr-208" data-pr="208" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T01:25:29Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/208" target="_blank" rel="noreferrer">PR #208<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Add a pixel football and synchronized highlight</h2><p>The ball now uses original pixel artwork with a shared pulse across its circle and arrows. Native possession hides the loose football while retaining the carried highlight, and ordered playback follows ball movement and possession changes. Out-of-play balls have no marker.</p>
+    </article>
+    <article class="panel update-entry" id="pr-207" data-pr="207" data-category="Developer tools">
+      <div class="update-meta"><span class="update-category">Developer tools</span><time datetime="2026-10-08T00:51:07Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/207" target="_blank" rel="noreferrer">PR #207<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Validate stadium assets and record the delivery review</h2><p>CI now checks canonical stadium assets before rebuilding can hide stale runtime copies. Generated catalogs retain consistent line endings, and a retrospective maps the original stadium plan to completed work, visual evidence and remaining performance, halftime and future-League verification limits.</p>
+    </article>
+    <article class="panel update-entry" id="pr-205" data-pr="205" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-08T00:34:47Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/205" target="_blank" rel="noreferrer">PR #205<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Bring restrained motion to stadium crowds and pennants</h2><p>Crowds, fire and team pennants now use sparse, staggered movement while their pitch anchors stay fixed. Human and Orc venues retain separate angled and overhead artwork, and reduced-motion mode freezes ambient effects without changing the match state.</p>
+    </article>
+    <article class="panel update-entry" id="pr-206" data-pr="206" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-08T00:29:09Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/206" target="_blank" rel="noreferrer">PR #206<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Consolidate manual skill reroll choices</h2><p>Manual reroll sources now appear once, with Pro tested before an eligible retry or block-die selection. Brawler offers eligible Both Down dice and handles a sole candidate automatically. Original results remain separate from the Pro test, and recovery consumes a saved result only once.</p>
+    </article>
+    <article class="panel update-entry" id="pr-204" data-pr="204" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-07T23:41:06Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/204" target="_blank" rel="noreferrer">PR #204<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Resolve teammate-action traits before movement</h2><p>Throw Team Mate and Kick Team Mate declarations now resolve native activation traits before legal movement. Choosing an eligible teammate creates a proposal that can be changed or cancelled before confirmation, while later checks, landing outcomes and BB2025 kick ranges follow native mechanics.</p>
+    </article>
+    <article class="panel update-entry" id="pr-203" data-pr="203" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-07T23:38:57Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/203" target="_blank" rel="noreferrer">PR #203<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Add Badlands architecture and mixed supporters</h2><p>Orc hosts now use a Badlands venue while visiting teams retain their own supporter and bench identity. Both mixed hosting arrangements share the stadium layout and camera rules, and the pavilion fits within its recess. Original artwork and provenance support future League additions.</p>
+    </article>
+    <article class="panel update-entry" id="pr-202" data-pr="202" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-10-07T23:14:09Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/202" target="_blank" rel="noreferrer">PR #202<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Launch and resume matches in the current tab</h2><p>Starting or resuming a match now uses the current tab by default, with a separate new-window option and popup-blocked fallback. Direct-link failures explain unavailable links or account access, while existing identity and match-membership checks remain in force.</p>
+    </article>
+    <article class="panel update-entry" id="pr-200" data-pr="200" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-07T22:44:31Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/200" target="_blank" rel="noreferrer">PR #200<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Add a League-aware Human stadium</h2><p>Matches now retain team-level League and roster identity independently of placed players. The browser uses that identity for an Old World Classic venue with Human supporters, recessed furnishings and foreground cutaways. Architecture and supporter catalogs provide separate foundations for later venues.</p>
+    </article>
+    <article class="panel update-entry" id="pr-201" data-pr="201" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-07T22:23:23Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/201" target="_blank" rel="noreferrer">PR #201<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Concede activated matches from game setup</h2><p>Current-game listings now offer a confirmed Concede action for activated matches without opening the pitch. The server applies native legality, results and penalties, then refreshes the list. Uncertain replies retain an explicit exact-request retry on setup.</p>
+    </article>
+    <article class="panel update-entry" id="pr-199" data-pr="199" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-10-07T21:53:46Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/199" target="_blank" rel="noreferrer">PR #199<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Find unfinished games on the setup page</h2><p>Signed-in coaches can now browse their unfinished matches without entering a game ID. Waiting and ready games offer Continue setup, activated games offer Resume, and unreadable saves show an unavailable state with refresh. Listings use authorized membership and public team details.</p>
+    </article>
+    <article class="panel update-entry" id="pr-184" data-pr="184" data-category="Design">
+      <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-07T06:21:34Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/184" target="_blank" rel="noreferrer">PR #184<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Recover match HUD and kickoff refinements</h2><p>Recovered match work aligns timers, team names and resources, adds clearer weather and kickoff guidance, and compacts action controls. Chat and log gain independent text sizes, while existing setup swaps, dugout views and newer pitch behavior remain integrated. The recovery report records deferred artwork and display review.</p>
+    </article>
+    <article class="panel update-entry" id="pr-183" data-pr="183" data-category="Project notes">
+      <div class="update-meta"><span class="update-category">Project notes</span><time datetime="2026-10-07T04:25:41Z">October 7, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/183" target="_blank" rel="noreferrer">PR #183<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Fill five gaps in the Updates history</h2><p>The Updates archive now includes the previously missing Spectate launch, cached-asset fix, Windows startup and homepage refresh, expanded-dugout setup placement and match-control refinements. Each short entry retains its verified merge date, category and PR link, bringing that audit to 105 summaries.</p>
+    </article>
     <article class="panel update-entry" id="pr-182" data-pr="182" data-category="Design">
       <div class="update-meta"><span class="update-category">Design</span><time datetime="2026-10-07T03:58:42Z">October 6, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/182" target="_blank" rel="noreferrer">PR #182<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h2>Improve match setup, movement and pitch controls</h2><p>Board clicks now plan moves for confirmation, while setup supports friendly-player swaps and explains invalid formations. Match panels gain adjustable backgrounds, compact dice and revised kickoff prompts; camera controls, ball highlighting and stadium stands are clearer. The accompanying retrospective records remaining review work.</p>

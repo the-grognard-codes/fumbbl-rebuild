@@ -1,5 +1,605 @@
 [
   {
+    "number": 377,
+    "title": "Give pitch dice more time and clearer outcomes",
+    "summary": "Pitch dice now materialize and evaporate smoothly, with football graphics highlighting armor breaks, stuns, knockouts and casualty results. Important rolls stay visible longer, while required choices remain available until resolved. Live play, replay and reduced-motion views share the updated presentation.",
+    "category": "Design",
+    "mergedAt": "2026-10-28T05:34:11Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/377"
+  },
+  {
+    "number": 372,
+    "title": "Pace movement, dice and ball events consistently",
+    "summary": "Players now move smoothly at a steady pace, with grouped dice and ball bounces presented in native order before dependent decisions appear. Coaches and spectators follow events independently; replay speed, skipping and recovery retain their existing controls.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-27T21:26:41Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/372"
+  },
+  {
+    "number": 370,
+    "title": "Highlight the square beneath the pointer",
+    "summary": "Moving a mouse, trackpad or hovering pen over the pitch now outlines the square beneath it while preserving player selection. The guide follows camera changes and hides beneath panels or special targeting, across coach, spectator and replay views.",
+    "category": "Design",
+    "mergedAt": "2026-10-27T19:51:37Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/370"
+  },
+  {
+    "number": 368,
+    "title": "Resize chat and game log independently",
+    "summary": "Chat and game log now offer minimized, default and maximized sizes, with saved choices and room for their dugouts and drive tracker. Minimized chat preserves its reading position and signals unread messages; the game log returns to the latest entries.",
+    "category": "Design",
+    "mergedAt": "2026-10-27T16:31:06Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/368"
+  },
+  {
+    "number": 365,
+    "title": "Make skill prompts smaller and rerolls clearer",
+    "summary": "Skill decisions now use compact circular prompts with a countdown, clear player pointers and a source picker when needed. Non-block rerolls offer available built-in skills first, Sidestep uses pitch arrows, and large Solid Defence setup responses remain recoverable.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-26T21:51:41Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/365"
+  },
+  {
+    "number": 362,
+    "title": "Show negative player conditions on the pitch",
+    "summary": "Distracted, chomped, rooted, Dodgy Snack, Greasy Cleats and Eye Gouged now appear as red pitch symbols and alongside posture in the player card's Status list. A saved Interface setting controls the markers, which follow native effect lifetimes through play, replay and recovery.",
+    "category": "Design",
+    "mergedAt": "2026-10-26T04:35:59Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/362"
+  },
+  {
+    "number": 358,
+    "title": "Put camera controls beside match and replay menus",
+    "summary": "Coaches and spectators can now flip perspective and cycle through 30-, 40-, 50-degree and overhead views using visible match and replay buttons. Choices are retained for each match, and overhead view remembers the selected end for a return to angled play.",
+    "category": "Design",
+    "mergedAt": "2026-10-26T01:43:34Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/358"
+  },
+  {
+    "number": 356,
+    "title": "Repair match decisions and polish dice presentation",
+    "summary": "Adjacent Blitz and ordered Multiple Block targeting now continue through their required decisions more reliably. The roundup also steadies hover effects, restores drive-facing direction, prefers equivalent routes around a loose ball and presents paired injury dice once. Solid Defence and foul-bribe flows retain manual-review follow-ups.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-25T04:47:27Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/356"
+  },
+  {
+    "number": 343,
+    "title": "Mark consumed limited actions above players",
+    "summary": "Gold pitch icons now identify the player who consumed a limited team action, with a saved Interface toggle. Tags follow players through movement, replay and recovery, then clear at the appropriate turn or drive boundary. Computer matches also avoid waiting behind workers that are idle for human input.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-24T07:14:25Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/343"
+  },
+  {
+    "number": 341,
+    "title": "Clear stadium scenery for the next overhaul",
+    "summary": "Browser matches now show the existing turf without stadium architecture, crowd banks or sideline props, preparing the scene for a later overhaul. All 390 pitch squares, players, ball, controls and targeting remain available in live play, spectator views and replay.",
+    "category": "Design",
+    "mergedAt": "2026-10-22T22:16:26Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/341"
+  },
+  {
+    "number": 339,
+    "title": "Make live actions and match delivery more responsive",
+    "summary": "Confirmed actions now take priority over queued movement guidance, use a durable recovery journal and deliver match state with its event history. Immediate feedback and conservative movement previews reduce waiting, while native results, exact recovery and replay remain authoritative. Separate measurements track remaining latency.",
+    "category": "Platform",
+    "mergedAt": "2026-10-22T18:54:23Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/339"
+  },
+  {
+    "number": 331,
+    "title": "Offer BB2025 Hail Mary passes and bombs",
+    "summary": "Pass and Throw Bomb actions now offer normal and Hail Mary modes with distinct controls and range guides. BB2025 resolution uses the player's Passing Ability, preserves eligible rerolls and prevents accurate Hail Mary results; Blizzard retains Quick and Short range limits.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-21T15:21:20Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/331"
+  },
+  {
+    "number": 323,
+    "title": "Show block targets and counted assists",
+    "summary": "Block and Blitz previews now mark the blocking square, target and counted attacking and defending assists. Committed markers remain through dice choices, rerolls and skill prompts, including spectators, replay and recovery. Multiple Block keeps separate context and native dice choices for each target.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-21T03:29:24Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/323"
+  },
+  {
+    "number": 322,
+    "title": "Save optional skill-use preferences",
+    "summary": "Coaches can choose Always Use or Always Ask for eighteen approved BB2025 skill-use cases in Game Settings. Preferences follow the account through play, reconnect and recovery, while required player or square choices and other eligible reroll resources remain available.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-21T02:09:51Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/322"
+  },
+  {
+    "number": 314,
+    "title": "Refresh Play and Team Builder",
+    "summary": "Play now shares Team Builder styling, with Human and AI buttons and illustrated coach cards showing skill levels and upcoming opponents. Team Builder adds Save as new, unique account team names, editable fantasy recruit names, player counts and clearer roster details and validation feedback.",
+    "category": "Design",
+    "mergedAt": "2026-10-20T01:59:08Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/314"
+  },
+  {
+    "number": 308,
+    "title": "Meet Bogruk the Almost Clever",
+    "summary": "Bogruk joins the selectable computer coaches at Weak difficulty, pursuing touchdowns and taking occasional purposeful risks through an independent BB2025 policy. His identity survives save and resume. Acceptance work also repairs Secure the Ball reroll choices, spectator subscriptions and memory use when saving completed matches.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-19T19:51:30Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/308"
+  },
+  {
+    "number": 312,
+    "title": "Clarify the standard delivery workflow",
+    "summary": "The documented usual method now carries agreed work through issue tracking, a working branch, implementation, review, validation and a results report. Publishing, merging and deployment are recorded as separately authorized steps, giving future handoffs a clearer stopping point.",
+    "category": "Project notes",
+    "mergedAt": "2026-10-19T16:45:32Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/312"
+  },
+  {
+    "number": 310,
+    "title": "Wait for reroll choices and artwork in browser checks",
+    "summary": "Browser validation now waits for the offered reroll state and its resource artwork before checking choices. A delayed-state and delayed-image regression covers those readiness boundaries, improving parallel local checks while preserving the existing gameplay assertions.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-19T16:37:39Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/310"
+  },
+  {
+    "number": 307,
+    "title": "Plan movement and a ball transfer together",
+    "summary": "Coaches can now plan movement, pickup and a pass or handoff to a teammate before activating the player, then confirm the sequence once. Recipient changes preserve the route, right-click removes the transfer before waypoints, and native decisions pause and resume the committed plan.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-19T03:16:14Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/307"
+  },
+  {
+    "number": 300,
+    "title": "Restore local sign-in after credential refresh",
+    "summary": "Local startup now repairs missing or incorrect development quota-project metadata in refreshed Google credentials, even when the access probe succeeds. The server restarts only when the credential file changes, restoring game sign-in without unnecessary restarts.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-18T21:10:17Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/300"
+  },
+  {
+    "number": 299,
+    "title": "Keep every confirmed movement square visible",
+    "summary": "Movement playback now waits for each displayed board state to commit before starting the next delay. This prevents short timers from skipping confirmed squares, including reduced-motion playback, while cancellation clears pending beats and ball rotation retains its existing behavior.",
+    "category": "Design",
+    "mergedAt": "2026-10-18T20:53:36Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/299"
+  },
+  {
+    "number": 298,
+    "title": "Plan Jump, Leap and Pogo movement",
+    "summary": "BB2025 movement plans now support explicit Jump, Leap and Pogo segments, including approaches before Blitz or Foul. A compact Jump control shows legal landings, difficulty and Rush warnings; confirmation follows native commands, with rerolls and recovery preserving the chosen jump.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-18T06:01:14Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/298"
+  },
+  {
+    "number": 296,
+    "title": "Display core player skills above the pitch",
+    "summary": "The 108 core BB2025 skills and traits can now appear as text badges or illustrated markers above players. Saved settings control teams, base and acquired skills, traits, size and presentation. Complete player cards, readable zoom limits and crowded-marker overflow remain available in live play and replay.",
+    "category": "Design",
+    "mergedAt": "2026-10-18T04:15:37Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/296"
+  },
+  {
+    "number": 295,
+    "title": "Offer timed BB2025 reactive skill decisions",
+    "summary": "Optional reactive skills now prompt the owning coach with native effects, required destinations and a server-enforced thirty-second deadline. Unanswered optional choices decline normally, while interrupted routes, nested reactions and reconnects retain their sequence. The update also corrects Shadowing, Dump-Off and Safe Pair of Hands handling.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-17T22:15:14Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/295"
+  },
+  {
+    "number": 292,
+    "title": "Make the game log easier to read",
+    "summary": "The game log now shows a complete scrollable history with revised event wording and current block and numeric dice graphics. Compact text, tighter line spacing and coach-colored selection outlines improve readability across the main log, Game Settings, replay and recovered history.",
+    "category": "Design",
+    "mergedAt": "2026-10-16T21:32:41Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/292"
+  },
+  {
+    "number": 291,
+    "title": "Repair preparation, movement and BB2025 skill flows",
+    "summary": "Match preparation now stays connected independently of play, and older retained matches can be conceded. Space confirms proposals, Blitz preserves waypoints, Hand Off selects its receiver, and movement ranges update along planned routes. Hit and Run, stun recovery, kickoff bribes and computer apothecary flows also gain fixes or coverage.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-16T21:02:07Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/291"
+  },
+  {
+    "number": 278,
+    "title": "Animate numeric dice in ordered roll groups",
+    "summary": "Native d6, d8 and d16 rolls now share the polygon-dice tumble, with grouped results, armor and injury captions and independent visibility. Numeric reroll choices and replay use the same presentation, preserving native outcomes, pending decisions, reduced motion and restored snapshots.",
+    "category": "Design",
+    "mergedAt": "2026-10-15T05:53:51Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/278"
+  },
+  {
+    "number": 277,
+    "title": "Compact the player action menu",
+    "summary": "Player actions now appear as eligible icon tiles with full-name tooltips, faded spent actions and a yellow selection highlight. End Turn moves beneath the active coach's timer, while Backspace uses the same confirmation flow. Pass and Hand Off declarations also allow collecting the ball during movement.",
+    "category": "Design",
+    "mergedAt": "2026-10-15T04:46:36Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/277"
+  },
+  {
+    "number": 276,
+    "title": "Keep follow-up decisions clear of the action",
+    "summary": "Follow-up prompts now sit near screen center while leaving the block initiator and destination arrow visible. Coaches can pan and scroll before deciding, and the movement preview follows the initiating player through chain pushes while preserving the original Yes and No commands.",
+    "category": "Design",
+    "mergedAt": "2026-10-14T22:51:35Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/276"
+  },
+  {
+    "number": 275,
+    "title": "Preview block strength with native polygon dice",
+    "summary": "Block and Blitz proposals now show the native signed dice count as hovering cubes, continuing through confirmation until the result arrives. One tumble reveals the authoritative faces, with red glows for uphill blocks and matching reroll presentation. Native rules and coach choices determine the outcome.",
+    "category": "Design",
+    "mergedAt": "2026-10-14T18:52:35Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/275"
+  },
+  {
+    "number": 274,
+    "title": "Explain apothecary injury choices",
+    "summary": "Apothecary prompts now name the injured player, pending injury and its effects, including stat reductions, niggling injuries and missed games. Distinct icons accompany Accept, Use, Keep and Choose options; multi-player treatment and remaining apothecary counts continue to use native decisions.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-14T17:29:06Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/274"
+  },
+  {
+    "number": 273,
+    "title": "Place kickoff balls and compare Kick landings",
+    "summary": "Kick placement now follows the pointer with a snapping ball marker and submits on the first click. New browser matches offer Kick after deviation, showing normal and alternative landings linked by an arrow. Coaches can pan while comparing them; existing matches retain their saved timing.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-14T05:00:32Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/273"
+  },
+  {
+    "number": 272,
+    "title": "Align local maintenance and Node tooling",
+    "summary": "Browser packages, computer-player tools and CI now use Node 26 consistently. A guarded local maintenance command previews stale-game cleanup before an explicit apply step, verifies transactional removal and restarts services while preserving accounts, saved teams, settings and archived backups.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-13T17:02:14Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/272"
+  },
+  {
+    "number": 270,
+    "title": "Align the pixel ball with pitch perspective",
+    "summary": "The ball highlight now sits on the pitch plane, using a slowly rotating pixel ring and counter-rotating inner arrows. Loose footballs and their shadows scale with the projected square at every zoom; carried balls retain the marker without drawing a second football.",
+    "category": "Design",
+    "mergedAt": "2026-10-13T15:23:40Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/270"
+  },
+  {
+    "number": 269,
+    "title": "Switch player activations through the next action",
+    "summary": "Coaches can plan another player's activation without explicitly ending the current one; confirmation commits the switch and waits for any required native decisions. Movement and Foul can be reviewed together, teammate clicks distinguish recipients from activation changes, and queued actions survive checkpoint recovery.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-13T05:49:49Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/269"
+  },
+  {
+    "number": 268,
+    "title": "Compare original and modular stadium studies",
+    "summary": "The development pitch preview now opens with the original stadium painting and offers hybrid-crowd and crowd-free modular wall studies. Artwork, provenance and review captures are retained. Asset synchronization preserves unchanged files, and camera checks wait for the pitch's measured size.",
+    "category": "Design",
+    "mergedAt": "2026-10-13T04:07:46Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/268"
+  },
+  {
+    "number": 267,
+    "title": "Provision a fresh local review database",
+    "summary": "A new explicit bootstrap service creates the isolated review database schema before daily local startup. Fresh-PC instructions cover container setup and credential files, while profile and data guards keep the bootstrap away from the retained development database.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-13T03:28:46Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/267"
+  },
+  {
+    "number": 266,
+    "title": "Tidy site navigation and match interactions",
+    "summary": "The site now uses one sign-in or account link, and Game Menu options fit without horizontal scrolling. Matches gain straighter equivalent routes, right-click deselection, clearer Block and Blitz targeting, teammate throw ranges and longer idle connections. Legacy saved-team cleanup is limited to reviewed team records.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-12T20:18:23Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/266"
+  },
+  {
+    "number": 255,
+    "title": "Follow each drive from setup to kickoff",
+    "summary": "A start-of-drive tracker now shows completed, current and upcoming BB2025 phases beneath the receiving team's resources. It skips inapplicable checks and highlights interactive kickoff events, then disappears before ordinary player actions. Replay and recovery retain compatible native phase information.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-11T13:21:14Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/255"
+  },
+  {
+    "number": 251,
+    "title": "Recover Dodgy Snack checkpoints consistently",
+    "summary": "Match saves now order temporary stat modifiers consistently, fixing intermittent recovery failures involving Dodgy Snack. Existing snapshots are normalized after checksum validation, allowing valid saved games to restore without depending on the native modifier set's iteration order.",
+    "category": "Platform",
+    "mergedAt": "2026-10-11T05:44:01Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/251"
+  },
+  {
+    "number": 250,
+    "title": "Inspect opposing movement threats",
+    "summary": "Selecting an unfinished friendly player now reveals opposing tackle zones and movement-skill threats during regular turns and Charge! Saved Game Settings control zone colors, Tackle warnings and striped skill areas. Local browser validation also gains isolated parallel shards with complete coverage checks.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-11T04:42:50Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/250"
+  },
+  {
+    "number": 246,
+    "title": "Keep generated site output out of version control",
+    "summary": "Generated public-site files now stay local and ignored, with tracked source pages and build scripts providing the published inputs. The update removes previously tracked output and documents how rebuilding and Firebase Hosting assembly recreate it.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-10T18:08:01Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/246"
+  },
+  {
+    "number": 244,
+    "title": "Add modular stadium crowds and accessories",
+    "summary": "Modular stadium pieces now combine mixed Human, Dwarf and Halfling supporters or Orc, Goblin, Ogre and Troll crowds. Rounded overhead stands, wall caps, recessed towels and spare jerseys complete the scene, with local gestures, source provenance and assembled review captures.",
+    "category": "Design",
+    "mergedAt": "2026-10-10T06:59:54Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/244"
+  },
+  {
+    "number": 243,
+    "title": "Outline player movement ranges",
+    "summary": "Selected players now show blue normal-movement and yellow Rush perimeters, with small warnings in Rush-only squares. Active players use their remaining allowance; inactive-team inspection shows the next activation. Ranges refresh after committed routes, while Jump, Leap and Pogo shortcuts remain outside the ordinary forecast.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-10T06:51:32Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/243"
+  },
+  {
+    "number": 239,
+    "title": "Split validation by delivery environment",
+    "summary": "Validation now uses isolated native shards and checks browser coverage at the required deployment stage. Local review runs full browser checks before restart; DEV publication requires an explicit command and local preflight, while production verifies the exact tagged release before approval and publication.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-09T23:54:29Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/239"
+  },
+  {
+    "number": 237,
+    "title": "Remove filled movement and risk markings",
+    "summary": "Live matches no longer show filled movement ranges, Dodge and Rush squares or risk legends from the earlier movement flow. Player selection, route lines, waypoint dots, right-click undo and single-confirmation Move and Blitz remain, with native legality, rolls and logs preserved.",
+    "category": "Design",
+    "mergedAt": "2026-10-09T22:04:28Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/237"
+  },
+  {
+    "number": 236,
+    "title": "Recover startup checks and diagnostic routing",
+    "summary": "Preserved startup and documentation work now joins the current implementation, including bounded DEV WebSocket health checks and production SSH readiness. Diagnostic routes retain the Play prefix, query and fragment, and project links return to the README. Browser fixtures also follow the revised movement flow.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-09T04:24:18Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/236"
+  },
+  {
+    "number": 235,
+    "title": "Confirm movement and Blitz in one step",
+    "summary": "Selecting a player and destination now prepares movement for one confirmation, including adjacent squares. Waypoint dots unify route planning, right-click undoes the latest segment, and selecting an opponent prepares a Blitz approach. The change also introduced movement-range guidance later revised by subsequent updates.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-09T03:10:12Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/235"
+  },
+  {
+    "number": 229,
+    "title": "Give game displays the full browser area",
+    "summary": "Coach, spectator and result-replay displays now hide the shared site top bar, giving the pitch and game controls more room. Play setup and ordinary site pages retain their navigation.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T22:48:32Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/229"
+  },
+  {
+    "number": 227,
+    "title": "Use one logo across site headers",
+    "summary": "Every site page now shares the existing mole-and-wordmark logo at a consistent proportional size, alongside the same navigation and account menu. The account popover follows the header's actual position as fonts load, pages scroll and layouts resize.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T22:11:34Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/227"
+  },
+  {
+    "number": 225,
+    "title": "Streamline Play setup and live controls",
+    "summary": "Play now puts game creation first and lists current games afterward using matchup cards with Resume and guarded Concede controls. Routine connection labels and duplicate setup hints are removed. Live log preferences are shared with Game Menu, and confirmation stays centered without the setup background bar.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T21:17:39Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/225"
+  },
+  {
+    "number": 223,
+    "title": "Unify navigation and anchor action confirmation",
+    "summary": "Static pages now share one header renderer, navigation order and account highlighting. Match confirmation uses a fixed dock across setup and play, keeping previews and pending actions from moving its button. The account menu also scrolls on short screens so Sign out remains reachable.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T20:38:38Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/223"
+  },
+  {
+    "number": 221,
+    "title": "Restore local game access and add account navigation",
+    "summary": "Local startup now provisions the current-games query index and limits concurrent computer workers, fixing unavailable game lists and exhausted browser connections. A shared My account menu adds sign-in state, sign-out and future account links with keyboard dismissal and mobile layout support.",
+    "category": "Platform",
+    "mergedAt": "2026-10-08T19:25:34Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/221"
+  },
+  {
+    "number": 219,
+    "title": "Manage local computer-player startup and shutdown",
+    "summary": "Local review startup now launches the computer-player daemon and waits for registration before reporting readiness. Stop and restart manage the recorded daemon and its match clients, with hidden Windows console processes and checks for the required token and Node version.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-08T17:09:34Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/219"
+  },
+  {
+    "number": 214,
+    "title": "Assemble packed Human and Orc stadium bowls",
+    "summary": "Human and Orc stadiums now assemble distinct modular paintings into dense crowd banks, wall runs and corners around a clear pitch apron. Home League selects architecture while each team supplies its supporters and bench details, with restrained gestures and preserved source artwork.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T15:11:38Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/214"
+  },
+  {
+    "number": 218,
+    "title": "Explain block choices and resolved outcomes in the log",
+    "summary": "The Game Log now shows native block faces, the selected die and the coach making the final choice, including uphill blocks. Rerolls, skill use, pushes and knockdowns follow native order, with pending falling states waiting for resolution before a knockdown is reported.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T07:50:10Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/218"
+  },
+  {
+    "number": 217,
+    "title": "Keep checks and rerolls in chronological order",
+    "summary": "The Game Log now preserves original trait checks, reroll sources, retry attempts and final results in order. Native mechanics and typed reports supply the thresholds and actor details, keeping the recorded history aligned with the actual sequence.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T06:27:35Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/217"
+  },
+  {
+    "number": 216,
+    "title": "Narrate actions and committed movement",
+    "summary": "The Game Log now names native actions and primary rolls, including base and adjusted thresholds and outcomes. Movement summaries distinguish one planned route from separately confirmed steps. Saved Debug, Movement and Roll modifiers controls reformat the existing history as well as new entries.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T05:45:53Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/216"
+  },
+  {
+    "number": 215,
+    "title": "Identify chat speakers by team and spectator number",
+    "summary": "Coach chat now uses team names, adding Home or Away only when names collide. Spectators receive stable numbered labels in muted violet after their first accepted message, consistent across viewers, paging, retries and restarts. System messages use Match.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T04:49:36Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/215"
+  },
+  {
+    "number": 213,
+    "title": "Explain additional movement checks before confirmation",
+    "summary": "Movement guidance now identifies native pickup and jump targets alongside possible Diving Tackle, Tentacles and Shadowing reactions. Square details distinguish conditional effects from required rolls, use Secure the Ball's native target and show ball scatter for players unable to hold it.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T04:22:28Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/213"
+  },
+  {
+    "number": 212,
+    "title": "Prepare modular Human and Orc stadium artwork",
+    "summary": "Original Human and Orc stadium sheets now provide measured modular pieces, source hashes and a generated asset catalog for the next renderer integration. The art follows shared pitch dimensions, a clear apron and two sideline portals, preserving the approved dense-bowl reference.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T04:06:45Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/212"
+  },
+  {
+    "number": 210,
+    "title": "Show native movement difficulty by square",
+    "summary": "Movement squares and planned routes now show native Dodge difficulty and final Dodge and Rush targets before confirmation. Combined checks keep both labels, while safe squares retain their own color after earlier risks. Older projections and checkpoints remain readable.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T03:11:45Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/210"
+  },
+  {
+    "number": 209,
+    "title": "Center player bodies and their shadows",
+    "summary": "Reviewed Human and Orc pose anchors now align visible torsos and feet with their pitch squares, correcting shifts caused by transparent padding and asymmetric artwork. Ground shadows follow the rendered contact point in angled and overhead views.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T01:48:22Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/209"
+  },
+  {
+    "number": 208,
+    "title": "Add a pixel football and synchronized highlight",
+    "summary": "The ball now uses original pixel artwork with a shared pulse across its circle and arrows. Native possession hides the loose football while retaining the carried highlight, and ordered playback follows ball movement and possession changes. Out-of-play balls have no marker.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T01:25:29Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/208"
+  },
+  {
+    "number": 207,
+    "title": "Validate stadium assets and record the delivery review",
+    "summary": "CI now checks canonical stadium assets before rebuilding can hide stale runtime copies. Generated catalogs retain consistent line endings, and a retrospective maps the original stadium plan to completed work, visual evidence and remaining performance, halftime and future-League verification limits.",
+    "category": "Developer tools",
+    "mergedAt": "2026-10-08T00:51:07Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/207"
+  },
+  {
+    "number": 205,
+    "title": "Bring restrained motion to stadium crowds and pennants",
+    "summary": "Crowds, fire and team pennants now use sparse, staggered movement while their pitch anchors stay fixed. Human and Orc venues retain separate angled and overhead artwork, and reduced-motion mode freezes ambient effects without changing the match state.",
+    "category": "Design",
+    "mergedAt": "2026-10-08T00:34:47Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/205"
+  },
+  {
+    "number": 206,
+    "title": "Consolidate manual skill reroll choices",
+    "summary": "Manual reroll sources now appear once, with Pro tested before an eligible retry or block-die selection. Brawler offers eligible Both Down dice and handles a sole candidate automatically. Original results remain separate from the Pro test, and recovery consumes a saved result only once.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-08T00:29:09Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/206"
+  },
+  {
+    "number": 204,
+    "title": "Resolve teammate-action traits before movement",
+    "summary": "Throw Team Mate and Kick Team Mate declarations now resolve native activation traits before legal movement. Choosing an eligible teammate creates a proposal that can be changed or cancelled before confirmation, while later checks, landing outcomes and BB2025 kick ranges follow native mechanics.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-07T23:41:06Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/204"
+  },
+  {
+    "number": 203,
+    "title": "Add Badlands architecture and mixed supporters",
+    "summary": "Orc hosts now use a Badlands venue while visiting teams retain their own supporter and bench identity. Both mixed hosting arrangements share the stadium layout and camera rules, and the pavilion fits within its recess. Original artwork and provenance support future League additions.",
+    "category": "Design",
+    "mergedAt": "2026-10-07T23:38:57Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/203"
+  },
+  {
+    "number": 202,
+    "title": "Launch and resume matches in the current tab",
+    "summary": "Starting or resuming a match now uses the current tab by default, with a separate new-window option and popup-blocked fallback. Direct-link failures explain unavailable links or account access, while existing identity and match-membership checks remain in force.",
+    "category": "Platform",
+    "mergedAt": "2026-10-07T23:14:09Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/202"
+  },
+  {
+    "number": 200,
+    "title": "Add a League-aware Human stadium",
+    "summary": "Matches now retain team-level League and roster identity independently of placed players. The browser uses that identity for an Old World Classic venue with Human supporters, recessed furnishings and foreground cutaways. Architecture and supporter catalogs provide separate foundations for later venues.",
+    "category": "Design",
+    "mergedAt": "2026-10-07T22:44:31Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/200"
+  },
+  {
+    "number": 201,
+    "title": "Concede activated matches from game setup",
+    "summary": "Current-game listings now offer a confirmed Concede action for activated matches without opening the pitch. The server applies native legality, results and penalties, then refreshes the list. Uncertain replies retain an explicit exact-request retry on setup.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-07T22:23:23Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/201"
+  },
+  {
+    "number": 199,
+    "title": "Find unfinished games on the setup page",
+    "summary": "Signed-in coaches can now browse their unfinished matches without entering a game ID. Waiting and ready games offer Continue setup, activated games offer Resume, and unreadable saves show an unavailable state with refresh. Listings use authorized membership and public team details.",
+    "category": "Gameplay",
+    "mergedAt": "2026-10-07T21:53:46Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/199"
+  },
+  {
+    "number": 184,
+    "title": "Recover match HUD and kickoff refinements",
+    "summary": "Recovered match work aligns timers, team names and resources, adds clearer weather and kickoff guidance, and compacts action controls. Chat and log gain independent text sizes, while existing setup swaps, dugout views and newer pitch behavior remain integrated. The recovery report records deferred artwork and display review.",
+    "category": "Design",
+    "mergedAt": "2026-10-07T06:21:34Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/184"
+  },
+  {
+    "number": 183,
+    "title": "Fill five gaps in the Updates history",
+    "summary": "The Updates archive now includes the previously missing Spectate launch, cached-asset fix, Windows startup and homepage refresh, expanded-dugout setup placement and match-control refinements. Each short entry retains its verified merge date, category and PR link, bringing that audit to 105 summaries.",
+    "category": "Project notes",
+    "mergedAt": "2026-10-07T04:25:41Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/183"
+  },
+  {
     "number": 182,
     "title": "Improve match setup, movement and pitch controls",
     "summary": "Board clicks now plan moves for confirmation, while setup supports friendly-player swaps and explains invalid formations. Match panels gain adjustable backgrounds, compact dice and revised kickoff prompts; camera controls, ball highlighting and stadium stands are clearer. The accompanying retrospective records remaining review work.",
