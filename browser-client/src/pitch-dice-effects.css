@@ -1,0 +1,52 @@
+/* Approved round-four presentation. All transforms here belong to outcome art
+   or the outer evaporation layer; PolygonDie owns its original tumble. */
+.pitch-dice-lifetime { --dice-rate: 1; position: relative; flex: 0 0 auto; max-width: 100%; }
+.pitch-dice-arrival { animation: pitch-dice-materialize calc(200ms / var(--dice-rate)) linear both; }
+.pitch-dice-lifetime.exiting { pointer-events: none; animation: pitch-dice-evaporate calc(200ms / var(--dice-rate)) ease-in both; }
+.pitch-roll-result { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 7px; }
+.pitch-roll-group { --effect-fill: #22547c; --effect-edge: #4db2ff; --effect-light: #c1e9ff; --effect-dark: #101c2b; font-family: MUTP,sans-serif; font-weight: 700; }
+.pitch-roll-group[data-casualty-type=true] { --effect-fill: #466276; --effect-edge: #afc9da; --effect-light: #e9ecdc; }
+.pitch-dice-outcome { display: block; width: 48px; height: 48px; flex: 0 0 48px;
+  animation: pitch-outcome-reveal 1ms linear both; animation-delay: var(--outcome-delay,620ms); }
+.pitch-dice-outcome .outcome-art { display: block; width: 48px; height: 48px; overflow: visible; filter: drop-shadow(0 2px 2px #071321b0); }
+.pitch-dice-outcome :is(.armor-left,.armor-right,.impact-flare,.star-orbit,.bonk,.bonked-player,.stretcher,.stretcher-player,.result-pulse,.casualty-upper-body,.casualty-lower-body) {
+  animation-delay: var(--outcome-delay,620ms); animation-fill-mode: both;
+}
+.pitch-dice-outcome :is(.armor-left,.armor-right) { transform-origin: 24px 24px; animation-duration: calc(1000ms / var(--dice-rate)); animation-timing-function: ease-out; }
+.pitch-dice-outcome .armor-left { animation-name: pitch-pads-left; }
+.pitch-dice-outcome .armor-right { animation-name: pitch-pads-right; }
+.pitch-dice-outcome .impact-flare { transform-origin: 24px 20px; animation-name: pitch-outcome-impact; animation-duration: calc(920ms / var(--dice-rate)); animation-timing-function: ease-out; }
+.pitch-dice-outcome .star-orbit { transform-origin: 24px 12px; animation-name: pitch-outcome-stars; animation-duration: calc(3000ms / var(--dice-rate)); animation-timing-function: linear; animation-iteration-count: infinite; }
+.pitch-dice-outcome .bonk { transform-origin: 28px 9px; animation-name: pitch-outcome-bonk; animation-duration: calc(960ms / var(--dice-rate)); animation-timing-function: ease-in-out; }
+.pitch-dice-outcome .bonked-player { transform-origin: 24px 32px; animation-name: pitch-outcome-bonked; animation-duration: calc(960ms / var(--dice-rate)); animation-timing-function: ease-out; }
+.pitch-dice-outcome :is(.stretcher,.stretcher-player) { animation-duration: calc(1200ms / var(--dice-rate)); animation-timing-function: ease-out; }
+.pitch-dice-outcome .stretcher { animation-name: pitch-outcome-stretcher; }
+.pitch-dice-outcome .stretcher-player { animation-name: pitch-outcome-place-player; }
+.pitch-dice-outcome :is(.casualty-upper-body,.casualty-lower-body) { transform-origin: 25px 26px; animation-duration: calc(1200ms / var(--dice-rate)); animation-timing-function: ease-in-out; }
+.pitch-dice-outcome .casualty-upper-body { animation-name: pitch-plop-upper; }
+.pitch-dice-outcome .casualty-lower-body { animation-name: pitch-plop-lower; }
+.pitch-dice-outcome .result-pulse { animation-name: pitch-outcome-pulse; animation-duration: calc(3000ms / var(--dice-rate)); animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+.pitch-dice-evaporation { position: absolute; inset: 14px 20px 0; pointer-events: none; }
+.pitch-dice-evaporation i { position: absolute; left: calc(10% + var(--wisp)*15%); top: 55%; width: 3px; height: 3px; background: #bceaff; border-radius: 1px;
+  --drift: calc((var(--wisp) - 2.5)*3px); animation: pitch-dice-wisp calc(200ms / var(--dice-rate)) ease-out both; }
+@keyframes pitch-dice-materialize { from { opacity: 0; filter: blur(1.5px); } to { opacity: 1; filter: blur(0); } }
+@keyframes pitch-dice-evaporate { 0% { opacity: 1; filter: blur(0); transform: translateY(0); } 40% { opacity: .7; filter: blur(.8px); } 100% { opacity: 0; filter: blur(3px); transform: translateY(-11px) scale(.95); } }
+@keyframes pitch-dice-wisp { 0% { opacity: 0; transform: translate(0,0); } 25% { opacity: .85; } 100% { opacity: 0; transform: translate(var(--drift),-25px); } }
+@keyframes pitch-outcome-reveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pitch-pads-left { from { transform: translate(0,0) rotate(0); } to { transform: translate(-3px,1px) rotate(-5deg); } }
+@keyframes pitch-pads-right { from { transform: translate(0,0) rotate(0); } to { transform: translate(3px,2px) rotate(6deg); } }
+@keyframes pitch-outcome-impact { 0%,12% { opacity: 0; transform: scale(.4); } 35% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.2); } }
+@keyframes pitch-outcome-stars { 0% { transform: rotateY(0) rotateZ(-8deg); } 50% { transform: rotateY(180deg) rotateZ(8deg); } 100% { transform: rotateY(360deg) rotateZ(-8deg); } }
+@keyframes pitch-outcome-bonk { 0% { transform: translateY(-9px) rotate(-24deg); } 38% { transform: translateY(3px) rotate(12deg); } 100% { transform: translateY(-7px) rotate(-16deg); } }
+@keyframes pitch-outcome-bonked { 0%,32% { transform: rotate(0); } 48% { transform: rotate(14deg); } 100% { transform: rotate(7deg); } }
+@keyframes pitch-outcome-stretcher { from { transform: translateX(-9px); } to { transform: translateX(0); } }
+@keyframes pitch-outcome-place-player { 0% { transform: translate(4px,-9px); } 60% { transform: translate(0,0); } 80% { transform: translateY(-2px); } 100% { transform: translate(0,0); } }
+@keyframes pitch-plop-upper { 0%,35% { transform: rotate(0); } 60% { transform: rotate(14deg); } 80% { transform: rotate(4deg); } 100% { transform: rotate(0); } }
+@keyframes pitch-plop-lower { 0%,35% { transform: rotate(0); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@keyframes pitch-outcome-pulse { 0%,100% { opacity: 1; } 50% { opacity: .62; } }
+.static-dice,.static-dice * { animation: none!important; }
+.static-dice :is(.impact-flare,.pitch-dice-evaporation) { display: none; }
+@media(prefers-reduced-motion:reduce) {
+  .pitch-dice-lifetime,.pitch-dice-lifetime * { animation: none!important; }
+  .pitch-dice-lifetime.exiting,.pitch-dice-evaporation,.pitch-dice-outcome .impact-flare { display: none; }
+}

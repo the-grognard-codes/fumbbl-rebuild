@@ -1,0 +1,13 @@
+/* Round one stays byte-for-byte intact. These additions apply only to round two. */
+.native-review-die { display: inline-block; width: 44px; height: 44px; }
+.no-entrance-fade .review-arrival { animation: none; }
+.round-links { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 12px; }
+.round-links a { color: #ffe17b; text-underline-offset: 3px; }
+.round-links span { color: #93b0c9; font-size: 10px; }
+.motion-comparison { margin: 20px 0; }
+.motion-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.motion-options article { border: 1px solid #29435b; background: #101c2b; padding: 16px 12px; text-align: center; }
+.motion-options h3 { color: #edf5ff; font-size: 13px; }
+.motion-options p { color: #93b0c9; font-size: 11px; margin-top: 4px; }
+.motion-options .native-sample { height: 100px; }
+@media(max-width:760px) { .motion-options { grid-template-columns: minmax(0,1fr); } }

@@ -1,0 +1,155 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "entranceMs": 125,
+      "effectiveNativeTumbleMs": 620,
+      "exitMs": 200,
+      "ordinaryHoldMs": 2400,
+      "emphasizedHoldMs": 4800,
+      "cadenceMs": 1000,
+      "unchangedNativeEffects": 56,
+      "colorScheme": [
+        {
+          "kind": "armor",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "stun",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "ko",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "casualty",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "bh",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#b2dfaa"
+        },
+        {
+          "kind": "mng",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#f2cd78"
+        },
+        {
+          "kind": "ni",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#eba86c"
+        },
+        {
+          "kind": "stat",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#e6a5b3"
+        },
+        {
+          "kind": "dead",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#ee9295"
+        }
+      ],
+      "centeredLabels": true,
+      "widerPadSplit": true,
+      "noStretcherWheels": true,
+      "helmetAndCleats": true,
+      "revealOrder": true,
+      "loopAndPause": true,
+      "reducedMotion": true,
+      "noOverflow": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "entranceMs": 125,
+      "effectiveNativeTumbleMs": 620,
+      "exitMs": 200,
+      "ordinaryHoldMs": 2400,
+      "emphasizedHoldMs": 4800,
+      "cadenceMs": 1000,
+      "unchangedNativeEffects": 56,
+      "colorScheme": [
+        {
+          "kind": "armor",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "stun",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "ko",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "casualty",
+          "fill": "#22547c",
+          "edge": "#4db2ff",
+          "accent": "#ffe17b"
+        },
+        {
+          "kind": "bh",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#b2dfaa"
+        },
+        {
+          "kind": "mng",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#f2cd78"
+        },
+        {
+          "kind": "ni",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#eba86c"
+        },
+        {
+          "kind": "stat",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#e6a5b3"
+        },
+        {
+          "kind": "dead",
+          "fill": "#466276",
+          "edge": "#afc9da",
+          "accent": "#ee9295"
+        }
+      ],
+      "centeredLabels": true,
+      "widerPadSplit": true,
+      "noStretcherWheels": true,
+      "helmetAndCleats": true,
+      "revealOrder": true,
+      "loopAndPause": true,
+      "reducedMotion": true,
+      "noOverflow": true,
+      "errors": []
+    }
+  ],
+  "earlierRoundsPreserved": true
+}

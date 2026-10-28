@@ -7,6 +7,7 @@ import { createServer } from './browser-test-server.mjs';
 import { assertPitchWithoutStadium } from './pitch-appearance-helper.mjs';
 import { verifyDiceStream } from './dice-stream-checks.mjs';
 import { DICE_GROUP_INTERVAL_MS, DICE_RETENTION_MS } from '../src/dice-stream.ts';
+import { DICE_ENTRANCE_MS, DICE_EXIT_MS, PITCH_DICE_ROLL_MS } from '../src/presentation-timing.ts';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const pickupReport = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8'))[0].reports[0];
@@ -41,7 +42,7 @@ try {
   assert.deepEqual(await shown.evaluateAll(elements => elements.map(element => element.dataset.face)), ['SKULL','PUSHBACK','POW']);
   const animations = await shown.locator('.block-die-cube').evaluateAll(elements => elements.flatMap(element => element.getAnimations().map(animation => ({ duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes() }))));
   assert.equal(animations.length,3,'Each native block die has one tumble animation');
-  assert.ok(animations.every(animation => animation.duration === 310),'Symbolic block rolls finish in 310ms');
+  assert.ok(animations.every(animation => animation.duration === PITCH_DICE_ROLL_MS),'Pitch block rolls use the approved 620ms pace');
   assert.ok(animations.every(animation => animation.frames.length === 2), 'Each roll blends both diagonals in one continuous animation');
   const turns = animations.map(animation => animation.frames.map(frame =>
     [...frame.transform.matchAll(/rotate3d\(([^)]+),\s*(-?\d+)deg\)/g)]));
@@ -53,13 +54,13 @@ try {
     'The second diagonal opposes the first');
   assert.notEqual(turns[0][1][0][2], turns[1][1][0][2], 'Adjacent dice tumble in opposite directions');
   assert.ok(animations.every(animation => animation.frames.every(frame => !frame.transform || !/translate\([^)]*[4-9]px/.test(frame.transform))));
-  await page.clock.runFor(500);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await page.locator('#required-choice').waitFor();
   // A newer accepted board takes effect while old dice are still spinning.
   await publish({ view: state(2,8), records:[record(0),rolled,record(2,8)] });
   await page.clock.resume();
   await wait(2,8);
-  assert.equal(await page.locator('.live-dice-overlay').count(),0);
+  await page.waitForFunction(() => !document.querySelector('.live-dice-overlay'));
   const moves = record(3,11,[{ modelChangeList: { modelChangeArray:[change(9),change(10),change(11)] } }]);
   await page.evaluate(() => { window.playbackFrames = []; });
   await publish({ view:state(3,11),records:[record(0),rolled,record(2,8),moves] }); await wait(3,11);
@@ -87,7 +88,7 @@ try {
   await page.evaluate(()=>{window.playbackFrames=[];});
   await publish({view:state(10,24),records:Array.from({length:11},(_,revision)=>record(revision,revision===10?24:21,revision===10?[{reportList:{reports:[dice]},modelChangeList:{modelChangeArray:[change(22),change(23),change(24)]}}]:[]))});
   await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 3);
-  await page.clock.runFor(500);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await page.waitForFunction(()=>document.querySelector('#playback-state').dataset.x==='22');
   // Advance the short timers together to catch updates batched before a commit.
   await page.clock.runFor(64);
@@ -113,8 +114,8 @@ try {
   assert.equal(await rerollPrompt.locator('.match-die').count(),0,'Pending reroll dice remain separate from the circular prompt');
   const promptDice = page.locator('.pitch-decision-overlay[role="status"] .match-die');
   await promptDice.waitFor(); await page.waitForTimeout(500);
-  assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after 310ms');
-  assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after 310ms');
+  assert.equal(await promptDice.count(),1, 'A pending reroll retains its die after the roll');
+  assert.equal(await promptDice.getAttribute('data-face'), String(pickupReport.roll), 'A pending reroll retains the native result after the roll');
   assert.equal(await promptDice.evaluateAll(elements=>elements.flatMap(element=>element.getAnimations()).length),0, 'Retaining the result does not extend the animation');
   await publish({ view: pending, interactive: true, records: pendingHistory, enabled: false }); await wait(12,22);
   await publish({ view: pending, interactive: true, records: pendingHistory }); await promptDice.waitFor();
@@ -138,8 +139,8 @@ try {
     await page.clock.runFor(200);
   }
   await wait(14,24);
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['2'],
-    'Earlier rolls expire independently while the final rush stays visible');
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['6','2'],
+    'The approved longer hold retains the latest rolls while earlier ones expire independently');
   const rollOrder = await page.evaluate(() => window.playbackFrames.flatMap((frame,index,all) =>
     frame.faces.length && frame.faces.at(-1) !== all[index-1]?.faces.at(-1) ? [frame.faces.at(-1)] : []));
   assert.deepEqual(rollOrder.slice(-4), ['5','4','6','2']);
@@ -148,7 +149,7 @@ try {
   await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
     revision===15?continuation:revision===14?success:record(revision,22)) });
   await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['2','3'],
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['6','2','3'],
     'A later authoritative revision joins the retained roll stream');
   await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await page.waitForFunction(() => document.querySelector('#playback-state').dataset.x === '25');
@@ -157,7 +158,7 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
   const continuedFaces = await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face));
   assert.equal(continuedFaces.at(-1), '3', 'A later authoritative revision joins the same stream');
-  await page.clock.runFor(DICE_RETENTION_MS);
+  await page.clock.runFor(DICE_RETENTION_MS + DICE_ENTRANCE_MS + DICE_EXIT_MS);
   await page.waitForFunction(() => !document.querySelector('.live-dice-overlay[role="status"] .match-die'));
   await page.clock.resume();
   await publish({view:state(15,25),records:[],enabled:false}); await wait(15,25);

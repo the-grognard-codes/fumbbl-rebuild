@@ -14,6 +14,7 @@ declare global {
   interface Window {
     playbackInput: Input;
     publishPlayback: (input: Input) => void;
+    playbackActions: string[];
     beginProvisional: (route: RoutePreview) => void;
     playbackFrames: { ms: number; revision: number; x: number | null; actorX: number | null; ballX: number | null;
       carrier: string | null; active: boolean; duration: number; faces: string[]; labels: string[] }[];
@@ -22,7 +23,8 @@ declare global {
 function Harness() {
   const [input, setInput] = useState(window.playbackInput);
   window.publishPlayback = setInput;
-  const { pitchView, playbackActive, diceMoment, movementDuration, beginProvisional, synchronizing } =
+  window.playbackActions ??= [];
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration, beginProvisional, synchronizing } =
     usePitchPlayback(input.view, input.records, input.enabled, input.speed ?? 1, input.mode, input.requestPending ?? null, input.snapshotKey);
   window.beginProvisional = beginProvisional;
   useLayoutEffect(() => {
@@ -36,8 +38,10 @@ function Harness() {
       data-active={playbackActive} data-synchronizing={synchronizing} data-duration={movementDuration} data-roll-key={diceMoment?.rollKey ?? ''}/>
     {!playbackActive && (input.view.prompt || input.view.actions.length > 0) && <button id="required-choice">Required choice</button>}
     <LivePitch view={pitchView} selectedId="" actions={[]} diceMoment={diceMoment} readOnly={!input.interactive || playbackActive} playback={playbackActive}
+      diceSnapshot={diceSnapshot && !playbackActive}
       movementDuration={playbackActive ? movementDuration : 0}
       decision={input.interactive && !playbackActive ? matchDecision(input.view, input.view.actions) : null}
+      onDecisionAction={id => window.playbackActions.push(id)}
       onSelectPlayer={() => {}} onSquare={() => {}}/>
     <div id="dice-specimens">{['1','2','3','4','5','6','SKULL','BOTH DOWN','PUSHBACK','PUSHBACK','POW/PUSH','POW','unknown'].map((face,index) => <DiceFace key={index} face={face} selected={index===11}/>)}</div>
   </main>;

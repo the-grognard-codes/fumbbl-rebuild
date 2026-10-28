@@ -124,6 +124,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, inter
   const visibleDice = diceMoment ?? (!playbackActive && (skipAnimations || diceSnapshot) ? moments.at(-1) ?? null : null);
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
+      diceSnapshot={skipAnimations || diceSnapshot && !playbackActive}
       interactionBlocked={interactionBlocked}
       animateBlockMarkers={!skipAnimations}
       movementDuration={playbackActive ? movementDuration : 0}

@@ -2,12 +2,16 @@ import type { TranscriptRecord } from './transcript-protocol.ts';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { BlockContext } from './block-context.ts';
+import { casualtyOutcome, injuryOutcome, statInjury } from './dice-outcomes.ts';
+import type { DiceOutcome } from './dice-outcomes.ts';
 
-export type PresentedRoll = { label: string; face: string; kind?: DieKind; rollKey?: string };
+export type PresentedRoll = { label: string; face: string; kind?: DieKind; rollKey?: string;
+  outcome?: DiceOutcome; emphasized?: boolean };
 
 export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null;
   rollKey?: string; rollDuration?: number; revision?: number; uphill?: boolean; chooser?: 'home' | 'away'; rolls?: PresentedRoll[]; groups?: DiceRollGroup[];
-  blockContext?: BlockContext | null };
+  blockContext?: BlockContext | null; outcome?: DiceOutcome; emphasized?: boolean;
+  static?: boolean; exiting?: boolean; rate?: number };
 
 export type DiceRollGroup = DiceMoment & { key: string };
 
@@ -19,7 +23,8 @@ export function diceRollGroups(moment: DiceMoment): DiceMoment[] {
     const previous = groups.at(-1);
     if (previous?.label === roll.label) {
       previous.faces.push(roll.face); previous.rolls!.push(roll);
-    } else groups.push({ ...moment, label: roll.label, faces: [roll.face], rolls: [roll] });
+    } else groups.push({ ...moment, label: roll.label, faces: [roll.face], rolls: [roll],
+      outcome: roll.outcome ?? moment.outcome, emphasized: roll.emphasized ?? moment.emphasized });
   }
   return groups;
 }
@@ -35,6 +40,31 @@ const scalarD6 = new Set(['goForItRoll', 'dodgeRoll', 'pickUpRoll', 'catchRoll',
   'lookIntoMyEyesRoll', 'dwarfenWisdomRoll', 'escapeRoll', 'allYouCanEat', 'balefulHex', 'breatheFire',
   'catchOfTheDay', 'projectileVomit', 'bombExplodesAfterCatch', 'mascotUsed', 'kickoffRiot', 'oldPro',
   'pickMeUp', 'thenIStartedBlastin', 'throwAtStallingPlayer', 'thrownKeg', 'trapDoor', 'throwAtPlayer', 'biasedRef', 'tentaclesShadowingRoll']);
+
+function injuryRollPresentation(report: Record<string, unknown>, rolls: PresentedRoll[]): PresentedRoll[] {
+  if (report.reportId !== 'injury' && report.reportId !== 'apothecaryRoll') return rolls;
+  const apothecary = report.reportId === 'apothecaryRoll';
+  return rolls.map((roll, index) => {
+    const label = roll.label.toLowerCase();
+    if (/^armou?r$/.test(label)) return { ...roll, outcome: report.armorBroken === true ? 'armor' : undefined,
+      emphasized: report.armorBroken === true };
+    if (label === 'injury') return { ...roll, outcome: injuryOutcome(report.injury), emphasized: true };
+    if (!/casualty|serious injury/.test(label)) return roll;
+    const decay = label.includes('decay');
+    const serious = decay ? report.seriousInjuryDecay : report.seriousInjury;
+    const injury = apothecary ? report.playerState : decay ? report.injuryDecay : report.injury;
+    const outcome = casualtyOutcome(injury, serious, apothecary);
+    // Modern reports explicitly contain D16 + D6. Only a named stat-injury
+    // detail (or its capped original) makes the latter a separate SI stage.
+    const detail = statInjury(serious) || !decay && statInjury(report.seriousInjuryOld);
+    const first = roll.kind === 'd16' && rolls[index + 1]?.kind === 'd6' && rolls[index + 1]?.label === roll.label;
+    const second = roll.kind === 'd6' && rolls[index - 1]?.kind === 'd16' && rolls[index - 1]?.label === roll.label;
+    if (detail && first) return { ...roll, label: apothecary ? `Apothecary ${roll.label.toLowerCase()}` : roll.label, emphasized: true };
+    const shownLabel = detail && second ? decay ? 'Decay serious injury' : 'Serious injury' : roll.label;
+    return { ...roll, label: apothecary ? `Apothecary ${shownLabel.toLowerCase()}` : shownLabel,
+      outcome, emphasized: true };
+  });
+}
 
 export function numericRolls(value: unknown): PresentedRoll[] | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -107,7 +137,8 @@ export function reportedDice(report: Record<string, unknown>, players: SetupPlay
       ...(uphill !== undefined ? { uphill } : {}), ...(block?.chooser === 'home' || block?.chooser === 'away' ? { chooser: block.chooser } : {}) };
   }
   if (Object.hasOwn(report, 'numericDice')) {
-    const rolls = numericRolls(report.numericDice);
+    const numeric = numericRolls(report.numericDice);
+    const rolls = numeric && injuryRollPresentation(report, numeric);
     return rolls ? { label: [...new Set(rolls.map(roll => roll.label))].join('; '), faces: rolls.map(roll => roll.face), rolls, subjectId, selected: null } : null;
   }
   if (id === 'fanFactor' && Number.isInteger(report.dedicatedFansRoll)
@@ -115,7 +146,7 @@ export function reportedDice(report: Record<string, unknown>, players: SetupPlay
     const face = String(report.dedicatedFansRoll), label = 'Fan factor';
     return { label, faces: [face], rolls: [{ kind: 'd6', face, label }], subjectId, selected: null };
   }
-  if (id === 'injury') {
+  if (id === 'injury' || id === 'apothecaryRoll') {
     const rolls: PresentedRoll[] = [];
     // Outcome-only updates retain the earlier arrays but omit numericDice.
     // Respect their native skip flags before adapting legacy reports.
@@ -137,8 +168,11 @@ export function reportedDice(report: Record<string, unknown>, players: SetupPlay
           rolls.push({ kind: dieSides === 16 ? 'd16' : 'd6', face: String(value), label });
       });
     }
-    if (rolls.length) return { label: [...new Set(rolls.map(roll => roll.label))].join('; '), faces: rolls.map(roll => roll.face),
-      rolls, subjectId, selected: null };
+    if (rolls.length) {
+      const presented = injuryRollPresentation(report, rolls);
+      return { label: [...new Set(presented.map(roll => roll.label))].join('; '), faces: presented.map(roll => roll.face),
+        rolls: presented, subjectId, selected: null };
+    }
   }
   if (id === 'scatterBall' && Array.isArray(report.rolls) && report.rolls.length > 0
     && report.rolls.every(value => Number.isInteger(value) && value >= 1 && value <= 8)) {

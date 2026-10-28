@@ -1,0 +1,21 @@
+/* Chosen half-speed presentation: wall-clock durations are twice rounds one/two. */
+.dice-review[data-round="3"] { padding-bottom: 36px; }
+[data-round="3"] .review-arrival { animation-duration: 125ms; }
+[data-round="3"] .group-exit,[data-round="3"] .evaporation i { animation-duration: 200ms; }
+[data-round="3"] .outcome-reveal { animation-delay: calc(var(--offset) + 620ms - var(--elapsed)); }
+[data-round="3"] :is(.armor-left,.armor-right,.impact-flare,.star-orbit,.bonk,.bonked-player,.stretcher,.stretcher-player,.result-pulse) {
+  animation-delay: calc(var(--offset) + 620ms - var(--elapsed));
+}
+[data-round="3"] :is(.armor-left,.armor-right) { animation-duration: 1000ms; transform-origin: 24px 24px; }
+[data-round="3"] .armor-left { animation-name: pads-split-left; }
+[data-round="3"] .armor-right { animation-name: pads-split-right; }
+[data-round="3"] .impact-flare { animation-duration: 920ms; }
+[data-round="3"] :is(.star-orbit,.result-pulse) { animation-duration: 3000ms; }
+[data-round="3"] :is(.bonk,.bonked-player) { animation-duration: 960ms; }
+[data-round="3"] :is(.stretcher,.stretcher-player) { animation-duration: 1200ms; }
+[data-round="3"] .dice-group[data-casualty-type=true] {
+  --effect-fill: #466276; --effect-edge: #afc9da; --effect-light: #e9ecdc; --effect-accent: var(--semantic-color);
+}
+@keyframes pads-split-left { from { transform: translate(0,0) rotate(0); } to { transform: translate(-5px,1px) rotate(-7deg); } }
+@keyframes pads-split-right { from { transform: translate(0,0) rotate(0); } to { transform: translate(5px,2px) rotate(7deg); } }
+[data-round="3"] .palette-reference { margin-bottom: 0; }

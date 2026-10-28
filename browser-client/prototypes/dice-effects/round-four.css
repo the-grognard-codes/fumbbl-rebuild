@@ -1,0 +1,28 @@
+/* Retain the chosen slow pace; only entrance receives another 75 ms. */
+.dice-review[data-round="4"] { padding-bottom: 36px; }
+[data-round="4"] .review-arrival { animation-duration: 200ms; }
+[data-round="4"] .group-exit,[data-round="4"] .evaporation i { animation-duration: 200ms; }
+[data-round="4"] .outcome-reveal { animation-delay: calc(var(--offset) + 620ms - var(--elapsed)); }
+[data-round="4"] :is(.armor-left,.armor-right,.impact-flare,.star-orbit,.bonk,.bonked-player,.stretcher,.stretcher-player,.result-pulse,.casualty-upper-body,.casualty-lower-body) {
+  animation-delay: calc(var(--offset) + 620ms - var(--elapsed));
+}
+[data-round="4"] :is(.armor-left,.armor-right) { animation-duration: 1000ms; transform-origin: 24px 24px; }
+[data-round="4"] .armor-left { animation-name: pads-narrow-left; }
+[data-round="4"] .armor-right { animation-name: pads-narrow-right; }
+[data-round="4"] .impact-flare { animation-duration: 920ms; }
+[data-round="4"] :is(.star-orbit,.result-pulse) { animation-duration: 3000ms; }
+[data-round="4"] :is(.bonk,.bonked-player) { animation-duration: 960ms; }
+[data-round="4"] :is(.stretcher,.stretcher-player) { animation-duration: 1200ms; }
+[data-round="4"] :is(.casualty-upper-body,.casualty-lower-body) {
+  transform-origin: 25px 26px;
+  animation-duration: 1200ms; animation-timing-function: ease-in-out; animation-fill-mode: both; animation-play-state: paused;
+}
+[data-round="4"] .casualty-upper-body { animation-name: gurney-plop-upper; }
+[data-round="4"] .casualty-lower-body { animation-name: gurney-plop-lower; }
+[data-round="4"] .dice-group[data-casualty-type=true] {
+  --effect-fill: #466276; --effect-edge: #afc9da; --effect-light: #e9ecdc; --effect-accent: var(--semantic-color);
+}
+@keyframes pads-narrow-left { from { transform: translate(0,0) rotate(0); } to { transform: translate(-3px,1px) rotate(-5deg); } }
+@keyframes pads-narrow-right { from { transform: translate(0,0) rotate(0); } to { transform: translate(3px,2px) rotate(6deg); } }
+@keyframes gurney-plop-upper { 0%,35% { transform: rotate(0); } 60% { transform: rotate(14deg); } 80% { transform: rotate(4deg); } 100% { transform: rotate(0); } }
+@keyframes gurney-plop-lower { 0%,35% { transform: rotate(0); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }

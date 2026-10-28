@@ -45,12 +45,12 @@ export async function verifyNumericDice(browser, url, view, evidence) {
     return bodies.map(body => {
       const animation = body.getAnimations()[0];
       assertDuration(animation.effect.getTiming().duration);
-      animation.pause(); animation.currentTime = 310;
+      animation.pause(); animation.currentTime = 620;
       return Array.from(new DOMMatrix(getComputedStyle(body).transform).toFloat64Array());
     });
-    function assertDuration(duration) { if (duration !== 310) throw Error(`Unexpected roll duration ${duration}`); }
+    function assertDuration(duration) { if (duration !== 620) throw Error(`Unexpected roll duration ${duration}`); }
   });
-  await page.clock.runFor(310);
+  await page.clock.runFor(620);
   assert.equal(await page.locator('.numeric-die.rolling').count(), 0);
   const resting = await bodies.evaluateAll(bodies => bodies.map(body => Array.from(new DOMMatrix(getComputedStyle(body).transform).toFloat64Array())));
   assert.ok(resting.every((matrix, i) => matrix.every((value, component) => Math.abs(value - landing[i][component]) < .0001)), 'No landing jump');
@@ -60,7 +60,7 @@ export async function verifyNumericDice(browser, url, view, evidence) {
   // Appending an action die keeps the earlier roll's DOM and completion state.
   const moment = { label: 'Dodge', faces: ['4'], subjectId: 'actor', selected: null, rollKey: 'action:1',
     rolls: [{ label: 'Dodge', kind: 'd6', face: '4', rollKey: 'action:1' }] };
-  await publish({ view: quiet, moment }); await page.clock.runFor(310);
+  await publish({ view: quiet, moment }); await page.clock.runFor(620);
   await page.locator('.numeric-die').evaluate(die => { window.firstActionDie = die; });
   await publish({ view: quiet, moment: { ...moment, label: 'Dodge; Rush', faces: ['4', '2'], rollKey: 'action:2',
     rolls: [...moment.rolls, { label: 'Rush', kind: 'd6', face: '2', rollKey: 'action:2' }] } });
@@ -78,7 +78,7 @@ export async function verifyNumericDice(browser, url, view, evidence) {
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view: quiet, decision: proDecision, moment: { label: 'Pro test', faces: ['2'], subjectId: 'actor', selected: null, rollKey: '2:response' } });
   assert.equal(await page.locator('.pitch-pro-test .numeric-die.rolling').count(), 1, 'A newly revealed Pro test uses the shared roll');
-  await page.clock.runFor(310);
+  await page.clock.runFor(620);
   await publish({ view: quiet });
   await publish({ view: quiet, decision: proDecision });
   assert.equal(await page.locator('.pitch-pro-test .numeric-die.rolling').count(), 0, 'Restoring the Pro prompt without a fresh native moment does not replay its test');
@@ -90,8 +90,9 @@ export async function verifyNumericDice(browser, url, view, evidence) {
   const numericChoice = { title: 'Choose a die to reroll', key: '3:choice', kind: 'rerollDie', options: [
     { id: '3:native-choice:0', label: 'Reroll D8 2', face: '2', dieKind: 'd8', kind: 'action' }] };
   await publish({ view: quiet, report: reports[0], decision: numericChoice });
-  assert.equal(await page.locator('.numeric-die').count(), 1, 'A typed numeric choice does not duplicate the original row');
-  assert.equal(await page.locator('.numeric-die').getAttribute('data-die-kind'), 'd8', 'Numeric face choices never use the block variant');
+  const currentNumericChoice = page.locator('.pitch-dice-lifetime:not(.exiting) .numeric-die');
+  assert.equal(await currentNumericChoice.count(), 1, 'A typed numeric choice does not duplicate the active row');
+  assert.equal(await currentNumericChoice.getAttribute('data-die-kind'), 'd8', 'Numeric face choices never use the block variant');
   // Native reroll controls retain focus and command identities, with no enclosing box.
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);

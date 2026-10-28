@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { DICE_GROUP_INTERVAL_MS, PITCH_DICE_ROLL_MS } from '../src/presentation-timing.ts';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const state = (revision, x = 7, y = 7) => ({ ...initial, revision, actions: [], prompt: null,
@@ -74,7 +75,7 @@ try {
     }
     await at(11, true);
     assert.deepEqual(await faces(), ['POW'], 'State-offered faces without a native report use the same cadence');
-    await page.clock.runFor(500);
+    await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
     await at(11, false); await page.locator('#required-choice').waitFor();
     const steps = await page.evaluate(() => window.playbackFrames.filter((frame, i, all) => frame.x !== all[i - 1]?.x));
     assert.deepEqual(steps.map(frame => frame.x), [8, 9, 10, 11]);
@@ -87,7 +88,7 @@ try {
   await at(7, true);
   assert.deepEqual(await faces(), ['SKULL', 'PUSHBACK', 'POW'], 'First roll is immediate and block dice are simultaneous');
   for (const expected of [['6', '5'], ['4', '3'], ['12', '2']]) {
-    await page.clock.runFor(499);
+    await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1);
     assert.equal(await page.locator('#required-choice').count(), 0);
     const before = await faces();
     await page.clock.runFor(1);
@@ -97,7 +98,7 @@ try {
     assert.notDeepEqual(await faces(), before);
   }
   await page.screenshot({ path: resolve(evidence, 'ordered-injury.png') });
-  await page.clock.runFor(499); assert.equal(await page.locator('#required-choice').count(), 0);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); assert.equal(await page.locator('#required-choice').count(), 0);
   await page.clock.runFor(1); await at(7, false); await page.locator('#required-choice').waitFor();
 
   // A catch result belongs between the ball's arriving and departing squares.
@@ -113,7 +114,7 @@ try {
   await page.clock.runFor(249); await ballAt(8); assert.deepEqual(await faces(), []);
   await page.clock.runFor(1); await page.locator('.live-dice-overlay .match-die').waitFor();
   assert.deepEqual(await faces(), ['1']); await ballAt(8);
-  await page.clock.runFor(499); await ballAt(8);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); await ballAt(8);
   await page.clock.runFor(1); await ballAt(9);
   await page.clock.runFor(249); await ballAt(9);
   await page.clock.runFor(1); await ballAt(10);
@@ -128,7 +129,7 @@ try {
   ])])] });
   await page.locator('.live-dice-overlay .match-die').waitFor();
   for (const x of [8, 9, 10]) {
-    await page.clock.runFor(500); await ballAt(x);
+    await page.clock.runFor(DICE_GROUP_INTERVAL_MS); await ballAt(x);
     assert.equal((await output()).duration, 250);
     await page.clock.runFor(250);
   }
@@ -144,11 +145,11 @@ try {
     sync([], [injury]), sync([ball(9)])])] });
   await ballAt(8); assert.equal((await output()).duration, 0);
   await page.clock.runFor(250); assert.deepEqual(await faces(), ['6', '5']);
-  await page.clock.runFor(499); assert.deepEqual(await faces(), ['6', '5']);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); assert.deepEqual(await faces(), ['6', '5']);
   await page.clock.runFor(1); assert.deepEqual((await faces()).slice(-2), ['4', '3']);
-  await page.clock.runFor(500); assert.deepEqual((await faces()).slice(-2), ['12', '2']);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS); assert.deepEqual((await faces()).slice(-2), ['12', '2']);
   assert.equal(await page.locator('.match-die').evaluateAll(dice => dice.flatMap(die => die.getAnimations({ subtree: true })).length), 0);
-  await page.clock.runFor(500); await ballAt(9);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS); await ballAt(9);
   await page.clock.runFor(250); await at(7, false);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -159,11 +160,11 @@ try {
   await at(8, true); assert.equal((await output()).duration, 100);
   await page.clock.runFor(100);
   assert.deepEqual(await faces(), ['SKULL', 'PUSHBACK', 'POW']);
-  assert.ok((await page.locator('.block-die-cube').evaluateAll(dice => dice.flatMap(die => die.getAnimations().map(animation => animation.effect.getTiming().duration)))).every(duration => duration === 155));
-  await page.clock.runFor(250); assert.deepEqual((await faces()).slice(-2), ['6', '5']);
-  await page.clock.runFor(250); assert.deepEqual((await faces()).slice(-2), ['4', '3']);
-  await page.clock.runFor(250); assert.deepEqual((await faces()).slice(-2), ['12', '2']);
-  await page.clock.runFor(250); assert.equal((await output()).duration, 125);
+  assert.ok((await page.locator('.block-die-cube').evaluateAll(dice => dice.flatMap(die => die.getAnimations().map(animation => animation.effect.getTiming().duration)))).every(duration => duration === PITCH_DICE_ROLL_MS / 2));
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS / 2); assert.deepEqual((await faces()).slice(-2), ['6', '5']);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS / 2); assert.deepEqual((await faces()).slice(-2), ['4', '3']);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS / 2); assert.deepEqual((await faces()).slice(-2), ['12', '2']);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS / 2); assert.equal((await output()).duration, 125);
   await page.clock.runFor(125); await at(8, false);
   await publish({ view: state(5, 20), records: [], mode: 'replay', speed: 2 }); await at(20, false);
   await page.clock.runFor(2000); await at(20, false); assert.deepEqual(await faces(), []);
@@ -229,7 +230,7 @@ try {
   assert.deepEqual(await hosted.evaluate(() => window.cadenceIntents), []);
   await hosted.clock.runFor(200);
   await hosted.locator('.live-dice-overlay .match-die').waitFor();
-  await hosted.clock.runFor(499); assert.equal(await hosted.locator('.circular-skill-prompt').count(), 0);
+  await hosted.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); assert.equal(await hosted.locator('.circular-skill-prompt').count(), 0);
   await hosted.clock.runFor(1); await hosted.locator('.circular-skill-prompt').waitFor();
   assert.equal(await hosted.locator('.polygon-die-body').evaluateAll(dice => dice.flatMap(die => die.getAnimations()).length), 0,
     'Exposing the decision does not roll its dice a second time');
