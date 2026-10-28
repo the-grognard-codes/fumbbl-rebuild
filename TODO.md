@@ -1,5 +1,10 @@
 # TODO
 
+The **2026-10-28 backlog review** closed 29 completed and six superseded GitHub
+issues at the owner's request. Exactly 25 issues remain open for manual review;
+see the [audit and closure outcome](docs/reviews/open-issue-audit-2026-10-28.md).
+The older notes below are historical context, not the current open-issue inventory.
+
 - [ ] **Review storage for unfinished game setups.** Review how partially completed setups are stored, recovered, and associated with their coaches, and define how abandoned setups should be handled. Deferred from the current game-list and UI changes.
 
 - [#49 Recovery stress-run investigation](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/49): the local Windows/Java 21 run reported an empty-action state after 4,222 seconds; CI passed. Determine whether the stress helper or native engine caused it. Preserved from the m6 worktree note.

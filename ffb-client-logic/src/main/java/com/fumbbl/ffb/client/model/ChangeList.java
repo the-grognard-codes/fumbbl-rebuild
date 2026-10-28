@@ -10,6 +10,7 @@ public class ChangeList {
 
 	public ChangeList() {
 		versions.add(new VersionChangeList("3.4.0")
+			.addImprovement("The public Updates page covers every merged pull request through October 28 with short summaries and original merge dates")
 			.addImprovement("Browser dice materialize and evaporate smoothly, emphasize armor and injury outcomes with animated football graphics, and keep important rolls visible longer")
 			.addImprovement("Browser gameplay uses steady player movement, readable dice sequences and paced ball bounces before dependent decisions")
 			.addImprovement("Browser pitch highlights the square under a hovering pointer while preserving player selection and special action markers")
