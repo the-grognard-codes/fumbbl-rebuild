@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 import { verifyNumericDice } from './numeric-dice-checks.mjs';
+import { verifyDiceEffects } from './dice-effects-checks.mjs';
 
 const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8')).sort((a, b) => b.count - a.count);
 const evidence = process.env.DICE_UI_EVIDENCE;
@@ -169,8 +170,8 @@ try {
     });
   });
   assert.deepEqual(await animated.locator('.block-die-cube').evaluateAll(cubes => cubes.map(cube =>
-    cube.getAnimations()[0].effect.getTiming().duration)), [310, 310, 310], 'Each symbolic block roll lasts 310ms');
-  await animatedPage.clock.runFor(309);
+    cube.getAnimations()[0].effect.getTiming().duration)), [620, 620, 620], 'Each pitch block roll uses the approved 620ms pace');
+  await animatedPage.clock.runFor(619);
   assert.equal(await animated.locator('.block-die.rolling').count(), 3, 'Dice remain rolling until the animation completes');
   await animatedPage.clock.runFor(1);
   await animatedPage.clock.resume();
@@ -249,5 +250,6 @@ try {
     assert.deepEqual(errors, []); await page.close();
   }
   await verifyNumericDice(browser, `http://127.0.0.1:${server.httpServer.address().port}`, journeys.find(journey => journey.count === 0).offered, evidence);
+  await verifyDiceEffects(browser, `http://127.0.0.1:${server.httpServer.address().port}`);
   console.log('PASS: native D6/D8/D16 and block faces, all landing orientations, shared motion, continuity, diffuse backing, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
 } finally { await browser.close(); await server.close(); }

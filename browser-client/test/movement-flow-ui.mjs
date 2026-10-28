@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { PITCH_DICE_ROLL_MS } from '../src/presentation-timing.ts';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { assertNoMovementMarkings } from './movement-markings-helper.mjs';
 import { installInitialMovementPreview } from './initial-movement-preview-helper.mjs';
@@ -205,7 +206,7 @@ try {
     .map(({ duration, iterations }) => ({ duration, iterations })),
     [], 'Confirmation continues the preview motion without an extra roll across both replies');
   assert.deepEqual(blockMotion.animations.filter(animation => /rolling/.test(animation.phase)).map(animation => animation.duration),
-    [310], 'The normal block uses one short result animation');
+    [PITCH_DICE_ROLL_MS], 'The normal block uses one short result animation');
   assert.deepEqual(block.errors, []); await block.page.close();
 
   for (const role of ['home', 'away']) {
@@ -378,7 +379,7 @@ try {
   assert.equal(attacks[0].targetPlayerId, fixture.meta.blitzTargetId);
   await blitz.page.getByRole('dialog').waitFor();
   await blitz.page.waitForFunction(() => document.querySelectorAll('.block-die.rolling').length === 0);
-  assert.deepEqual(await blitz.page.evaluate(() => window.blitzResultDurations), [310],
+  assert.deepEqual(await blitz.page.evaluate(() => window.blitzResultDurations), [PITCH_DICE_ROLL_MS],
     'Blitz and ordinary block use the same short result duration');
   assert.ok(await blitz.page.evaluate(() => {
     window.observeHandoff = false; return window.handoffFrames.length > 10 && window.handoffFrames.every(Boolean);

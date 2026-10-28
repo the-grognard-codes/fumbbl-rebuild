@@ -140,7 +140,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 }
 
 /** Presentation only: positions, state, ball and identity come from the server. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false,
+export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false, diceSnapshot = false,
   blockPreview = null, animateBlockMarkers = true, movementDuration = 0,
   jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
@@ -152,7 +152,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
   plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
-  potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean;
+  potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean; diceSnapshot?: boolean;
   blockPreview?: BlockContext | null; animateBlockMarkers?: boolean; movementDuration?: number;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
@@ -538,6 +538,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           </button>;
         })}
         <PitchDecisionOverlay decision={decision?.circular ? null : decision} diceMoment={diceMoment}
+          diceSnapshot={diceSnapshot} presentationKey={view.matchId}
           rollContext={decision?.circular ? decision : null}
           potentialDice={(!readOnly && !playback || diceAwaiting) ? potentialDice : null} awaiting={diceAwaiting}
           attackerRole={activePlayer?.role} chooserRole={view.callerRole === 'spectator' ? undefined : view.callerRole}

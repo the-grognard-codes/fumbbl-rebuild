@@ -5,7 +5,7 @@ import { blockFaceLabel, diceRollGroups, offeredBlockDice } from './dice-present
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
-import { BALL_STEP_MS, DICE_ANIMATION_MS, DICE_GROUP_INTERVAL_MS, playbackRate } from './presentation-timing.ts';
+import { BALL_STEP_MS, PITCH_DICE_ROLL_MS, DICE_GROUP_INTERVAL_MS, playbackRate } from './presentation-timing.ts';
 import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
 import type { RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
@@ -126,7 +126,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     // A resolved response releases its pinned roll. Ordinary groups keep their
     // individual lifetimes across newer revisions of the same action.
     if (running.current) return;
-    if (view.revision > diceRevision.current && pinnedDice.current) clearDice();
+    if (view.revision > diceRevision.current && pinnedDice.current) {
+      pinnedDice.current = false; diceStream.current!.release();
+    }
     if (completed.current >= view.revision) {
       multipleReveals.current.update(view);
       presented.current = view; setPitchView(view); setActive(false);
@@ -210,9 +212,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           responseDiceKey.current = `${latest.current.matchId}:${record.revision}`;
           pinnedDice.current = keep;
         }
-        diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollDuration: DICE_ANIMATION_MS / rate,
+        diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollDuration: PITCH_DICE_ROLL_MS / rate,
           rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
-          sequenceKey(record.state), keep, false, rate);
+          sequenceKey(record.state), keep, false, rate, reduced);
         return true;
       }
     };

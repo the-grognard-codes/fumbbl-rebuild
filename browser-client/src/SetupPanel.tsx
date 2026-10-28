@@ -260,7 +260,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const blurPlayer = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setHoverPlayer(null); };
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  const { pitchView, playbackActive, diceMoment, synchronizing, movementDuration, beginProvisional } =
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional } =
     usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable, 1, 'live', requestPending);
   const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
@@ -1064,7 +1064,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           && pitchView.revision === view.revision && !decision}
         zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
-        routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment}
+        routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment} diceSnapshot={diceSnapshot && !playbackActive}
         onRightClick={() => {
           if (decision || playbackActive || requestPending) return;
           if (jumpMode) { setJumpMode(false); return; }

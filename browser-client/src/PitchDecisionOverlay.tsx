@@ -4,7 +4,10 @@ import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
 import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { PolygonDie } from './PolygonDie.tsx';
-import { blockFaceLabel } from './dice-presentation.ts';
+import { blockFaceLabel, diceRollGroups } from './dice-presentation.ts';
+import { PitchDiceEffects, PitchDiceGroup } from './PitchDiceGroup.tsx';
+import { useDicePresence } from './use-dice-presence.ts';
+import { PITCH_DICE_ROLL_MS } from './presentation-timing.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
 import './pitch-decision-overlay.css';
@@ -14,7 +17,8 @@ const skillIcons = `${import.meta.env.BASE_URL}assets/game/ui/skill-icons-v1.svg
 
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
 export function PitchDecisionOverlay({ decision = null, diceMoment: currentMoment = null, potentialDice = null, awaiting = false,
-  attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget, rollContext = null }: {
+  attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget, rollContext = null,
+  diceSnapshot = false, presentationKey = '' }: {
   decision?: MatchDecision | null; disabled: boolean; viewport: RefObject<HTMLDivElement | null>;
   rollContext?: MatchDecision | null;
   diceMoment?: DiceMoment | null;
@@ -23,6 +27,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   chooserRole?: 'home' | 'away';
   onAction?: (id: string) => void;
   onInspectTarget?: (id: string | undefined) => void;
+  diceSnapshot?: boolean; presentationKey?: string;
 }) {
   const rollDecision = decision ?? rollContext;
   const diceMoment = potentialDice && !awaiting ? null : currentMoment;
@@ -30,12 +35,14 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
   const [scrollable, setScrollable] = useState(false);
   const [bounds, setBounds] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
-  const active = !!(decision || diceMoment || potentialDice || rollContext?.proTest || rollContext?.originalFaces?.length);
   const blockOptions = decision?.options.filter(option => option.face) ?? [];
-  const momentIsBlock = (!potentialDice || awaiting) && (!diceMoment?.groups || !!potentialDice)
-    && !!diceMoment?.faces.length && diceMoment.faces.every(face => blockFaceLabel(face));
+  const activeGroups = diceMoment?.groups?.filter(group => !group.exiting);
+  const blockGroups = activeGroups?.filter(group => group.faces.length && group.faces.every(face => blockFaceLabel(face)));
+  const blockMoment = blockGroups ? blockGroups.length === 1 ? blockGroups[0] : null : diceMoment;
+  const momentIsBlock = (!potentialDice || awaiting)
+    && !!blockMoment?.faces.length && blockMoment.faces.every(face => blockFaceLabel(face));
   const resultFaces = blockOptions.length ? blockOptions.map(option => option.face!)
-    : momentIsBlock && !rollDecision?.proTest ? diceMoment!.faces : [];
+    : momentIsBlock && !rollDecision?.proTest ? blockMoment!.faces : [];
   const preview = resultFaces.length ? null : potentialDice;
   const primaryFaces: (string | undefined)[] = resultFaces.length ? resultFaces
     : preview ? Array.from({ length: Math.abs(preview.dice) }, () => undefined) : [];
@@ -46,6 +53,19 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const label = decision?.title ?? rollContext?.title ?? (preview
     ? `${awaiting ? 'Pending' : 'Potential'} block: ${Math.abs(preview.dice)} ${preview.dice === 1 ? 'die' : 'dice'}${preview.dice < 0 ? ', opponent chooses (uphill)' : ', attacker chooses'}${awaiting ? '; awaiting native result' : '; confirm to roll'}`
     : `${diceMoment?.label}: ${diceMoment?.faces.join(', ')}`);
+  const isStatic = !!diceMoment?.static || diceSnapshot && !potentialDice && !awaiting;
+  const rate = diceMoment?.rate ?? 1;
+  const optionRollKey = !isStatic && decision?.kind === 'blockDie' && !decision.proTest
+    && !diceMoment?.groups && (!diceMoment || diceMoment.selected === null && diceMoment.faces.some(face => blockFaceLabel(face)))
+    ? decision.key : undefined;
+  const primary = useDicePresence(primaryFaces.length ? { faces: primaryFaces, preview, awaiting,
+    moment: momentIsBlock ? blockMoment : diceMoment, options: blockOptions, optionRollKey } : null, presentationKey, isStatic, rate);
+  const original = useDicePresence(rollDecision?.originalFaces ? { faces: rollDecision.originalFaces,
+    rolls: rollDecision.originalRolls, label: rollDecision.originalLabel } : null, presentationKey, isStatic, rate);
+  const pro = useDicePresence(rollDecision?.proTest ? { test: rollDecision.proTest,
+    rollKey: !isStatic && !diceMoment?.groups && diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined,
+    duration: diceMoment?.rollDuration } : null, presentationKey, isStatic, rate);
+  const active = !!(decision || diceMoment || potentialDice || original.value || pro.value || primary.value);
   // Ancestor pitch refs are attached after child layout effects on first mount.
   // Bind after the whole tree commits; retain the bounds across phase changes.
   useEffect(() => {
@@ -92,9 +112,6 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const ready = bounds !== null;
   // Offered block faces are also native outcomes. Start once per decision even
   // if its transcript is late, and do not restart when that transcript arrives.
-  const optionRollKey = decision?.kind === 'blockDie' && !decision.proTest
-    && !diceMoment?.groups && (!diceMoment || diceMoment.selected === null && diceMoment.faces.some(face => blockFaceLabel(face)))
-    ? decision.key : undefined;
   useEffect(() => {
     setSkillChoices(null);
     const content = panel.current?.querySelector<HTMLElement>('.pitch-dice-content');
@@ -116,36 +133,33 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     {decision?.reaction && <><strong>{decision.title}</strong>
       {decision.detail && <p>{decision.detail}</p>}
       <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/></>}
-    {rollDecision?.originalFaces && <div className="pitch-decision-roll" role="status" aria-label={rollDecision.originalLabel ?? 'Original block dice'}>
-      {rollDecision.originalFaces.map((face, index) => <PolygonDie key={index} face={face} index={index}
-        kind={rollDecision.originalRolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div>}
-    {rollDecision?.proTest && <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${rollDecision.proTest.face}, ${rollDecision.proTest.successful ? 'success' : 'failure'}`}>
-      <span>Pro</span><PolygonDie kind="d6" face={rollDecision.proTest.face}
-        rollKey={!diceMoment?.groups && diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined}
-        rollDuration={diceMoment?.rollDuration}/></div>}
-    {primaryFaces.length > 0 && <div className="live-dice-choices pitch-block-dice">{primaryFaces.map((face, index) => {
-      const option = blockOptions[index];
+    {original.value && <PitchDiceEffects exiting={original.exiting} isStatic={isStatic} rate={rate}>
+      <div className="pitch-decision-roll" role="status" aria-label={original.value.label ?? 'Original block dice'}>
+      {original.value.faces.map((face, index) => <PolygonDie key={index} face={face} index={index}
+        kind={original.value!.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div></PitchDiceEffects>}
+    {pro.value && <PitchDiceEffects exiting={pro.exiting} isStatic={isStatic} rate={rate}>
+      <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${pro.value.test.face}, ${pro.value.test.successful ? 'success' : 'failure'}`}>
+      <span>Pro</span><PolygonDie kind="d6" face={pro.value.test.face} rollKey={pro.value.rollKey}
+        rollDuration={pro.value.duration ?? PITCH_DICE_ROLL_MS}/></div></PitchDiceEffects>}
+    {primary.value && <PitchDiceEffects exiting={primary.exiting} isStatic={isStatic} rate={rate}>
+      <div className="live-dice-choices pitch-block-dice">{primary.value.faces.map((face, index) => {
+      const shown = primary.value!;
+      const option = primary.exiting ? undefined : shown.options[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
         disabled={!option || disabled} tabIndex={option ? undefined : -1} role={option ? undefined : 'presentation'}
         aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}
         onFocus={() => onInspectTarget?.(option?.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option?.targetPlayerId)}>
-        <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!preview && !awaiting} awaiting={!!preview && awaiting} index={index}
-          selected={!option && diceMoment?.selected === index} rollKey={option ? optionRollKey : diceMoment?.rollKey}
-          rollDuration={diceMoment?.rollDuration}/>
+        <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!shown.preview && !shown.awaiting} awaiting={!!shown.preview && shown.awaiting} index={index}
+          selected={!option && shown.moment?.selected === index} rollKey={isStatic ? undefined : shown.options[index] ? shown.optionRollKey : shown.moment?.rollKey}
+          rollDuration={shown.moment?.rollDuration ?? PITCH_DICE_ROLL_MS}/>
         <span className="sr-only">{option?.label}</span>
       </button>;
-    })}</div>}
-    {diceMoment && !rollDecision?.proTest && !primaryFaces.length && (diceMoment.groups ?? [{ ...diceMoment, key: 'result' }]).map(group =>
-      <div className="pitch-roll-group" key={group.key}>
-        {diceMoment.groups && <span className="pitch-roll-caption">{group.label}</span>}
-        <div className="pitch-decision-roll" role={decision || (diceMoment.groups?.length ?? 0) > 1 ? 'status' : undefined}
-          aria-label={`${group.label}: ${group.faces.join(', ')}`}>
-          {group.faces.map((face, index) => <span key={index} title={group.rolls?.[index]?.label ?? group.label}>
-            <PolygonDie kind={group.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')} face={face}
-              selected={group.selected === index} index={index}
-              rollKey={group.rolls?.[index]?.rollKey ?? group.rollKey} rollDuration={group.rollDuration}/></span>)}
-        </div>
-      </div>)}
+    })}</div></PitchDiceEffects>}
+    {diceMoment && (diceMoment.groups ?? diceRollGroups(diceMoment).map((group, index) => ({ ...group, key: `result:${index}` })))
+      .filter(group => !(primary.value && group.faces.every(face => blockFaceLabel(face)))
+        && (group.exiting || !rollDecision?.proTest && (!primaryFaces.length || !!activeGroups))).map(group =>
+        <PitchDiceGroup key={group.key} group={group} caption={!!diceMoment.groups} forceStatic={isStatic}
+          role={decision || (diceMoment.groups?.length ?? 0) > 1 ? 'status' : undefined}/>)}
     {otherOptions.length > 0 && <div className="live-dice-choices">{otherOptions.map(option => <button key={option.id} type="button"
       className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}
       disabled={disabled} aria-label={option.label} title={option.choices ? option.choices.map(choice => choice.label).join('\n') : disabled ? `${option.label} (pending)` : option.label}

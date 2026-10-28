@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
+import { DICE_GROUP_INTERVAL_MS } from '../src/presentation-timing.ts';
 
 const initial = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
 const state = (revision, x = 7) => ({ ...initial, revision, actions: [], prompt: null, activePlayerId: initial.players[0].id,
@@ -123,7 +124,7 @@ try {
   await page.clock.runFor(199); await at(8, true);
   await page.clock.runFor(1);
   await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(499); await at(8, true);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); await at(8, true);
   await page.clock.runFor(1); await at(9, true);
   await page.clock.runFor(200); await at(9, false);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 1, 'Committed roll is not replayed by the movement timer');
@@ -134,7 +135,7 @@ try {
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 0, 'Replay preserves its ordered animation timing');
   await page.clock.runFor(200); await at(8, true);
   await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(500); await at(9, true);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS); await at(9, true);
   await page.clock.runFor(200); await at(9, false);
 
   await reset();
@@ -142,14 +143,14 @@ try {
   finalMovingRoll.native.push({ blockContext: null }, { reportList: { reports: [pickup] } });
   await publish({ view: state(1, 8), records: [record(0), finalMovingRoll] });
   await at(8, true); await page.clock.runFor(200); await page.locator('.live-dice-overlay .match-die').waitFor();
-  await page.clock.runFor(499); await at(8, true);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1); await at(8, true);
   await page.clock.runFor(1); await at(8, false);
 
   await reset();
   await publish({ view: state(1, 9), records: [record(0), movingRoll] });
   await at(8, true); await page.clock.runFor(200); await page.locator('.live-dice-overlay .match-die').waitFor();
   await publish({ view: state(0), records: [record(0)], enabled: false }); await at(7, false);
-  await page.clock.runFor(500); await at(7, false);
+  await page.clock.runFor(DICE_GROUP_INTERVAL_MS); await at(7, false);
   assert.equal(await page.locator('.live-dice-overlay .match-die').count(), 0, 'Recovery cancels the early roll and remaining movement');
   await page.clock.resume();
 

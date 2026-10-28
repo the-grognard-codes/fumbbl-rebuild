@@ -8,6 +8,7 @@ import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../browser-client/node_modules/playwright/index.mjs';
 import { resolveEnvironment, configurationScript } from '../../deployment/firebase/scripts/environment.mjs';
+import { DICE_GROUP_INTERVAL_MS, DICE_ENTRANCE_MS, DICE_EXIT_MS, EMPHASIZED_DICE_RETENTION_MS } from '../../browser-client/src/presentation-timing.ts';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const matchId = '12345678-1234-1234-1234-123456789abc';
@@ -395,7 +396,7 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await page.getByLabel('Event', { exact: true }).fill('2');
     await page.getByRole('button', { name: 'Seek', exact: true }).click();
     await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
-    const numericDice = page.locator('.live-dice-overlay[role="status"][aria-label="Casualty: 3, 2"]');
+    const numericDice = page.locator('.live-dice-overlay[role="status"][aria-label="Apothecary casualty: 3, 2"]');
     await numericDice.waitFor();
     assert.deepEqual(await numericDice.locator('.numeric-die').evaluateAll(dice => dice.map(die => [die.dataset.dieKind, die.dataset.face])), [['d16', '3'], ['d6', '2']]);
     assert.equal(await numericDice.getByRole('button').count(), 0, 'Numeric replay results remain read-only');
@@ -427,11 +428,11 @@ test('completed replay keeps the selected event, native dice, log and chat toget
     await page.getByRole('heading', { name: /Event 2 of 3/ }).waitFor();
     const streamed = page.locator('.live-dice-overlay .match-die');
     assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.face)), ['3']);
-    await page.clock.runFor(499);
+    await page.clock.runFor(DICE_GROUP_INTERVAL_MS - 1);
     assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.face)), ['3'], 'Consecutive replay rolls wait the readable cadence');
     await page.clock.runFor(1);
     assert.deepEqual(await streamed.evaluateAll(dice => dice.map(die => die.dataset.dieKind)), ['d6', 'd16', 'd6']);
-    await page.clock.runFor(1200);
+    await page.clock.runFor(DICE_ENTRANCE_MS + EMPHASIZED_DICE_RETENTION_MS + DICE_EXIT_MS);
     assert.equal(await streamed.count(), 0, 'Expired replay groups do not return through the static fallback');
     await page.clock.runFor(1000);
     assert.equal(await streamed.count(), 0);

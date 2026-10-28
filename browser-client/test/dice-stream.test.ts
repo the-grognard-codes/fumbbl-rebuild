@@ -34,19 +34,21 @@ test('adjacent native reports stream and expire independently with stable identi
   stream.enqueue(roll('4'), 'action');
   stream.enqueue(roll('3', 'Rush'), 'action');
   assert.deepEqual(current()?.faces, ['5']);
-  context.mock.timers.tick(400);
+  context.mock.timers.tick(900);
   assert.deepEqual(current()?.faces, ['5', '4']);
   assert.equal(current()?.groups?.[0].key, firstKey);
   const second = current()!.groups![1];
-  context.mock.timers.tick(500);
+  context.mock.timers.tick(1000);
   assert.deepEqual(current()?.faces, ['5', '4', '3']);
   assert.deepEqual(current()?.groups?.map(group => group.rollKey), ['native:5', 'native:4', 'native:3']);
+  context.mock.timers.tick(600);
+  assert.equal(current()?.groups?.[0].exiting, true, 'Exit starts after entrance plus the full hold');
   context.mock.timers.tick(200);
   assert.deepEqual(current()?.faces, ['4', '3']);
   assert.equal(current()?.groups?.[0], second);
-  context.mock.timers.tick(500);
+  context.mock.timers.tick(1000);
   assert.deepEqual(current()?.faces, ['3']);
-  context.mock.timers.tick(500);
+  context.mock.timers.tick(1000);
   assert.equal(current(), null);
 });
 
@@ -82,19 +84,77 @@ test('a different sequence and a reconnect snapshot cancel pending and expiry ti
   assert.equal(current(), null);
 });
 
-test('replay scales group eligibility without shortening retained result lifetimes', context => {
+test('replay scales cadence, entrance, visibility and evaporation together', context => {
   context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 10000 });
   let shown: DiceMoment | null = null;
   const stream = new DiceStream(moment => { shown = moment; });
   const current = () => shown as DiceMoment | null;
   stream.enqueue(roll('5'), 'replay', false, false, 4);
   stream.enqueue(roll('4'), 'replay', false, false, 4);
-  context.mock.timers.tick(124);
+  context.mock.timers.tick(249);
   assert.deepEqual(current()?.faces, ['5']);
   context.mock.timers.tick(1);
   assert.deepEqual(current()?.faces, ['5', '4']);
-  context.mock.timers.tick(1075);
+  context.mock.timers.tick(400);
+  assert.equal(current()?.groups?.[0].exiting, true);
+  context.mock.timers.tick(50);
   assert.deepEqual(current()?.faces, ['4']);
-  context.mock.timers.tick(125);
+  context.mock.timers.tick(250);
+  assert.equal(current(), null);
+});
+
+test('important rolls double only the hold and retain independent entrance and exit phases', context => {
+  context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
+  let shown: DiceMoment | null = null;
+  const stream = new DiceStream(moment => { shown = moment; });
+  const current = () => shown as DiceMoment | null;
+  stream.enqueue({ ...roll('6', 'Armor'), emphasized: true, outcome: 'armor' }, 'action');
+  context.mock.timers.tick(4999);
+  assert.equal(current()?.groups?.[0].exiting, undefined);
+  context.mock.timers.tick(1);
+  assert.equal(current()?.groups?.[0].exiting, true);
+  context.mock.timers.tick(199);
+  assert.equal(current()?.outcome, 'armor');
+  context.mock.timers.tick(1);
+  assert.equal(current(), null);
+});
+
+test('snapshots remain static for inspection and are replaced without old timers or history', context => {
+  context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
+  let shown: DiceMoment | null = null;
+  const stream = new DiceStream(moment => { shown = moment; });
+  const current = () => shown as DiceMoment | null;
+  stream.enqueue(roll('5'), 'action'); stream.enqueue(roll('6'), 'action');
+  stream.enqueue(roll('2'), 'action', false, true);
+  context.mock.timers.tick(30000);
+  assert.deepEqual(current()?.faces, ['2']);
+  assert.equal(current()?.static, true);
+  assert.equal(current()?.rollKey, undefined);
+  stream.enqueue(roll('4'), 'action');
+  assert.deepEqual(current()?.faces, ['4']);
+  context.mock.timers.tick(2800);
+  assert.equal(current(), null);
+});
+
+test('a resolved pinned choice evaporates without keeping a backlog alive', context => {
+  context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
+  let shown: DiceMoment | null = null;
+  const stream = new DiceStream(moment => { shown = moment; });
+  const current = () => shown as DiceMoment | null;
+  stream.enqueue(roll('5'), 'action', true);
+  stream.release();
+  assert.equal(current()?.groups?.[0].exiting, true);
+  context.mock.timers.tick(200);
+  assert.equal(current(), null);
+});
+
+test('reduced motion uses static symbols and no entrance or exit delay', context => {
+  context.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
+  let shown: DiceMoment | null = null;
+  const stream = new DiceStream(moment => { shown = moment; });
+  const current = () => shown as DiceMoment | null;
+  stream.enqueue(roll('5'), 'action', false, false, 1, true);
+  assert.equal(current()?.static, true);
+  context.mock.timers.tick(2400);
   assert.equal(current(), null);
 });

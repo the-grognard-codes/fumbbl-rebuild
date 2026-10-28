@@ -1,0 +1,246 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "variant": "MUTP",
+      "outcomes": 9,
+      "entrance50ms": true,
+      "outcomeAfterSettle": true,
+      "exit100ms": true,
+      "oneShotHolds": true,
+      "gentlePulse": true,
+      "centeredResultLabels": [
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "BH",
+          "dx": 0.000030517578125,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": 0.00006103515625,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0.0001220703125
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0.000030517578125,
+          "dy": 0.0001220703125
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "variant": "RESULT",
+      "outcomes": 9,
+      "entrance50ms": true,
+      "outcomeAfterSettle": true,
+      "exit100ms": true,
+      "oneShotHolds": true,
+      "gentlePulse": true,
+      "centeredResultLabels": [
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "BH",
+          "dx": 0.000030517578125,
+          "dy": 0.00006103515625
+        },
+        {
+          "text": "MNG",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": 0.00006103515625,
+          "dy": 0.0001220703125
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0.0001220703125
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0.000030517578125,
+          "dy": 0.0001220703125
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "ordinaryShapes": 4,
+      "seriousInjuryStage": true,
+      "reducedMotion": true,
+      "noOverflow": true,
+      "clockRunsAndPauses": true,
+      "loopWraps": true,
+      "keyboardAndUrl": true,
+      "nativeEffectCount": 64,
+      "originalNativeKeyframesAndTiming": true,
+      "identicalNativePoseWithAndWithoutFade": true,
+      "roundOneMotionAvailable": true,
+      "assetAndPageErrors": []
+    },
+    {
+      "width": 390,
+      "variant": "MUTP",
+      "outcomes": 9,
+      "entrance50ms": true,
+      "outcomeAfterSettle": true,
+      "exit100ms": true,
+      "oneShotHolds": true,
+      "gentlePulse": true,
+      "centeredResultLabels": [
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0.0001220703125
+        },
+        {
+          "text": "MNG",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": -0.00000762939453125,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "variant": "RESULT",
+      "outcomes": 9,
+      "entrance50ms": true,
+      "outcomeAfterSettle": true,
+      "exit100ms": true,
+      "oneShotHolds": true,
+      "gentlePulse": true,
+      "centeredResultLabels": [
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "BH",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "MNG",
+          "dx": -0.00000762939453125,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "NI",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        },
+        {
+          "text": "−1",
+          "dx": 0,
+          "dy": 0
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "ordinaryShapes": 4,
+      "seriousInjuryStage": true,
+      "reducedMotion": true,
+      "noOverflow": true,
+      "clockRunsAndPauses": true,
+      "loopWraps": true,
+      "keyboardAndUrl": true,
+      "nativeEffectCount": 64,
+      "originalNativeKeyframesAndTiming": true,
+      "identicalNativePoseWithAndWithoutFade": true,
+      "roundOneMotionAvailable": true,
+      "assetAndPageErrors": []
+    },
+    {
+      "roundOneSourceFilesUnchanged": true,
+      "productionPolygonSourceUnchanged": true
+    }
+  ]
+}
