@@ -10,13 +10,11 @@
     <packaging>pom</packaging>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Default Mockito settings for Java 8 -->
-        <mockito.artifact>mockito-inline</mockito.artifact>
-        <mockito.version>4.11.0</mockito.version>
-        <mockito.junit.version>4.11.0</mockito.junit.version>
+        <mockito.artifact>mockito-core</mockito.artifact>
+        <mockito.version>5.23.0</mockito.version>
+        <mockito.junit.version>5.23.0</mockito.junit.version>
     </properties>
     <modules>
         <module>ffb-common</module>
@@ -61,6 +59,27 @@
     <!-- Preserve the lifecycle plugin versions resolved by the Maven 3.9.9 audit.
          Child modules retain their explicit jar/shade/assembly versions. -->
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>require-java-21</id>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                    <message>Build and run MUTP with JDK 21 or newer.</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -97,19 +116,4 @@
         </pluginManagement>
     </build>
 
-    <profiles>
-        <!-- Profile for Java 21 builds (overrides properties for Mockito and compiler) -->
-        <profile>
-            <id>mockito5</id>
-            <activation>
-                <jdk>[21,)</jdk>
-            </activation>
-            <properties>
-                <!-- Override Mockito for Java 21+ -->
-                <mockito.artifact>mockito-core</mockito.artifact>
-                <mockito.version>5.23.0</mockito.version>
-                <mockito.junit.version>5.23.0</mockito.junit.version>
-            </properties>
-        </profile>
-    </profiles>
 </project>

@@ -7,6 +7,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 - [Web delivery and team building](#web-delivery-and-team-building)
   - [Monorepo web integration](#monorepo-web-integration)
   - [Browser-only client support](#browser-only-client-support)
+  - [Java 21 baseline](#java-21-baseline)
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
@@ -65,6 +66,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Preserved shared native rules, event logs, assets, and browser live play, spectating, recovery, and replay behavior. New databases receive browser tables only; existing local data is preserved.
 - Updated current operational and agent guidance, CI, and clean container packaging. Historical references and attribution remain.
 - Validated Java/browser builds and regression suites, V1 smoke, and a fresh authenticated two-coach match through full time. Actual JVM restarts preserved the suspended match and completed replay. See [issues #379?#381](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/379) and the [implementation outcome](../docs/specs/browser-only-support-outcome.md) for exact evidence.
+
+### Java 21 baseline
+
+- Established JDK 21 as the minimum for every Java module, with release-21 project bytecode and pinned Temurin 21.0.11+10 validation. Compatible third-party libraries may retain older bytecode.
+- Unified bootstrap, both build launchers, Windows/Linux setup and CI around the Java 21 toolchain. Removed the older-JDK manifest and provisioning requirement, and replaced the Java 8 Maven container stage with checksum-verified Maven on Java 21.
+- Made Mockito 5 the reactor default and updated current build, runtime and agent guidance while preserving historical documentation and stored-match compatibility boundaries.
+- Preserved game mechanics, protocol, replay and recovery behavior. Validated native and game-service builds, browser unit/build and complete interaction/hosted suites, packaged startup, and isolated V2/JDBC recovery and completed replay. Exact opt-in limits are in the outcome report.
+- Tracked the delivered scope in [#384](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/384), with [implementation and validation evidence](../docs/specs/java21-baseline-outcome.md). Optional source modernization remains backlogged separately in [#383](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/383).
 
 ### DEV and PROD environments
 

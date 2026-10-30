@@ -1,60 +1,60 @@
-# R1 runtime compatibility boundary
+# Java 21 runtime compatibility boundary
 
-The accepted local M3d/M3e runtime remains `ffb-server:3.4.0-m3d.1` on Java 8.
-R1 target verification is a separate build boundary: Temurin HotSpot
-`21.0.11+10-LTS` (`Eclipse Adoptium`), Apache Maven `3.9.9`, the `mockito5`
-profile, and Jetty `12.1.13`. The standalone `compose.r1.yaml` uses new R1
-database/backup volumes and networks and loopback port 22228. It does not replace
-the retained local image or share its mutable storage.
+Current source, shared libraries, tools and server builds require JDK 21 or newer
+and compile for release 21. The tested toolchain is Temurin HotSpot
+`21.0.11+10-LTS`, Apache Maven `3.9.9` and Jetty `12.1.13`.
+Compatible third-party libraries may contain older bytecode. Newer JDKs are
+outside the tested support matrix.
 
-Run the Java 8 characterization reference at frozen revision
-`56c19c80070861e89f465f1989be403d3aad0ffd` with `tools/bootstrap.ps1` and
-`tools/build.ps1`. For the target runtime, first install the project-local Maven
-using that same bootstrap, then run:
+## Current build
 
 ```powershell
+./tools/bootstrap.ps1
 ./tools/target-build.ps1 info
 ./tools/target-build.ps1 test
-./tools/target-build.ps1 install
 ./tools/target-build.ps1 verify
 ```
 
-`target-build.ps1` selects
-`C:/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot` on Windows, or accepts
-an explicit `-JavaHome`. It rejects another vendor or runtime patch, uses the
-project-local Maven installation and `.tools/repository`, and restores `JAVA_HOME` and Maven environment
-variables after the process. Use `-Offline` after the target repository is warm.
+Supply `-JavaHome` to bootstrap on Linux or when using an existing JDK. The build
+launcher reuses the saved selection and restores Java/Maven environment variables
+and the caller's directory. `build.ps1` delegates to the same Java 21 launcher.
+The standalone game service also requires JDK 21 or newer. See the
+[toolchain guide](../../tools/README.md) and current
+[local runtime guide](README.md).
 
-No active match may be upgraded in place. The paired Java 8 runtime must stay
-available until engine, catalog and format parity is demonstrated with live local
-acceptance. Current compatibility identifiers are policy engine
-`ffb-3.4.0-bb2025-m3d.1`, catalog `bb2025-human-2026-09-08.1`, schema `4`,
-browser protocol `/browser/v1`, and the existing replay format. R1 changes none
-of those identifiers. There is no durable in-progress recovery artifact yet;
-an unfinished engine remains unavailable after JVM loss, while committed results
-and replays retain their existing schema-4 behavior. Drain active work before a
-future runtime cutover, or retain this compatible Java 8 runtime through match
-completion.
+## Recovery and retirement
 
-Target build success is toolchain evidence only. Runtime parity requires the
-relevant reactor, browser-contract, and live local WebSocket checks on the target
-runtime, including framing, origin, slow-client queue/resync, timeout, async
-callback, retry, and clean-close behavior. Those checks are required before this
-policy permits a transition for new matches. Even with parity, R1 cannot move a
-resident engine between JVMs: there is no recovery format to carry its state.
+Removing an old build/runtime requirement does not convert a resident engine or
+rewrite existing game data. Before stopping any legacy process, account for its
+unfinished work and demonstrate completion or restore using a compatible durable
+checkpoint on the Java 21 runtime. A process with only in-memory state must drain;
+its state cannot be recovered by merely changing the JDK.
 
-```powershell
-docker compose -f containers/local/compose.r1.yaml build server
-docker compose -f containers/local/compose.r1.yaml up -d --wait
-```
+Current recovery preserves recorded runtime, engine, replay and catalog/version
+bindings. Compatible r2.2/r2.3 format-2 checkpoints restore under their recorded
+runtime; current R4.1 uses format 3. Activated pre-R2 matches without a checkpoint
+remain unavailable. Unsupported or corrupt artifacts fail closed and remain stored;
+there is no automatic conversion or replacement match. See
+[recovery](recovery.md) and [session retention](session-retention.md).
 
-Do not combine this file with `compose.yaml`, override its project name, reset
-volumes, or point it at the retained database. It starts with its own empty
-database using the same existing local secret files (no credential changes).
-The Java 8 reference continues at port 22227. Test drivers accept only these two
-loopback endpoints through `M4_WS_ENDPOINT`; product browser configuration remains
-at the reference endpoint. Do not stop either JVM while it owns unfinished work.
+Validate Java 21 startup and WebSocket framing, origin, queue/resync, timeout,
+retry and clean close. Verify native snapshot/decision/dice parity, completed
+replays and recoverable saved games with isolated fixtures and database copies.
+Preserve stored matches, backups and rejection evidence. Do not test by replacing
+a live process, sharing its mutable database, or deleting volumes. Runtime
+shutdown, cutover and deployment require separate operational authorization.
 
-An initial experimental comparison shared the reference database. Its one match
-completed and its JVM was drained/stopped before the isolated acceptance run;
-those rows and logs are retained. That configuration is not the delivered policy.
+## Historical R1 comparison
+
+The M3d/M3e reference was `ffb-server:3.4.0-m3d.1` on Java 8 at frozen revision
+`56c19c80070861e89f465f1989be403d3aad0ffd`. It is not a supported runtime for current
+sources. Historical instructions, evidence and source at that revision remain
+available for interpreting old artifacts; current setup does not provision it.
+The original identifiers were engine `ffb-3.4.0-bb2025-m3d.1`, catalog
+`bb2025-human-2026-09-08.1`, schema 4, browser V1 and the existing replay format.
+That reference had no durable recovery artifact for a resident active engine.
+
+`compose.r1.yaml` is an isolated diagnostic profile using the current Java 21
+Dockerfile, its own database/backup volumes and loopback port 22228. It does not
+recreate a frozen runtime or migrate retained games. The older comparison ports
+and logs are historical evidence, not a requirement to keep an older JVM installed.

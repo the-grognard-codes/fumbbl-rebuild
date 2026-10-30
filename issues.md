@@ -8,6 +8,8 @@ Historical implementation notes below retain their original validation limits.
 
 These are untriaged ideas. When one becomes scoped work, create a GitHub issue
 and add its URL here alongside the local notes.
+- [x] [#384 Java 21 baseline](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/384): owner accepted the implementation and authorized CI-gated publication; see the [outcome and validation evidence](docs/specs/java21-baseline-outcome.md).
+- [ ] [#383 Optional Java source modernization](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/383): deferred until after the focused Java 21 migration. See the [candidate inventory, risks and validation plan](docs/specs/java-modernization-inventory.md).
 - dump off + pass block
 - sketches for games
 - spec interaction for games

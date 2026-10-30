@@ -1,5 +1,8 @@
 # M3d completed matches: schema 4
 
+Historical M3d/M3e contract, retained for interpreting older artifacts. Current
+sources require Java 21; see the [current runtime policy](runtime-compatibility.md).
+
 M3e retains this server image/schema and adds browser integration/recovery
 hardening. No new DDL, format conversion or engine change is needed. Its
 [acceptance/M4 handoff](../../.notes/overhaul-analysis/verification/m3e/README.md)

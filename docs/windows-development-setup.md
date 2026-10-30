@@ -21,8 +21,8 @@ terminal afterward so newly installed commands are on `PATH`.
 | --- | --- | --- |
 | Windows x64, PowerShell 5.1+, winget | Windows build and setup scripts | Windows / App Installer |
 | Git and GitHub CLI | Checkout, issues and pull requests; Git Bash can run shell scripts | winget `Git.Git`, `GitHub.cli` |
-| Temurin JDK 21.0.11+10 | Current server and game service; `target-build.ps1` requires this exact runtime at the manifest's Windows path | winget `EclipseAdoptium.Temurin.21.JDK` version `21.0.11.10` |
-| Temurin JDK 8u504-b01 and Maven 3.9.9 | Frozen Java 8 reference and project Maven launchers | `tools/bootstrap.ps1` downloads and checksum-checks them under `.tools/` |
+| Temurin JDK 21.0.11+10 | Pinned and tested JDK for every Java module; minimum supported JDK is 21 | winget `EclipseAdoptium.Temurin.21.JDK` version `21.0.11.10` |
+| Maven 3.9.9 | Project Java build launcher | `tools/bootstrap.ps1` downloads and checksum-checks it under `.tools/` |
 | Node.js 26.x and npm | Browser client, site, Firebase artifact assembly and computer player; package engines require `>=26 <27` | winget `OpenJS.NodeJS` version `26.7.0` |
 | Browser packages and Chromium | Browser builds and Playwright tests | `npm ci --prefix browser-client`, then Playwright's Chromium installer |
 | Firebase CLI | Local emulators or manual Hosting operations | `npm install -g firebase-tools` |
@@ -48,10 +48,9 @@ There is no root npm application. Install packages with
 `node_modules` created by `npm install nvm` are unnecessary. The npm `nvm`
 package is a placeholder, not a Node version manager.
 
-The batch job uses the [Java 8 and Maven manifest](../tools/build-toolchain.json)
-and [Java 21 target manifest](../tools/target-build-toolchain.json). Do not use a
-global `mvn` or whatever `java` happens to be on `PATH` for the repo's two
-reactor builds. The project launchers select their own tools. Moving the checkout
+The batch job uses the single [Java 21 and Maven manifest](../tools/target-build-toolchain.json).
+The project launchers select their configured tools rather than ambient `java`
+or Maven installations. `build.ps1` delegates to `target-build.ps1`. Moving the checkout
 requires rerunning bootstrap because `.tools/java-home.txt` contains an absolute
 path. The batch job does this automatically.
 

@@ -58,11 +58,6 @@ function Test-TargetJava {
 function Get-ToolStatus {
     $node = Find-Executable @('node.exe') @((Join-Path $env:ProgramFiles 'nodejs/node.exe'))
     $nodeIdentity = if ($node) { (& $node --version 2>&1 | Out-String).Trim() } else { 'missing' }
-    $savedJava = Join-Path $root '.tools/java-home.txt'
-    $expectedJava8 = Join-Path $root '.tools/jdk8u504-b01'
-    $java8Ready = (Test-Path -LiteralPath $savedJava) -and
-        ((Get-Content -LiteralPath $savedJava -Raw).Trim() -eq $expectedJava8) -and
-        (Test-Path -LiteralPath (Join-Path $expectedJava8 'bin/java.exe'))
     $mavenReady = Test-Path -LiteralPath (Join-Path $root '.tools/apache-maven-3.9.9/bin/mvn.cmd')
     $appDataNpm = Join-Path $env:APPDATA 'npm/firebase.cmd'
     $localCloud = Join-Path $env:LOCALAPPDATA 'Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd'
@@ -80,7 +75,6 @@ function Get-ToolStatus {
         [pscustomobject]@{ Requirement = 'GitHub CLI'; Status = if (Find-Executable @('gh.exe')) { 'found' } else { 'missing' } }
         [pscustomobject]@{ Requirement = "Temurin $($target.java.runtimeVersion)"; Status = if (Test-TargetJava) { 'ready' } else { 'missing or wrong patch/vendor' } }
         [pscustomobject]@{ Requirement = 'Maven 3.9.9 (project local)'; Status = if ($mavenReady) { 'ready' } else { 'run bootstrap' } }
-        [pscustomobject]@{ Requirement = 'Temurin 8u504 (project local)'; Status = if ($java8Ready) { 'ready' } else { 'run bootstrap' } }
         [pscustomobject]@{ Requirement = 'Node.js 26 / npm'; Status = if ($nodeIdentity -match '^v26\.') { $nodeIdentity } else { "missing or wrong major: $nodeIdentity" } }
         [pscustomobject]@{ Requirement = 'Browser npm packages'; Status = if ($installed) { 'ready' } else { 'run npm ci' } }
         [pscustomobject]@{ Requirement = 'Firebase CLI'; Status = if (Find-Executable @('firebase.cmd', 'firebase.exe') @($appDataNpm)) { 'found' } else { 'missing' } }

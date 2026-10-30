@@ -23,7 +23,6 @@ fi
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 opt_root="$HOME/.local/opt"
 local_bin="$HOME/.local/bin"
-java8_home="$opt_root/temurin-8u504-b01"
 java21_home="$opt_root/temurin-21.0.11+10"
 node_home="$opt_root/node-v26.7.0-linux-x64"
 gcloud_home="$opt_root/google-cloud-sdk"
@@ -45,7 +44,7 @@ show_status() {
       printf '%-12s missing\n' "$tool"
     fi
   done
-  for path in "$java8_home/bin/java" "$java21_home/bin/java"; do
+  for path in "$java21_home/bin/java"; do
     if [[ -f "$path" ]]; then printf 'ready: %s\n' "$path"; else printf 'missing: %s\n' "$path"; fi
   done
   case "$repo_root" in
@@ -139,8 +138,6 @@ install_deb gh \
   'https://github.com/cli/cli/releases/download/v2.101.0/gh_2.101.0_linux_amd64.deb' \
   'f876a3b87bf67c94f773d17becca4dc7340b056dab901473a9260ee2a73e237b'
 
-install_jdk "$java8_home" \
-  'https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u504-b01/OpenJDK8U-jdk_x64_linux_hotspot_8u504b01.tar.gz'
 install_jdk "$java21_home" \
   'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.11+10/OpenJDK21U-jdk_x64_linux_hotspot_21.0.11_10.tar.gz'
 
@@ -172,7 +169,7 @@ if ! grep -Fxq "$profile_line" "$HOME/.bashrc" 2>/dev/null; then
 fi
 
 if ! "$tools_only"; then
-  pwsh -NoProfile -File "$repo_root/tools/bootstrap.ps1" -JavaHome "$java8_home"
+  pwsh -NoProfile -File "$repo_root/tools/bootstrap.ps1" -JavaHome "$java21_home"
   pwsh -NoProfile -File "$repo_root/tools/build.ps1" info
   pwsh -NoProfile -File "$repo_root/tools/target-build.ps1" info -JavaHome "$java21_home"
   npm ci --prefix "$repo_root/browser-client"

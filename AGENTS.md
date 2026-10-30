@@ -13,7 +13,7 @@
 - Skip tests: `mvn install -DskipTests`
 
 ## Code Style
-- Java version: shared engine source/target 8; game server release 21. Use `tools/target-build.ps1` for the pinned JDK/Maven setup.
+- Java version: all Java modules compile for release 21 and require JDK 21 or newer. Use `tools/bootstrap.ps1` and `tools/target-build.ps1` for the pinned, validated JDK/Maven setup.
 - Encoding: UTF-8
 - Testing: JUnit 5 with Mockito for mocking
 - Package naming: `com.fumbbl.*` 
