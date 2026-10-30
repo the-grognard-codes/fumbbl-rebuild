@@ -17,10 +17,8 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ServerCommunication;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.util.UtilBox;
@@ -29,7 +27,6 @@ import com.fumbbl.ffb.util.UtilPlayer;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -51,7 +48,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 class SetupSessionMovementTest {
     @Test void plannedTransfersValidateTheEndpointWithoutChangingTheGameAndExecuteOnce() throws Exception {
         JsonArray journeys = new JsonArray();
@@ -1267,10 +1263,8 @@ class SetupSessionMovementTest {
             Map<FactoryType.Factory, INamedObjectFactory> factories = manager.getFactoriesForContext(FactoryType.FactoryContext.APPLICATION, server);
             when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
-            when(server.getGameCache()).thenReturn(mock(GameCache.class));
             ServerCommunication communication = captureNative ? new ServerCommunication(server) : mock(ServerCommunication.class);
             when(server.getCommunication()).thenReturn(communication);
-            when(server.getSessionManager()).thenReturn(new SessionManager());
             session = new SetupSession(server, document, -2, true, true, true, true, true, true);
         }
 

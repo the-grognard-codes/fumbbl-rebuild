@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2016;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.SoundId;
@@ -14,17 +12,14 @@ import com.fumbbl.ffb.mechanics.Mechanic;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
-import com.fumbbl.ffb.net.commands.ClientCommandTeamSetupDelete;
-import com.fumbbl.ffb.net.commands.ClientCommandTeamSetupLoad;
-import com.fumbbl.ffb.net.commands.ClientCommandTeamSetupSave;
 import com.fumbbl.ffb.report.bb2016.ReportNoPlayersToField;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.step.EndTurnCommandValidator;
 import com.fumbbl.ffb.server.step.AbstractStep;
+import com.fumbbl.ffb.server.step.EndTurnCommandValidator;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepException;
@@ -32,7 +27,6 @@ import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.StepParameterSet;
-import com.fumbbl.ffb.server.step.UtilServerSteps;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.common.Inducement;
 import com.fumbbl.ffb.server.util.UtilServerSetup;
@@ -41,6 +35,8 @@ import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilBox;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 /**
  * Step in kickoff sequence to setup the playing team.
  *
@@ -89,22 +85,6 @@ public final class StepSetup extends AbstractStep {
 		StepCommandStatus commandStatus = super.handleCommand(pReceivedCommand);
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND) {
 			switch (pReceivedCommand.getId()) {
-			case CLIENT_TEAM_SETUP_LOAD:
-				ClientCommandTeamSetupLoad loadSetupCommand = (ClientCommandTeamSetupLoad) pReceivedCommand.getCommand();
-				UtilServerSetup.loadTeamSetup(getGameState(), loadSetupCommand.getSetupName());
-				commandStatus = StepCommandStatus.SKIP_STEP;
-				break;
-			case CLIENT_TEAM_SETUP_SAVE:
-				ClientCommandTeamSetupSave saveSetupCommand = (ClientCommandTeamSetupSave) pReceivedCommand.getCommand();
-				UtilServerSetup.saveTeamSetup(getGameState(), saveSetupCommand.getSetupName(),
-						saveSetupCommand.getPlayerNumbers(), saveSetupCommand.getPlayerCoordinates());
-				commandStatus = StepCommandStatus.SKIP_STEP;
-				break;
-			case CLIENT_TEAM_SETUP_DELETE:
-				ClientCommandTeamSetupDelete deleteSetupCommand = (ClientCommandTeamSetupDelete) pReceivedCommand.getCommand();
-				UtilServerSetup.deleteTeamSetup(getGameState(), deleteSetupCommand.getSetupName());
-				commandStatus = StepCommandStatus.SKIP_STEP;
-				break;
 			case CLIENT_SETUP_PLAYER:
 				ClientCommandSetupPlayer setupPlayerCommand = (ClientCommandSetupPlayer) pReceivedCommand.getCommand();
 				UtilServerSetup.setupPlayer(getGameState(), setupPlayerCommand.getPlayerId(),

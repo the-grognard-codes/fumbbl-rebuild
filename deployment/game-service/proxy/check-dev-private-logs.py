@@ -7,7 +7,7 @@ try:
     result = subprocess.run(['mariadb', '--protocol=socket', '-uroot', '-N', '-B', '-e',
         'SELECT subject FROM ffb_m6_dev.ffb_v2_identity'], text=True, capture_output=True, check=True)
     needles = result.stdout.splitlines()
-    for name in ['db_password', 'admin_password', 'coach_password']:
+    for name in ['db_password']:
         needles.append(pathlib.Path('/etc/moles-game-v2-dev/secrets/' + name).read_text().strip())
     needles += ['synthetic-invalid', 'synthetic-denial']
     logs = subprocess.run(['journalctl', '-u', 'moles-game-v2-dev', '--no-pager'],

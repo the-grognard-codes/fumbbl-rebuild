@@ -4,8 +4,8 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.LeaderState;
 import com.fumbbl.ffb.PlayerState;
-import com.fumbbl.ffb.ReRollSources;
 import com.fumbbl.ffb.ReRollSource;
+import com.fumbbl.ffb.ReRollSources;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.factory.InducementTypeFactory;
@@ -16,8 +16,8 @@ import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupSession;
-import com.fumbbl.ffb.server.mechanic.bb2025.StateMechanic;
 import com.fumbbl.ffb.server.mechanic.bb2025.RollMechanic;
+import com.fumbbl.ffb.server.mechanic.bb2025.StateMechanic;
 import com.fumbbl.ffb.server.step.bb2025.StepEndTurn;
 import com.fumbbl.ffb.server.step.bb2025.move.StepPickUp;
 import com.fumbbl.ffb.util.UtilBox;
@@ -25,21 +25,19 @@ import com.fumbbl.ffb.util.UtilBox;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class RerollAccountingTest {
 	@Test void nativePriorityCountsReportsAndRetriesAgreeForBothCoaches() throws Exception {
 		JsonArray journeys = new JsonArray();
@@ -175,7 +173,7 @@ class RerollAccountingTest {
 		return state(home, "");
 	}
 	private GameState state(boolean home, String extra) throws IOException {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(9, 7)
 			.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 4, 3, 3, 9).skill("Pro").skill(extra)).player("leader", player -> player.at(18, 7).stats(6, 3, 3, 3, 9).skill("Leader")))
 			.withTeam(!home, team -> team.player("opponent", player -> player.at(20, 7).stats(6, 3, 3, 4, 9))).build();

@@ -9,6 +9,7 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepException;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepResult;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 public class GameStateExecuteStepTest {
 
 	private TestServer testServer;
@@ -102,7 +102,7 @@ public class GameStateExecuteStepTest {
 	}
 
 	private ReceivedCommand newCommand() {
-		return new ReceivedCommand(Commands.selectPlayer("test", PlayerAction.BLOCK), null);
+		return new ReceivedCommand(Commands.selectPlayer("test", PlayerAction.BLOCK));
 	}
 
 	@Test

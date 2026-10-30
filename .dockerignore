@@ -1,24 +1,28 @@
-# Allow only server build inputs into the context, including intermediate stages.
-*
+# Only current browser-server build inputs, including intermediate stages.
+**
 !pom.xml
 !ffb-common/
-!ffb-common/**
+!ffb-common/pom.xml
+!ffb-common/src/
+!ffb-common/src/**
 !ffb-server/
-!ffb-server/**
+!ffb-server/pom.xml
+!ffb-server/server.ini
+!ffb-server/src/
+!ffb-server/src/**
 !ffb-tools/
 !ffb-tools/pom.xml
-!ffb-client/
-!ffb-client/pom.xml
-!ffb-client-logic/
-!ffb-client-logic/pom.xml
-!ffb-resources/
-!ffb-resources/pom.xml
 !ffb-statetest/
 !ffb-statetest/pom.xml
 !browser-client/
 !browser-client/test/
 !browser-client/test/fixtures/
 !browser-client/test/fixtures/catalog-v1.json
+# Parent directory exceptions must never admit generated classes or dependencies.
 **/target
+**/node_modules
+**/dist
+**/dist-*
+**/public
 **/dependency-reduced-pom.xml
 **/*.iml

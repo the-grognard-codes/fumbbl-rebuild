@@ -10,8 +10,8 @@ import com.fumbbl.ffb.net.commands.ClientCommandUseProReRollForBlock;
 import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CorePromptActions;
-import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.match.CoreTurnActions;
+import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
 import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
@@ -19,19 +19,17 @@ import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class ManualSkillRerollTest {
 	private final BrowserActionEvidence evidence = new BrowserActionEvidence(true);
 
@@ -196,7 +194,7 @@ class ManualSkillRerollTest {
 	}
 
 	private GameState genericFixture(boolean home) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(9, 7)
 			.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 4, 3, 3, 9).skill("Pro").skill("Loner")))
 			.withTeam(!home, team -> team.player("opponent", player -> player.at(20, 7).stats(6, 3, 3, 4, 9))).build();
@@ -205,7 +203,7 @@ class ManualSkillRerollTest {
 	}
 
 	private GameState recover(GameState original) {
-		GameState restored = new GameState(original.getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState restored = new GameState(original.getServer());
 		restored.initFrom(original.getGame().getRules(), original.toJsonValue());
 		restored.initCommandNrGenerator(original.getLastCommandNr());
 		UtilSkillBehaviours.registerBehaviours(restored.getGame(), restored.getServer().getDebugLog());
@@ -213,7 +211,7 @@ class ManualSkillRerollTest {
 		return restored;
 	}
 	private GameState fixture(boolean home, int dice, String skill) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(0, 0)
 			.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, dice == 1 ? 3 : dice == 2 ? 4 : 7, 3, 4, 9).skill(skill)))
 			.withTeam(!home, team -> team.player("opponent", player -> player.at(11, 7).stats(6, 3, 3, 4, 9))).build();

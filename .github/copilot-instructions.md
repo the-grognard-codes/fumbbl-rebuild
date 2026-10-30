@@ -13,4 +13,8 @@
 - Do not use legacy `f` or `p` prefixes for new fields or parameters.
 
 ## Change list entries
-- Add a user-facing change list entry for any user-visible change. Entries live in the top (latest) `VersionChangeList` in `ffb-client-logic/src/main/java/com/fumbbl/ffb/client/model/ChangeList.java`, added via `addBugfix`/`addImprovement`/`addFeature`/`addBehaviorChange`.
+- Record user-visible changes under Unreleased in `CHANGELOG.md`. The public `site/updates.json` records actual merged PRs; add entries there only after merge.
+
+## Browser runtime
+- Browser V2 is the supported product runtime. Retain V1 as explicit development-only diagnostics.
+- Preserve native engine commands and assets used by browser play, replay and recovery.

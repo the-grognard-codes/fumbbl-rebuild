@@ -1,25 +1,31 @@
 # Moles Under the Pitch
 
-An independent HTML5 client and server inspired by the venerable tabletop fantasy-football game.
+An independent browser client and Java server inspired by the venerable tabletop
+fantasy-football game. This project is not affiliated with any publisher or existing
+online service.
 
-Built as an independent project and not affiliated with any publisher or existing online service.
+MUTP supports browser clients only. Browser V2 is the product protocol. Browser V1
+remains explicitly selected local diagnostic tooling; its retirement is separate.
+See the [browser client guide](browser-client/README.md),
+[development and release guide](docs/development-and-release.md), and
+[Unreleased changes](CHANGELOG.md).
 
-# Fantasy Football Server/Client (FFB)
+## Development startup
 
-FFB is the Fantasy Football software used by [FUMBBL](https://fumbbl.com)
+The supported full local application starts with:
 
-The desktop client uses Swing/AWT. The R1 server targets Java 21 and Jetty 12;
-the frozen Java 8 server remains a separate characterization reference.
+```powershell
+node tools/dev-local.mjs --start
+# Rebuild and restart a managed instance:
+node tools/dev-local.mjs --restart
+```
 
-The [local browser client](browser-client/README.md) supports the declared BB2025
-Human exhibition catalog: saved teams, invited matches, setup/play, browser reconnect,
-completed results and private replay over the retained Java engine. See
-[local M2/M3 acceptance and M4 limits](.notes/overhaul-analysis/verification/m3e/README.md).
-The diagnostic PixiJS scenario board remains separate from product matches.
-
-The [Moles Under the Pitch public site](site/README.md) and
-[Firebase Hosting assembly](deployment/firebase/README.md) are educational delivery
-components. They do not replace FUMBBL or change its accounts or game behavior.
+Follow [deployment usage](deployment/README.md) for prerequisites, local credentials,
+and service ownership. This starts local services and does not publish remotely.
+The current V2 runtime uses the existing Firebase authentication and separately
+provisioned browser database. It exposes `/browser/v2`; other game-server routes
+return 404. The [local diagnostic profile](containers/local/README.md) explicitly
+selects `local.browser.v2.enabled=false` for `/browser/v1`.
 
 ## Reproducible build and tests
 
@@ -28,92 +34,35 @@ From the repository root in PowerShell:
 ```powershell
 ./tools/bootstrap.ps1
 ./tools/target-build.ps1 test -Module ffb-server -Test BrowserJettyContractTest
-./tools/target-build.ps1 install
 ./tools/target-build.ps1 verify
+npm test --prefix browser-client
+npm run build --prefix browser-client
+npm run build:play --prefix browser-client
 ```
 
-Bootstrap supplies Maven 3.9.9 and the Java 8 reference. The target launcher requires
-Temurin 21.0.11+10 and accepts `-JavaHome` (required on Linux).
-See [the runtime policy](containers/local/runtime-compatibility.md) and
-[Java 8 reproduction](.notes/overhaul-analysis/verification/r1/java8-baseline/README.md).
-For a new Windows machine, use the [Windows development setup guide](docs/windows-development-setup.md).
-For Ubuntu 26.04 in WSL, use the [Ubuntu development setup guide](docs/ubuntu-development-setup.md).
+The target launcher requires Temurin 21.0.11+10 and accepts `-JavaHome` (required
+on Linux). Shared engine code retains Java 8 source/target compatibility; the
+server targets Java 21 and Jetty 12. See the
+[runtime policy](containers/local/runtime-compatibility.md),
+[Windows setup](docs/windows-development-setup.md), and
+[Ubuntu setup](docs/ubuntu-development-setup.md).
 
-## Using newer Java versions
+## Components
 
-The `mockito5` profile activates on Java 21. The server compiles with release 21;
-shared engine/client modules retain their existing source/target level. Other JDK
-versions are not part of the recorded R1 compatibility evidence. Never replace
-a JVM with resident unfinished matches; use the separate local R1 Compose project.
+| Directory | Purpose |
+| --- | --- |
+| `ffb-common/` | Shared rules, models and native engine commands used by browser adapters and recovery. |
+| `ffb-server/` | Browser endpoints and authoritative game engine. Game sequences use `Step` and `SequenceGenerator` classes. |
+| `ffb-tools/` | Roster and engine development utilities. |
+| `ffb-statetest/` | Native game-state regression tests. |
+| `browser-client/` | TypeScript/React/Pixi browser application and V1 diagnostics. |
+| `assets/game/` | Canonical browser artwork and asset tooling. |
+| `site/` | Public site, authentication entry and merged-PR updates. |
+| `computer-player/` | Browser-protocol computer opponent. |
 
-# Module structure
-
-## ffb-common
-
-As the name suggests, this is the base dependency for both applications containing the most basic classes.
-
-## ffb-server
-
-Server component providing a websocket endpoint for clients to connect. Commands by the client are stored in queues.
-
-Game sequences are implemented in Step classes that reside on a stack. The top step will receive commands from the queue
-and ideally processes them, publishing data to other steps on the stack and either waits for other commands or causes
-the stack to be processed further.
-
-Changes to the field model and game data will be published to clients using similar commands.
-
-## ffb-client-logic
-
-This currently contains 99,9% of the client code but in the future this should only contain device and presentation
-agnostic aspects.
-
-Similar to the server commands are enqueued and processed one by one. Usually these are changes like player positions or
-states and turn modes.
-
-Input events like mouse clicks and keyboard input are processed by ClientState classes which are specialized depending
-on the current game phase, e.g. a player is moving, teams are setting up or some out of turn sequences.
-
-Quite a few third party classes for websockets or json handling are repackaged in this module to keep the jar file small
-instead of adding bloated dependencies. Though there are also some actual dependencies related to sound and reflection.
-
-## ffb-client
-
-For now this only contains the client's main class but should at one point hold all AWT/Swing related classes and logic
-concerning desktop applications only.
-
-## ffb-resources
-
-Separate artifact for sound and icon files.
-
-## ffb-tools
-
-Small utility classes needed to e.g. rebuild the icon folder of [ffb-resources](ffb-resources)
-
-# Start up
-
-## Server
-
-The main class is `com.fumbbl.ffb.server.FantasyFootballServer`
-
-| Arguments            | Description                                                                                                                                                                   |
-|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [mode]               | * standalone - you usually want this <br/> * fumbbl - used in test and live environments on fumbbl<br/> * standalone initDb/fumbbl initDb - used to setup the database schema |
-| -inifile [filepath]  | Path to server config file, [server.ini](ffb-server/server.ini) can be used as a template                                                                                     |
-| -override [filepath] | Path to an override file supporting the same syntax and values as `inifile`. This allows to use a base ini file and apply environment specific overrides                      |
-
-The server requires a database configured through its INI file. The [isolated local container profile](containers/local/README.md) is verified with MariaDB 11.8.9 and MariaDB Connector/J 3.5.8. It includes synthetic BB2025 teams, separate database storage, a fixture-match acceptance command, loopback access and explicit stop/start/reset instructions.
-
-## Client
-
-The main class is `com.fumbbl.ffb.client.FantasyFootballClientAwt`
-
-| Arguments            | Description                                                                                                                                                                                                                           |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [mode]               | * -player - start client as player <br/> * -spectator - to join as specatator <br/> * -replay - to load replay data                                                                                                                   |
-| -server [hostname]   | Hostname of the server to connect to, e.g. `localhost`                                                                                                                                                                                |
-| -port [port]         | Websocket port as defined in server config                                                                                                                                                                                            |
-| -coach [coachname]   | Name of the coach used to log in                                                                                                                                                                                                      |
-| -teamid [teamid]     | Id of a locally stored team as defined in the [team's xml](ffb-server/teams) - only required for player mode                                                                                                                          |
-| -teamName [teamName] | Name of the team defined by -teamId, can also be taken from the xml                                                                                                                                                                   |
-| -auth [hexstring]    | Log in information, optional. If ommitted you can log in via the client dialog but we recommend to use auth data. For ease of development you can simply add a string into the coach table in the database and use that as auth info. |
-| -gameId [gameId]     | Numeric game id as stored in the data base - only required for replay mode                                                                                                                                                            |
+The standard server entry point is
+`com.fumbbl.ffb.server.FantasyFootballServer`. It accepts `-inifile path` and
+optional `-override path`; V2 is selected when no protocol override is supplied.
+Use the supported environment launchers to load secret files, verify the schema,
+and enforce local/native profile restrictions. Runtime startup does not provision
+or reset a database. Browser-owned match services persist current results/recovery.

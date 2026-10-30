@@ -1,12 +1,9 @@
 package com.fumbbl.ffb.server.match;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
-import com.fumbbl.ffb.factory.InducementTypeFactory;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
+import com.fumbbl.ffb.factory.InducementTypeFactory;
 import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.InducementType;
 import com.fumbbl.ffb.inducement.Usage;
@@ -14,7 +11,6 @@ import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ServerCommunication;
 import com.fumbbl.ffb.server.step.StepParameter;
@@ -24,6 +20,11 @@ import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.server.util.UtilServerInducementUse;
 
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,14 +32,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 class SetupSessionPlacementTest {
 	@Test
 	void getTheRefBribesAppearForBothTeamsAndSurviveUseAndRecovery() throws Exception {
@@ -249,7 +247,6 @@ class SetupSessionPlacementTest {
             Map<FactoryType.Factory, INamedObjectFactory> factories = manager.getFactoriesForContext(FactoryType.FactoryContext.APPLICATION, server);
             when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
             when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
-            when(server.getGameCache()).thenReturn(mock(GameCache.class));
             when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
             session = new SetupSession(server, document, -2, true, true, true, true, true, true);
         }

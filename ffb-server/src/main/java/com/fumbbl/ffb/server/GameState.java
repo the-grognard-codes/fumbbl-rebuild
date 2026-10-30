@@ -20,27 +20,19 @@ import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ServerCommand;
 import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.server.factory.ObserverFactory;
-import com.fumbbl.ffb.server.marking.AutoMarkingConfig;
 import com.fumbbl.ffb.server.model.CarriedPlayer;
 import com.fumbbl.ffb.server.model.SkillBehaviour;
 import com.fumbbl.ffb.server.model.StepModifier;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.net.SessionManager;
-import com.fumbbl.ffb.server.net.commands.InternalServerCommandApplyAutomatedPlayerMarkings;
 import com.fumbbl.ffb.server.skilluse.OptionalSkillUse;
 import com.fumbbl.ffb.server.step.IStep;
-import com.fumbbl.ffb.server.step.StepAction;
-import com.fumbbl.ffb.server.step.StepException;
 import com.fumbbl.ffb.server.step.StepFactory;
-import com.fumbbl.ffb.server.step.StepResult;
 import com.fumbbl.ffb.server.step.StepStack;
 import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
 import com.fumbbl.ffb.server.util.ReRollService;
-import com.fumbbl.ffb.server.util.UtilServerGame;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import org.eclipse.jetty.ee8.websocket.api.Session;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,15 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 /**
  *
  * @author Kalimar
  */
 public class GameState implements IModelChangeObserver, IJsonSerializable {
 
-	/** Application-owned sessions provide their own durability boundary. */
-	public boolean usesLegacyPersistence() { return true; }
 
 	/** Whether the application commits limited actions when the player declares them. */
 	public boolean consumesDeclaredActions() { return false; }
@@ -518,18 +507,5 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 		return false;
 	}
 
-	public void updatePlayerMarkings() {
 
-		SessionManager sessionManager = getServer().getSessionManager();
-
-		for (Session session : sessionManager.getSessionsForGameId(getId())) {
-			AutoMarkingConfig config = sessionManager.getAutoMarking(session);
-			if (config != null) {
-				getServer().getCommunication().handleCommand(
-					new ReceivedCommand(
-						new InternalServerCommandApplyAutomatedPlayerMarkings(config, getId()), session));
-			}
-		}
-
-	}
 }

@@ -139,8 +139,6 @@ In PowerShell at the repository root:
 $env:M6_ADC_FILE = "$env:APPDATA\gcloud\application_default_credentials.json"
 $env:M6_DB_PASSWORD_FILE = "$PWD\containers\local\.secrets\db_password"
 $env:M6_DB_ROOT_PASSWORD_FILE = "$PWD\containers\local\.secrets\db_root_password"
-$env:M6_ADMIN_PASSWORD_FILE = "$PWD\containers\local\.secrets\admin_password"
-$env:M6_COACH_PASSWORD_FILE = "$PWD\containers\local\.secrets\coach_password"
 docker compose -f containers/local/compose.match-review.yaml config --quiet
 docker compose -f containers/local/compose.match-review.yaml build server
 docker compose -f containers/local/compose.match-review.yaml up -d --wait database

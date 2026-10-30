@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.HeatExhaustion;
@@ -64,15 +62,12 @@ import com.fumbbl.ffb.report.mixed.ReportShowStarReRoll;
 import com.fumbbl.ffb.report.mixed.ReportShowStarReRollsLost;
 import com.fumbbl.ffb.report.mixed.ReportTurnEnd;
 import com.fumbbl.ffb.server.DiceInterpreter;
-import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
-import com.fumbbl.ffb.server.ServerMode;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.factory.mixed.PrayerHandlerFactory;
 import com.fumbbl.ffb.server.mechanic.StateMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.request.fumbbl.FumbblRequestUpdateGamestate;
 import com.fumbbl.ffb.server.step.AbstractStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
@@ -94,6 +89,9 @@ import com.fumbbl.ffb.util.UtilBox;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -101,7 +99,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 /**
  * Step in any sequence to end a turn.
  * <p>
@@ -500,7 +497,6 @@ public class StepEndTurn extends AbstractStep {
 					.filter(player -> player.hasActiveEnhancement(KickoffResult.DODGY_SNACK.getName()))
 					.forEach(player -> {
 						game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
-						getGameState().updatePlayerMarkings();
 					});
 				removeReRollsLastingForDrive(true);
 				removeReRollsLastingForDrive(false);
@@ -537,7 +533,6 @@ public class StepEndTurn extends AbstractStep {
 				UtilServerTimer.startTurnTimer(getGameState(), System.currentTimeMillis());
 			}
 
-			updateFumbblGame(getGameState(), fNewHalf, fTouchdown);
 
 			getResult().setNextAction(StepAction.NEXT_STEP);
 
@@ -766,15 +761,7 @@ public class StepEndTurn extends AbstractStep {
 		}
 	}
 
-	private static void updateFumbblGame(GameState pGameState, boolean pNewHalf, boolean pTouchdown) {
-		FantasyFootballServer server = pGameState.getServer();
-		if (server.getMode() == ServerMode.FUMBBL) {
-			Game game = pGameState.getGame();
-			if (!game.isTesting() && ((game.getTurnMode() == TurnMode.REGULAR) || pNewHalf || pTouchdown)) {
-				server.getRequestProcessor().add(new FumbblRequestUpdateGamestate(pGameState));
-			}
-		}
-	}
+
 
 	private void argueTheCall(Team pTeam, String[] pPlayerIds, boolean friendsWithTheRef) {
 		Game game = getGameState().getGame();

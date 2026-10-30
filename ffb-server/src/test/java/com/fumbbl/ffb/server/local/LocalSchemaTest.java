@@ -19,7 +19,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 class LocalSchemaTest {
 	@Test
 	void schemaOnlyInitializationRefusesNonEmptyDatabaseBeforeWriting() throws Exception {
@@ -48,7 +47,7 @@ class LocalSchemaTest {
 		when(statement.executeQuery("SHOW TABLES")).thenReturn(tables);
 		when(tables.next()).thenReturn(true);
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenThrow(new SQLException("Missing version table"));
-		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager));
 		verify(statement, never()).executeUpdate(anyString());
 	}
 
@@ -69,7 +68,7 @@ class LocalSchemaTest {
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyPreparedMatches(connection); doNothing().when(schema).verifyCompletedMatches(connection); doNothing().when(schema).verifyRecovery(connection);
         when(statement.executeUpdate("UPDATE ffb_local_schema SET version=4 WHERE version=3")).thenReturn(1);
-		schema.initialize(manager, "unused");
+		schema.initialize(manager);
 		verify(schema).verifySavedTeams(connection);
 		verify(statement, never()).executeUpdate(anyString());
 	}
@@ -86,7 +85,7 @@ class LocalSchemaTest {
 		when(statement.executeUpdate("UPDATE ffb_local_schema SET version=5 WHERE version=4")).thenReturn(1);
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyPreparedMatches(connection); doNothing().when(schema).verifyCompletedMatches(connection); doNothing().when(schema).verifyRecovery(connection);
-		schema.initialize(manager, "unused");
+		schema.initialize(manager);
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(statement, schema, connection);
 		order.verify(statement).executeUpdate(startsWith("CREATE TABLE IF NOT EXISTS ffb_match_recovery"));
 		order.verify(schema).verifyRecovery(connection);
@@ -106,7 +105,7 @@ class LocalSchemaTest {
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyPreparedMatches(connection); doNothing().when(schema).verifyCompletedMatches(connection);
 		doThrow(new SQLException("corrupt recovery table")).when(schema).verifyRecovery(connection);
-		assertThrows(SQLException.class, () -> schema.initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> schema.initialize(manager));
 		verify(statement, never()).executeUpdate("UPDATE ffb_local_schema SET version=5 WHERE version=4");
 	}
 
@@ -122,7 +121,7 @@ class LocalSchemaTest {
 		LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection);
 		doThrow(new SQLException("corrupt recovery table")).when(schema).verifyRecovery(connection);
-		assertThrows(SQLException.class, () -> schema.initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> schema.initialize(manager));
 		verify(statement, never()).executeUpdate(anyString());
 	}
 
@@ -135,7 +134,7 @@ class LocalSchemaTest {
 		when(statement.executeQuery("SHOW TABLES")).thenReturn(tables); when(tables.next()).thenReturn(true);
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
 		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(6);
-		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager));
 		verify(statement, never()).executeUpdate(anyString());
 	}
 
@@ -151,7 +150,7 @@ class LocalSchemaTest {
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection);
 		doNothing().when(schema).verifyRecovery(connection, true); doNothing().when(schema).verifyMarker6(connection);
 
-		schema.initialize(manager, "unused", true);
+		schema.initialize(manager, true);
 
 		verify(schema).verifySavedTeams(connection); verify(schema).verifyCompletedMatches(connection);
 		verify(schema).verifyRecovery(connection, true); verify(schema).verifyMarker6(connection);
@@ -167,7 +166,7 @@ class LocalSchemaTest {
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
 		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(5);
 
-		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager, "unused", true));
+		assertThrows(SQLException.class, () -> new LocalSchema().initialize(manager, true));
 
 		verify(statement, never()).executeUpdate(anyString()); verify(connection, never()).commit();
 	}
@@ -184,7 +183,7 @@ class LocalSchemaTest {
 		when(statement.executeUpdate("UPDATE ffb_local_schema SET version=5 WHERE version=4")).thenReturn(1);
         LocalSchema schema = spy(new LocalSchema());
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyCompletedMatches(connection); doNothing().when(schema).verifyRecovery(connection);
-        schema.initialize(manager, "unused");
+        schema.initialize(manager);
         verify(statement, never()).executeUpdate(startsWith("ALTER"));
         verify(schema, never()).verifyPreparedMatches(connection);
         verify(statement).executeUpdate("UPDATE ffb_local_schema SET version=4 WHERE version=3");
@@ -201,7 +200,7 @@ class LocalSchemaTest {
         LocalSchema schema = spy(new LocalSchema()); doNothing().when(schema).verifySavedTeams(connection);
         doThrow(new SQLException("not v4")).when(schema).verifyCompletedMatches(connection);
         doThrow(new SQLException("not v3")).when(schema).verifyPreparedMatches(connection);
-        assertThrows(SQLException.class, () -> schema.initialize(manager, "unused"));
+        assertThrows(SQLException.class, () -> schema.initialize(manager));
         verify(statement, never()).executeUpdate(anyString());
     }
 
@@ -219,7 +218,7 @@ class LocalSchemaTest {
 		LocalSchema schema = spy(new LocalSchema()); doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyPreparedMatches(connection); doNothing().when(schema).verifyCompletedMatches(connection); doNothing().when(schema).verifyRecovery(connection);
         when(statement.executeUpdate("UPDATE ffb_local_schema SET version=4 WHERE version=3")).thenReturn(1);
 		when(statement.executeUpdate("UPDATE ffb_local_schema SET version=5 WHERE version=4")).thenReturn(1);
-		schema.initialize(manager, "unused");
+		schema.initialize(manager);
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(statement, schema, connection);
 		order.verify(statement).executeUpdate(startsWith("CREATE TABLE IF NOT EXISTS ffb_saved_teams"));
 		order.verify(schema).verifySavedTeams(connection);
@@ -241,7 +240,7 @@ class LocalSchemaTest {
 		doNothing().when(schema).verifySavedTeams(connection); doNothing().when(schema).verifyPreparedMatches(connection); doNothing().when(schema).verifyCompletedMatches(connection); doNothing().when(schema).verifyRecovery(connection);
         when(statement.executeUpdate("UPDATE ffb_local_schema SET version=4 WHERE version=3")).thenReturn(1);
 		when(statement.executeUpdate("UPDATE ffb_local_schema SET version=5 WHERE version=4")).thenReturn(1);
-		schema.initialize(manager, "unused");
+		schema.initialize(manager);
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(statement, schema, connection);
 		order.verify(schema).verifySavedTeams(connection);
 		order.verify(statement).executeUpdate(startsWith("CREATE TABLE IF NOT EXISTS ffb_prepared_matches"));
@@ -263,7 +262,7 @@ class LocalSchemaTest {
 		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(2);
 		LocalSchema schema = spy(new LocalSchema()); doNothing().when(schema).verifySavedTeams(connection);
 		doThrow(new SQLException("mismatch")).when(schema).verifyPreparedMatches(connection);
-		assertThrows(SQLException.class, () -> schema.initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> schema.initialize(manager));
 		verify(statement, never()).executeUpdate("UPDATE ffb_local_schema SET version=3 WHERE version=2");
 		verify(connection, never()).commit();
 	}
@@ -278,7 +277,7 @@ class LocalSchemaTest {
 		when(statement.executeQuery("SELECT version FROM ffb_local_schema")).thenReturn(version);
 		when(version.next()).thenReturn(true, false); when(version.getInt(1)).thenReturn(1);
 		LocalSchema schema = spy(new LocalSchema()); doThrow(new SQLException("mismatch")).when(schema).verifySavedTeams(connection);
-		assertThrows(SQLException.class, () -> schema.initialize(manager, "unused"));
+		assertThrows(SQLException.class, () -> schema.initialize(manager));
 		verify(statement, never()).executeUpdate("UPDATE ffb_local_schema SET version=2 WHERE version=1");
 	}
 }

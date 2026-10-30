@@ -32,7 +32,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 class Marker6SchemaTest {
 	@Test
 	void explicitBootstrapAddsMissingInventoryIndexAndLeavesExistingIndexAlone() throws Exception {
@@ -96,7 +95,7 @@ class Marker6SchemaTest {
 		try (Connection connection = DriverManager.getConnection(url, "root", password)) { new Marker6Schema().verify(connection); }
 		DbConnectionManager manager = new DbConnectionManager(mock(com.fumbbl.ffb.server.FantasyFootballServer.class));
 		manager.setDbUrl(url); manager.setDbUser("root"); manager.setDbPassword(password); manager.setDbType("mariadb");
-		new LocalSchema().initialize(manager, "unused", true);
+		new LocalSchema().initialize(manager, true);
 	}
 
 	private String resource(String name) throws Exception {

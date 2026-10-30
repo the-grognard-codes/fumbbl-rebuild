@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2025.kickoff;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.ApothecaryMode;
 import com.fumbbl.ffb.Direction;
 import com.fumbbl.ffb.FactoryType;
@@ -53,8 +51,8 @@ import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.mechanic.SetupMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.step.EndTurnCommandValidator;
 import com.fumbbl.ffb.server.step.AbstractStep;
+import com.fumbbl.ffb.server.step.EndTurnCommandValidator;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepException;
@@ -76,6 +74,9 @@ import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilBox;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,7 +88,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.fumbbl.ffb.server.step.StepParameter.from;
-
 @RulesCollection(RulesCollection.Rules.BB2025)
 public final class StepApplyKickoffResult extends AbstractStep {
 
@@ -770,7 +770,6 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		}
 
 		if (update) {
-			getGameState().updatePlayerMarkings();
 		}
 		getResult().setNextAction(StepAction.NEXT_STEP);
 	}

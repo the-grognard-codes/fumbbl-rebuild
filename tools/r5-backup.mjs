@@ -85,7 +85,7 @@ try {
     formats: { replay: EXPECTED_REPLAY_FORMAT, recovery: EXPECTED_RECOVERY_FORMAT, browserProtocol: '/browser/v2' },
     schema: { marker: EXPECTED_SCHEMA_MARKER, database: boundary.database },
     boundary: { writeQuiesced: true, tables: EXPECTED_TABLES, includes: ['identities-and-scopes', 'memberships-and-invitations', 'frozen-teams', 'prepared-and-completed-matches', 'replay', 'pending-decisions', 'recovery-and-retry'] },
-    configuration: { publicFiles: config, secretReferences: ['containers/local/.secrets/db_password', 'containers/local/.secrets/db_root_password', 'containers/local/.secrets/admin_password', 'containers/local/.secrets/coach_password', 'M6_ADC_FILE'] },
+    configuration: { publicFiles: config, secretReferences: ['containers/local/.secrets/db_password', 'containers/local/.secrets/db_root_password', 'M6_ADC_FILE'] },
     fixtures: boundary.fixtures,
     files: [{ name: 'database.sql', bytes: rawStat.size, sha256: await fileDigest(raw) }]
   };

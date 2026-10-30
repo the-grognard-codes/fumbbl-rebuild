@@ -134,8 +134,7 @@ After the corresponding online build has filled the repository:
 ```
 
 Missing cached plugins/dependencies fail offline; rerun online to resolve them.
-No user `.m2` cache is required. Module-local bundled libraries are resolved from
-the existing `ffb-client/repo` and `ffb-client-logic/repo` declarations.
+No user `.m2` cache or module-local bundled client library repository is required.
 
 [CI](../.github/workflows/maven-verify.yml) uses Ubuntu 24.04, the exact manifest
 JDK, bootstrap, the offline tooling integration checks, and the same `verify`

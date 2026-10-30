@@ -11,18 +11,16 @@ import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class MovementChecksTest {
 
     @Test void pickupUsesTheEnteredSquaresNativeModifiersAndDoesNotChangeTheGame() throws Exception {
@@ -177,7 +175,7 @@ class MovementChecksTest {
         return session;
     }
     private GameState fixture(boolean reactions, int zones, String... skills) throws Exception {
-        GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+        GameState state = new GameState(new TestServer().getServer());
         new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(9, 7)
             .withTeam(true, team -> team.player("actor", player -> { player.at(10, 7).stats(6, 3, 3, 3, 9); for (String skill : skills) if (!skill.isEmpty()) player.skill(skill); }))
             .withTeam(false, team -> {

@@ -7,11 +7,9 @@ services:
       - "127.0.0.1:22237:22227"
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
-    secrets: [db_password, admin_password, coach_password]
+    secrets: [db_password]
     volumes:
       - ./server.r5-restore-network-access.ini:/config/server.ini:ro
-      - ./fixtures/teams:/app/teams:ro
-      - ./fixtures/rosters:/app/rosters:ro
       - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
       - backup:/data/backup
     read_only: true
@@ -20,7 +18,7 @@ services:
     security_opt: [no-new-privileges:true]
     stop_grace_period: 30s
     healthcheck:
-      test: [CMD, java, -cp, "FantasyFootballServer.jar:lib/*", com.fumbbl.ffb.server.local.LocalAcceptanceDemo, ready]
+      test: [CMD-SHELL, "test \"$$(curl -sS -o /dev/null -w '%{http_code}' -H 'Origin: http://localhost:5173' http://127.0.0.1:22227/browser/v2)\" = 405"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -34,7 +32,3 @@ volumes:
 secrets:
   db_password:
     file: ./.secrets/db_password
-  admin_password:
-    file: ./.secrets/admin_password
-  coach_password:
-    file: ./.secrets/coach_password

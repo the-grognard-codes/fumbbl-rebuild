@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2016;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.HeatExhaustion;
@@ -43,14 +41,11 @@ import com.fumbbl.ffb.report.ReportSecretWeaponBan;
 import com.fumbbl.ffb.report.bb2016.ReportArgueTheCallRoll;
 import com.fumbbl.ffb.report.bb2016.ReportTurnEnd;
 import com.fumbbl.ffb.server.DiceInterpreter;
-import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
-import com.fumbbl.ffb.server.ServerMode;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.mechanic.StateMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.request.fumbbl.FumbblRequestUpdateGamestate;
 import com.fumbbl.ffb.server.step.AbstractStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
@@ -59,9 +54,9 @@ import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
 import com.fumbbl.ffb.server.step.UtilServerSteps;
 import com.fumbbl.ffb.server.step.generator.EndGame;
+import com.fumbbl.ffb.server.step.generator.Kickoff;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.common.Inducement.SequenceParams;
-import com.fumbbl.ffb.server.step.generator.Kickoff;
 import com.fumbbl.ffb.server.util.UtilServerCards;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerGame;
@@ -71,10 +66,12 @@ import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.UtilBox;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 /**
  * Step in any sequence to end a turn.
  * May push another sequence on the stack (endGame, startGame or kickoff)
@@ -415,7 +412,6 @@ public class StepEndTurn extends AbstractStep {
 				UtilServerTimer.startTurnTimer(getGameState(), System.currentTimeMillis());
 			}
 
-			updateFumbblGame(getGameState(), fNewHalf, fTouchdown);
 
 			getResult().setNextAction(StepAction.NEXT_STEP);
 
@@ -513,15 +509,7 @@ public class StepEndTurn extends AbstractStep {
 		return new HeatExhaustion(playerId, isExhausted, exhaustionRoll);
 	}
 
-	private static void updateFumbblGame(GameState pGameState, boolean pNewHalf, boolean pTouchdown) {
-		FantasyFootballServer server = pGameState.getServer();
-		if (server.getMode() == ServerMode.FUMBBL) {
-			Game game = pGameState.getGame();
-			if (!game.isTesting() && ((game.getTurnMode() == TurnMode.REGULAR) || pNewHalf || pTouchdown)) {
-				server.getRequestProcessor().add(new FumbblRequestUpdateGamestate(pGameState));
-			}
-		}
-	}
+
 
 	private void argueTheCall(Team pTeam, String[] pPlayerIds) {
 		Game game = getGameState().getGame();

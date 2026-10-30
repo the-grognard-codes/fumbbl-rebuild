@@ -1,13 +1,11 @@
 package com.fumbbl.ffb.test.kickoff;
 
-import com.fumbbl.ffb.ClientMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Keyword;
 import com.fumbbl.ffb.model.SpecialRule;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepParameter;
@@ -20,15 +18,10 @@ import com.fumbbl.ffb.test.StepEngine;
 import com.fumbbl.ffb.test.TestRolls;
 import com.fumbbl.ffb.test.TestServer;
 
-import org.eclipse.jetty.ee8.websocket.api.Session;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-
 /**
  * Verifies that duplicate or stale end turn commands (e.g. caused by a double clicked end turn button during setup)
  * do not skip the swarming setup.
@@ -40,21 +33,17 @@ public class SwarmingEndTurnTest {
 	};
 
 	private TestServer testServer;
-	private Session homeSession;
-	private Session awaySession;
 
 	@BeforeEach
 	public void setUp() throws Exception {
 		testServer = new TestServer();
-		homeSession = mock(Session.class);
-		awaySession = mock(Session.class);
 	}
 
 	@Test
 	public void endTurnIssuedDuringSetupDoesNotSkipSwarming() {
 		GameState state = startSwarming();
 
-		IStep step = StepEngine.respond(state, Commands.endTurn(TurnMode.SETUP), homeSession);
+		IStep step = StepEngine.respond(state, Commands.endTurn(TurnMode.SETUP), true);
 
 		assertEquals(TurnMode.SWARMING, state.getGame().getTurnMode());
 		assertEquals(StepId.SWARMING, step.getId());
@@ -64,7 +53,7 @@ public class SwarmingEndTurnTest {
 	public void endTurnOfOtherCoachDoesNotSkipSwarming() {
 		GameState state = startSwarming();
 
-		IStep step = StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), awaySession);
+		IStep step = StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), false);
 
 		assertEquals(TurnMode.SWARMING, state.getGame().getTurnMode());
 		assertEquals(StepId.SWARMING, step.getId());
@@ -74,7 +63,7 @@ public class SwarmingEndTurnTest {
 	public void endTurnOfSwarmingCoachEndsSwarming() {
 		GameState state = startSwarming();
 
-		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), homeSession);
+		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), true);
 
 		assertEquals(TurnMode.KICKOFF, state.getGame().getTurnMode());
 	}
@@ -83,8 +72,8 @@ public class SwarmingEndTurnTest {
 	public void duplicateEndTurnAfterSwarmingIsIgnored() {
 		GameState state = startSwarming();
 
-		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), homeSession);
-		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), homeSession);
+		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), true);
+		StepEngine.respond(state, Commands.endTurn(TurnMode.SWARMING), true);
 
 		assertEquals(TurnMode.KICKOFF, state.getGame().getTurnMode());
 	}
@@ -112,7 +101,6 @@ public class SwarmingEndTurnTest {
 		game.setTurnMode(TurnMode.KICKOFF);
 		game.getTeamHome().getSpecialRules().add(SpecialRule.SWARMING);
 
-		registerSessions(state);
 
 		StepSwarming step = new StepSwarming(state);
 		StepParameterSet parameters = new StepParameterSet();
@@ -127,11 +115,4 @@ public class SwarmingEndTurnTest {
 		return state;
 	}
 
-	private void registerSessions(GameState state) {
-		SessionManager sessionManager = testServer.getServer().getSessionManager();
-		sessionManager.addSession(homeSession, state.getId(), "homeCoach", ClientMode.PLAYER, true,
-			Collections.emptyList());
-		sessionManager.addSession(awaySession, state.getId(), "awayCoach", ClientMode.PLAYER, false,
-			Collections.emptyList());
-	}
 }

@@ -40,7 +40,6 @@ import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Prayer;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.model.TargetSelectionState;
-import com.fumbbl.ffb.model.sketch.SketchState;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.model.stadium.TrapDoor;
 import com.fumbbl.ffb.option.IGameOption;
@@ -61,8 +60,7 @@ public enum ModelChangeDataType implements INamedObject {
 	DICE_DECORATION("diceDecoration"), INDUCEMENT("inducement"), FIELD_MARKER("fieldMarker"),
 	PLAYER_MARKER("playerMarker"), GAME_OPTION("gameOption"), CARD("card"), LEADER_STATE("leaderState"),
 	CARD_EFFECT("cardEffect"), CARD_CHOICES("cardChoices"), BLITZ_STATE("blitzState"),
-	TARGET_SELECTION_STATE("targetSelectionState"), PRAYER("prayer"), TRAP_DOOR("trapDoor"),
-	SKETCH_STATE("sketchState");
+	TARGET_SELECTION_STATE("targetSelectionState"), PRAYER("prayer"), TRAP_DOOR("trapDoor");
 
 	private final String fName;
 
@@ -140,8 +138,6 @@ public enum ModelChangeDataType implements INamedObject {
 				return UtilJson.toJsonValue((SendToBoxReason) pValue);
 			case SERIOUS_INJURY:
 				return UtilJson.toJsonValue((SeriousInjury) pValue);
-			case SKETCH_STATE:
-				return ((SketchState) pValue).toJsonValue();
 			case SKILL:
 				return UtilJson.toJsonValue((Skill) pValue);
 			case STRING:
@@ -221,8 +217,6 @@ public enum ModelChangeDataType implements INamedObject {
 				return UtilJson.toEnumWithName(new SendToBoxReasonFactory(), pJsonValue);
 			case SERIOUS_INJURY:
 				return UtilJson.toEnumWithName(source.getFactory(Factory.SERIOUS_INJURY), pJsonValue);
-			case SKETCH_STATE:
-				return new SketchState().initFrom(source, pJsonValue);
 			case SKILL:
 				return UtilJson.toEnumWithName(source.<SkillFactory>getFactory(Factory.SKILL), pJsonValue);
 			case STRING:

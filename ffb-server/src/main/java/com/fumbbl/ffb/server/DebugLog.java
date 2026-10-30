@@ -1,13 +1,8 @@
 package com.fumbbl.ffb.server;
 
 import com.fumbbl.ffb.net.NetCommand;
-import com.fumbbl.ffb.net.NetCommandId;
-import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.net.ReplaySessionManager;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.StringTool;
-import org.eclipse.jetty.ee8.websocket.api.Session;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,25 +26,11 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
-
 public class DebugLog {
 
 	public static final String COMMAND_CLIENT_HOME = " H->";
-	public static final String COMMAND_SERVER_HOME = " ->H";
-	public static final String COMMAND_SERVER_HOME_SPECTATORS = "->HS";
 	public static final String COMMAND_CLIENT_AWAY = " A->";
-	public static final String COMMAND_SERVER_AWAY = " ->A";
-	public static final String COMMAND_CLIENT_SPECTATOR = " S->";
-	public static final String COMMAND_CLIENT_REPLAY = " R->";
-	public static final String COMMAND_CLIENT_REPLAY_CLIENTS = " ->AR";
-	public static final String COMMAND_SERVER_SPECTATOR = " ->S";
-	public static final String COMMAND_CLIENT_UNKNOWN = " ?->";
-	public static final String COMMAND_SERVER_UNKNOWN = " ->?";
-	public static final String COMMAND_SERVER_ALL_CLIENTS = "->AC";
 	public static final String COMMAND_NO_COMMAND = "----";
-
-	public static final String FUMBBL_REQUEST = " ->F";
-	public static final String FUMBBL_RESPONSE = " F->";
 
 	private static final int _GAME_ID_MAX_LENGTH = 8;
 	private static final String _ZEROES = "000000000000000000000";
@@ -58,10 +39,10 @@ public class DebugLog {
 	private static final int _TIMESTAMP_LENGTH = 23;
 	private static final int _COMMAND_FLAG_LENGTH = 4;
 	private static final String GAME_LOG_PREFIX = "game_";
-	public static final String GAME_LOG_SUFFIX = ".log";
-	public static final String GZ_SUFFIX = ".gz";
+	private static final String GAME_LOG_SUFFIX = ".log";
+	private static final String GZ_SUFFIX = ".gz";
 	private final FantasyFootballServer fServer;
-	private final File fLogFile, baseLogPath, defaultLogFile, replayLogFile;
+	private final File fLogFile, baseLogPath, defaultLogFile;
 	private int fLogLevel;
 	private final Set<Long> forceLog = new HashSet<>();
 	private final Map<Long, File> logFiles = new HashMap<>();
@@ -73,11 +54,6 @@ public class DebugLog {
 		fLogFile = logFile;
 		this.baseLogPath = baseLogPath;
 		this.defaultLogFile = createLogFile(baseLogPath, "default.log");
-		this.replayLogFile = createLogFile(baseLogPath, "replays.log");
-		if (replayLogFile.exists()) {
-			//noinspection ResultOfMethodCallIgnored
-			replayLogFile.delete();
-		}
 
 		splitLogs = Boolean.parseBoolean(server.getProperty(IServerProperty.SERVER_LOG_FILE_SPLIT));
 
@@ -121,81 +97,9 @@ public class DebugLog {
 		forceLog.add(gameId);
 	}
 
-	public void logClientCommand(int pLogLevel, ReceivedCommand pReceivedCommand) {
-		if (!isLogging(pLogLevel) || (pReceivedCommand == null) || (pReceivedCommand.getId() == null)
-			|| (pReceivedCommand.getId() == NetCommandId.CLIENT_PING)) {
-			return;
-		}
-		GameState gameState;
-		String commandFlag = COMMAND_CLIENT_UNKNOWN;
-		Session session = pReceivedCommand.getSession();
-		SessionManager sessionManager = getServer().getSessionManager();
-		long gameId = sessionManager.getGameIdForSession(session);
-		if (gameId > 0) {
-			gameState = getServer().getGameCache().getGameStateById(gameId);
-			if ((gameState != null) && (gameState.getGame().getStarted() != null)) {
-				if (session == sessionManager.getSessionOfHomeCoach(gameState.getId())) {
-					commandFlag = COMMAND_CLIENT_HOME;
-				} else if (session == sessionManager.getSessionOfAwayCoach(gameState.getId())) {
-					commandFlag = COMMAND_CLIENT_AWAY;
-				} else {
-					commandFlag = COMMAND_CLIENT_SPECTATOR;
-				}
-			}
-		}
-		logInternal(gameId, commandFlag, pReceivedCommand.getCommand().toJsonValue().toString());
-	}
-
-	public void logReplayCommand(int pLogLevel, ReceivedCommand receivedCommand) {
-		logReplayCommand(pLogLevel, receivedCommand.getSession(), receivedCommand.getCommand());
-	}
-
-
-	public void logReplayCommand(int pLogLevel, Session session, NetCommand command) {
-		if (!isLogging(pLogLevel) || (command == null) || (command.getId() == null)
-			|| (command.getId() == NetCommandId.CLIENT_PING)) {
-			return;
-		}
-
-		ReplaySessionManager sessionManager = getServer().getReplaySessionManager();
-
-		logInternal(null, sessionManager.replayNameForSession(session), COMMAND_CLIENT_REPLAY, command.toJsonValue().toString());
-	}
-
 	public void logServerCommand(int pLogLevel, long pGameId, NetCommand pNetCommand, String pCommandFlag) {
 		if (isLogging(pLogLevel) && (pNetCommand != null)) {
 			logInternal(pGameId, pCommandFlag, pNetCommand.toJsonValue().toString());
-		}
-	}
-
-	public void logServerCommand(int pLogLevel, NetCommand pNetCommand, Session[] pSessions) {
-		if (isLogging(pLogLevel) && (pNetCommand != null) && (ArrayTool.isProvided(pSessions))) {
-			SessionManager sessionManager = getServer().getSessionManager();
-			long gameId = sessionManager.getGameIdForSession(pSessions[0]);
-			logInternal(gameId, COMMAND_SERVER_ALL_CLIENTS, pNetCommand.toJsonValue().toString());
-		}
-	}
-
-	public void logServerCommand(int pLogLevel, NetCommand pNetCommand, Session pSession) {
-		if (isLogging(pLogLevel) && (pNetCommand != null) && (pSession != null)) {
-			String commandFlag = COMMAND_SERVER_UNKNOWN;
-			SessionManager sessionManager = getServer().getSessionManager();
-			long gameId = sessionManager.getGameIdForSession(pSession);
-			if (gameId > 0) {
-				GameState gameState = getServer().getGameCache().getGameStateById(gameId);
-				if ((gameState != null) && (gameState.getGame().getStarted() != null)) {
-					if (sessionManager.getSessionOfHomeCoach(gameState.getId()) == pSession) {
-						commandFlag = COMMAND_SERVER_HOME;
-					} else if (sessionManager.getSessionOfAwayCoach(gameState.getId()) == pSession) {
-						commandFlag = COMMAND_SERVER_AWAY;
-					} else {
-						if (sessionManager.getCoachForSession(pSession) != null) {
-							commandFlag = COMMAND_SERVER_SPECTATOR;
-						}
-					}
-				}
-				logInternal(gameId, commandFlag, pNetCommand.toJsonValue().toString());
-			}
 		}
 	}
 
@@ -220,32 +124,6 @@ public class DebugLog {
 	public void log(int pLogLevel, long pGameId, String pCommandFlag, String pLogString) {
 		if ((isLogging(pLogLevel) || forceLog.contains(pGameId)) && StringTool.isProvided(pLogString)) {
 			logInternal(pGameId, pCommandFlag, pLogString);
-		}
-	}
-
-	public void logReplay(int logLevel, String replayName, String flag, String logString) {
-		if (isLogging(logLevel) && StringTool.isProvided(logString)) {
-			logInternal(null, replayName, flag, logString);
-		}
-	}
-
-	public void logReplay(String replayName, Throwable pThrowable) {
-		if (pThrowable != null) {
-			StringWriter stringWriter = new StringWriter();
-			PrintWriter printWriter = new PrintWriter(stringWriter);
-			if (!ArrayTool.isProvided(pThrowable.getStackTrace())) {
-				logReplay(IServerLogLevel.ERROR, replayName, null, "Filling in stacktrace for " + pThrowable.getClass().getCanonicalName());
-				pThrowable = pThrowable.fillInStackTrace();
-			}
-
-			if (!ArrayTool.isProvided(pThrowable.getStackTrace())) {
-				logReplay(IServerLogLevel.ERROR, replayName, null, "No stacktrace for " + pThrowable.getClass().getCanonicalName());
-			}
-
-			pThrowable.printStackTrace(printWriter);
-			printWriter.flush();
-			printWriter.close();
-			logReplay(IServerLogLevel.ERROR, replayName, null, stringWriter.getBuffer().toString());
 		}
 	}
 
@@ -280,20 +158,11 @@ public class DebugLog {
 		}
 	}
 
-	private void logInternal(Long pGameId, String pCommandFlag, String pLogString) {
-		logInternal(pGameId, null, pCommandFlag, pLogString);
-	}
-
-	private void logInternal(Long pGameId, String replayName, String pCommandFlag, String pLogString) {
+	private void logInternal(long pGameId, String pCommandFlag, String pLogString) {
 		StringBuilder headerBuffer = new StringBuilder(_TIMESTAMP_LENGTH + _GAME_ID_MAX_LENGTH + _COMMAND_FLAG_LENGTH);
 		headerBuffer.append(_HEADER_TIMESTAMP_FORMAT.format(new Date()));
 		headerBuffer.append(" ");
-		if (pGameId == null) {
-			if (StringTool.isProvided(replayName)) {
-				headerBuffer.append(replayName);
-			}
-			headerBuffer.append(_LINES, 0, 3);
-		} else if (pGameId > 0) {
+		if (pGameId > 0) {
 			String gameStateId = Long.toString(pGameId);
 			if (gameStateId.length() <= _GAME_ID_MAX_LENGTH) {
 				headerBuffer.append(_ZEROES, 0, _GAME_ID_MAX_LENGTH - gameStateId.length());
@@ -316,7 +185,7 @@ public class DebugLog {
 		// write synchronized to the log, create a new one if necessary
 		synchronized (this) {
 
-			if (pGameId != null && splitLogs) {
+			if (splitLogs) {
 
 				try (PrintWriter gameLog = new PrintWriter(new FileWriter(gameLogFile(pGameId), true))) {
 					writeLogLine(header, tokenizer, gameLog);
@@ -325,7 +194,7 @@ public class DebugLog {
 					ioe.printStackTrace();
 				}
 			} else {
-				File logFile = pGameId == null ? replayLogFile : getLogFile();
+				File logFile = getLogFile();
 				try (PrintWriter out = new PrintWriter(new FileWriter(logFile, true))) {
 					writeLogLine(header, tokenizer, out);
 				} catch (IOException ioe) {

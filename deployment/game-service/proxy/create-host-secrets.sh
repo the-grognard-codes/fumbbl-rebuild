@@ -23,19 +23,10 @@ destination="/etc/moles-game-v2-$environment"
 mkdir -m 0700 -- "$destination"
 mkdir -m 0700 -- "$destination/secrets"
 openssl rand -hex -out "$destination/secrets/db_password" 32
-openssl rand -hex -out "$destination/secrets/admin_password" 32
-# The legacy bootstrap field requires 32 lowercase hex characters. This is
-# random material, not a password for a Firebase/application principal.
-openssl rand -hex -out "$destination/secrets/coach_password" 16
-chmod 0600 -- "$destination/secrets/db_password" \
-  "$destination/secrets/admin_password" "$destination/secrets/coach_password"
+chmod 0600 -- "$destination/secrets/db_password"
+[[ $(stat -c '%a:%U:%G' "$destination/secrets/db_password") == 600:root:root ]]
+LC_ALL=C grep -Eq '^[0-9a-f]{64}$' "$destination/secrets/db_password"
 
-for field in db_password admin_password coach_password; do
-  length=64
-  [[ "$field" != coach_password ]] || length=32
-  [[ $(stat -c '%a:%U:%G' "$destination/secrets/$field") == 600:root:root ]]
-  LC_ALL=C grep -Eq "^[0-9a-f]{$length}$" "$destination/secrets/$field"
-done
 [[ $(stat -c '%a:%U:%G' "$destination/secrets") == 700:root:root ]]
-echo "$environment: three new root-only secret files created; values not displayed."
+echo "$environment: one new root-only database secret file created; values not displayed."
 echo 'Database account/grants and runtime read access are not installed by this command.'

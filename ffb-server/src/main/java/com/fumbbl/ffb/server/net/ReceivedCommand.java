@@ -1,52 +1,24 @@
 package com.fumbbl.ffb.server.net;
 
-import org.eclipse.jetty.ee8.websocket.api.Session;
-
 import com.fumbbl.ffb.net.NetCommand;
 import com.fumbbl.ffb.net.NetCommandId;
-import com.fumbbl.ffb.net.commands.ClientCommand;
-
-/**
- * 
- * @author Kalimar
- */
+/** Native engine command. Browser membership is checked before assigning coach ownership. */
 public class ReceivedCommand {
+	private final NetCommand command;
+	private final Boolean applicationHome;
 
-	private NetCommand fCommand;
-	private Session fSession;
-	private Boolean applicationHome;
+	/** Unowned commands are confined to trusted diagnostic/engine test fixtures. */
+	public ReceivedCommand(NetCommand command) {
+		this.command = command;
+		applicationHome = null;
+	}
 
-	/** Trusted application routing, populated only after persisted membership authorization. */
-	public ReceivedCommand(ClientCommand command, boolean home) {
-		this(command, null);
+	public ReceivedCommand(NetCommand command, boolean home) {
+		this.command = command;
 		applicationHome = home;
 	}
 
 	public Boolean getApplicationHome() { return applicationHome; }
-
-	public ReceivedCommand(NetCommand pCommand, Session pSession) {
-		fCommand = pCommand;
-		fSession = pSession;
-	}
-
-	public NetCommand getCommand() {
-		return fCommand;
-	}
-
-	public Session getSession() {
-		return fSession;
-	}
-
-	public NetCommandId getId() {
-		return getCommand().getId();
-	}
-
-	public boolean isInternalCommand() {
-		return getCommand().isInternal();
-	}
-
-	public boolean isClientCommand() {
-		return (getCommand() instanceof ClientCommand);
-	}
-
+	public NetCommand getCommand() { return command; }
+	public NetCommandId getId() { return command.getId(); }
 }

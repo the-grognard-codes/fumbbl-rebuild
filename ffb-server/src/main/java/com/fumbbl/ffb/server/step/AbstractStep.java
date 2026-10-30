@@ -32,7 +32,6 @@ import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.model.SkillBehaviour;
 import com.fumbbl.ffb.server.model.StepModifier;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.skilluse.OptionalSkillChoices;
 import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
@@ -45,7 +44,6 @@ import com.eclipsesource.json.JsonValue;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 /**
  * @author Kalimar
  */
@@ -271,11 +269,8 @@ public abstract class AbstractStep implements IStep {
 		GameResult gameResult = game.getGameResult();
 		boolean allowConcessions = ((GameOptionBoolean) game.getOptions().getOptionWithDefault(GameOptionId.ALLOW_CONCESSIONS)).isEnabled();
 		if (concedeGameCommand.getConcedeGameStatus() != null && allowConcessions) {
-			SessionManager sessionManager = getGameState().getServer().getSessionManager();
-			boolean homeCommand = (sessionManager.getSessionOfHomeCoach(getGameState().getId()) == pReceivedCommand
-				.getSession());
-			boolean awayCommand = (sessionManager.getSessionOfAwayCoach(getGameState().getId()) == pReceivedCommand
-				.getSession());
+			boolean homeCommand = UtilServerSteps.checkCommandIsFromHomePlayer(getGameState(), pReceivedCommand);
+			boolean awayCommand = UtilServerSteps.checkCommandIsFromAwayPlayer(getGameState(), pReceivedCommand);
 			switch (concedeGameCommand.getConcedeGameStatus()) {
 				case REQUESTED:
 					if (game.isConcessionPossible()
@@ -313,7 +308,7 @@ public abstract class AbstractStep implements IStep {
 		if (game.isTimeoutPossible()) {
 			ReportList reports = new ReportList();
 			FantasyFootballServer server = getGameState().getServer();
-			String coach = server.getSessionManager().getCoachForSession(pReceivedCommand.getSession());
+			String coach = Boolean.TRUE.equals(pReceivedCommand.getApplicationHome()) ? game.getTeamHome().getCoach() : game.getTeamAway().getCoach();
 			reports.add(new ReportTimeoutEnforced(coach));
 			game.setTimeoutEnforced(true);
 			game.setTimeoutPossible(false);

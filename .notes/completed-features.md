@@ -6,6 +6,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 
 - [Web delivery and team building](#web-delivery-and-team-building)
   - [Monorepo web integration](#monorepo-web-integration)
+  - [Browser-only client support](#browser-only-client-support)
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
@@ -56,6 +57,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Assembled a single Firebase Hosting artifact serving the public site at `/`, the client at `/play`, and authentication completion at `/login/complete`.
 - Included project updates, privacy, support, and the educational project's non-affiliation statement in the public site.
 - Recorded source provenance and imported-file destinations or exclusions before removing temporary import staging. Excluded nested Git metadata and secrets.
+
+### Browser-only client support
+
+- Retired Java desktop/WebStart clients in one cutover, removing their modules, packaging, transports, sessions, exclusive shared definitions, and obsolete server services.
+- Made Browser V2 the normal server startup path; retained Browser V1 through explicit local diagnostic configuration. No historical game/save/replay compatibility is required.
+- Preserved shared native rules, event logs, assets, and browser live play, spectating, recovery, and replay behavior. New databases receive browser tables only; existing local data is preserved.
+- Updated current operational and agent guidance, CI, and clean container packaging. Historical references and attribution remain.
+- Validated Java/browser builds and regression suites, V1 smoke, and a fresh authenticated two-coach match through full time. Actual JVM restarts preserved the suspended match and completed replay. See [issues #379?#381](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/379) and the [implementation outcome](../docs/specs/browser-only-support-outcome.md) for exact evidence.
 
 ### DEV and PROD environments
 

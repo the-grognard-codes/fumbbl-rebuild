@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2016.start;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.factory.IFactorySource;
@@ -9,7 +7,6 @@ import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.GameResult;
 import com.fumbbl.ffb.model.TeamResult;
 import com.fumbbl.ffb.report.bb2016.ReportSpectators;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
@@ -17,9 +14,11 @@ import com.fumbbl.ffb.server.step.AbstractStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepId;
-import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.Kickoff;
+import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 /**
  * Step in start game sequence to roll spectators.
  * <p>
@@ -58,8 +57,6 @@ public final class StepSpectators extends AbstractStep {
 		SequenceGeneratorFactory factory = getGameState().getGame().getFactory(FactoryType.Factory.SEQUENCE_GENERATOR);
 		((Kickoff)factory.forName(SequenceGenerator.Type.Kickoff.name()))
 			.pushSequence(new Kickoff.SequenceParams(getGameState(), true));
-		GameCache gameCache = getGameState().getServer().getGameCache();
-		gameCache.queueDbUpdate(getGameState(), true);
 		getResult().setNextAction(StepAction.NEXT_STEP);
 	}
 
