@@ -131,3 +131,15 @@ was found. This verifies packaged V2 startup and transport, not an authenticated
 match/restart scenario. Existing match data and volumes were retained.
 
 Startup log: `.tools/java21-dev-local-start-two-workers.log`.
+
+## PR validation correction, 2026-10-30
+
+The initial PR #385 Maven shard builds passed, but shard 1's strict skip validation
+rejected the two V2 opt-in messages: the tests now say `current-schema` while the
+allow-list still expected `marker-6`. Updated those two expected messages without
+changing tests or relaxing skip validation. A validation-only Surefire fixture
+using the real manifest and current test messages reproduced the failure before
+the correction. This fixture checks metadata consistency, not native execution.
+After correction, the fixture validated all 15 shard suites and all 12 existing
+native-shard validator regression checks passed. The strict skip check remains
+unchanged; the pushed correction is subject to a fresh complete CI run.
