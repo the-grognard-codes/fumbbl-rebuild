@@ -48,13 +48,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 8.0.504+1
-      - name: Bootstrap project Maven
-        shell: pwsh
-        run: ./tools/bootstrap.ps1 -JavaHome $env:JAVA_HOME
       - name: Read target Java version
         id: toolchain
         shell: pwsh
@@ -65,6 +58,12 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ steps.toolchain.outputs.java-version }}
+      - name: Bootstrap project Maven with Java 21
+        shell: pwsh
+        run: ./tools/bootstrap.ps1 -JavaHome $env:JAVA_HOME
+      - name: Check bootstrap and build tooling
+        shell: pwsh
+        run: ./tools/test-tooling.ps1
       - uses: actions/cache@v4
         with:
           path: .tools/repository
@@ -93,27 +92,21 @@ jobs:
           $toolchain = Get-Content tools/target-build-toolchain.json -Raw | ConvertFrom-Json
           "java-version=$($toolchain.java.ciVersion)" >> $env:GITHUB_OUTPUT
 
-      - name: Set up baseline Java 8 for Maven bootstrap
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 8.0.504+1
-
-      - name: Set up project-local Maven
-        shell: pwsh
-        run: ./tools/bootstrap.ps1 -JavaHome $env:JAVA_HOME
-
       - name: Set up target Java 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: ${{ steps.toolchain.outputs.java-version }}
 
+      - name: Set up project-local Maven
+        shell: pwsh
+        run: ./tools/bootstrap.ps1 -JavaHome $env:JAVA_HOME
+
       - name: Cache project-local Maven repository
         uses: actions/cache@v4
         with:
           path: .tools/repository
-          key: ${{ runner.os }}-r1-java21-${{ hashFiles('tools/build-toolchain.json', 'tools/target-build-toolchain.json', '**/pom.xml') }}
+          key: ${{ runner.os }}-java21-${{ hashFiles('tools/target-build-toolchain.json', '**/pom.xml') }}
 
       - name: Reject disabled target tests
         shell: pwsh
@@ -211,10 +204,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Read target Java version
+        id: toolchain
+        shell: pwsh
+        run: |
+          $toolchain = Get-Content tools/target-build-toolchain.json -Raw | ConvertFrom-Json
+          "java-version=$($toolchain.java.ciVersion)" >> $env:GITHUB_OUTPUT
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: ${{ steps.toolchain.outputs.java-version }}
           cache: maven
       - run: mvn -B -f game-service/pom.xml clean verify
       - run: bash -n deployment/game-service/provision.sh

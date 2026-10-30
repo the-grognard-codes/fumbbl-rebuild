@@ -1,5 +1,8 @@
 ﻿# M3a activation durability and rollback boundary
 
+Historical M3a contract, retained for interpreting older artifacts. Current
+sources require Java 21; see the [current runtime policy](runtime-compatibility.md).
+
 M3a retains schema 3 and the existing `ffb_prepared_matches` InnoDB table. No DDL,
 volume reset, credential change, or infrastructure upgrade is required. The paired
 local image is `ffb-server:3.4.0-m3a.1`.

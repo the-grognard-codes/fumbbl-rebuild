@@ -40,9 +40,10 @@ npm run build --prefix browser-client
 npm run build:play --prefix browser-client
 ```
 
-The target launcher requires Temurin 21.0.11+10 and accepts `-JavaHome` (required
-on Linux). Shared engine code retains Java 8 source/target compatibility; the
-server targets Java 21 and Jetty 12. See the
+All Java modules require JDK 21 or newer and compile for Java 21. Setup and CI pin
+Temurin 21.0.11+10 and Maven 3.9.9; compatibility with newer JDKs is unverified.
+Supply `-JavaHome` to bootstrap on Linux or to select an existing JDK. The target
+launcher reuses that configured JDK. The server uses Jetty 12. See the
 [runtime policy](containers/local/runtime-compatibility.md),
 [Windows setup](docs/windows-development-setup.md), and
 [Ubuntu setup](docs/ubuntu-development-setup.md).

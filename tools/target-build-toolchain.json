@@ -1,14 +1,17 @@
 {
   "maven": {
     "version": "3.9.9",
-    "directory": "apache-maven-3.9.9"
+    "directory": "apache-maven-3.9.9",
+    "archive": "apache-maven-3.9.9-bin.zip",
+    "url": "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.9/apache-maven-3.9.9-bin.zip",
+    "sha512": "8beac8d11ef208f1e2a8df0682b9448a9a363d2ad13ca74af43705549e72e74c9378823bf689287801cbbfc2f6ea9596201d19ccacfdfb682ee8a2ff4c4418ba"
   },
   "java": {
+    "minimumVersion": 21,
     "runtimeVersion": "21.0.11+10-LTS",
     "ciVersion": "21.0.11+10.0.LTS",
     "vendor": "Eclipse Adoptium",
     "defaultWindowsHome": "C:/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot"
   },
-  "repositoryDirectory": "repository",
-  "mavenProfile": "mockito5"
+  "repositoryDirectory": "repository"
 }

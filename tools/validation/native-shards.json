@@ -77,8 +77,8 @@
       "retainedArtifactHasNativeAndDecisionParityInAnotherJvm": "org.opentest4j.TestAbortedException: Assumption failed: assumption is not true"
     },
     "com.fumbbl.ffb.test.V2RuntimeIntegrationTest": {
-      "twoAccountsAndViewerShareNativeStateAndRecoverWithoutReexecuting": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated marker-6 database required",
-      "uncertainTerminalCommitPublishesOneFinalFrameAfterExactRetry": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated marker-6 database required"
+      "twoAccountsAndViewerShareNativeStateAndRecoverWithoutReexecuting": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated current-schema database required",
+      "uncertainTerminalCommitPublishesOneFinalFrameAfterExactRetry": "org.opentest4j.TestAbortedException: Assumption failed: Opt-in isolated current-schema database required"
     }
   }
 }

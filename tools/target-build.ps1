@@ -2,10 +2,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('info', 'test', 'install', 'verify')]
+    [ValidateSet('info', 'focused', 'test', 'install', 'verify')]
     [string]$Task = 'verify',
-    # An exact Temurin 21.0.11+10 JDK. The documented Windows installation is
-    # selected when this parameter is omitted.
+    # Defaults to the configured JDK or the manifest's pinned Windows install.
+    # Java 21 is the minimum; validation uses the exact Temurin pin.
     [string]$JavaHome,
     [string]$Test,
     [string]$Module,
@@ -18,44 +18,20 @@ $root = Split-Path $PSScriptRoot -Parent
 $toolRoot = Join-Path $root '.tools'
 $manifest = Get-Content (Join-Path $PSScriptRoot 'target-build-toolchain.json') -Raw | ConvertFrom-Json
 $windowsHost = [Environment]::OSVersion.Platform -eq 'Win32NT'
-$suffix = if ($windowsHost) { '.exe' } else { '' }
 
 if (!$JavaHome) {
-    if (!$windowsHost) {
-        throw 'Supply -JavaHome pointing to Temurin JDK 21.0.11+10-LTS on this platform.'
+    $configuration = Join-Path $toolRoot 'java-home.txt'
+    if (Test-Path -LiteralPath $configuration) {
+        $JavaHome = (Get-Content -LiteralPath $configuration -Raw).Trim()
+    } elseif ($windowsHost) {
+        $JavaHome = $manifest.java.defaultWindowsHome
+    } else {
+        throw 'Run tools/bootstrap.ps1 -JavaHome /path/to/jdk or supply -JavaHome pointing to JDK 21 or newer.'
     }
-    $JavaHome = $manifest.java.defaultWindowsHome
 }
 $JavaHome = (Resolve-Path -LiteralPath $JavaHome).Path
-foreach ($command in @('java', 'javac')) {
-    if (!(Test-Path -LiteralPath (Join-Path $JavaHome "bin/$command$suffix"))) {
-        throw "Missing $command in JDK: $JavaHome. Supply an exact Temurin JDK 21.0.11+10-LTS."
-    }
-}
-
-function Get-JavaProperties([string]$JavaExecutable) {
-    $start = New-Object System.Diagnostics.ProcessStartInfo
-    $start.FileName = $JavaExecutable
-    $start.Arguments = '-XshowSettings:properties -version'
-    $start.UseShellExecute = $false
-    $start.CreateNoWindow = $true
-    $start.RedirectStandardError = $true
-    $process = [System.Diagnostics.Process]::Start($start)
-    $details = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
-    $exitCode = $process.ExitCode
-    $process.Dispose()
-    if ($exitCode -ne 0) { throw "Unable to inspect JDK: $JavaExecutable" }
-    return $details
-}
-
-$javaDetails = Get-JavaProperties (Join-Path $JavaHome "bin/java$suffix")
-$runtime = [regex]::Escape($manifest.java.runtimeVersion)
-$vendor = [regex]::Escape($manifest.java.vendor)
-if ($javaDetails -notmatch "java.runtime.version = $runtime(\r?\n)" -or
-    $javaDetails -notmatch "java.vendor = $vendor(\r?\n)") {
-    throw "Target requires $($manifest.java.vendor) JDK $($manifest.java.runtimeVersion); rejected $JavaHome."
-}
+. (Join-Path $PSScriptRoot 'check-java.ps1')
+Assert-SupportedJava $JavaHome $manifest.java | Out-Null
 
 $launcher = if ($windowsHost) { 'bin/mvn.cmd' } else { 'bin/mvn' }
 $maven = Join-Path (Join-Path $toolRoot $manifest.maven.directory) $launcher
@@ -65,8 +41,7 @@ if (!(Test-Path -LiteralPath $maven)) {
 $settings = Join-Path $root '.mvn/settings.xml'
 $mavenArguments = @('--batch-mode', '--no-transfer-progress', '--show-version',
     '--settings', $settings, '--global-settings', $settings,
-    "-Dmaven.repo.local=$(Join-Path $toolRoot $manifest.repositoryDirectory)",
-    "-P$($manifest.mavenProfile)")
+    "-Dmaven.repo.local=$(Join-Path $toolRoot $manifest.repositoryDirectory)")
 if ($Offline) { $mavenArguments += '--offline' }
 if (($Test -or $Module) -and $Task -ne 'test') { throw '-Test and -Module are only supported with the test task.' }
 if ($NativeIncludesFile) {
@@ -77,6 +52,11 @@ if ($NativeIncludesFile) {
 }
 switch ($Task) {
     'info' { $mavenArguments += '--version' }
+    'focused' {
+        $mavenArguments += @('-pl', 'ffb-statetest', '-am',
+            '-Dtest=BlockTest,ShadowingTest,HandOffTurnoverTest,SafePassTest,SwarmingEndTurnTest,RulesTest,ReRollApiEquivalenceTest,BrowserEngineQueueTest',
+            '-Dsurefire.failIfNoSpecifiedTests=false', 'test')
+    }
     'test' {
         if ($Module) { $mavenArguments += @('-pl', $Module, '-am') }
         if ($Test) { $mavenArguments += @("-Dtest=$Test", '-Dsurefire.failIfNoSpecifiedTests=false') }

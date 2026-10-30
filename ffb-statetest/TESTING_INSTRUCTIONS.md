@@ -21,7 +21,7 @@ ffb-statetest/
 ## Dependency Setup
 
 - `pom.xml` depends on `ffb-common`, `ffb-server`, JUnit 5, and Mockito (compile scope because test utilities need it at test time).
-- The parent POM manages JUnit 5.5.0 and Mockito 4.11.0 (Java 8) / 5.23.0 (Java 21 with `-Pmockito5`).
+- The parent POM manages JUnit 5.5.0 and Mockito 5.23.0. All modules require JDK 21 or newer and compile for Java 21; no Mockito selection profile is needed.
 - Build: `mvn clean install` (from root) or `mvn test -pl ffb-statetest` (from root).
 
 ## Test Pattern

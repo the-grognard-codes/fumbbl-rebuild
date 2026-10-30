@@ -38,7 +38,7 @@ npm run dev
 
 Supported toolchain: Node 26.x (setup pin 26.7.0), npm 11.19.0; exact package versions and transitive
 integrity hashes are in `package-lock.json`. The game server uses the pinned Java 21
-runtime; shared engine sources retain Java 8 compatibility. Node serves/develops the UI only; it is not a second game server.
+runtime; all Java modules compile for Java 21. Node serves/develops the UI only; it is not a second game server.
 Vite binds `127.0.0.1:5173`; Compose publishes the JVM only on `127.0.0.1:22227`.
 
 Open two separate browser profiles or private contexts at

@@ -1,4 +1,11 @@
-function Assert-BaselineJava($JavaHome, $Specification) {
+function Assert-JavaVersion([string]$Details, [int]$MinimumVersion) {
+    if ($Details -notmatch 'java.specification.version = (\d+)(\r?\n)' -or
+        [int]$Matches[1] -lt $MinimumVersion) {
+        throw "JDK $MinimumVersion or newer is required. Run tools/bootstrap.ps1 to refresh the selected JDK."
+    }
+}
+
+function Assert-SupportedJava($JavaHome, $Specification) {
     $suffix = if ([Environment]::OSVersion.Platform -eq 'Win32NT') { '.exe' } else { '' }
     foreach ($command in @('java', 'javac')) {
         if (!(Test-Path -LiteralPath (Join-Path $JavaHome "bin/$command$suffix"))) {
@@ -18,10 +25,7 @@ function Assert-BaselineJava($JavaHome, $Specification) {
     $process.WaitForExit()
     $javaExit = $process.ExitCode
     $process.Dispose()
-    $runtime = [regex]::Escape($Specification.runtimeVersion)
-    $vendor = [regex]::Escape($Specification.vendor)
-    if ($javaExit -ne 0 -or $details -notmatch "java.runtime.version = $runtime(\r?\n)" -or
-        $details -notmatch "java.vendor = $vendor(\r?\n)") {
-        throw "Baseline requires $($Specification.vendor) JDK $($Specification.runtimeVersion); rejected $JavaHome. Java 21 compatibility is a separate check."
-    }
+    if ($javaExit -ne 0) { throw "Unable to inspect JDK: $JavaHome" }
+    Assert-JavaVersion $details $Specification.minimumVersion
+    return $details
 }

@@ -1,6 +1,11 @@
 # R2 local recovery compatibility boundary
 
-This runtime is for the isolated `ffb-local-r2b` Compose project, port 22230. It must not replace a JVM that owns an unfinished Java 8 or R1 match. Keep that JVM and its database running until its matches complete. Do not point R2 at those retained databases to test migration. No public-service gate follows from these local checks.
+This document records the isolated R2 recovery boundary (`ffb-local-r2b`, port
+22230). Current builds require Java 21; see the [current runtime policy](runtime-compatibility.md).
+Historical pre-R2 resident engines cannot be moved between JVMs without compatible
+checkpoints. Preserve their data and complete or explicitly account for resident
+work before retiring any old process. Use isolated copies for migration testing.
+No public-service gate follows from these local checks.
 
 ## Versions and rejection
 

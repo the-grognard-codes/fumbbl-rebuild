@@ -21,6 +21,7 @@ import com.fumbbl.ffb.server.match.VerifiedIdentity;
 import com.fumbbl.ffb.server.team.JdbcSavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
+import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -42,16 +43,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/** Real marker-6 MariaDB and native R2 engine; provider authentication is an explicit test double. */
+/** Current-schema MariaDB and native engine; provider authentication is an explicit test double. */
 class V2RuntimeIntegrationTest {
 	@Test void twoAccountsAndViewerShareNativeStateAndRecoverWithoutReexecuting() throws Exception {
 		String url = System.getenv("M6_TEST_JDBC_URL");
-		assumeTrue(url != null, "Opt-in isolated marker-6 database required");
+		assumeTrue(url != null, "Opt-in isolated current-schema database required");
 		assertTrue(url.startsWith("jdbc:mariadb://127.0.0.1:"));
 		String password = new String(Files.readAllBytes(Paths.get(System.getenv("M6_TEST_PASSWORD_FILE"))), StandardCharsets.UTF_8).trim();
 		JdbcMatchMembershipRepository.Connections connections = () -> DriverManager.getConnection(url, "root", password);
 		try (Connection connection = connections.open(); java.sql.Statement statement = connection.createStatement(); java.sql.ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			assertTrue(rows.next()); assertEquals(6, rows.getInt(1));
+			assertTrue(rows.next()); assertEquals(9, rows.getInt(1));
 		}
 		String run = UUID.randomUUID().toString();
 		BrowserV2Adapter adapter = runtime(connections, run);
@@ -95,7 +96,7 @@ class V2RuntimeIntegrationTest {
 		Peer restoredViewer = new Peer(), restoredActor = new Peer();
 		authenticate(recreated, restoredViewer, "viewer");
 		JsonObject restored = send(recreated, restoredViewer, request("watch").add("matchId", match)); accepted(restored);
-		assertEquals(watched.get("state"), restored.get("state"));
+		assertEquals(JsonObject.readFrom(state.toString()).set("callerRole", "spectator"), restored.get("state"));
 		JsonObject chatAfterRestart = send(recreated, restoredViewer, request("matchChat").add("operation", "load")
 			.add("matchId", match).add("from", 0).add("limit", 32));
 		accepted(chatAfterRestart);
@@ -124,13 +125,13 @@ class V2RuntimeIntegrationTest {
 
 	@Test void uncertainTerminalCommitPublishesOneFinalFrameAfterExactRetry() throws Exception {
 		String url = System.getenv("M6_TEST_JDBC_URL");
-		assumeTrue(url != null, "Opt-in isolated marker-6 database required");
+		assumeTrue(url != null, "Opt-in isolated current-schema database required");
 		assertTrue(url.startsWith("jdbc:mariadb://127.0.0.1:"));
 		String password = new String(Files.readAllBytes(Paths.get(System.getenv("M6_TEST_PASSWORD_FILE"))), StandardCharsets.UTF_8).trim();
 		JdbcMatchMembershipRepository.Connections connections = () -> DriverManager.getConnection(url, "root", password);
 		try (Connection connection = connections.open(); java.sql.Statement statement = connection.createStatement();
 			java.sql.ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-			assertTrue(rows.next()); assertEquals(6, rows.getInt(1));
+			assertTrue(rows.next()); assertEquals(9, rows.getInt(1));
 		}
 		String run = UUID.randomUUID().toString();
 		RosterCatalog catalog = new RosterCatalog(); Clock clock = Clock.systemUTC();
@@ -273,8 +274,10 @@ class V2RuntimeIntegrationTest {
 	private void accepted(JsonObject response) { assertEquals("ACCEPTED", response.getString("code", null)); }
 	private String saved(BrowserV2Adapter adapter, Peer peer) {
 		JsonArray players = new JsonArray();
-		for (int slot = 1; slot <= 11; slot++) players.add(new JsonObject().add("id", "p" + slot).add("slot", slot).add("positionId", "lineman").add("skillIds", new JsonArray()));
-		JsonObject draft = new JsonObject().add("catalogVersion", RosterCatalog.VERSION).add("ruleset", "BB2025")
+		for (int slot = 1; slot <= 11; slot++) players.add(new JsonObject().add("id", "p" + slot).add("slot", slot)
+			.add("jerseyNumber", slot).add("playerName", "Player " + slot).add("positionId", "lineman").add("skillIds", new JsonArray()));
+		JsonObject draft = new JsonObject().add("draftVersion", TeamDraft.FORMAT_VERSION).add("teamName", "Integration Team")
+			.add("catalogVersion", RosterCatalog.VERSION).add("ruleset", "BB2025")
 			.add("rosterId", "human").add("presetId", RosterCatalog.PRESET).add("captainId", "p1").add("players", players)
 			.add("resources", new JsonObject().add("rerolls", 2).add("assistantCoaches", 0).add("cheerleaders", 0).add("apothecary", 1).add("dedicatedFans", 0));
 		JsonObject response = send(adapter, peer, request("savedTeam").add("operation", "create").add("draft", draft));

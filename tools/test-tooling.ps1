@@ -3,12 +3,12 @@
 # with spaces. Requires a completed bootstrap; adds no test-framework dependency.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$manifest = Get-Content (Join-Path $PSScriptRoot 'build-toolchain.json') -Raw | ConvertFrom-Json
+$manifest = Get-Content (Join-Path $PSScriptRoot 'target-build-toolchain.json') -Raw | ConvertFrom-Json
 $javaHome = (Get-Content (Join-Path $root '.tools/java-home.txt') -Raw).Trim()
 $fixture = Join-Path $root ('.tools/tooling checks/' + [Guid]::NewGuid().ToString('N'))
 $fixtureTools = Join-Path $fixture 'tools'
 New-Item -ItemType Directory -Force -Path $fixtureTools, (Join-Path $fixture '.mvn') | Out-Null
-foreach ($file in @('bootstrap.ps1', 'build.ps1', 'check-java.ps1', 'build-toolchain.json')) {
+foreach ($file in @('bootstrap.ps1', 'build.ps1', 'target-build.ps1', 'check-java.ps1', 'target-build-toolchain.json')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination $fixtureTools
 }
 Copy-Item -LiteralPath (Join-Path $root '.mvn/settings.xml') -Destination (Join-Path $fixture '.mvn/settings.xml')
@@ -61,10 +61,21 @@ try {
 }
 
 . (Join-Path $PSScriptRoot 'check-java.ps1')
-$wrongVersion = [PSCustomObject]@{ runtimeVersion = '21.0.11+10-LTS'; vendor = $manifest.java.vendor }
+foreach ($version in @('1.8', '11', '17', '20', 'invalid')) {
+    $rejected = $false
+    try { Assert-JavaVersion "java.specification.version = $version`n" $manifest.java.minimumVersion } catch { $rejected = $true }
+    Assert-Result $rejected "Unsupported/malformed Java version $version is rejected"
+}
+foreach ($version in @('21', '25')) {
+    Assert-JavaVersion "java.specification.version = $version`n" $manifest.java.minimumVersion
+    Assert-Result $true "Java version $version satisfies the minimum"
+}
+$wrongVersion = [PSCustomObject]@{ minimumVersion = 999 }
 $rejected = $false
-try { Assert-BaselineJava $javaHome $wrongVersion } catch { $rejected = $true }
-Assert-Result $rejected 'JDK version mismatch is rejected'
+try { Assert-SupportedJava $javaHome $wrongVersion | Out-Null } catch { $rejected = $true }
+Assert-Result $rejected 'JDK below the required minimum is rejected'
+Assert-SupportedJava $javaHome $manifest.java | Out-Null
+Assert-Result $true 'Java 21 or newer is accepted'
 # A malformed project exercises Maven failure propagation without fetching dependencies.
 Set-Content -LiteralPath (Join-Path $fixture 'pom.xml') -Value '<invalid' -Encoding Ascii
 $checkExit = Invoke-CheckProcess $build @('verify', '-Offline') 'failed-build.log'

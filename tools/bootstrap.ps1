@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    # Use an existing exact Temurin JDK (required on non-Windows hosts).
+    # Defaults to the pinned Windows JDK; supply an existing JDK on other hosts.
     [string]$JavaHome,
     [switch]$Offline
 )
@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $toolRoot = Join-Path $root '.tools'
-$manifest = Get-Content (Join-Path $PSScriptRoot 'build-toolchain.json') -Raw | ConvertFrom-Json
+$manifest = Get-Content (Join-Path $PSScriptRoot 'target-build-toolchain.json') -Raw | ConvertFrom-Json
 $windowsHost = [Environment]::OSVersion.Platform -eq 'Win32NT'
 New-Item -ItemType Directory -Force -Path (Join-Path $toolRoot 'downloads') | Out-Null
 
@@ -47,16 +47,14 @@ Install-Archive $manifest.maven 'SHA512' $manifest.maven.sha512 `
     (Join-Path $audit $manifest.maven.archive) $manifest.maven.directory
 
 if (!$JavaHome) {
-    if (!$windowsHost -or ![Environment]::Is64BitOperatingSystem) {
-        throw 'Supply -JavaHome pointing to Temurin JDK 8u504-b01 for this platform. Automatic JDK setup supports Windows x64.'
+    if (!$windowsHost) {
+        throw 'Supply -JavaHome pointing to a JDK 21 or newer. See tools/setup-ubuntu.sh for the pinned Linux JDK.'
     }
-    Install-Archive $manifest.java.windowsX64 'SHA256' $manifest.java.windowsX64.sha256 `
-        (Join-Path $audit 'java8.zip') $manifest.java.directory
-    $JavaHome = Join-Path $toolRoot $manifest.java.directory
+    $JavaHome = $manifest.java.defaultWindowsHome
 }
 $JavaHome = (Resolve-Path -LiteralPath $JavaHome).Path
 # Validate before saving configuration; the build also checks on every run.
 . (Join-Path $PSScriptRoot 'check-java.ps1')
-Assert-BaselineJava $JavaHome $manifest.java
+Assert-SupportedJava $JavaHome $manifest.java | Out-Null
 Set-Content -LiteralPath (Join-Path $toolRoot 'java-home.txt') -Value $JavaHome -Encoding UTF8
-Write-Host "Ready. Run ./tools/build.ps1 info, focused, install or verify."
+Write-Host "Ready. Run ./tools/target-build.ps1 info, test, install or verify."
