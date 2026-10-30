@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Signing out from the account menu reliably returns keyboard focus to Sign in,
+  including browsers that clear focus when the Sign out button is disabled.
+
 - All Java modules now require Java 21 or newer and compile for Java 21. Build,
   bootstrap, CI and setup use one Java 21 toolchain; historical documentation and
   stored-match compatibility boundaries remain preserved.

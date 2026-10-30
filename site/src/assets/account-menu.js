@@ -75,8 +75,9 @@ if (header) {
         message.textContent = '';
       });
       signOutButton.addEventListener('click', async () => {
+        const restoreFocus = menu.contains(document.activeElement);
         signOutButton.disabled = true; message.textContent = '';
-        try { await signOut(auth); close(); }
+        try { await signOut(auth); close(); if (restoreFocus) signInLink.focus(); }
         catch { message.textContent = 'Could not sign out. Please try again.'; }
         finally { signOutButton.disabled = false; }
       });
