@@ -61,7 +61,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 /** One authoritative engine lifetime, initialized once or restored from a versioned private checkpoint. */
 public final class SetupSession {
 	private static final int MAX_RECOVERY_ARTIFACT_BYTES = 128 * 1024 * 1024;
@@ -157,7 +156,6 @@ public final class SetupSession {
 		matchId = document.matchId;
 		if (document.computer != null) computerPolicy = new ComputerPolicyState();
 		state = new GameState(server) {
-			@Override public boolean usesLegacyPersistence() { return false; }
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
 			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
 		};
@@ -200,7 +198,6 @@ public final class SetupSession {
 		this.document = document;
 		matchId = document.matchId;
 		state = new GameState(server) {
-			@Override public boolean usesLegacyPersistence() { return false; }
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
 			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
 		};

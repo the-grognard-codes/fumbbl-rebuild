@@ -32,7 +32,7 @@ switch ($Task) {
     'info' { $mavenArguments += '--version' }
     'focused' {
         $mavenArguments += @('-pl', 'ffb-statetest', '-am',
-            '-Dtest=BlockTest,ShadowingTest,HandOffTurnoverTest,SafePassTest,SwarmingEndTurnTest,RulesTest,ReRollApiEquivalenceTest,SessionTimeoutTaskTest',
+            '-Dtest=BlockTest,ShadowingTest,HandOffTurnoverTest,SafePassTest,SwarmingEndTurnTest,RulesTest,ReRollApiEquivalenceTest,BrowserEngineQueueTest',
             '-Dsurefire.failIfNoSpecifiedTests=false', 'test')
     }
     'test' {

@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.ApothecaryStatus;
 import com.fumbbl.ffb.BloodSpot;
 import com.fumbbl.ffb.FactoryType;
@@ -28,9 +26,11 @@ import com.fumbbl.ffb.server.util.UtilServerGame;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilBox;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.ArrayList;
 import java.util.List;
-
 /**
  * @author Kalimar
  */
@@ -169,7 +169,6 @@ public class InjuryResult implements IJsonSerializable {
 			game.getFieldModel().add(new BloodSpot(injuryContext.getDefenderPosition(), injuryContext.getSufferedInjury()));
 		}
 		if (injuryContext.getSufferedInjury() != null && injuryContext.getSufferedInjury().getBase() == PlayerState.SERIOUS_INJURY) {
-			pStep.getGameState().updatePlayerMarkings();
 		}
 	}
 

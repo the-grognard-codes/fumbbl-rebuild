@@ -47,12 +47,8 @@ public class DialogParameterFactory {
 				return new DialogBribesParameter();
 			case GAME_STATISTICS:
 				return new DialogGameStatisticsParameter();
-			case JOIN:
-				return new DialogJoinParameter();
 			case START_GAME:
 				return new DialogStartGameParameter();
-			case TEAM_SETUP:
-				return new DialogTeamSetupParameter();
 			case SETUP_ERROR:
 				return new DialogSetupErrorParameter();
 			case TOUCHBACK:
@@ -69,8 +65,6 @@ public class DialogParameterFactory {
 				return new DialogPilingOnParameter();
 			case BUY_INDUCEMENTS:
 				return new DialogBuyInducementsParameter();
-			case JOURNEYMEN:
-				return new DialogJourneymenParameter();
 			case KICK_SKILL:
 				return new DialogKickSkillParameter();
 			case USE_IGOR:
@@ -105,8 +99,6 @@ public class DialogParameterFactory {
 				return new DialogOpponentBlockSelectionParameter();
 			case USE_APOTHECARIES:
 				return new DialogUseApothecariesParameter();
-			case USE_IGORS:
-				return new DialogUseIgorsParameter();
 			case PILE_DRIVER:
 				return new DialogPileDriverParameter();
 			case USE_CHAINSAW:

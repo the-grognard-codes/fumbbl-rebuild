@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { clearDevLocalGames } from '../dev-local-clear-games.mjs';
 
 const games = ['ffb_match_recovery', 'ffb_match_spectator_consent', 'ffb_v2_preparation_requests',
-  'ffb_v2_preparation_invites', 'ffb_v2_match_members', 'ffb_prepared_matches', 'ffb_games_serialized', 'ffb_games_info'];
-const retained = ['ffb_coaches', 'ffb_player_markers', 'ffb_team_setups', 'ffb_user_settings',
-  'ffb_local_schema', 'ffb_saved_teams', 'ffb_v2_account', 'ffb_v2_identity', 'ffb_v2_account_scope', 'ffb_v2_saved_teams'];
+  'ffb_v2_preparation_invites', 'ffb_v2_match_members', 'ffb_prepared_matches'];
+const historicalTables = ['ffb_coaches', 'ffb_player_markers', 'ffb_team_setups', 'ffb_user_settings', 'ffb_games_info', 'ffb_games_serialized'];
+const retained = ['ffb_local_schema', 'ffb_saved_teams', 'ffb_v2_account', 'ffb_v2_identity', 'ffb_v2_account_scope', 'ffb_v2_saved_teams'];
 
-function fixture({ running = true, consent = true } = {}) {
+function fixture({ running = true, consent = true, historical = false } = {}) {
   const container = service => ({
     Name: `/ffb-match-review-${service}-1`, Id: (service === 'server' ? 'a' : 'b').repeat(64),
     State: { Running: service === 'server' ? running : true },
@@ -23,7 +23,7 @@ function fixture({ running = true, consent = true } = {}) {
     HostConfig: { PortBindings: { '3306/tcp': [{ HostIp: '127.0.0.1', HostPort: '23317' }] } },
   };
   const server = container('server');
-  const tables = [...games.filter(name => consent || name !== 'ffb_match_spectator_consent'), ...retained];
+  const tables = [...games.filter(name => consent || name !== 'ffb_match_spectator_consent'), ...retained, ...(historical ? historicalTables : [])];
   const rows = Object.fromEntries(tables.map(name => [name, name === 'ffb_local_schema' ? '1' : '3']));
   const state = { endpoint: 'npipe:////./pipe/docker_engine', marker: '7', triggers: '0',
     inventory: tables.sort().map(name => `${name}\tInnoDB`).join('\n'), sqlFailure: false,
@@ -180,4 +180,20 @@ test('CLI help and invalid arguments never access Docker', () => {
     assert.equal(result.status, status);
     assert.match(result.stdout + result.stderr, /Usage:/);
   }
+});
+
+
+test('browser-only schema needs no retired client tables', () => {
+  const f = fixture();
+  assert.equal(f.invoke(true).ffb_prepared_matches, '0');
+  assert.ok(f.operations.filter(({ input }) => input).every(({ input }) => !historicalTables.some(table => input.includes(table))));
+});
+
+test('inert historical client tables are preserved without being game-cleanup targets', () => {
+  const f = fixture({ historical: true });
+  const before = historicalTables.map(table => f.rows[table]);
+  f.invoke(true);
+  assert.deepEqual(historicalTables.map(table => f.rows[table]), before);
+  const deletion = f.operations.find(({ input }) => input?.startsWith('START TRANSACTION;')).input;
+  assert.ok(historicalTables.every(table => !deletion.includes(table)));
 });

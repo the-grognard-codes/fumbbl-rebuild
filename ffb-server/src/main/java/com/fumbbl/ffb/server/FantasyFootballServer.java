@@ -3,504 +3,156 @@ package com.fumbbl.ffb.server;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType.Factory;
 import com.fumbbl.ffb.FactoryType.FactoryContext;
-import com.fumbbl.ffb.FantasyFootballConstants;
 import com.fumbbl.ffb.FantasyFootballException;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
-import com.fumbbl.ffb.server.admin.AdminServlet;
-import com.fumbbl.ffb.server.admin.BackupServlet;
-import com.fumbbl.ffb.server.admin.GameStateServlet;
 import com.fumbbl.ffb.server.commandline.InifileParamFilter;
 import com.fumbbl.ffb.server.commandline.InifileParamFilterResult;
-import com.fumbbl.ffb.server.db.DbConnectionManager;
-import com.fumbbl.ffb.server.db.DbInitializer;
-import com.fumbbl.ffb.server.db.DbQueryFactory;
-import com.fumbbl.ffb.server.db.DbUpdateFactory;
-import com.fumbbl.ffb.server.handler.ServerCommandHandlerFactory;
 import com.fumbbl.ffb.server.local.BrowserMatchAdapter;
+import com.fumbbl.ffb.server.local.BrowserMatchServlet;
 import com.fumbbl.ffb.server.local.BrowserSavedTeamJson;
+import com.fumbbl.ffb.server.local.BrowserV2Runtime;
+import com.fumbbl.ffb.server.local.BrowserV2TransportPolicy;
+import com.fumbbl.ffb.server.match.JdbcMatchRepository;
+import com.fumbbl.ffb.server.match.JdbcRecoveryRepository;
+import com.fumbbl.ffb.server.match.MatchService;
+import com.fumbbl.ffb.server.net.ServerCommunication;
 import com.fumbbl.ffb.server.team.JdbcSavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
-import com.fumbbl.ffb.server.match.JdbcMatchRepository;
-import com.fumbbl.ffb.server.match.MatchService;
-import com.fumbbl.ffb.server.local.BrowserMatchServlet;
-import com.fumbbl.ffb.server.net.CommandServlet;
-import com.fumbbl.ffb.server.net.FileServlet;
-import com.fumbbl.ffb.server.net.ReplaySessionManager;
-import com.fumbbl.ffb.server.net.ServerCommunication;
-import com.fumbbl.ffb.server.net.ServerDbKeepAliveTask;
-import com.fumbbl.ffb.server.net.ServerGameTimeTask;
-import com.fumbbl.ffb.server.net.ServerNetworkEntropyTask;
-import com.fumbbl.ffb.server.net.SessionManager;
-import com.fumbbl.ffb.server.net.SessionTimeoutTask;
-import com.fumbbl.ffb.server.request.ServerRequestProcessor;
 import com.fumbbl.ffb.server.util.rng.Fortuna;
-import com.fumbbl.ffb.util.ArrayTool;
-import com.fumbbl.ffb.util.DateTool;
-import com.fumbbl.ffb.util.StringTool;
-import org.eclipse.jetty.server.Server;
+
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
+import org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Date;
+import java.sql.DriverManager;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Timer;
-
-/**
- * @author Kalimar
- */
-@SuppressWarnings({"rawtypes", "FieldCanBeLocal"})
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+/** Hosts browser matches on a single engine worker. V1 is explicit local diagnostics only. */
 public class FantasyFootballServer implements IFactorySource {
-
-	private static final String _USAGE = "java -jar FantasyFootballServer.jar standalone\n"
-		+ "java -jar FantasyFootballServer.jar standalone initDb\n" + "java -jar FantasyFootballServer.jar fumbbl\n"
-		+ "java -jar FantasyFootballServer.jar fumbbl initDb\n";
-
-	private final ServerMode fMode;
-	private DbQueryFactory fDbQueryFactory;
-	private DbUpdateFactory fDbUpdateFactory;
-	private DbUpdater fDbUpdater;
-	private Thread fPersistenceUpdaterThread;
-	private ServerCommunication fCommunication;
-	private Thread fCommunicationThread;
-	private ServerCommandHandlerFactory fCommandHandlerFactory;
-	private GameCache fGameCache;
-	private ReplayCache replayCache;
-	private SessionManager fSessionManager;
-	private ReplaySessionManager replaySessionManager;
-	private ServerSketchManager sketchManager;
-	private final Properties fProperties;
-	private Fortuna fFortuna;
-	private DebugLog fDebugLog;
-	private ServerReplayer fReplayer;
-	private ServerRequestProcessor fServerRequestProcessor;
-	private boolean fBlockingNewGames;
-
-	private Timer fServerGameTimeTimer;
-	private Timer fDbKeepAliveTimer;
-	private Timer fNetworkEntropyTimer;
-	private Timer sessionTimeoutTimer;
-
-	private final FactoryManager factoryManager;
-
+	private final Properties properties;
+	private final FactoryManager factoryManager = new FactoryManager();
 	private final Map<Factory, INamedObjectFactory> factories;
+	private DebugLog debugLog;
+	private Fortuna fortuna;
+	private ServerCommunication communication;
 	private Server httpServer;
 	private boolean resourcesStopped;
+	private boolean blockingNewGames;
 
-	public FantasyFootballServer(ServerMode pMode, Properties pProperties) {
-		fMode = pMode;
-		fProperties = pProperties;
-		if (Boolean.parseBoolean(pProperties.getProperty("server.local")) && pMode != ServerMode.STANDALONE) {
-			throw new IllegalArgumentException("The local profile requires standalone mode");
-		}
-		factoryManager = new FactoryManager();
-
+	public FantasyFootballServer(ServerMode mode, Properties properties) {
+		if (mode != ServerMode.STANDALONE) throw new IllegalArgumentException("Browser startup requires standalone mode");
+		this.properties = properties;
+		String selection = properties.getProperty("local.browser.v2.enabled", "true");
+		if (!"true".equals(selection) && !"false".equals(selection))
+			throw new IllegalArgumentException("Browser V2 selection must be true or false");
+		if (!isBrowserV2() && !Boolean.parseBoolean(properties.getProperty("server.local")))
+			throw new IllegalArgumentException("V1 diagnostics require explicit local mode");
 		factories = factoryManager.getFactoriesForContext(getContext(), this);
-
-		for (INamedObjectFactory factory : factories.values()) {
-			factory.initialize(null);
-		}
-		
+		for (INamedObjectFactory factory : factories.values()) factory.initialize(null);
 	}
 
-	public ReplaySessionManager getReplaySessionManager() {
-		return replaySessionManager;
-	}
-
-	public ServerSketchManager getSketchManager() {
-		return sketchManager;
-	}
-
-	public FactoryManager getFactoryManager() {
-		return factoryManager;
-	}
-	
-	public ServerMode getMode() {
-		return fMode;
-	}
-
-	public DebugLog getDebugLog() {
-		return fDebugLog;
-	}
-
-	public void setDebugLog(DebugLog debugLog) {
-		this.fDebugLog = debugLog;
-	}
+	public boolean isBrowserV2() { return Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled", "true")); }
+	public FactoryManager getFactoryManager() { return factoryManager; }
+	public DebugLog getDebugLog() { return debugLog; }
+	public void setDebugLog(DebugLog debugLog) { this.debugLog = debugLog; }
+	public Fortuna getFortuna() { return fortuna; }
+	public void setFortuna(Fortuna fortuna) { this.fortuna = fortuna; }
+	public ServerCommunication getCommunication() { return communication; }
+	public void setCommunication(ServerCommunication communication) { this.communication = communication; }
+	public String getProperty(String name) { return properties.getProperty(name); }
+	public String[] getPropertyKeys() { return properties.stringPropertyNames().toArray(new String[0]); }
+	public Properties getProperties() { return properties; }
+	public boolean isBlockingNewGames() { return blockingNewGames; }
+	public void setBlockingNewGames(boolean blocking) { blockingNewGames = blocking; }
 
 	public void run() throws Exception {
-
-		fServerGameTimeTimer = new Timer(true);
-		fFortuna = new Fortuna();
-
-		File logFile = null;
-		String logFileProperty = getProperty(IServerProperty.SERVER_LOG_FILE);
-		if (StringTool.isProvided(logFileProperty)) {
-			logFile = new File(logFileProperty);
-		}
-
-		File logPath = null;
-		String logPathProperty = getProperty(IServerProperty.SERVER_LOG_FOLDER);
-		if (StringTool.isProvided(logPathProperty)) {
-			logPath = new File(logPathProperty);
-			if (!logPath.exists() && !logPath.mkdirs()) {
-				throw new IllegalArgumentException("Can't create folder " + logPathProperty);
-			}
-
-			if (!logPath.isDirectory() || !logPath.canWrite()) {
-				throw new IllegalArgumentException("Can't create new files in " + logPathProperty);
-			}
-		}
-
-		int logLevel = IServerLogLevel.ERROR;
-		String logLevelProperty = getProperty(IServerProperty.SERVER_LOG_LEVEL);
-		if (StringTool.isProvided(logLevelProperty)) {
-			try {
-				logLevel = Integer.parseInt(logLevelProperty);
-			} catch (NumberFormatException pNumberFormatException) {
-				// logLevel remains at ERROR
-			}
-		}
-		fDebugLog = new DebugLog(this, logFile, logPath, logLevel);
-
-		try {
-			Class.forName(getProperty(IServerProperty.DB_DRIVER));
-		} catch (ClassNotFoundException cnfe) {
-			throw new SQLException("JDBCDriver Class not found");
-		}
-
-		DbConnectionManager dbConnectionManager = new DbConnectionManager(this);
-		dbConnectionManager.setDbUrl(getProperty(IServerProperty.DB_URL));
-		dbConnectionManager.setDbUser(getProperty(IServerProperty.DB_USER));
-		dbConnectionManager.setDbPassword(getProperty(IServerProperty.DB_PASSWORD));
-		dbConnectionManager.setDbType(getProperty(IServerProperty.DB_TYPE));
-
-		if (fMode.isInitDb()) {
-
-			System.err
-					.println("FantasyFootballServer " + FantasyFootballConstants.VERSION + " initializing database.");
-
-			DbInitializer dbInitializer = new DbInitializer(dbConnectionManager);
-			dbInitializer.initDb();
-
+		File logFolder = new File(properties.getProperty(IServerProperty.SERVER_LOG_FOLDER, "logs"));
+		if ((!logFolder.isDirectory() && !logFolder.mkdirs()) || !logFolder.canWrite())
+			throw new IllegalArgumentException("Cannot write server log folder");
+		String logFile = getProperty(IServerProperty.SERVER_LOG_FILE);
+		debugLog = new DebugLog(this, logFile == null ? new File(logFolder, "browser-server.log") : new File(logFile), logFolder,
+			Integer.parseInt(properties.getProperty(IServerProperty.SERVER_LOG_LEVEL, "1")));
+		fortuna = new Fortuna();
+		Class.forName(getProperty(IServerProperty.DB_DRIVER));
+		communication = new ServerCommunication(this);
+		new Thread(communication, "browser-engine").start();
+		httpServer = new Server();
+		ServerConnector connector = new ServerConnector(httpServer);
+		connector.setPort(Integer.parseInt(getProperty(IServerProperty.SERVER_PORT)));
+		connector.setHost(new BrowserV2TransportPolicy(getProperty("server.base"), getProperty("local.browser.v2.proxy.profile"))
+			.bindHost(getProperty("local.transport.container.forwarding")));
+		httpServer.addConnector(connector);
+		ServletContextHandler context = new ServletContextHandler();
+		context.setContextPath("/");
+		JettyWebSocketServletContainerInitializer.configure(context, null);
+		if (isBrowserV2()) {
+			BrowserV2Runtime.mount(this, context, this::openConnection);
 		} else {
-
-			fDbQueryFactory = new DbQueryFactory(dbConnectionManager);
-			fDbQueryFactory.prepareStatements();
-
-			fDbUpdateFactory = new DbUpdateFactory(dbConnectionManager);
-			fDbUpdateFactory.prepareStatements();
-
-			fGameCache = new GameCache(this);
-			fGameCache.init();
-			replayCache = new ReplayCache(this);
-
-			fDbUpdater = new DbUpdater(this);
-			fPersistenceUpdaterThread = new Thread(fDbUpdater);
-			fPersistenceUpdaterThread.start();
-
-			fSessionManager = new SessionManager();
-			replaySessionManager = new ReplaySessionManager();
-
-			sketchManager = new ServerSketchManager();
-
-			fCommandHandlerFactory = new ServerCommandHandlerFactory(this);
-
-			fCommunication = new ServerCommunication(this);
-			fCommunicationThread = new Thread(fCommunication);
-			fCommunicationThread.start();
-
-			String httpPortProperty = getProperty(IServerProperty.SERVER_PORT);
-			String httpDirProperty = getProperty(IServerProperty.SERVER_BASE_DIR);
-			if (StringTool.isProvided(httpPortProperty) && StringTool.isProvided(httpDirProperty)) {
-				Server server = new Server();
-				org.eclipse.jetty.server.ServerConnector connector = new org.eclipse.jetty.server.ServerConnector(server);
-				connector.setPort(Integer.parseInt(httpPortProperty));
-				boolean browserV2 = Boolean.parseBoolean(getProperty("local.browser.v2.enabled"));
-				if (browserV2 && !Boolean.parseBoolean(getProperty("server.local"))) throw new IllegalArgumentException("V2 requires local mode");
-				if (Boolean.parseBoolean(getProperty("server.local"))) connector.setHost(new com.fumbbl.ffb.server.local.BrowserV2TransportPolicy(getProperty("server.base"), getProperty("local.browser.v2.proxy.profile"))
-					.bindHost(getProperty("local.transport.container.forwarding")));
-				// Docker publishes this connector only to host loopback; binding it to the
-				// container loopback would reject Docker's forwarded connection.
-				server.addConnector(connector);
-				httpServer = server;
-				ServletContextHandler context = new ServletContextHandler();
-				context.setContextPath("/");
-				org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
-				File httpDir = new File(httpDirProperty);
-				if (browserV2) {
-					com.fumbbl.ffb.server.local.BrowserV2Runtime.mount(this, context,
-						() -> java.sql.DriverManager.getConnection(dbConnectionManager.getDbUrl(), dbConnectionManager.getDbUser(), dbConnectionManager.getDbPassword()));
-				} else {
-				context.addServlet(new ServletHolder(new AdminServlet(this)), "/admin/*");
-				context.addServlet(new ServletHolder(new GameStateServlet(this)), "/gamestate/*");
-				context.addServlet(new ServletHolder(new BackupServlet(this)), "/backup/*");
-				context.addServlet(new ServletHolder(new CommandServlet(this)), "/command/*");
-				if (Boolean.parseBoolean(getProperty("server.local"))) {
-					BrowserMatchAdapter browserMatch = new BrowserMatchAdapter(this,
-						getProperty("local.browser.home.token"), getProperty("local.browser.away.token"),
-						getProperty("local.browser.fixture") == null ? BrowserMatchAdapter.Fixture.MOVEMENT
-							: BrowserMatchAdapter.Fixture.valueOf(getProperty("local.browser.fixture")));
-					RosterCatalog catalog = new RosterCatalog();
-					SavedTeamService savedTeamService = new SavedTeamService(new JdbcSavedTeamRepository(
-						() -> java.sql.DriverManager.getConnection(dbConnectionManager.getDbUrl(), dbConnectionManager.getDbUser(), dbConnectionManager.getDbPassword())),
-						catalog);
-					browserMatch.setSavedTeams(new BrowserSavedTeamJson(savedTeamService));
-					browserMatch.setPreparedMatches(new MatchService(new JdbcMatchRepository(
-						() -> java.sql.DriverManager.getConnection(dbConnectionManager.getDbUrl(), dbConnectionManager.getDbUser(), dbConnectionManager.getDbPassword())),
-						savedTeamService, catalog), new com.fumbbl.ffb.server.match.JdbcRecoveryRepository(
-						() -> java.sql.DriverManager.getConnection(dbConnectionManager.getDbUrl(), dbConnectionManager.getDbUser(), dbConnectionManager.getDbPassword())));
-					context.addServlet(new ServletHolder(new BrowserMatchServlet(this, browserMatch)), "/browser/v1/*");
-				}
-				ServletHolder fileServletHolder = new ServletHolder(new FileServlet(this));
-				fileServletHolder.setInitParameter("resourceBase", httpDir.getAbsolutePath());
-				fileServletHolder.setInitParameter("pathInfoOnly", "true");
-				context.addServlet(fileServletHolder, "/*");
-				}
-				server.setHandler(context);
-				server.start();
-			}
-
-			String dbKeepAliveProperty = getProperty(IServerProperty.TIMER_DB_KEEP_ALIVE);
-			int dbKeepAlivePeriod = StringTool.isProvided(dbKeepAliveProperty) && (getMode() != ServerMode.STANDALONE)
-					? Integer.parseInt(dbKeepAliveProperty)
-					: 0;
-			if (dbKeepAlivePeriod > 0) {
-				fDbKeepAliveTimer = new Timer(true);
-				fDbKeepAliveTimer.schedule(new ServerDbKeepAliveTask(this, dbConnectionManager), 0, dbKeepAlivePeriod);
-			}
-
-			String networkEntropyProperty = getProperty(IServerProperty.TIMER_NETWORK_ENTROPY);
-			int networkEntropyPeriod = StringTool.isProvided(networkEntropyProperty)
-					? Integer.parseInt(networkEntropyProperty)
-					: 0;
-			if (networkEntropyPeriod > 0) {
-				fNetworkEntropyTimer = new Timer(true);
-				fNetworkEntropyTimer.schedule(new ServerNetworkEntropyTask(this), 0, networkEntropyPeriod);
-			}
-
-			fServerGameTimeTimer = new Timer(true);
-			fServerGameTimeTimer.scheduleAtFixedRate(new ServerGameTimeTask(this), 0, 1000);
-
-			fReplayer = new ServerReplayer(this);
-			Thread replayerThread = new Thread(fReplayer);
-			replayerThread.setPriority(replayerThread.getPriority() - 1);
-			replayerThread.start();
-
-			fServerRequestProcessor = new ServerRequestProcessor(this);
-			fServerRequestProcessor.start();
-
-			String timerEnabledProperty = getProperty(IServerProperty.TIMER_SESSION_TIMEOUT_ENABLED);
-
-			if (Boolean.parseBoolean(timerEnabledProperty)) {
-				sessionTimeoutTimer = new Timer(true);
-				int timerSchedule = Integer.parseInt(getProperty(IServerProperty.TIMER_SESSION_TIMEOUT_SCHEDULE));
-				int sessionTimeout = Integer.parseInt(getProperty(IServerProperty.SESSION_TIMEOUT_VALUE));
-				sessionTimeoutTimer.scheduleAtFixedRate(new SessionTimeoutTask(fSessionManager, replaySessionManager,  fCommunication, sessionTimeout),
-						0, timerSchedule);
-			}
-
-			System.err.print(DateTool.formatTimestamp(new Date()));
-			System.err.print(" FantasyFootballServer " + FantasyFootballConstants.VERSION);
-			System.err.println(" running on port " + httpPortProperty);
-
+			mountDiagnostics(context);
 		}
-
+		httpServer.setHandler(context);
+		httpServer.start();
+		System.err.println("Browser " + (isBrowserV2() ? "V2" : "V1 diagnostics") + " running on port " + connector.getLocalPort());
 	}
 
-	public ReplayCache getReplayCache() {
-		return replayCache;
+	private java.sql.Connection openConnection() throws java.sql.SQLException {
+		return DriverManager.getConnection(getProperty(IServerProperty.DB_URL), getProperty(IServerProperty.DB_USER),
+			getProperty(IServerProperty.DB_PASSWORD));
 	}
 
-	public DbQueryFactory getDbQueryFactory() {
-		return fDbQueryFactory;
+	private void mountDiagnostics(ServletContextHandler context) {
+		BrowserMatchAdapter adapter = new BrowserMatchAdapter(this, getProperty("local.browser.home.token"),
+			getProperty("local.browser.away.token"), BrowserMatchAdapter.Fixture.valueOf(properties.getProperty("local.browser.fixture", "MOVEMENT")));
+		RosterCatalog catalog = new RosterCatalog();
+		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(this::openConnection), catalog);
+		adapter.setSavedTeams(new BrowserSavedTeamJson(teams));
+		adapter.setPreparedMatches(new MatchService(new JdbcMatchRepository(this::openConnection), teams, catalog),
+			new JdbcRecoveryRepository(this::openConnection));
+		context.addServlet(new ServletHolder(new BrowserMatchServlet(this, adapter)), "/browser/v1/*");
+		context.addServlet(new ServletHolder(new HttpServlet() {
+			@Override protected void service(HttpServletRequest request, HttpServletResponse response) { response.setStatus(404); }
+		}), "/*");
 	}
 
-	public ServerCommunication getCommunication() {
-		return fCommunication;
-	}
-
-	public void setCommunication(ServerCommunication communication) {
-		this.fCommunication = communication;
-	}
-
-	public ServerCommandHandlerFactory getCommandHandlerFactory() {
-		return fCommandHandlerFactory;
-	}
-
-	public GameCache getGameCache() {
-		return fGameCache;
-	}
-
-	public void setGameCache(GameCache gameCache) {
-		this.fGameCache = gameCache;
-	}
-
-	public SessionManager getSessionManager() {
-		return fSessionManager;
-	}
-
-	public void setSessionManager(SessionManager sessionManager) {
-		this.fSessionManager = sessionManager;
-	}
-
-	public Fortuna getFortuna() {
-		return fFortuna;
-	}
-
-	public void setFortuna(Fortuna fortuna) {
-		this.fFortuna = fortuna;
-	}
-
-	public static void main(String[] origArgs) throws IOException {
-
-		InifileParamFilterResult filterResult = new InifileParamFilter().filterForInifile(origArgs);
-
-		String[] args = filterResult.getFilteredArgs();
-
-		if (!ArrayTool.isProvided(args)) {
-
-			System.err.println(_USAGE);
-			System.exit(0);
-
-		} else {
-
-			ServerMode serverMode = ServerMode.fromArguments(args);
-			Properties properties = new Properties();
-
-			try (FileInputStream fileInputStream = new FileInputStream(filterResult.getIniFileName());
-					 BufferedInputStream propertyInputStream = new BufferedInputStream(fileInputStream)) {
-				properties.load(propertyInputStream);
-			}
-
-			if (StringTool.isProvided(filterResult.getOverrideFileName())) {
-				try (FileInputStream fileInputStream = new FileInputStream(filterResult.getOverrideFileName());
-						 BufferedInputStream propertyInputStream = new BufferedInputStream(fileInputStream)) {
-					properties.load(propertyInputStream);
-				}
-			}
-
-			FantasyFootballServer server = new FantasyFootballServer(serverMode, properties);
-
-			try {
-				server.run();
-			} catch (Exception all) {
-				if (server.getDebugLog() == null) {
-					//noinspection CallToPrintStackTrace
-					all.printStackTrace();
-				} else {
-					server.getDebugLog().logWithOutGameId(all);
-				}
-				server.stop(99);
-			}
+	public static void main(String[] arguments) throws Exception {
+		InifileParamFilterResult filtered = new InifileParamFilter().filterForInifile(arguments);
+		String[] remaining = filtered.getFilteredArgs();
+		if (remaining.length > 0 && !(remaining.length == 1 && "standalone".equalsIgnoreCase(remaining[0])))
+			throw new IllegalArgumentException("Usage: java -jar FantasyFootballServer.jar [-inifile path] [-override path]");
+		Properties properties = new Properties();
+		try (FileInputStream input = new FileInputStream(filtered.getIniFileName())) { properties.load(input); }
+		if (filtered.getOverrideFileName() != null) {
+			try (FileInputStream input = new FileInputStream(filtered.getOverrideFileName())) { properties.load(input); }
 		}
+		FantasyFootballServer server = new FantasyFootballServer(ServerMode.STANDALONE, properties);
+		Runtime.getRuntime().addShutdownHook(new Thread(server::shutdownResources, "browser-server-shutdown"));
+		try { server.run(); }
+		catch (Exception failure) { server.shutdownResources(); throw failure; }
 	}
 
-	public String getProperty(String pProperty) {
-		return fProperties.getProperty(pProperty);
-	}
+	public void stop(int status) { shutdownResources(); System.exit(status); }
 
-	public String[] getPropertyKeys() {
-		//noinspection SuspiciousToArrayCall
-		return fProperties.keySet().toArray(new String[0]);
-	}
-
-	public Properties getProperties() {
-		return fProperties;
-	}
-
-	public DbUpdater getDbUpdater() {
-		return fDbUpdater;
-	}
-
-	public void setDbUpdater(DbUpdater dbUpdater) {
-		this.fDbUpdater = dbUpdater;
-	}
-
-	public DbUpdateFactory getDbUpdateFactory() {
-		return fDbUpdateFactory;
-	}
-
-	public ServerReplayer getReplayer() {
-		return fReplayer;
-	}
-
-	public ServerRequestProcessor getRequestProcessor() {
-		return fServerRequestProcessor;
-	}
-
-	public boolean isBlockingNewGames() {
-		return fBlockingNewGames;
-	}
-
-	public void setBlockingNewGames(boolean pBlockingNewGames) {
-		fBlockingNewGames = pBlockingNewGames;
-	}
-
-	public void stop(int pStatus) {
-		int status = pStatus;
-		try {
-			shutdownResources();
-		} catch (RuntimeException failure) {
-			failure.printStackTrace();
-			status = 99;
-		} finally {
-			System.exit(status);
-		}
-	}
-
-	/** Drains persistence before closing JDBC; also usable by the local SIGTERM hook. */
+	/** Stop ingress and drain queued browser mutations before the process exits. */
 	public synchronized void shutdownResources() {
-		if (resourcesStopped) {
-			return;
-		}
-		setBlockingNewGames(true);
-		boolean successful = shutdownPhase(() -> { if (httpServer != null) { httpServer.stop(); } });
-		if (fDbKeepAliveTimer != null) { fDbKeepAliveTimer.cancel(); }
-		if (fNetworkEntropyTimer != null) { fNetworkEntropyTimer.cancel(); }
-		if (fServerGameTimeTimer != null) { fServerGameTimeTimer.cancel(); }
-		if (sessionTimeoutTimer != null) { sessionTimeoutTimer.cancel(); }
-		fDbKeepAliveTimer = null;
-		fNetworkEntropyTimer = null;
-		fServerGameTimeTimer = null;
-		successful &= shutdownPhase(() -> { if (fCommunication != null) { fCommunication.shutdown(); } });
-		// Live mode closeGame enqueues remote removal requests, so keep its processor open until then.
-		if (getMode() == ServerMode.FUMBBL) {
-			successful &= shutdownPhase(() -> { if (fGameCache != null) { fGameCache.closeAllGames(); } });
-		}
-		successful &= shutdownPhase(() -> { if (fServerRequestProcessor != null) { fServerRequestProcessor.shutdown(); } });
-		successful &= shutdownPhase(() -> { if (fReplayer != null) { fReplayer.stop(); } });
-		if (getMode() != ServerMode.FUMBBL) {
-			successful &= shutdownPhase(() -> { if (fGameCache != null) { fGameCache.closeAllGames(); } });
-		}
-		successful &= shutdownPhase(() -> { if (fDbUpdater != null) { fDbUpdater.shutdown(); } });
-		successful &= shutdownPhase(() -> { if (fDbQueryFactory != null) { fDbQueryFactory.closeDbConnection(); } });
-		successful &= shutdownPhase(() -> { if (fDbUpdateFactory != null) { fDbUpdateFactory.closeDbConnection(); } });
+		if (resourcesStopped) return;
+		blockingNewGames = true;
+		RuntimeException failure = null;
+		try { if (httpServer != null) httpServer.stop(); }
+		catch (Exception exception) { failure = new IllegalStateException("Cannot stop browser transport", exception); }
+		try { if (communication != null) communication.shutdown(); }
+		catch (RuntimeException exception) { if (failure == null) failure = exception; else failure.addSuppressed(exception); }
+		if (failure != null) throw failure;
 		resourcesStopped = true;
-		if (!successful) {
-			throw new IllegalStateException("Server shutdown incomplete; inspect errors above");
-		}
-		System.err.println("FantasyFootballServer shut down; database queue drained.");
-	}
-
-	private boolean shutdownPhase(ShutdownPhase phase) {
-		try {
-			phase.run();
-			return true;
-		} catch (Exception failure) {
-			failure.printStackTrace();
-			return false;
-		}
-	}
-
-	private interface ShutdownPhase {
-		void run() throws Exception;
+		System.err.println("Browser server shut down; engine queue drained.");
 	}
 
 	@Override
@@ -516,17 +168,17 @@ public class FantasyFootballServer implements IFactorySource {
 
 	@Override
 	public void logError(long gameId, String message) {
-		fDebugLog.log(IServerLogLevel.ERROR, gameId, message);
+		debugLog.log(IServerLogLevel.ERROR, gameId, message);
 	}
 
 	@Override
 	public void logDebug(long gameId, String message) {
-		fDebugLog.log(IServerLogLevel.DEBUG, gameId, message);
+		debugLog.log(IServerLogLevel.DEBUG, gameId, message);
 	}
 
 	@Override
 	public void logWithOutGameId(Throwable throwable) {
-		fDebugLog.logWithOutGameId(throwable);
+		debugLog.logWithOutGameId(throwable);
 	}
 
 	public IFactorySource getFactorySource() {
@@ -543,10 +195,10 @@ public class FantasyFootballServer implements IFactorySource {
 
 	public boolean isInTestMode() {
 		String testSetting = getProperty(IServerProperty.SERVER_TEST);
-		return StringTool.isProvided(testSetting) && Boolean.parseBoolean(testSetting);
+		return Boolean.parseBoolean(testSetting);
 	}
 
 	public void closeResources(long id) {
-		fDebugLog.closeResources(id);
+		debugLog.closeResources(id);
 	}
 }

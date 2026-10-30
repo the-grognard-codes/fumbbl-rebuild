@@ -21,7 +21,6 @@ import com.fumbbl.ffb.server.util.UtilServerGame;
 import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.StringTool;
-
 /**
  * @author Kalimar
  */
@@ -55,18 +54,12 @@ public class UtilServerSteps {
 		}
 	}
 
-	public static boolean checkCommandIsFromHomePlayer(GameState gameState, ReceivedCommand pReceivedCommand) {
-		if (!gameState.usesLegacyPersistence() && pReceivedCommand.getApplicationHome() != null)
-			return pReceivedCommand.getApplicationHome();
-		return (gameState.getServer().getSessionManager().getSessionOfHomeCoach(gameState.getId()) == pReceivedCommand
-			.getSession());
+	public static boolean checkCommandIsFromHomePlayer(GameState gameState, ReceivedCommand command) {
+		return command.getApplicationHome() == null || command.getApplicationHome();
 	}
 
-	public static boolean checkCommandIsFromAwayPlayer(GameState gameState, ReceivedCommand pReceivedCommand) {
-		if (!gameState.usesLegacyPersistence() && pReceivedCommand.getApplicationHome() != null)
-			return !pReceivedCommand.getApplicationHome();
-		return (gameState.getServer().getSessionManager().getSessionOfAwayCoach(gameState.getId()) == pReceivedCommand
-			.getSession());
+	public static boolean checkCommandIsFromAwayPlayer(GameState gameState, ReceivedCommand command) {
+		return command.getApplicationHome() == null || !command.getApplicationHome();
 	}
 
 	public static boolean checkCommandWithActingPlayer(GameState gameState,

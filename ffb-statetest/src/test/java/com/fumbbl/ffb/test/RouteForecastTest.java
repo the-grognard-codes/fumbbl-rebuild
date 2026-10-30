@@ -8,15 +8,14 @@ import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class RouteForecastTest {
 
 	@Test void nativeDodgeModifiersAreIndependentOfAgilityAndNaturalSixRemainsSuccessful() throws Exception {
@@ -122,7 +121,7 @@ class RouteForecastTest {
 		return session;
 	}
 	private GameState fixture(int agility, int penalty, boolean drunkard, String... skills) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE)
 			.withTeam(true, team -> team.player("actor", player -> {
 				player.at(10, 7).stats(6, 3, agility, 3, 9);

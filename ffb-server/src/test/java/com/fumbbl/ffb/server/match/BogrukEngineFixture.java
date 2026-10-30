@@ -5,10 +5,8 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ServerCommunication;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
@@ -27,7 +25,6 @@ import java.util.Random;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 /** Real BB2025 engine and synthetic exhibition rosters; only external server services are mocked. */
 final class BogrukEngineFixture {
 
@@ -56,9 +53,7 @@ final class BogrukEngineFixture {
 		Map<FactoryType.Factory, INamedObjectFactory> factories = manager.getFactoriesForContext(FactoryType.FactoryContext.APPLICATION, server);
 		when(server.getFactory(any())).thenAnswer(invocation -> factories.get(invocation.getArgument(0)));
 		when(server.getDebugLog()).thenReturn(mock(DebugLog.class));
-		when(server.getGameCache()).thenReturn(mock(GameCache.class));
 		when(server.getCommunication()).thenReturn(mock(ServerCommunication.class));
-		when(server.getSessionManager()).thenReturn(new SessionManager());
 		dice = new Random(seed);
 		session = new SetupSession(server, document, -2, true, true, true, true, true, true);
 		session.recordPlayerActivity(System.currentTimeMillis());

@@ -1,14 +1,11 @@
 package com.fumbbl.ffb.server.step.mixed.start;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.GameResult;
 import com.fumbbl.ffb.model.TeamResult;
 import com.fumbbl.ffb.report.mixed.ReportFanFactor;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStep;
@@ -16,6 +13,8 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepId;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 /**
  * Step in start game sequence to roll spectators.
  * <p>
@@ -52,8 +51,6 @@ public final class StepSpectators extends AbstractStep {
 
 	private void executeStep() {
 		rollSpectators();
-		GameCache gameCache = getGameState().getServer().getGameCache();
-		gameCache.queueDbUpdate(getGameState(), true);
 		getResult().setNextAction(StepAction.NEXT_STEP);
 	}
 

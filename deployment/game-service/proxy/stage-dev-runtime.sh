@@ -17,7 +17,7 @@ install -d -o moles-game-v2-dev -g moles-game-v2-dev -m 0700 \
   /var/lib/moles-game-v2-dev /var/lib/moles-game-v2-dev/backup /var/log/moles-game-v2-dev
 chgrp moles-game-v2-dev /etc/moles-game-v2-dev /etc/moles-game-v2-dev/secrets
 chmod 0750 /etc/moles-game-v2-dev /etc/moles-game-v2-dev/secrets
-for field in db_password admin_password coach_password; do
+for field in db_password; do
   chgrp moles-game-v2-dev "/etc/moles-game-v2-dev/secrets/$field"
   chmod 0640 "/etc/moles-game-v2-dev/secrets/$field"
 done

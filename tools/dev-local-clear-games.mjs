@@ -8,14 +8,13 @@ const databaseName = 'ffb-match-review-database-1';
 const gameTables = [
   'ffb_match_recovery', 'ffb_match_spectator_consent', 'ffb_v2_preparation_requests',
   'ffb_v2_preparation_invites', 'ffb_v2_match_members', 'ffb_prepared_matches',
-  'ffb_games_serialized', 'ffb_games_info',
 ];
 const retainedTables = [
-  'ffb_coaches', 'ffb_player_markers', 'ffb_team_setups', 'ffb_user_settings',
   'ffb_local_schema', 'ffb_saved_teams', 'ffb_v2_account', 'ffb_v2_identity',
   'ffb_v2_account_scope', 'ffb_v2_saved_teams',
 ];
 const optionalTable = 'ffb_match_spectator_consent';
+const historicalTables = ['ffb_coaches', 'ffb_player_markers', 'ffb_team_setups', 'ffb_user_settings', 'ffb_games_info', 'ffb_games_serialized'];
 const sqlCommand = 'export MYSQL_PWD; IFS= read -r MYSQL_PWD < /run/secrets/db_root_password; '
   + 'exec mariadb --user=root --database=ffb_local --batch --skip-column-names';
 const defaultRun = (file, args, options) => execFileSync(file, args, {
@@ -74,7 +73,7 @@ export function clearDevLocalGames({ apply = false, run = defaultRun, environmen
     .trim().split(/\r?\n/).map(line => line.split('\t'));
   const expected = [...gamesForSchema, ...retainedForSchema];
   const names = inventory.map(([name]) => name);
-  if (new Set(names).size !== names.length || names.some(name => !expected.includes(name))
+  if (new Set(names).size !== names.length || names.some(name => !expected.includes(name) && !historicalTables.includes(name))
     || expected.filter(name => name !== optionalTable).some(name => !names.includes(name))
     || inventory.some(([name, engine]) => gamesForSchema.includes(name) && engine !== 'InnoDB'))
     throw Error('REVIEW_TABLES_MISMATCH');
@@ -102,12 +101,13 @@ export function clearDevLocalGames({ apply = false, run = defaultRun, environmen
     const currentDatabase = inspect(run, databaseName, 'database');
     requireDatabase(currentDatabase);
     if (currentDatabase.Id !== database.Id) throw Error('REVIEW_DATABASE_MISMATCH');
-    const retained = counts(query, retainedForSchema);
+    const retainedPresent = [...retainedForSchema, ...historicalTables.filter(name => names.includes(name))];
+    const retained = counts(query, retainedPresent);
     // No TRUNCATE, schema changes or ID resets: a failed SQL batch rolls back on disconnect.
     query(`START TRANSACTION;\n${selected.map(table => `DELETE FROM \`${table}\`;`).join('\n')}\nCOMMIT;`);
     const after = counts(query, selected);
     if (Object.values(after).some(count => count !== '0')) throw Error('REVIEW_GAMES_NOT_EMPTY');
-    if (JSON.stringify(counts(query, retainedForSchema)) !== JSON.stringify(retained)) throw Error('REVIEW_RETAINED_COUNTS_CHANGED');
+    if (JSON.stringify(counts(query, retainedPresent)) !== JSON.stringify(retained)) throw Error('REVIEW_RETAINED_COUNTS_CHANGED');
     log('All database game records removed; accounts, saved teams, settings and backup files retained.');
     if (stopped) {
       run('docker', ['start', server.Id]);

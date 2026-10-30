@@ -1,15 +1,25 @@
 package com.fumbbl.ffb.server.util;
 
-import com.fumbbl.ffb.*;
+import com.fumbbl.ffb.Constant;
+import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.PlayerAction;
+import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.SoundId;
 import com.fumbbl.ffb.factory.MechanicsFactory;
 import com.fumbbl.ffb.inducement.Inducement;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.mechanics.Mechanic;
-import com.fumbbl.ffb.model.*;
+import com.fumbbl.ffb.model.ActingPlayer;
+import com.fumbbl.ffb.model.Animation;
+import com.fumbbl.ffb.model.FieldModel;
+import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.InducementSet;
+import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.Team;
+import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.model.change.ModelChangeList;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
-import com.fumbbl.ffb.net.ServerStatus;
 import com.fumbbl.ffb.report.ReportList;
 import com.fumbbl.ffb.report.ReportMasterChefRoll;
 import com.fumbbl.ffb.report.ReportPlayerAction;
@@ -18,16 +28,12 @@ import com.fumbbl.ffb.report.mixed.ReportSkillWasted;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.IServerLogLevel;
 import com.fumbbl.ffb.server.mechanic.StateMechanic;
 import com.fumbbl.ffb.server.model.CarriedPlayer;
-import com.fumbbl.ffb.server.net.SessionManager;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilActingPlayer;
 import com.fumbbl.ffb.util.UtilCards;
-
-import org.eclipse.jetty.ee8.websocket.api.Session;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 /**
  * @author Kalimar
  */
@@ -214,25 +219,10 @@ public class UtilServerGame {
 		return reRollsStolenTotal.get();
 	}
 
-	public static void closeGame(GameState pGameState) {
-		if (pGameState != null) {
-			FantasyFootballServer server = pGameState.getServer();
-			SessionManager sessionManager = server.getSessionManager();
-			Session[] sessions = sessionManager.getSessionsForGameId(pGameState.getId());
-			for (Session session : sessions) {
-				server.getCommunication().close(session);
-			}
-		}
-	}
+
 
 	// this might be overkill, we'll see how it does in practice
-	public static void handleInvalidTeam(String pTeamId, GameState gameState, FantasyFootballServer server, Throwable pThrowable) {
-		server.getDebugLog().log(IServerLogLevel.ERROR, gameState.getGame().getId(), StringTool.bind("Error loading Team $1.", pTeamId));
-		server.getDebugLog().log(gameState.getGame().getId(), pThrowable);
-		server.getCommunication().sendStatus(gameState, ServerStatus.FUMBBL_ERROR,
-			StringTool.bind("Unable to load Team with id $1.", pTeamId));
-		UtilServerGame.closeGame(gameState);
-	}
+
 
 	public static void undoPickUpPartner(GameState gameState, ActingPlayer actingPlayer, Skill skill) {
 		Game game = gameState.getGame();

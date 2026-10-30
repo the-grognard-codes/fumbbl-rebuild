@@ -8,17 +8,15 @@ import com.fumbbl.ffb.server.match.SetupSession;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class BallPresentationTest {
 
 	@Test void occupancyDoesNotInventPossessionAndNativeMovingFlagsDetermineTheCarrier() throws Exception {
@@ -113,7 +111,7 @@ class BallPresentationTest {
 		Field engine = SetupSession.class.getDeclaredField("state"); engine.setAccessible(true); engine.set(session, state); return session;
 	}
 	private GameState fixture(boolean home) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(9, 7)
 			.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 3, 3, 3, 9)))
 			.withTeam(!home, team -> team.player("opponent", player -> player.at(20, 7).stats(6, 3, 3, 3, 9))).build();

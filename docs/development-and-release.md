@@ -16,9 +16,10 @@ existing FUMBBL accounts, credentials, and production systems.
 | Firebase delivery | `deployment/firebase/`, `firebase.json`, `.firebaserc` | Artifact assembly, public build configuration, emulator guidance, and Hosting routing; release maintainers. |
 | CI and release controls | `.github/workflows/`, `.github/BRANCH_PROTECTION.md` | Checks and releases; repository administrators. |
 
-`ffb-client/`, `ffb-client-logic/`, `ffb-resources/`, and `ffb-tools/` retain
-their existing Java module roles. Do not move a module merely to make a web
-change.
+The Maven reactor contains `ffb-common/`, `ffb-tools/`, `ffb-server/`, and
+`ffb-statetest/`. Browser V2 is the normal server runtime. Browser V1 remains
+explicit local diagnostic tooling. Preserve engine code and canonical
+`assets/game/` resources used by either browser path.
 
 ## Local workflows
 

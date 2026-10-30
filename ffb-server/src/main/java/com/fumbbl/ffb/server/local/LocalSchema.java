@@ -1,12 +1,10 @@
 package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.db.DbConnectionManager;
-import com.fumbbl.ffb.server.db.DbInitializer;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -14,15 +12,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
-
 /** Versioned migrations for the dedicated local database; never deletes existing data. */
 public class LocalSchema {
-	public void initialize(DbConnectionManager manager, String coachPasswordHash) throws SQLException {
-		initialize(manager, coachPasswordHash, false);
+	public void initialize(DbConnectionManager manager) throws SQLException {
+		initialize(manager, false);
 	}
 
 	/** Marker-6 databases are separately provisioned and verified; they are never migrated on startup. */
-	public void initialize(DbConnectionManager manager, String coachPasswordHash, boolean marker6) throws SQLException {
+	public void initialize(DbConnectionManager manager, boolean marker6) throws SQLException {
 		if (marker6) { initializeMarker6(manager); return; }
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
 			boolean empty;
@@ -48,16 +45,6 @@ public class LocalSchema {
 				else verifyRecovery(connection);
 				return;
 			}
-			new DbInitializer(manager).initDb(false);
-			statement.executeUpdate("ALTER TABLE ffb_games_serialized MODIFY serialized LONGBLOB");
-			try (PreparedStatement seed = connection.prepareStatement("INSERT INTO ffb_coaches(name,password) VALUES (?,?)")) {
-				for (String coach : new String[] {"FixtureHome", "FixtureAway"}) {
-					seed.setString(1, coach);
-					seed.setString(2, coachPasswordHash);
-					seed.executeUpdate();
-				}
-			}
-			connection.commit();
 			statement.executeUpdate("CREATE TABLE ffb_local_schema (version INT NOT NULL PRIMARY KEY)");
 			statement.executeUpdate("INSERT INTO ffb_local_schema VALUES (1)");
 			connection.commit();
@@ -74,9 +61,7 @@ public class LocalSchema {
 			 ResultSet tables = statement.executeQuery("SHOW TABLES")) {
 			if (tables.next()) throw new SQLException("Schema-only initialization requires an empty database");
 		}
-		new DbInitializer(manager).initDb(false);
 		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			statement.executeUpdate("ALTER TABLE ffb_games_serialized MODIFY serialized LONGBLOB");
 			statement.executeUpdate("CREATE TABLE ffb_local_schema (version INT NOT NULL PRIMARY KEY)");
 			statement.executeUpdate("INSERT INTO ffb_local_schema VALUES (1)");
 			connection.commit();

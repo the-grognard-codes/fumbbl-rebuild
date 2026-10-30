@@ -121,14 +121,12 @@ test('reuses only the existing read-only review mount sources', () => {
     const server = { Mounts: [
       source('/run/adc/application_default_credentials.json'),
       source('/run/secrets/db_password'),
-      source('/run/secrets/admin_password'),
-      source('/run/secrets/coach_password'),
     ] };
     const database = { Mounts: [source('/run/secrets/db_root_password')] };
     const environment = composeEnvironment(server, database);
     assert.equal(environment.M6_ADC_FILE, server.Mounts[0].Source);
     assert.equal(environment.M6_DB_ROOT_PASSWORD_FILE, database.Mounts[0].Source);
-    assert.equal(Object.keys(environment).length, 5);
+    assert.equal(Object.keys(environment).length, 3);
     server.Mounts[0].RW = true;
     assert.throws(() => composeEnvironment(server, database), /REVIEW_MOUNT_UNAVAILABLE/);
   } finally {
@@ -152,16 +150,12 @@ test('reuses Windows files reported as Docker Desktop Linux mount sources', { sk
   const server = { Mounts: [
     source('/run/adc/application_default_credentials.json'),
     source('/run/secrets/db_password'),
-    source('/run/secrets/admin_password'),
-    source('/run/secrets/coach_password'),
   ] };
   const database = { Mounts: [source('/run/secrets/db_root_password')] };
   const environment = composeEnvironment(server, database);
   assert.equal(environment.M6_ADC_FILE, join(directory, 'application_default_credentials.json'));
   assert.equal(environment.M6_DB_PASSWORD_FILE, join(directory, 'db_password'));
   assert.equal(environment.M6_DB_ROOT_PASSWORD_FILE, join(directory, 'db_root_password'));
-  assert.equal(environment.M6_ADMIN_PASSWORD_FILE, join(directory, 'admin_password'));
-  assert.equal(environment.M6_COACH_PASSWORD_FILE, join(directory, 'coach_password'));
   server.Mounts[0].RW = true;
   assert.throws(() => composeEnvironment(server, database), /REVIEW_MOUNT_UNAVAILABLE/);
 });

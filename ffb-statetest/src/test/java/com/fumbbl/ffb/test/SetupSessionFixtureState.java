@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
 /** Keeps injected engine fixtures on the same presentation-observer path as a real session. */
 final class SetupSessionFixtureState extends GameState {
     private Object blockPresentation;
@@ -18,9 +17,7 @@ final class SetupSessionFixtureState extends GameState {
         super(new TestServer().getServer());
     }
 
-    @Override public boolean usesLegacyPersistence() {
-        return false;
-    }
+
 
     void attachTo(SetupSession session) throws ReflectiveOperationException {
         Field presentation = SetupSession.class.getDeclaredField("blockPresentation");

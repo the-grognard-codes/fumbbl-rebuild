@@ -12,7 +12,7 @@ before=$(sha256sum /etc/moles-game-v2-dev/secrets/*)
 if bash "$generator" dev >/dev/null 2>&1; then exit 1; fi
 [[ "$before" == "$(sha256sum /etc/moles-game-v2-dev/secrets/*)" ]]
 bash "$generator" prod
-for field in db_password admin_password coach_password; do
+for field in db_password; do
   if cmp -s "/etc/moles-game-v2-dev/secrets/$field" "/etc/moles-game-v2-prod/secrets/$field"; then exit 1; fi
 done
 echo 'PASS: valid environments, secret formats/modes, independent values, invalid arguments, and non-overwriting retry.'

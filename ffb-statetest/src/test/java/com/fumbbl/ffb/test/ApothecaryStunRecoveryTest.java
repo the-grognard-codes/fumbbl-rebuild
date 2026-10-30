@@ -12,15 +12,13 @@ import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class ApothecaryStunRecoveryTest {
     private final BrowserActionEvidence evidence = new BrowserActionEvidence(true);
     @Test void activeTeamSavedKoMissesTheEntireNextOwnTurn() throws Exception {
@@ -101,9 +99,7 @@ class ApothecaryStunRecoveryTest {
     }
 
     private GameState fixture() throws Exception {
-        GameState state = new GameState(new TestServer().getServer()) {
-            @Override public boolean usesLegacyPersistence() { return false; }
-        };
+        GameState state = new GameState(new TestServer().getServer());
         new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE)
             .withTeam(true, team -> {
                 team.player("actor", player -> player.at(7, 7).stats(6, 3, 3, 4, 9));

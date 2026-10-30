@@ -31,11 +31,9 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /run/adc/application_default_credentials.json
       JAVA_TOOL_OPTIONS: "-Dffb.browser.timing=${DEV_LOCAL_GAMEPLAY_TIMING:-false}"
     extra_hosts: ["host.docker.internal:host-gateway"]
-    secrets: [db_password, admin_password, coach_password]
+    secrets: [db_password]
     volumes:
       - ./server.match-review.ini:/config/server.ini:ro
-      - ./fixtures/teams:/app/teams:ro
-      - ./fixtures/rosters:/app/rosters:ro
       - ${M6_ADC_FILE:?Set M6_ADC_FILE to the existing local ADC file}:/run/adc/application_default_credentials.json:ro
       - backup:/data/backup
     read_only: true
@@ -75,7 +73,3 @@ secrets:
     file: ${M6_DB_PASSWORD_FILE:?Set M6_DB_PASSWORD_FILE to the existing local secret file}
   db_root_password:
     file: ${M6_DB_ROOT_PASSWORD_FILE:?Set M6_DB_ROOT_PASSWORD_FILE to the existing local secret file}
-  admin_password:
-    file: ${M6_ADMIN_PASSWORD_FILE:?Set M6_ADMIN_PASSWORD_FILE to the existing local secret file}
-  coach_password:
-    file: ${M6_COACH_PASSWORD_FILE:?Set M6_COACH_PASSWORD_FILE to the existing local secret file}

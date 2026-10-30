@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2016.move;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.Constant;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
@@ -22,7 +20,6 @@ import com.fumbbl.ffb.net.commands.ClientCommandKickTeamMate;
 import com.fumbbl.ffb.net.commands.ClientCommandMove;
 import com.fumbbl.ffb.net.commands.ClientCommandPass;
 import com.fumbbl.ffb.net.commands.ClientCommandThrowTeamMate;
-import com.fumbbl.ffb.server.GameCache;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
@@ -40,6 +37,8 @@ import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilPlayer;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 /**
  * Step to init the select sequence.
  * <p>
@@ -259,8 +258,6 @@ public final class StepInitSelecting extends AbstractStep {
 	public void start() {
 		if (fUpdatePersistence) {
 			fUpdatePersistence = false;
-			GameCache gameCache = getGameState().getServer().getGameCache();
-			gameCache.queueDbUpdate(getGameState(), true);
 		}
 	}
 

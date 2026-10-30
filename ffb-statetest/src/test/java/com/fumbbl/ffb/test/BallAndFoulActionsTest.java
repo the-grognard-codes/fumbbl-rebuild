@@ -5,28 +5,26 @@ import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
-import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.model.skill.SkillWithValue;
+import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CorePromptActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
-import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.util.UtilPlayer;
 
-import java.util.List;
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class BallAndFoulActionsTest {
     private static final BrowserActionEvidence evidence = new BrowserActionEvidence();
     @AfterAll static void writeBrowserEvidence() throws Exception { evidence.write(); }
@@ -302,7 +300,7 @@ class BallAndFoulActionsTest {
         return fixture(home, ogre, "", "");
     }
     private GameState fixture(boolean home, boolean ogre, String actorSkill, String mateSkill) throws Exception {
-        GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+        GameState state = new GameState(new TestServer().getServer());
         new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(7, 7)
             .withTeam(home, team -> {
                 team.player("actor", p -> { p.at(7, 7).stats(6, ogre ? 5 : 3, 3, 3, 9); if (ogre) p.skill("Throw Team-mate"); if (!actorSkill.isEmpty()) p.skill(actorSkill); });

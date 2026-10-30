@@ -136,7 +136,7 @@ static IStep respond(GameState, NetCommand) // calls gameState.handleCommand()
 Test roll strings are parsed by `DiceCategoryFactory`:
 - **Block dice**: `BlockDiceCategory` accepts strings like `"pushback"`, `"bothdown"`, `"skull"`, `"pow"`, `"stumble"` (see `BlockDiceCategory.BlockEnums` for full aliases).
 - **Direction dice**: `DirectionDiceCategory` accepts `"n"`, `"ne"`, `"e"`, `"se"`, `"s"`, `"sw"`, `"w"`, `"nw"` for scatter/pushback direction.
-- **General dice**: Plain integer strings like `"2"`, `"5"` — parsed by `DiceCategory`.
+- **General dice**: Plain integer strings like `"2"`, `"5"` â€” parsed by `DiceCategory`.
 
 ## Step Flow for Common Actions
 
@@ -153,7 +153,7 @@ BLOCK_ROLL -> BLOCK_CHOICE ->
 **Block flow commands:**
 1. `Commands.selectPlayer("playerId", PlayerAction.BLOCK)`
 2. `Commands.block("attackerId", "defenderId")`
-3. (If multiple dice) `Commands.blockChoice(index)` — index 0 = first die listed
+3. (If multiple dice) `Commands.blockChoice(index)` â€” index 0 = first die listed
 4. If pushback: `Commands.pushback(new Pushback(playerId, new FieldCoordinate(x, y)))` then `Commands.followup(true/false)`
 
 ### Foul Action (BB2025)
@@ -200,8 +200,8 @@ When a new `Step` requires a client command not yet in `Commands.java`:
 
 ## Step Assertion Patterns
 
-- `assertEquals(StepId.PUSHBACK, step.getId())` — assert the current step after a command.
-- `assertNotNull(step)` — check that the server transitioned to a new step (didn't hang).
+- `assertEquals(StepId.PUSHBACK, step.getId())` â€” assert the current step after a command.
+- `assertNotNull(step)` â€” check that the server transitioned to a new step (didn't hang).
 - Check `game.getPlayerById(id)` returns the expected player.
 - Check `game.getFieldModel().getPlayerCoordinate(player)` for position.
 - Check `game.getFieldModel().getPlayerState(player)` for state (base: `STANDING`, `PRONE`, `STUNNED`, `FALLING`, `BLOCKED`; general state flags via `changeBase()`, `changeActive()`).
@@ -238,4 +238,4 @@ mvn test -pl ffb-statetest -Dtest=BlockTest#pushbackResolvesWithNoFallAndPlayers
 - **Missing roll throws NPE or returns random:** If you don't pre-declare enough rolls, the DiceRoller falls through to `Fortuna` RNG. Always declare all expected rolls.
 - **Rule version matters:** BB2025 and BB2020 have different step implementations. Always specify the rule version.
 - **Pushback direction:** Must match an available coordinate that the pushback logic accepts (adjacent, not occupied by another player).
-- **No imports from `ffb-client-logic`:** This is server-side testing only.
+- **Native engine tests:** Route commands through trusted application-side coach ownership; browser transport tests remain in the server module.

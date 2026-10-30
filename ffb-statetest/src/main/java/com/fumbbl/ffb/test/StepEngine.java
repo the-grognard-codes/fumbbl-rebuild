@@ -4,8 +4,6 @@ import com.fumbbl.ffb.net.NetCommand;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.IStep;
-import org.eclipse.jetty.ee8.websocket.api.Session;
-
 public class StepEngine {
 	public static IStep start(GameState gameState) {
 		gameState.startNextStep();
@@ -13,11 +11,12 @@ public class StepEngine {
 	}
 
 	public static IStep respond(GameState gameState, NetCommand command) {
-		return respond(gameState, command, null);
+		gameState.handleCommand(new ReceivedCommand(command));
+		return gameState.getCurrentStep();
 	}
 
-	public static IStep respond(GameState gameState, NetCommand command, Session session) {
-		gameState.handleCommand(new ReceivedCommand(command, session));
+	public static IStep respond(GameState gameState, NetCommand command, boolean home) {
+		gameState.handleCommand(new ReceivedCommand(command, home));
 		return gameState.getCurrentStep();
 	}
 }

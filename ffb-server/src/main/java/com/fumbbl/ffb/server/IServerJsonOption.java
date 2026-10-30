@@ -15,7 +15,6 @@ import com.fumbbl.ffb.json.JsonPlayerStateOption;
 import com.fumbbl.ffb.json.JsonStringArrayOption;
 import com.fumbbl.ffb.json.JsonStringListMapOption;
 import com.fumbbl.ffb.json.JsonStringOption;
-
 /**
  * @author Kalimar
  */
@@ -87,7 +86,7 @@ public interface IServerJsonOption extends IJsonOption {
     JsonStringOption FOUL_DEFENDER_ID = new JsonStringOption("foulDefenderId");
     JsonBooleanOption FOULER_HAS_BALL = new JsonBooleanOption("foulerHasBall");
     JsonStringArrayOption FOULING_FRENZY = new JsonStringArrayOption("foulingFrenzy");
-    JsonBooleanOption FUMBBL_GAME_CREATED = new JsonBooleanOption("fumbblGameCreated");
+
     JsonObjectOption GAME_LOG = new JsonObjectOption("gameLog");
     JsonEnumWithNameOption GAME_STATUS = new JsonEnumWithNameOption("gameStatus", Factory.GAME_STATUS);
     JsonStringOption GAZE_VICTIM_ID = new JsonStringOption("gazeVictimId");
@@ -180,7 +179,7 @@ public interface IServerJsonOption extends IJsonOption {
     JsonObjectOption SCATTER_BOUNDS = new JsonObjectOption("scatterBounds");
     JsonIntOption SCATTER_DISTANCE = new JsonIntOption("scatterDistance");
     JsonBooleanOption SECOND_GO_FOR_IT = new JsonBooleanOption("secondGoForIt");
-    JsonStringOption SESSION_MODE = new JsonStringOption("sessionMode");
+
     JsonFieldCoordinateOption SETUP_PLAYER_COORDINATE = new JsonFieldCoordinateOption("setupPlayerCoordinate");
     JsonStringOption SETUP_PLAYER_ID = new JsonStringOption("setupPlayerId");
     JsonBooleanOption SHADOWER_WAS_PREVIOUS_DEFENDER = new JsonBooleanOption("shadowerWasPreviousDefender");
@@ -236,7 +235,7 @@ public interface IServerJsonOption extends IJsonOption {
     JsonBooleanOption USING_TRICKSTER = new JsonBooleanOption("usingTrickster");
     JsonBooleanOption USING_WRESTLE_ATTACKER = new JsonBooleanOption("usingWrestleAttacker");
     JsonBooleanOption USING_WRESTLE_DEFENDER = new JsonBooleanOption("usingWrestleDefender");
-    JsonBooleanOption WITH_GAMES_INFO = new JsonBooleanOption("withGamesInfo");
+
     JsonBooleanOption WITHIN_SECRET_WEAPON_HANDLING = new JsonBooleanOption("withinSecretWeaponHandling");
 
 }

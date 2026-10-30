@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -21,15 +20,12 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
-
 /** Explicit marker-5 through marker-8 bootstrap for the isolated acceptance profile. */
 public final class LocalAcceptanceBootstrap {
 	private static final Set<String> MARKER5_TABLES = new HashSet<>(Arrays.asList(
-		"ffb_coaches", "ffb_games_info", "ffb_games_serialized", "ffb_player_markers", "ffb_team_setups",
-		"ffb_user_settings", "ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches", "ffb_match_recovery"));
+		"ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches", "ffb_match_recovery"));
 	private static final Set<String> MARKER7_TABLES = new HashSet<>(Arrays.asList(
-		"ffb_coaches", "ffb_games_info", "ffb_games_serialized", "ffb_player_markers", "ffb_team_setups",
-		"ffb_user_settings", "ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches", "ffb_match_recovery",
+		"ffb_local_schema", "ffb_saved_teams", "ffb_prepared_matches", "ffb_match_recovery",
 		"ffb_v2_match_members", "ffb_v2_account", "ffb_v2_identity", "ffb_v2_account_scope",
 		"ffb_v2_saved_teams", "ffb_v2_preparation_invites", "ffb_v2_preparation_requests"));
 	private static final Set<String> MARKER6_TABLES = new HashSet<>(MARKER7_TABLES);
@@ -80,7 +76,7 @@ public final class LocalAcceptanceBootstrap {
 		int version = schemaVersion(manager);
 		if (version == 9) {
 			requireInventory(tables, MARKER9_TABLES);
-			schema.initialize(manager, "", true);
+			schema.initialize(manager, true);
 			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 			return;
 		}
@@ -135,11 +131,13 @@ public final class LocalAcceptanceBootstrap {
 		if (version != 9) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-9 databases");
 		tables = tableNames(manager);
 		requireInventory(tables, MARKER9_TABLES);
-		schema.initialize(manager, "", true);
+		schema.initialize(manager, true);
 		try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 	}
 
 	static void requireInventory(Set<String> actual, Set<String> expected) throws SQLException {
+		actual = new HashSet<>(actual);
+		actual.removeAll(Arrays.asList("ffb_coaches", "ffb_games_info", "ffb_games_serialized", "ffb_player_markers", "ffb_team_setups", "ffb_user_settings"));
 		if (!expected.equals(actual)) throw new SQLException("Acceptance database table inventory does not match its schema marker");
 	}
 

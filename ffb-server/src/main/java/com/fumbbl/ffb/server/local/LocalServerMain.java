@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Properties;
-
 /** Container-only entry point. No live credentials or destructive initDb argument. */
 public class LocalServerMain {
 	static final String LEGACY_DB_URL = "jdbc:mariadb://database:3306/ffb_local";
@@ -33,13 +32,7 @@ public class LocalServerMain {
 	/** Caller must validate its entire profile before reading secrets or opening JDBC. */
 	void startVerifiedProfile(Properties properties) throws Exception {
 		properties.setProperty("db.password", readSecret(properties, "db.password.file"));
-		properties.setProperty("admin.password", readSecret(properties, "admin.password.file"));
-		properties.setProperty("backup.password", properties.getProperty("admin.password"));
-		String coachPassword = readSecret(properties, "local.coach.password.file");
-		if (!coachPassword.matches("[0-9a-f]{32}")) {
-			throw new IllegalArgumentException("Fixture coach secret must be an MD5 hex digest for the legacy local protocol");
-		}
-		boolean marker6 = Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled"));
+		boolean marker6 = Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled", "true"));
 		if (!marker6) {
 			properties.setProperty("local.browser.home.token", readSecret(properties, "local.browser.home.token.file"));
 			properties.setProperty("local.browser.away.token", readSecret(properties, "local.browser.away.token.file"));
@@ -51,7 +44,7 @@ public class LocalServerMain {
 		manager.setDbUser(properties.getProperty("db.user"));
 		manager.setDbPassword(properties.getProperty("db.password"));
 		manager.setDbType("mariadb");
-		new LocalSchema().initialize(manager, coachPassword, marker6);
+		new LocalSchema().initialize(manager, marker6);
 		// Also drain partially started resources if startup fails after opening the listener.
 		Runtime.getRuntime().addShutdownHook(new Thread(server::shutdownResources, "local-server-shutdown"));
 		try {
@@ -66,7 +59,10 @@ public class LocalServerMain {
 
 	/** Allows only the retained legacy Compose profile or the separately provisioned marker-6 target. */
 	static void validateProfile(Properties properties) {
-		boolean marker6 = Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled"));
+		String selection = properties.getProperty("local.browser.v2.enabled", "true");
+		if (!"true".equals(selection) && !"false".equals(selection))
+			throw new IllegalArgumentException("Browser V2 selection must be true or false");
+		boolean marker6 = Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled", "true"));
 		boolean permittedDatabase = marker6
 			? (MARKER6_DB_URL.equals(properties.getProperty("db.url")) || REVIEW_DB_URL.equals(properties.getProperty("db.url"))
 				|| ACCEPTANCE_DB_URL.equals(properties.getProperty("db.url")))

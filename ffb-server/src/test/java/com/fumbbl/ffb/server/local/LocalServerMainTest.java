@@ -1,12 +1,11 @@
 package com.fumbbl.ffb.server.local;
 
-import java.util.Properties;
-
 import org.junit.jupiter.api.Test;
+
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 class LocalServerMainTest {
 	@Test void marker6AcceptsOnlyTargetUrlUserAndFirebaseProject() {
 		Properties properties = base();
@@ -41,7 +40,7 @@ class LocalServerMainTest {
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(acceptanceWrongUser));
 	}
 
-	@Test void legacyProfileCannotSelectMarker6TargetOrLiveSettings() {
+	@Test void diagnosticProfileCannotSelectMarker6TargetOrLiveSettings() {
 		Properties properties = base();
 		assertDoesNotThrow(() -> LocalServerMain.validateProfile(properties));
 		Properties wrongTarget = (Properties) properties.clone();
@@ -56,6 +55,7 @@ class LocalServerMainTest {
 	private Properties base() {
 		Properties properties = new Properties();
 		properties.setProperty("server.local", "true");
+		properties.setProperty("local.browser.v2.enabled", "false");
 		properties.setProperty("db.url", LocalServerMain.LEGACY_DB_URL);
 		return properties;
 	}

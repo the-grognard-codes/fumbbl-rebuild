@@ -4,60 +4,13 @@ import com.fumbbl.ffb.util.StringTool;
 
 import java.util.Properties;
 
-import static com.fumbbl.ffb.server.IServerProperty.*;
-
+import static com.fumbbl.ffb.server.IServerProperty.FUMBBL_BASE;
+import static com.fumbbl.ffb.server.IServerProperty.FUMBBL_PORT;
+import static com.fumbbl.ffb.server.IServerProperty.SERVER_BASE;
+import static com.fumbbl.ffb.server.IServerProperty.SERVER_PORT;
 public enum ServerUrlProperty {
 
-	ADMIN_URL_BACKUP("admin.url.backup"),
-	ADMIN_URL_BLOCK("admin.url.block"),
-	ADMIN_URL_CACHE("admin.url.cache"),
-	ADMIN_URL_CHALLENGE("admin.url.challenge"),
-	ADMIN_URL_CLOSE("admin.url.close"),
-	ADMIN_URL_CONCEDE("admin.url.concede"),
-	ADMIN_URL_DELETE("admin.url.delete"),
-	ADMIN_URL_FORCELOG("admin.url.forcelog"),
-	ADMIN_URL_LIST_ID("admin.url.list.id"),
-	ADMIN_URL_LIST_STATUS("admin.url.list.status"),
-	ADMIN_URL_LOGLEVEL("admin.url.loglevel"),
-	ADMIN_URL_LOGFILE("admin.url.logfile"),
-	ADMIN_URL_MESSAGE("admin.url.message"),
-	ADMIN_URL_REFRESH("admin.url.refresh"),
-	ADMIN_URL_SCHEDULE("admin.url.schedule"),
-	ADMIN_URL_SHUTDOWN("admin.url.shutdown"),
-	ADMIN_URL_STATS("admin.url.stats"),
-	ADMIN_URL_UNBLOCK("admin.url.unblock"),
-	ADMIN_URL_UPLOAD("admin.url.upload"),
-	ADMIN_URL_PORTRAIT("admin.url.portrait"),
-	ADMIN_URL_PURGE_TEST("admin.url.purgetest"),
-	ADMIN_URL_REDEPLOY("admin.url.redeploy"),
-	GAMESTATE_URL_CHALLENGE("gamestate.url.challenge"),
-	GAMESTATE_URL_BEHAVIORS("gamestate.url.behaviours"),
-	GAMESTATE_URL_GET("gamestate.url.get"),
-	GAMESTATE_URL_RESET("gamestate.url.reset"),
-	GAMESTATE_URL_RESULT("gamestate.url.result"),
-	GAMESTATE_URL_SET("gamestate.url.set"),
-
-	BACKUP_URL_CHALLENGE("backup.url.challenge"),
-	BACKUP_URL_LOAD("backup.url.load"),
-	BACKUP_URL_SAVE("backup.url.save"),
-
-
-	FUMBBL_AUTH_CHALLENGE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.auth.challenge"),
-	FUMBBL_AUTH_RESPONSE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.auth.response"),
-	FUMBBL_TEAMS(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.teams"),
-	FUMBBL_TEAM(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.team"),
-	FUMBBL_ROSTER(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.roster"),
-	FUMBBL_ROSTER_TEAM(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.roster.team"),
-	FUMBBL_GAMESTATE_CHECK(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.check"),
-	FUMBBL_GAMESTATE_CREATE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.create"),
-	FUMBBL_GAMESTATE_RESUME(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.resume"),
-	FUMBBL_GAMESTATE_UPDATE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.update"),
-	FUMBBL_GAMESTATE_REMOVE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.remove"),
-	FUMBBL_GAMESTATE_OPTIONS(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.gamestate.options"),
-	FUMBBL_RESULT(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.result"),
-	FUMBBL_TALK(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.talk"),
-	FUMBBL_NAMEGENERATOR_BASE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.namegenerator.base"),
-	FUMBBL_PLAYER_MARKINGS(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.playermarkings");
+	FUMBBL_NAMEGENERATOR_BASE(FUMBBL_BASE, FUMBBL_PORT, "fumbbl.namegenerator.base");
 
 	private final String baseKey;
 	private final String portKey;

@@ -13,17 +13,17 @@
 - Skip tests: `mvn install -DskipTests`
 
 ## Code Style
-- Java version: 8
+- Java version: shared engine source/target 8; game server release 21. Use `tools/target-build.ps1` for the pinned JDK/Maven setup.
 - Encoding: UTF-8
 - Testing: JUnit 5 with Mockito for mocking
 - Package naming: `com.fumbbl.*` 
 - Naming: Do not use legacy `f` or `p` prefixes for new fields or parameters.
-- Project structure: Multi-module Maven project with `ffb-common`, `ffb-tools`, `ffb-server`, `ffb-client`, `ffb-client-logic`, and `ffb-resources`; most client logic lives in `ffb-client-logic`, while desktop/AWT-specific client code and packaging live in `ffb-client`
-- Architecture hotspots: server game flow is organized around `Step` / `SequenceGenerator` classes under `ffb-server/src/main/java/com/fumbbl/ffb/server/step`, while client input/game-phase flow is organized around `ClientState` classes under `ffb-client-logic/src/main/java/com/fumbbl/ffb/client/state`
+- Project structure: Maven modules `ffb-common`, `ffb-tools`, `ffb-server`, and `ffb-statetest`; the browser application lives in `browser-client`, with canonical assets in `assets/game`. Browser V2 is the product runtime; V1 remains development-only diagnostics.
+- Architecture hotspots: server game flow uses `Step` / `SequenceGenerator` classes under `ffb-server/src/main/java/com/fumbbl/ffb/server/step`; browser protocol and rendering live under `browser-client/src`, with product entry in `play-entry.tsx`.
 - Ruleset-specific changes: when code used by multiple rulesets needs behavior changes for only one ruleset, create or move to a ruleset-specific package and update imports/annotations so unaffected rulesets keep the original behavior. `common` packages are shared by all rulesets; move shared `common` code to `mixed` before applying subset-specific behavior. `mixed` packages are shared by a subset; if modified behavior applies to only one ruleset, move the relevant class to that ruleset package instead. Never use inheritance between ruleset classes (e.g. a `bb2025` class extending a `bb2020`/`mixed` class); duplicate the class into each ruleset package and keep each ruleset's logic self-contained instead.
 - Error handling: Use appropriate exception types, document exceptions in method signatures
 - Services: Prefer instantiable service classes with instance methods over static utility classes/methods; create a service instance at the call site instead of calling static methods.
-- Change list entries: Add a user-facing change list entry for any user-visible change. Entries live in the top (latest) `VersionChangeList` in `ffb-client-logic/src/main/java/com/fumbbl/ffb/client/model/ChangeList.java`, added via `addBugfix`/`addImprovement`/`addFeature`/`addBehaviorChange`.
+- Change list entries: Record user-visible changes under Unreleased in `CHANGELOG.md`. The public `site/updates.json` records actual merged PRs; add entries there only after merge.
 - Test style: Test class names end with "Test", use descriptive test method names
 
 ### Import Organization
@@ -35,15 +35,13 @@
 6. Use blank lines to separate import groups
 
 ## Dependencies
-Shared versions managed via root `pom.xml` currently include `classgraph`, JUnit 5, and Mockito. Many module-specific dependencies still declare versions in their own `pom.xml`, and `ffb-client` / `ffb-client-logic` also resolve bundled libraries from their module-local `repo/` directories.
+Shared versions managed via root `pom.xml` include `classgraph`, JUnit 5, and Mockito. Module-specific dependencies may declare versions in their own `pom.xml`. Browser dependencies and scripts live in `browser-client/package.json`.
 
 ## Build Order
 1. ffb-common
 2. ffb-tools
 3. ffb-server
-4. ffb-client-logic
-5. ffb-resources
-6. ffb-client
+4. ffb-statetest
 
 ## Agent skills
 

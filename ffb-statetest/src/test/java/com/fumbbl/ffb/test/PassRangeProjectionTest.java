@@ -13,6 +13,7 @@ import com.fumbbl.ffb.server.match.SetupSession;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -21,23 +22,18 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class PassRangeProjectionTest {
 
 	@Test void nativeRangesWeatherAndMovementArePublicForBothCoaches() throws Exception {
 		JsonArray journeys = new JsonArray();
 		for (boolean home : new boolean[] {true, false}) for (Weather weather : Weather.values()) {
-			GameState state = new GameState(new TestServer().getServer()) {
-				@Override public boolean usesLegacyPersistence() { return false; }
-			};
+			GameState state = new GameState(new TestServer().getServer());
 			new GameStateBuilder(state).withRule("BB2025").withWeather(weather).withBallAt(10, 7)
 				.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 3, 3, 3, 9))
 					.player("mate", player -> player.at(14, 7)))

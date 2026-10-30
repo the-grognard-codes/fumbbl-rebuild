@@ -1,17 +1,14 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.BlockResult;
+import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
-import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.Weather;
-import com.fumbbl.ffb.BlockResult;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
 import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.factory.SkillFactory;
@@ -21,29 +18,32 @@ import com.fumbbl.ffb.model.RosterPlayer;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
-import com.fumbbl.ffb.net.commands.ClientCommandMove;
 import com.fumbbl.ffb.net.commands.ClientCommandBlock;
 import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandMove;
 import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.GameOptionString;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
-import com.fumbbl.ffb.server.step.generator.Select;
-import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
-import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
-import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
+import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.step.generator.Select;
+import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
+import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
+import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-
 /** Local diagnostic match only. It deliberately exposes no fixture controls. */
 public class BrowserMatchAdapter implements BrowserProtocol {
 
@@ -329,7 +329,7 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 		try {
 			if (choice) {
 				gameState.handleCommand(new ReceivedCommand(new ClientCommandBlockChoice(
-					pendingChoice.indexOf(message.getString("optionId", null))), null));
+					pendingChoice.indexOf(message.getString("optionId", null)))));
 				if (gameState.getGame().getDialogParameter() != null) {
 					throw new IllegalStateException("Unexpected dialog after controlled Both Down choice");
 				}
@@ -358,7 +358,7 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 			// The isolated fixture has no legacy sessions. Null is the harness's trusted
 			// internal home command; browser identity has already been checked above.
 			gameState.handleCommand(new ReceivedCommand(
-				new ClientCommandMove(playerId, from, new FieldCoordinate[]{target}, null), null));
+				new ClientCommandMove(playerId, from, new FieldCoordinate[]{target}, null)));
 			if (!target.equals(gameState.getGame().getFieldModel().getPlayerCoordinate(gameState.getGame().getPlayerById(playerId)))
 				|| gameState.getGame().getActingPlayer().getCurrentMove() != movementBefore + 1) {
 				throw new IllegalStateException("BB2025 movement postcondition failed");
@@ -502,9 +502,9 @@ public class BrowserMatchAdapter implements BrowserProtocol {
 		select.pushSequence(new Select.SequenceParams(state, false));
 		state.startNextStep();
 		state.handleCommand(new ReceivedCommand(
-			new ClientCommandActingPlayer("home-runner", block ? PlayerAction.BLOCK : PlayerAction.MOVE, false), null));
+			new ClientCommandActingPlayer("home-runner", block ? PlayerAction.BLOCK : PlayerAction.MOVE, false)));
 		if (block) state.handleCommand(new ReceivedCommand(new ClientCommandBlock("home-runner", "away-runner",
-			false, false, false, false, false), null));
+			false, false, false, false, false)));
 		return state;
 	}
 

@@ -15,6 +15,7 @@ import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -22,14 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class HailMaryWorkflowTest {
     private final MatchLogPresentationTest log = new MatchLogPresentationTest();
 
@@ -58,7 +56,7 @@ class HailMaryWorkflowTest {
                 capture(session, frames, role, "moved");
                 JsonObject beforeRecovery = view(session, role);
                 GameState restored = new GameState(state.getServer()) {
-                    @Override public boolean usesLegacyPersistence() { return false; }
+
                     @Override public boolean consumesDeclaredActions() { return true; }
                 };
                 restored.initFrom(state.getGame().getRules(), state.toJsonValue());
@@ -158,7 +156,7 @@ class HailMaryWorkflowTest {
 
     private GameState fixture(boolean home, boolean bomb, Weather weather, boolean leap) throws Exception {
         GameState state = new GameState(new TestServer().getServer()) {
-            @Override public boolean usesLegacyPersistence() { return false; }
+
             @Override public boolean consumesDeclaredActions() { return true; }
         };
         new GameStateBuilder(state).withRule("BB2025").withWeather(weather).withBallAt(10, 7)

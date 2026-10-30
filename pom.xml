@@ -22,9 +22,6 @@
         <module>ffb-common</module>
         <module>ffb-tools</module>
         <module>ffb-server</module>
-        <module>ffb-client</module>
-        <module>ffb-client-logic</module>
-        <module>ffb-resources</module>
         <module>ffb-statetest</module>
     </modules>
     <dependencyManagement>

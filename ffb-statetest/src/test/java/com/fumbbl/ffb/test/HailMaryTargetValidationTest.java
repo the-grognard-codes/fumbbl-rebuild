@@ -14,18 +14,17 @@ import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.bb2025.pass.StepInitPassing;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class HailMaryTargetValidationTest {
 
 	@Test void initialNativeBlizzardTargetsAreRejectedBeforeMutationAndCanBeRetargeted() throws Exception {
@@ -144,7 +143,7 @@ class HailMaryTargetValidationTest {
 	private static class RecordingState extends GameState {
 		private final List<IReport> reports = new ArrayList<>();
 		RecordingState(FantasyFootballServer server) { super(server); }
-		@Override public boolean usesLegacyPersistence() { return false; }
+
 		@Override public void observeModelSync(ServerCommandModelSync command) {
 			reports.addAll(Arrays.asList(command.getReportList().getReports()));
 		}

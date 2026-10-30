@@ -50,8 +50,6 @@ export function composeEnvironment(server, database) {
     M6_ADC_FILE: reviewMountSource(server, '/run/adc/application_default_credentials.json'),
     M6_DB_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/db_password'),
     M6_DB_ROOT_PASSWORD_FILE: reviewMountSource(database, '/run/secrets/db_root_password'),
-    M6_ADMIN_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/admin_password'),
-    M6_COACH_PASSWORD_FILE: reviewMountSource(server, '/run/secrets/coach_password'),
   };
 }
 

@@ -1,7 +1,5 @@
 package com.fumbbl.ffb.server.step.bb2016.start;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.PlayerType;
@@ -34,7 +32,6 @@ import com.fumbbl.ffb.report.bb2016.ReportInducementsBought;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
-import com.fumbbl.ffb.server.db.DbTransaction;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStep;
@@ -52,13 +49,15 @@ import com.fumbbl.ffb.skill.bb2016.Loner;
 import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.UtilBox;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 /**
  * Step in start game sequence to buy inducements.
  * <p>
@@ -364,12 +363,10 @@ public final class StepBuyInducements extends AbstractStep {
 			if (removedPlayerList.size() > 0) {
 				removeStarPlayerInducements(game.getTurnDataHome(), removedPlayerList.size());
 				removeStarPlayerInducements(game.getTurnDataAway(), removedPlayerList.size());
-				DbTransaction transaction = new DbTransaction();
 				for (Player<?> player : removedPlayerList) {
 					server.getCommunication().sendRemovePlayer(getGameState(), player.getId());
 					getResult().addReport(new ReportDoubleHiredStarPlayer(player.getName()));
 				}
-				server.getDbUpdater().add(transaction);
 			}
 
 			if (addedPlayerList.size() > 0) {

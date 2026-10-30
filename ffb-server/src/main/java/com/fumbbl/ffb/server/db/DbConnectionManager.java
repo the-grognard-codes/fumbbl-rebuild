@@ -1,14 +1,13 @@
 package com.fumbbl.ffb.server.db;
 
+import com.fumbbl.ffb.server.FantasyFootballServer;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
-
-import com.fumbbl.ffb.server.FantasyFootballServer;
-
 /**
  *
  * @author Kalimar
@@ -81,9 +80,7 @@ public class DbConnectionManager {
 		fDbPassword = pDbPassword;
 	}
 
-	public boolean isStandalone() {
-		return fServer.getMode().isStandalone();
-	}
+
 
 	public void setDbType(String pDbType) {
 		fDbType = pDbType;

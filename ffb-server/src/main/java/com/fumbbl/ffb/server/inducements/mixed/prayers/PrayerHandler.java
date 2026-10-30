@@ -15,8 +15,6 @@ import com.fumbbl.ffb.server.util.UtilServerGame;
 
 import java.util.ArrayList;
 import java.util.List;
-
-
 public abstract class PrayerHandler implements INamedObject {
 
 	protected List<IReport> reports = new ArrayList<>();
@@ -50,7 +48,6 @@ public abstract class PrayerHandler implements INamedObject {
 			reports.forEach(report -> step.getResult().addReport(report));
 			reports.clear();
 			if (handledPrayer().isChangingPlayer()) {
-				gameState.updatePlayerMarkings();
 			}
 		}
 	}
@@ -62,7 +59,6 @@ public abstract class PrayerHandler implements INamedObject {
 			reports.clear();
 		}
 		if (handledPrayer().isChangingPlayer()) {
-			gameState.updatePlayerMarkings();
 		}
 	}
 
@@ -79,7 +75,6 @@ public abstract class PrayerHandler implements INamedObject {
 	public void removeEffect(GameState gameState, Team team) {
 		removeEffectInternal(gameState, team);
 		if (handledPrayer().isChangingPlayer()) {
-			gameState.updatePlayerMarkings();
 		}
 	}
 

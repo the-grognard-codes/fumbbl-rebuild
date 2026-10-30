@@ -52,6 +52,7 @@ try {
     await page.locator('.replay-dugouts .live-dugout.home .live-dugout-zone-summary').first().click();
     await page.locator('.replay-dugouts .live-dugout.home .live-dugout-players button').first().focus();
     await page.getByRole('tooltip', { name: /player card$/ }).waitFor();
+    await page.locator('.replay-dugouts .live-dugout.home').getByRole('button', { name: /^Minimize / }).click();
     await page.getByLabel('Event', { exact: true }).fill('51');
     await page.getByRole('button', { name: 'Seek', exact: true }).click();
     await page.getByRole('heading', { name: /Event 51 of/ }).waitFor();

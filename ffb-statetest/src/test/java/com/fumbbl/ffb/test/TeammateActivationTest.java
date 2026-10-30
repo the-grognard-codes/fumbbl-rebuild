@@ -1,7 +1,7 @@
 package com.fumbbl.ffb.test;
 
-import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PassingDistance;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.Weather;
@@ -18,17 +18,15 @@ import com.fumbbl.ffb.server.match.PassingProjection;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 
 import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class TeammateActivationTest {
 
 	private final BrowserActionEvidence evidence = new BrowserActionEvidence();
@@ -151,7 +149,7 @@ class TeammateActivationTest {
 			original.getGame().getTurnData().setReRolls(1);
 			TestRolls.on(original).general(1);
 			perform(original, declaration(kicked));
-			GameState restored = new GameState(original.getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+			GameState restored = new GameState(original.getServer());
 			restored.initFrom(original.getGame().getRules(), original.toJsonValue());
 			UtilSkillBehaviours.registerBehaviours(restored.getGame(), restored.getServer().getDebugLog());
 			assertEquals(original.toJsonValue(), restored.toJsonValue());
@@ -177,7 +175,7 @@ class TeammateActivationTest {
 	}
 
 	private GameState fixture(boolean home, boolean kicked, String trait, boolean adjacent) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(0, 0)
 			.withTeam(home, team -> {
 				team.player("actor", player -> {

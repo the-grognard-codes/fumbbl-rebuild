@@ -14,15 +14,13 @@ import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 
 import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class SecureBallRerollTest {
 
 	@Test void secureBallExcludesSureHandsAndRetainsTeamRerollsAcrossRecovery() throws Exception {
@@ -85,7 +83,7 @@ class SecureBallRerollTest {
 	}
 
 	private GameState fixture(boolean home, int rerolls) throws Exception {
-		GameState state = new GameState(new TestServer().getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState state = new GameState(new TestServer().getServer());
 		new GameStateBuilder(state).withRule("BB2025").withWeather(Weather.NICE).withBallAt(9, 7)
 			.withTeam(home, team -> team.player("actor", player -> player.at(10, 7).stats(6, 3, 3, 3, 9).skill("Sure Hands")))
 			.withTeam(!home, team -> team.player("opponent", player -> player.at(20, 7).stats(6, 3, 3, 4, 9))).build();
@@ -94,7 +92,7 @@ class SecureBallRerollTest {
 	}
 
 	private GameState recover(GameState original) {
-		GameState restored = new GameState(original.getServer()) { @Override public boolean usesLegacyPersistence() { return false; } };
+		GameState restored = new GameState(original.getServer());
 		restored.initFrom(original.getGame().getRules(), original.toJsonValue());
 		restored.initCommandNrGenerator(original.getLastCommandNr());
 		UtilSkillBehaviours.registerBehaviours(restored.getGame(), restored.getServer().getDebugLog());
