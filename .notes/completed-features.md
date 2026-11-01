@@ -7,6 +7,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 - [Web delivery and team building](#web-delivery-and-team-building)
   - [Monorepo web integration](#monorepo-web-integration)
   - [Browser-only client support](#browser-only-client-support)
+  - [Device support and display-scaling guidance](#device-support-and-display-scaling-guidance)
   - [Java 21 baseline](#java-21-baseline)
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
@@ -66,6 +67,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Preserved shared native rules, event logs, assets, and browser live play, spectating, recovery, and replay behavior. New databases receive browser tables only; existing local data is preserved.
 - Updated current operational and agent guidance, CI, and clean container packaging. Historical references and attribution remain.
 - Validated Java/browser builds and regression suites, V1 smoke, and a fresh authenticated two-coach match through full time. Actual JVM restarts preserved the suspended match and completed replay. See [issues #379?#381](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/379) and the [implementation outcome](../docs/specs/browser-only-support-outcome.md) for exact evidence.
+
+### Device support and display-scaling guidance
+
+- Published desktop-first coaching and landscape tablet guidance, with phones oriented toward website use, replay and spectating. Documented mouse/keyboard and touch input.
+- Added recommended CSS viewports and bounded layout-fit references to `/support`, distinguishing control fit from comfortable play and retaining the compact-layout backlog.
+- Added a keyboard/touch display-scaling calculator at 100/125/150/175/200%, translating CSS targets into rounded-up physical content-area requirements at 100% browser zoom.
+- Recorded manufacturer-sourced iPad and Galaxy Tab generations and generic desktop estimates for future animated matches. Hardware estimates remain separate from measured performance and physical-device validation.
+- Preserved site styling, support contact and no-JavaScript guidance. See [issue #390](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/390) and the [implementation outcome](../docs/specs/support-device-guidance-outcome.md) for validation and remaining limits.
 
 ### Java 21 baseline
 

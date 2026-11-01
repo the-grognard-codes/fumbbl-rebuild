@@ -3,19 +3,82 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Support contact for Moles Under the Pitch.">
+  <meta name="description" content="Device, screen size, scaling and input guidance for Moles Under the Pitch, plus project support.">
   <title>Support · Moles Under the Pitch</title>
   <link rel="stylesheet" href="/assets/site.css?v=20261008-6">
+  <link rel="stylesheet" href="/assets/support.css">
 </head>
 <body>
   <!-- site-header -->
-  <main class="reading">
+  <main class="reading support-page">
     <p class="kicker">Support</p>
-    <h1>Get help with the project</h1>
+    <h1>Find your space on the pitch</h1>
+    <p>We design live coaching for desktop and laptop computers first, with landscape tablet support. Phones are best suited to the website, replays and spectating. Direct coaching on a phone is best effort.</p>
+
+    <section class="panel" aria-labelledby="viewing-heading">
+      <h2 id="viewing-heading">Recommended viewing sizes</h2>
+      <p>These sizes describe the available browser content area in <strong>CSS pixels</strong>, after display scaling and browser zoom. They are guidance, not access restrictions.</p>
+      <dl class="support-sizes">
+        <div><dt>Desktop coaching &amp; spectating</dt><dd><strong>1920 × 900</strong> CSS pixels</dd><dd>Our primary desktop reference is 1920 × 1080 in full screen at 100% display scale and browser zoom.</dd></div>
+        <div><dt>Smaller laptops &amp; landscape tablets</dt><dd><strong>1366 × 768</strong> CSS pixels</dd><dd>A smaller viewing target for live play. Check the available space on your device; panel resolution alone does not determine this.</dd></div>
+        <div><dt>Replay viewing</dt><dd><strong>1024 × 600</strong> CSS pixels</dd><dd>Allow normal page scrolling. On phones, use landscape for replay and spectating; compact controls can still overlap.</dd></div>
+      </dl>
+      <details>
+        <summary>Layout fit is different from comfortable play</summary>
+        <p>Our conservative tested fit references are <strong>1350 × 300 CSS pixels for live coaching/spectating</strong> and <strong>980 × 320 for replay with page scrolling</strong>. These reference pairs fit the controls in the scenarios measured. They are not universal overlap-free guarantees or useful playing-size recommendations: fitting controls does not establish usability.</p>
+        <p>Smaller layouts still need improvements to resource wrapping, camera/menu placement, the scoreboard, expanded panels and replay dugout buttons. These are tracked in <a href="https://github.com/the-grognard-codes/fumbbl-rebuild/issues/389">the compact-layout follow-up</a>.</p>
+      </details>
+    </section>
+
+    <section class="panel" aria-labelledby="scaling-heading">
+      <h2 id="scaling-heading">Display scaling &amp; browser zoom</h2>
+      <p>A high-resolution screen can provide much less layout space when scaling is enabled. For example, a 1920 × 1080 screen at 150% display scale provides at most <strong>1280 × 720 CSS pixels</strong> at 100% browser zoom, before browser bars and the taskbar take their share.</p>
+      <p>Start with 100% browser zoom and a display scale that keeps text comfortable. Full screen can reclaim space. Reducing scaling makes controls physically smaller, so it is not always an improvement.</p>
+      <div class="support-calculator">
+        <label for="display-scale">OS / display scaling <output id="scale-value" for="display-scale">100%</output></label>
+        <input id="display-scale" type="range" min="100" max="200" step="25" value="100" disabled aria-describedby="scale-help" aria-valuetext="100 percent">
+        <div class="support-scale-stops" aria-hidden="true"><span>100%</span><span>125%</span><span>150%</span><span>175%</span><span>200%</span></div>
+        <p id="scale-help">Choose your display scale to calculate the physical-pixel content area needed at <strong>100% browser zoom</strong>. This does not change your device or the game.</p>
+        <p id="scale-summary" role="status">At 100% display scaling, the physical-pixel content area matches the CSS target.</p>
+        <dl class="support-sizes support-calculated-sizes">
+          <div data-css-width="1920" data-css-height="900"><dt>Desktop recommendation <span>1920 × 900 CSS px</span></dt><dd class="physical-size">1920 × 900 physical px</dd></div>
+          <div data-css-width="1366" data-css-height="768"><dt>Laptop / tablet recommendation <span>1366 × 768 CSS px</span></dt><dd class="physical-size">1366 × 768 physical px</dd></div>
+          <div data-css-width="1024" data-css-height="600"><dt>Replay recommendation <span>1024 × 600 CSS px</span></dt><dd class="physical-size">1024 × 600 physical px</dd></div>
+          <div data-css-width="1350" data-css-height="300"><dt>Live layout-fit reference <span>1350 × 300 CSS px</span></dt><dd class="physical-size">1350 × 300 physical px</dd></div>
+          <div data-css-width="980" data-css-height="320"><dt>Replay layout-fit reference <span>980 × 320 CSS px</span></dt><dd class="physical-size">980 × 320 physical px</dd></div>
+        </dl>
+        <noscript><p>The examples above show 100% scaling. Enable JavaScript to use the slider, or multiply each CSS dimension by your scale (for example, 1.5 for 150%), rounding up.</p></noscript>
+      </div>
+      <p><strong>Allow extra screen space for browser bars and the taskbar.</strong> These results describe the content area, not a guaranteed minimum monitor resolution. The CSS target stays the same at every scale.</p>
+      <p>Browser zoom applies an additional factor: at 125% zoom, multiply the calculated dimensions by 1.25 again. Tablets and phones also apply their own logical display scale; their advertised panel pixels are not CSS pixels, and their display settings may not use these percentage steps.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="controls-heading">
+      <h2 id="controls-heading">Mouse, keyboard &amp; touch</h2>
+      <p><strong>Mouse and keyboard:</strong> the preferred setup for desktop coaching. Use a mouse or trackpad for pitch and menu controls, and a keyboard for chat and text entry. Keyboard support does not imply that every match action can be completed without a pointer.</p>
+      <p><strong>Touch screens:</strong> supported for tapping pitch and menu controls, with landscape tablets the intended touch-coaching format. Leave room for controls as well as the pitch. An on-screen keyboard reduces the available viewing area while typing.</p>
+      <p><strong>Phones:</strong> use the website, watch a replay or spectate when a larger screen is unavailable. Viewing needs fewer interactions than coaching, but small screens can still crowd controls. Rotate to landscape when watching a match.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="hardware-heading">
+      <h2 id="hardware-heading">Planning for animated matches</h2>
+      <p>These are <strong>project estimates</strong> for future animated players, pitch and stadium, not tested minimums or a frame-rate guarantee. Try your existing device before considering an upgrade.</p>
+      <dl class="support-sizes">
+        <div><dt>Desktop &amp; laptop</dt><dd>Estimated starting point: a modern mainstream four-core processor, 8 GB RAM and hardware-accelerated integrated graphics. We recommend 16 GB RAM and a recent integrated GPU for more headroom. A dedicated graphics card is not part of this estimate.</dd></div>
+        <div><dt>iPad, in landscape</dt><dd>Estimated starting point: <a href="https://support.apple.com/en-us/111840">iPad 10th generation (2022, A14)</a> or <a href="https://support.apple.com/en-us/122240">iPad A16 (2025)</a>.</dd><dd>For more headroom: M1 or later iPad Air/Pro, starting with <a href="https://support.apple.com/en-gb/111887">Air 5th generation (2022)</a>, <a href="https://support.apple.com/en-us/111897">Pro 11-inch 3rd generation (2021)</a>, or <a href="https://support.apple.com/en-ie/111896">Pro 12.9-inch 5th generation (2021)</a>.</dd></div>
+        <div><dt>Galaxy Tab, in landscape</dt><dd>Estimated starting point: flagship <a href="https://news.samsung.com/global/breaking-the-rules-with-galaxy-tab-s8-series-the-biggest-boldest-most-versatile-galaxy-tablet-ever">Tab S8, S8+ or S8 Ultra (2022)</a> with at least 8 GB RAM.</dd><dd>For more headroom: flagship <a href="https://samsungmobilepress.com/articles/samsung-galaxy-tab-s9-sets-the-new-standard-to-bring-galaxys-premium-experience-to-a-tablet">Tab S9, S9+ or S9 Ultra (2023)</a> with at least 8 GB RAM. FE and A models need separate evaluation; a newer model name alone does not establish equivalent graphics performance.</dd></div>
+      </dl>
+      <p>Hardware capability and viewing space are separate: these tablet examples may provide less than the recommended live-play CSS viewport at their default scale. Larger displays usually offer more room for controls.</p>
+      <p>Keep your browser and operating system updated. Our support policy includes Windows and Linux desktops and Android tablets. Apple guidance is provisional: we have not physically validated iPads or Macs. Browser emulation checks layout and behavior, not device GPU or thermal performance.</p>
+      <p>We have not benchmarked the future combined animation workload. Actual performance will depend on the finished scenes, rendering resolution, browser and available memory. Manufacturer links verify device specifications, not game performance.</p>
+    </section>
+
+    <h2>Get help with the project</h2>
     <section class="panel"><p>For project and privacy questions, email <a href="mailto:support@molesunderthepitch.org">support@molesunderthepitch.org</a>.</p><p>Please do not send game credentials, account details, or other sensitive information. This project cannot provide support for FUMBBL accounts or services.</p></section>
   </main>
   <footer><span>© 2026 Moles Under the Pitch</span><a href="/">Home</a></footer>
   <script src="/firebase-web-config.js"></script>
   <script type="module" src="/assets/account-menu.js"></script>
+  <script type="module" src="/assets/support.js"></script>
 </body>
 </html>
