@@ -16,6 +16,8 @@ const required = [
   'src/assets/site.css',
   'src/assets/updates.css',
   'src/assets/updates.js',
+  'src/assets/support.css',
+  'src/assets/support.js',
   'updates.json',
   'src/assets/auth-client.js',
   'src/assets/account-menu.js',

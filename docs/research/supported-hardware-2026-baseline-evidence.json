@@ -1,0 +1,707 @@
+{
+    "date":  "2026-10-31",
+    "commit":  "01a21242d381198a83a8b5621bb991b6b52f516c",
+    "scope":  "Synthetic existing GameView harness, single end-turn intent; no real-server, physical-device or full-match acceptance",
+    "results":  [
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  1280,
+                        "height":  720,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  564.875,
+                                                   "y":  614,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  1024,
+                        "height":  768,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  436.859375,
+                                                   "y":  662,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  844,
+                        "height":  390,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  346.875,
+                                                   "y":  296,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  667,
+                        "height":  375,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  258.359375,
+                                                   "y":  281,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  360,
+                        "height":  800,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  104.875,
+                                                   "y":  707,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  640,
+                        "height":  330,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  244.859375,
+                                                   "y":  236,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "chromium",
+                        "version":  "151.0.7922.34",
+                        "width":  375,
+                        "height":  300,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  112.375,
+                                                   "y":  211,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  1280,
+                        "height":  720,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  564.9000244140625,
+                                                   "y":  614,
+                                                   "width":  150.20001220703125,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  1024,
+                        "height":  768,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  436.8833312988281,
+                                                   "y":  662,
+                                                   "width":  150.19998168945312,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  844,
+                        "height":  390,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  346.8999938964844,
+                                                   "y":  296,
+                                                   "width":  150.19998168945312,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  667,
+                        "height":  375,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  258.3999938964844,
+                                                   "y":  281,
+                                                   "width":  150.19998168945312,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  360,
+                        "height":  800,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  104.9000015258789,
+                                                   "y":  707,
+                                                   "width":  150.20000457763672,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  640,
+                        "height":  330,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  244.89999389648438,
+                                                   "y":  236,
+                                                   "width":  150.19998168945312,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "firefox",
+                        "version":  "153.0",
+                        "width":  375,
+                        "height":  300,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  112.4000015258789,
+                                                   "y":  211,
+                                                   "width":  150.20000457763672,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  1280,
+                        "height":  720,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  564.875,
+                                                   "y":  614,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  1024,
+                        "height":  768,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  436.859375,
+                                                   "y":  662,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  844,
+                        "height":  390,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  346.875,
+                                                   "y":  296,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  667,
+                        "height":  375,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  258.359375,
+                                                   "y":  281,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  360,
+                        "height":  800,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  104.875,
+                                                   "y":  707,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  640,
+                        "height":  330,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  244.859375,
+                                                   "y":  236,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "pass"
+                    },
+                    {
+                        "engine":  "webkit",
+                        "version":  "26.5",
+                        "width":  375,
+                        "height":  300,
+                        "capabilities":  {
+                                             "has":  true,
+                                             "dvh":  true,
+                                             "resizeObserver":  true,
+                                             "pointerEvent":  true,
+                                             "randomUUID":  true,
+                                             "visualViewport":  true,
+                                             "fullscreenEnabled":  true,
+                                             "dpr":  1,
+                                             "bodyOverflows":  false
+                                         },
+                        "pageErrors":  [
+                                           "ResizeObserver loop completed with undelivered notifications."
+                                       ],
+                        "confirmationBounds":  {
+                                                   "x":  112.375,
+                                                   "y":  211,
+                                                   "width":  150.234375,
+                                                   "height":  28
+                                               },
+                        "status":  "fail",
+                        "error":  "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   \u0027ResizeObserver loop completed with undelivered notifications.\u0027\n+ ]\n- []\n",
+                        "bodyExcerpt":  "Play\n\nHome Team: You / Away Team: Opponent\n\nBANK\n10:00\nTURN\n2:00\nEnd Turn\nHOME TEAM\n0\nâ€“\n0\nAWAY TEAM\nBANK\n10:00\nTURN\n2:00\n1\n2\n3\n4\n5\n6\n7\n8\nNICE\n1\n2\n3\n4\n5\n6\n7\n8\nReady: End Turn\nCONFIRMED!\nH1\n1Pitch camera ready\nHOME TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nAWAY TEAM DUGOUT\nReserves 0\nKnocked out 0\nCasualties 0\nSent off 0\nOther 0\nGAME LOG\nA\nA\nA\n\nNo recorded events yet.\n\nCHAT\nA\nA\nA\nCLICK CHAT OR PRESS ENTER TO WRITE\nDEBUG\n40Â°\nGAME MENU"
+                    }
+                ],
+    "deviceProfiles":  {
+                           "value":  [
+                                         {
+                                             "name":  "iPhone SE",
+                                             "userAgent":  "Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/26.5 Mobile/14E304 Safari/602.1",
+                                             "viewport":  {
+                                                              "width":  320,
+                                                              "height":  568
+                                                          },
+                                             "deviceScaleFactor":  2,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "iPhone 13",
+                                             "userAgent":  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+                                             "viewport":  {
+                                                              "width":  390,
+                                                              "height":  664
+                                                          },
+                                             "screen":  {
+                                                            "width":  390,
+                                                            "height":  844
+                                                        },
+                                             "deviceScaleFactor":  3,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "iPhone 13 landscape",
+                                             "userAgent":  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+                                             "viewport":  {
+                                                              "width":  750,
+                                                              "height":  342
+                                                          },
+                                             "screen":  {
+                                                            "width":  390,
+                                                            "height":  844
+                                                        },
+                                             "deviceScaleFactor":  3,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "iPhone 15",
+                                             "userAgent":  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+                                             "viewport":  {
+                                                              "width":  393,
+                                                              "height":  659
+                                                          },
+                                             "screen":  {
+                                                            "width":  393,
+                                                            "height":  852
+                                                        },
+                                             "deviceScaleFactor":  3,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "iPad (gen 7)",
+                                             "userAgent":  "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+                                             "viewport":  {
+                                                              "width":  810,
+                                                              "height":  1080
+                                                          },
+                                             "deviceScaleFactor":  2,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "iPad (gen 7) landscape",
+                                             "userAgent":  "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+                                             "viewport":  {
+                                                              "width":  1080,
+                                                              "height":  810
+                                                          },
+                                             "deviceScaleFactor":  2,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "webkit"
+                                         },
+                                         {
+                                             "name":  "Pixel 7",
+                                             "userAgent":  "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Mobile Safari/537.36",
+                                             "viewport":  {
+                                                              "width":  412,
+                                                              "height":  839
+                                                          },
+                                             "screen":  {
+                                                            "width":  412,
+                                                            "height":  915
+                                                        },
+                                             "deviceScaleFactor":  2.625,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "chromium"
+                                         },
+                                         {
+                                             "name":  "Pixel 7 landscape",
+                                             "userAgent":  "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Mobile Safari/537.36",
+                                             "viewport":  {
+                                                              "width":  863,
+                                                              "height":  360
+                                                          },
+                                             "screen":  {
+                                                            "width":  915,
+                                                            "height":  412
+                                                        },
+                                             "deviceScaleFactor":  2.625,
+                                             "isMobile":  true,
+                                             "hasTouch":  true,
+                                             "defaultBrowserType":  "chromium"
+                                         }
+                                     ],
+                           "Count":  8
+                       }
+}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The support page now explains desktop, landscape tablet and phone viewing,
+  mouse/keyboard and touch input, recommended CSS viewport sizes, and estimated
+  hardware for future animated matches. A display-scaling calculator translates
+  viewing targets into physical-pixel content areas at 100–200% scaling.
+
 - Signing out from the account menu reliably returns keyboard focus to Sign in,
   including browsers that clear focus when the Sign out button is disabled.
 
