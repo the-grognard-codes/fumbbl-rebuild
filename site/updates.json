@@ -1,5 +1,13 @@
 [
   {
+    "number": 410,
+    "title": "Confirm common actions with a doubleclick or double tap",
+    "summary": "Coaches can now confirm planned moves, blocks, blitzes, fouls, teammate passes and handoffs by doubleclicking or double tapping the selected final target. The selection click stays separate from confirmation, and touch input shows a Cancel plan control that hides when mouse or trackpad input resumes.",
+    "category": "Gameplay",
+    "mergedAt": "2026-11-02T15:27:41Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/410"
+  },
+  {
     "number": 377,
     "title": "Give pitch dice more time and clearer outcomes",
     "summary": "Pitch dice now materialize and evaporate smoothly, with football graphics highlighting armor breaks, stuns, knockouts and casualty results. Important rolls stay visible longer, while required choices remain available until resolved. Live play, replay and reduced-motion views share the updated presentation.",

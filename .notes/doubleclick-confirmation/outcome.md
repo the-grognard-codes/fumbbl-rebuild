@@ -89,3 +89,9 @@ Automated browser evidence uses Windows Chrome, including a mobile/touch-emulate
 The delivery workflow's retrospective found three environment preflight opportunities: verify the ignored JDK selection before a full reactor build, check Docker named-pipe access before starting the browser-validation-heavy dev-local launcher, and verify ADC renewal before invoking a launcher that may open its own login. Keep exactly one authentication flow active. No unrelated tooling or instruction-file changes were made.
 
 The owner accepted the manual review and authorized commit, PR creation, CI-gated merge, branch removal, and the completed-features tracker update. Dev-local has now been stopped with `node tools/dev-local.mjs --stop`; database volumes were retained. The running-service details above record the successful manual-review handoff. No remote deployment is requested.
+
+## Publication
+
+[PR #410](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/410) merged into `main` as `6ccf7d4ea` on November 2, 2026 after CI passed. The first native shard failed an unchanged `SetupSessionMovementTest.specialTurnForecastsAreBoundedAndOtherModesGiveNoGuidance` fixture assertion. The exact focused test passed locally, all three other shards passed, and an isolated rerun on the unchanged commit passed along with the final Java verification gate. No assertion or implementation was changed to obtain the pass. The optional full-browser CI job is dispatch-only; full local browser evidence is recorded above.
+
+Issue #409 closed through the merged PR. The local and remote `feature/doubleclick-confirmation` branches were removed, and dev-local's managed ports no longer listen. The post-merge Updates entry records PR #410 and its actual merge timestamp.
