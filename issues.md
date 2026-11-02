@@ -1,5 +1,7 @@
 # issues
 
+- [x] [#414 Approved decision-prompt designs and reusable mole artwork](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/414): merged in [PR #418](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/418) after CI passed. This completes the visual design/artwork milestone; production work remains open in #415, #416 and #417. See [outcome](.notes/legacy-decision-prompts/outcome.md).
+
 Backlog review completed **2026-10-28**: 29 completed and six superseded issues
 were closed at the owner's request, each with a dated review note. Exactly 25
 issues remain open for owner manual review. See the
