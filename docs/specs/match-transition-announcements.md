@@ -76,7 +76,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 - Run the relevant unit/browser suites and required game-server/build checks using the repository's pinned toolchain. Capture visual evidence and record any unverified platform coverage.
 
 ## Completion Notes
-- Implemented on `feature/match-transition-announcements`; the approved work is committed locally and rebased onto remote main `10928a6bc` for merge preparation.
+- Implemented on `feature/match-transition-announcements`; the approved work merged through PR #412 after CI passed. The local and remote feature branches were removed and dev-local was stopped.
 - Native transition events, playback scheduling, accessible splash UI, durable log details, and regression/visual coverage are implemented.
 - See [the outcome report](match-transition-announcements-outcome.md) for acceptance evidence, validation results, and the dev-local handoff.
 ## Approved review decisions

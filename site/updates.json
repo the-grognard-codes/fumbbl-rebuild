@@ -1,5 +1,13 @@
 [
   {
+    "number": 412,
+    "title": "Announce turnovers, touchdowns, and team-turn starts",
+    "summary": "Pitch banners now explain confirmed turnovers, celebrate touchdowns, and announce the next numbered team turn. The pitch dims and fades smoothly with a brief pause between banners. Game Settings can keep announcements visible until dismissed, and event details remain in the match log.",
+    "category": "Gameplay",
+    "mergedAt": "2026-11-02T18:20:58Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/412"
+  },
+  {
     "number": 410,
     "title": "Confirm common actions with a doubleclick or double tap",
     "summary": "Coaches can now confirm planned moves, blocks, blitzes, fouls, teammate passes and handoffs by doubleclicking or double tapping the selected final target. The selection click stays separate from confirmation, and touch input shows a Cancel plan control that hides when mouse or trackpad input resumes.",
