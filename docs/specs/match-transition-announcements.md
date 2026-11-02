@@ -94,7 +94,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 One integrated, independently verifiable slice covers authoritative transition/reason projection, browser scheduling/log/UI, regression and visual evidence, and a running dev-local stack. These changes share one event contract and acceptance boundary.
 
 ## Authorization
-Create issue and new working branch; implement, self-review, validate, and start dev-local. The owner subsequently approved the result and requested rebasing onto remote main and preparation for merge. Local commits and rebase are part of that preparation. No push, PR, merge, or remote deployment has been requested explicitly.
+Create issue and new working branch; implement, self-review, validate, and start dev-local. The owner subsequently approved the result and requested rebasing onto remote main and preparation for merge. The owner subsequently authorized staging/committing, publishing a PR, waiting for CI, merging into main, removing the local/remote working branches, adding the completed-feature tracker entry, and stopping dev-local. Remote deployment remains outside scope.
 
 ## Approved banner refinement
 - Replace the solid announcement card with a transparent banner over a softly dimmed pitch. Fade the dimming and banner in/out using the dice presentation cadence (200 ms), with a 350 ms clear pause before resuming the queue, including queued consecutive announcements. Replay speed scales both timings.

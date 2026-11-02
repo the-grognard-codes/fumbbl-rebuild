@@ -33,7 +33,7 @@ Review totals: Standards zero hard violations and one optional maintainability o
 - Dev-local rebuilt and restarted successfully at http://localhost:5000/play. Database/server health, Firebase ADC, proxy connection/reconnect and computer service startup passed. Served JS/CSS match the rebased build byte for byte; a fresh Chrome session loaded the LOCAL-DEV sign-in page without uncaught errors. Log: `.tools/announcement-rebase-dev-local.log`. Authenticated gameplay remains available for manual validation.
 - Whitespace validation passed. Publication and GitHub PR checks remain pending; nothing was pushed, merged, or remotely deployed.
 
-The prepared PR description is `.tools/announcement-pr.md`. Publishing the branch and opening a PR await explicit authorization under the repository delivery workflow. The original checkout's unrelated changes are preserved.
+The prepared PR description is `.tools/announcement-pr.md`. The owner has now authorized publishing the branch and PR, waiting for CI, merging, removing the working branches, adding the completed-feature entry, and stopping dev-local. Final publication evidence will be recorded after merge. The original checkout's unrelated changes are preserved.
 
 ## Delivered behavior
 
