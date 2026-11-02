@@ -1,0 +1,46 @@
+[
+    {
+        "file":  "images/heads.png",
+        "sha256":  "1e5aa3c41cb15d09c04359e8bf9e77b8b65e07cf50d992ee2b6215878028e0f9"
+    },
+    {
+        "file":  "images/kick.png",
+        "sha256":  "2aac03429ee8011ba14dc2087b19254a055e8ff721604f2e5180e33a6d628d0c"
+    },
+    {
+        "file":  "images/mole-referee.png",
+        "sha256":  "31c5015891172e5ba2b0d58bf073fe277a7260a124605a83036a103aa2d47535"
+    },
+    {
+        "file":  "images/mole-stretcher.png",
+        "sha256":  "729e408fbbeaa707c82a4fbd90ee9ce7746da84894f2c71d89ccbe78f35a4c72"
+    },
+    {
+        "file":  "images/receive.png",
+        "sha256":  "91cd371c9bf38462c9ae9bb378fd5bafc7550bdafcc5d629bf0ed7cfb0f74e50"
+    },
+    {
+        "file":  "images/referee.png",
+        "sha256":  "7784b2295922e8e1b18531f460679d37d38957d2d4d1b6a4dfdc9cf701498b26"
+    },
+    {
+        "file":  "images/shrug.png",
+        "sha256":  "03ec6fe1d7e926763ad6478517a546098d8e8ae489066e879cfb33c24baf0c8d"
+    },
+    {
+        "file":  "images/stretcher.png",
+        "sha256":  "05b4a40fa9cee9e9e486c32100a1f983dc00b182cc8aa3f8df632fa644fe13cd"
+    },
+    {
+        "file":  "images/tails.png",
+        "sha256":  "8f95da5e8aac7fc7bb55e721f8a6a8c74b936297eee042fa8915ecadf8c8054e"
+    },
+    {
+        "file":  "references/site-mole.png",
+        "sha256":  "185326becff3b12f6a921d5459ba65b8372097ee21a5c5bf61d6e84c3c3a2f60"
+    },
+    {
+        "file":  "references/ui-atlas.png",
+        "sha256":  "1d916aea4f9aff95935958be00c91aa282c7d17dca06fe126baf49f089aa5e91"
+    }
+]

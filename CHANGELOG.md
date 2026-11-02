@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added approved horizontal decision-prompt mockups and a reusable MUTP mole/chibi
+  artwork template with source images and generation prompts. Production prompt
+  integration and Secret Weapon sequencing remain separate implementation work.
+
 - Confirm planned moves, blocks, blitzes, fouls, teammate passes and handoffs by
   doubleclicking or double tapping the selected final destination or target once
   Confirm is enabled. The target-selection click is separate from confirmation.
