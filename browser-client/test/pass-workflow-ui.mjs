@@ -110,10 +110,12 @@ try {
     assert.equal(await pitch.locator('[data-player-id="mate"]').evaluate(element => element.classList.contains('target')), true);
     assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount, 'Target selection does not throw');
     await pitch.locator('[data-player-id="mate"]').click();
-    assert.equal(await pitch.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'mate',
-      'Clicking the same recipient again switches to that player');
-    assert.equal(await confirmed.isDisabled(), true, 'Switching selection cancels the unconfirmed Pass');
+    assert.equal(await pitch.locator('.live-selection-square[data-selection]').getAttribute('data-selection'), 'actor',
+      'Clicking the same recipient once preserves the passer selection');
+    assert.equal(await confirmed.isEnabled(), true, 'A single repeat leaves Pass ready to confirm');
     assert.equal(await page.evaluate(() => window.testSocket.sent.length), sentCount);
+    await pitch.locator('[data-player-id="mate"]').click({ button: 'right' });
+    assert.equal(await confirmed.isDisabled(), true, 'Right-click still cancels the unconfirmed Pass');
     await pitch.locator('[data-player-id="actor"]').click();
     await pitch.locator('[data-player-id="mate"]').click();
     assert.equal(await confirmed.isEnabled(), true, 'A fresh recipient click can stage Pass again');
@@ -125,7 +127,8 @@ try {
       assert.equal(await confirmed.isEnabled(), true, 'Camera changes preserve the reviewed recipient');
     }
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
-    await confirmed.click();
+    if (journey.mode === 'stationary') await pitch.locator('[data-player-id="mate"]').dblclick();
+    else await confirmed.click();
     await waitRevision(journey.frames.at(-1).actor.revision);
     const sent = await page.evaluate(() => window.testSocket.sent);
     assert.equal(sent.at(-1).actionId, pass.id);

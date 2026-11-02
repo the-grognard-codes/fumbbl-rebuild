@@ -164,7 +164,10 @@ try {
   assert.equal(await potential.locator('.block-die.potential').count(), 3, 'Changing targets updates the native forecast');
   assert.doesNotMatch(await potential.getAttribute('class'), /uphill/);
   await select(proposal.page, targets[1].id);
-  assert.equal(await potential.count(), 0, 'Clicking the proposed target again clears potential dice');
+  assert.equal(await potential.count(), 1, 'A single repeated target click preserves the proposed block');
+  assert.deepEqual(await mutations(proposal.page), [], 'Selection plus one repeat does not confirm');
+  await proposal.page.locator(`.live-marker[data-player-id="${targets[1].id}"]`).click({ button: 'right' });
+  assert.equal(await potential.count(), 0, 'Right-click still cancels the proposed block');
   await select(proposal.page, blocker.id);
   await select(proposal.page, targets[0].id);
   await proposal.page.locator('.live-pitch-viewport').focus(); await proposal.page.keyboard.press('Escape');

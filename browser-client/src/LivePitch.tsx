@@ -57,7 +57,7 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
 function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
   onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag, failedArt, onArtError, markers, markerPreferences, showLimitedActions, showConditions }: {
   player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; setupPerspective: boolean; order: number;
-  active: boolean; selected: boolean; target: boolean; onSelect: () => void; onGround: (x: number, y: number) => void;
+  active: boolean; selected: boolean; target: boolean; onSelect: (clickedAt?: number) => void; onGround: (x: number, y: number, clickedAt?: number) => void;
   onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
   failedArt: Set<string>; onArtError: (url: string) => void;
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
@@ -106,10 +106,10 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
         // Artwork may overhang a neighbor; its painted pixels never change
         // which canonical ground intent was clicked. Keyboard selects this ID.
         if (cell && (cell.x !== player.x || cell.y !== player.y)) {
-          onGround(cell.x, cell.y); return;
+          onGround(cell.x, cell.y, event.timeStamp); return;
         }
       }
-      onSelect();
+      onSelect(event.detail > 0 ? event.timeStamp : undefined);
       // Selection clears stale inspection as part of cancelling the previous
       // proposal. Schedule this player's card afterwards, including touch taps.
       onFocus(event.currentTarget.getBoundingClientRect());
@@ -158,7 +158,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
-  onSelectPlayer: (id: string) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number) => void;
+  onSelectPlayer: (id: string, clickedAt?: number) => void; onFocusPlayer?: (id: string, anchor: DOMRect) => void; onBlurPlayer?: () => void; onSquare: (x: number, y: number, clickedAt?: number) => void;
   draggableIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropPlayer?: (id: string, x: number, y: number) => void; readOnly?: boolean; playback?: boolean; allowEndChoice?: boolean; interactionBlocked?: boolean;
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
@@ -171,8 +171,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const selection = decision?.pitchSelection;
   const selectingDestination = !!selection && (selection.committed || destinationStage === decision?.key);
   const shownPushChoices = selection ? selectingDestination && !readOnly && !playback ? selection.choices : [] : pushChoices;
-  const chooseSquare = (x: number, y: number) => {
-    if (!selection) { onSquare(x, y); return; }
+  const chooseSquare = (x: number, y: number, clickedAt?: number) => {
+    if (!selection) { onSquare(x, y, clickedAt); return; }
     const choice = selectingDestination && selection.choices.find(choice => choice.x === x && choice.y === y);
     if (choice && !decisionDisabled && !readOnly && !playback) onDecisionAction?.(choice.action.id);
   };
@@ -396,7 +396,8 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
         onDragOver={event => { if (onDropPlayer) event.preventDefault(); }}
         onDrop={event => { if (!onDropPlayer) return; event.preventDefault(); const id = event.dataTransfer.getData('application/x-fumbbl-setup-player'), square = point(event.clientX, event.clientY);
           if (id && square) onDropPlayer(id, square.x, square.y); onEndDrag?.(); }}
-        onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY); if (square) chooseSquare(square.x, square.y); } }}>
+        onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY);
+          if (square) chooseSquare(square.x, square.y, event.detail > 0 ? event.timeStamp : undefined); } }}>
         {!backgroundFailed && <PitchScenery camera={camera} onError={onBackgroundError}/>}
         <svg data-pitch-ground="true" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
@@ -509,7 +510,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}
           active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
-          onSelect={() => onSelectPlayer(player.id)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }
+          onSelect={clickedAt => onSelectPlayer(player.id, clickedAt)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }
         <svg className="live-block-marker-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <BlockVisibility context={blocks} camera={camera} layer="blocks" animated={animateBlockMarkers}/>
         </svg>

@@ -16,6 +16,7 @@ import { usePitchPlayback } from './use-pitch-playback.ts';
 import { playerActionMenu, activeMenuAction, endTurnNeedsConfirmation, isEndTurnShortcut } from './player-action-menu.ts';
 import type { PlayerMenuItem } from './player-action-menu.ts';
 import { ActionGlyph } from './ActionGlyph.tsx';
+import { DoubleClickConfirmation } from './doubleclick-confirmation.ts';
 import './coach-match.css';
 import './match-adjustments.css';
 import './ui-round-four.css';
@@ -217,6 +218,21 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   mutate: (operation: string, fields?: Request) => void;
 }) {
   const [playerId, setPlayerId] = useState('');
+  const [touchInput, setTouchInput] = useState(false);
+  const inputType = useRef('');
+  const [confirmationGesture] = useState(() => new DoubleClickConfirmation());
+  useEffect(() => {
+    const reset = () => confirmationGesture.reset();
+    window.addEventListener('blur', reset);
+    document.addEventListener('visibilitychange', reset);
+    return () => { window.removeEventListener('blur', reset); document.removeEventListener('visibilitychange', reset); };
+  }, [confirmationGesture]);
+  const trackInput = (type: string) => {
+    if (!type || type === inputType.current) return;
+    inputType.current = type;
+    setTouchInput(type === 'touch');
+    confirmationGesture.reset();
+  };
   const [rangeInspection, setRangeInspection] = useState<{ playerId: string; matchId: string; revision: number } | null>(null);
   const [pitchZoom, setPitchZoom] = useState(1);
   const { opacity, changeOpacity } = useHudOpacity();
@@ -466,6 +482,43 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       mutate('action', { actionId: choice.action.id });
   });
   const mayAct = canChoose && !!pinnedAction;
+  const confirmationEnabled = !jumpMode && (!specialMode || !!pinnedAction) && !menuChoices.length
+    && (view.phase === 'SETUP' ? maySetup : movementIntent ? movementReady : routeMode ? canRoute && routeReady : mayAct);
+  // Only a fully selected common-action target can consume repeat clicks. An
+  // unready preview still owns its target, so repeats cannot cancel/replan it.
+  let confirmationTarget: string | null = null;
+  if (hosted && view.phase === 'PLAY' && view.actor === view.callerRole
+    && !view.reaction && !decision && !kickoff && !kickoffMovement && !hitAndRun && !specialMode) {
+    if (movementIntent) {
+      const last = displayedWaypoints.at(-1);
+      if (movementIntent.kind === 'move' && last) confirmationTarget = `square:${last.x},${last.y}`;
+      else if (movementIntent.targetPlayerId) confirmationTarget = `player:${movementIntent.targetPlayerId}`;
+    } else if (routeMode && !smartIntent?.targetId) {
+      const last = displayedWaypoints.at(-1);
+      if (last) confirmationTarget = `square:${last.x},${last.y}`;
+    } else if (pinnedAction) {
+      const target = pinnedAction.target;
+      const recipient = target && ('playerId' in target ? view.players.find(player => player.id === target.playerId)
+        : view.players.find(player => player.x === target.x && player.y === target.y));
+      if (smartIntent?.stage === 'planned' && smartIntent.targetId)
+        confirmationTarget = `player:${smartIntent.targetId}`;
+      else if (recipient && (['block', 'blitzTarget', 'foul'].includes(pinnedAction.kind)
+        || ['pass', 'handOff'].includes(pinnedAction.kind) && recipient.role === view.callerRole))
+        confirmationTarget = `player:${recipient.id}`;
+      else if (pinnedAction.kind === 'move' && pinnedAction.target && 'x' in pinnedAction.target)
+        confirmationTarget = `square:${pinnedAction.target.x},${pinnedAction.target.y}`;
+      else if (smartIntent?.stage === 'planned' && smartIntent.destination)
+        confirmationTarget = `square:${smartIntent.destination.x},${smartIntent.destination.y}`;
+    }
+  }
+  useLayoutEffect(() => confirmationGesture.reset(), [confirmationGesture, confirmationTarget, confirmationEnabled,
+    view.matchId, view.revision, view.actor, view.callerRole, connected, pending, suspended, playerId,
+    movementIntent, pinnedAction?.id, routeMode, waypoints, jumpMode, specialMode, menuChoices]);
+  const repeatTarget = (target: string, clickedAt?: number) => {
+    if (jumpMode || target !== confirmationTarget) { confirmationGesture.reset(); return false; }
+    if (confirmationGesture.repeat(target, clickedAt, showConfirmation && confirmationEnabled)) commit();
+    return true;
+  };
   const multipleOptions = availableActions.filter(action => action.kind === 'multiBlock');
   const selectingMultiple = activeMenuKey === 'multipleBlock' && multipleOptions.length > 0 && !decision;
   const multipleCandidates = new Set(view.blockPreview?.multiple?.filter(option => multipleOptions.some(action => action.id === option.actionId))
@@ -496,11 +549,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const teammateProposal = pinnedAction?.kind === 'liftTeamMate' || pinnedAction?.kind === 'kickMate';
   const targetChoices = availableActions.filter(action => action.target && (targetFocus === 'player' && 'playerId' in action.target
     ? action.target.playerId === targetPlayerId : targetFocus === 'square' && 'x' in action.target && action.target.x === x && action.target.y === y));
-  const cancelProposal = () => {
-    if (specialMode) { setSpecialMode(null); setActionId(''); setTargetPlayerId(''); return; }
+  const cancelPlan = () => {
+    confirmationGesture.reset();
+    setSpecialMode(null); setJumpMode(false);
     setMultipleTargets([]);
     transferRollback.current = null;
-    if (jumpMode) { setJumpMode(false); return; }
     if (!requestPending) setConfirmedDice(null);
     setPlayerId(teammateProposal ? view.activePlayerId ?? playerId : ''); setTargetPlayerId(''); setSmartIntent(null); setActionId('');
     setConfirmEndTurn(false); setExplicitBlitz(false);
@@ -508,7 +561,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setTargetFocus(null); setRouteMode(false); setWaypoints([]); requestRoutePreview?.([]); blurPlayer();
     setMovementIntent(null); requestMovementPreview?.(null);
   };
-  const selectPlayer = (id: string) => {
+  const cancelProposal = () => {
+    confirmationGesture.reset();
+    if (specialMode) { setSpecialMode(null); setActionId(''); setTargetPlayerId(''); return; }
+    if (jumpMode) { setJumpMode(false); return; }
+    cancelPlan();
+  };
+  const selectPlayer = (id: string, clickedAt?: number) => {
+    if (repeatTarget(`player:${id}`, clickedAt)) return;
     if (jumpMode) return;
     if (specialMode === 'jumpUp') {
       const action = availableActions.find(action => action.kind === 'jumpUpBlock' && action.sourcePlayerId === playerId
@@ -689,7 +749,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       && (!playerId || action.sourcePlayerId === playerId || view.projectionVersion !== 4 && view.activePlayerId === playerId));
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
-  const selectSquare = (column: number, row: number) => {
+  const selectSquare = (column: number, row: number, clickedAt?: number) => {
+    if (repeatTarget(`square:${column},${row}`, clickedAt)) return;
     if (specialMode === 'punt') {
       const choice = puntChoices.find(choice => choice.x === column && choice.y === row);
       if (canChoose && choice) setActionId(choice.action.id);
@@ -804,6 +865,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (choice && !choice.selecting) mutate('action', { actionId: choice.action.id });
   });
   const commit = () => {
+    if (!confirmationEnabled) return;
+    confirmationGesture.consume();
     if (menuChoices.length || jumpMode) return;
     if (specialMode && !pinnedAction) return;
     if (specialMode === 'punt' && pinnedAction && reviewedRoute && reviewedRoute.steps.length > 0) {
@@ -910,7 +973,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
         && !event.target.closest('input,textarea,select,[contenteditable],[role="textbox"],[role="dialog"],dialog')
         && !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')
-        && (view.phase === 'SETUP' ? maySetup : movementIntent ? movementReady : routeMode ? canRoute && routeReady : mayAct)) {
+        && confirmationEnabled) {
         event.preventDefault(); commit();
       }
     };
@@ -1039,6 +1102,15 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     </>}
   </section>;
   return (<section aria-label="Authoritative setup" className={hosted ? 'hosted-match coach-match' : undefined}
+    onPointerDownCapture={event => {
+      trackInput(event.pointerType);
+      if (event.button !== 0 || !(event.target instanceof Element) || !event.target.closest('.live-pitch-scene'))
+        confirmationGesture.reset();
+    }}
+    onPointerMoveCapture={event => { if (event.pointerType === 'mouse') trackInput('mouse'); }}
+    onWheelCapture={() => { trackInput('mouse'); confirmationGesture.reset(); }}
+    onPointerCancelCapture={() => confirmationGesture.reset()}
+    onKeyDownCapture={() => confirmationGesture.reset()}
     data-revision={view.revision} data-presented-revision={pitchView.revision}
     data-playback-active={playbackActive} data-request-pending={requestPending ?? ''}
     data-dice-revision={!playbackActive && decision?.options.some(option => !!option.face) ? view.revision : visibleDiceMoment?.revision ?? ''}
@@ -1073,7 +1145,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           {onTheBallMovement && !routeMode && <span>Choose a destination to preview the path.</span>}
           {movementIntent && movementError && <span role="status">{movementError}</span>}
         </div>}
-        <button type="button" className="commit-action" aria-keyshortcuts="Space" onClick={commit} disabled={jumpMode || !!specialMode && !pinnedAction || menuChoices.length > 0 || (view.phase === 'SETUP' ? !maySetup : movementIntent ? !movementReady : routeMode ? !canRoute || !routeReady : !mayAct)}><ActionGlyph kind="confirm"/>{specialMode ? 'Confirm' : 'Confirmed!'}</button>
+        <button type="button" className="commit-action" aria-keyshortcuts="Space" onClick={commit} disabled={!confirmationEnabled}><ActionGlyph kind="confirm"/>{specialMode ? 'Confirm' : 'Confirmed!'}</button>
+        {touchInput && confirmationTarget && <button type="button" className="secondary" disabled={!canChoose}
+          onClick={cancelPlan}>Cancel plan</button>}
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
       </div>}
       {hosted && <div ref={commandBar} className="match-command-bar" aria-label="Current decision">
@@ -1159,6 +1233,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         debugOpen={debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment} diceSnapshot={diceSnapshot && !playbackActive}
         onRightClick={() => {
+          confirmationGesture.reset();
           if (decision || playbackActive || requestPending) return;
           if (specialMode) { setSpecialMode(null); setActionId(''); setTargetPlayerId(''); return; }
           if (jumpMode) { setJumpMode(false); return; }

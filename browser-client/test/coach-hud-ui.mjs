@@ -77,6 +77,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.hudIntents), [{ operation: 'action', fields: { actionId: '0:end' } }]);
   assert.equal(await page.getByRole('button', { name: 'Confirmed!', exact: true }).isDisabled(), true);
   await page.evaluate(state => window.publishHud({ ...state, half: 2, homeTurn: 3, awayTurn: 0 }), state);
+  await page.waitForFunction(() => document.querySelector('.live-turn-track.home [aria-current="step"]')?.textContent === '11');
   assert.equal(await page.locator('.live-turn-track.home [aria-current="step"]').textContent(), '11');
   assert.equal(await page.locator('.live-turn-track.away [aria-current]').count(), 0);
   const chat = page.getByLabel('Message the match');
