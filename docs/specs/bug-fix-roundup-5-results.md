@@ -26,6 +26,7 @@ Gameplay changes are isolated to BB2025. The Browser V2 match adapter already co
 
 ## Review findings resolved
 
+- PR validation exposed a pre-existing random-kickoff assumption in `NegativeConditionMarkersTest`: legacy recovery was expected to erase all conditions, even when native state contained Dodgy Snack. Explicitly injecting that condition reproduced the CI failure. The test now compares every player's native-derived conditions before and after recovery while removing legacy projection fields; all seven condition tests pass. No product code changed for this correction.
 - Multiple Block's offered-dice fallback could overwrite a partial native reroll. Target identity and matching faces now preserve the report's explicit rerolled indexes.
 - The native reroll report contains only newly rolled values for logging. Added `blockRollAfterReroll` carries the complete resulting pool without changing those log values; browser tests include captured native ordinary/Multiple Block report sequences and suppress the following full-pool confirmation animation.
 - Punt continuation waits for movement, rerolls and opposing reactions, then rechecks the authoritative player, endpoint, action and turn before sending the direction. Failed movement and disconnected/suspended state discard the continuation.

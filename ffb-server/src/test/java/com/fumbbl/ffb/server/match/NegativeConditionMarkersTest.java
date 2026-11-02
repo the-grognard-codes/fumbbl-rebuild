@@ -172,6 +172,10 @@ class NegativeConditionMarkersTest {
     @Test void recoveryAcceptsLegacyPlayerProjectionsWithoutConditions() throws Exception {
         SetupSessionMovementTest.Fixture fixture = new SetupSessionMovementTest.Fixture();
         fixture.advanceToTurn();
+        Game game = nativeState(fixture.session).getGame();
+        Player<?> affectedPlayer = game.getActingTeam().getPlayers()[0];
+        game.getFieldModel().addEnhancements(affectedPlayer, KickoffResult.DODGY_SNACK.getName());
+        JsonObject expected = view(fixture.session, "spectator");
         JsonObject envelope = JsonObject.readFrom(fixture.session.recoveryArtifact());
         JsonObject payload = envelope.get("payload").asObject();
         stripConditions(payload);
@@ -182,8 +186,12 @@ class NegativeConditionMarkersTest {
         envelope.set("sha256", new JsonDigest().sha256(payload));
         SetupSession restored = new SetupSession(fixture.server, fixture.document, envelope.toString());
         assertEquals("PLAY", view(restored, "home").getString("phase", null));
-        for (JsonValue player : view(restored, "spectator").get("players").asArray())
-            assertEquals(new JsonArray(), player.asObject().get("conditions"));
+        // Missing legacy projection fields do not erase conditions in native state.
+        for (JsonValue player : view(restored, "spectator").get("players").asArray()) {
+            JsonObject projected = player.asObject();
+            assertEquals(fixture.player(expected, projected.getString("id", null)).get("conditions"),
+                projected.get("conditions"));
+        }
     }
 
     @Test void completedReplayAcceptsOptionalConditionsAndRejectsMalformedOrDuplicateConditions() throws Exception {
