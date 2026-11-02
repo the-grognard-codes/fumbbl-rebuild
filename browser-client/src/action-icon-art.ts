@@ -27,5 +27,5 @@ export const actionSpriteFrames = {
   confirm: [1301, 788, 162, 135],
 } as const;
 
-export type ActionGlyphKind = keyof typeof actionSpriteFrames | 'other' | 'hailMaryPass' | 'hailMaryBomb';
+export type ActionGlyphKind = keyof typeof actionSpriteFrames | 'other' | 'hailMaryPass' | 'hailMaryBomb' | 'jumpUp' | 'puntTarget';
 export const actionSpriteAtlas = { width: 1536, height: 1024, file: 'ui/player-action-icons-v1.png' } as const;

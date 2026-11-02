@@ -8,7 +8,10 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.inducement.InducementPhase;
 import com.fumbbl.ffb.json.UtilJson;
+import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.property.NamedProperties;
+import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
@@ -119,6 +122,14 @@ public class StepEndFeeding extends AbstractStep {
 			((Pass) factory.forName(SequenceGenerator.Type.Pass.name()))
 				.pushSequence(new Pass.SequenceParams(getGameState(), game.getPassCoordinate()));
 		} else if ((game.getTurnMode() == TurnMode.KICKOFF_RETURN) || (game.getTurnMode() == TurnMode.PASS_BLOCK)) {
+			// Ending a selected reaction commits its use even if the player moved no squares.
+			// The enclosing native sequence must not offer that player again.
+			ActingPlayer acting = game.getActingPlayer();
+			if (acting.getPlayer() != null) {
+				Skill reactionSkill = acting.getPlayer().getSkillWithProperty(game.getTurnMode() == TurnMode.PASS_BLOCK
+					? NamedProperties.canMoveWhenOpponentPasses : NamedProperties.canMoveDuringKickOffScatter);
+				if (reactionSkill != null) acting.markSkillUsed(reactionSkill);
+			}
 			publishParameter(new StepParameter(StepParameterKey.END_PLAYER_ACTION, true));
 		} else {
 			game.setPassCoordinate(null);

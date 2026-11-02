@@ -18,7 +18,10 @@
       "browser-client/test/multiple-block-dice-ui.mjs",
       "browser-client/test/foul-bribe-ui.mjs",
       "browser-client/test/dice-mark-alignment-ui.mjs",
-      "browser-client/test/roundup-dice-hover-ui.mjs"
+      "browser-client/test/roundup-dice-hover-ui.mjs",
+      "browser-client/test/roundup5-presentation-ui.mjs",
+      "browser-client/test/roundup5-actions-ui.mjs",
+      "browser-client/test/on-the-ball-ui.mjs"
     ],
     [
       "browser-client/test/reroll-accounting-ui.mjs",

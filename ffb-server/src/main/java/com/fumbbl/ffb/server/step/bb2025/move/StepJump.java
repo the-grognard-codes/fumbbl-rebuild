@@ -9,6 +9,7 @@ import com.fumbbl.ffb.ReRollSource;
 import com.fumbbl.ffb.ReRolledActions;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.SkillUse;
+import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.factory.IFactorySource;
@@ -80,6 +81,8 @@ public class StepJump extends AbstractStepWithReRoll {
 	private Boolean useIgnoreModifierAfterRollSkill;
 	private boolean useIgnoreModifierSkill;
 	private boolean dtRerollAsked;
+	private boolean reactionJumping;
+	private boolean legacyReactionJumping;
 
 
 	public StepJump(GameState pGameState) {
@@ -161,6 +164,14 @@ public class StepJump extends AbstractStepWithReRoll {
 	private void executeStep() {
 		Game game = getGameState().getGame();
 		ActingPlayer actingPlayer = game.getActingPlayer();
+		// The selected jump mode is transient on ActingPlayer; a restored reaction
+		// must still resolve the native jump check after an interrupted move.
+		if (reactionJumping && !actingPlayer.isHeldInPlace()
+			&& (game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)) {
+			actingPlayer.setJumping(true);
+		}
+		reactionJumping = false;
+		legacyReactionJumping = false;
 		JumpMechanic mechanic =
 			(JumpMechanic) game.getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.JUMP.name());
 		boolean doLeap = (actingPlayer.isJumping() && mechanic.canStillJump(game, actingPlayer));
@@ -389,6 +400,9 @@ public class StepJump extends AbstractStepWithReRoll {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+		Game game = getGameState().getGame();
+		if ((game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)
+			&& (reactionJumping && !legacyReactionJumping || game.getActingPlayer().isJumping())) jsonObject.add("reactionJumping", true);
 		IServerJsonOption.GOTO_LABEL_ON_FAILURE.addTo(jsonObject, goToLabelOnFailure);
 		IServerJsonOption.MOVE_START.addTo(jsonObject, moveStart);
 		IServerJsonOption.ROLL.addTo(jsonObject, roll);
@@ -409,6 +423,12 @@ public class StepJump extends AbstractStepWithReRoll {
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
 		goToLabelOnFailure = IServerJsonOption.GOTO_LABEL_ON_FAILURE.getFrom(source, jsonObject);
 		moveStart = IServerJsonOption.MOVE_START.getFrom(source, jsonObject);
+		Game game = getGameState().getGame();
+		FieldCoordinate current = game.getFieldModel().getPlayerCoordinate(game.getActingPlayer().getPlayer());
+		reactionJumping = jsonObject.getBoolean("reactionJumping", moveStart != null && current != null
+			&& moveStart.distanceInSteps(current) == 2
+			&& (game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN));
+		legacyReactionJumping = jsonObject.get("reactionJumping") == null;
 		roll = IServerJsonOption.ROLL.getFrom(source, jsonObject);
 		usingDivingTackle = IServerJsonOption.USING_DIVING_TACKLE.getFrom(source, jsonObject);
 		alreadyReported = IServerJsonOption.ALREADY_REPORTED.getFrom(source, jsonObject);

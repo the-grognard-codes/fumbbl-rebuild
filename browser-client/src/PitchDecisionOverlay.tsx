@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
 import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { PolygonDie } from './PolygonDie.tsx';
-import { blockFaceLabel, diceRollGroups } from './dice-presentation.ts';
+import { blockFaceLabel, diceRollGroups, dieRollKey } from './dice-presentation.ts';
 import { PitchDiceEffects, PitchDiceGroup } from './PitchDiceGroup.tsx';
 import { useDicePresence } from './use-dice-presence.ts';
 import { PITCH_DICE_ROLL_MS } from './presentation-timing.ts';
@@ -150,7 +150,8 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
         aria-label={option?.label} title={option?.label} onClick={() => option && onAction?.(option.id)}
         onFocus={() => onInspectTarget?.(option?.targetPlayerId)} onPointerEnter={() => onInspectTarget?.(option?.targetPlayerId)}>
         <PolygonDie kind={option?.dieKind ?? 'block'} face={face} potential={!!shown.preview && !shown.awaiting} awaiting={!!shown.preview && shown.awaiting} index={index}
-          selected={!option && shown.moment?.selected === index} rollKey={isStatic ? undefined : shown.options[index] ? shown.optionRollKey : shown.moment?.rollKey}
+          selected={!option && shown.moment?.selected === index} rollKey={isStatic ? undefined : shown.moment?.rerolledIndexes
+            ? dieRollKey(shown.moment, index, shown.optionRollKey) : shown.options[index] ? shown.optionRollKey : shown.moment?.rollKey}
           rollDuration={shown.moment?.rollDuration ?? PITCH_DICE_ROLL_MS}/>
         <span className="sr-only">{option?.label}</span>
       </button>;

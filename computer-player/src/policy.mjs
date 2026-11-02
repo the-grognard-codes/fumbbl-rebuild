@@ -20,12 +20,15 @@ export function chooseDecision(state, random = Math.random, actionsThisTurn = 0,
   const actions = state.actions.filter(action => action.actor === role);
   if (!actions.length) return null;
   const endTurn = actions.find(action => action.kind === 'endTurn');
+  const reactionEnd = actions.find(action => action.kind === 'reactionEnd');
+  if (actionsThisTurn >= 30 && reactionEnd) return { operation: 'action', actionId: reactionEnd.id };
   if (actionsThisTurn >= 30 && endTurn) return { operation: 'action', actionId: endTurn.id };
   if (actionsThisTurn >= 30) {
-    const exit = actions.find(action => ['endAction', 'forgo'].includes(action.kind));
+    const exit = actions.find(action => ['endAction', 'forgo', 'reactionEndPlayer'].includes(action.kind));
     if (exit) return { operation: 'action', actionId: exit.id };
   }
-  const candidates = actions.filter(action => !['endTurn', 'endAction', 'forgo', 'jumpMode'].includes(action.kind));
+  const candidates = actions.filter(action => !['endTurn', 'endAction', 'forgo', 'jumpMode', 'reactionEndPlayer'].includes(action.kind)
+    && !action.id.endsWith('reaction-jump-mode'));
   const selected = pick(candidates.length ? candidates : actions, random);
   return { operation: 'action', actionId: selected.id };
 }

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Bug fix roundup #5: successful movement rolls no longer pause movement;
+  partial rerolls animate only the rerolled dice. Resource and player tooltips
+  appear above other match elements without duplicate native tooltips, and chat
+  closes after sending. Existing weather-dice timing is retained.
+- BB2025 now exposes Jump Up block targeting and Punt direction planning through
+  the player action controls. Jump Up targets show normal block assists and proposed
+  dice for the block following a successful Jump Up. Declared Punt has a separate targeting pop-out with
+  a crosshair icon, keeping targeting available after its declaration is spent.
+  Kick placement previews belong only to the kicking
+  coach, and prone players may declare Throw or Kick Teammate without an available target.
+- BB2025 skips pointless Kick choices when both results are touchbacks, applies
+  Eye Gouge after qualifying standing push results, and completes On The Ball
+  and Pile Driver decisions without consuming an extra limited-action allowance.
+- On the Ball uses circular skill prompts and supports a planned path of up to
+  three squares per accepted player. Finishing consumes that player's reaction,
+  and computer coaches no longer loop between selecting and finishing it.
+
 - The support page now explains desktop, landscape tablet and phone viewing,
   mouse/keyboard and touch input, recommended CSS viewport sizes, and estimated
   hardware for future animated matches. A display-scaling calculator translates

@@ -21,11 +21,14 @@ final class PendingActivation {
     }
 
     PendingActivation(JsonObject saved, Game game) {
-        if (saved.size() != 6 || !saved.names().containsAll(java.util.Arrays.asList("role", "playerId", "action", "jumping", "half", "turn")))
+        if ((saved.size() != 6 && !(saved.size() == 7 && saved.get("blockTargetId") != null)) || !saved.names().containsAll(java.util.Arrays.asList("role", "playerId", "action", "jumping", "half", "turn")))
             throw new IllegalArgumentException("Invalid pending activation");
         role = saved.get("role").asString();
-        command = new ClientCommandActingPlayer(saved.get("playerId").asString(),
-            PlayerAction.valueOf(saved.get("action").asString()), saved.get("jumping").asBoolean());
+        if (saved.get("blockTargetId") != null && (!"BLOCK".equals(saved.getString("action", null)) || saved.getBoolean("jumping", false)))
+            throw new IllegalArgumentException("Invalid pending Jump Up Block");
+        command = saved.get("blockTargetId") == null ? new ClientCommandActingPlayer(saved.get("playerId").asString(),
+            PlayerAction.valueOf(saved.get("action").asString()), saved.get("jumping").asBoolean())
+            : new JumpUpBlockDeclaration(saved.get("playerId").asString(), saved.get("blockTargetId").asString());
         half = saved.get("half").asInt();
         turn = saved.get("turn").asInt();
         Player<?> player = game.getPlayerById(command.getPlayerId());
@@ -40,7 +43,9 @@ final class PendingActivation {
     }
 
     JsonObject json() {
-        return new JsonObject().add("role", role).add("playerId", command.getPlayerId())
+        JsonObject saved = new JsonObject().add("role", role).add("playerId", command.getPlayerId())
             .add("action", command.getPlayerAction().name()).add("jumping", command.isJumping()).add("half", half).add("turn", turn);
+        if (command instanceof JumpUpBlockDeclaration) saved.add("blockTargetId", ((JumpUpBlockDeclaration) command).targetPlayerId);
+        return saved;
     }
 }

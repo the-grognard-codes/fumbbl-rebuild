@@ -60,8 +60,25 @@ test('selection follows the native declaration across revisions and stays with i
 
 test('native contextual controls retain access without the Other action disclosure', () => {
   const menu = playerActionMenu({ ...base, playerActionMenu: [], actions: ['jumpMode', 'puntNow', 'foulChainsaw', 'multiBlock'].map(kind => action(kind)) }, playerId);
-  assert.deepEqual(menu.map(item => item.key), ['chainsaw', 'multipleBlock', 'punt', 'jump']);
+  assert.deepEqual(menu.map(item => item.key), ['chainsaw', 'multipleBlock', 'puntTarget', 'jump']);
   assert.equal(menu.flatMap(item => item.actions).length, 4);
+});
+
+test('declared Punt exposes targeting independently of its spent declaration', () => {
+  const declared: SetupState = { ...base, activePlayerId: playerId, activePlayerAction: 'puntMove',
+    playerActionMenu: [{ playerId, kind: 'declarePunt', spent: true }],
+    actions: [action('puntNow'), action('puntDirection')] };
+  const menu = playerActionMenu(declared, playerId);
+  assert.deepEqual(menu.map(item => item.key), ['punt', 'puntTarget']);
+  assert.equal(menu[0].spent, true);
+  assert.deepEqual(menu[0].actions, []);
+  assert.equal(menu[1].spent, false);
+  assert.equal(menu[1].label, 'Target Punt');
+  assert.equal(menu[1].icon, 'puntTarget');
+  assert.deepEqual(menu[1].actions.map(item => item.kind), ['puntNow', 'puntDirection']);
+  assert.deepEqual(playerActionMenu({ ...declared, actions: [] }, playerId).map(item => item.key), ['punt']);
+  assert.deepEqual(playerActionMenu({ ...declared, activePlayerId: null, activePlayerAction: null,
+    playerActionMenu: [], actions: [action('declarePunt')] }, playerId).map(item => item.key), ['punt']);
 });
 
 test('v4 menu metadata rejects unknown players, duplicate entries and malformed flags', () => {

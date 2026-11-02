@@ -4,6 +4,7 @@ import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
 import type { PresentedRoll } from './dice-presentation.ts';
 import { visibleBlockActions } from './dice-presentation.ts';
+import { isOnTheBallMovement } from './movement-interaction.ts';
 
 export type DecisionOption = { id: string; label: string; kind: 'choice' | 'action'; face?: string; dieKind?: DieKind; icon?: string; playerName?: string; targetPlayerId?: string; sourcePlayerId?: string; choices?: DecisionOption[] };
 export type MatchDecision = { title: string; key: string; kind: string; options: DecisionOption[];
@@ -32,9 +33,10 @@ export function decisionIcon(label: string): string | undefined {
 const promptTitles: Record<string, string> = {
   kickSkill: 'Use the Kick skill?', blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
   apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?', bribe: 'Use a bribe?',
-  interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square'
+  interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square', pileDriver: 'Use Pile Driver?',
+  onTheBall: 'Use On the Ball?'
 };
-const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'followUp', 'push'];
+const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'pileDriver', 'onTheBall', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
 function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
@@ -56,7 +58,8 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
     && (candidate !== 'push' || !pitchPushChoices(view, ownActions).length));
   if (!kind) return null;
   const rollKinds = ['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'];
-  const choices = ownActions.filter(action => action.kind === kind || rollKinds.includes(kind) && rollKinds.includes(action.kind));
+  const choices = ownActions.filter(action => action.kind === kind || rollKinds.includes(kind) && rollKinds.includes(action.kind)
+    || kind === 'onTheBall' && action.kind === 'reactionEnd');
   const multipleInjuries = kind === 'apothecary' && choices.some(action => /(?:^|:)apothecaries:/.test(action.id));
   const options: DecisionOption[] = choices.map(action => {
       const face = action.kind === 'blockDie' || action.kind === 'rerollDie' ? /^(?:Choose|Reroll) (SKULL|BOTH DOWN|PUSHBACK|POW\/PUSH|POW) \(die \d+\)$/.exec(action.label)?.[1] : undefined;
@@ -106,6 +109,7 @@ export function matchDecision(view: SetupState, actions: SetupAction[]): MatchDe
   const reaction = view.reaction;
   if (!reaction) return circularPresentation(decision);
   if (view.callerRole !== reaction.actor) return null;
+  if (!decision && isOnTheBallMovement(view, actions)) return null;
   const offered = actions.filter(action => action.actor === reaction.actor);
   const sidestep = pitchSidestepChoices(view, offered);
   if (sidestep.length) {
@@ -131,7 +135,7 @@ function circularPresentation(decision: MatchDecision | null): MatchDecision | n
   if (!decision) return null;
   const options = decision.options.flatMap(option => option.choices ?? [option]);
   if (options.some(option => /(?:^|:)(?:block-die|block-reroll|block-reroll-die|block-pro-test):/.test(option.id))) return decision;
-  if (['skill', 'reroll', 'kickSkill', 'proTestReroll'].includes(decision.kind)
+  if (['skill', 'reroll', 'kickSkill', 'proTestReroll', 'pileDriver', 'onTheBall'].includes(decision.kind)
     || decision.kind === 'reaction' && !decision.instruction && options.length > 0
       && options.some(option => /^Use\b/.test(option.label))
       && options.every(option => /^(?:Use|Decline)\b/.test(option.label))) return { ...decision, circular: true };

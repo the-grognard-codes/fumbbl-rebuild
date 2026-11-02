@@ -123,6 +123,7 @@ public class StepInitPunt extends AbstractStep {
 	}
 
 	private void executeStep() {
+		UtilServerDialog.hideDialog(getGameState());
 
 		Game game = getGameState().getGame();
 		FieldModel fieldModel = game.getFieldModel();

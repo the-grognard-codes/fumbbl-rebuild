@@ -79,7 +79,8 @@ class SpecialTurnActionsTest {
 
         assertTrue(menu.stream().anyMatch(action -> action.kind.equals("declarePunt") && !action.spent));
         assertTrue(menu.stream().anyMatch(action -> action.kind.equals("declareKickTeamMate") && !action.spent));
-        assertTrue(executable.isEmpty());
+        assertEquals(1, executable.size());
+        assertEquals("declareKickTeamMate", executable.get(0).kind);
     }
 
     @Test void bombAndRecoverDeclarationsUseNativeActionsOnlyWhileEligible() {

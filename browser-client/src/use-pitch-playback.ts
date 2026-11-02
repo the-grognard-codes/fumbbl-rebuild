@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext } from './pitch-playback.ts';
-import { blockFaceLabel, diceRollGroups, offeredBlockDice } from './dice-presentation.ts';
+import { blockFaceLabel, diceRollGroups, offeredBlockDice, isOfferedPartialReroll } from './dice-presentation.ts';
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
@@ -12,7 +12,7 @@ import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
 
-const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
+const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'pileDriver', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
 function sequenceKey(view: SetupState): string {
   return [view.matchId, view.half, view.actor, view.turn, view.turnMode, view.activePlayerId].join(':');
@@ -73,7 +73,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         .filter(beat => beat.kind === 'dice').map(beat => beat.dice)
         .filter(moment => multipleReveals.current.allows(moment, finalRecord.state)).at(-1) : null;
       const offered = mode === 'live' ? offeredBlockDice(view) : null;
-      return (view.activePlayerAction === 'multipleBlock' && offered ? offered : report) ?? offered;
+      return (view.activePlayerAction === 'multipleBlock' && offered && !isOfferedPartialReroll(report, offered) ? offered : report) ?? offered;
     };
     const restoreResponse = () => {
       const dice = responseDice();
@@ -175,7 +175,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     // Some native decisions (notably Multiple Block) offer authoritative faces
     // before emitting a report. Present those faces once at the queue boundary.
     const offered = mode === 'live' && record.revision === latest.current.revision ? offeredBlockDice(latest.current) : null;
-    if (offered && (latest.current.activePlayerAction === 'multipleBlock' || !beats.some(beat => beat.kind === 'dice'
+    if (offered && !beats.some(beat => beat.kind === 'dice' && isOfferedPartialReroll(beat.dice, offered))
+      && (latest.current.activePlayerAction === 'multipleBlock' || !beats.some(beat => beat.kind === 'dice'
       && beat.dice.selected === null && beat.dice.faces.some(face => blockFaceLabel(face))))) {
       beats.push({ kind: 'dice', dice: offered });
     }
@@ -225,6 +226,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         const beat = beats[index];
         if (beat.kind === 'dice') {
           if (!presentDice(index)) continue;
+          // Successful movement checks accompany their native square update;
+          // dice lifetime must not add a stop to the player's movement.
+          if (beat.dice.continuous) continue;
           setMoveMillis(0);
           const nextIndex = index + 1;
           pendingBeat.current = { view: presented.current, delay: DICE_GROUP_INTERVAL_MS / rate,

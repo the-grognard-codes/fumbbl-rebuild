@@ -84,3 +84,4 @@
   }
   .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion > svg { position:relative; }
 }
+.live-push-choice[aria-pressed="true"] { outline: 2px solid #ffe17b; outline-offset: -3px; background: #102b4970; }

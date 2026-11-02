@@ -82,7 +82,6 @@ try {
     assert.equal(await page.locator('[data-pass-range="Q"]').count(), 1);
     assert.equal(await page.locator('[data-pass-range="S"]').count(), 1);
     assert.equal(await page.locator('[data-pass-range="L"], [data-pass-range="B"]').count(), 0);
-    await page.getByRole('button', { name: 'Debug', exact: true }).click();
     for (const angle of [30, 50, 40]) {
       await setCameraAngle(page, String(angle));
       assert.equal(await page.locator('[data-cell-x="14"][data-cell-y="7"][data-pass-range="Q"]').count(), 1);
@@ -90,7 +89,6 @@ try {
     await setCameraMode(page, 'top-down');
     assert.equal(await page.locator('[data-pass-range]').count(), 390);
     await setCameraMode(page, 'perspective');
-    await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
     await choose('own-target');
     assert.match(await page.locator('.command-preview').textContent(), /landing-own/,
       'The first click targets the own player at the offered flight square');

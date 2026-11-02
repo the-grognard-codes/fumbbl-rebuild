@@ -11,7 +11,7 @@ export function potentialBlockDice(view: SetupState, playerId: string, targetPla
     && blitzPlan.route.actor === view.callerRole && blitzPlan.route.playerId === playerId
     && blitzPlan.targetPlayerId === targetPlayerId && blitzPlan.blockDice !== undefined)
     return { dice: blitzPlan.blockDice, targetPlayerId };
-  if (!action || action.actor !== view.callerRole || !['selectBlock', 'block', 'blitzTarget'].includes(action.kind)
+  if (!action || action.actor !== view.callerRole || !['selectBlock', 'block', 'blitzTarget', 'jumpUpBlock'].includes(action.kind)
     || action.sourcePlayerId !== playerId) return null;
   const target = action.kind === 'selectBlock' ? targetPlayerId
     : action.target && 'playerId' in action.target ? action.target.playerId : '';

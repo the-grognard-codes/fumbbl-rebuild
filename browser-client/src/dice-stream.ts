@@ -40,6 +40,7 @@ export class DiceStream {
 
   enqueue(moment: DiceMoment, sequence: string, pinned = false, snapshot = false, rate = 1, reduced = false) {
     rate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+    if (moment.continuous) this.clear();
     if (snapshot || this.snapshot) this.clear();
     else if (this.sequence !== sequence || pinned || this.pinned) this.release();
     this.sequence = sequence; this.pinned = pinned;

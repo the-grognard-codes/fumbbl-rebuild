@@ -1,6 +1,14 @@
 import type { MovementPlan, MovementRequest } from './movement-protocol.ts';
 import type { SetupAction, SetupState } from './setup-protocol.ts';
 
+/** A limited activation is offered by the server, never inferred from a skill name. */
+export function isOnTheBallMovement(view: SetupState, actions: SetupAction[]): boolean {
+  return view.phase === 'PLAY' && ['PASS_BLOCK', 'KICKOFF_RETURN'].includes(view.turnMode)
+    && !!view.reaction && view.reaction.actor === view.callerRole && view.actor === view.callerRole
+    && !!view.activePlayerId && actions.some(action => action.actor === view.callerRole
+      && action.kind === 'reactionEndPlayer');
+}
+
 /** Presentation eligibility only; the native preview and commit validate every declaration. */
 export function canPlanMovement(view: SetupState, actions: SetupAction[], playerId: string, kind: MovementRequest['kind']): boolean {
   const player = view.players.find(player => player.id === playerId);
@@ -8,6 +16,8 @@ export function canPlanMovement(view: SetupState, actions: SetupAction[], player
     || ['QUICK_SNAP', 'HIGH_KICK'].includes(view.turnMode) || player?.role !== view.callerRole
     || player.x === null || player.y === null) return false;
   const offered = actions.filter(action => action.sourcePlayerId === playerId);
+  if (isOnTheBallMovement(view, actions)) return kind === 'move' && view.activePlayerId === playerId
+    && offered.some(action => action.kind === 'reactionMove');
   if (isBallTransfer(kind)) return view.activePlayerId !== playerId && view.turnMode === 'REGULAR'
     && offered.some(action => action.kind === (kind === 'pass' ? 'declarePass' : 'declareHandOff'));
   if (kind === 'move') return offered.some(action => ['select', 'stand'].includes(action.kind))

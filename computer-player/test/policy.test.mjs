@@ -9,6 +9,12 @@ const base = {
   players: [], actions: [], prompt: null
 };
 const action = (id, kind, actor = 'away') => ({ id, kind, actor, label: kind });
+
+test('the random coach ends an On the Ball reaction at its action limit', () => {
+  const state = { ...base, turnMode: 'PASS_BLOCK', reaction: { actor: 'away' },
+    actions: [action('use', 'onTheBall'), action('finish-player', 'reactionEndPlayer'), action('finish-reaction', 'reactionEnd')] };
+  assert.deepEqual(chooseDecision(state, () => 0, 30), { operation: 'action', actionId: 'finish-reaction' });
+});
 const setupPolicies = [
   ['Gobbo', chooseDecision],
   ['Bogruk', state => chooseBogrukDecision({ ...state, computer: { seed: 42, attackDirection: -1,

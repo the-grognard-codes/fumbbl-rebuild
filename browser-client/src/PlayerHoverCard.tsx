@@ -3,9 +3,11 @@ import { spriteUrl } from './LivePitch.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
 import { playerCardStatuses, playerCardSubtypes } from './player-card-details.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
+import { useTooltipLayer } from './Tooltip.tsx';
 
 export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: SetupPlayer; anchor: DOMRect; teamName: string; dock?: 'left' | 'right' }) {
   const card = useRef<HTMLElement>(null);
+  useTooltipLayer(card, true);
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const style = dock ? undefined : { left: Math.max(8, Math.min(anchor.right + 12, window.innerWidth - 326)),
     top: Math.max(8, Math.min(anchor.top, window.innerHeight - 390)) };
@@ -20,7 +22,7 @@ export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: Se
   }, [anchor, player, dock]);
   const subtypes = playerCardSubtypes(player);
   const image = resolvePlayerPortrait(player) ?? spriteUrl(player);
-  return <aside ref={card} className={`live-player-hover ${player.role}${dock ? ` dock-${dock}` : ''}`} role="tooltip" style={style} aria-label={`${player.name} player card`}>
+  return <aside ref={card} popover="manual" className={`live-player-hover tooltip-popover ${player.role}${dock ? ` dock-${dock}` : ''}`} role="tooltip" style={style} aria-label={`${player.name} player card`}>
     <header><div className="live-player-card-intro"><small>#{player.number ?? player.slot} · {teamName}</small><h3>{player.name}</h3>
       <span>{player.position ?? player.role}{subtypes && ` (${subtypes})`}</span></div>
       <div className="live-player-card-main">

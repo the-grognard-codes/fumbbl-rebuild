@@ -208,6 +208,8 @@ function promptDecision(state, actions, board, plan, exhausted) {
   const regular = new Set(['select', 'stand', 'blitz', 'selectBlock', 'declareFoul', 'declarePass', 'declareHandOff', 'secureBall', 'move', 'jump', 'block', 'blitzTarget', 'foul', 'foulChainsaw', 'pass', 'handOff', 'endAction', 'endTurn', 'forgo', 'jumpMode']);
   if (actions.some(action => regular.has(action.kind))) return null;
   if (exhausted) {
+    const reactionEnd = actions.find(action => action.kind === 'reactionEnd');
+    if (reactionEnd) return reactionEnd;
     const decline = actions.find(action => ['reroll', 'proTestReroll', 'skill', 'reactiveSkill', 'kickSkill'].includes(action.kind)
       && /do not|keep|none|decline|don't|not use|without/i.test(action.label));
     if (decline) return decline;
@@ -234,7 +236,8 @@ function promptDecision(state, actions, board, plan, exhausted) {
     const label = action.label.toLowerCase();
     if (action.kind === 'reroll' || action.kind === 'proTestReroll') return /do not|keep|none/.test(label) ? 0
       : /pro|mascot/.test(label) ? 50 : /team/.test(label) ? 70 : 90;
-    if (['skill', 'reactiveSkill', 'kickSkill'].includes(action.kind)) return /do not|decline|don't|not use|without/.test(label) ? 0 : 20;
+    if (action.kind === 'reactionEndPlayer' || action.id.endsWith('reaction-end-player') || action.id.endsWith('reaction-jump-mode')) return -1;
+    if (['skill', 'reactiveSkill', 'kickSkill', 'onTheBall'].includes(action.kind)) return /do not|decline|don't|not use|without/.test(label) ? 0 : 20;
     if (action.kind === 'followUp') return action.target ? 20 - board.marks(action.target, state.callerRole).length * 10 + (attacker && board.carrier?.id === attacker.id ? board.progress(attacker, action.target) * 5 : 0) : 1;
     if (action.kind === 'push') return action.target ? (action.target.y < 0 || action.target.y > 14 || action.target.x < 0 || action.target.x > 25 ? 100 : -board.marks(action.target, state.callerRole).length * 3 + (attacker ? board.progress(attacker, action.target) : 0)) : 0;
     if (action.kind === 'touchback') {

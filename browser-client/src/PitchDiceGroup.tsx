@@ -3,7 +3,7 @@ import { DiceOutcomeGraphic } from './DiceOutcomeGraphic.tsx';
 import { diceOutcomes } from './dice-outcomes.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import { PolygonDie } from './PolygonDie.tsx';
-import { blockFaceLabel } from './dice-presentation.ts';
+import { blockFaceLabel, dieRollKey } from './dice-presentation.ts';
 import { PITCH_DICE_ROLL_MS } from './presentation-timing.ts';
 import './pitch-dice-effects.css';
 
@@ -30,7 +30,7 @@ export function PitchDiceGroup({ group, caption = false, role, forceStatic = fal
         <div className="pitch-decision-roll" role={role} aria-label={`${group.label}: ${group.faces.join(', ')}`}>
           {group.faces.map((face, index) => <span key={index} title={group.rolls?.[index]?.label ?? group.label}>
             <PolygonDie kind={group.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')} face={face}
-              selected={group.selected === index} index={index} rollKey={forceStatic || group.static ? undefined : group.rolls?.[index]?.rollKey ?? group.rollKey}
+              selected={group.selected === index} index={index} rollKey={forceStatic || group.static ? undefined : dieRollKey(group, index)}
               rollDuration={group.rollDuration ?? PITCH_DICE_ROLL_MS}/>
           </span>)}
         </div>

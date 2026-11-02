@@ -1,9 +1,11 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
+import com.fumbbl.ffb.dialog.DialogPuntToCrowdParameter;
 import com.fumbbl.ffb.dialog.DialogSelectBlitzTargetParameter;
 import com.fumbbl.ffb.mechanics.PassRangeService;
 import com.fumbbl.ffb.model.ActingPlayer;
@@ -12,8 +14,10 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
+import com.fumbbl.ffb.net.commands.ClientCommandBlock;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
 import com.fumbbl.ffb.net.commands.ClientCommandPass;
+import com.fumbbl.ffb.net.commands.ClientCommandPuntToCrowd;
 import com.fumbbl.ffb.net.commands.ClientCommandTargetSelected;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
@@ -30,6 +34,17 @@ final class PlayerActivation {
     boolean handle(ClientCommand command, String role) {
         Game game = state.getGame();
         boolean home = "home".equals(role);
+        if (command instanceof PuntDirectionCommand) {
+            ActingPlayer player = game.getActingPlayer();
+            state.handleCommand(new ReceivedCommand(new ClientCommandActingPlayer(player.getPlayerId(), PlayerAction.PUNT, player.isJumping()), home));
+            PuntDirectionCommand direction = (PuntDirectionCommand) command;
+            boolean toCrowd = !FieldCoordinateBounds.FIELD.isInBounds(direction.canonicalTarget);
+            if (game.getDialogParameter() instanceof DialogPuntToCrowdParameter)
+                state.handleCommand(new ReceivedCommand(new ClientCommandPuntToCrowd(toCrowd), home));
+            if (!toCrowd && game.getDialogParameter() == null && game.getActingPlayer().getPlayerAction() == PlayerAction.PUNT)
+                state.handleCommand(new ReceivedCommand(command, home));
+            return true;
+        }
         if (!(command instanceof ClientCommandActingPlayer)) {
             if (command instanceof ClientCommandPass && game.getActingPlayer().isHailMaryPassMode()
                 && !game.getActingPlayer().hasPassed()
@@ -101,6 +116,10 @@ final class PlayerActivation {
         }
         if (nextId != null && game.getTurnData() == turn && turn.getTurnNr() == turnNr && turn.getActionWindow() == actionWindow)
             consume(turn, nextId, declaration.getPlayerAction());
+        if (declaration instanceof JumpUpBlockDeclaration && nextId.equals(acting.getPlayerId()) && game.getDialogParameter() == null) {
+            String target = ((JumpUpBlockDeclaration) declaration).targetPlayerId;
+            state.handleCommand(new ReceivedCommand(new ClientCommandBlock(nextId, target, false, false, false, false, false), home));
+        }
         return true;
     }
 

@@ -16,7 +16,6 @@ import com.fumbbl.ffb.report.UtilReport;
  * @author Kalimar
  */
 @RulesCollection(RulesCollection.Rules.BB2020)
-@RulesCollection(RulesCollection.Rules.BB2025)
 public class ReportBlockReRoll extends NoDiceReport {
 
 	private int[] blockRoll;

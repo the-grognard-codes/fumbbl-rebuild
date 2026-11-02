@@ -127,20 +127,19 @@ try {
     reportList:{reports:[{reportId:index===3?'goForItRoll':'dodgeRoll',roll,successful:true,playerId:'home1'}]},
     modelChangeList:{modelChangeArray:[change([23,24,25,24][index])]}
   })));
-  // Rolls and moves share the queue. Each roll retains its own visibility
-  // interval while the next square waits for readable presentation.
+  // Successful checks share their movement beat and later checks may replace
+  // earlier dice without adding a presentation stop to the player's route.
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
   await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
     revision===14?success:record(revision,22)) });
   const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');
   for (const x of [23,24,25,24]) {
-    await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
     await page.waitForFunction(x => Number(document.querySelector('#playback-state').dataset.x) === x, x);
     await page.clock.runFor(200);
   }
   await wait(14,24);
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['6','2'],
-    'The approved longer hold retains the latest rolls while earlier ones expire independently');
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['2'],
+    'The latest successful check replaces earlier dice while every result remains in the transcript');
   const rollOrder = await page.evaluate(() => window.playbackFrames.flatMap((frame,index,all) =>
     frame.faces.length && frame.faces.at(-1) !== all[index-1]?.faces.at(-1) ? [frame.faces.at(-1)] : []));
   assert.deepEqual(rollOrder.slice(-4), ['5','4','6','2']);
@@ -149,8 +148,8 @@ try {
   await publish({ view:state(15,25),interactive:false,records:Array.from({length:16},(_,revision)=>
     revision===15?continuation:revision===14?success:record(revision,22)) });
   await page.waitForFunction(() => [...document.querySelectorAll('.live-dice-overlay[role="status"] .match-die')].some(die => die.dataset.face === '3'));
-  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['6','2','3'],
-    'A later authoritative revision joins the retained roll stream');
+  assert.deepEqual(await successfulDice.evaluateAll(elements=>elements.map(element=>element.dataset.face)), ['3'],
+    'A later successful check replaces the previous movement dice');
   await page.clock.runFor(DICE_GROUP_INTERVAL_MS);
   await page.waitForFunction(() => document.querySelector('#playback-state').dataset.x === '25');
   await page.clock.runFor(200);

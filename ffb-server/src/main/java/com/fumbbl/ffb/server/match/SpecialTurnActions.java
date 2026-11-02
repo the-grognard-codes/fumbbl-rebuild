@@ -64,14 +64,7 @@ final class SpecialTurnActions {
             && player.hasSkillProperty(NamedProperties.canKickTeamMates)
             && !game.getFieldModel().hasCardEffect(player, CardEffect.ILLEGALLY_SUBSTITUTED)
             && !player.hasSkillProperty(NamedProperties.preventKickTeamMateAction)) {
-            for (Player<?> mate : player.getTeam().getPlayers()) {
-                    if (menu || FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(mate))
-                        && ttm.canBeKicked(game, mate)) {
-                    if (menu || status.isAbleToMove() || ttm.findKickableTeamMates(game, player).length > 0)
-                        declare(actions, player, role, "declareKickTeamMate", "Kick team-mate", PlayerAction.KICK_TEAM_MATE_MOVE, menu, ktmSpent);
-                    break;
-                }
-            }
+            declare(actions, player, role, "declareKickTeamMate", "Kick team-mate", PlayerAction.KICK_TEAM_MATE_MOVE, menu, ktmSpent);
         }
         if (status.getBase() != PlayerState.PRONE
             && (status.isConfused() && !player.hasSkillProperty(NamedProperties.preventRecoverFromConcusionAction)
@@ -104,9 +97,15 @@ final class SpecialTurnActions {
                     role, new ClientCommandPass(player.getId(), oriented(at, role)), at));
             }
         }
-        if (action == PlayerAction.PUNT_MOVE && UtilPlayer.hasBall(game, player))
+        if (action == PlayerAction.PUNT_MOVE && UtilPlayer.hasBall(game, player)) {
             actions.add(new Action("punt-now", "puntNow", "Punt now", role,
                 new ClientCommandActingPlayer(player.getId(), PlayerAction.PUNT, acting.isJumping()), player.getId()));
+            for (int[] delta : new int[][] {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}) {
+                FieldCoordinate target = from.add(delta[0], delta[1]);
+                actions.add(new Action("punt-direction-" + delta[0] + "-" + delta[1], "puntDirection",
+                    "Punt towards " + target.getX() + ", " + target.getY(), role, new PuntDirectionCommand(target, role), target));
+            }
+        }
         if (action == PlayerAction.PUNT && UtilPlayer.hasBall(game, player)) for (MoveSquare square : game.getFieldModel().getMoveSquares()) {
             FieldCoordinate at = square.getCoordinate();
             if (!FieldCoordinateBounds.FIELD.isInBounds(at)) continue;

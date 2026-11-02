@@ -109,6 +109,8 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	private boolean armBarChoice;
 	private boolean dtRerollAsked;
 	private boolean optionalTacklePendingRoll;
+	private boolean reactionDodging;
+	private boolean legacyReactionDodging;
 
 	public StepMoveDodge(GameState pGameState) {
 		super(pGameState);
@@ -227,6 +229,14 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	private void executeStep() {
 		Game game = getGameState().getGame();
 		ActingPlayer actingPlayer = game.getActingPlayer();
+		// ActingPlayer's dodging flag is transient. Preserve the in-flight native
+		// check when an On the Ball route resumes after a restored defender decision.
+		if (reactionDodging && !actingPlayer.isHeldInPlace()
+			&& (game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)) {
+			actingPlayer.setDodging(true);
+		}
+		reactionDodging = false;
+		legacyReactionDodging = false;
 		if (!actingPlayer.isDodging()) {
 			getResult().setNextAction(StepAction.NEXT_STEP);
 			return;
@@ -648,6 +658,9 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+		Game game = getGameState().getGame();
+		if ((game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)
+			&& (reactionDodging && !legacyReactionDodging || game.getActingPlayer().isDodging())) jsonObject.add("reactionDodging", true);
 		if (optionalTacklePendingRoll) jsonObject.add("optionalTacklePendingRoll", true);
 		IServerJsonOption.GOTO_LABEL_ON_FAILURE.addTo(jsonObject, fGotoLabelOnFailure);
 		IServerJsonOption.COORDINATE_FROM.addTo(jsonObject, fCoordinateFrom);
@@ -676,6 +689,10 @@ public class StepMoveDodge extends AbstractStepWithReRoll {
 		fCoordinateFrom = IServerJsonOption.COORDINATE_FROM.getFrom(source, jsonObject);
 		fCoordinateTo = IServerJsonOption.COORDINATE_TO.getFrom(source, jsonObject);
 		fDodgeRoll = IServerJsonOption.DODGE_ROLL.getFrom(source, jsonObject);
+		TurnMode mode = getGameState().getGame().getTurnMode();
+		reactionDodging = jsonObject.getBoolean("reactionDodging", fDodgeRoll > 0
+			&& (mode == TurnMode.PASS_BLOCK || mode == TurnMode.KICKOFF_RETURN));
+		legacyReactionDodging = jsonObject.get("reactionDodging") == null;
 		fUsingDivingTackle = IServerJsonOption.USING_DIVING_TACKLE.getFrom(source, jsonObject);
 		fUsingBreakTackle = IServerJsonOption.USING_BREAK_TACKLE.getFrom(source, jsonObject);
 		fReRollUsed = toPrimitive(IServerJsonOption.RE_ROLL_USED.getFrom(source, jsonObject));

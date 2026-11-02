@@ -92,11 +92,22 @@ final class RoutePlanner {
 		int standing = status.getBase() == PlayerState.PRONE && !player.hasSkillProperty(NamedProperties.canStandUpForFree)
 			? Math.min(Constant.MINIMUM_MOVE_TO_STAND_UP, player.getMovementWithModifiers()) : 0;
 		currentMove = (acting == active && !nextTurn ? active.getCurrentMove() : 0) + standing;
-		allowance = player.getMovementWithModifiers() + 2
+		allowance = onTheBallMovement() ? 3 : player.getMovementWithModifiers() + 2
 			+ (player.hasSkillProperty(NamedProperties.canMakeAnExtraGfi) ? 1 : 0)
 			+ (UtilCards.hasUnusedSkillWithProperty(acting, NamedProperties.canMakeAnExtraGfiOnce) ? 1 : 0);
 		agility = (AgilityMechanic) game.getRules().getFactory(FactoryType.Factory.MECHANIC)
 			.forName(Mechanic.Type.AGILITY.name());
+	}
+
+	private boolean onTheBallMovement() {
+		return (rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK)
+			&& game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic;
+	}
+
+	private boolean inMovementBounds(FieldCoordinate square) {
+		return onTheBallMovement() && rangeMode == TurnMode.KICKOFF_RETURN
+			? (game.isHomePlaying() ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY).isInBounds(square)
+			: FieldCoordinateBounds.FIELD.isInBounds(square);
 	}
 
 	JsonObject range() {
@@ -177,7 +188,7 @@ final class RoutePlanner {
 		int used = 0;
 		for (MovementWaypoint instruction : waypoints) {
 			FieldCoordinate waypoint = instruction.coordinate();
-			if (!FieldCoordinateBounds.FIELD.isInBounds(waypoint) || waypoint.equals(from)
+			if (!inMovementBounds(waypoint) || waypoint.equals(from)
 				|| occupied(waypoint)) throw new MatchService.Failure("INVALID_ROUTE");
 			boolean jumping = instruction.isJump();
 			boolean ballHandled = path.stream().anyMatch(step -> step.checks.ballContact);
@@ -223,7 +234,7 @@ final class RoutePlanner {
 		if (currentMove + used + 2 > allowance || !((JumpMechanic) game.getMechanic(Mechanic.Type.JUMP)).canJump(game, player, from)) return options;
 		for (int y = -2; y <= 2; y++) for (int x = -2; x <= 2; x++) {
 			FieldCoordinate to = from.add(x, y);
-			if (FieldCoordinateBounds.FIELD.isInBounds(to) && !occupied(to)
+			if (inMovementBounds(to) && !occupied(to)
 				&& ((JumpMechanic) game.getMechanic(Mechanic.Type.JUMP)).isValidJump(game, player, from, to))
 				options.add(jumpStep(from, to, used, path.values().stream().anyMatch(value -> value.asObject().get("checks")
 					.asArray().values().stream().anyMatch(check -> "Pickup".equals(check.asObject().getString("name", null))
@@ -235,6 +246,7 @@ final class RoutePlanner {
 	private Step jumpStep(FieldCoordinate from, FieldCoordinate to, int used, boolean ballHandled) {
 		JumpMechanic mechanic = game.getMechanic(Mechanic.Type.JUMP);
 		if (!jumpPlanningAvailable() || currentMove + used + 2 > allowance
+			|| !inMovementBounds(to)
 			|| !mechanic.canJump(game, player, from) || !mechanic.isValidJump(game, player, from, to))
 			throw new MatchService.Failure("INVALID_ROUTE");
 		JumpModifierFactory factory = game.getFactory(FactoryType.Factory.JUMP_MODIFIER);
@@ -243,7 +255,7 @@ final class RoutePlanner {
 		int modifier = -modifiers.stream().mapToInt(JumpModifier::getModifier).sum();
 		int target = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(agility.minimumRollJump(player, modifiers));
 		int rush = 0;
-		if (currentMove + used + 2 > player.getMovementWithModifiers()) {
+		if (!onTheBallMovement() && currentMove + used + 2 > player.getMovementWithModifiers()) {
 			GoForItModifierFactory rushModifiers = game.getFactory(FactoryType.Factory.GO_FOR_IT_MODIFIER);
 			rush = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(DiceInterpreter.getInstance().minimumRollGoingForIt(
 				rushModifiers.findModifiers(new GoForItContext(game, player, state.getPrayerState().getMolesUnderThePitch()))));
@@ -255,7 +267,7 @@ final class RoutePlanner {
 
 	private boolean jumpPlanningAvailable() {
 		return game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic
-			&& (rangeMode == TurnMode.REGULAR || rangeMode == TurnMode.BLITZ || rangeMode == TurnMode.SELECT_BLITZ_TARGET)
+			&& (rangeMode == TurnMode.REGULAR || rangeMode == TurnMode.BLITZ || rangeMode == TurnMode.SELECT_BLITZ_TARGET || onTheBallMovement())
 			&& game.getFieldModel().getPlayerState(player).isAbleToMove()
 			&& !(game.getActingPlayer().getPlayer() == player && acting.isHeldInPlace());
 	}
@@ -303,9 +315,9 @@ final class RoutePlanner {
 	private JsonObject adjacent(List<Action> actions, boolean legacy) {
 		JsonArray steps = new JsonArray();
 		for (Action action : actions) {
-			if ("move".equals(action.kind) && action.targetSquare != null && action.targetSquare.isAdjacent(start))
+			if (("move".equals(action.kind) || "reactionMove".equals(action.kind) && !acting.isJumping()) && action.targetSquare != null && action.targetSquare.isAdjacent(start))
 				steps.add(step(start, action.targetSquare, 0, false, legacy).json(legacy));
-			else if (!legacy && "jump".equals(action.kind)) for (MoveSquare square : game.getFieldModel().getMoveSquares()) {
+			else if (!legacy && ("jump".equals(action.kind) || "reactionMove".equals(action.kind) && acting.isJumping())) for (MoveSquare square : game.getFieldModel().getMoveSquares()) {
 				if (!square.getCoordinate().equals(action.targetSquare)) continue;
 				int rush = square.getMinimumRollGoForIt() > 0 ? DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(square.getMinimumRollGoForIt()) : 0;
 				MovementChecks.Forecast checks = movementChecks.at(start, action.targetSquare, false, rush, square, false);
@@ -347,7 +359,7 @@ final class RoutePlanner {
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
 				FieldCoordinate next = node.at.add(x, y);
-				if (!FieldCoordinateBounds.FIELD.isInBounds(next) || occupied(next)
+				if (!inMovementBounds(next) || occupied(next)
 					|| baseline != null && next.equals(game.getFieldModel().getBallCoordinate())) continue;
 				Step step = step(node.at, next, node.used, node.ballHandled, false);
 				int reactions = node.reactions + step.reactions.size();
@@ -398,7 +410,7 @@ final class RoutePlanner {
 			}
 		}
 		int rush = 0;
-		if (currentMove + used >= player.getMovementWithModifiers()) {
+		if (!onTheBallMovement() && currentMove + used >= player.getMovementWithModifiers()) {
 			GoForItModifierFactory modifiers = game.getFactory(FactoryType.Factory.GO_FOR_IT_MODIFIER);
 			rush = DiceInterpreter.getInstance().minimumSuccessfulSkillRoll(DiceInterpreter.getInstance().minimumRollGoingForIt(modifiers.findModifiers(
 				new GoForItContext(game, player, state.getPrayerState().getMolesUnderThePitch()))));

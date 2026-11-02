@@ -180,6 +180,13 @@ public final class CoreTurnActions {
                     new ClientCommandActingPlayer(player.getId(), PlayerAction.BLITZ_MOVE, false), player.getId(), blitzSpent));
             boolean blockEligible = !prone && mode == TurnMode.REGULAR
                 && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction);
+            if (prone && mode == TurnMode.REGULAR && player.hasSkillProperty(NamedProperties.canStandUpForFree)
+                && !player.hasSkillProperty(NamedProperties.preventRegularBlockAction)) {
+                for (Player<?> target : UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at))
+                    result.add(new Action("jump-up-block-" + player.getId() + "-" + target.getId(), "jumpUpBlock",
+                        "Jump Up and block " + target.getName(), role,
+                        new JumpUpBlockDeclaration(player.getId(), target.getId()), target.getId()));
+            }
             boolean canBlock = blockEligible && UtilPlayer.findAdjacentBlockablePlayers(game, game.getOtherTeam(game.getActingTeam()), at).length > 0;
             if (canBlock || menu && blockEligible)
                 result.add(new Action("select-block-" + player.getId(), "selectBlock", "Block with " + player.getName(), role,

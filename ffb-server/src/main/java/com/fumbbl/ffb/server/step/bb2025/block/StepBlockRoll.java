@@ -37,7 +37,7 @@ import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.report.ReportBlock;
 import com.fumbbl.ffb.report.ReportBlockRoll;
 import com.fumbbl.ffb.report.ReportReRoll;
-import com.fumbbl.ffb.report.mixed.ReportBlockReRoll;
+import com.fumbbl.ffb.report.bb2025.ReportBlockReRoll;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
@@ -285,8 +285,8 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 			if (brawler && !UtilGameOption.isOptionEnabled(game, GameOptionId.ALLOW_BRAWLER_ON_BOTH_BLOCKS))
 				player.markSkillUsed(ReRollSources.BRAWLER, ReRolledActions.SINGLE_BOTH_DOWN);
 			int roll = getGameState().getDiceRoller().rollBlockDice(1)[0];
-			getResult().addReport(new ReportBlockReRoll(new int[] { roll }, player.getPlayerId(), getReRollSource()));
 			fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length); fBlockRoll[index] = roll;
+			getResult().addReport(new ReportBlockReRoll(new int[] { roll }, player.getPlayerId(), getReRollSource(), new int[] {index}, game.getDefenderId(), fBlockRoll));
 		}
 		showBlockRollDialog(false);
 	}
@@ -375,32 +375,30 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 				actingPlayer.markSkillUsed(NamedProperties.canRerollOncePerTurn);
 			}
 			int[] reRolledWithPro = getGameState().getDiceRoller().rollBlockDice(1);
-			getResult().addReport(
-				new ReportBlockReRoll(reRolledWithPro, actingPlayer.getPlayerId(), getReRollSource()));
 			fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length);
 			fBlockRoll[dieIndex] = reRolledWithPro[0];
+			getResult().addReport(new ReportBlockReRoll(reRolledWithPro, actingPlayer.getPlayerId(), getReRollSource(), new int[] {dieIndex}, game.getDefenderId(), fBlockRoll));
 		} else if (getReRollSource() == ReRollSources.UNSTOPPABLE_MOMENTUM
 			|| getReRollSource() == ReRollSources.LORD_OF_CHAOS
 			|| getReRollSource() == ReRollSources.WORKING_IN_TANDEM
 			|| getReRollSource() == ReRollSources.WOODLAND_FURY) {
 			if (dieIndex >= 0) {
 				int rerolledDie = getGameState().getDiceRoller().rollBlockDice(1)[0];
-				getResult().addReport(
-					new ReportBlockReRoll(new int[]{rerolledDie}, actingPlayer.getPlayerId(), getReRollSource()));
 				actingPlayer.markSkillUsed(getReRollSource(), ReRolledActions.SINGLE_BLOCK_DIE);
 				fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length);
 				fBlockRoll[dieIndex] = rerolledDie;
+				getResult().addReport(new ReportBlockReRoll(new int[]{rerolledDie}, actingPlayer.getPlayerId(), getReRollSource(), new int[] {dieIndex}, game.getDefenderId(), fBlockRoll));
 			}
 		} else if (getReRollSource() == ReRollSources.SAVAGE_BLOW) {
 			if (diceIndexes != null) {
 				actingPlayer.markSkillUsed(NamedProperties.canReRollAnyNumberOfBlockDice);
 				int[] rerolledDice = getGameState().getDiceRoller().rollBlockDice(diceIndexes.length);
-				getResult().addReport(new ReportBlockReRoll(rerolledDice, actingPlayer.getPlayerId(), getReRollSource()));
 				fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length);
 				for (int indexPos = 0; indexPos < diceIndexes.length; indexPos++) {
 					int indexInRoll = diceIndexes[indexPos];
 					fBlockRoll[indexInRoll] = rerolledDice[indexPos];
 				}
+				getResult().addReport(new ReportBlockReRoll(rerolledDice, actingPlayer.getPlayerId(), getReRollSource(), diceIndexes, game.getDefenderId(), fBlockRoll));
 			}
 		} else {
 			fBlockRoll = getGameState().getDiceRoller().rollBlockDice(fNrOfDice);
@@ -409,7 +407,6 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 
 	private void handleImplicitReRollIndex(ActingPlayer player, BlockResult resultToReplace) {
 		int rerolledDie = getGameState().getDiceRoller().rollBlockDice(1)[0];
-		getResult().addReport(new ReportBlockReRoll(new int[]{rerolledDie}, player.getPlayerId(), getReRollSource()));
 		BlockResultFactory factory = getGameState().getGame().getFactory(Factory.BLOCK_RESULT);
 		for (int i = 0; i < fBlockRoll.length; i++) {
 			if (factory.forRoll(fBlockRoll[i]) == resultToReplace) {
@@ -420,6 +417,7 @@ public class StepBlockRoll extends AbstractStepWithReRoll {
 		if (dieIndex >= 0) {
 			fBlockRoll = Arrays.copyOf(fBlockRoll, fBlockRoll.length);
 			fBlockRoll[dieIndex] = rerolledDie;
+			getResult().addReport(new ReportBlockReRoll(new int[]{rerolledDie}, player.getPlayerId(), getReRollSource(), new int[] {dieIndex}, getGameState().getGame().getDefenderId(), fBlockRoll));
 		}
 	}
 

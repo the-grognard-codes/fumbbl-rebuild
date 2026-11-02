@@ -49,6 +49,7 @@ export function withConfirmedMove(view: SetupState, move: ConfirmedMove): SetupS
 /** The native sync stream is ordered by command number inside each durable decision. */
 export function playbackBeats(record: TranscriptRecord, initialBall?: { x: number; y: number } | null): PlaybackBeat[] {
   const beats: PlaybackBeat[] = [];
+  let previousDice: DiceMoment | null = null;
   let knownBall = initialBall;
   const known = new Set(record.state.players.map(player => player.id));
   for (const sync of record.native) {
@@ -60,7 +61,22 @@ export function playbackBeats(record: TranscriptRecord, initialBall?: { x: numbe
     if (Array.isArray(reports)) for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
       const dice = reportedDice(value as Record<string, unknown>, record.state.players);
-      if (dice) beats.push({ kind: 'dice', dice: hasBlock ? { ...dice, blockContext: context } : dice });
+      if (dice) {
+        // Native partial rerolls are followed by a full-pool decision report.
+        // It confirms the same result, rather than rolling the untouched dice.
+        const echo = dice.reportId === 'blockRoll' && previousDice?.rerolledIndexes
+          && (!dice.subjectId || dice.subjectId === previousDice.defenderId)
+          && dice.faces.length === previousDice.faces.length
+          && dice.faces.every((face, index) => face === previousDice!.faces[index]);
+        if (echo && previousDice) {
+          if (dice.chooser !== undefined) previousDice.chooser = dice.chooser;
+          if (dice.uphill !== undefined) previousDice.uphill = dice.uphill;
+          previousDice = null;
+        } else {
+          previousDice = hasBlock ? { ...dice, blockContext: context } : dice;
+          beats.push({ kind: 'dice', dice: previousDice });
+        }
+      }
     }
     const changes = (sync.modelChangeList as { modelChangeArray?: unknown[] } | undefined)?.modelChangeArray;
     if (!Array.isArray(changes)) continue;

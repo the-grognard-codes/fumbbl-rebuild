@@ -24,6 +24,8 @@ try {
   for (const journey of selectedCases) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     page.setDefaultTimeout(5000);
+    // Loading the production module graph is separate from interaction readiness.
+    page.setDefaultNavigationTimeout(30000);
     console.log(journey.role, journey.mode, journey.viewer ?? 'actor');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));

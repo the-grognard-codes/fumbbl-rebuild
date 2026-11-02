@@ -7,6 +7,7 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogDefenderActionParameter;
+import com.fumbbl.ffb.dialog.DialogKickoffReturnParameter;
 import com.fumbbl.ffb.dialog.DialogPassBlockParameter;
 import com.fumbbl.ffb.dialog.DialogPickUpChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
@@ -97,13 +98,15 @@ final class ReactiveSkillActions {
             return result;
         }
         String role = game.isHomePlaying() ? "home" : "away";
-        if (game.getTurnMode() == TurnMode.PASS_BLOCK && (game.getDialogParameter() == null || game.getDialogParameter() instanceof DialogPassBlockParameter)) {
+        if ((game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)
+            && (game.getDialogParameter() == null || game.getDialogParameter() instanceof DialogPassBlockParameter
+                || game.getDialogParameter() instanceof DialogKickoffReturnParameter)) {
             Player<?> player = game.getActingPlayer().getPlayer();
-            result.add(new Action("reaction-stop", "reactionEnd", "Finish On the Ball movement", role, new ClientCommandEndTurn(TurnMode.PASS_BLOCK, null)));
+            result.add(new Action("reaction-stop", "reactionEnd", player == null ? "Decline On the Ball" : "Finish On the Ball movement", role, new ClientCommandEndTurn(game.getTurnMode(), null)));
             if (player == null) {
                 for (Player<?> candidate : game.getActingTeam().getPlayers()) {
                     if (game.getFieldModel().getPlayerState(candidate).isActive() && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(candidate)))
-                        result.add(new Action("reaction-select:" + candidate.getId(), "reactiveSkill", "Move " + candidate.getName(), role,
+                        result.add(new Action("reaction-select:" + candidate.getId(), "onTheBall", "Use On the Ball with " + candidate.getName(), role,
                             new ClientCommandActingPlayer(candidate.getId(), PlayerAction.MOVE, false), candidate.getId()));
                 }
             } else {
@@ -122,7 +125,7 @@ final class ReactiveSkillActions {
                     result.add(new Action("reaction-move:" + to.getX() + ":" + to.getY(), "reactionMove", label, role,
                         new ClientCommandMove(player.getId(), orient(from, role), new FieldCoordinate[] {orient(to, role)}, null), to));
                 }
-                result.add(new Action("reaction-end-player", "reactiveSkill", "Finish this player's movement", role, new ClientCommandActingPlayer(null, null, false)));
+                result.add(new Action("reaction-end-player", "reactionEndPlayer", "Finish this player's movement", role, new ClientCommandActingPlayer(null, null, false)));
             }
         } else if (game.getTurnMode() == TurnMode.DUMP_OFF && game.getDialogParameter() instanceof DialogDefenderActionParameter) {
             Player<?> thrower = game.getThrower();

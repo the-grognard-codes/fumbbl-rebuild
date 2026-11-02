@@ -52,9 +52,17 @@ try {
   assert.equal(await page.locator('.match-chat-scroll p span').last().textContent(), 'Sent from chat');
   assert.equal(await page.locator('.match-chat-scroll p span').last().evaluate(element => parseFloat(getComputedStyle(element).fontSize)),
     10, 'Incoming chat keeps selected size');
-  await draft.press('Escape');
+  assert.equal(await draft.count(), 0, 'Successful sending closes the composer');
   await page.locator('.match-chat').focus(); await page.keyboard.press('Enter');
   assert.equal(await draft.count(), 1, 'Enter still opens chat from the match');
+  await draft.fill('Second message'); await draft.press('Enter');
+  assert.equal(await draft.count(), 0, 'Every successful send closes chat');
+  await page.keyboard.press('Enter');
+  assert.equal(await draft.evaluate(element => element === document.activeElement), true, 'Reopening focuses the input');
+  await draft.fill('   '); await draft.press('Enter');
+  assert.equal(await draft.count(), 0, 'Empty Enter closes chat without sending');
+  assert.deepEqual(await page.evaluate(() => window.chatSent), ['Sent from chat', 'Second message']);
+  await page.keyboard.press('Enter');
   await draft.press('Escape');
   const messages = Array.from({ length: 80 }, (_, index) => ({ ...fixture.messages[0], index, text: `Message ${index}` }));
   const publish = async input => {
