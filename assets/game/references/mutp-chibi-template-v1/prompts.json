@@ -1,0 +1,103 @@
+[
+  {
+    "file": "heads.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. A single round gold fantasy coin shown face on. Its face features the HEAD of the reference site's adorable dark navy mole, gold round glasses, blue highlights, brown nose and paws. Recognizable same mascot. No ground/pitch from reference. Bold readable coin icon. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "tails.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. A single round gold fantasy coin shown face on matching a heads coin. Face depicts the REAR three-quarter view of the same dark navy mole mascot with blue highlights and gold round glasses glimpsed in profile, and a LARGE clearly visible curved bare brown/pink MOLE TAIL. Tail is the unmistakable focal symbol. No pitch or soil. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "kick.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. One compact chibi fantasy football player in navy/steel blue armor in a clear side-on KICKING pose with a boot making contact with a brown oval leather football. Full body, dynamic readable silhouette, ball clearly visible. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "receive.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. One compact chibi fantasy football player in navy/steel blue armor CATCHING a brown oval leather football with BOTH hands held in front/above chest. Full body, unmistakable receiving pose, readable silhouette. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "stretcher.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. Two small chibi green goblin medics wearing cream medical tunics carrying opposite ends of a wooden stretcher, with a navy-armored fantasy football player lying on it. Whole group, landscape compact icon, both medics and stretcher clearly visible. Playful no gore. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "referee.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. A single angry chibi green goblin referee in black and cream striped referee shirt, pointing forcefully to the RIGHT with an extended arm, other hand on hip, angry expressive face, full body. Symbolizes sending a player off. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "shrug.png",
+    "status": "owner-approved style reference",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Create one transparent-background game UI icon. A single chibi human fantasy football coach wearing a navy coat with gold trim, clearly SHRUGGING with both hands palms-up out to sides and shoulders raised, bemused face, waist-up or full-body compact icon. Style: polished hand-painted fantasy game illustration, charming chibi proportions, strong dark outlines, simplified shapes readable at 64px. Match supplied UI atlas palette: navy, ivory, gold, leather brown, cyan accents. Reference 1 is mascot identity only; reference 2 is rendering/palette only. Single isolated subject/group filling canvas with 6% clear margin. NO shield, badge, border frame (except coin itself for coin icons), text, letters, labels, backdrop, floor or drop shadow.",
+    "references": [
+      "references/site-mole.png",
+      "references/ui-atlas.png"
+    ]
+  },
+  {
+    "file": "mole-stretcher.png",
+    "status": "alternate for review",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Edit the stretcher reference: replace ONLY the two green goblin medics with two chibi MOLE medics matching the kicking and receiving mole references exactly in species and art style: dark navy fur, brown rounded muzzle/nose, round gold glasses with blue eyes, small rounded ears and ivory digging claws. Keep cream medical tunics/caps and medical insignia. Keep two medics carrying opposite ends of the wooden stretcher with the same navy armored injured HUMAN patient lying on it. Preserve composition, landscape aspect, readability, hand-painted texture and transparent background. No shield, text, extra characters, background or ground shadow.",
+    "references": [
+      "images/stretcher.png",
+      "images/kick.png",
+      "images/receive.png"
+    ]
+  },
+  {
+    "file": "mole-referee.png",
+    "status": "alternate for review",
+    "tool": "built-in image_gen",
+    "transparent_background": true,
+    "prompt": "Edit the angry referee reference: replace the green goblin with a chibi MOLE referee matching the kicking and receiving mole references exactly: dark navy fur, brown rounded muzzle/nose, round gold glasses with blue eyes, ivory digging claws, small rounded ears. Preserve angry expression, forceful pointing RIGHT arm, other hand on hip, referee cap and navy/ivory striped shirt, whistle, full-body composition. Same polished painted fantasy game icon style, navy/ivory/gold/cyan palette. Transparent background. No shield, text, ground shadow or backdrop.",
+    "references": [
+      "images/referee.png",
+      "images/kick.png",
+      "images/receive.png"
+    ]
+  }
+]
