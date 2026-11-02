@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Confirm planned moves, blocks, blitzes, fouls, teammate passes and handoffs by
+  doubleclicking or double tapping the selected final destination or target once
+  Confirm is enabled. The target-selection click is separate from confirmation.
+  Touch input shows Cancel plan; mouse input retains right-click cancellation
+  and waypoint undo.
+
 - Bug fix roundup #5: successful movement rolls no longer pause movement;
   partial rerolls animate only the rerolled dice. Resource and player tooltips
   appear above other match elements without duplicate native tooltips, and chat
