@@ -4,7 +4,36 @@ Issue: [#408](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/408)
 Design: [approved feature specification](match-transition-announcements.md)
 Branch: `feature/match-transition-announcements`
 Worktree: `.worktrees/match-announcements`
-Base: `c487d06dcaa5fc867b1c35c06d17e20857575709`
+Original base: `c487d06dcaa5fc867b1c35c06d17e20857575709`
+
+Rebased main: `10928a6bcae687fd464cdfe1091bf92b6fefa53d`
+
+## Rebase and merge preparation
+
+The owner accepted the visual result and requested rebasing and preparation for merge. The feature was checkpointed locally, with recovery ref `backup/match-announcements-before-rebase-20261102`, then rebased onto remote main `10928a6bcae687fd464cdfe1091bf92b6fefa53d`. The rebased implementation commit is `9fbf728a6`.
+
+Incoming main contained double-click/double-tap confirmation (#410) and its completed-feature record (#411). The only textual conflict was `CHANGELOG.md`; both entries are retained. `LivePitch.tsx`, `SetupPanel.tsx`, and the browser suite manifest merged automatically. Range comparison with the checkpoint confirms the rebase changed no feature logic. Announcement playback disables confirmation and resets the gesture throughout both the banner and clear pause; the overlay also prevents the new gesture from clicking through.
+
+### Standards
+
+No actionable documented-standard violations found. BB2025-specific behavior stays in BB2025 steps; shared observers default to no-ops. Recovery, mandatory choices and unmount cancel timers, with stale-callback guards. One optional baseline judgment: the repeated five-method observer wiring in the two existing SetupSession GameState constructors could share a factory method. This extends existing duplication and is not a correctness blocker; no unrelated refactor was added.
+
+### Spec
+
+No actionable findings: no missing/partial requirements, scope creep, or incorrect implementation identified. The review covered transition projection, presentation ordering, deduplication, replay, settings, input gating, and affected tests. Required choices and recovery cancel transitions immediately.
+
+Review totals: Standards zero hard violations and one optional maintainability observation; Spec zero findings. Both reviewers approved the change.
+
+### Rebase validation
+
+- TypeScript and all 464 browser unit tests passed.
+- Focused announcement and double-click confirmation UI suites passed, including mouse/touch, readiness, cancellation, pending requests and disconnect.
+- Pinned full Java `clean verify` passed across all four modules: 958 tests passed; 12 existing opt-in skips (database and fixture/inspection tests). Log: `.tools/announcement-rebase-native.log`.
+- All 72 mandatory browser suites passed (92 reported tests, no skips) in 823 seconds. Reports: `.tools/validation/local-browser-qxwp59/`; validated implementation commit: `9fbf728a6`. The production TypeScript/Vite build also passed.
+- Dev-local rebuilt and restarted successfully at http://localhost:5000/play. Database/server health, Firebase ADC, proxy connection/reconnect and computer service startup passed. Served JS/CSS match the rebased build byte for byte; a fresh Chrome session loaded the LOCAL-DEV sign-in page without uncaught errors. Log: `.tools/announcement-rebase-dev-local.log`. Authenticated gameplay remains available for manual validation.
+- Whitespace validation passed. Publication and GitHub PR checks remain pending; nothing was pushed, merged, or remotely deployed.
+
+The prepared PR description is `.tools/announcement-pr.md`. Publishing the branch and opening a PR await explicit authorization under the repository delivery workflow. The original checkout's unrelated changes are preserved.
 
 ## Delivered behavior
 
@@ -32,7 +61,7 @@ The reusable component uses the existing Human and Orc scoreboard helmets, with 
 | Durable explanation | Match log tests verify readable team/cause text and duplicate suppression. |
 | Scope and repository constraints | No rules changes, audio, team customization storage, new artwork, or production colour lookup. CHANGELOG updated; site/updates.json unchanged. |
 
-## Review and validation
+## Implementation validation before rebase
 
 Self-review and an independent review found and corrected malformed event enum acceptance, noncanonical player-state strings affecting sprite poses, and native removal/re-placement ordering. The native tests also exposed a missing confirmed block-knockdown reason; it is now captured at the native END_TURN publication. No remaining review findings were reported.
 
@@ -72,9 +101,9 @@ The mandatory 71-suite browser preflight passed in 546 seconds using four worker
 
 ## Manual validation handoff
 
-**Ready at [http://localhost:5000/play](http://localhost:5000/play).** The app is built from this branch's current working files and the services remain running for manual review. The WebSocket proxy listens at `ws://127.0.0.1:22232/browser/v2`.
+**Ready at [http://localhost:5000/play](http://localhost:5000/play).** The app is built from the rebased implementation commit `9fbf728a6` and the services remain running for manual review. The WebSocket proxy listens at `ws://127.0.0.1:22232/browser/v2`.
 
-Latest validation and startup/build evidence: `.tools/match-announcements-banner-final.log`; prior refinement evidence: `.tools/match-announcements-ui-final.log` and `.tools/match-announcements-ui-startup.log`; original server build evidence: `.tools/match-announcements-dev-local.log`. Native focused and integration logs: `.tools/announcement-native-focused.log` and `.tools/announcement-native-integration.log`. Latest browser unit log: `.tools/announcement-banner-unit.log`.
+Latest rebase validation/startup evidence: `.tools/announcement-rebase-native.log` and `.tools/announcement-rebase-dev-local.log`; prior banner evidence: `.tools/match-announcements-banner-final.log`; prior refinement evidence: `.tools/match-announcements-ui-final.log` and `.tools/match-announcements-ui-startup.log`; original server build evidence: `.tools/match-announcements-dev-local.log`. Native focused and integration logs: `.tools/announcement-native-focused.log` and `.tools/announcement-native-integration.log`. Latest browser unit log: `.tools/announcement-rebase-unit.log`.
 
 The approved changes are committed locally in the isolated worktree for the requested rebase; the original checkout and its unrelated work are preserved. No branch was pushed, PR opened, merge performed, or remote deployment made. Issue #408 remains open for review and eventual landing.
 

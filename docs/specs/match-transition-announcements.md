@@ -36,7 +36,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 6. Create a new cohesive MUTP splash graphic with distinct turnover, touchdown, and turn-start treatments. Provide clear headline, team identity/icon, and optional reason areas. Keep text as accessible live text rather than baking names, numbers, or reasons into artwork.
 7. Reuse the Human/Orc scoreboard helmet graphics, with the blue Human helmet as fallback. Include an explicit replaceable icon slot.
 8. Add optional team-colour inputs/tokens and an independently tintable accent region (for example, a ribbon, border, or backdrop). Leave production team-colour lookup unwired. Use neutral MUTP defaults and demonstrate sample colours only in previews/tests.
-9. Dim the entire pitch slightly and temporarily block pitch actions. Default to 3 seconds for turnover/touchdown and 1.5 seconds for turn start, scaled to playback speed, with immediate safe dismissal and a persistent until-dismissed preference. Prevent click-through and preserve keyboard focus. Required choices dismiss active splashes and suppress queued announcements that would delay the choice; retain those events in the log. Integrate with existing playback/input gating rather than pausing the server.
+9. Dim the entire pitch slightly and temporarily block pitch actions. Default to 3 seconds for turnover/touchdown and 1.5 seconds for turn start, scaled to playback speed, with safe dismissal through the brief exit fade and a persistent until-dismissed preference. Prevent click-through and preserve keyboard focus. Required choices dismiss active splashes and suppress queued announcements that would delay the choice; retain those events in the log. Integrate with existing playback/input gating rather than pausing the server.
 10. Support both coaches and spectators. Deduplicate by stable event identity across delivery retries and reconnect/catch-up; do not replay old splashes on initial load or reconnect. Replays should show announcements when advancing through their events, with seeking avoiding a burst of historical announcements.
 11. Preserve a readable announcement and turnover reason in the match log so transient information remains available. Support reduced motion and assistive-technology announcements without relying solely on colour.
 
@@ -76,7 +76,7 @@ A touchdown also ends a turn automatically, but should receive its own announcem
 - Run the relevant unit/browser suites and required game-server/build checks using the repository's pinned toolchain. Capture visual evidence and record any unverified platform coverage.
 
 ## Completion Notes
-- Implemented on `feature/match-transition-announcements`; the approved work is being committed locally and rebased for merge preparation.
+- Implemented on `feature/match-transition-announcements`; the approved work is committed locally and rebased onto remote main `10928a6bc` for merge preparation.
 - Native transition events, playback scheduling, accessible splash UI, durable log details, and regression/visual coverage are implemented.
 - See [the outcome report](match-transition-announcements-outcome.md) for acceptance evidence, validation results, and the dev-local handoff.
 ## Approved review decisions
