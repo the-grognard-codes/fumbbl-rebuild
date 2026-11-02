@@ -31,9 +31,9 @@ Review totals: Standards zero hard violations and one optional maintainability o
 - Pinned full Java `clean verify` passed across all four modules: 958 tests passed; 12 existing opt-in skips (database and fixture/inspection tests). Log: `.tools/announcement-rebase-native.log`.
 - All 72 mandatory browser suites passed (92 reported tests, no skips) in 823 seconds. Reports: `.tools/validation/local-browser-qxwp59/`; validated implementation commit: `9fbf728a6`. The production TypeScript/Vite build also passed.
 - Dev-local rebuilt and restarted successfully at http://localhost:5000/play. Database/server health, Firebase ADC, proxy connection/reconnect and computer service startup passed. Served JS/CSS match the rebased build byte for byte; a fresh Chrome session loaded the LOCAL-DEV sign-in page without uncaught errors. Log: `.tools/announcement-rebase-dev-local.log`. Authenticated gameplay remains available for manual validation.
-- Whitespace validation passed. Publication and GitHub PR checks remain pending; nothing was pushed, merged, or remotely deployed.
+- Whitespace validation passed. Publication and GitHub PR checks were pending at preparation time; completed publication is recorded below.
 
-The prepared PR description is `.tools/announcement-pr.md`. The owner has now authorized publishing the branch and PR, waiting for CI, merging, removing the working branches, adding the completed-feature entry, and stopping dev-local. Final publication evidence will be recorded after merge. The original checkout's unrelated changes are preserved.
+The prepared PR description is `.tools/announcement-pr.md`. The owner has now authorized publishing the branch and PR, waiting for CI, merging, removing the working branches, adding the completed-feature entry, and stopping dev-local. Completed publication evidence is recorded below. The original checkout's unrelated changes are preserved.
 
 ## Delivered behavior
 
@@ -99,9 +99,9 @@ The mandatory 71-suite browser preflight passed in 546 seconds using four worker
 | Touchdown | [1440px](../../.notes/art-preview/match-announcements/touchdown-1440.png) | [390px](../../.notes/art-preview/match-announcements/touchdown-390.png) |
 | Turn start | [1440px](../../.notes/art-preview/match-announcements/turnStart-1440.png) | [390px, long name](../../.notes/art-preview/match-announcements/turnStart-390.png) |
 
-## Manual validation handoff
+## Manual validation handoff (historical; dev-local now stopped)
 
-**Ready at [http://localhost:5000/play](http://localhost:5000/play).** The app is built from the rebased implementation commit `9fbf728a6` and the services remain running for manual review. The WebSocket proxy listens at `ws://127.0.0.1:22232/browser/v2`.
+**The local review stack at http://localhost:5000/play has now been stopped at the owner's request.** The app is built from the rebased implementation commit `9fbf728a6` and the services ran successfully for manual review before shutdown. The WebSocket proxy listens at `ws://127.0.0.1:22232/browser/v2`.
 
 Latest rebase validation/startup evidence: `.tools/announcement-rebase-native.log` and `.tools/announcement-rebase-dev-local.log`; prior banner evidence: `.tools/match-announcements-banner-final.log`; prior refinement evidence: `.tools/match-announcements-ui-final.log` and `.tools/match-announcements-ui-startup.log`; original server build evidence: `.tools/match-announcements-dev-local.log`. Native focused and integration logs: `.tools/announcement-native-focused.log` and `.tools/announcement-native-integration.log`. Latest browser unit log: `.tools/announcement-rebase-unit.log`.
 
@@ -129,3 +129,11 @@ The later Create a game `AUTHENTICATION_FAILED` report was traced to the mounted
 4. Capture visual previews after finite entry animations complete. The initial desktop screenshots caught partially faded content; capture now finishes animations explicitly.
 
 These are recommendations from the delivery workflow's retrospective; no agent instructions or unrelated tooling were changed.
+
+## Publication and cleanup
+
+[PR #412](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/412) merged into `main` as `b68c7bc365f975870af708ffc8f9ec8054c5f975` at `2026-11-02T18:20:58Z` after all CI validation, security, and code-analysis checks passed. The optional full-browser CI job is dispatch-only; all 72 browser suites passed locally before publication. Issue #408 closed through the PR.
+
+The local and remote `feature/match-transition-announcements` branches were removed after verifying the merged tree matched the approved branch. The separate pre-rebase recovery branch remains: automatic approval review rejected removing that extra backup because its deletion was not explicitly authorized. A post-merge completed-feature entry records PR #412 and its actual merge timestamp in `site/updates.json`, with the static Updates page regenerated.
+
+Dev-local was stopped using `node tools/dev-local.mjs --stop`: Hosting, proxy, computer player, and review containers are stopped; database volumes remain intact. No remote deployment was performed.
