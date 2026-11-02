@@ -1,5 +1,8 @@
 # Approved decision-prompt design and artwork
 
+## Merged milestone
+[PR #418](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/418) merged on 2026-11-02 at 21:08:35 UTC as `1d7da43d28b2f2a2d6d9c89437b72fec45ac8826`, completing #414. All CI checks passed. One native shard initially failed before tests during the Maven download; rerunning that shard and its dependent aggregate gate passed without code changes. The public Updates entry records this design/artwork milestone only; #415–#417 remain open. Dev-local and the prompt-review server were stopped, preserving database volumes.
+
 ## Delivered scope
 The owner approved horizontal rectangular mockups for coin toss, kick/receive, apothecary use (single and multiple patients), argue the call, bribe and interception. The final style uses labeled mole coins, existing inducement medical/bribe icons, mole medics, player-card interceptor portraits and the same angry mole referee for both send-off decline choices. Vertical originals and goblin alternatives remain reference material.
 
