@@ -6,6 +6,7 @@ export const DICE_ANIMATION_MS = 310;
 export const PITCH_DICE_ROLL_MS = 620;
 export const DICE_ENTRANCE_MS = 200;
 export const DICE_EXIT_MS = 200;
+export const ANNOUNCEMENT_GAP_MS = 350;
 export const DICE_RETENTION_MS = 2400;
 export const EMPHASIZED_DICE_RETENTION_MS = 4800;
 

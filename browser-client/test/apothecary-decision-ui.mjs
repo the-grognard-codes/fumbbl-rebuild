@@ -42,6 +42,8 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(5000);
+  // Cold Vite compilation is setup work; keep the tighter deadline for UI interactions.
+  page.setDefaultNavigationTimeout(30000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/apothecary-review', route => route.fulfill({ contentType: 'text/html', body:

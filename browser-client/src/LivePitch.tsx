@@ -44,6 +44,8 @@ import { CameraButtons } from './CameraButtons.tsx';
 import { effectiveCameraEnd } from './camera-preferences.ts';
 import { useCameraPreferences } from './use-camera-preferences.ts';
 import { usePitchHover } from './use-pitch-hover.ts';
+import { MatchSplash, MatchAnnouncementStatus } from './MatchSplash.tsx';
+import type { MatchSplashProps } from './MatchSplash.tsx';
 
 const points = (polygon: Point[]) => polygon.map(p => `${p.x},${p.y}`).join(' ');
 const centerOf = (point: Point) => ({ x: point.x + .5, y: point.y + .5 });
@@ -142,7 +144,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 
 /** Presentation only: positions, state, ball and identity come from the server. */
 export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false, diceSnapshot = false,
-  blockPreview = null, animateBlockMarkers = true, movementDuration = 0,
+  blockPreview = null, animateBlockMarkers = true, movementDuration = 0, splash,
   jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
   onRightClick,
@@ -155,6 +157,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean; diceSnapshot?: boolean;
   blockPreview?: BlockContext | null; animateBlockMarkers?: boolean; movementDuration?: number;
+  splash?: MatchSplashProps;
   threatPreferences?: ThreatPreferences; allowThreats?: boolean;
   onRightClick?: () => void;
   decision?: MatchDecision | null; decisionDisabled?: boolean; onDecisionAction?: (actionId: string) => void;
@@ -551,7 +554,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           onAction={onDecisionAction}/>}
         {backgroundFailed && <span className="live-pitch-error">Pitch texture unavailable; plain field shown.</span>}
       </div>
+      {splash && <MatchSplash {...splash}/>}
     </div>
+    <MatchAnnouncementStatus announcement={splash?.announcement ?? null}/>
     {routePreview && <ol className="sr-only" aria-label="Planned route">{routePreview.steps.map((step, index) => <li key={index}>Square {step.x}, {step.y}</li>)}</ol>}
     {rangeMarkings && movementRange && <p className="sr-only" aria-live="polite">Movement range: {movementRange.normalRemaining} normal movement points remaining,
       {' '}{movementRange.remaining} including rushes.</p>}

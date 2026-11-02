@@ -201,6 +201,7 @@ public class StepPickUp extends AbstractStepWithReRoll {
 						doPickUp = false;
 						publishParameter(new StepParameter(StepParameterKey.FEEDING_ALLOWED, false));
 						if (!optionalPickUp) {
+							getGameState().observeTurnoverReason(player.getName() + " failed to pick up the ball.");
 							publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 							getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnFailure);
 						} else {
@@ -223,6 +224,7 @@ public class StepPickUp extends AbstractStepWithReRoll {
 						case FAILURE:
 							publishParameter(new StepParameter(StepParameterKey.FEEDING_ALLOWED, false));
 							if (!optionalPickUp && !player.hasSkillProperty(NamedProperties.preventPickup)) {
+								getGameState().observeTurnoverReason(player.getName() + " failed to pick up the ball.");
 								publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 								getResult().setNextAction(StepAction.GOTO_LABEL, fGotoLabelOnFailure);
 							} else {
@@ -240,6 +242,7 @@ public class StepPickUp extends AbstractStepWithReRoll {
 				// a player of the own team without tackle zone was moved onto the ball with e.g. Raiding Party or some other voluntary movement (no chain pushes)
 				// this should be considered a pickup fail, unless the player has e.g. Ball And Chain
 				if (game.getActingTeam().hasPlayer(player) && !player.hasSkillProperty(NamedProperties.preventPickup)) {
+					getGameState().observeTurnoverReason(player.getName() + " failed to pick up the ball.");
 					publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 				}
 				publishParameter(

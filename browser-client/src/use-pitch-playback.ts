@@ -1,16 +1,19 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext } from './pitch-playback.ts';
+import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext, withConfirmedPlayerChanges } from './pitch-playback.ts';
 import { blockFaceLabel, diceRollGroups, offeredBlockDice, isOfferedPartialReroll } from './dice-presentation.ts';
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
 import { provisionalMoves, remainingConfirmedBeats, movementBeatMillis } from './provisional-movement.ts';
-import { BALL_STEP_MS, PITCH_DICE_ROLL_MS, DICE_GROUP_INTERVAL_MS, playbackRate } from './presentation-timing.ts';
+import { BALL_STEP_MS, PITCH_DICE_ROLL_MS, DICE_GROUP_INTERVAL_MS, DICE_EXIT_MS, ANNOUNCEMENT_GAP_MS, playbackRate } from './presentation-timing.ts';
 import type { ConfirmedMove, PlaybackBeat } from './pitch-playback.ts';
 import type { RoutePreview } from './route-protocol.ts';
 import type { DiceMoment } from './dice-presentation.ts';
 import type { SetupState } from './setup-protocol.ts';
 import type { TranscriptRecord } from './transcript-protocol.ts';
+import { announcementDuration } from './match-announcements.ts';
+import type { MatchAnnouncement } from './match-announcements.ts';
+import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
 
 const responseKinds = new Set(['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill', 'kickSkill', 'pileDriver', 'push', 'followUp', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd']);
 
@@ -27,6 +30,13 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const [tick, setTick] = useState(0);
   const [moveMillis, setMoveMillis] = useState(0);
   const [synchronizing, setSynchronizing] = useState(false);
+  const [announcement, setAnnouncement] = useState<MatchAnnouncement | null>(null);
+  const [announcementExiting, setAnnouncementExiting] = useState(false);
+  const announcementPreferences = useAnnouncementPreferences();
+  const pendingAnnouncement = useRef<{ id: string; closing: boolean; advance: () => void } | null>(null);
+  const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
   const completed = useRef(view.revision), generation = useRef(0);
   const running = useRef(false), waiting = useRef(false);
@@ -49,6 +59,12 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     generation.current += 1;
     if (timer.current) clearTimeout(timer.current);
     pendingBeat.current = null;
+    pendingAnnouncement.current = null; setAnnouncement(null);
+    setAnnouncementExiting(false);
+    if (announcementTimer.current) clearTimeout(announcementTimer.current);
+    announcementTimer.current = null;
+    if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
+    announcementTransitionTimer.current = null;
     provisional.current = null;
     clearDice();
     timer.current = null; running.current = false; waiting.current = false;
@@ -65,7 +81,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     const seeking = snapshotKey !== undefined && snapshotKey !== receivedSnapshotKey.current;
     if (seeking) receivedSnapshotKey.current = snapshotKey;
     const rate = playbackRate(speed, mode);
-    const requiresResponse = !!view.prompt || view.actions.some(action => responseKinds.has(action.kind));
+    const requiresResponse = !!view.prompt || !!view.reaction || view.actions.some(action => responseKinds.has(action.kind));
     const responseKey = `${view.matchId}:${view.revision}`;
     const responseDice = () => {
       const finalRecord = records[view.revision];
@@ -90,6 +106,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       multipleReveals.current.reset();
       multipleReveals.current.update(view);
       cancel(); completed.current = view.revision;
+      announced.current.clear();
       responseDiceKey.current = null;
       presented.current = view; setPitchView(view); setActive(false);
       setMoveMillis(0); setSynchronizing(false);
@@ -100,6 +117,10 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (!enabled || document.hidden || recoveringVisibility.current || seeking || previous.matchId !== view.matchId || view.revision < previous.revision
       || mode === 'replay' && Math.abs(view.revision - previous.revision) > 1) {
       recoveringVisibility.current = false;
+      snapshot();
+      return;
+    }
+    if (mode === 'live' && requiresResponse && pendingAnnouncement.current) {
       snapshot();
       return;
     }
@@ -224,6 +245,17 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       const rate = playbackRate(currentSpeed.current, mode);
       for (; index < beats.length; index += 1) {
         const beat = beats[index];
+        if (beat.kind === 'announcement') {
+          const response = mode === 'live' && (!!latest.current.prompt || !!latest.current.reaction
+            || latest.current.actions.some(action => responseKinds.has(action.kind)));
+          if (response || announced.current.has(beat.announcement.id)) continue;
+          announced.current.add(beat.announcement.id);
+          clearDice(); setMoveMillis(0);
+          const nextIndex = index + 1;
+          pendingAnnouncement.current = { id: beat.announcement.id, closing: false, advance: () => advance(nextIndex) };
+          setAnnouncement(beat.announcement);
+          return;
+        }
         if (beat.kind === 'dice') {
           if (!presentDice(index)) continue;
           // Successful movement checks accompany their native square update;
@@ -238,11 +270,12 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         const current = presented.current;
         const moved = beat.kind === 'move' ? withConfirmedMove(current, beat.move) : current;
         const next = beat.kind === 'block' ? withBlockContext(current, beat.context)
+          : beat.kind === 'player' ? withConfirmedPlayerChanges(current, beat.playerId, beat.changes)
           : beat.ballChanges ? withConfirmedBallChanges(moved, beat.ballChanges) : moved;
         if (next === current) continue;
         // Start the next delay only after React commits this square. Separate
         // timer tasks alone can still be batched, especially in reduced motion.
-        const delay = beat.kind === 'block' ? 16 : beat.kind === 'ball' ? BALL_STEP_MS / rate
+        const delay = beat.kind === 'block' || beat.kind === 'player' ? 16 : beat.kind === 'ball' ? BALL_STEP_MS / rate
           : movementBeatMillis(currentSpeed.current, mode, reduced);
         setMoveMillis(reduced || beat.kind === 'block' ? 0 : delay);
         const nextIndex = index + 1;
@@ -261,6 +294,43 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     pending.committed?.();
     timer.current = setTimeout(pending.advance, pending.delay);
   }, [pitchView, diceMoment]);
+  const dismissAnnouncement = () => {
+    const pending = pendingAnnouncement.current;
+    if (!pending || pending.closing) return;
+    pending.closing = true;
+    if (announcementTimer.current) clearTimeout(announcementTimer.current);
+    announcementTimer.current = null;
+    setAnnouncementExiting(true);
+  };
+  // Start the fade timer after its visual state commits. Keep the queue active
+  // through the clear interval, and retain pending state so recovery/choices
+  // can cancel both phases without a stale callback advancing the old queue.
+  useLayoutEffect(() => {
+    const pending = pendingAnnouncement.current;
+    if (!announcementExiting || !pending) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    announcementTransitionTimer.current = setTimeout(() => {
+      if (pendingAnnouncement.current !== pending) return;
+      setAnnouncement(null);
+      announcementTransitionTimer.current = setTimeout(() => {
+        if (pendingAnnouncement.current !== pending) return;
+        announcementTransitionTimer.current = null;
+        pendingAnnouncement.current = null;
+        setAnnouncementExiting(false);
+        pending.advance();
+      }, ANNOUNCEMENT_GAP_MS / playbackRate(currentSpeed.current, mode));
+    }, reduced ? 0 : DICE_EXIT_MS / playbackRate(currentSpeed.current, mode));
+    return () => {
+      if (announcementTransitionTimer.current) clearTimeout(announcementTransitionTimer.current);
+      announcementTransitionTimer.current = null;
+    };
+  }, [announcementExiting, mode]);
+  useLayoutEffect(() => {
+    if (!announcement || announcementExiting || announcementPreferences.holdAnnouncements) return;
+    const timeout = setTimeout(dismissAnnouncement, announcementDuration(announcement, playbackRate(speed, mode)));
+    announcementTimer.current = timeout;
+    return () => { clearTimeout(timeout); };
+  }, [announcement, announcementExiting, announcementPreferences.holdAnnouncements, speed, mode]);
   const beginProvisional = (route: RoutePreview) => {
     if (!enabled || mode !== 'live' || running.current || waiting.current || provisional.current) return;
     const moves = provisionalMoves(latest.current, route);
@@ -269,5 +339,6 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     setTick(value => value + 1);
   };
   return { pitchView, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
+    announcement, announcementExiting, announcementRate: playbackRate(speed, mode), dismissAnnouncement, ...announcementPreferences,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }

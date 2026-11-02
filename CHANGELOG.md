@@ -8,6 +8,10 @@
   Touch input shows Cancel plan; mouse input retains right-click cancellation
   and waypoint undo.
 
+- Browser V2 announces confirmed turnovers with their cause, touchdowns, and numbered
+  team-turn starts using dimmed pitch overlays. Announcements support safe dismissal,
+  a saved Game Settings preference, transparent banners with smooth fades and a pause between queued announcements,
+  a close box when held, reduced motion, replay, and persistent match-log details.
 - Bug fix roundup #5: successful movement rolls no longer pause movement;
   partial rerolls animate only the rerolled dice. Resource and player tooltips
   appear above other match elements without duplicate native tooltips, and chat

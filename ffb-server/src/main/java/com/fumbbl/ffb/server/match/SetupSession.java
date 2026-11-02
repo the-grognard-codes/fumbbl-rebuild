@@ -104,6 +104,7 @@ public final class SetupSession {
 	private long awayReserveUsedMs;
 	private final ReactiveDecision reactiveDecision = new ReactiveDecision();
 	private final CommittedBlockPresentation blockPresentation = new CommittedBlockPresentation();
+	private final MatchAnnouncementPresentation announcements = new MatchAnnouncementPresentation();
 	private boolean expiringReaction;
 	private boolean reactiveSequencing = true;
 	private static final long TURN_ALLOWANCE_MS = 120_000L;
@@ -157,7 +158,11 @@ public final class SetupSession {
 		if (document.computer != null) computerPolicy = new ComputerPolicyState();
 		state = new GameState(server) {
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
-			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
+			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); announcements.observe(sync); }
+			@Override public void observeEndTurnParameter(StepId source, boolean endTurn) { announcements.cause(getGame(), source, endTurn); }
+			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
+			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
+			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
 		if (recoverable) {
 			recoveryDice = new RecoveryDice();
@@ -199,13 +204,19 @@ public final class SetupSession {
 		matchId = document.matchId;
 		state = new GameState(server) {
 			@Override public boolean consumesDeclaredActions() { return SetupSession.this.routeV2; }
-			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); }
+			@Override public void observeModelSync(ServerCommandModelSync sync) { blockPresentation.observe(this, sync); announcements.observe(sync); }
+			@Override public void observeEndTurnParameter(StepId source, boolean endTurn) { announcements.cause(getGame(), source, endTurn); }
+			@Override public void observeTurnoverReason(String reason) { announcements.reason(getGame(), reason); }
+			@Override public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { announcements.end(getGame(), scorer, halfEnded); announcements.flush(this); }
+			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
 		try {
 			JsonObject envelope = new MatchJson().parse(artifact, MAX_RECOVERY_ARTIFACT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
+			JsonValue savedAnnouncements = payload.get("matchAnnouncements");
+			if (savedAnnouncements != null) payload.remove("matchAnnouncements");
 			JsonValue savedBlockPresentation = payload.get("blockPresentation");
 			if (savedBlockPresentation != null) payload.remove("blockPresentation");
 			JsonValue savedComputer = payload.get("computerMemory");
@@ -287,6 +298,7 @@ public final class SetupSession {
 			JsonObject nativeSnapshot = new RecoveryNativeJson().normalize(payload.get("native").asObject());
 			state.initFrom(server.getFactorySource(), nativeSnapshot);
 			if (savedBlockPresentation != null) blockPresentation.restore(savedBlockPresentation.asObject(), state.getGame());
+			if (savedAnnouncements != null) announcements.restore(savedAnnouncements.asObject());
 			if (savedReaction != null && !savedReaction.isNull()) reactiveDecision.restore(savedReaction.asObject());
 			UtilSkillBehaviours.registerBehaviours(state.getGame(), server.getDebugLog());
 			state.setTurnTimeStarted(payload.get("turnTimeStarted").asLong());
@@ -404,6 +416,7 @@ public final class SetupSession {
 		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
 		payload.add("reactionVersion", 1);
 		payload.add("blockPresentation", blockPresentation.checkpoint());
+		payload.add("matchAnnouncements", announcements.checkpoint());
 		if (transcriptV2) payload.add("saveResumeEnabled", saveResume).add("transcript", transcript.jsonFrom(from == null ? 0 : from[3]))
 			.add("saveResume", saveResume ? saveResumeState.json() : JsonValue.NULL);
 		else if (saveResume) payload.add("saveResume", saveResumeState.json());
@@ -810,6 +823,7 @@ public final class SetupSession {
 		try {
 			// No legacy socket is registered for these private engine IDs. Authorization above is persisted-role based.
 			blockPresentation.prepare(state, command);
+			announcements.prepare(game, command);
 			if (committedBlitz != null) blockPresentation.plan(committedBlitz);
 			if ("concede".equals(operation)) {
 				pendingRoute = null;
@@ -1275,6 +1289,7 @@ public final class SetupSession {
         events.add(event);
         if (transcriptV2) {
             NativeOutcomeCapture.Capture capture = new NativeOutcomeCapture().since(state.getGameLog(), transcript.nativeCursor(), rollPresentation);
+            announcements.decorate(capture.modelSyncs);
             JsonArray nativeOutcomes = new JsonArray();
             capture.modelSyncs.forEach(sync -> { blockPresentation.decorate(sync); nativeOutcomes.add(sync); });
             JsonValue accepted = JsonValue.NULL;
@@ -1287,6 +1302,7 @@ public final class SetupSession {
                 nativeOutcomes, snapshot, capture.lastCommandNr);
         }
         blockPresentation.recorded();
+        announcements.recorded();
     }
 	public CompletedMatch completedMatch() {
         if (!isComplete() || failed) throw new MatchService.Failure("NOT_COMPLETED");

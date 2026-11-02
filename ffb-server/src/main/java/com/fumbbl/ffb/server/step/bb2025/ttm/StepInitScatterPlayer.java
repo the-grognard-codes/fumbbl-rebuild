@@ -264,6 +264,8 @@ public final class StepInitScatterPlayer extends AbstractStepWithReRoll {
 		if (scatterResult.isInBounds()) {
 			handleLanding(thrownPlayer, endCoordinate);
 		} else {
+			if (thrownPlayerHasBall) getGameState().observeTurnoverReason(
+				thrownPlayer.getName() + " left the pitch while carrying the ball after being thrown.");
 			new TtmToCrowdHandler().handle(game, this, thrownPlayer, endCoordinate, thrownPlayerHasBall,
 				new InjuryTypeCrowdPush());
 			publishParameter(new StepParameter(StepParameterKey.THROWN_PLAYER_ID, thrownPlayerId));
@@ -337,7 +339,7 @@ public final class StepInitScatterPlayer extends AbstractStepWithReRoll {
 				.getOptionWithDefault(GameOptionId.END_TURN_WHEN_HITTING_ANY_PLAYER_WITH_TTM);
 			if (alwaysTurnOver.isEnabled() || ((game.isHomePlaying() && game.getTeamHome().hasPlayer(playerLandedUpon))
 				|| (!game.isHomePlaying() && game.getTeamAway().hasPlayer(playerLandedUpon)))) {
-				commands.add(new HitPlayerTurnOverCommand());
+				commands.add(new HitPlayerTurnOverCommand(playerLandedUpon.getId(), thrownPlayerId));
 			}
 
 			DropPlayerContext dropPlayerContext = new DropPlayerContext(injuryResultHitPlayer, false, true,

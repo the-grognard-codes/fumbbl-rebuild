@@ -15,5 +15,6 @@ test('native coordinate changes retain every confirmed square in command order',
   assert.deepEqual(confirmedMoves(record), [
     { playerId: 'runner', x: 7, y: 5 }, { playerId: 'runner', x: 8, y: 5 }, { playerId: 'runner', x: 9, y: 6 }
   ]);
-  assert.deepEqual(playbackBeats(record).map(beat => beat.kind), ['dice', 'move', 'move', 'move']);
+  assert.deepEqual(playbackBeats(record).map(beat => beat.kind), ['dice', 'move', 'move', 'move', 'player']);
+  assert.deepEqual(playbackBeats(record).at(-1), { kind: 'player', playerId: 'runner', changes: { x: null, y: null } });
 });

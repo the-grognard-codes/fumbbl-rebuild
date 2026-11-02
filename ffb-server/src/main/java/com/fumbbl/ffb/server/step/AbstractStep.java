@@ -194,6 +194,8 @@ public abstract class AbstractStep implements IStep {
 
 	public void publishParameter(StepParameter pParameter) {
 		if (pParameter != null) {
+			if (pParameter.getKey() == StepParameterKey.END_TURN)
+				getGameState().observeEndTurnParameter(getId(), Boolean.TRUE.equals(pParameter.getValue()));
 			DebugLog debugLog = getGameState().getServer().getDebugLog();
 			if (debugLog.isLogging(IServerLogLevel.TRACE)) {
 				String trace = getId() + " publishes " + pParameter.getKey() + "=" +

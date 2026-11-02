@@ -6,8 +6,9 @@ import type { MatchLogPreferences } from './match-log-preferences.ts';
 import type { LogActors, LogBlock, LogOutcome, LogPresentation, LogRoll } from './log-presentation.ts';
 import { reportedDice } from './dice-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
+import { syncAnnouncements, announcementText } from './match-announcements.ts';
 
-export type MatchLogLine = { key: string; revision: number; at: number; text: string; debug?: string;
+export type MatchLogLine = { key: string; revision: number; at: number; text: string; debug?: string; announcement?: boolean;
   dice?: { faces: string[]; kinds: DieKind[]; selected: number | null; uphill?: boolean; chooser?: 'home' | 'away'; inline?: boolean } };
 
 const readable = (value: string) => value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase();
@@ -309,6 +310,10 @@ export function appendMatchLogLines(lines: MatchLogLine[], record: TranscriptRec
         knockdown: 'is knocked down', prone: 'becomes prone', stunned: 'is stunned', knockedOut: 'is knocked out', removed: 'is removed from play',
         dead: 'dies', standing: `remains standing${outcome.skill ? ` with ${outcome.skill}` : ''}` };
       add(`${name} ${messages[outcome.kind]}.`, `${metadata(undefined, sync.commandNr)} · player ${outcome.playerId} · outcome ${outcome.kind}`);
+    }
+    for (const announcement of syncAnnouncements(record, sync)) {
+      if (lines.some(line => line.key === announcement.id)) continue;
+      lines.push({ key: announcement.id, revision: record.revision, at: record.at, text: announcementText(announcement), announcement: true });
     }
   }
   const movement = presentation?.movement;
