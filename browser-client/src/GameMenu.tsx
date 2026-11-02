@@ -12,6 +12,7 @@ import { useLimitedActionTags } from './use-limited-action-tags.ts';
 import { useNegativeConditionMarkers } from './use-negative-condition-markers.ts';
 import { AutomaticSkillUse } from './AutomaticSkillUse.tsx';
 import type { SkillUseControls } from './skill-use-preferences.ts';
+import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
 
 type Tab = 'Game Options' | 'Game Settings' | 'Skills & Traits' | 'Interface' | 'Key Bindings' | 'Game Log';
 
@@ -28,6 +29,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   const { preferences: skillMarkers, change: changeSkillMarkers } = useSkillMarkerPreferences();
   const { visible: showLimitedActions, change: changeLimitedActions } = useLimitedActionTags();
   const { visible: showConditions, change: changeConditions } = useNegativeConditionMarkers();
+  const { holdAnnouncements, changeHoldAnnouncements } = useAnnouncementPreferences();
   const neutral = replay || view.callerRole === 'spectator';
   const skillControl = (name: 'showOwn' | 'showOpponent' | 'showBase' | 'showAcquired' | 'showTraits' | 'showBigGuyNegatraits', label: string) =>
     <label><input type="checkbox" checked={skillMarkers[name]} onChange={event => changeSkillMarkers(name, event.target.checked)}/>{label}</label>;
@@ -87,7 +89,10 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             </label>
             <p>The Big Guy toggle controls Bone Head, Really Stupid, Always Hungry, Animal Savagery, Unchannelled Fury, and Secret Weapon. It does not hide Loner.</p>
           </section></>}
-          {tab === 'Game Settings' && <section className="threat-settings"><h3>Opposing player threats</h3>
+          {tab === 'Game Settings' && <><section><h3>Match announcements</h3>
+            <label className="announcement-preference"><input type="checkbox" checked={holdAnnouncements}
+              onChange={event => changeHoldAnnouncements(event.target.checked)}/><span>Keep announcements until dismissed</span></label>
+          </section><section className="threat-settings"><h3>Opposing player threats</h3>
             <p>Show threats when selecting an unfinished friendly player during your turn or Charge!.</p>
             <div role="group" aria-label="Threat markings">
               {threatControl('enabled', 'Show opposing player threats')}
@@ -97,7 +102,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             </div>
             <div role="group" aria-label="Movement skills">{stripeSkillControls.map(([name, label]) => threatControl(name, label))}</div>
             <p>Colors show overlapping zones: green 1, yellow 2, orange 3, red 4+. Skill markings show skill presence.</p>
-          </section>}
+          </section></>}
           {tab === 'Game Options' && <>
             <section><h3>Request Match Pause</h3>
               {!saved && <p>Pause is unavailable for this match.</p>}

@@ -184,6 +184,8 @@ public class StepDropFallingPlayers extends AbstractStep {
 
 		if ((attackerState != null) && (attackerState.getBase() == PlayerState.FALLING) && (attackerCoordinate != null)) {
 			if (!(state.saboteurTriggeredDefender || state.saboteurTriggeredAttacker)) {
+				getGameState().observeTurnoverReason(actingPlayer.getPlayer().getName()
+					+ (actingPlayer.isFellFromRush() ? " fell while rushing." : " was knocked down performing a block."));
 				publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 			}
 			InjuryResult injuryResultAttacker;

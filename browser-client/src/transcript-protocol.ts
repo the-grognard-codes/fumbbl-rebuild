@@ -3,6 +3,7 @@ import { decodeLogActors, decodeLogBlock, decodeLogOutcomes, decodeLogPresentati
 import { decodeSetupStateValue } from './setup-protocol.ts';
 import type { SetupState } from './setup-protocol.ts';
 import { decodeBlockContext } from './block-context.ts';
+import { decodeMatchAnnouncements } from './match-announcements.ts';
 
 export type TranscriptRecord = {
   index: number; revision: number; kind: string; actor: 'system' | 'home' | 'away'; at: number;
@@ -60,6 +61,7 @@ export function decodeTranscript(json: string, allowLive = false): TranscriptRes
       priorCommand = number;
       if (Object.hasOwn(command, 'blockContext') && command.blockContext !== null) decodeBlockContext(command.blockContext, state.players);
       if (Object.hasOwn(command, 'logOutcomes')) decodeLogOutcomes(command.logOutcomes);
+      if (Object.hasOwn(command, 'matchAnnouncements')) decodeMatchAnnouncements(command.matchAnnouncements);
       const reports = (command.reportList as { reports?: unknown[] } | undefined)?.reports;
       if (Array.isArray(reports)) for (const report of reports) {
         if (report && typeof report === 'object' && Object.hasOwn(report, 'logRoll'))

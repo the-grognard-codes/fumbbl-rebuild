@@ -109,7 +109,8 @@ function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, inter
   interactionBlocked: boolean;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration,
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
   const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
   const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);
@@ -124,6 +125,7 @@ function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, inter
   const visibleDice = diceMoment ?? (!playbackActive && (skipAnimations || diceSnapshot) ? moments.at(-1) ?? null : null);
   return <><div className="replay-board">
     <LivePitch view={pitchView} selectedId="" actions={[]} readOnly allowEndChoice diceMoment={visibleDice}
+      splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
       diceSnapshot={skipAnimations || diceSnapshot && !playbackActive}
       interactionBlocked={interactionBlocked}
       animateBlockMarkers={!skipAnimations}

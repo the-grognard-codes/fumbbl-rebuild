@@ -24,7 +24,8 @@ function Harness() {
   const [input, setInput] = useState(window.playbackInput);
   window.publishPlayback = setInput;
   window.playbackActions ??= [];
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration, beginProvisional, synchronizing } =
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration, beginProvisional, synchronizing,
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
     usePitchPlayback(input.view, input.records, input.enabled, input.speed ?? 1, input.mode, input.requestPending ?? null, input.snapshotKey);
   window.beginProvisional = beginProvisional;
   useLayoutEffect(() => {
@@ -38,6 +39,7 @@ function Harness() {
       data-active={playbackActive} data-synchronizing={synchronizing} data-duration={movementDuration} data-roll-key={diceMoment?.rollKey ?? ''}/>
     {!playbackActive && (input.view.prompt || input.view.actions.length > 0) && <button id="required-choice">Required choice</button>}
     <LivePitch view={pitchView} selectedId="" actions={[]} diceMoment={diceMoment} readOnly={!input.interactive || playbackActive} playback={playbackActive}
+      splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
       diceSnapshot={diceSnapshot && !playbackActive}
       movementDuration={playbackActive ? movementDuration : 0}
       decision={input.interactive && !playbackActive ? matchDecision(input.view, input.view.actions) : null}

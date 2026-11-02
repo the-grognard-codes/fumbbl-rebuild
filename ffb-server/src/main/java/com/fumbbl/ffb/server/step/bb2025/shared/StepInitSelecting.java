@@ -515,6 +515,7 @@ public final class StepInitSelecting extends AbstractStep {
 
 	@Override
 	public void start() {
+		getGameState().observePlayableTurn();
 		if (fUpdatePersistence) {
 			fUpdatePersistence = false;
 		}

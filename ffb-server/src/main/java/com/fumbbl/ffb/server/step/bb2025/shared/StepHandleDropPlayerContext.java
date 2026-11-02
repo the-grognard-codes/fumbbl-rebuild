@@ -1,13 +1,13 @@
 package com.fumbbl.ffb.server.step.bb2025.shared;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.injury.context.ModifiedInjuryContext;
 import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.NetCommandId;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
@@ -29,6 +29,9 @@ import com.fumbbl.ffb.server.util.UtilServerInjury;
 import com.fumbbl.ffb.server.util.UtilServerPlayerMove;
 import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.StringTool;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
 public class StepHandleDropPlayerContext extends AbstractStepWithReRoll {
@@ -147,6 +150,12 @@ public class StepHandleDropPlayerContext extends AbstractStepWithReRoll {
 					publishParameters(UtilServerInjury.dropPlayer(this, game.getPlayerById(dropPlayerContext.getPlayerId()),
 						dropPlayerContext.getApothecaryMode(), dropPlayerContext.isEligibleForSafePairOfHands()));
 					if (dropPlayerContext.isEndTurn()) {
+						Player<?> victim = game.getPlayerById(dropPlayerContext.getPlayerId());
+						PlayerAction action = game.getActingPlayer().getPlayerAction();
+						boolean blocking = victim == game.getActingPlayer().getPlayer() && action != null
+						    && (action == PlayerAction.BLOCK || action == PlayerAction.MULTIPLE_BLOCK || action.isBlitzing());
+						getGameState().observeTurnoverReason(victim.getName() + " was knocked down"
+						    + (blocking ? " performing a block." : "."));
 						publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 					}
 					if (dropPlayerContext.getVictimStateKey() != null) {

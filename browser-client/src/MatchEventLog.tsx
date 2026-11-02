@@ -105,7 +105,7 @@ export function MatchEventLog({ records, loading, unavailable, showSettings = tr
     <div ref={pane} role="log" aria-label="Authoritative match events" aria-live="polite" className="match-event-scroll"
       style={{ fontSize: `${matchTextPixels[fontSize]}px`, lineHeight: 1.5 }}
       onScroll={rememberPosition}>
-      {lines.map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision}>
+      {lines.map(line => <p key={line.key} data-log-key={line.key} data-revision={line.revision} aria-live={line.announcement ? 'off' : undefined}>
         {line.dice && !line.dice.inline && <span className="match-log-dice">{line.dice.faces.map((face, index) =>
           <LogDie key={index} kind={line.dice?.kinds[index] ?? 'block'} face={face}
             selected={line.dice?.selected === index} uphill={line.dice?.uphill} chosenBy={line.dice?.chooser}/>)}</span>}

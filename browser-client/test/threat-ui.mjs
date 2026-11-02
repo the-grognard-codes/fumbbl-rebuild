@@ -84,10 +84,11 @@ try {
     const open = async () => { await page.getByRole('button', { name: 'Game Menu', exact: true }).click(); await page.getByRole('tab', { name: 'Game Settings', exact: true }).click(); };
     const menu = page.getByRole('dialog', { name: 'Game Menu', exact: true });
     const checkbox = name => menu.getByRole('checkbox', { name, exact: true });
-    await open(); assert.equal(await menu.getByRole('checkbox').count(), 8);
-    assert.ok((await menu.getByRole('checkbox').all()).length);
-    for (const control of await menu.getByRole('checkbox').all()) assert.equal(await control.isChecked(), true);
-      const controlSizes = await menu.getByRole('checkbox').evaluateAll(controls => controls.map(control => {
+    const threatCheckboxes = menu.locator('.threat-settings').getByRole('checkbox');
+    await open(); assert.equal(await threatCheckboxes.count(), 8);
+    assert.ok((await threatCheckboxes.all()).length);
+    for (const control of await threatCheckboxes.all()) assert.equal(await control.isChecked(), true);
+      const controlSizes = await threatCheckboxes.evaluateAll(controls => controls.map(control => {
         const box = control.getBoundingClientRect(); const label = control.parentElement.getBoundingClientRect();
         return [box.width, box.height, label.height];
       }));
@@ -113,7 +114,7 @@ try {
     await page.reload(); await page.locator('.coach-match').waitFor(); await select(); await open();
     assert.equal(await checkbox('Tackle-zone colors').isChecked(), false); assert.equal(await checkbox('Tentacles').isChecked(), true);
     assert.equal(await checkbox('Shadowing').isChecked(), false); assert.ok(await page.locator('.live-threat-hatch').count());
-    for (const control of await menu.getByRole('checkbox').all()) await control.check();
+    for (const control of await threatCheckboxes.all()) await control.check();
     for (const [width, height] of [[1237, 617], [640, 330], [375, 300]]) {
       await page.setViewportSize({ width, height });
         await menu.evaluate(element => element.scrollTop = 0);

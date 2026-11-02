@@ -148,6 +148,9 @@
 .play-runtime :is(.coach-match.hosted-match, .replay-menu) .game-menu-dialog nav { border-color: #426c9b; gap: 6px; }
 .threat-settings [role=group] { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
 .play-runtime .game-menu-dialog .threat-settings label { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; font: inherit; text-align: left; }
+.play-runtime .game-menu-dialog .announcement-preference { display: flex; align-items: center; gap: 8px; font: inherit; text-align: left; }
+.play-runtime .game-menu-dialog .announcement-preference input { width: 18px; height: 18px; padding: 0; margin: 0; flex: none; }
+.play-runtime .game-menu-dialog .announcement-preference span { min-width: 0; overflow-wrap: anywhere; }
 .play-runtime .game-menu-dialog .threat-settings input[type=checkbox] { flex: 0 0 16px; width: 16px; height: 16px; min-width: 0; min-height: 0; padding: 0; margin: 0; accent-color: #49e6ff; }
 .play-runtime .game-menu-dialog .threat-settings input:focus-visible { outline: 2px solid #49e6ff; outline-offset: 2px; }
 .play-runtime :is(.coach-match.hosted-match, .replay-menu) .game-menu-dialog button,

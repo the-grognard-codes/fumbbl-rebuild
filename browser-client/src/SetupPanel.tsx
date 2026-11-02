@@ -281,7 +281,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const blurPlayer = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setHoverPlayer(null); };
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional } =
+  const { pitchView, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional,
+    announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
     usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable, 1, 'live', requestPending);
   const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
@@ -1219,6 +1220,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
       <LivePitch view={pitchView} selectedId={playerId} movementDuration={playbackActive ? movementDuration : 0}
+        splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
         interactionBlocked={!connected || !!pending || suspended}
         actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
         blockPreview={confirmedDice?.context ?? proposedBlocks}

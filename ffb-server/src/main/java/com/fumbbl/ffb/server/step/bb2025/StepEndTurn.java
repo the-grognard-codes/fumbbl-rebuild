@@ -297,6 +297,7 @@ public class StepEndTurn extends AbstractStep {
 				}
 
 				fNextSequencePushed = true;
+				if (!fTouchdown) getGameState().observeTurnEnd(null, fNewHalf);
 
 				if (fTouchdown) {
 
@@ -326,6 +327,7 @@ public class StepEndTurn extends AbstractStep {
 
 					}
 
+					getGameState().observeTurnEnd(touchdownPlayer, fNewHalf);
 					game.setTurnMode(TurnMode.SETUP);
 					game.setSetupOffense(false);
 

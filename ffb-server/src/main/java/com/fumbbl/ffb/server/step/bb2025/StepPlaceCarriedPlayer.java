@@ -230,7 +230,7 @@ public class StepPlaceCarriedPlayer extends AbstractStep {
 			.getOptionWithDefault(GameOptionId.END_TURN_WHEN_HITTING_ANY_PLAYER_WITH_TTM);
 		if (alwaysTurnOver.isEnabled() || ((game.isHomePlaying() && game.getTeamHome().hasPlayer(playerLandedUpon))
 			|| (!game.isHomePlaying() && game.getTeamAway().hasPlayer(playerLandedUpon)))) {
-			commands.add(new HitPlayerTurnOverCommand());
+			commands.add(new HitPlayerTurnOverCommand(playerLandedUpon.getId(), carriedPlayer.getId()));
 		}
 		commands.add(new DropPlayerCommand(playerLandedUpon.getId(), ApothecaryMode.HIT_PLAYER, true));
 
@@ -254,6 +254,7 @@ public class StepPlaceCarriedPlayer extends AbstractStep {
 			publishParameter(new StepParameter(StepParameterKey.THROW_IN_COORDINATE, carrierCoordinate));
 		}
 
+		getGameState().observeTurnoverReason(carriedPlayer.getName() + " left the pitch while being carried.");
 		publishParameter(new StepParameter(StepParameterKey.END_TURN, true));
 	}
 

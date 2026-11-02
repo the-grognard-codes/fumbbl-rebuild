@@ -65,6 +65,7 @@
       "browser-client/test/cadence-ui.mjs",
       "browser-client/test/playback-motion-ui.mjs",
       "browser-client/test/provisional-movement-ui.mjs",
+      "browser-client/test/match-announcements-ui.mjs",
       "browser-client/test/teammate-ui.mjs",
       "browser-client/test/manual-reroll-ui.mjs",
       "browser-client/test/route-check-ui.mjs"

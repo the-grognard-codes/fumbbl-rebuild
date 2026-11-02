@@ -27,6 +27,7 @@ import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.skilluse.OptionalSkillUse;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepFactory;
+import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepStack;
 import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
 import com.fumbbl.ffb.server.util.ReRollService;
@@ -54,6 +55,12 @@ public class GameState implements IModelChangeObserver, IJsonSerializable {
 
 	/** Read-only application presentation observer; native sessions have no observer. */
 	public void observeModelSync(ServerCommandModelSync command) { }
+
+	/** Presentation notifications only; these never decide or change native rules. */
+	public void observeEndTurnParameter(StepId source, boolean endTurn) { }
+	public void observeTurnoverReason(String reason) { }
+	public void observeTurnEnd(Player<?> scorer, boolean halfEnded) { }
+	public void observePlayableTurn() { }
 
 	private Game fGame;
 	private final GameLog fGameLog;
