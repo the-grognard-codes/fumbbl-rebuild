@@ -58,16 +58,7 @@ public final class BallAndFoulActions {
         TtmMechanic ttm = game.getMechanic(Mechanic.Type.TTM);
         boolean ttmSpent = game.getTurnData().isTtmUsed();
         if ((menu || ttm.isTtmAvailable(game.getTurnData())) && ttm.canThrow(game, player)) {
-            if (menu) {
-                declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE, true, ttmSpent);
-            } else {
-                for (Player<?> mate : player.getTeam().getPlayers()) {
-                    if (onPitch(game, mate) && ttm.canBeThrown(game, mate)) {
-                        declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE, false, ttmSpent);
-                        break;
-                    }
-                }
-            }
+            declare(actions, player, role, "declareThrowTeamMate", "Throw team-mate", PlayerAction.THROW_TEAM_MATE_MOVE, menu, ttmSpent);
         }
         FieldCoordinate ball = game.getFieldModel().getBallCoordinate();
         boolean secureEligible = !player.hasSkillProperty(NamedProperties.preventSecureTheBallAction)

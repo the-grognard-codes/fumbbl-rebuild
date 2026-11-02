@@ -2,6 +2,23 @@ import type { SetupAction, SetupState } from './setup-protocol.ts';
 
 export type PushChoice = { action: SetupAction; x: number; y: number; fromX: number; fromY: number };
 
+/** Punt arrows are local selections until Confirm; native actions own their direction. */
+export function pitchPuntChoices(view: SetupState, actions: SetupAction[], playerId: string,
+  plannedFrom?: { x: number; y: number }): PushChoice[] {
+  if (view.phase !== 'PLAY' || view.callerRole === 'spectator' || view.actor !== view.callerRole) return [];
+  const player = view.players.find(player => player.id === playerId && player.role === view.callerRole);
+  if (player?.x == null || player.y == null) return [];
+  const from = plannedFrom ?? { x: player.x, y: player.y };
+  return actions.flatMap(action => {
+    const target = action.target;
+    if (!['punt', 'puntDirection'].includes(action.kind) || action.actor !== view.callerRole
+      || action.sourcePlayerId !== playerId || !target || !('x' in target)) return [];
+    const dx = target.x - player.x!, dy = target.y - player.y!;
+    if (Math.abs(dx) + Math.abs(dy) !== 1) return [];
+    return [{ action, x: from.x + dx, y: from.y + dy, fromX: from.x, fromY: from.y }];
+  });
+}
+
 /** A pitch choice exists only when every offered push has a known pushed player and square. */
 export function pitchPushChoices(view: SetupState, actions: SetupAction[]): PushChoice[] {
   if (view.callerRole === 'spectator') return [];

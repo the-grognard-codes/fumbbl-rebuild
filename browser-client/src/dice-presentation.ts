@@ -11,7 +11,8 @@ export type PresentedRoll = { label: string; face: string; kind?: DieKind; rollK
 export type DiceMoment = { label: string; faces: string[]; subjectId: string | null; selected: number | null;
   rollKey?: string; rollDuration?: number; revision?: number; uphill?: boolean; chooser?: 'home' | 'away'; rolls?: PresentedRoll[]; groups?: DiceRollGroup[];
   blockContext?: BlockContext | null; outcome?: DiceOutcome; emphasized?: boolean;
-  static?: boolean; exiting?: boolean; rate?: number };
+  static?: boolean; exiting?: boolean; rate?: number;
+  reportId?: string; continuous?: boolean; rerolledIndexes?: number[]; defenderId?: string };
 
 export type DiceRollGroup = DiceMoment & { key: string };
 
@@ -120,6 +121,33 @@ export function visibleBlockActions(view: SetupState, actions: SetupAction[]): S
 
 /** Only values written by native reports become visible dice; no roll is generated in the browser. */
 export function reportedDice(report: Record<string, unknown>, players: SetupPlayer[] = []): DiceMoment | null {
+  const fullPool = report.reportId === 'blockReRoll' && Array.isArray(report.blockRollAfterReroll) ? report.blockRollAfterReroll : null;
+  const moment = reportDiceValues(fullPool ? { ...report, blockRoll: fullPool } : report, players);
+  if (!moment) return null;
+  const reportId = typeof report.reportId === 'string' ? report.reportId : undefined;
+  const continuous = report.successful === true && ['dodgeRoll', 'goForItRoll', 'pickUpRoll', 'catchRoll',
+    'leapRoll', 'jumpUpRoll', 'standUpRoll'].includes(reportId ?? '');
+  const indexes = report.rerolledIndexes;
+  return { ...moment, reportId, ...(continuous ? { continuous: true } : {}),
+    ...(reportId === 'blockReRoll' && typeof report.defenderId === 'string'
+      ? { defenderId: report.defenderId, subjectId: report.defenderId } : {}),
+    ...(Array.isArray(indexes) && indexes.length > 0 && indexes.every(index => Number.isInteger(index)
+      && index >= 0 && index < moment.faces.length) ? { rerolledIndexes: [...new Set(indexes)] } : {}) };
+}
+
+/** Match partial rerolls to the offered Multiple Block target, including unchanged faces. */
+export function isOfferedPartialReroll(moment: DiceMoment | null | undefined, offered: DiceMoment): boolean {
+  return !!moment?.rerolledIndexes && moment.defenderId === offered.subjectId
+    && moment.faces.length === offered.faces.length && moment.faces.every((face, index) => face === offered.faces[index]);
+}
+
+/** Only authoritative reroll indexes can distinguish a same-face partial reroll. */
+export function dieRollKey(moment: DiceMoment | null | undefined, index: number, fallback?: string): string | undefined {
+  if (moment?.rerolledIndexes && !moment.rerolledIndexes.includes(index)) return undefined;
+  return moment?.rolls?.[index]?.rollKey ?? moment?.rollKey ?? fallback;
+}
+
+function reportDiceValues(report: Record<string, unknown>, players: SetupPlayer[]): DiceMoment | null {
   const id = report.reportId;
   if (typeof id !== 'string') return null;
   const subjectId = typeof report.playerId === 'string' ? report.playerId

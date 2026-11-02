@@ -182,7 +182,7 @@ class ReactiveSkillDecisionTest {
         JsonObject reaction = live(fixture.session, "away");
         long deadline = reaction.get("reaction").asObject().get("expiresAt").asLong();
         assertEquals(0, state.getTurnTimeStarted());
-        reaction = perform(fixture, reaction, "reactiveSkill", "away");
+        reaction = perform(fixture, reaction, "onTheBall", "away");
         reaction = perform(fixture, reaction, "reactionMove", "away");
         FieldCoordinate completed = game.getFieldModel().getPlayerCoordinate(reactor);
         assertFalse(new FieldCoordinate(15, 7).equals(completed));

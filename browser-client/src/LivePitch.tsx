@@ -11,7 +11,7 @@ import { currentBlockContext } from './block-context.ts';
 import type { BlockContext } from './block-context.ts';
 import { BlockVisibility } from './BlockVisibility.tsx';
 import { BallMarker } from './BallMarker.tsx';
-import { kickoffMarkerPosition } from './kickoff-ball-presentation.ts';
+import { kickoffMarkerPosition, kickoffPlacementTarget } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
 import { CircularSkillPrompt } from './CircularSkillPrompt.tsx';
 import './ui-round-four.css';
@@ -25,6 +25,7 @@ import type { PushChoice } from './push-choice.ts';
 import { passingLegend, passingSquare } from './passing-presentation.ts';
 import type { MovementRange } from './movement-protocol.ts';
 import { movementRangePresentation } from './movement-range-presentation.ts';
+import { isOnTheBallMovement } from './movement-interaction.ts';
 import { defaultThreatPreferences, type ThreatPreferences } from './threat-preferences.ts';
 import { projectThreatSquare, threatOpacity, threatSquares } from './threat-presentation.ts';
 import './live-pitch.css';
@@ -87,7 +88,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
     data-anchor-mode={body && !failedArt.has(body.url) ? placement?.mode : 'token'}
     className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}`}
     aria-label={`${teamName} ${player.name}, number ${number}, ${player.state}, square ${player.x}, ${player.y}`}
-    tabIndex={visible ? 0 : -1} title={`${player.name} #${number} · ${player.state}`} draggable={canDrag && visible}
+    tabIndex={visible ? 0 : -1} draggable={canDrag && visible}
     style={{ left, top, width, height, zIndex: 10 + order, visibility: visible ? 'visible' : 'hidden' }}
     onPointerDown={event => { if (canDrag && event.button === 0) event.stopPropagation(); }}
     onDragStart={event => { if (!canDrag) return; event.dataTransfer.setData('application/x-fumbbl-setup-player', player.id);
@@ -200,7 +201,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const camera = useMemo(() => new PitchProjection({ ...size, ...travel, end, mode, zoom, perspectiveElevation }),
     [size, travel, end, mode, zoom, perspectiveElevation]);
   const cameraRef = useRef(camera); cameraRef.current = camera;
-  const specialTargeting = !!decision || !!view.prompt || !!view.reaction || !!view.kickPreview
+  const specialTargeting = !!decision || !!view.prompt || !!view.reaction && !isOnTheBallMovement(view, actions) || !!view.kickPreview
     || view.phase === 'PRE_MATCH' || view.phase === 'READY_FOR_KICKOFF' || !!pushChoices.length || jumpOptions !== null
     || actions.some(action => ['followUp', 'push', 'hitAndRun', 'kickoffMove', 'reactiveSquare'].includes(action.kind));
   const { square: hoverSquare, clear: clearHoverSquare } = usePitchHover(scene, camera,
@@ -306,7 +307,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
       if (action.sourcePlayerId !== selectedId) continue;
     }
     if (action.target && 'playerId' in action.target) targetPlayers.add(action.target.playerId);
-    else if (action.target && 'x' in action.target && !['push', 'followUp', 'hitAndRun', 'move', 'jump', 'kickoff'].includes(action.kind)
+    else if (action.target && 'x' in action.target && !['push', 'followUp', 'hitAndRun', 'move', 'jump', 'kickoff', 'punt', 'puntDirection'].includes(action.kind)
       && !(passing && action.kind === (passing.version === 1 ? 'pass' : passing.action))) {
       const key = `${action.target.x},${action.target.y}`;
       targetSquares.set(key, action.target);
@@ -326,10 +327,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   const showTargetLine = !!plannedTransfer || !!pinnedAction && ['block', 'blitzTarget', 'foul', 'pass', 'handOff', 'liftTeamMate',
     'throwTeamMate', 'kickMate', 'kickMateTo', 'gaze', 'bomb', 'punt'].includes(pinnedAction.kind);
   if (plannedTransfer) targetPlayers.add(plannedTransfer.targetPlayerId);
-  const kickTarget = pinnedAction?.kind === 'kickoff' && pinnedTarget?.x != null && pinnedTarget.y != null
-    ? { x: pinnedTarget.x, y: pinnedTarget.y }
-    : view.phase === 'READY_FOR_KICKOFF' && (hover ?? cursor) && actions.some(action => action.kind === 'kickoff'
-      && action.target && 'x' in action.target && action.target.x === (hover ?? cursor)!.x && action.target.y === (hover ?? cursor)!.y) ? (hover ?? cursor) : null;
+  const kickTarget = kickoffPlacementTarget(view, actions, pinnedAction, hover ?? cursor);
   if (pinnedAction?.kind === 'pass' && pinnedTarget?.x != null && pinnedTarget.y != null) {
     const recipient = view.players.find(player => player.x === pinnedTarget.x && player.y === pinnedTarget.y);
     if (recipient) targetPlayers.add(recipient.id);
@@ -529,6 +527,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           const p = camera.project(centerOf({ x: choice.x, y: choice.y })), from = camera.project(centerOf({ x: choice.fromX, y: choice.fromY }));
           if (!p || !from) return null;
           return <button key={choice.action.id} type="button" className={`live-push-choice${selection ? ' live-sidestep-choice' : ''}${choice.action.kind === 'hitAndRun' ? ' live-hit-and-run-choice' : ''}`} aria-label={choice.action.label} title={choice.action.label}
+            aria-pressed={['punt', 'puntDirection'].includes(choice.action.kind) ? pinnedAction?.id === choice.action.id : undefined}
             disabled={decisionDisabled || readOnly || playback}
             data-x={choice.x} data-y={choice.y}
             style={{ left: p.x - p.pixelsPerSquare / 2, top: p.y - p.pixelsPerSquare / 2, width: p.pixelsPerSquare, height: p.pixelsPerSquare }}

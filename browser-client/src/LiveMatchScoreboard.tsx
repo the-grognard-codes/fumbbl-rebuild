@@ -1,4 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Tooltip } from './Tooltip.tsx';
 import { MatchArt } from './MatchScoreboard.tsx';
 import { DrivePhaseTracker } from './DrivePhaseTracker.tsx';
 import './drive-phase-tracker.css';
@@ -10,7 +11,6 @@ import type { SetupState } from './setup-protocol.ts';
 import { weatherPresentation } from './weather-presentation.ts';
 
 function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName: string; items: HudResource[] }) {
-  const id = useId();
   const resourceElement = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const element = resourceElement.current;
@@ -26,16 +26,17 @@ function Resources({ role, teamName, items }: { role: 'home' | 'away'; teamName:
   }, [role, items.length]);
   if (!items.length) return null;
   return <section ref={resourceElement} className={`live-resources ${role}`} aria-label={`${teamName} resources`}>
-    <div className="live-resource-counts">{items.map(item => <div key={item.kind} className="live-resource-item">
-      <button type="button" className={`live-resource ${item.kind}`} title={`${item.label}: ${item.count} available`}
-        aria-label={`${item.label}: ${item.count} available`} aria-describedby={`${id}-${item.kind}`} style={{ cursor: 'help' }}>
+    <div className="live-resource-counts">{items.map(item => <Tooltip key={item.kind} className="live-resource-tooltip" alignEnd={role === 'away'}
+      content={<>{item.label} · {item.count} available{item.kind === 'reroll' ? ' · Guaranteed sources; conditional Mascot choices appear with the roll' : ''}</>}>
+      {id =>
+      <button type="button" className={`live-resource ${item.kind}`}
+        aria-label={`${item.label}: ${item.count} available`} aria-describedby={id} style={{ cursor: 'help' }}>
         {item.kind === 'reroll' ? <img src={`${import.meta.env.BASE_URL}assets/game/ui/reroll-v1.png`} alt=""/>
           : item.kind === 'apothecary' || item.kind === 'bribe' ? <MatchArt name={item.kind}/>
             : <span aria-hidden="true" className="live-resource-glyph">{item.kind === 'assistantCoach' ? 'AC' : 'CL'}</span>}
         <b>{item.count}</b>
-      </button>
-      <span className="live-resource-tooltip" role="tooltip" id={`${id}-${item.kind}`}>{item.label} · {item.count} available{item.kind === 'reroll' ? ' · Guaranteed sources; conditional Mascot choices appear with the roll' : ''}</span>
-    </div>)}</div>
+      </button>}
+    </Tooltip>)}</div>
   </section>;
 }
 

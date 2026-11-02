@@ -2,6 +2,7 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerAction;
+import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.BlockKind;
 import com.fumbbl.ffb.model.BlockTarget;
@@ -47,6 +48,19 @@ final class BlockPreviewPresentation {
                 for (Player<?> defender : targets) {
                     add(rolls, pairs, attacker.getId(), defender.getId(), calculation);
                 }
+            } else if ("jumpUpBlock".equals(action.kind) && action.command instanceof JumpUpBlockDeclaration) {
+                JumpUpBlockDeclaration declaration = (JumpUpBlockDeclaration) action.command;
+                GameState calculation = copy();
+                Game projected = calculation.getGame();
+                Player<?> attacker = projected.getPlayerById(declaration.getPlayerId());
+                PlayerState previous = projected.getFieldModel().getPlayerState(attacker);
+                projected.getActingPlayer().setPlayer(attacker);
+                projected.getActingPlayer().setOldPlayerState(previous);
+                projected.getActingPlayer().setPlayerAction(PlayerAction.BLOCK);
+                projected.getActingPlayer().setStandingUp(false);
+                projected.getActingPlayer().setHasMoved(true);
+                projected.getFieldModel().setPlayerState(attacker, previous.changeBase(PlayerState.MOVING));
+                add(rolls, pairs, attacker.getId(), declaration.targetPlayerId, calculation);
             } else if ("block".equals(action.kind) || "blitzTarget".equals(action.kind)) {
                 Player<?> attacker = game.getActingPlayer().getPlayer();
                 Player<?> defender = game.getPlayerById(action.targetPlayerId);

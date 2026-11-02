@@ -13,6 +13,8 @@ import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
 final class ActionSource {
     String playerId(Game game, Action action) {
         String sourcePlayerId = game.getActingPlayer().getPlayerId();
+        if (action.command instanceof JumpUpBlockDeclaration)
+            sourcePlayerId = ((JumpUpBlockDeclaration) action.command).getPlayerId();
         if (("skill".equals(action.kind) || "kickSkill".equals(action.kind)) && game.getDialogParameter() instanceof DialogSkillUseParameter)
             sourcePlayerId = ((DialogSkillUseParameter) game.getDialogParameter()).getPlayerId();
         if (isSidestepChoice(game, action.kind))
@@ -27,7 +29,7 @@ final class ActionSource {
         }
         if (action.targetPlayerId != null && ("select".equals(action.kind) || "selectBlock".equals(action.kind)
             || "blitz".equals(action.kind) || "stand".equals(action.kind) || "forgo".equals(action.kind)
-            || action.kind.startsWith("declare") || "secureBall".equals(action.kind))) {
+            || action.kind.startsWith("declare") || "secureBall".equals(action.kind) || "onTheBall".equals(action.kind))) {
             sourcePlayerId = action.targetPlayerId;
         }
         return ownedPlayerId(game, sourcePlayerId, action.role);

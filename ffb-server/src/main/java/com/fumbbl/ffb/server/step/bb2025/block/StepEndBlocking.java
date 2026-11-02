@@ -18,6 +18,7 @@ import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.InjuryResult;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
+import com.fumbbl.ffb.server.skillbehaviour.bb2025.EyeGougeBehaviour;
 import com.fumbbl.ffb.server.step.*;
 import com.fumbbl.ffb.server.step.generator.*;
 import com.fumbbl.ffb.server.util.ServerUtilBlock;
@@ -61,6 +62,7 @@ public class StepEndBlocking extends AbstractStep {
 	private List<String> knockedDownPlayers = new ArrayList<>(); // will be set for all kinds of blocks
 	private String targetPlayerId;
 	private PlayerState oldDefenderState; // will be set for non-multi blocks incl. special actions
+	private FieldCoordinate originalDefenderPosition;
 
 	public StepEndBlocking(GameState pGameState) {
 		super(pGameState);
@@ -159,6 +161,9 @@ public class StepEndBlocking extends AbstractStep {
 				case OLD_DEFENDER_STATE:
 					oldDefenderState = (PlayerState) parameter.getValue();
 					break;
+				case DEFENDER_POSITION:
+					if (originalDefenderPosition == null) originalDefenderPosition = (FieldCoordinate) parameter.getValue();
+					break;
 				case BLOOD_LUST_ACTION:
 					bloodlustAction = (PlayerAction) parameter.getValue();
 					break;
@@ -213,6 +218,9 @@ public class StepEndBlocking extends AbstractStep {
 		fieldModel.clearMultiBlockTargets();
 
 		boolean regularBlock = !fUsingStab && !usingChainsaw && !usingVomit && !usingBreatheFire && !usingChomp;
+		if (regularBlock && fDefenderPushed && (actingPlayer.getPlayerAction() == PlayerAction.BLOCK || actingPlayer.getPlayerAction() == PlayerAction.BLITZ)) {
+			new EyeGougeBehaviour().applyAfterBlock(this, originalDefenderPosition);
+		}
 		if (regularBlock) {
 			UtilCards.getUnusedSkillWithProperty(game.getDefender(), NamedProperties.ignoresDefenderStumblesResultForFirstBlock)
 				.ifPresent(skill -> game.getDefender().markUsed(skill, game));
@@ -453,6 +461,7 @@ public class StepEndBlocking extends AbstractStep {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+		IServerJsonOption.DEFENDER_POSITION.addTo(jsonObject, originalDefenderPosition);
 		IServerJsonOption.END_TURN.addTo(jsonObject, fEndTurn);
 		IServerJsonOption.END_PLAYER_ACTION.addTo(jsonObject, fEndPlayerAction);
 		IServerJsonOption.DEFENDER_PUSHED.addTo(jsonObject, fDefenderPushed);
@@ -479,6 +488,7 @@ public class StepEndBlocking extends AbstractStep {
 	public StepEndBlocking initFrom(IFactorySource source, JsonValue jsonValue) {
 		super.initFrom(source, jsonValue);
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+		originalDefenderPosition = IServerJsonOption.DEFENDER_POSITION.getFrom(source, jsonObject);
 		fEndTurn = IServerJsonOption.END_TURN.getFrom(source, jsonObject);
 		fEndPlayerAction = IServerJsonOption.END_PLAYER_ACTION.getFrom(source, jsonObject);
 		fDefenderPushed = IServerJsonOption.DEFENDER_PUSHED.getFrom(source, jsonObject);

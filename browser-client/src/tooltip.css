@@ -1,0 +1,2 @@
+.tooltip-popover[popover] { margin: 0; inset: auto; }
+.tooltip-popover::backdrop { display: none; }

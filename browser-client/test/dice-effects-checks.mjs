@@ -43,7 +43,9 @@ export async function verifyDiceEffects(browser, url) {
       await page.goto(`${url}/effects-playback-test`);
       await page.waitForFunction(() => !!window.publishPlayback);
       await page.evaluate(() => document.fonts.ready);
-      await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+      // Freeze before publishing the scenario; allow for a busy worker between
+      // reading the browser clock and issuing the pause command.
+      await page.clock.pauseAt(await page.evaluate(() => Date.now() + 60_000));
       const publish = input => page.evaluate(input => window.publishPlayback(input), { enabled: true, mode: 'live', ...input });
       let elapsed = 0;
       const until = async time => { await page.clock.runFor(time - elapsed); elapsed = time; await page.evaluate(() => window.syncPitchCss()); };

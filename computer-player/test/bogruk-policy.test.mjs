@@ -17,6 +17,30 @@ function view(extra = {}) {
 const calm = state => chooseBogrukDecision(state, { recklessness: false });
 const picked = (state, outcome) => state.actions.find(item => item.id === outcome.decision?.actionId);
 
+test('On the Ball exhaustion exits the reaction instead of repeatedly finishing and selecting', () => {
+  for (const finishKind of ['reactiveSkill', 'reactionEndPlayer']) {
+    const state = view({ turnMode: 'PASS_BLOCK', activePlayerId: 'helis', players: [player('helis', 10, 7)],
+      reaction: { actor: 'home' }, actions: [
+        action('reaction-end-player', finishKind, 'helis', null, "Finish this player's movement"),
+        action('reaction-stop', 'reactionEnd', null, null, 'Finish On the Ball movement'),
+        action('reaction-move', 'reactionMove', 'helis', { x: 11, y: 7 }, 'Move to 11, 7'),
+      ] });
+    state.computer.policyState = { version: 1, turnKey: state.computer.progress.turnKey,
+      actions: BOGRUK_SETTINGS.maxActions, mistakeUsed: false, plan: null };
+    assert.equal(calm(state).decision.actionId, 'reaction-stop');
+  }
+});
+
+test('On the Ball movement does not loop through the optional jump toggle', () => {
+  const state = view({ turnMode: 'PASS_BLOCK', activePlayerId: 'helis', players: [player('helis', 10, 7)],
+    reaction: { actor: 'home' }, actions: [
+      action('1:reaction-jump-mode', 'reactiveSkill', 'helis', null, 'Jump over a prone or stunned player'),
+      action('1:reaction-stop', 'reactionEnd', null, null, 'Finish On the Ball movement'),
+      action('1:reaction-move', 'reactionMove', 'helis', { x: 11, y: 7 }, 'Move to 11, 7'),
+    ] });
+  assert.notEqual(calm(state).decision.actionId, '1:reaction-jump-mode');
+});
+
 function offerMovement(state, remaining) {
   const current = state.players.find(item => item.id === state.activePlayerId);
   state.actions = [action('end-action', 'endAction'), action('end-turn', 'endTurn')];

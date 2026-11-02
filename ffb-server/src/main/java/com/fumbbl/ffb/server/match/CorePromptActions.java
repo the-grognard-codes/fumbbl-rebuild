@@ -2,8 +2,8 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.ApothecaryType;
 import com.fumbbl.ffb.Direction;
-import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.Pushback;
@@ -12,18 +12,19 @@ import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.bb2020.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
-import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
-import com.fumbbl.ffb.dialog.DialogOpponentBlockSelectionPropertiesParameter;
-import com.fumbbl.ffb.dialog.DialogReRollBlockForTargetsPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
 import com.fumbbl.ffb.dialog.DialogFollowupChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
+import com.fumbbl.ffb.dialog.DialogOpponentBlockSelectionPropertiesParameter;
+import com.fumbbl.ffb.dialog.DialogPileDriverParameter;
+import com.fumbbl.ffb.dialog.DialogReRollBlockForTargetsPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
-import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecariesParameter;
+import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
 import com.fumbbl.ffb.factory.BlockResultFactory;
 import com.fumbbl.ffb.inducement.InducementType;
 import com.fumbbl.ffb.inducement.Usage;
@@ -34,16 +35,17 @@ import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandApothecaryChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.net.commands.ClientCommandBlockChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandConfirm;
-import com.fumbbl.ffb.net.commands.ClientCommandArgueTheCall;
 import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
 import com.fumbbl.ffb.net.commands.ClientCommandFieldCoordinate;
 import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
+import com.fumbbl.ffb.net.commands.ClientCommandPileDriver;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
-import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecaries;
+import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseInducement;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
 import com.fumbbl.ffb.server.GameState;
@@ -94,7 +96,18 @@ public final class CorePromptActions {
 			reroll(result, game, (DialogReRollPropertiesParameter) dialog);
 		} else if (dialog instanceof DialogFollowupChoiceParameter) {
 			followUp(result, game);
-		} else if (dialog instanceof DialogKickSkillParameter) {
+		} else if (dialog instanceof DialogPileDriverParameter) {
+            DialogPileDriverParameter choice = (DialogPileDriverParameter) dialog;
+            String role = roleForTeam(game, choice.getTeamId());
+            if (role != null) {
+                add(result, "pile-driver:decline", "pileDriver", "Decline Pile Driver", role, new ClientCommandPileDriver(null));
+                for (String playerId : choice.getKnockedDownPlayers()) {
+                    Player<?> target = game.getPlayerById(playerId);
+                    if (target != null) result.add(new CoreTurnActions.Action("pile-driver:" + playerId, "pileDriver",
+                        "Use Pile Driver on " + target.getName(), role, new ClientCommandPileDriver(playerId), playerId));
+                }
+            }
+        } else if (dialog instanceof DialogKickSkillParameter) {
             DialogKickSkillParameter choice = (DialogKickSkillParameter) dialog;
             Player<?> player = game.getPlayerById(choice.getPlayerId());
             String role = roleForPlayer(game, player);

@@ -836,7 +836,7 @@ public final class SetupSession {
 					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
 						swapTarget.getId(), home ? swapOrigin : swapOrigin.transform()), home));
 				}
-				if (routeV2 && (reactionAction == null || !reactionAction.kind.startsWith("reaction") && !reactionAction.kind.startsWith("reactive"))) {
+				if (routeV2 && (reactionAction == null || !reactionAction.kind.startsWith("reaction") && !reactionAction.kind.startsWith("reactive") && !"onTheBall".equals(reactionAction.kind))) {
 					if (!new PlayerActivation(state).handle(command, role))
 						pendingActivation = new PendingActivation(role, (ClientCommandActingPlayer) command, game);
 				}
@@ -1043,7 +1043,7 @@ public final class SetupSession {
 		Player<?> mover = game.getActingPlayer().getPlayer();
 		if (mover != null
 			&& !mover.hasSkillProperty(NamedProperties.movesRandomly)
-			&& available.stream().anyMatch(action -> "move".equals(action.kind) || "jump".equals(action.kind))) {
+			&& available.stream().anyMatch(action -> "move".equals(action.kind) || "jump".equals(action.kind) || "reactionMove".equals(action.kind))) {
 			JsonObject forecast = new RoutePlanner(state, true).adjacent(available);
 			if (forecast != null) projected.add("movementForecast", forecast);
 		}
@@ -1394,8 +1394,11 @@ public final class SetupSession {
 			|| "foul".equals(kind) && game.getActingPlayer().hasFouled()))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
 		List<Action> offered = actions();
+		boolean reactionMovement = (game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN)
+			&& active == player && "move".equals(kind);
 		if (active == player && offered.stream().noneMatch(action -> role.equals(action.role)
 			&& ("move".equals(action.kind) || "jump".equals(action.kind)
+				|| reactionMovement && "reactionMove".equals(action.kind)
 				|| ("blitz".equals(kind) || selectingBlitzTarget) && ("blitzTarget".equals(action.kind) || "block".equals(action.kind))
 				|| "foul".equals(kind) && "foul".equals(action.kind))))
 			throw new MatchService.Failure("ROUTE_UNAVAILABLE");
@@ -1601,7 +1604,9 @@ public final class SetupSession {
 		pendingActivation = null;
 		boolean offered = actions().stream().anyMatch(action -> action.command instanceof ClientCommandActingPlayer
 			&& next.command.getPlayerId().equals(((ClientCommandActingPlayer) action.command).getPlayerId())
-			&& next.command.getPlayerAction() == ((ClientCommandActingPlayer) action.command).getPlayerAction());
+			&& next.command.getPlayerAction() == ((ClientCommandActingPlayer) action.command).getPlayerAction()
+			&& (!(next.command instanceof JumpUpBlockDeclaration) || action.command instanceof JumpUpBlockDeclaration
+				&& ((JumpUpBlockDeclaration) next.command).targetPlayerId.equals(((JumpUpBlockDeclaration) action.command).targetPlayerId)));
 		if (offered) new PlayerActivation(state).handle(next.command, next.role);
 		else pendingRoute = null;
 	}
@@ -1658,7 +1663,7 @@ public final class SetupSession {
 			Action offered = null;
 			boolean jumping = pendingRoute.steps.get(pendingRoute.next).isJump();
 			if (game.getActingPlayer().isJumping() != jumping) {
-				Action toggle = actions().stream().filter(action -> "jumpMode".equals(action.kind)
+				Action toggle = actions().stream().filter(action -> ("jumpMode".equals(action.kind) || "reaction-jump-mode".equals(action.id))
 					&& pendingRoute.actor.equals(action.role)).findFirst().orElse(null);
 				if (toggle != null) {
 					state.handleCommand(new ReceivedCommand(toggle.command, "home".equals(pendingRoute.actor)));
@@ -1668,7 +1673,7 @@ public final class SetupSession {
 				pendingRoute = null; return;
 			}
 			for (Action action : actions()) {
-				if ((jumping ? "jump" : "move").equals(action.kind) && pendingRoute.actor.equals(action.role)
+				if (((jumping ? "jump" : "move").equals(action.kind) || "reactionMove".equals(action.kind)) && pendingRoute.actor.equals(action.role)
 					&& pendingRoute.nextSquare().equals(action.targetSquare)) { offered = action; break; }
 			}
 			if (offered == null) {

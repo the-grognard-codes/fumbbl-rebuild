@@ -4,6 +4,7 @@ import type { ActionGlyphKind } from './ActionGlyph.tsx';
 const definitions: { key: string; label: string; icon: ActionGlyphKind; kinds: string[] }[] = [
   { key: 'move', label: 'Move', icon: 'move', kinds: ['select', 'stand', 'move'] },
   { key: 'block', label: 'Block', icon: 'block', kinds: ['selectBlock', 'block'] },
+  { key: 'jumpUp', label: 'Jump Up', icon: 'jumpUp', kinds: ['jumpUpBlock'] },
   { key: 'blitz', label: 'Blitz', icon: 'blitz', kinds: ['blitz', 'blitzTarget'] },
   { key: 'foul', label: 'Foul', icon: 'foul', kinds: ['declareFoul', 'foul'] },
   { key: 'handOff', label: 'Hand Off', icon: 'handOff', kinds: ['declareHandOff', 'handOff'] },
@@ -21,7 +22,8 @@ const definitions: { key: string; label: string; icon: ActionGlyphKind; kinds: s
   { key: 'kickMate', label: 'Kick Teammate', icon: 'kickMate', kinds: ['declareKickTeamMate', 'kickMate', 'kickMateTo'] },
   { key: 'multipleBlock', label: 'Multiple Block', icon: 'multipleBlock', kinds: ['declareMultipleBlock', 'multiBlock'] },
   { key: 'secure', label: 'Secure the Ball', icon: 'secure', kinds: ['secureBall'] },
-  { key: 'punt', label: 'Punt', icon: 'punt', kinds: ['declarePunt', 'punt', 'puntNow'] },
+  { key: 'punt', label: 'Punt', icon: 'punt', kinds: ['declarePunt'] },
+  { key: 'puntTarget', label: 'Target Punt', icon: 'puntTarget', kinds: ['punt', 'puntNow', 'puntDirection'] },
   { key: 'jump', label: 'Jump', icon: 'jump', kinds: ['jumpMode'] },
   { key: 'recover', label: 'Recover', icon: 'recover', kinds: ['declareRecover'] },
   { key: 'forgo', label: 'Forgo Activation', icon: 'forgo', kinds: ['forgo'] },

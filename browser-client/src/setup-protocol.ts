@@ -101,7 +101,14 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
     }
 
 	if (!Array.isArray(result.actions) || result.actions.length > 8192) throw Error('Invalid actions');
-	const actions = result.actions.map(value => { const action = object(value, targetsV3 ? ['id','label','actor','kind','target', ...(detailsV4 ? ['sourcePlayerId'] : [])] : ['id','label','actor','kind']); text(action.id, 200); text(action.label, 200); role(action.actor); text(action.kind, 60); if (targetsV3 && action.target !== null) { if (typeof action.target !== 'object' || Array.isArray(action.target)) throw Error('Invalid target'); const target = action.target as Record<string, unknown>; if (Object.hasOwn(target, 'playerId')) { const player = object(target, ['playerId']); text(player.playerId); if (!players.some(value => value.id === player.playerId)) throw Error('Unknown target player'); } else { const square = object(target, ['x','y']); integer(square.x, 25); integer(square.y, 14); } } if (detailsV4 && action.sourcePlayerId !== null && (typeof action.sourcePlayerId !== 'string' || !players.some(player => player.id === action.sourcePlayerId && player.role === action.actor))) throw Error('Invalid action source'); return action as SetupAction; });
+	const actions = result.actions.map(value => { const action = object(value, targetsV3 ? ['id','label','actor','kind','target', ...(detailsV4 ? ['sourcePlayerId'] : [])] : ['id','label','actor','kind']); text(action.id, 200); text(action.label, 200); role(action.actor); text(action.kind, 60); if (targetsV3 && action.target !== null) { if (typeof action.target !== 'object' || Array.isArray(action.target)) throw Error('Invalid target'); const target = action.target as Record<string, unknown>; if (Object.hasOwn(target, 'playerId')) { const player = object(target, ['playerId']); text(player.playerId); if (!players.some(value => value.id === player.playerId)) throw Error('Unknown target player'); } else { const square = object(target, ['x','y']);
+      if (action.kind === 'puntDirection') {
+        if (typeof square.x !== 'number' || typeof square.y !== 'number') throw Error('Invalid punt direction');
+        integer(square.x + 1, 27); integer(square.y + 1, 16);
+        const source = players.find(player => player.id === action.sourcePlayerId);
+        if (source?.x == null || source.y == null || Math.abs(source.x - square.x) + Math.abs(source.y - square.y) !== 1)
+          throw Error('Invalid punt direction');
+      } else { integer(square.x, 25); integer(square.y, 14); } } } if (detailsV4 && action.sourcePlayerId !== null && (typeof action.sourcePlayerId !== 'string' || !players.some(player => player.id === action.sourcePlayerId && player.role === action.actor))) throw Error('Invalid action source'); return action as SetupAction; });
 	for (const action of actions) {
 		if (!['reactiveSkill', 'reactiveSquare', 'reactionMove', 'reactionEnd'].includes(action.kind)) continue;
 		const reaction = source.reaction as Reaction | undefined;
@@ -191,8 +198,11 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 		const steps = value.steps.map(step => decodeRouteStep(step, value.version === 2 ? 3 : 2));
 		if (new Set(steps.map(step => `${step.x},${step.y}`)).size !== steps.length
 			|| steps.some(step => !actions.some(action => {
-				const jumping = value.version === 2 && action.kind === 'jump';
-				return (action.kind === 'move' || jumping) && action.sourcePlayerId === mover.id
+				const reactionMove = action.kind === 'reactionMove' && action.actor === mover.role
+					&& ['PASS_BLOCK', 'KICKOFF_RETURN'].includes(result.turnMode as string);
+				const jumping = value.version === 2 && (action.kind === 'jump'
+					|| reactionMove && !!step.checks?.some(check => check.name === 'Jump'));
+				return (action.kind === 'move' || reactionMove || jumping) && action.sourcePlayerId === mover.id
 					&& Math.max(Math.abs(step.x - mover.x!), Math.abs(step.y - mover.y!)) === (jumping ? 2 : 1)
 					&& !!step.checks?.some(check => check.name === 'Jump') === jumping
 					&& action.target && 'x' in action.target && action.target.x === step.x && action.target.y === step.y;

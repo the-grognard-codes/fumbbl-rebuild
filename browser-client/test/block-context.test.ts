@@ -33,6 +33,16 @@ const view = decodeSetupStateValue({ projectionVersion: 4, matchId: '00000000-00
   blockPreview: { version: 1, rolls: [{ playerId: 'attacker', targetPlayerId: 'first', dice: 2, highlight: first }] },
 });
 
+test('a selected Jump Up block uses the native proposed assist markings', () => {
+  const jump = { ...action, kind: 'jumpUpBlock' };
+  const current = { ...view, activePlayerId: null,
+    players: view.players.map(player => player.id === 'attacker' ? { ...player, state: 'is prone' } : player),
+    actions: [jump] };
+  assert.deepEqual(proposedBlockContext(current, 'attacker', 'first', jump, null), context);
+  assert.equal(proposedBlockContext(current, 'attacker', 'second', jump, null), null);
+  assert.equal(proposedBlockContext({ ...current, callerRole: 'spectator' }, 'attacker', 'first', jump, null), null);
+});
+
 test('a private preview requires explicit matching selection, action, acting coach and PLAY phase', () => {
   assert.deepEqual(proposedBlockContext(view, 'attacker', 'first', action, null), context);
   const declaration = { ...action, kind: 'selectBlock', target: { playerId: 'attacker' } };

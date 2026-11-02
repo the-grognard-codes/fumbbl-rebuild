@@ -13,6 +13,16 @@ const playerId = action.sourcePlayerId, targetPlayerId = action.target.playerId;
 const roll = { playerId, targetPlayerId, dice: -2 };
 const view = decodeSetupStateValue({ ...adjacent, blockPreview: { version: 1, rolls: [roll] } });
 
+test('a selected Jump Up block displays the native proposed dice count', () => {
+  const jump = { ...action, kind: 'jumpUpBlock' };
+  const current = { ...view, activePlayerId: null,
+    players: view.players.map(player => player.id === playerId ? { ...player, state: 'is prone' } : player),
+    actions: [jump] };
+  assert.deepEqual(potentialBlockDice(current, playerId, targetPlayerId, jump, null), { dice: -2, targetPlayerId });
+  assert.equal(potentialBlockDice(current, playerId, '', undefined, null), null);
+  assert.equal(potentialBlockDice({ ...current, callerRole: 'spectator' }, playerId, targetPlayerId, jump, null), null);
+});
+
 test('current native signed counts follow proposals and disappear when cancelled or changed', () => {
   for (const dice of [1, 2, 3, -2, -3]) {
     const current = { ...view, blockPreview: { version: 1 as const, rolls: [{ ...roll, dice }] } };

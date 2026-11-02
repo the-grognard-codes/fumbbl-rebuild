@@ -88,16 +88,17 @@ try {
   await recipient.click();
   assert.deepEqual(await page.evaluate(() => window.hudIntents), sent(occupied.id), 'An occupied atomic skill destination remains selectable by its player marker');
 
-  const movement = { ...state, revision: state.revision + 3, reaction: { ...nextReaction, id: 'onball', title: 'On the Ball' },
-    actions: [action('move-12-7', 'reactionMove', 'Move away1 to 12, 7', { x: 12, y: 7 }, 'away1'),
-      action('finish', 'reactionEnd', 'Finish On the Ball movement')] };
-  await publish(movement);
-  await player.click();
-  assert.equal(await page.locator('.live-target-square').count(), 1);
-  const destination = await squarePosition(page, 12, 7); await page.mouse.click(destination.x, destination.y);
-  assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('move-12-7'));
-  await publish(movement); await page.getByRole('button', { name: 'Finish On the Ball movement', exact: true }).click();
-  assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('finish'));
+  const onTheBall = { ...state, actor: 'away', turnMode: 'PASS_BLOCK', activePlayerId: null, revision: state.revision + 3,
+    reaction: { ...nextReaction, id: 'onball', title: 'On the Ball' },
+    actions: [action('onball-use', 'onTheBall', 'Use On the Ball with away1', { playerId: 'away1' }, 'away1'),
+      action('onball-decline', 'reactionEnd', 'Decline On the Ball')] };
+  await publish(onTheBall);
+  await page.locator('.circular-skill-prompt').getByRole('button', { name: 'Use On the Ball with away1', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('onball-use'));
+  await publish(onTheBall);
+  await page.locator('.circular-skill-prompt').getByRole('button', { name: 'Decline On the Ball', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.hudIntents), sent('onball-decline'));
+  // Captured kickoff/pass activation and multi-square routes are covered in on-the-ball-ui.mjs.
 
   const rolls = { ...state, revision: state.revision + 4, reaction: { ...nextReaction, id: 'reroll', title: 'Diving Tackle reroll' },
     actions: [action('roll-keep', 'reroll', 'Keep the roll'), action('roll-use', 'reroll', 'Use team reroll')] };

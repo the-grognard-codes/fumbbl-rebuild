@@ -134,12 +134,19 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
   };
   const chooseFontSize = (size: MatchTextSize) => { setFontSize(size); saveMatchTextSize(fontKey, size); };
   const openEntry = () => {
-    if (!active || !overlay || !canSend || chatUnavailable || entryOpen) return;
+    if (!active || !overlay || !canSend || chatUnavailable) return;
+    if (entryOpen) { entry.current?.focus(); return; }
     previousFocus.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     setEntryOpen(true);
     requestAnimationFrame(() => entry.current?.focus());
   };
-  useEffect(() => { if (sent && draft.trim() === sent.text) setText(''); }, [sent]);
+  const closeEntry = () => {
+    setEntryOpen(false);
+    (previousFocus.current?.isConnected ? previousFocus.current : root.current)?.focus();
+  };
+  useEffect(() => {
+    if (sent && draft.trim() === sent.text) { setText(''); if (overlay) closeEntry(); }
+  }, [sent]);
   useEffect(() => {
     if (!overlay || !active || !canSend || chatUnavailable) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -148,8 +155,7 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
       if (target?.closest('dialog, [role="dialog"]') || document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')) return;
       if (event.key === 'Escape' && entryOpen) {
         event.preventDefault();
-        setEntryOpen(false);
-        (previousFocus.current?.isConnected ? previousFocus.current : root.current)?.focus();
+        closeEntry();
         return;
       }
       if (event.key !== 'Enter' || target?.closest('input, textarea, select, button, a[href], summary, [contenteditable], [role="button"], [role="link"], [role="textbox"]')) return;
@@ -186,7 +192,12 @@ function MatchChatPanel({ matchId, messages, chatLoading, chatUnavailable, conne
       Click chat or press Enter to write
     </button>}
     {canSend && !chatUnavailable && (!overlay || entryOpen) && <form onSubmit={submit}><label htmlFor="match-chat-draft">Message the match</label>
-      <div><input ref={entry} id="match-chat-draft" value={draft} onChange={event => setText(event.target.value)} maxLength={300} autoComplete="off" disabled={!connected || sending}/>
+      <div><input ref={entry} id="match-chat-draft" value={draft} onChange={event => setText(event.target.value)} maxLength={300} autoComplete="off" disabled={!connected || sending}
+        onKeyDown={event => {
+          if (overlay && event.key === 'Enter' && !event.nativeEvent.isComposing && !draft.trim()) {
+            event.preventDefault(); closeEntry();
+          }
+        }}/>
         <button type="submit" disabled={!connected || sending || !draft.trim()}>{sending ? 'Sending…' : 'Send'}</button></div>
       <small>{connected ? sending ? 'Waiting for the server to save this message.' : 'Visible to coaches and spectators.' : 'Reconnect to send.'}</small>
       {sendError && <p role="alert">{sendError}</p>}</form>}

@@ -3,6 +3,7 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
+import com.fumbbl.ffb.dialog.DialogPileDriverParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
 import com.fumbbl.ffb.model.Game;
@@ -53,6 +54,9 @@ final class ReactiveDecision {
                     && ((com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge) state.getCurrentStep()).isPreDivingTackleReroll())
                     nextDetail = "Diving Tackle can make this dodge fail. Reroll the dodge now?";
             }
+        } else if (dialog instanceof DialogPileDriverParameter) {
+            nextKey = "PileDriver:" + ((DialogPileDriverParameter) dialog).getTeamId();
+            nextTitle = "Pile Driver";
         } else if (dialog instanceof DialogPlayerChoiceParameter) {
             DialogPlayerChoiceParameter choice = (DialogPlayerChoiceParameter) dialog;
             if (catalog.covered(choice.getPlayerChoiceMode())) {
@@ -89,7 +93,7 @@ final class ReactiveDecision {
             }
         }
         // These modes cover movement and optional follow-on decisions after native use is committed.
-        boolean onTheBall = game.getTurnMode() == TurnMode.PASS_BLOCK;
+        boolean onTheBall = game.getTurnMode() == TurnMode.PASS_BLOCK || game.getTurnMode() == TurnMode.KICKOFF_RETURN;
         boolean dumpOff = game.getTurnMode() == TurnMode.DUMP_OFF;
         boolean trickster = game.getTurnMode() == TurnMode.TRICKSTER;
         boolean placing = game.getTurnMode() == TurnMode.SAFE_PAIR_OF_HANDS;
@@ -154,7 +158,7 @@ final class ReactiveDecision {
     boolean normalHome() { return normalHome; }
 
     Action decline(GameState state, List<Action> actions) {
-        for (String candidate : new String[] {"reaction-decline", "skill:false", "reroll:none", "reaction-pickup:no", "reaction-stop"})
+        for (String candidate : new String[] {"reaction-decline", "pile-driver:decline", "skill:false", "reroll:none", "reaction-pickup:no", "reaction-stop"})
             for (Action action : actions) if (candidate.equals(action.id)) return action;
         // Mandatory selection from an older checkpoint is already committed; never choose an optional use as a fallback.
         IDialogParameter dialog = state.getGame().getDialogParameter();

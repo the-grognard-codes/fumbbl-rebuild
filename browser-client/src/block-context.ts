@@ -71,7 +71,7 @@ export function proposedBlockContext(view: SetupState, player: string, target: s
     const group = view.blockPreview?.multiple?.find(option => option.actionId === action.id)?.context;
     return group ? { ...group, activeTargetPlayerId: group.blocks.some(block => block.targetPlayerId === target) ? target : group.activeTargetPlayerId } : null;
   }
-  if (!target || !['selectBlock','block','blitzTarget'].includes(action.kind)) return null;
+  if (!target || !['selectBlock','block','blitzTarget','jumpUpBlock'].includes(action.kind)) return null;
   if (action.kind !== 'selectBlock' && (!action.target || !('playerId' in action.target) || action.target.playerId !== target)) return null;
   const highlight = view.blockPreview?.rolls.find(roll => roll.playerId === player && roll.targetPlayerId === target)?.highlight;
   return highlight ? { version: 1, activeTargetPlayerId: target, blocks: [highlight] } : null;

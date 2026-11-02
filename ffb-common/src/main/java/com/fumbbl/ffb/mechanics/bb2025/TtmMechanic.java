@@ -11,8 +11,6 @@ import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.PassModifier;
-import com.fumbbl.ffb.option.GameOptionId;
-import com.fumbbl.ffb.option.UtilGameOption;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,10 +75,7 @@ public class TtmMechanic extends com.fumbbl.ffb.mechanics.TtmMechanic {
 
 	@Override
 	public boolean canThrow(Game game, Player<?> player) {
-		boolean canDeclare = game.getFieldModel().getPlayerState(player).getBase() != PlayerState.PRONE
-			|| UtilGameOption.isOptionEnabled(game, GameOptionId.ALLOW_SPECIAL_ACTIONS_FROM_PRONE);
-
-		return canDeclare && player.hasSkillProperty(NamedProperties.canThrowTeamMates);
+		return player.hasSkillProperty(NamedProperties.canThrowTeamMates);
 	}
 
 	private int calculateModifiers(Collection<PassModifier> pPassModifiers) {

@@ -41,7 +41,7 @@ import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.report.ReportBlock;
 import com.fumbbl.ffb.report.ReportBlockRoll;
-import com.fumbbl.ffb.report.mixed.ReportBlockReRoll;
+import com.fumbbl.ffb.report.bb2025.ReportBlockReRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
@@ -291,13 +291,13 @@ public class StepBlockRollMultiple extends AbstractStepMultiple {
 
 	private void handleImplicitReRollIndex(Player<?> player, BlockRollProperties blockRoll, BlockResult resultToReplace) {
 		int reRolledDie = getGameState().getDiceRoller().rollBlockDice(1)[0];
-		getResult().addReport(new ReportBlockReRoll(new int[]{reRolledDie}, player.getId(), state.reRollSource));
 		BlockResultFactory factory = getGameState().getGame().getFactory(FactoryType.Factory.BLOCK_RESULT);
 		for (int i = 0; i < blockRoll.getNrOfDice(); i++) {
 			if (factory.forRoll(blockRoll.getBlockRoll()[i]) == resultToReplace) {
 				int[] oldRoll = blockRoll.getBlockRoll();
 				blockRoll.setBlockRoll(Arrays.copyOf(oldRoll, oldRoll.length));
 				blockRoll.getBlockRoll()[i] = reRolledDie;
+				getResult().addReport(new ReportBlockReRoll(new int[]{reRolledDie}, player.getId(), state.reRollSource, new int[] {i}, blockRoll.getTargetId(), blockRoll.getBlockRoll()));
 				break;
 			}
 		}
@@ -437,12 +437,12 @@ public class StepBlockRollMultiple extends AbstractStepMultiple {
 		int[] indexesToReRoll) {
 		actingPlayer.markSkillUsed(propertyToMark);
 		int[] reRolledWithPro = getGameState().getDiceRoller().rollBlockDice(indexesToReRoll.length);
-		getResult().addReport(new ReportBlockReRoll(reRolledWithPro, actingPlayer.getPlayerId(), state.reRollSource));
 		int[] oldRoll = roll.getBlockRoll();
 		roll.setBlockRoll(Arrays.copyOf(oldRoll, oldRoll.length));
 		for (int i = 0; i < indexesToReRoll.length; i++) {
 			roll.getBlockRoll()[indexesToReRoll[i]] = reRolledWithPro[i];
 		}
+		getResult().addReport(new ReportBlockReRoll(reRolledWithPro, actingPlayer.getPlayerId(), state.reRollSource, indexesToReRoll, roll.getTargetId(), roll.getBlockRoll()));
 	}
 
 	private DialogOpponentBlockSelectionPropertiesParameter createDefenderDialogParameter(Team team, List<BlockRollProperties> blockRolls) {
