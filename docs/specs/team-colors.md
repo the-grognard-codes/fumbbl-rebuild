@@ -6,7 +6,7 @@ Status: design approved on 2026-11-03. The user accepted all four scope and beha
 
 Tracker: [#438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
 
-Prerequisite: [shared sprite-format proof](shared-sprite-format-proof.md) and [format contract](shared-sprite-format-contract.md). The proof and contract still need to land through the agreed delivery process.
+Prerequisite: [shared sprite-format proof](shared-sprite-format-proof.md) and [format contract](shared-sprite-format-contract.md). The proof and contract landed in [PR #444](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/444), commit `615df5fc9`. Team-color implementation has not started.
 
 ## Abstract
 

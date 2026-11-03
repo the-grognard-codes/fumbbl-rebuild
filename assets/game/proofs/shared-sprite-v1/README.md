@@ -30,7 +30,7 @@ node browser-client/test/sprite-proof-full-ui.mjs
 npm.cmd --prefix browser-client run assets:check
 ```
 
-Serve Vite from `browser-client`; open `/test/sprite-proof.html`. The current local review server is <http://127.0.0.1:5182/test/sprite-proof.html#animation-proof>. Source/delivery validation rejects stale JSON or PNG bytes. The existing sync copies only the proof's delivery namespace into browser assets, retaining accepted catalogs.
+Serve Vite from `browser-client`; open `/test/sprite-proof.html`. The review server was stopped after approval; restart Vite on port 5182 to use <http://127.0.0.1:5182/test/sprite-proof.html#animation-proof>. Source/delivery validation rejects stale JSON or PNG bytes. The existing sync copies only the proof's delivery namespace into browser assets, retaining accepted catalogs.
 
 The fixture exposes design/clip/direction selection, both coach ends, mirroring, perspective/Top-down projection, pause/restart/step, reduced motion, static fallback and a 22-player synthetic Pixi scene. The standalone canvas provides native/integer frame review. Bust selection changes all four shared-identity consumers and its 256-pair sheet. Primary/secondary controls apply to all preview artwork.
 

@@ -1,5 +1,13 @@
 [
   {
+    "number": 444,
+    "title": "Prove shared sprite colors and animation formats",
+    "summary": "Completed a reusable art-format proof with 16 team-color choices and 16 shades, lineman/halfling/ogre animation samples, recolorable busts and Human helmet previews. Recorded visual and 22-player rendering evidence, the production authoring contract, and the approved next feature for complete Human and Orc team-color integration. Live team customization remains upcoming work.",
+    "category": "Design",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/444",
+    "mergedAt": "2026-11-03T23:22:27Z"
+  },
+  {
     "number": 436,
     "title": "Unify the game runtime and diagnostics on V2",
     "summary": "Retired the older V1 browser runtime, diagnostic screens and local startup tools. Live play, replay and recovery now use V2, with automated renderer and restart checks. Reconnect can restore an unavailable match view while preserving uncertain actions for explicit retry. Existing stored data is retained.",
