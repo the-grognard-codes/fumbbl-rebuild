@@ -31,8 +31,9 @@ try {
   await wait(0,7);
   await assertPitchWithoutStadium(page);
   const rolled = record(1,7,[{ reportList: { reports:[dice] } }]);
+  // Pause ahead of command transport latency; pauseAt fast-forwards without a real-time wait.
   // Inspect the brief roll without racing real-time browser commands.
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 10_000));
   await publish({ view: { ...state(1), actions: [{ id:'choice',kind:'blockDie',actor:'home',label:'Choose POW (die 3)',sourcePlayerId:'home1',target:null }] }, records:[record(0),rolled] });
   await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 3);
   assert.equal(await page.locator('#playback-state').getAttribute('data-active'), 'true', 'A dependent response waits for its roll presentation');
@@ -84,7 +85,7 @@ try {
   await publish({view:state(9,21),records:[]}); await wait(9,21);
   await assertPitchWithoutStadium(page);
   await page.emulateMedia({reducedMotion:'reduce'});
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 10_000));
   await page.evaluate(()=>{window.playbackFrames=[];});
   await publish({view:state(10,24),records:Array.from({length:11},(_,revision)=>record(revision,revision===10?24:21,revision===10?[{reportList:{reports:[dice]},modelChangeList:{modelChangeArray:[change(22),change(23),change(24)]}}]:[]))});
   await page.waitForFunction(() => document.querySelectorAll('.live-dice-overlay .match-die').length === 3);
@@ -129,7 +130,7 @@ try {
   })));
   // Successful checks share their movement beat and later checks may replace
   // earlier dice without adding a presentation stop to the player's route.
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 10_000));
   await publish({ view:state(14,24),interactive:false,records:Array.from({length:15},(_,revision)=>
     revision===14?success:record(revision,22)) });
   const successfulDice = page.locator('.live-dice-overlay[role="status"] .match-die');

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- BB2025 kickoff events and touchbacks now use pitch selection followed by confirmation.
+  Quick Snap locks its participants before movement; Solid Defence keeps players on
+  the pitch and supports swaps between selected players. Touchbacks clear the
+  recipient selection before the turn begins.
+
 - Added approved horizontal decision-prompt mockups and a reusable MUTP mole/chibi
   artwork template with source images and generation prompts. Production prompt
   integration and Secret Weapon sequencing remain separate implementation work.

@@ -99,6 +99,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 	private boolean fEndKickoff;
 	private final Map<String, FieldCoordinate> playersAtCoordinates = new HashMap<>();
 	private int nrOfPlayersAllowed, nrOfMovedPlayers;
+	private boolean pitchRedeployment, quickSnapSelection;
 	private String movedPlayer;
 	private FieldCoordinate toCoordinate;
 	private final List<Player<?>> selectedPlayers = new ArrayList<>();
@@ -170,15 +171,50 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		if (commandStatus == StepCommandStatus.UNHANDLED_COMMAND) {
 			switch (pReceivedCommand.getId()) {
 				case CLIENT_SETUP_PLAYER:
+                    if (!UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)) return StepCommandStatus.SKIP_STEP;
 					ClientCommandSetupPlayer setupPlayerCommand = (ClientCommandSetupPlayer) pReceivedCommand.getCommand();
 					if (getGameState().getGame().getTurnMode() == TurnMode.QUICK_SNAP) {
 						movedPlayer = setupPlayerCommand.getPlayerId();
 						toCoordinate = setupPlayerCommand.getCoordinate();
 						commandStatus = StepCommandStatus.EXECUTE_STEP;
+					} else if (getGameState().getGame().getTurnMode() == TurnMode.SOLID_DEFENCE) {
+                        Game game = getGameState().getGame();
+                        if (!pitchRedeployment) {
+                            UtilServerSetup.setupPlayer(getGameState(), setupPlayerCommand.getPlayerId(), setupPlayerCommand.getCoordinate());
+                            return StepCommandStatus.SKIP_STEP;
+                        }
+                        Player<?> player = game.getPlayerById(setupPlayerCommand.getPlayerId());
+                        FieldCoordinate to = setupPlayerCommand.getCoordinate();
+                        if (!game.isHomePlaying() && to != null) to = to.transform();
+                        FieldCoordinateBounds half = game.isHomePlaying() ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY;
+                        if (!UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)
+                            || !selectedPlayers.contains(player) || !half.isInBounds(to)) return StepCommandStatus.SKIP_STEP;
+                        Player<?> occupant = game.getFieldModel().getPlayer(to);
+                        if (occupant != null && !selectedPlayers.contains(occupant)) return StepCommandStatus.SKIP_STEP;
+                        FieldCoordinate from = game.getFieldModel().getPlayerCoordinate(player);
+                        game.getFieldModel().setPlayerCoordinate(player, to);
+                        if (occupant != null && occupant != player) game.getFieldModel().setPlayerCoordinate(occupant, from);
+                        commandStatus = StepCommandStatus.SKIP_STEP;
 					} else {
+                        Game current = getGameState().getGame();
+                        if (current.getTurnMode() == TurnMode.HIGH_KICK) {
+                            Player<?> player = current.getPlayerById(setupPlayerCommand.getPlayerId());
+                            FieldCoordinate to = setupPlayerCommand.getCoordinate();
+                            if (!current.isHomePlaying() && to != null) to = to.transform();
+                            if (player == null || !current.getActingTeam().hasPlayer(player)
+                                || !current.getFieldModel().getPlayerState(player).isActive()
+                                || !FieldCoordinateBounds.FIELD.isInBounds(current.getFieldModel().getPlayerCoordinate(player))
+                                || to == null || !to.equals(current.getFieldModel().getBallCoordinate())
+                                || current.getFieldModel().getPlayer(to) != null) return StepCommandStatus.SKIP_STEP;
+                        }
 						UtilServerSetup.setupPlayer(getGameState(), setupPlayerCommand.getPlayerId(),
 							setupPlayerCommand.getCoordinate());
-						commandStatus = StepCommandStatus.SKIP_STEP;
+                        Game game = getGameState().getGame();
+                        if (game.getTurnMode() == TurnMode.HIGH_KICK
+                            && game.getFieldModel().getBallCoordinate().equals(game.getFieldModel().getPlayerCoordinate(game.getPlayerById(setupPlayerCommand.getPlayerId())))) {
+                            fEndKickoff = true;
+                            commandStatus = StepCommandStatus.EXECUTE_STEP;
+                        } else commandStatus = StepCommandStatus.SKIP_STEP;
 					}
 					break;
 				case CLIENT_END_TURN:
@@ -186,9 +222,9 @@ public final class StepApplyKickoffResult extends AbstractStep {
 						fEndKickoff = true;
 						if (TurnMode.QUICK_SNAP == getGameState().getGame().getTurnMode()) {
 							endQuickSnap(getGameState().getGame());
-						} else if (TurnMode.SOLID_DEFENCE == getGameState().getGame().getTurnMode()) {
-							setPlayerCoordinates(((ClientCommandEndTurn) pReceivedCommand.getCommand()).getPlayerCoordinates());
 						}
+                        // Solid Defence placements are authoritative as each move is accepted.
+                        // Never replace fixed players from a client-supplied final coordinate map.
 						commandStatus = StepCommandStatus.EXECUTE_STEP;
 					}
 					break;
@@ -196,13 +232,29 @@ public final class StepApplyKickoffResult extends AbstractStep {
 					if (UtilServerSteps.checkCommandIsFromCurrentPlayer(getGameState(), pReceivedCommand)) {
 						ClientCommandPlayerChoice commandPlayerChoice = (ClientCommandPlayerChoice) pReceivedCommand.getCommand();
 						if (commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE ||
-							commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE) {
+							commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE ||
+							commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP) {
+							if (!(getGameState().getGame().getDialogParameter() instanceof DialogPlayerChoiceParameter dialog)
+								|| dialog.getPlayerChoiceMode() != commandPlayerChoice.getPlayerChoiceMode()
+								|| commandPlayerChoice.getPlayerIds().length > dialog.getMaxSelects()
+								|| commandPlayerChoice.getPlayerIds().length < dialog.getMinSelects()
+								|| Arrays.stream(commandPlayerChoice.getPlayerIds()).distinct().count() != commandPlayerChoice.getPlayerIds().length)
+								return StepCommandStatus.SKIP_STEP;
+							selectedPlayers.clear();
 							Arrays.stream(commandPlayerChoice.getPlayerIds()).map(id -> getGameState().getGame().getPlayerById(id))
 								.forEach(selectedPlayers::add);
 							if (selectedPlayers.stream().anyMatch(player -> !eligiblePlayers.contains(player))) {
 								throw new FantasyFootballException("Client selected player that is not eligible");
 							}
+							UtilServerDialog.hideDialog(getGameState());
+							if (commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP) {
+								Game game = getGameState().getGame();
+								for (Player<?> player : game.getActingTeam().getPlayers())
+									if (!selectedPlayers.contains(player)) game.getFieldModel().setPlayerState(player, game.getFieldModel().getPlayerState(player).changeActive(false));
+								if (selectedPlayers.isEmpty()) { endQuickSnap(game); return StepCommandStatus.SKIP_STEP; }
+							}
 							if (commandPlayerChoice.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE) {
+                                pitchRedeployment = true;
 								getGameState().getGame().setTurnMode(TurnMode.SOLID_DEFENCE);
 							}
 						}
@@ -307,11 +359,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 					for (Player<?> player : actingTeam.getPlayers()) {
 						FieldCoordinate fieldCoordinate = game.getFieldModel().getPlayerCoordinate(player);
 						if (FieldCoordinateBounds.FIELD.isInBounds(fieldCoordinate)) {
-							if (selectedPlayers.contains(player)) {
-								game.getFieldModel()
-									.setPlayerState(player, game.getFieldModel().getPlayerState(player).changeBase(PlayerState.RESERVE));
-								UtilBox.putPlayerIntoBox(game, player);
-							} else {
+							if (!selectedPlayers.contains(player)) {
 								game.getFieldModel()
 									.setPlayerState(player, game.getFieldModel().getPlayerState(player).changeActive(false));
 							}
@@ -587,6 +635,15 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		Game game = getGameState().getGame();
 		if (game.getTurnMode() == TurnMode.QUICK_SNAP) {
 			if (StringTool.isProvided(movedPlayer) && toCoordinate != null) {
+                Player<?> moving = game.getPlayerById(movedPlayer);
+                FieldCoordinate to = game.isHomePlaying() ? toCoordinate : toCoordinate.transform();
+                FieldCoordinate from = moving == null ? null : game.getFieldModel().getPlayerCoordinate(moving);
+                if (moving == null || !game.getActingTeam().hasPlayer(moving)
+                    || quickSnapSelection && !selectedPlayers.contains(moving) || !game.getFieldModel().getPlayerState(moving).isActive()
+                    || !FieldCoordinateBounds.FIELD.isInBounds(from) || !FieldCoordinateBounds.FIELD.isInBounds(to)
+                    || !from.isAdjacent(to) || game.getFieldModel().getPlayer(to) != null) {
+                    movedPlayer = null; toCoordinate = null; return;
+                }
 				if (nrOfMovedPlayers < nrOfPlayersAllowed) {
 
 					FieldCoordinate normalizedToCoordinate =
@@ -654,6 +711,7 @@ public final class StepApplyKickoffResult extends AbstractStep {
 			UtilServerGame.syncGameModel(this);
 			game.setHomePlaying(!game.isHomePlaying());
 			game.setTurnMode(TurnMode.QUICK_SNAP);
+            quickSnapSelection = true;
 			int roll = getGameState().getDiceRoller().rollDice(3);
 			nrOfPlayersAllowed = roll + 3;
 			getResult().addReport(new ReportQuickSnapRoll(game.getActingTeam().getId(), roll, nrOfPlayersAllowed));
@@ -667,8 +725,14 @@ public final class StepApplyKickoffResult extends AbstractStep {
 				.forEach(player -> game.getFieldModel()
 					.setPlayerState(player, game.getFieldModel().getPlayerState(player).changeActive(false)));
 
-			if (Arrays.stream(game.getActingTeam().getPlayers())
-				.noneMatch(player -> game.getFieldModel().getPlayerState(player).isActive())) {
+            eligiblePlayers.clear();
+            Arrays.stream(game.getActingTeam().getPlayers())
+                .filter(player -> FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))
+                    && game.getFieldModel().getPlayerState(player).isActive()).forEach(eligiblePlayers::add);
+            if (!eligiblePlayers.isEmpty()) UtilServerDialog.showDialog(getGameState(),
+                new DialogPlayerChoiceParameter(game.getActingTeam().getId(), PlayerChoiceMode.QUICK_SNAP,
+                    eligiblePlayers.toArray(new Player<?>[0]), null, Math.min(nrOfPlayersAllowed, eligiblePlayers.size())), false);
+			if (eligiblePlayers.isEmpty()) {
 				getResult().addReport(new ReportKickoffSequenceActivationsExhausted(false));
 				endQuickSnap(game);
 			}
@@ -876,6 +940,8 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		}
 		IServerJsonOption.END_KICKOFF.addTo(jsonObject, fEndKickoff);
 		IServerJsonOption.PLAYERS_AT_COORDINATES.addTo(jsonObject, playersAtCoordinates);
+        if (pitchRedeployment) jsonObject.add("pitchRedeployment", true);
+        if (quickSnapSelection) jsonObject.add("quickSnapSelection", true);
 		IServerJsonOption.NR_OF_PLAYERS_ALLOWED.addTo(jsonObject, nrOfPlayersAllowed);
 		IServerJsonOption.PLAYER_ID.addTo(jsonObject, movedPlayer);
 		IServerJsonOption.COORDINATE_TO.addTo(jsonObject, toCoordinate);
@@ -902,6 +968,8 @@ public final class StepApplyKickoffResult extends AbstractStep {
 		}
 		fEndKickoff = IServerJsonOption.END_KICKOFF.getFrom(source, jsonObject);
 		playersAtCoordinates.putAll(IServerJsonOption.PLAYERS_AT_COORDINATES.getFrom(source, jsonObject));
+        pitchRedeployment = jsonObject.getBoolean("pitchRedeployment", false);
+        quickSnapSelection = jsonObject.getBoolean("quickSnapSelection", false);
 		nrOfPlayersAllowed = IServerJsonOption.NR_OF_PLAYERS_ALLOWED.getFrom(source, jsonObject);
 		movedPlayer = IServerJsonOption.PLAYER_ID.getFrom(source, jsonObject);
 		toCoordinate = IServerJsonOption.COORDINATE_TO.getFrom(source, jsonObject);

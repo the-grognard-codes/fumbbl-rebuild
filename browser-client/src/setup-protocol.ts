@@ -26,7 +26,7 @@ export type MatchClock = { activeRole: MatchRole | null; turnElapsedMs: number; 
 type RangeGuidance = { playerId: string; from: { x: number; y: number }; weatherPenalty: number; rangeLimited: boolean; ranges: string[] };
 export type PassingRanges = RangeGuidance & ({ version: 1 } | { version: 2; action: 'throwTeamMate' | 'kickMateTo'; targets: (number | null)[][] }
   | { version: 3; action: 'pass' | 'bomb'; hailMary: boolean });
-export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number };
+export type KickoffPresentation = { version: 1; event: 'QUICK_SNAP' | 'CHARGE' | 'HIGH_KICK' | 'SOLID_DEFENCE'; actor: MatchRole; stage: 'selection' | 'movement'; allowed: number; completed: number; selected: number; participantIds?: string[] };
 export type DriveTrackerPresentation = { version: 1; receivingRole: MatchRole; phase: 'KICKING_SETUP' | 'RECEIVING_SETUP' | 'KICK_TARGET' | 'KICKOFF'; secretWeapons: boolean; knockouts: boolean; event: KickoffPresentation['event'] | null; eventComplete: boolean };
 export type MovementForecast = { version: 1 | 2; playerId: string; steps: RouteStep[] };
 export type BallState = { version: 1; carrierPlayerId: string | null; inPlay: boolean; moving: boolean };
@@ -221,7 +221,11 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	let passing: PassingRanges | undefined;
 	let kickoff: KickoffPresentation | undefined;
 	if (Object.hasOwn(result, 'kickoff')) {
-		const value = object(result.kickoff, ['version','event','actor','stage','allowed','completed','selected']);
+		const hasParticipants = !!result.kickoff && typeof result.kickoff === 'object' && Object.hasOwn(result.kickoff, 'participantIds');
+		const value = object(result.kickoff, ['version','event','actor','stage','allowed','completed','selected', ...(hasParticipants ? ['participantIds'] : [])]);
+		if (hasParticipants && (!Array.isArray(value.participantIds) || value.participantIds.length > 16
+			|| new Set(value.participantIds).size !== value.participantIds.length
+			|| value.participantIds.some(id => !players.some(player => player.id === id && player.role === value.actor)))) throw Error('Invalid kickoff participants');
 		role(value.actor); integer(value.allowed, 32); integer(value.completed, 32); integer(value.selected, 32);
 		if (value.version !== 1 || !['QUICK_SNAP','CHARGE','HIGH_KICK','SOLID_DEFENCE'].includes(value.event as string)
 			|| !['selection','movement'].includes(value.stage as string) || (value.completed as number) > (value.allowed as number)

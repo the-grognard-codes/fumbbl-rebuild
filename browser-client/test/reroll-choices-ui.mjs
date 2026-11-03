@@ -118,9 +118,12 @@ try {
         const icon = offeredButton.locator('img');
         await page.waitForFunction(image => image.complete, await icon.elementHandle(), { timeout: 30000 });
         assert.ok(await icon.evaluate(image => image.naturalWidth > 0 && image.src.endsWith('/assets/game/ui/reroll-v1.png')), option.label);
-      } else assert.ok(await offeredButton.locator('svg use').evaluate(use => {
-        const bounds = use.getBBox(); return bounds.width > 0 && bounds.height > 0;
-      }), `Skill icon rendered for ${option.label}`);
+      } else {
+        // External SVG symbols can finish loading after the button becomes visible.
+        await page.waitForFunction(use => {
+          const bounds = use.getBBox(); return bounds.width > 0 && bounds.height > 0;
+        }, await offeredButton.locator('svg use').elementHandle(), { timeout: 30000 });
+      }
     }
     if (!journey.mode.startsWith('block-')) {
       await page.locator('.live-dice-overlay .match-die').first().waitFor({ state: 'visible', timeout: 5000 });

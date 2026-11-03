@@ -32,11 +32,11 @@ export function solidDefenceDrop(view: SetupState, actions: SetupAction[], playe
   if (view.phase !== 'PLAY' || view.turnMode !== 'SOLID_DEFENCE' || view.actor !== view.callerRole) return null;
   const player = view.players.find(item => item.id === playerId && item.role === view.callerRole);
   if (!player || !canDragSetupPlayer(view, player, actions)
-    || !canPlaceReserve({ ...view, phase: 'SETUP' }, playerId, to.x, to.y)) return null;
+) return null;
   const available = actions.filter(action => action.actor === view.callerRole);
   const placement = available.find(action => action.kind === 'kickoffMove' && action.id.includes(`:solid-place:${playerId}:`)
     && action.target && 'x' in action.target && action.target.x === to.x && action.target.y === to.y);
   if (placement) return { action: placement, selecting: false };
-  const select = player.x !== null && available.find(action => action.kind === 'kickoffChoice' && action.id.endsWith(`:event-pick:${playerId}`));
+  const select = player.x !== null && canPlaceReserve({ ...view, phase: 'SETUP' }, playerId, to.x, to.y) && available.find(action => action.kind === 'kickoffChoice' && action.id.endsWith(`:event-pick:${playerId}`));
   return select ? { action: select, selecting: true } : null;
 }

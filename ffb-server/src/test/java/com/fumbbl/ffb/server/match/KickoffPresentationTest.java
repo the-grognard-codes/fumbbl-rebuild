@@ -28,7 +28,12 @@ class KickoffPresentationTest {
     private final GameState state = mock(GameState.class);
     private final Game game = mock(Game.class);
     private final KickoffPresentation presentation = new KickoffPresentation();
-    KickoffPresentationTest() { when(state.getGame()).thenReturn(game); }
+    KickoffPresentationTest() {
+        when(state.getGame()).thenReturn(game);
+        Team acting = mock(Team.class);
+        when(game.getActingTeam()).thenReturn(acting);
+        when(acting.getPlayers()).thenReturn(new com.fumbbl.ffb.model.Player<?>[0]);
+    }
 
     @Test void quickSnapUsesNativeCountsForReceivingActorIncludingAnInterruptedStep() {
         when(game.getTurnMode()).thenReturn(TurnMode.QUICK_SNAP);

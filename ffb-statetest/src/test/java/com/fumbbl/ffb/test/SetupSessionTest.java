@@ -440,6 +440,12 @@ class SetupSessionTest {
     }
     @Test void selectedSolidDefencePlayerCanBeRedeployedAndConfirmed() throws Exception {
         SetupSession session = readySession();
+        // Start with two players in the lower wide zone so moving a third there
+        // is an invalid final formation, even though nobody enters reserves now.
+        var game = engine(session).getGame();
+        var widePlayer = game.getActingTeam().getPlayers()[9];
+        var wideFrom = game.getFieldModel().getPlayerCoordinate(widePlayer);
+        game.getFieldModel().setPlayerCoordinate(widePlayer, new com.fumbbl.ffb.FieldCoordinate(wideFrom.getX(), 12));
         TestRolls.on(engine(session)).general(1, 1, 2, 2, 3);
         submit(session, view(session).get("actions").asArray().get(82).asObject());
         JsonObject pick = null;
@@ -450,6 +456,16 @@ class SetupSessionTest {
         submit(session, pick);
         submit(session, actionEnding(session, ":event-confirm"));
         assertEquals("SOLID_DEFENCE", view(session).getString("turnMode", null));
+        assertEquals(original, game.getFieldModel().getPlayerCoordinate(game.getPlayerById(playerId)), "Selected players stay on the pitch");
+        JsonObject intoWideZone = null;
+        for (JsonValue offered : view(session).get("actions").asArray()) {
+            JsonObject option = offered.asObject();
+            if ("kickoffMove".equals(option.getString("kind", null)) && option.get("target").asObject().getInt("y", -1) == 13) {
+                intoWideZone = option; break;
+            }
+        }
+        assertTrue(intoWideZone != null);
+        submit(session, intoWideZone);
         JsonObject invalid = request(view(session), "action").add("actionId", actionEnding(session, ":confirm-solid-defence").get("id"));
         String before = serialized(session), role = view(session).getString("actor", null);
         int revision = view(session).getInt("revision", -1);

@@ -56,10 +56,10 @@ function routePath(route: RoutePoint[], camera: PitchProjection): string {
   return movementRoutePath(route,camera);
 }
 
-function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, target, onSelect, onGround,
+function PlayerMarker({ player, teamName, camera, facing, setupPerspective, order, active, selected, participant, target, onSelect, onGround,
   onFocus, onBlur, readOnly, canDrag, onStartDrag, onEndDrag, failedArt, onArtError, markers, markerPreferences, showLimitedActions, showConditions }: {
   player: SetupPlayer; teamName: string; camera: PitchProjection; facing?: PlayerFacing; setupPerspective: boolean; order: number;
-  active: boolean; selected: boolean; target: boolean; onSelect: (clickedAt?: number) => void; onGround: (x: number, y: number, clickedAt?: number) => void;
+  active: boolean; selected: boolean; participant: boolean; target: boolean; onSelect: (clickedAt?: number) => void; onGround: (x: number, y: number, clickedAt?: number) => void;
   onFocus: (anchor: DOMRect) => void; onBlur: () => void; readOnly: boolean;
   failedArt: Set<string>; onArtError: (url: string) => void;
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
@@ -88,7 +88,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   return <button type="button" data-player-id={player.id} data-x={player.x} data-y={player.y}
     data-center-x={position?.x} data-center-y={position?.y} data-pose={body?.pose ?? 'token'}
     data-anchor-mode={body && !failedArt.has(body.url) ? placement?.mode : 'token'}
-    className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}`}
+    className={`live-marker ${player.role}${active ? ' active' : ''}${selected ? ' selected' : ''}${target ? ' target' : ''}${participant ? ' kickoff-participant' : ''}`}
     aria-label={`${teamName} ${player.name}, number ${number}, ${player.state}, square ${player.x}, ${player.y}`}
     tabIndex={visible ? 0 : -1} draggable={canDrag && visible}
     style={{ left, top, width, height, zIndex: 10 + order, visibility: visible ? 'visible' : 'hidden' }}
@@ -143,7 +143,7 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
 }
 
 /** Presentation only: positions, state, ball and identity come from the server. */
-export function LivePitch({ view, selectedId, actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false, diceSnapshot = false,
+export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedAction, routePreview = null, waypoints = [], movementRange = null, diceMoment = null, potentialDice = null, diceAwaiting = false, diceSnapshot = false,
   blockPreview = null, animateBlockMarkers = true, movementDuration = 0, splash,
   jumpOptions = null, plannedTransfer = null,
   threatPreferences = defaultThreatPreferences, allowThreats = true,
@@ -151,7 +151,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false, interactionBlocked = false,
   zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, cameraButtonsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
-  view: SetupState; selectedId: string; actions: SetupAction[]; pinnedAction?: SetupAction;
+  view: SetupState; selectedId: string; selectedIds?: string[]; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
   plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
@@ -476,7 +476,9 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
             </g>;
           })()}
           {placementSquares.map(square => <polygon key={`place-${square.x},${square.y}`} className="live-placement-square" points={points(camera.square(square, .08, true))}/>) }
-          {selected?.x != null && selected.y != null && <polygon className="live-selection-square" data-selection={selected.id} points={points(camera.square({ x: selected.x, y: selected.y }, .06, true))}/>}
+          {view.players.filter(player => (player.id === selectedId || selectedIds.includes(player.id)) && player.x != null && player.y != null)
+            .map(player => <polygon key={player.id} className="live-selection-square" data-selection={player.id}
+              points={points(camera.square({ x: player.x!, y: player.y! }, .06, true))}/>)}
           {hoverSquare && (hoverSquare.x !== selected?.x || hoverSquare.y !== selected?.y) && <polygon
             className="live-selection-square live-hover-square" data-hover-square={`${hoverSquare.x},${hoverSquare.y}`}
             points={points(camera.square(hoverSquare, .06, true))}/>}
@@ -511,7 +513,7 @@ export function LivePitch({ view, selectedId, actions, pinnedAction, routePrevie
           markers={playerSkillMarkers(player, view.callerRole, markerPreferences, readOnly && allowEndChoice)} markerPreferences={markerPreferences} showLimitedActions={showLimitedActions && view.phase === 'PLAY'}
           showConditions={showConditions}
           setupPerspective={setupPerspective} order={depthOrder.get(player.id)!}
-          active={player.id === view.activePlayerId} selected={player.id === selectedId} target={targetPlayers.has(player.id)} readOnly={readOnly}
+          active={player.id === view.activePlayerId} selected={player.id === selectedId || selectedIds.includes(player.id)} participant={view.kickoff?.participantIds?.includes(player.id) ?? false} target={targetPlayers.has(player.id)} readOnly={readOnly}
           canDrag={draggableIds?.has(player.id) ?? false} onStartDrag={onStartDrag} onEndDrag={onEndDrag}
           onSelect={clickedAt => onSelectPlayer(player.id, clickedAt)} onGround={onSquare} onFocus={anchor => onFocusPlayer?.(player.id, anchor)} onBlur={() => onBlurPlayer?.()}/>) }
         <svg className="live-block-marker-layer" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">

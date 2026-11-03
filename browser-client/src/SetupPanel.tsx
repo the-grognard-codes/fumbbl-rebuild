@@ -34,7 +34,7 @@ import { actionForPlayer, assistedTarget, attackApproaches, passTargetForPlayer,
 import { matchDecision } from './match-decision.ts';
 import { withProTest } from './reroll-presentation.ts';
 import { pitchPushChoices, pitchHitAndRunChoices, pitchPuntChoices } from './push-choice.ts';
-import { kickoffChoice } from './kickoff-choice.ts';
+import { kickoffDraft, toggleKickoffPlayer } from './kickoff-choice.ts';
 import { currentGameStep } from './match-status.ts';
 import { matchTeamName } from './match-team-name.ts';
 import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
@@ -240,6 +240,14 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const [debugOpen, setDebugOpen] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<{ x: number; width: number } | null>(null);
   const [actionId, setActionId] = useState('');
+  const [kickoffIds, setKickoffIds] = useState<string[]>([]);
+  const previousKickoffMode = useRef(view.turnMode);
+  useLayoutEffect(() => {
+    setKickoffIds([]);
+    if (['TOUCHBACK', 'HIGH_KICK', 'QUICK_SNAP', 'SOLID_DEFENCE', 'BLITZ'].includes(previousKickoffMode.current)
+      && (!connected || previousKickoffMode.current !== view.turnMode && ['REGULAR', 'KICKOFF', 'TOUCHBACK', 'SETUP'].includes(view.turnMode))) setPlayerId('');
+    previousKickoffMode.current = view.turnMode;
+  }, [view.revision, view.matchId, connected]);
   const [actionFilter, setActionFilter] = useState('');
   const [menuChoices, setMenuChoices] = useState<SetupAction[]>([]);
   const [debugCameraHost, setDebugCameraHost] = useState<HTMLDivElement | null>(null);
@@ -333,8 +341,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     const observer = new ResizeObserver(measure); observer.observe(bar);
     return () => observer.disconnect();
   }, [onTheBallMovement]);
-  const kickoff = hosted ? kickoffChoice(availableActions, view.callerRole) : null;
-  const kickoffMovement = view.turnMode === 'QUICK_SNAP' || view.turnMode === 'HIGH_KICK';
+  const kickoff = hosted ? kickoffDraft(view, kickoffIds) : null;
+  const kickoffMovement = !kickoff && ['QUICK_SNAP', 'HIGH_KICK', 'SOLID_DEFENCE'].includes(view.turnMode);
   // The authoritative endpoint must also have finished local playback. Draft
   // waypoints and the intermediate animated squares never request a new range.
   // During the other coach's turn, inspect only on an explicit selection at
@@ -348,8 +356,9 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   useEffect(() => { rangeRequest.current?.(rangePlayerId); }, [rangePlayerId, view.matchId, view.revision]);
   const originalRange = rangePlayerId && matchesMovementRange(movementRange, view, rangePlayerId) ? movementRange : null;
   const showConfirmation = view.phase === 'SETUP' ? view.actor === view.callerRole
-    : !kickoff && !kickoffMovement && !hitAndRun && (!view.reaction || onTheBallMovement && !decision) && availableActions.length > 0;
+    : (!!kickoff || !kickoffMovement && !hitAndRun && (!view.reaction || onTheBallMovement && !decision) && availableActions.length > 0);
   const gameStep = currentGameStep(pitchView);
+  if (gameStep && kickoff && !playbackActive) gameStep.progress = `Selected ${kickoff.selected.length} of ${kickoff.maximum}${kickoff.decline ? ' (up to)' : ''}`;
   const pitchActions = (view.reaction ? availableActions : kickoffMovement ? view.actions.filter(action => action.actor === view.callerRole
     && (action.kind !== 'kickoffMove' || action.sourcePlayerId === playerId)) : view.actions)
     .filter(action => action.kind !== 'jumpUpBlock' || specialMode === 'jumpUp')
@@ -483,7 +492,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       mutate('action', { actionId: choice.action.id });
   });
   const mayAct = canChoose && !!pinnedAction;
-  const confirmationEnabled = !jumpMode && (!specialMode || !!pinnedAction) && !menuChoices.length
+  const confirmationEnabled = kickoff ? canChoose && !!kickoff.confirm : !jumpMode && (!specialMode || !!pinnedAction) && !menuChoices.length
     && (view.phase === 'SETUP' ? maySetup : movementIntent ? movementReady : routeMode ? canRoute && routeReady : mayAct);
   // Only a fully selected common-action target can consume repeat clicks. An
   // unready preview still owns its target, so repeats cannot cancel/replan it.
@@ -609,18 +618,30 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       selectSquare(kickOccupant.x, kickOccupant.y); return;
     }
     if (routeMode && !movementFlow) { setRouteMode(false); updateWaypoints([]); }
-    if (canChoose && kickoff) {
-      const choice = kickoff.players.find(({ action }) => action.target && 'playerId' in action.target && action.target.playerId === id);
-      if (choice) {
-        if (view.kickoff?.event === 'CHARGE') {
-          if (!choice.selected) { setPlayerId(id); setTargetFocus('player'); }
-          else if (playerId === id) { setPlayerId(''); setTargetFocus(null); }
-        }
-        mutate('action', { actionId: choice.action.id }); return;
+    if (kickoff) {
+      if (canChoose && kickoff.players.some(player => player.id === id)) {
+        const selected = toggleKickoffPlayer(kickoffIds, id, kickoff.maximum);
+        setKickoffIds(selected);
+        setPlayerId(selected.includes(id) ? id : ''); setTargetFocus(selected.includes(id) ? 'player' : null);
+        setActionId(''); setSmartIntent(null);
+      } else {
+        setPlayerId(''); setTargetFocus(null);
       }
+      return;
     }
     if (kickoffMovement) {
-      if (!canChoose || !availableActions.some(action => action.kind === 'kickoffMove' && action.sourcePlayerId === id)) return;
+      const occupant = view.players.find(player => player.id === id);
+      if (view.turnMode === 'SOLID_DEFENCE' && playerId && playerId !== id && occupant?.x != null && occupant.y != null) {
+        const swap = availableActions.find(action => action.kind === 'kickoffMove' && action.sourcePlayerId === playerId
+          && action.target && 'x' in action.target && action.target.x === occupant.x && action.target.y === occupant.y);
+        if (canChoose && swap) { mutate('action', { actionId: swap.id }); return; }
+      }
+      if (!canChoose) return;
+      // Older saved Solid Defence events select a repositioning actor on the server.
+      const reposition = availableActions.find(action => action.kind === 'kickoffChoice'
+        && action.id.endsWith(`:event-pick:${id}`) && action.label.startsWith('Reposition '));
+      if (reposition) { setPlayerId(id); mutate('action', { actionId: reposition.id }); return; }
+      if (!availableActions.some(action => action.kind === 'kickoffMove' && action.sourcePlayerId === id)) return;
       setPlayerId(id); setActionId(''); setSmartIntent(null); setTargetFocus('player'); return;
     }
     const touchback = availableActions.find(action => action.kind === 'touchback' && action.target && 'playerId' in action.target && action.target.playerId === id);
@@ -868,6 +889,11 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
   const commit = () => {
     if (!confirmationEnabled) return;
     confirmationGesture.consume();
+    if (kickoff?.confirm) {
+      setPlayerId(''); setActionId(''); setTargetFocus(null); setSmartIntent(null);
+      mutate('action', { actionId: kickoff.confirm.id, ...(kickoff.batch ? { playerIds: kickoff.selected } : {}) });
+      return;
+    }
     if (menuChoices.length || jumpMode) return;
     if (specialMode && !pinnedAction) return;
     if (specialMode === 'punt' && pinnedAction && reviewedRoute && reviewedRoute.steps.length > 0) {
@@ -1138,7 +1164,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
       {hosted && showConfirmation && <div className="confirmation-row"
         style={onTheBallMovement ? { bottom: `calc(var(--command-bar-bottom) + ${reactionBarHeight}px + 8px)` } : undefined}>
-        {view.phase === 'PLAY' && <div className="command-preview">{specialMode === 'punt' && pinnedAction ? <span>{routeMode ? 'Confirm moves along the path, then punts in the selected direction.' : 'Confirm punts in the selected direction.'}</span> : jumpMode ? <span role="status">Choose a jump landing square or cancel Jump.</span> : (routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
+        {view.phase === 'PLAY' && !kickoff && <div className="command-preview">{specialMode === 'punt' && pinnedAction ? <span>{routeMode ? 'Confirm moves along the path, then punts in the selected direction.' : 'Confirm punts in the selected direction.'}</span> : jumpMode ? <span role="status">Choose a jump landing square or cancel Jump.</span> : (routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
           : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.'
           : movementIntent?.kind === 'pass' ? 'Confirm moves and passes.'
           : movementIntent?.kind === 'handOff' ? 'Confirm moves and hands off.' : 'Confirm moves along the path.'
@@ -1147,6 +1173,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
           {movementIntent && movementError && <span role="status">{movementError}</span>}
         </div>}
         <button type="button" className="commit-action" aria-keyshortcuts="Space" onClick={commit} disabled={!confirmationEnabled}><ActionGlyph kind="confirm"/>{specialMode ? 'Confirm' : 'Confirmed!'}</button>
+        {kickoff?.decline && <button type="button" className="secondary" disabled={!canChoose}
+          onClick={() => { setPlayerId(''); mutate('action', { actionId: kickoff.decline!.id }); }}>Skip event</button>}
         {touchInput && confirmationTarget && <button type="button" className="secondary" disabled={!canChoose}
           onClick={cancelPlan}>Cancel plan</button>}
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
@@ -1167,18 +1195,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
             </div>
           </> : <p>Waiting for {matchTeamName(view, view.reaction.actor)}.</p>}
           {!onTheBallMovement && view.callerRole !== 'spectator' && <ReactionCountdown reaction={view.reaction} matchId={view.matchId}/>}
-        </div> : null : view.phase === 'SETUP' || hitAndRun ? null : kickoff ? <div className="kickoff-command" aria-label="Kickoff player choice">
-          <div className="kickoff-command-heading"><strong>Kickoff player choice</strong><span>{kickoff.selectedCount} selected · select or deselect a player, then confirm</span></div>
-          <div className="kickoff-command-players">{kickoff.players.map(({ action, selected }) => <button key={action.id} type="button"
-            aria-pressed={selected} disabled={!canChoose} onClick={() => {
-              if (view.kickoff?.event === 'CHARGE' && action.target && 'playerId' in action.target) selectPlayer(action.target.playerId);
-              else mutate('action', { actionId: action.id });
-            }}>{action.label}</button>)}</div>
-          <div className="kickoff-command-confirm">{kickoff.decline && <button type="button" disabled={!canChoose}
-            onClick={() => mutate('action', { actionId: kickoff.decline!.id })}>{kickoff.decline.label}</button>}
-            <button type="button" disabled={!canChoose || !kickoff.confirm}
-              onClick={() => { if (kickoff.confirm) mutate('action', { actionId: kickoff.confirm.id }); }}>Confirm selection</button></div>
-        </div> : kickoffMovement ? <div className="kickoff-movement-command">
+        </div> : null : view.phase === 'SETUP' || hitAndRun || kickoff ? null : kickoffMovement ? <div className="kickoff-movement-command">
           <span>Select an open player, then its highlighted destination.</span>
           {availableActions.filter(action => action.kind === 'kickoffChoice').map(action => <button key={action.id} type="button"
             disabled={!canChoose} onClick={() => mutate('action', { actionId: action.id })}>{action.label}</button>)}
@@ -1219,7 +1236,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       <p data-testid="setup-status" className={hosted ? 'match-technical-status' : undefined}>Revision {view.revision} · you are {view.callerRole === 'spectator' ? 'spectator' : matchTeamName(view, view.callerRole)} · decision owner {matchTeamName(view, view.actor)} · half {view.half}, drive {view.drive} · turns {matchTeamName(view, 'home')} {view.homeTurn}, {matchTeamName(view, 'away')} {view.awayTurn} · score {matchTeamName(view, 'home')} {view.homeScore}, {matchTeamName(view, 'away')} {view.awayScore} · turn {view.turn} ({view.turnMode}) · weather {view.weather} · rerolls {matchTeamName(view, 'home')} {view.homeRerolls}, {matchTeamName(view, 'away')} {view.awayRerolls}</p>
       {!hosted && <p>Ball {view.ball ? `${view.ball.x}, ${view.ball.y}` : 'off pitch'} · active player {view.activePlayerId ?? 'none'}</p>}
       {hosted && <><div className="match-layout"><div className="match-board">
-      <LivePitch view={pitchView} selectedId={playerId} movementDuration={playbackActive ? movementDuration : 0}
+      <LivePitch view={pitchView} selectedId={kickoff && !kickoff.selected.includes(playerId) ? '' : playerId} selectedIds={kickoff?.selected ?? []} movementDuration={playbackActive ? movementDuration : 0}
         splash={announcement ? { announcement, onDismiss: dismissAnnouncement, hold: holdAnnouncements, exiting: announcementExiting, rate: announcementRate } : undefined}
         interactionBlocked={!connected || !!pending || suspended}
         actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
