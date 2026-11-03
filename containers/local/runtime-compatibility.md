@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # Java 21 runtime compatibility boundary
 
 Current source, shared libraries, tools and server builds require JDK 21 or newer

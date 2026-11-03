@@ -15,6 +15,8 @@ class LocalServerMainTest {
 		properties.setProperty("local.browser.v2.firebase.project", BrowserV2TransportPolicy.PROJECT);
 		properties.setProperty("server.base", "http://127.0.0.1:22231");
 		assertDoesNotThrow(() -> LocalServerMain.validateProfile(properties));
+		properties.remove("local.browser.v2.enabled");
+		assertDoesNotThrow(() -> LocalServerMain.validateProfile(properties));
 		Properties review = (Properties) properties.clone();
 		review.setProperty("db.url", LocalServerMain.REVIEW_DB_URL);
 		review.setProperty("server.base", "http://127.0.0.1:22234");
@@ -31,7 +33,7 @@ class LocalServerMainTest {
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(prodTransport));
 
 		Properties wrongUrl = (Properties) properties.clone();
-		wrongUrl.setProperty("db.url", LocalServerMain.LEGACY_DB_URL);
+		wrongUrl.setProperty("db.url", "jdbc:mariadb://database:3306/ffb_local");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
 		wrongUrl.setProperty("db.url", "jdbc:mariadb://host.docker.internal:23319/ffb_local");
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongUrl));
@@ -40,9 +42,12 @@ class LocalServerMainTest {
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(acceptanceWrongUser));
 	}
 
-	@Test void diagnosticProfileCannotSelectMarker6TargetOrLiveSettings() {
+	@Test void retiredDiagnosticProfileIsRejectedBeforeReadingSecrets() {
 		Properties properties = base();
-		assertDoesNotThrow(() -> LocalServerMain.validateProfile(properties));
+		properties.setProperty("local.browser.v2.enabled", "false");
+		properties.setProperty("db.url", "jdbc:mariadb://database:3306/ffb_local");
+		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(properties));
+		assertThrows(IllegalArgumentException.class, () -> new LocalServerMain().startVerifiedProfile(properties));
 		Properties wrongTarget = (Properties) properties.clone();
 		wrongTarget.setProperty("db.url", LocalServerMain.MARKER6_DB_URL);
 		assertThrows(IllegalArgumentException.class, () -> LocalServerMain.validateProfile(wrongTarget));
@@ -55,8 +60,10 @@ class LocalServerMainTest {
 	private Properties base() {
 		Properties properties = new Properties();
 		properties.setProperty("server.local", "true");
-		properties.setProperty("local.browser.v2.enabled", "false");
-		properties.setProperty("db.url", LocalServerMain.LEGACY_DB_URL);
+		properties.setProperty("db.url", LocalServerMain.MARKER6_DB_URL);
+		properties.setProperty("db.user", LocalServerMain.MARKER6_DB_USER);
+		properties.setProperty("local.browser.v2.firebase.project", BrowserV2TransportPolicy.PROJECT);
+		properties.setProperty("server.base", "http://127.0.0.1:22231");
 		return properties;
 	}
 }

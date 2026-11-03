@@ -42,7 +42,7 @@ class NativeMarker6ServerMainTest {
 
 	@Test void refusesRetainedStorageH2ProdAndStartupMutationFlags() throws Exception {
 		for (String[] override : new String[][] {
-			{"db.url", LocalServerMain.MARKER6_DB_URL}, {"db.url", LocalServerMain.LEGACY_DB_URL},
+			{"db.url", LocalServerMain.MARKER6_DB_URL}, {"db.url", "jdbc:mariadb://database:3306/ffb_local"},
 			{"db.url", "jdbc:h2:/var/lib/moles-game/accounts"}, {"db.url", "jdbc:mariadb://127.0.0.1:3306/ffb_local"},
 			{"backup.dir", "/var/lib/moles-game"}, {"local.browser.v2.proxy.profile", "prod"},
 			{"local.browser.v2.firebase.project", "molesunderthepitch-dotorg"}, {"initDb", "true"},

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GameView } from '../src/SetupPanel.tsx';
+import { GameView } from '../src/GameView.tsx';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { MovementPlan, MovementRequest } from '../src/movement-protocol.ts';
 import type { RoutePoint, RouteStep } from '../src/route-protocol.ts';

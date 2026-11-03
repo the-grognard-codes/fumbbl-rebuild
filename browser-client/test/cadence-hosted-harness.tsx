@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GameView } from '../src/SetupPanel.tsx';
+import { GameView } from '../src/GameView.tsx';
 import { HostedResult } from '../src/HostedResult.tsx';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';

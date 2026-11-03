@@ -318,7 +318,7 @@ class BrowserV2LiveTranscriptTest {
 	@Test void connectionWithoutAtomicOptionalDeliveryPreservesTheMandatoryState() throws Exception {
 		Fixture fixture = new Fixture();
 		List<JsonObject> messages = new ArrayList<>();
-		BrowserMatchAdapter.Connection connection = message -> messages.add(JsonObject.readFrom(message));
+		BrowserConnection connection = message -> messages.add(JsonObject.readFrom(message));
 		authenticate(fixture.adapter, connection, "home", true);
 		messages.clear();
 		fixture.adapter.receive(connection, request("setup", "move").add("operation", "move").add("matchId", MATCH)
@@ -376,7 +376,7 @@ class BrowserV2LiveTranscriptTest {
 			account.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(), EnumSet.of(scope), Long.MAX_VALUE);
 	}
 
-	private static void authenticate(BrowserV2Adapter adapter, BrowserMatchAdapter.Connection connection, String bearer, boolean live) {
+	private static void authenticate(BrowserV2Adapter adapter, BrowserConnection connection, String bearer, boolean live) {
 		JsonObject request = request("authenticate", "auth").add("bearer", bearer);
 		if (live) request.add("liveTranscript", true);
 		adapter.receive(connection, request.toString());
@@ -386,13 +386,13 @@ class BrowserV2LiveTranscriptTest {
 		return new JsonObject().add("version", 2).add("type", type).add("requestId", id);
 	}
 
-	private static final class Connection implements BrowserMatchAdapter.Connection {
+	private static final class Connection implements BrowserConnection {
 		final List<JsonObject> messages = new ArrayList<>();
 		@Override public void send(String message) { messages.add(JsonObject.readFrom(message)); }
 		@Override public void sendWithOptionalPredecessor(String optional, String mandatory) { send(optional); send(mandatory); }
 	}
 
-	private static final class QueueConnection implements BrowserMatchAdapter.Connection {
+	private static final class QueueConnection implements BrowserConnection {
 		final DelayedSink sink = new DelayedSink();
 		final BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
 		final BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics,

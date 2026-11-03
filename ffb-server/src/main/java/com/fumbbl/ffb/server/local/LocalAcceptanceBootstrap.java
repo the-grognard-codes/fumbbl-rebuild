@@ -76,7 +76,7 @@ public final class LocalAcceptanceBootstrap {
 		int version = schemaVersion(manager);
 		if (version == 9) {
 			requireInventory(tables, MARKER9_TABLES);
-			schema.initialize(manager, true);
+			schema.initialize(manager);
 			try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 			return;
 		}
@@ -131,7 +131,7 @@ public final class LocalAcceptanceBootstrap {
 		if (version != 9) throw new SQLException("Acceptance bootstrap accepts only empty or marker-5-through-9 databases");
 		tables = tableNames(manager);
 		requireInventory(tables, MARKER9_TABLES);
-		schema.initialize(manager, true);
+		schema.initialize(manager);
 		try (Connection connection = manager.openDbConnection()) { new Marker6Schema().ensureCurrentMatchIndex(connection); connection.commit(); }
 	}
 

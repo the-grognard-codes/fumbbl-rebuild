@@ -8,22 +8,12 @@ import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
 import com.fumbbl.ffb.server.commandline.InifileParamFilter;
 import com.fumbbl.ffb.server.commandline.InifileParamFilterResult;
-import com.fumbbl.ffb.server.local.BrowserMatchAdapter;
-import com.fumbbl.ffb.server.local.BrowserMatchServlet;
-import com.fumbbl.ffb.server.local.BrowserSavedTeamJson;
 import com.fumbbl.ffb.server.local.BrowserV2Runtime;
 import com.fumbbl.ffb.server.local.BrowserV2TransportPolicy;
-import com.fumbbl.ffb.server.match.JdbcMatchRepository;
-import com.fumbbl.ffb.server.match.JdbcRecoveryRepository;
-import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.net.ServerCommunication;
-import com.fumbbl.ffb.server.team.JdbcSavedTeamRepository;
-import com.fumbbl.ffb.server.team.SavedTeamService;
-import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.util.rng.Fortuna;
 
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee8.servlet.ServletHolder;
 import org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -33,10 +23,7 @@ import java.io.FileInputStream;
 import java.sql.DriverManager;
 import java.util.Map;
 import java.util.Properties;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-/** Hosts browser matches on a single engine worker. V1 is explicit local diagnostics only. */
+/** Hosts V2 browser matches on a single engine worker. */
 public class FantasyFootballServer implements IFactorySource {
 	private final Properties properties;
 	private final FactoryManager factoryManager = new FactoryManager();
@@ -52,15 +39,12 @@ public class FantasyFootballServer implements IFactorySource {
 		if (mode != ServerMode.STANDALONE) throw new IllegalArgumentException("Browser startup requires standalone mode");
 		this.properties = properties;
 		String selection = properties.getProperty("local.browser.v2.enabled", "true");
-		if (!"true".equals(selection) && !"false".equals(selection))
-			throw new IllegalArgumentException("Browser V2 selection must be true or false");
-		if (!isBrowserV2() && !Boolean.parseBoolean(properties.getProperty("server.local")))
-			throw new IllegalArgumentException("V1 diagnostics require explicit local mode");
+		if (!"true".equals(selection))
+			throw new IllegalArgumentException("Browser V1 is retired; local.browser.v2.enabled must be omitted or true");
 		factories = factoryManager.getFactoriesForContext(getContext(), this);
 		for (INamedObjectFactory factory : factories.values()) factory.initialize(null);
 	}
 
-	public boolean isBrowserV2() { return Boolean.parseBoolean(properties.getProperty("local.browser.v2.enabled", "true")); }
 	public FactoryManager getFactoryManager() { return factoryManager; }
 	public DebugLog getDebugLog() { return debugLog; }
 	public void setDebugLog(DebugLog debugLog) { this.debugLog = debugLog; }
@@ -94,33 +78,15 @@ public class FantasyFootballServer implements IFactorySource {
 		ServletContextHandler context = new ServletContextHandler();
 		context.setContextPath("/");
 		JettyWebSocketServletContainerInitializer.configure(context, null);
-		if (isBrowserV2()) {
-			BrowserV2Runtime.mount(this, context, this::openConnection);
-		} else {
-			mountDiagnostics(context);
-		}
+		BrowserV2Runtime.mount(this, context, this::openConnection);
 		httpServer.setHandler(context);
 		httpServer.start();
-		System.err.println("Browser " + (isBrowserV2() ? "V2" : "V1 diagnostics") + " running on port " + connector.getLocalPort());
+		System.err.println("Browser V2 running on port " + connector.getLocalPort());
 	}
 
 	private java.sql.Connection openConnection() throws java.sql.SQLException {
 		return DriverManager.getConnection(getProperty(IServerProperty.DB_URL), getProperty(IServerProperty.DB_USER),
 			getProperty(IServerProperty.DB_PASSWORD));
-	}
-
-	private void mountDiagnostics(ServletContextHandler context) {
-		BrowserMatchAdapter adapter = new BrowserMatchAdapter(this, getProperty("local.browser.home.token"),
-			getProperty("local.browser.away.token"), BrowserMatchAdapter.Fixture.valueOf(properties.getProperty("local.browser.fixture", "MOVEMENT")));
-		RosterCatalog catalog = new RosterCatalog();
-		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(this::openConnection), catalog);
-		adapter.setSavedTeams(new BrowserSavedTeamJson(teams));
-		adapter.setPreparedMatches(new MatchService(new JdbcMatchRepository(this::openConnection), teams, catalog),
-			new JdbcRecoveryRepository(this::openConnection));
-		context.addServlet(new ServletHolder(new BrowserMatchServlet(this, adapter)), "/browser/v1/*");
-		context.addServlet(new ServletHolder(new HttpServlet() {
-			@Override protected void service(HttpServletRequest request, HttpServletResponse response) { response.setStatus(404); }
-		}), "/*");
 	}
 
 	public static void main(String[] arguments) throws Exception {

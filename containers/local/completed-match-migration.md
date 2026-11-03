@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # M3d completed matches: schema 4
 
 Historical M3d/M3e contract, retained for interpreting older artifacts. Current

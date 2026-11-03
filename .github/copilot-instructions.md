@@ -13,5 +13,5 @@
 - Record user-visible changes under Unreleased in `CHANGELOG.md`. The public `site/updates.json` records actual merged PRs; add entries there only after merge.
 
 ## Browser runtime
-- Browser V2 is the supported product runtime. Retain V1 as explicit development-only diagnostics.
+- Browser V2 is the sole supported runtime. V1 is retired; preserve shared data-format compatibility used by V2.
 - Preserve native engine commands and assets used by browser play, replay and recovery.

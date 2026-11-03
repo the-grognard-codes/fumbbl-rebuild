@@ -38,7 +38,7 @@ class BrowserSchemaMariaDbTest {
 			assertFalse(tables.next(), "The test requires a fresh empty database before any write");
 		}
 		LocalAcceptanceBootstrap.bootstrap(manager);
-		new LocalSchema().initialize(manager, true);
+		new LocalSchema().initialize(manager);
 		Set<String> actual = new HashSet<>();
 		try (Connection connection = manager.openDbConnection(); Statement sql = connection.createStatement()) {
 			try (ResultSet tables = sql.executeQuery("SHOW TABLES")) { while (tables.next()) actual.add(tables.getString(1)); }

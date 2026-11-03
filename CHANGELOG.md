@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Retired the development-only V1 browser runtime and diagnostic client. Play,
+  replay, and maintained diagnostics use V2; public `/play` URLs and existing
+  saved-data compatibility are preserved. Existing diagnostic database volumes
+  are retained without migration or deletion.
+
+- The match Reconnect control can restore an unavailable view even when its
+  WebSocket remains connected, without automatically repeating gameplay actions.
+
 - Added the approved compact horizontal decision prompts, mole artwork, player focus connectors, and preview/confirm interception selection. Player decisions keep pitch navigation available. BB2025 Secret Weapon send-offs now resolve one selected player at a time, retaining bribes after coach ejection and preserving pending choices across recovery.
 
 - Removed support for older Blood Bowl editions from the engine, bundled fixtures,
@@ -56,8 +64,8 @@
   bootstrap, CI and setup use one Java 21 toolchain; historical documentation and
   stored-match compatibility boundaries remain preserved.
 
-- MUTP supports browser clients only. Browser V2 is the standard server runtime;
-  V1 remains development-only diagnostics. Retired clients and their exclusive
+- MUTP supports browser clients only. Browser V2 is the standard server runtime.
+  Retired clients and their exclusive
   server services, distribution and operational workflows have been removed.
   Existing browser behavior and game rules are preserved. Historical games and
   replays from retired clients are not supported.

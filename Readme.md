@@ -4,8 +4,7 @@ An independent browser client and Java server inspired by the venerable tabletop
 fantasy-football game. This project is not affiliated with any publisher or existing
 online service.
 
-MUTP supports browser clients only. Browser V2 is the product protocol. Browser V1
-remains explicitly selected local diagnostic tooling; its retirement is separate.
+MUTP supports browser clients only. Browser V2 is the sole supported runtime and protocol.
 See the [browser client guide](browser-client/README.md),
 [development and release guide](docs/development-and-release.md), and
 [Unreleased changes](CHANGELOG.md).
@@ -24,8 +23,7 @@ Follow [deployment usage](deployment/README.md) for prerequisites, local credent
 and service ownership. This starts local services and does not publish remotely.
 The current V2 runtime uses the existing Firebase authentication and separately
 provisioned browser database. It exposes `/browser/v2`; other game-server routes
-return 404. The [local diagnostic profile](containers/local/README.md) explicitly
-selects `local.browser.v2.enabled=false` for `/browser/v1`.
+return 404. See [local runtime and retired storage](containers/local/README.md).
 
 ## Reproducible build and tests
 
@@ -56,14 +54,14 @@ launcher reuses that configured JDK. The server uses Jetty 12. See the
 | `ffb-server/` | Browser endpoints and authoritative game engine. Game sequences use `Step` and `SequenceGenerator` classes. |
 | `ffb-tools/` | Roster and engine development utilities. |
 | `ffb-statetest/` | Native game-state regression tests. |
-| `browser-client/` | TypeScript/React/Pixi browser application and V1 diagnostics. |
+| `browser-client/` | TypeScript/React/Pixi V2 browser application and development previews. |
 | `assets/game/` | Canonical browser artwork and asset tooling. |
 | `site/` | Public site, authentication entry and merged-PR updates. |
 | `computer-player/` | Browser-protocol computer opponent. |
 
 The standard server entry point is
 `com.fumbbl.ffb.server.FantasyFootballServer`. It accepts `-inifile path` and
-optional `-override path`; V2 is selected when no protocol override is supplied.
+optional `-override path`; only V2 is supported.
 Use the supported environment launchers to load secret files, verify the schema,
 and enforce local/native profile restrictions. Runtime startup does not provision
 or reset a database. Browser-owned match services persist current results/recovery.

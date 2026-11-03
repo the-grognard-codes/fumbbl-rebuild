@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # Prepared-match JSON v1
 
 M2c uses the existing authenticated local `/browser/v1` WebSocket and an additional

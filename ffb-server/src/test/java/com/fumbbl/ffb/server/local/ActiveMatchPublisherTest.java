@@ -26,7 +26,7 @@ class ActiveMatchPublisherTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);
 		AuthenticatedPrincipal principal = mock(AuthenticatedPrincipal.class);
-		BrowserMatchAdapter.Connection peer = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection peer = mock(BrowserConnection.class);
 		when(access.playerRole(principal, "match")).thenReturn("away");
 		when(setup.publishedState("match", "away", false)).thenReturn(new JsonObject()
 			.add("type", "setupState").add("code", "ACCEPTED")
@@ -44,7 +44,7 @@ class ActiveMatchPublisherTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);
 		AuthenticatedPrincipal principal = mock(AuthenticatedPrincipal.class);
-		BrowserMatchAdapter.Connection peer = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection peer = mock(BrowserConnection.class);
 		doThrow(new MatchService.Failure("AUTHORIZATION")).when(access).playerRole(principal, "match");
 		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, mock(V2PreparationService.class));
 		publisher.enrollPlayer(peer, principal, "match");
@@ -58,7 +58,7 @@ class ActiveMatchPublisherTest {
 	@Test void spectatorBroadcastExcludesCoachOnlyGuidanceWithoutChangingTheCoachResponse() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);
-		BrowserMatchAdapter.Connection spectator = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection spectator = mock(BrowserConnection.class);
 		when(setup.spectatorView("match")).thenReturn(new JsonObject());
 		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, mock(V2PreparationService.class));
 		publisher.watch(spectator, mock(AuthenticatedPrincipal.class), "match", "watch");
@@ -84,7 +84,7 @@ class ActiveMatchPublisherTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		SetupApplication setup = mock(SetupApplication.class);
 		V2PreparationService preparation = mock(V2PreparationService.class);
-		BrowserMatchAdapter.Connection computer = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection computer = mock(BrowserConnection.class);
 		when(preparation.isComputerMatch("match")).thenReturn(true);
 		when(setup.publishedState("match", "away", true)).thenReturn(new JsonObject().add("type", "setupState").add("code", "ACCEPTED")
 			.add("state", new JsonObject().add("callerRole", "away")));

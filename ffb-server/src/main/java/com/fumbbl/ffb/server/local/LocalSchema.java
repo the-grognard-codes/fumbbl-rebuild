@@ -14,45 +14,9 @@ import java.util.Scanner;
 import java.util.Set;
 /** Versioned migrations for the dedicated local database; never deletes existing data. */
 public class LocalSchema {
+	/** Startup verifies the separately provisioned V2 schema without migrating existing data. */
 	public void initialize(DbConnectionManager manager) throws SQLException {
-		initialize(manager, false);
-	}
-
-	/** Marker-6 databases are separately provisioned and verified; they are never migrated on startup. */
-	public void initialize(DbConnectionManager manager, boolean marker6) throws SQLException {
-		if (marker6) { initializeMarker6(manager); return; }
-		try (Connection connection = manager.openDbConnection(); Statement statement = connection.createStatement()) {
-			boolean empty;
-			try (ResultSet tables = statement.executeQuery("SHOW TABLES")) {
-				empty = !tables.next();
-			}
-			if (!empty) {
-				// An unversioned or partially initialized database fails closed. Never reset it on startup.
-				int current;
-				try (ResultSet version = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
-					if (!version.next()) throw new SQLException("Missing local schema version");
-					current = version.getInt(1);
-					if ((current < 1 || current > 5) || version.next()) {
-						throw new SQLException("Unsupported local schema; use the documented explicit disposable reset");
-					}
-				}
-				if (current == 1) migrateSavedTeams(connection);
-				else verifySavedTeams(connection);
-				if (current < 3) migratePreparedMatches(connection);
-				if (current < 4) migrateCompletedMatches(connection);
-				else verifyCompletedMatches(connection);
-				if (current < 5) migrateRecovery(connection);
-				else verifyRecovery(connection);
-				return;
-			}
-			statement.executeUpdate("CREATE TABLE ffb_local_schema (version INT NOT NULL PRIMARY KEY)");
-			statement.executeUpdate("INSERT INTO ffb_local_schema VALUES (1)");
-			connection.commit();
-			migrateSavedTeams(connection);
-			migratePreparedMatches(connection);
-			migrateCompletedMatches(connection);
-			migrateRecovery(connection);
-		}
+		initializeMarker6(manager);
 	}
 
 	/** Creates only baseline schema on a verified empty database; acceptance bootstrap never seeds fixture coaches. */

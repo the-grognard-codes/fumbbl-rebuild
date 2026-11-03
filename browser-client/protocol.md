@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # Browser protocol history — movement, choices and M1c transport bounds
 
 The current public account flow uses the v2 authenticated envelope, named draft
@@ -5,7 +7,7 @@ version 2, saved document format 3, and named match formats 3/4. See the
 [team builder contract](../docs/team-builder-contract.md),
 [draft request schema](team-request.schema.json), and
 [account saved-team request schema](account-team-request.schema.json).
-The v1 examples below describe the retained local diagnostic and earlier slice
+The v1 examples below describe the retired local diagnostic and earlier slice
 history.
 The current Human and Orc catalog is `bb2025-exhibition-2026-09-25.1` with preset
 `exhibition-1150`. A catalog request may include `"rosterId":"orc"`; omitting

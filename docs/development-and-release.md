@@ -10,16 +10,16 @@ existing FUMBBL accounts, credentials, and production systems.
 | --- | --- | --- |
 | Shared engine | `ffb-common/` | Reusable game rules and engine code; rules/engine contributors. |
 | Java game session proof | `game-service/` | Independent Firebase-authenticated WSS service; provisioned separately using `deployment/game-service/`. |
-| Existing Java game server | `ffb-server/` | Game engine server and explicit local diagnostic stack. |
+| Existing Java game server | `ffb-server/` | Authoritative V2 game engine server and local acceptance stack. |
 | Browser client | `browser-client/` | Independently buildable HTML5 game client; client contributors. |
 | Public site | `site/` | Static project pages, updates, privacy, support, and non-affiliation copy; site contributors. |
 | Firebase delivery | `deployment/firebase/`, `firebase.json`, `.firebaserc` | Artifact assembly, public build configuration, emulator guidance, and Hosting routing; release maintainers. |
 | CI and release controls | `.github/workflows/`, `.github/BRANCH_PROTECTION.md` | Checks and releases; repository administrators. |
 
 The Maven reactor contains `ffb-common/`, `ffb-tools/`, `ffb-server/`, and
-`ffb-statetest/`. Browser V2 is the normal server runtime. Browser V1 remains
-explicit local diagnostic tooling. Preserve engine code and canonical
-`assets/game/` resources used by either browser path.
+`ffb-statetest/`. Browser V2 is the sole server runtime; V1 is retired.
+Preserve engine code, historical data-format compatibility and canonical
+`assets/game/` resources used by browser play, replay and recovery.
 
 ## Local workflows
 

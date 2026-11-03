@@ -127,7 +127,7 @@ class BrowserV2ProjectionTest {
 	private void send(JsonObject request) { adapter.receive(peer, request.toString()); }
 	private void denial(String code) { assertEquals(code, peer.last.getString("code", null)); keys(peer.last, "version", "type", "requestId", "code"); }
 	private void keys(JsonObject value, String... expected) { assertEquals(new HashSet<>(Arrays.asList(expected)), new HashSet<>(value.names())); assertEquals(expected.length, value.size()); }
-	private static final class Peer implements BrowserMatchAdapter.Connection {
+	private static final class Peer implements BrowserConnection {
 		JsonObject last;
 		@Override public void send(String text) { last = JsonObject.readFrom(text); }
 	}

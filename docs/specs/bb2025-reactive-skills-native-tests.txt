@@ -1,4 +1,4 @@
-**/BrowserChoiceTest.java
+**/CoreTurnActionsTest.java
 **/OnTheBallMechanicTest.java
 **/OnTheBallPassBlockIntegrationTest.java
 **/OnTheBallSkillTest.java

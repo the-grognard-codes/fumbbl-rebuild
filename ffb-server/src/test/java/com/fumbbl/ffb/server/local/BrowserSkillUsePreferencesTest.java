@@ -119,7 +119,7 @@ class BrowserSkillUsePreferencesTest {
 	}
 	private JsonObject request(String operation) { return new JsonObject().add("version", 2).add("type", "skillUsePreferences").add("requestId", "settings").add("operation", operation); }
 	private JsonObject update(String useCase, String mode) { return request("update").add("useCase", useCase).add("mode", mode); }
-	private static final class Peer implements BrowserMatchAdapter.Connection {
+	private static final class Peer implements BrowserConnection {
 		final List<String> messages = new ArrayList<>();
 		@Override public void send(String message) { messages.add(message); }
 		JsonObject last() { return JsonObject.readFrom(messages.get(messages.size() - 1)); }
