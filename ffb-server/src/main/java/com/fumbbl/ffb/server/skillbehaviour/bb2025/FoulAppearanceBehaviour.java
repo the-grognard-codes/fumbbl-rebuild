@@ -17,14 +17,14 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
-import com.fumbbl.ffb.server.step.mixed.StepFoulAppearance;
-import com.fumbbl.ffb.server.step.mixed.StepFoulAppearance.StepState;
-import com.fumbbl.ffb.server.step.bb2020.StepStateMultipleRolls;
-import com.fumbbl.ffb.server.step.mixed.multiblock.StepFoulAppearanceMultiple;
+import com.fumbbl.ffb.server.step.bb2025.StepFoulAppearance;
+import com.fumbbl.ffb.server.step.bb2025.StepFoulAppearance.StepState;
+import com.fumbbl.ffb.server.step.bb2025.StepStateMultipleRolls;
+import com.fumbbl.ffb.server.step.bb2025.multiblock.StepFoulAppearanceMultiple;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
 import com.fumbbl.ffb.skill.common.FoulAppearance;
 import com.fumbbl.ffb.util.UtilCards;
-import com.fumbbl.ffb.server.skillbehaviour.mixed.AbstractStepModifierMultipleBlock;
+import com.fumbbl.ffb.server.skillbehaviour.bb2025.AbstractStepModifierMultipleBlock;
 
 import java.util.ArrayList;
 

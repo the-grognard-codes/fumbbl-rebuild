@@ -29,7 +29,7 @@ import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepFactory;
 import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.StepStack;
-import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
+import com.fumbbl.ffb.server.step.bb2025.pass.state.PassState;
 import com.fumbbl.ffb.server.util.ReRollService;
 
 import com.eclipsesource.json.JsonObject;

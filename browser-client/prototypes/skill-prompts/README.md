@@ -115,7 +115,7 @@ action label implies a usage limit:
   can expose Strong Passing Game with the Pass reroll decision when it changes
   the result. Hiding/postponing it would change available choices. See
   `step/bb2025/pass/StepPass.java:238-256,277-291` and
-  `ffb-common/.../skill/mixed/special/StrongPassingGame.java:25`.
+  `ffb-common/.../skill/bb2025/special/StrongPassingGame.java:25`.
 
 Approved presentation: use a direct named circular prompt for an eligible
 built-in non-block reroll, including Dodge/Sure Feet, when confirmation is

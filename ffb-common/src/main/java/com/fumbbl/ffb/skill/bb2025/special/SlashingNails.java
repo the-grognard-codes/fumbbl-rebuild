@@ -8,7 +8,7 @@ import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.model.skill.SkillClassWithValue;
 import com.fumbbl.ffb.model.skill.SkillUsageType;
 import com.fumbbl.ffb.modifiers.TemporaryEnhancements;
-import com.fumbbl.ffb.skill.mixed.Claws;
+import com.fumbbl.ffb.skill.bb2025.Claws;
 
 import java.util.Collections;
 

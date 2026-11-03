@@ -2,7 +2,7 @@ package com.fumbbl.ffb.test;
 
 import com.fumbbl.ffb.SkillCategory;
 import com.fumbbl.ffb.model.property.NamedProperties;
-import com.fumbbl.ffb.skill.mixed.OnTheBall;
+import com.fumbbl.ffb.skill.bb2025.OnTheBall;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

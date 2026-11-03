@@ -45,7 +45,7 @@ import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.report.ReportApothecaryChoice;
 import com.fumbbl.ffb.report.ReportInducement;
-import com.fumbbl.ffb.report.mixed.ReportApothecaryRoll;
+import com.fumbbl.ffb.report.bb2025.ReportApothecaryRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.InjuryResult;

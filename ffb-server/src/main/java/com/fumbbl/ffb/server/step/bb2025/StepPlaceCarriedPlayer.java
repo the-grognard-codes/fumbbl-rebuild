@@ -26,7 +26,7 @@ import com.fumbbl.ffb.net.commands.ClientCommandFieldCoordinate;
 import com.fumbbl.ffb.option.GameOptionBoolean;
 import com.fumbbl.ffb.option.GameOptionId;
 import com.fumbbl.ffb.option.UtilGameOption;
-import com.fumbbl.ffb.report.mixed.ReportPlayerEvent;
+import com.fumbbl.ffb.report.bb2025.ReportPlayerEvent;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.InjuryResult;

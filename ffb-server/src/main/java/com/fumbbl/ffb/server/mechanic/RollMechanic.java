@@ -23,7 +23,7 @@ import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
 import com.fumbbl.ffb.server.step.IStep;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
-import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
+import com.fumbbl.ffb.server.step.bb2025.pass.state.PassState;
 
 import java.util.List;
 import java.util.Optional;

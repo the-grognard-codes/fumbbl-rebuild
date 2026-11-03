@@ -16,10 +16,10 @@ import com.fumbbl.ffb.report.ReportConfusionRoll;
 import com.fumbbl.ffb.report.ReportReRoll;
 import com.fumbbl.ffb.report.ReportSkillRoll;
 import com.fumbbl.ffb.report.ReportStandUpRoll;
-import com.fumbbl.ffb.report.mixed.ReportDodgeRoll;
-import com.fumbbl.ffb.report.mixed.ReportPassRoll;
-import com.fumbbl.ffb.report.mixed.ReportTentaclesShadowingRoll;
-import com.fumbbl.ffb.report.mixed.ReportThrowTeamMateRoll;
+import com.fumbbl.ffb.report.bb2025.ReportDodgeRoll;
+import com.fumbbl.ffb.report.bb2025.ReportPassRoll;
+import com.fumbbl.ffb.report.bb2025.ReportTentaclesShadowingRoll;
+import com.fumbbl.ffb.report.bb2025.ReportThrowTeamMateRoll;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.mechanic.RollMechanic;
@@ -57,7 +57,7 @@ final class NativeRollPresentation {
             || state.getCurrentStep() instanceof StepBlockRoll
             && "pro-test".equals(((StepBlockRoll) state.getCurrentStep()).getBlockRerollPhase());
         RollMechanic mechanic = (RollMechanic) game.getFactory(FactoryType.Factory.MECHANIC).forName(Mechanic.Type.ROLL.name());
-        numericDice = new NumericDicePresentation(mechanic);
+        numericDice = new NumericDicePresentation();
         pro = mechanic.minimumProRoll();
         movingPlayerId = game.getActingPlayer().getPlayerId();
         for (Team team : new Team[] {game.getTeamHome(), game.getTeamAway()}) for (Player<?> player : team.getPlayers()) {
@@ -138,8 +138,7 @@ final class NativeRollPresentation {
                 case JUMP_ROLL:
                 case JUMP_UP_ROLL:
                 case RIGHT_STUFF_ROLL:
-                case INTERCEPTION_ROLL:
-                case SAFE_THROW_ROLL: base = agility.get(roll.getPlayerId()); break;
+                case INTERCEPTION_ROLL: base = agility.get(roll.getPlayerId()); break;
                 case HYPNOTIC_GAZE_ROLL: base = 3; modifier = 0; break;
                 case BLOOD_LUST_ROLL: base = bloodLust.get(roll.getPlayerId()); modifier = base == null ? 0 : base - roll.getMinimumRoll(); break;
                 case CONFUSION_ROLL:
@@ -150,7 +149,7 @@ final class NativeRollPresentation {
                 case THROW_TEAM_MATE_ROLL:
                     base = 2;
                     if (((ReportThrowTeamMateRoll) report).getPassingDistance() != null)
-                        modifier -= ((ReportThrowTeamMateRoll) report).getPassingDistance().getModifier2020();
+                        modifier -= ((ReportThrowTeamMateRoll) report).getPassingDistance().getPassingModifier();
                     break;
                 default: base = roll.getMinimumRoll() + modifier; break;
             }
@@ -164,7 +163,7 @@ final class NativeRollPresentation {
             }
             if (report instanceof ReportPassRoll
                 && ((ReportPassRoll) report).getPassingDistance() != null)
-                modifier -= ((ReportPassRoll) report).getPassingDistance().getModifier2020();
+                modifier -= ((ReportPassRoll) report).getPassingDistance().getPassingModifier();
             facts(publicReport, roll.getPlayerId(), base, roll.getMinimumRoll(), modifier);
         }
     }

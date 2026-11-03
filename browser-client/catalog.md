@@ -26,7 +26,7 @@ DOM catalog table. Source: [Human roster](https://bloodbowlbase.ru/bb2025/teams/
 
 | Legacy Human XML field | BB2025 source comparison / adapter decision |
 |---|---|
-| `id`, position IDs | Local stable identifiers; old external/LRB6 IDs are not retained as authority |
+| `id`, position IDs | Local stable identifiers; external IDs are not retained as authority |
 | `quantity`, `cost` | Direct current roster values; no conversion of old prices |
 | Lineman | Limit 16, 50K; target armour 9; Primary G, Secondary ADS |
 | Catcher | Limit changes 4 → 2; cost 70K → 75K; ST 2 → 3; PA 4+, AV 8+ |
@@ -34,7 +34,7 @@ DOM catalog table. Source: [Human roster](https://bloodbowlbase.ru/bb2025/teams/
 | Blitzer | Limit 4 → 2; cost 90K → 85K; gains Tackle; AV 9+ |
 | Halfling Hopeful | New local position; limit 3, 30K |
 | Ogre | Limit 1, 140K; AG 4+, AV 10+; explicit Loner 3+ |
-| `movement/strength/agility/passing/armour` | MA/ST remain counts; AG/PA/AV are current target numbers, not arithmetic conversions from LRB6 |
+| `movement/strength/agility/passing/armour` | MA/ST remain counts; AG/PA/AV are current target numbers from the BB2025 source |
 | `skillList`, `value` | Explicit current IDs; Loner parameter 3; Mighty Blow modifier 1; other parameter values 0 mean not parameterized |
 | `normal`, `double` categories | Replaced with explicit Primary/Secondary data, including Devious; old dice-based labels are not a conversion rule |
 | `type`, `race`, `keywords` | Current role/race labels, including Big Guy; only these public labels are projected |

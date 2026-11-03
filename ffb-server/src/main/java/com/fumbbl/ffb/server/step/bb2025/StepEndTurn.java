@@ -53,19 +53,19 @@ import com.fumbbl.ffb.option.UtilGameOption;
 import com.fumbbl.ffb.report.ReportBribesRoll;
 import com.fumbbl.ffb.report.ReportSecretWeaponBan;
 import com.fumbbl.ffb.report.ReportSkillUse;
-import com.fumbbl.ffb.report.mixed.ReportArgueTheCallRoll;
-import com.fumbbl.ffb.report.mixed.ReportBriberyAndCorruptionReRoll;
-import com.fumbbl.ffb.report.mixed.ReportBrilliantCoachingReRollsLost;
-import com.fumbbl.ffb.report.mixed.ReportPrayerEnd;
-import com.fumbbl.ffb.report.mixed.ReportPumpUpTheCrowdReRollsLost;
-import com.fumbbl.ffb.report.mixed.ReportShowStarReRoll;
-import com.fumbbl.ffb.report.mixed.ReportShowStarReRollsLost;
-import com.fumbbl.ffb.report.mixed.ReportTurnEnd;
+import com.fumbbl.ffb.report.bb2025.ReportArgueTheCallRoll;
+import com.fumbbl.ffb.report.bb2025.ReportBriberyAndCorruptionReRoll;
+import com.fumbbl.ffb.report.bb2025.ReportBrilliantCoachingReRollsLost;
+import com.fumbbl.ffb.report.bb2025.ReportPrayerEnd;
+import com.fumbbl.ffb.report.bb2025.ReportPumpUpTheCrowdReRollsLost;
+import com.fumbbl.ffb.report.bb2025.ReportShowStarReRoll;
+import com.fumbbl.ffb.report.bb2025.ReportShowStarReRollsLost;
+import com.fumbbl.ffb.report.bb2025.ReportTurnEnd;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.factory.SequenceGeneratorFactory;
-import com.fumbbl.ffb.server.factory.mixed.PrayerHandlerFactory;
+import com.fumbbl.ffb.server.factory.bb2025.PrayerHandlerFactory;
 import com.fumbbl.ffb.server.mechanic.StateMechanic;
 import com.fumbbl.ffb.server.net.ReceivedCommand;
 import com.fumbbl.ffb.server.step.AbstractStep;
@@ -710,7 +710,7 @@ public class StepEndTurn extends AbstractStep {
 					boolean banned = (total >= penalty);
 					reportBan.add(player.getId(), total, banned);
 					playerResult.setHasUsedSecretWeapon(banned);
-					// lrb6 secret weapon use (auto-ban)
+					// secret weapon use (auto-ban)
 				} else {
 					reportBan.add(player.getId(), 0, true);
 				}

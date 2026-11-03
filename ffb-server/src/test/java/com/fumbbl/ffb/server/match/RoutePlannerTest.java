@@ -3,7 +3,6 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
-import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.MechanicsFactory;
@@ -24,8 +23,6 @@ import com.fumbbl.ffb.modifiers.DodgeContext;
 import com.fumbbl.ffb.modifiers.DodgeModifier;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.PrayerState;
-import com.fumbbl.ffb.util.ArrayTool;
-import com.fumbbl.ffb.util.pathfinding.PathFinderWithPassBlockSupport;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -353,33 +350,15 @@ class RoutePlannerTest {
 		assertFalse(contains(away.get("full").asArray(), 12, 5));
 	}
 
-	@Test void passBlockHasThreePointsAndLegacyRulesRequireAValidEnd() {
+	@Test void onTheBallPassMovementHasThreePointsAndNextTurnResetsAllowance() {
 		planner();
 		when(game.getTurnMode()).thenReturn(TurnMode.PASS_BLOCK);
 		when(acting.getCurrentMove()).thenReturn(1);
-		when(player.hasSkillProperty(NamedProperties.canMoveWhenOpponentPasses)).thenReturn(true);
-		when(field.getOnPitchEnhancements()).thenReturn(Collections.emptySet());
-		when(field.getPlayerCoordinates()).thenReturn(new FieldCoordinate[0]);
-		when(game.getMechanic(Mechanic.Type.ON_THE_BALL))
-			.thenReturn(new com.fumbbl.ffb.mechanics.mixed.OnTheBallMechanic());
-		JsonObject mixed = RoutePlanner.forRange(state, player, false).range();
-		assertEquals(2, mixed.getInt("remaining", -1));
-		assertEquals(mixed.get("normal").toString(), mixed.get("full").toString());
-		assertTrue(contains(mixed.get("full").asArray(), 7, 5));
-		assertFalse(contains(mixed.get("full").asArray(), 8, 5));
-		when(game.getMechanic(Mechanic.Type.ON_THE_BALL))
-			.thenReturn(new com.fumbbl.ffb.mechanics.bb2016.OnTheBallMechanic());
-		JsonObject legacy = RoutePlanner.forRange(state, player, false).range();
-		assertEquals(0, legacy.get("full").asArray().size());
-		Player<?> thrower = mock(Player.class);
-		doReturn(thrower).when(game).getThrower();
-		when(game.getPassCoordinate()).thenReturn(new FieldCoordinate(20, 5));
-		when(game.getThrowerAction()).thenReturn(PlayerAction.HAIL_MARY_PASS);
-		when(field.getPlayerCoordinate(thrower)).thenReturn(new FieldCoordinate(8, 5));
-		JsonObject reachable = RoutePlanner.forRange(state, player, false).range();
-		assertTrue(contains(reachable.get("full").asArray(), 6, 5));
-		assertTrue(contains(reachable.get("full").asArray(), 7, 5));
-		assertFalse(contains(reachable.get("full").asArray(), 4, 5));
+		JsonObject range = RoutePlanner.forRange(state, player, false).range();
+		assertEquals(2, range.getInt("remaining", -1));
+		assertEquals(range.get("normal").toString(), range.get("full").toString());
+		assertTrue(contains(range.get("full").asArray(), 7, 5));
+		assertFalse(contains(range.get("full").asArray(), 8, 5));
 		assertEquals(8, RoutePlanner.forRange(state, player, true).range().getInt("remaining", -1));
 	}
 
@@ -446,37 +425,6 @@ class RoutePlannerTest {
 				assertEquals(0, range.get("full").asArray().size(), skill.getName());
 			}
 		}
-	}
-
-	@Test void legacyPassBlockDoesNotIncludeStepsWhoseContinuationRequiresLeap() {
-		planner();
-		when(game.getTurnMode()).thenReturn(TurnMode.PASS_BLOCK);
-		when(player.hasSkillProperty(NamedProperties.canMoveWhenOpponentPasses)).thenReturn(true);
-		Skill leap = new com.fumbbl.ffb.skill.bb2016.Leap();
-		leap.postConstruct();
-		when(player.getSkillsIncludingTemporaryOnes()).thenReturn(Collections.singleton(leap));
-		when(player.hasSkillProperty(NamedProperties.canLeap)).thenReturn(true);
-		when(game.getMechanic(Mechanic.Type.JUMP)).thenReturn(new com.fumbbl.ffb.mechanics.bb2016.JumpMechanic());
-		when(game.getMechanic(Mechanic.Type.ON_THE_BALL)).thenReturn(new com.fumbbl.ffb.mechanics.bb2016.OnTheBallMechanic());
-		when(field.getOnPitchEnhancements()).thenReturn(Collections.emptySet());
-		Player<?> blocker = mock(Player.class), thrower = mock(Player.class);
-		List<FieldCoordinate> occupied = new ArrayList<>();
-		for (int y = 3; y <= 7; y++) {
-			FieldCoordinate square = new FieldCoordinate(6, y);
-			occupied.add(square);
-			doReturn(blocker).when(field).getPlayer(square);
-		}
-		when(field.getPlayerCoordinates()).thenReturn(occupied.toArray(new FieldCoordinate[0]));
-		doReturn(thrower).when(game).getThrower();
-		when(field.getPlayerCoordinate(thrower)).thenReturn(new FieldCoordinate(8, 5));
-		when(game.getPassCoordinate()).thenReturn(new FieldCoordinate(20, 5));
-		when(game.getThrowerAction()).thenReturn(PlayerAction.HAIL_MARY_PASS);
-		Set<FieldCoordinate> ends = Collections.singleton(new FieldCoordinate(7, 5));
-		assertTrue(ArrayTool.isProvided(PathFinderWithPassBlockSupport.INSTANCE
-			.allowPassBlockMove(game, player, new FieldCoordinate(5, 4), 2, true, ends)));
-		JsonObject range = RoutePlanner.forRange(state, player, false).range();
-		assertEquals(0, range.get("normal").asArray().size());
-		assertEquals(0, range.get("full").asArray().size());
 	}
 
 	@Test void spentMovementLeavesOnlyRushDestinationsAndNextTurnResetsIt() {

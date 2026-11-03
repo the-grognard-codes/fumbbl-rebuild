@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SkillDefinitionsTest {
 	@Test
@@ -36,20 +34,16 @@ public class SkillDefinitionsTest {
 	}
 
 	@Test
-	public void categoryCorrectionsAreRestrictedToBb2025() {
-		SkillFactory current = factory("BB2025");
+	public void skillsUseBb2025Categories() {
+		SkillFactory current = factory();
 		assertEquals(SkillCategory.AGILITY, current.forName("Hit And Run").getCategory());
 		assertEquals(SkillCategory.GENERAL, current.forName("Steady Footing").getCategory());
 		assertEquals(SkillCategory.TRAIT, current.forName("Bloodlust").getCategory());
-		SkillFactory previous = factory("BB2020");
-		assertNotNull(previous.forName("Bloodlust"));
-		assertEquals(SkillCategory.EXTRAORDINARY, previous.forName("Bloodlust").getCategory());
-		assertTrue(previous.forName("Hit And Run") == null || previous.forName("Hit And Run").getCategory() == SkillCategory.TRAIT);
 	}
 
-	private SkillFactory factory(String ruleset) {
+	private SkillFactory factory() {
 		Game game = new Game(null, new FactoryManager());
-		game.getOptions().addOption(new GameOptionString(GameOptionId.RULESVERSION).setValue(ruleset));
+		game.getOptions().addOption(new GameOptionString(GameOptionId.RULESVERSION).setValue("BB2025"));
 		game.initializeRules();
 		return game.getRules().getFactory(Factory.SKILL);
 	}

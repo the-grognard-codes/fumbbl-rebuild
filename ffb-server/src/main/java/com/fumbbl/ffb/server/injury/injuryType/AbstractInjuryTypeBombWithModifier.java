@@ -28,7 +28,7 @@ public abstract class AbstractInjuryTypeBombWithModifier<T extends InjuryType> e
 		Player<?> pDefender, FieldCoordinate pDefenderCoordinate, FieldCoordinate fromCoordinate,
 		DiceInterpreter diceInterpreter, InjuryContext injuryContext, boolean roll) {
 
-		// in BB2020/2025 bombs place players prone, chainsaw only takes effect on falling down or being knocked down
+		// in BB2025 bombs place players prone, chainsaw only takes effect on falling down or being knocked down
 		// hence chainsaw is ignored here
 
 		boolean skipArmourRoll = pDefender.hasSkillProperty(NamedProperties.placedProneCausesInjuryRoll);

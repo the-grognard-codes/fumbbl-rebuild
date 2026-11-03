@@ -47,11 +47,10 @@ public class GameOptions implements IXmlSerializable, IJsonSerializable {
 
 	public RulesCollection.Rules getRulesVersion() {
 		String rulesVersion = getOptionWithDefault(GameOptionId.RULESVERSION).getValueAsString();
-		try {
-			return RulesCollection.Rules.valueOf(rulesVersion);
-		} catch (IllegalArgumentException e) {
-			throw new FantasyFootballException("Could not create a rules version for value '" + rulesVersion + "'");
+		if (!"BB2025".equals(rulesVersion)) {
+			throw new FantasyFootballException("Unsupported rules version '" + rulesVersion + "'; expected BB2025");
 		}
+		return RulesCollection.Rules.BB2025;
 	}
 
 	public GameOptionFactory getFactory() {
@@ -63,24 +62,6 @@ public class GameOptions implements IXmlSerializable, IJsonSerializable {
 			addOptionInternal(pOption);
 			// handle mutually exclusive options
 			switch (pOption.getId()) {
-			case PILING_ON_ARMOR_ONLY:
-				if (((GameOptionBoolean) pOption).isEnabled()) {
-					GameOptionBoolean pilingOnInjuryOnly = (GameOptionBoolean) getOptionWithDefault(
-							GameOptionId.PILING_ON_INJURY_ONLY);
-					if (pilingOnInjuryOnly.isEnabled()) {
-						addOptionInternal(pilingOnInjuryOnly.setValue(false));
-					}
-				}
-				break;
-			case PILING_ON_INJURY_ONLY:
-				if (((GameOptionBoolean) pOption).isEnabled()) {
-					GameOptionBoolean pilingOnArmorOnly = (GameOptionBoolean) getOptionWithDefault(
-							GameOptionId.PILING_ON_ARMOR_ONLY);
-					if (pilingOnArmorOnly.isEnabled()) {
-						addOptionInternal(pilingOnArmorOnly.setValue(false));
-					}
-				}
-				break;
 			case FOUL_BONUS:
 				if (((GameOptionBoolean) pOption).isEnabled()) {
 					GameOptionBoolean foulBonusOutsideTacklezone = (GameOptionBoolean) getOptionWithDefault(
@@ -191,9 +172,7 @@ public class GameOptions implements IXmlSerializable, IJsonSerializable {
 			IGameOption gameOption = optionFactory.fromJsonValue(source, optionArray.get(i));
 			addOption(gameOption);
 		}
-		if (!fOptionById.containsKey(GameOptionId.RULESVERSION)) {
-			addOption(optionFactory.createGameOption(GameOptionId.RULESVERSION).setValue("BB2016"));
-		}
+		getRulesVersion();
 		return this;
 	}
 

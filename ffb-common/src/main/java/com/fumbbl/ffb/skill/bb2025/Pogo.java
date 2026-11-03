@@ -7,7 +7,7 @@ import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 
 /**
- * Same as 2020 Pogo Stick
+ * Pogo movement ignores intervening players' tackle zones.
  */
 @RulesCollection(RulesCollection.Rules.BB2025)
 public class Pogo extends Skill {

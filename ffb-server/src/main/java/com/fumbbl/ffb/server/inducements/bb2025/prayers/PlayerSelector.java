@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PlayerSelector extends com.fumbbl.ffb.server.inducements.mixed.prayers.PlayerSelector {
+public class PlayerSelector extends com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractPlayerSelector {
 
 	public static PlayerSelector INSTANCE = new PlayerSelector();
 

@@ -39,7 +39,7 @@ test('ordinary dice display the recorded raw roll and target', () => {
   assert.equal(reportedDice({ reportId: 'goForItRoll', roll: 7 }), null);
 });
 
-test('injury follow-up reports cannot replay skipped dice and legacy pairs stay together', () => {
+test('injury follow-up reports cannot replay skipped dice and native pairs stay together', () => {
   const report = { reportId: 'injury', playerId: 'victim', armorRoll: [6, 5], injuryRoll: [4, 3] };
   const armor = reportedDice({ ...report, skipInjuryParts: 'INJURY', numericDice: { version: 1,
     dice: [6, 5].map(value => ({ sides: 6, value, label: 'Armour' })) } })!;
@@ -49,7 +49,7 @@ test('injury follow-up reports cannot replay skipped dice and legacy pairs stay 
   assert.equal(reportedDice({ ...report, skipInjuryParts: 'ARMOUR_AND_INJURY' }), null,
     'An outcome-only report has no new dice, even when the original rolls remain in its payload');
   assert.deepEqual(diceRollGroups(reportedDice({ ...report, skipInjuryParts: 'INJURY' })!).map(group => group.faces), [['6', '5']],
-    'Undecorated legacy reports obey the same skip flags and group both armor dice');
+    'Undecorated native reports obey the same skip flags and group both armor dice');
   assert.deepEqual(diceRollGroups(reportedDice({ ...report, skipInjuryParts: 'ARMOUR' })!).map(group => group.faces), [['4', '3']]);
   for (const [skipInjuryParts, expected] of [
     ['NONE', ['6', '5', '4', '3', '16', '2']], ['ARMOUR', ['4', '3', '16', '2']],
@@ -62,7 +62,7 @@ test('injury follow-up reports cannot replay skipped dice and legacy pairs stay 
 
 test('low D8 and D16 values retain native types and group order instead of becoming D6', () => {
   const report = { reportId: 'injury', defenderId: 'target', numericDice: { version: 1, dice: [
-    { sides: 8, value: 2, label: 'Legacy casualty' }, { sides: 16, value: 3, label: 'Casualty' },
+    { sides: 8, value: 2, label: 'Ball scatter' }, { sides: 16, value: 3, label: 'Casualty' },
     { sides: 6, value: 5, label: 'Casualty' }] } };
   const moment = reportedDice(report)!;
   assert.deepEqual(moment.faces, ['2', '3', '5']);

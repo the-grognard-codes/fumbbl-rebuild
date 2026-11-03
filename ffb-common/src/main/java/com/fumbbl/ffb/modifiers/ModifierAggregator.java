@@ -3,7 +3,7 @@ package com.fumbbl.ffb.modifiers;
 import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.factory.SkillFactory;
 import com.fumbbl.ffb.model.Game;
-import com.fumbbl.ffb.modifiers.bb2020.CasualtyModifier;
+import com.fumbbl.ffb.modifiers.bb2025.CasualtyModifier;
 import com.fumbbl.ffb.util.UtilCards;
 
 import java.util.Arrays;

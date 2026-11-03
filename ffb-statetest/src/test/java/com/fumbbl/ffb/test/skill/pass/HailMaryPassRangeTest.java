@@ -26,7 +26,7 @@ class HailMaryPassRangeTest {
 	private final PassRangeService service = new PassRangeService();
 
 	@Test void ballAndBombReachEveryPitchSquareInNonBlizzardWeather() throws Exception {
-		Game game = game("BB2025");
+		Game game = game();
 		for (Weather weather : Weather.values()) {
 			if (weather == Weather.BLIZZARD) continue;
 			game.getFieldModel().setWeather(weather);
@@ -42,7 +42,7 @@ class HailMaryPassRangeTest {
 	}
 
 	@Test void blizzardBallAndBombUseOrdinaryGeometricQuickAndShortCap() throws Exception {
-		Game game = game("BB2025");
+		Game game = game();
 		game.getFieldModel().setWeather(Weather.BLIZZARD);
 		PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
 		for (PlayerAction action : hailMaryActions()) {
@@ -61,7 +61,7 @@ class HailMaryPassRangeTest {
 	}
 
 	@Test void bb2025RejectsNullAndOffPitchTargets() throws Exception {
-		Game game = game("BB2025");
+		Game game = game();
 		for (PlayerAction action : hailMaryActions()) {
 			for (FieldCoordinate target : new FieldCoordinate[] {null, new FieldCoordinate(-1, 7),
 				new FieldCoordinate(26, 7), new FieldCoordinate(3, -1), new FieldCoordinate(3, 15)}) {
@@ -70,29 +70,16 @@ class HailMaryPassRangeTest {
 		}
 	}
 
-	@Test void olderRulesetsKeepUnlimitedHailMaryRangeAndBlizzardAvailability() throws Exception {
-		for (String rules : new String[] {"BB2016", "BB2020"}) {
-			Game game = game(rules);
-			PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
-			assertTrue(mechanic.isHailMaryPassAvailable(game, thrower(game)));
-			game.getFieldModel().setWeather(Weather.BLIZZARD);
-			assertFalse(mechanic.isHailMaryPassAvailable(game, thrower(game)));
-			for (PlayerAction action : hailMaryActions()) {
-				assertTrue(service.isInRange(game, thrower(game), new FieldCoordinate(24, 7), action));
-			}
-		}
-	}
-
 	@Test void bb2025HailMaryAvailabilityRequiresSkillAndAllowsBlizzard() throws Exception {
-		Game game = game("BB2025");
+		Game game = game();
 		game.getFieldModel().setWeather(Weather.BLIZZARD);
 		PassMechanic mechanic = game.getMechanic(Mechanic.Type.PASS);
 		assertTrue(mechanic.isHailMaryPassAvailable(game, thrower(game)));
 		assertFalse(mechanic.isHailMaryPassAvailable(game, game.getPlayerById("opponent")));
 	}
 
-	private Game game(String rules) throws Exception {
-		Game game = new GameStateBuilder(new TestServer().getGameState()).withRule(rules).withWeather(Weather.NICE)
+	private Game game() throws Exception {
+		Game game = new GameStateBuilder(new TestServer().getGameState()).withRule("BB2025").withWeather(Weather.NICE)
 			.withTeam(true, team -> team.player("thrower", player -> player.at(3, 7).stats(6, 3, 3, 3, 9).skill("Hail Mary Pass")))
 			.withTeam(false, team -> team.player("opponent", player -> player.at(15, 7).stats(6, 3, 3, 3, 9)))
 			.build().getGame();

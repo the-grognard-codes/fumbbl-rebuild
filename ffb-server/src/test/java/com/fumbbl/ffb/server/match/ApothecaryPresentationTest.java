@@ -3,7 +3,7 @@ package com.fumbbl.ffb.server.match;
 import com.fumbbl.ffb.ApothecaryType;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.SeriousInjury;
-import com.fumbbl.ffb.bb2020.InjuryDescription;
+import com.fumbbl.ffb.bb2025.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecaryParameter;
 import com.fumbbl.ffb.dialog.DialogUseApothecariesParameter;
@@ -35,12 +35,11 @@ class ApothecaryPresentationTest {
 		assertEquals("Knocked Out", presentation.injury(new PlayerState(PlayerState.KNOCKED_OUT), null));
 		assertEquals("Badly Hurt", presentation.injury(new PlayerState(PlayerState.BADLY_HURT), null));
 		assertEquals("Dead", presentation.injury(new PlayerState(PlayerState.RIP), com.fumbbl.ffb.bb2025.SeriousInjury.DEAD));
-		assertEquals("Broken Ribs (MNG)", injury(com.fumbbl.ffb.bb2016.SeriousInjury.BROKEN_RIBS));
-		assertEquals("Poisoned (MNG)", injury(com.fumbbl.ffb.bb2016.SeriousInjury.POISONED));
-		assertEquals("Damaged Back (Niggling Injury, MNG)", injury(com.fumbbl.ffb.bb2016.SeriousInjury.DAMAGED_BACK));
-		assertEquals("Smashed Hip (-1MA, MNG)", injury(com.fumbbl.ffb.bb2016.SeriousInjury.SMASHED_HIP));
-		assertEquals("Seriously Hurt (MNG)", injury(com.fumbbl.ffb.bb2020.SeriousInjury.SERIOUSLY_HURT));
-		assertEquals("Head Injury (-1AV, MNG)", injury(com.fumbbl.ffb.bb2020.SeriousInjury.HEAD_INJURY));
+		assertEquals("Seriously Hurt (MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.SERIOUSLY_HURT));
+		assertEquals("Head Injury (-1AV, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.HEAD_INJURY));
+		assertEquals("Smashed Knee (-1MA, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.SMASHED_KNEE));
+		assertEquals("Broken Arm (-1PA, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.BROKEN_ARM));
+		assertEquals("Dislocated Shoulder (-1ST, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.DISLOCATED_SHOULDER));
 		assertEquals("Serious Injury (Niggling Injury, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.SERIOUS_INJURY));
 		assertEquals("Dislocated Hip (-1AG, MNG)", injury(com.fumbbl.ffb.bb2025.SeriousInjury.DISLOCATED_HIP));
 	}
@@ -50,7 +49,7 @@ class ApothecaryPresentationTest {
 		Game game = state.getGame();
 		PlayerState injuryState = new PlayerState(PlayerState.SERIOUS_INJURY);
 		when(game.getDialogParameter()).thenReturn(new DialogUseApothecaryParameter("injured", injuryState,
-			com.fumbbl.ffb.bb2020.SeriousInjury.HEAD_INJURY,
+			com.fumbbl.ffb.bb2025.SeriousInjury.HEAD_INJURY,
 			Arrays.asList(ApothecaryType.TEAM, ApothecaryType.WANDERING, ApothecaryType.PLAGUE)));
 
 		List<Action> actions = new CorePromptActions(state).actions();
@@ -79,7 +78,7 @@ class ApothecaryPresentationTest {
 		Game game = state.getGame();
 		PlayerState oldState = new PlayerState(PlayerState.SERIOUS_INJURY);
 		PlayerState newState = new PlayerState(PlayerState.BADLY_HURT);
-		SeriousInjury oldInjury = com.fumbbl.ffb.bb2016.SeriousInjury.DAMAGED_BACK;
+		SeriousInjury oldInjury = com.fumbbl.ffb.bb2025.SeriousInjury.SERIOUS_INJURY;
 		DialogApothecaryChoiceParameter dialog = new DialogApothecaryChoiceParameter("injured", oldState, oldInjury,
 			newState, null);
 		when(game.getDialogParameter()).thenReturn(dialog);
@@ -87,7 +86,7 @@ class ApothecaryPresentationTest {
 		List<Action> actions = new CorePromptActions(state).actions();
 		assertEquals(2, actions.size());
 		assertEquals("injury:old", actions.get(0).id);
-		assertEquals("Keep Damaged Back (Niggling Injury, MNG)", actions.get(0).label);
+		assertEquals("Keep Serious Injury (Niggling Injury, MNG)", actions.get(0).label);
 		assertEquals("injury:new", actions.get(1).id);
 		assertEquals("Choose Badly Hurt", actions.get(1).label);
 		for (int index = 0; index < actions.size(); index++) {

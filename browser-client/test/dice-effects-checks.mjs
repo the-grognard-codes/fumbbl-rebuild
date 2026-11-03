@@ -142,8 +142,8 @@ export async function verifyDiceEffects(browser, url) {
     const samples = [
       ['armor', 'Armour', 4, null, '#ffe17b'], ['stun', 'Injury', 4, null, '#ffe17b'],
       ['ko', 'Injury', 5, null, '#ffe17b'], ['casualty', 'Injury', 6, null, '#ffe17b'],
-      ['bh', 'Casualty', 6, null, '#b2dfaa'], ['mng', 'Casualty', 7, 'Broken Ribs (MNG)', '#f2cd78'],
-      ['ni', 'Casualty', 7, 'Damaged Back (NI)', '#eba86c'], ['stat', 'Serious injury', 7, 'Head Injury (-AV)', '#e6a5b3'],
+      ['bh', 'Casualty', 6, null, '#b2dfaa'], ['mng', 'Casualty', 7, 'Seriously Hurt (MNG)', '#f2cd78'],
+      ['ni', 'Casualty', 7, 'Serious Injury (NI)', '#eba86c'], ['stat', 'Serious injury', 7, 'Head Injury (-AV)', '#e6a5b3'],
       ['dead', 'Casualty', 8, 'Dead (RIP)', '#ee9295'],
     ];
     const staticPage = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });

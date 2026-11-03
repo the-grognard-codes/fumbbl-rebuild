@@ -26,7 +26,7 @@ import com.fumbbl.ffb.server.step.generator.EndPlayerAction;
 import com.fumbbl.ffb.server.step.generator.Move;
 import com.fumbbl.ffb.server.step.generator.Pass;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
-import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
+import com.fumbbl.ffb.server.step.bb2025.pass.state.PassState;
 
 /**
  * Final step of the bomb sequence. Consumes all expected stepParameters.

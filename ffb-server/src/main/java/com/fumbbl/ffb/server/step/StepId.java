@@ -12,7 +12,7 @@ public enum StepId implements INamedObject {
 	ANIMAL_SAVAGERY("animalSavagery"), // action.common
 	ANIMOSITY("animosity"), // action.pass
 	APOTHECARY("apothecary"), // action.common
-	APOTHECARY_MULTIPLE("apothecaryMultiple"), // action.multiBlock 2020
+	APOTHECARY_MULTIPLE("apothecaryMultiple"), // action.multiBlock
 	APPLY_KICKOFF_RESULT("applyKickoffResult"), // phase.kickoff
 	ASSIGN_TOUCHDOWNS("assignTouchdowns"), // game.end
 	AUTO_GAZE_ZOAT("autoGazeZoat"), // action.special
@@ -24,7 +24,7 @@ public enum StepId implements INamedObject {
 	BLOCK_CHOICE("blockChoice"), // action.block
 	BLOCK_DODGE("blockDodge"), // action.block
 	BLOCK_ROLL("blockRoll"), // action.block
-	BLOCK_ROLL_MULTIPLE("blockRollMultiple"), // action.multiBlock 2020
+	BLOCK_ROLL_MULTIPLE("blockRollMultiple"), // action.multiBlock
 	BLOCK_STATISTICS("blockStatistics"), // action.block
 	BLOOD_LUST("bloodLust"), // action.common
 	BOMBARDIER("bombardier"), // action.pass
@@ -32,25 +32,21 @@ public enum StepId implements INamedObject {
 	BOTH_DOWN("bothDown"),  // action.block
 	BREATHE_FIRE("breatheFire"),
 	BRIBES("bribes"), // action.foul
-	BUY_CARDS("buyCards"), // game.start
-	BUY_CARDS_AND_INDUCEMENTS("buyCardsAndInducements"), // game.start
 	BUY_INDUCEMENTS("buyInducements"), // game.start
 	CATCH_OF_THE_DAY("catchOfTheDay"), // action.special
 	CATCH_SCATTER_THROW_IN("catchScatterThrowIn"), // action.common
 	CHOMP("chomp"), // action.block
-	CHECK_STALLING("checkStalling"), // action.common
 	COIN_CHOICE("coinChoice"), // game.start
-	CONSUME_PARAMETER("consumeParameter"), // action.multiBlock 2020
-	CLOUD_BURSTER("cloudBurster"), // action.pass
+	CONSUME_PARAMETER("consumeParameter"), // action.multiBlock
 	DAUNTLESS("dauntless"), // action.block
-	DAUNTLESS_MULTIPLE("dauntlessMultiple"), // action.multiBlock 2020
+	DAUNTLESS_MULTIPLE("dauntlessMultiple"), // action.multiBlock
 	DEDICATED_FANS("dedicatedFans"), // game.end
 	DISPATCH_DUMP_OFF("dispatchDumpOff"),
 	DISPATCH_PASSING("dispatchPassing"), // action.pass
-	DISPATCH_SCATTER_PLAYER("dispatchScatterPlayer"), // action.ttm 2020
+	DISPATCH_SCATTER_PLAYER("dispatchScatterPlayer"), // action.ttm
 	DIVING_TACKLE("divingTackle"), // action.move
 	DWARFEN_WISDOM("dwarfenWisdom"), // phase.kickoff
-	DOUBLE_STRENGTH("doubleStrength"), // action.multiBlock 2020
+	DOUBLE_STRENGTH("doubleStrength"), // action.multiBlock
 	DROP_ACTING_PLAYER("dropPileDriverPlayer"), // action.block
 	DROP_DIVING_TACKLER("dropDivingTackler"), // action.move
 	DROP_FALLING_PLAYERS("dropFallingPlayers"), // action.block
@@ -76,15 +72,13 @@ public enum StepId implements INamedObject {
 	END_THROW_KEG("endThrowKeg"), // action.special
 	END_TURN("endTurn"), // action.common
 	FALL_DOWN("fallDown"), // action.common
-	FAN_FACTOR("fanFactor"), // game.end
 	FIRST_MOVE_FURIOUS_OUTBURST("firstMoveFuriousOutburst"),
 	FOLLOWUP("followup"), // action.block
 	FORGONE_STALLING("forgoneStalling"), // action.common
 	FOUL("foul"), // action.foul
 	FOUL_APPEARANCE("foulAppearance"), // action.block
-	FOUL_APPEARANCE_MULTIPLE("foulAppearanceMultiple"), // action.multiBlock 2020
+	FOUL_APPEARANCE_MULTIPLE("foulAppearanceMultiple"), // action.multiBlock
 	FOUL_CHAINSAW("foulChainsaw"), // action.foul
-	FUMBLE_TTM_PASS("fumbleTtmPass"), // action.ttm
 	GETTING_EVEN("gettingEven"), // action.common
 	GO_FOR_IT("goForIt"), // action.common
 	GOTO_LABEL("gotoLabel"), //
@@ -95,7 +89,7 @@ public enum StepId implements INamedObject {
 	HORNS("horns"), // action.block
 	HYPNOTIC_GAZE("hypnoticGaze"), // action.move
 	ILL_CARRY_YOU("illCarryYou"), // action.special
-	INIT_ACTIVATION("initActivation", "recoverFromGaze"),
+	INIT_ACTIVATION("initActivation"),
 	INIT_BLOCKING("initBlocking"), // action.block
 	INIT_BOMB("initBomb"), // phase.special
 	INIT_END_GAME("initEndGame"), // game.end
@@ -131,7 +125,7 @@ public enum StepId implements INamedObject {
 	MOVE("move"), // action.move
 	MOVE_BALL_AND_CHAIN("moveBallAndChain"), // action.move
 	MOVE_DODGE("moveDodge"), // action.move
-	MULTI_BLOCK_FORK("multiBlockFork"), // action.multiBlock 2020
+	MULTI_BLOCK_FORK("multiBlockFork"), // action.multiBlock
 	MVP("mvp"), // game.end
 	NEXT_STEP("nextStep"), //
 	NEXT_STEP_AND_REPEAT("nextStepAndRepeat"), //
@@ -144,7 +138,6 @@ public enum StepId implements INamedObject {
 	PILE_DRIVER("pileDriver"), // skill.pileDriver
 	PLACE_BALL("placeBall"), // skill.safePairOfHands
 	PLACE_CARRIED_PLAYER("placeCarriedPlayer"), // action.end
-	PLAY_CARD("playCard"), // phase.inducement
 	PLAYER_LOSS("playerLoss"), // game.end
 	PRAYER("prayer"), // phase.kickoff
 	PRAYERS("prayers"), // phase.kickoff
@@ -159,24 +152,18 @@ public enum StepId implements INamedObject {
 	RECEIVE_CHOICE("receiveChoice"), // game.start
 	RECHECK_EXPLODE_SKILL("recheckExplodeSkill"), // action.bomb
 	REFEREE("referee"), // action.foul,
-	REMOVE_TARGET_SELECTION_STATE("removeTargetSelectionState", "removeBlitzState"), // action.blitz
-	REPORT_STAB_INJURY("reportInjury"), // action.multiBlock 2020
+	REMOVE_TARGET_SELECTION_STATE("removeTargetSelectionState"), // action.blitz
 	RESET_FUMBLEROOSKIE("resetFumblerooskie"), // action.move/action.blitz
 	RESET_TO_MOVE("resetToMove"),
 	RESOLVE_BOMB("resolveBomb"),
 	RESOLVE_PASS("resolvePass"),
 	RIGHT_STUFF("rightStuff"), // action.ttm
 	RIOTOUS_ROOKIES("riotousRookies"),
-	SAFE_THROW("safeThrow"), // action.pass
 	SECOND_MOVE_FURIOUS_OUTBURST("secondMoveFuriousOutburst"),
 	SELECT_BLITZ_TARGET("selectBlitzTarget"),
 	SELECT_BLITZ_TARGET_END("selectBlitzTargetEnd"),
-	SELECT_GAZE_TARGET("selectGazeTarget"),
-	SELECT_GAZE_TARGET_END("selectGazeTargetEnd"),
 	SETUP("setup"), // phase.kickoff
-	SET_ACTING_TEAM("setActingTeam"),
-	SET_ACTING_PLAYER_AND_TEAM("setActingPlayerAndTeam"),
-	SET_DEFENDER("setDefender"), // action.MultiBlock 2020
+	SET_DEFENDER("setDefender"), // action.multiBlock
 	SHADOWING("shadowing"), // action.common
 	SPECTATORS("spectators"), // game.start
 	SPECIAL_EFFECT("specialEffect"), // phase.special
@@ -200,34 +187,19 @@ public enum StepId implements INamedObject {
 	UNCHANNELLED_FURY("unchannelledFury"), // action.common
 	WEATHER("weather"), // game.start
 	WEATHER_MAGE("weatherMage"), // phase.inducement
-	WILD_ANIMAL("wildAnimal"), // action.common
 	WINNINGS("winnings"), // game.end
 	WISDOM_OF_THE_WHITE_DWARF("wisdomOfTheWhiteDwarf"), // action.special
 	WIZARD("wizard"), // phase.inducement
 	WRESTLE("wrestle"); // action.block
 
-	// obsolete = 57 (createGame)
-	// maxId = 111
+	private final String name;
 
-	private final String fName;
-	private final String oldName;
-
-
-	StepId(String fName, String oldName) {
-		this.fName = fName;
-		this.oldName = oldName;
-	}
-
-	StepId(String pName) {
-		this(pName, pName);
-	}
-
-	public String getOldName() {
-		return oldName;
+	StepId(String name) {
+		this.name = name;
 	}
 
 	public String getName() {
-		return fName;
+		return name;
 	}
 
 }

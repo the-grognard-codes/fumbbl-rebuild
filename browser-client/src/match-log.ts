@@ -54,7 +54,7 @@ function reportLine(report: Record<string, unknown>, state: SetupState, preferen
     const total = dice.length && dice.every(value => typeof value === 'number') ? ` = ${dice.reduce((sum, value) => sum + Number(value), 0)}` : '';
     return `Weather: ${weather}${dice.length ? ` · [${dice.join(' + ')}${total}]` : ''}.`;
   }
-  if (['pettyCash', 'freePettyCash'].includes(id)) return `Petty cash · ${team || 'Team'}: ${valueText(report.gold ?? report.amount ?? report.pettyCash)}gp.`;
+  if (id === 'freePettyCash') return `Petty cash · ${team || 'Team'}: ${valueText(report.gold ?? report.amount ?? report.pettyCash)}gp.`;
   const title = `${readable(id)}${team ? ` · ${team}` : ''}${subject ? ` · ${subject}` : ''}${defender ? ` → ${defender}` : ''}`;
   const block = report.logBlock as LogBlock | undefined;
   const attacker = playerName(block?.attackerId ?? presentation?.action?.playerId ?? report.playerId, players) || 'Player';

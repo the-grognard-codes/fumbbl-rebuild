@@ -23,8 +23,8 @@ import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.report.ReportList;
 import com.fumbbl.ffb.report.ReportMasterChefRoll;
 import com.fumbbl.ffb.report.ReportPlayerAction;
-import com.fumbbl.ffb.report.bb2020.ReportTwoForOne;
-import com.fumbbl.ffb.report.mixed.ReportSkillWasted;
+
+import com.fumbbl.ffb.report.bb2025.ReportSkillWasted;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
@@ -156,36 +156,8 @@ public class UtilServerGame {
 		StateMechanic mechanic = (StateMechanic) factory.forName(Mechanic.Type.STATE.name());
 		mechanic.updateLeaderReRollsForTeam(game.getTurnDataHome(), game.getTeamHome(), game.getFieldModel(), pStep);
 		mechanic.updateLeaderReRollsForTeam(game.getTurnDataAway(), game.getTeamAway(), game.getFieldModel(), pStep);
-		checkForMissingPartners(game, game.getTeamHome(), game.getFieldModel(), pStep);
-		checkForMissingPartners(game, game.getTeamAway(), game.getFieldModel(), pStep);
 		updateSingleUseReRolls(game.getTurnDataHome(), game.getTeamHome(), game.getFieldModel());
 		updateSingleUseReRolls(game.getTurnDataAway(), game.getTeamAway(), game.getFieldModel());
-	}
-
-	private static void checkForMissingPartners(Game game, Team team, FieldModel fieldModel, IStep step) {
-		List<Player<?>> players = Arrays.stream(team.getPlayers())
-			.filter(player -> player.hasSkillProperty(NamedProperties.reducesLonerRollIfPartnerIsHurt)).collect(Collectors.toList());
-
-		for (Player<?> currentPlayer : players) {
-			Skill skill = currentPlayer.getSkillWithProperty(NamedProperties.reducesLonerRollIfPartnerIsHurt);
-			String partnerPosId = currentPlayer.getPosition().getTeamWithPositionId();
-			if (StringTool.isProvided(partnerPosId)) {
-				Optional<Player<?>> partner = players.stream().filter(player -> partnerPosId.equals(player.getPosition().getId())).findFirst();
-				if (partner.isPresent()) {
-					PlayerState playerState = fieldModel.getPlayerState(currentPlayer);
-					boolean playerRemovedFromPlay = playerState.isCasualty() || playerState.getBase() == PlayerState.KNOCKED_OUT;
-					if (playerRemovedFromPlay && !partner.get().hasActiveEnhancement(skill)) {
-						addPartnerEnhancement(game, fieldModel, partner.get(), currentPlayer, skill, step);
-					}
-				}
-			}
-		}
-	}
-
-	private static void addPartnerEnhancement(Game game, FieldModel fieldModel, Player<?> player, Player<?> partner, Skill skill, IStep step) {
-		fieldModel.addSkillEnhancements(player, skill);
-		player.markUsed(skill, game);
-		step.getResult().addReport(new ReportTwoForOne(player.getId(), partner.getId(), true));
 	}
 
 	public static void updateSingleUseReRolls(TurnData turnData, Team team, FieldModel fieldModel) {

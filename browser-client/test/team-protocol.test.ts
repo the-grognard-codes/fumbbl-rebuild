@@ -47,7 +47,7 @@ test('Orc catalog exposes its positions, reroll price and legal skill choices', 
 });
 test('unknown schema versions, fields, references and duplicate identifiers fail closed', () => {
   for (const invalid of [
-    { ...fixture, version: 2 }, { ...fixture, catalogVersion: 'unknown' }, { ...fixture, ruleset: 'BB2020' },
+    { ...fixture, version: 2 }, { ...fixture, catalogVersion: 'unknown' }, { ...fixture, ruleset: 'UNSUPPORTED' },
     { ...fixture, class: 'internal' }, { ...fixture, budget: -1 }, { ...fixture, budget: 1.5 },
     { ...fixture, positions: [] }, { ...fixture, positions: [fixture.positions[0], fixture.positions[0]] },
     { ...fixture, positions: [{ ...fixture.positions[0], baseSkills: [{ id: 'unknown', value: 0 }] }] },

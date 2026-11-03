@@ -13,7 +13,7 @@ import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.mechanic.RollMechanic;
 import com.fumbbl.ffb.server.step.IStep;
-import com.fumbbl.ffb.server.step.mixed.pass.state.PassState;
+import com.fumbbl.ffb.server.step.bb2025.pass.state.PassState;
 import com.fumbbl.ffb.util.UtilCards;
 
 import java.util.Collections;

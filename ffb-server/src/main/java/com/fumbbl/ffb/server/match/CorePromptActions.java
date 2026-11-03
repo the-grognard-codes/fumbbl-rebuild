@@ -9,7 +9,7 @@ import com.fumbbl.ffb.MoveSquare;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
 import com.fumbbl.ffb.TurnMode;
-import com.fumbbl.ffb.bb2020.InjuryDescription;
+import com.fumbbl.ffb.bb2025.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;

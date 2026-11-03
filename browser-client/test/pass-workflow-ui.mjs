@@ -127,7 +127,8 @@ try {
       assert.equal(await confirmed.isEnabled(), true, 'Camera changes preserve the reviewed recipient');
     }
     await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
-    if (journey.mode === 'stationary') await pitch.locator('[data-player-id="mate"]').dblclick();
+    // Zero-delay synthetic clicks can share a timestamp; use a real confirmation interval.
+    if (journey.mode === 'stationary') await pitch.locator('[data-player-id="mate"]').dblclick({ delay: 50 });
     else await confirmed.click();
     await waitRevision(journey.frames.at(-1).actor.revision);
     const sent = await page.evaluate(() => window.testSocket.sent);

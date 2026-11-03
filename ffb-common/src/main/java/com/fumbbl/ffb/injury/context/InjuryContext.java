@@ -19,8 +19,8 @@ import com.fumbbl.ffb.json.UtilJson;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.modifiers.ArmorModifier;
 import com.fumbbl.ffb.modifiers.InjuryModifier;
-import com.fumbbl.ffb.modifiers.bb2020.CasualtyModifier;
-import com.fumbbl.ffb.factory.mixed.CasualtyModifierFactory;
+import com.fumbbl.ffb.modifiers.bb2025.CasualtyModifier;
+import com.fumbbl.ffb.factory.bb2025.CasualtyModifierFactory;
 
 import java.util.Collection;
 import java.util.HashSet;

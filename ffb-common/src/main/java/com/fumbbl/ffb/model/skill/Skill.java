@@ -24,7 +24,7 @@ import com.fumbbl.ffb.modifiers.PickupModifier;
 import com.fumbbl.ffb.modifiers.RightStuffModifier;
 import com.fumbbl.ffb.modifiers.StatBasedRollModifierFactory;
 import com.fumbbl.ffb.modifiers.TemporaryEnhancements;
-import com.fumbbl.ffb.modifiers.bb2020.CasualtyModifier;
+import com.fumbbl.ffb.modifiers.bb2025.CasualtyModifier;
 
 import java.util.ArrayList;
 import java.util.Comparator;

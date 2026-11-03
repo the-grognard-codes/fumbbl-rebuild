@@ -80,7 +80,6 @@ records the subsequent action coverage and its live versus mounted test boundari
 `movementPreview` accepts an empty Move waypoint list as a read-only request for
 starting-square guidance. BB2025 plans include `jumpOptions`, a bounded list of
 native jump forecasts from the planned endpoint. An empty draft cannot be committed.
-Other rulesets retain their existing native Jump/Leap action controls.
 
 An explicit jump waypoint is `{x, y, jump: true}`; ordinary waypoints remain
 `{x, y}`. `jump: false` and unknown fields are rejected. Plans containing a jump

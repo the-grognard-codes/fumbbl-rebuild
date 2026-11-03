@@ -138,7 +138,7 @@ public abstract class AbstractStep implements IStep {
 	}
 
 	private StepCommandStatus handleSetupCommand(ReceivedCommand command) {
-		// Network lag during some kick off events (e.g. quick snack 2020) might result in a client sending a setup command
+		// Network lag during kickoff events might result in a client sending a setup command
 		// even if the allowed amount of players is already exhausted
 
 		// This is a hacky try to fix this. Commands sent during the lag period arrive while we are either still in the

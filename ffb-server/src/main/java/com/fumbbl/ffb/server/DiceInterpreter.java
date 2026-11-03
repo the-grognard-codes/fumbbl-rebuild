@@ -81,20 +81,6 @@ public class DiceInterpreter {
 		return 2;
 	}
 
-	public boolean isPassFumble(int roll, PassingDistance pPassingDistance,
-			Set<PassModifier> pPassModifiers) {
-		if (roll == 1) {
-			return true;
-		} else if (roll == 6) {
-			return false;
-		} else {
-			int modifierTotal = 0;
-			for (PassModifier passModifier : pPassModifiers) {
-				modifierTotal += passModifier.getModifier();
-			}
-			return ((roll + pPassingDistance.getModifier2016() - modifierTotal) <= 1);
-		}
-	}
 
 	/** First physical d6 face that succeeds under the native natural-one/six rules. */
 	public int minimumSuccessfulSkillRoll(int minimum) {
@@ -261,18 +247,5 @@ public class DiceInterpreter {
 		return ((roll != null) && (roll.length == 2) && (roll[0] == roll[1]));
 	}
 
-	public CardEffect interpretWitchBrewRoll(int roll) {
-		switch (roll) {
-		case 1:
-			return CardEffect.MAD_CAP_MUSHROOM_POTION;
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-			return CardEffect.SEDATIVE;
-		default:
-			return null;
-		}
-	}
 
 }

@@ -25,7 +25,7 @@ import com.fumbbl.ffb.report.ReportInjury;
 import com.fumbbl.ffb.report.ReportLeader;
 import com.fumbbl.ffb.report.ReportStartHalf;
 import com.fumbbl.ffb.report.logcontrol.SkipInjuryParts;
-import com.fumbbl.ffb.report.mixed.ReportPumpUpTheCrowdReRoll;
+import com.fumbbl.ffb.report.bb2025.ReportPumpUpTheCrowdReRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.InjuryResult;
 import com.fumbbl.ffb.server.step.IStep;

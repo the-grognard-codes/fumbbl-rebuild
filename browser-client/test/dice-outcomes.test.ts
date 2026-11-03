@@ -24,11 +24,11 @@ test('armor and injury use native outcomes, never the raw totals or a future cas
   }
 });
 
-test('legacy casualty pairs stay simultaneous and Decay uses its own result', () => {
-  const result = groups({ reportId: 'injury', injury: 7, seriousInjury: 'Damaged Back (NI)',
+test('BB2025 casualty rolls stay ordered and Decay uses its own result', () => {
+  const result = groups({ reportId: 'injury', injury: 7, seriousInjury: 'Serious Injury (NI)',
     injuryDecay: 8, seriousInjuryDecay: 'Dead (RIP)', numericDice: { version: 1,
-      dice: [...dice('Casualty', [5, 2], [6, 8]), ...dice('Decay casualty', [6, 8], [6, 8])] } });
-  assert.deepEqual(result.map(group => [group.faces, group.outcome]), [[['5', '2'], 'ni'], [['6', '8'], 'dead']]);
+      dice: [...dice('Casualty', [9], [16]), ...dice('Decay casualty', [16], [16])] } });
+  assert.deepEqual(result.map(group => [group.faces, group.outcome]), [[['9'], 'ni'], [['16'], 'dead']]);
 });
 
 test('apothecary replacements do not inherit the old injury and capped stat details appear only at SI', () => {
@@ -40,10 +40,10 @@ test('apothecary replacements do not inherit the old injury and capped stat deta
   assert.deepEqual(capped.map(group => group.label), ['Apothecary casualty', 'Apothecary serious injury']);
 });
 
-test('named casualty categories cover all rulesets without deriving rules from dice', () => {
-  for (const [name, expected] of [['Broken Ribs (MNG)', 'mng'], ['Serious Injury (NI)', 'ni'],
-    ['Smashed Hip (-MA)', 'stat'], ['Dislocated Shoulder (-ST)', 'stat'], ['Head Injury (-AV)', 'stat'],
-    ['Neck Injury (-AG)', 'stat'], ['Broken Arm (-PA)', 'stat'], ['Dead (RIP)', 'dead']] as const) {
+test('named BB2025 casualty categories do not derive rules from dice', () => {
+  for (const [name, expected] of [['Seriously Hurt (MNG)', 'mng'], ['Serious Injury (NI)', 'ni'],
+    ['Smashed Knee (-MA)', 'stat'], ['Dislocated Shoulder (-ST)', 'stat'], ['Head Injury (-AV)', 'stat'],
+    ['Dislocated Hip (-AG)', 'stat'], ['Broken Arm (-PA)', 'stat'], ['Dead (RIP)', 'dead']] as const) {
     assert.equal(casualtyOutcome(7, name), expected);
   }
   assert.equal(casualtyOutcome(6, null), 'bh');

@@ -26,11 +26,8 @@ import com.fumbbl.ffb.modifiers.ModifierType;
 import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.match.CoreTurnActions.Action;
-import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
-import com.fumbbl.ffb.util.UtilPassing;
-import com.fumbbl.ffb.util.pathfinding.PathFinderWithPassBlockSupport;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -100,8 +97,7 @@ final class RoutePlanner {
 	}
 
 	private boolean onTheBallMovement() {
-		return (rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK)
-			&& game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic;
+		return rangeMode == TurnMode.KICKOFF_RETURN || rangeMode == TurnMode.PASS_BLOCK;
 	}
 
 	private boolean inMovementBounds(FieldCoordinate square) {
@@ -135,10 +131,6 @@ final class RoutePlanner {
 		FieldCoordinateBounds bounds = rangeMode == TurnMode.KICKOFF_RETURN
 			? (game.isHomePlaying() ? FieldCoordinateBounds.HALF_HOME : FieldCoordinateBounds.HALF_AWAY)
 			: FieldCoordinateBounds.FIELD;
-		boolean legacyPassBlock = rangeMode == TurnMode.PASS_BLOCK
-			&& game.getMechanic(Mechanic.Type.ON_THE_BALL) instanceof com.fumbbl.ffb.mechanics.bb2016.OnTheBallMechanic;
-		Set<FieldCoordinate> validPassBlockEnds = legacyPassBlock
-			? UtilPassing.findValidPassBlockEndCoordinates(game) : java.util.Collections.emptySet();
 		Map<FieldCoordinate, Integer> distance = new HashMap<>();
 		ArrayDeque<FieldCoordinate> queue = new ArrayDeque<>();
 		distance.put(origin, 0);
@@ -150,8 +142,7 @@ final class RoutePlanner {
 			for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
 				if (x == 0 && y == 0) continue;
 				FieldCoordinate next = from.add(x, y);
-				if (!bounds.isInBounds(next) || occupied(next) || distance.containsKey(next)
-					|| legacyPassBlock && !validPassBlockStep(next, used + 1, remaining, validPassBlockEnds)) continue;
+				if (!bounds.isInBounds(next) || occupied(next) || distance.containsKey(next)) continue;
 				distance.put(next, used + 1);
 				queue.addLast(next);
 			}
@@ -166,12 +157,6 @@ final class RoutePlanner {
 		return new JsonObject().add("rangeVersion", 2).add("playerId", player.getId())
 			.add("from", point(origin)).add("remaining", remaining).add("normalRemaining", normalRemaining)
 			.add("normal", normal).add("full", full);
-	}
-
-	private boolean validPassBlockStep(FieldCoordinate to, int used, int remaining,
-		Set<FieldCoordinate> validEndCoordinates) {
-		return validEndCoordinates.contains(to) || ArrayTool.isProvided(PathFinderWithPassBlockSupport.INSTANCE
-			.allowPassBlockMove(game, player, to, remaining - used, false, validEndCoordinates));
 	}
 
 	JsonObject preview(List<FieldCoordinate> waypoints) {
@@ -266,8 +251,7 @@ final class RoutePlanner {
 	}
 
 	private boolean jumpPlanningAvailable() {
-		return game.getMechanic(Mechanic.Type.JUMP) instanceof com.fumbbl.ffb.mechanics.bb2025.JumpMechanic
-			&& (rangeMode == TurnMode.REGULAR || rangeMode == TurnMode.BLITZ || rangeMode == TurnMode.SELECT_BLITZ_TARGET || onTheBallMovement())
+		return (rangeMode == TurnMode.REGULAR || rangeMode == TurnMode.BLITZ || rangeMode == TurnMode.SELECT_BLITZ_TARGET || onTheBallMovement())
 			&& game.getFieldModel().getPlayerState(player).isAbleToMove()
 			&& !(game.getActingPlayer().getPlayer() == player && acting.isHeldInPlace());
 	}

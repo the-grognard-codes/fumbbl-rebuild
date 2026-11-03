@@ -10,7 +10,7 @@ import com.fumbbl.ffb.modifiers.ArmorModifier;
 import com.fumbbl.ffb.modifiers.InjuryModifier;
 import com.fumbbl.ffb.modifiers.RollModifier;
 import com.fumbbl.ffb.modifiers.TemporaryEnhancements;
-import com.fumbbl.ffb.modifiers.bb2020.CasualtyModifier;
+import com.fumbbl.ffb.modifiers.bb2025.CasualtyModifier;
 
 import java.util.Collections;
 import java.util.Comparator;

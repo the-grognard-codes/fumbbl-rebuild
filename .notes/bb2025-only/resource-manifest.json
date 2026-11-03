@@ -1,0 +1,437 @@
+[
+  {
+    "path": "ffb-server/local/gamestate.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_amazon.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_chaos.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_chaos_dwarf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_chaos_pact.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_dark_elf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_dark_elf_league_fumbbl.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_dwarf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_elf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_goblin.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_halfling.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_high_elf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_human.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_khemri.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_khemri_fumbbl.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_lizardman.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_necromantic.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_nippon.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_norse.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_nurgle.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_ogre.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_orc.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_renegades.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_skaven.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_slann.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_slann_fumbbl.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_undead.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_underworld.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_vampire.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/rosters/roster_wood_elf.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/renegades_java.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_amazon_Kalimar_167.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_chaos_BattleLore_160.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_chaos_dwarf_Kalimar_151.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_dark_elf_Kalimar_139.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_dark_elf_league_fumbbl.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_dwarf_BattleLore_144.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_elf_Kalimar_146.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_goblin_Kalimar_112.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_halfling_BattleLore_95.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_high_elf_BattleLore_137.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_human_BattleLore_230.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_human_Kalimar_230.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_khemri_christer.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_lizardman_Kalimar_130.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_necromantic_BattleLore_137.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_nippon.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_norse_Kalimar_150.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_nurgle_BattleLore_120.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_orc_BattleLore_147.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_skaven_BattleLore_124.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_slann_nicknutria.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_undead_Kalimar_127.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_underworld_Kalimar_117.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_vampire_BattleLore_129.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_wood_elf_Hangar18_147.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/teams/team_wood_elf_Kalimar_144.xml",
+    "disposition": "remove",
+    "reason": "Unused older-edition XML fixture; current product and diagnostics use the BB2025 catalog and native builders."
+  },
+  {
+    "path": "ffb-server/local/Battlelore.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/Candlejack.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/Kalimar.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/LordMisery.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/challenge.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/debug/Battlelore.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/debug/Candlejack.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/debug/Kalimar.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/debug/LordMisery.json",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/fakesite.js",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/response.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/result.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/local/talk.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_amazon_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_chaos_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_chaos_dwarf_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_dwarf_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_elf_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_goblin_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_high_elf_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_human_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_lizardman_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_necromantic_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_norse_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_orc_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_skaven_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_undead_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_underworld_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_vampire_BattleLore.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  },
+  {
+    "path": "ffb-server/setups/setup_wood_elf_Kalimar.xml",
+    "disposition": "remove",
+    "reason": "Retired fake-site settings and setup records tied to removed older-edition team fixtures; current dev-local uses native BB2025 builders."
+  }
+]

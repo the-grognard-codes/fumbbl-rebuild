@@ -4,19 +4,16 @@ import com.fumbbl.ffb.FantasyFootballException;
 import com.fumbbl.ffb.IKeyedItem;
 import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.RulesCollection.Rules;
-import com.fumbbl.ffb.RulesCollections;
 import com.fumbbl.ffb.model.GameOptions;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -64,10 +61,10 @@ public class Scanner<T extends IKeyedItem> {
 	}
 
 	/**
-	 * Return all values of all enums implementing interface T valid for the rules version in options.
+	 * Return all values of all enums implementing interface T registered for BB2025.
 	 */
 	public Set<T> getEnumValues(GameOptions options) {
-		Set<Class<T>> classes = filterClassesForRulesVersion(options, rawScanner.getClassesImplementing());
+		Set<Class<T>> classes = validatedClasses(options, rawScanner.getClassesImplementing());
 
 		Set<T> result = new HashSet<>();
 		for (Class<T> cls : classes) {
@@ -91,20 +88,20 @@ public class Scanner<T extends IKeyedItem> {
 	}
 
 	/**
-	 * Return instances of all classes extending T valid for the rules version in options.
+	 * Return instances of all classes extending T registered for BB2025.
 	 */
 	public Collection<T> getSubclassInstances(GameOptions options) {
 		return getSubclassInstances(options, defaultGenerator);
 	}
 
 	/**
-	 * Return instances of all classes extending T valid for the rules version in options.
+	 * Return instances of all classes extending T registered for BB2025.
 	 * @param instanceGenerator generator to invoke constructors with arguments
 	 */
 	public Collection<T> getSubclassInstances(GameOptions options, Function<Class<T>, T> instanceGenerator) {
 		Set<Class<T>> classes = rawScanner.getSubclasses();
 
-		return collectInstancesForRuleVersion(options, classes, instanceGenerator);
+		return collectRegisteredInstances(options, classes, instanceGenerator);
 	}
 
 	/**
@@ -117,71 +114,55 @@ public class Scanner<T extends IKeyedItem> {
 	}
 
 	/**
-	 * Return instances of all classes implementing interface T valid for the rules version in options.
+	 * Return instances of all classes implementing interface T registered for BB2025.
 	 */
 	public Collection<T> getInstancesImplementing(GameOptions options) {
 		return getInstancesImplementing(options, defaultGenerator);
 	}
 
 	/**
-	 * Return instances of all classes implementing interface T valid for the rules version in options.
+	 * Return instances of all classes implementing interface T registered for BB2025.
 	 * @param instanceGenerator generator to invoke constructors with arguments
 	 */
 	public Collection<T> getInstancesImplementing(GameOptions options, Function<Class<T>, T> instanceGenerator) {
 		Set<Class<T>> classes = rawScanner.getClassesImplementing();
-		return collectInstancesForRuleVersion(options, classes, instanceGenerator);
+		return collectRegisteredInstances(options, classes, instanceGenerator);
 	}
 
-	private Collection<T> collectInstancesForRuleVersion(GameOptions options, Set<Class<T>> classes,
+	private Collection<T> collectRegisteredInstances(GameOptions options, Set<Class<T>> classes,
 																											 Function<Class<T>, T> instanceGenerator) {
 		Map<Object, T> result = new HashMap<>();
-		Set<Class<T>> foundClasses = filterClassesForRulesVersion(options, classes);
+		Set<Class<T>> foundClasses = validatedClasses(options, classes);
 
-		getInstancesForMostRecentRules(foundClasses, instanceGenerator).forEach(cls -> addInstance(cls, result));
+		selectImplementations(foundClasses, instanceGenerator).forEach(cls -> addInstance(cls, result));
 
 		return result.values();
 	}
 
-	private Set<Class<T>> filterClassesForRulesVersion(GameOptions options, Set<Class<T>> classes) {
-		Set<Class<T>> foundClasses = new HashSet<>();
+	private Set<Class<T>> validatedClasses(GameOptions options, Set<Class<T>> classes) {
+		options.getRulesVersion();
 		for (Class<T> cls : classes) {
-			List<RulesCollection> ruleAnnotations = new ArrayList<>();
-			for (Annotation a : cls.getAnnotations()) {
-				if (a instanceof RulesCollection) {
-					ruleAnnotations.add((RulesCollection) a);
-				} else if (a instanceof RulesCollections) {
-					ruleAnnotations.addAll(Arrays.asList(((RulesCollections) a).value()));
-				}
-			}
-			boolean hasRulesAnnotation = false;
-			for (RulesCollection a : ruleAnnotations) {
-				hasRulesAnnotation = true;
-				Rules rule = a.value();
-				if (options.getRulesVersion().isOrExtends(rule)) {
-					foundClasses.add(cls);
-				}
-			}
-			if (!hasRulesAnnotation) {
+			if (cls.getAnnotation(RulesCollection.class) == null) {
 				throw new FantasyFootballException("Missing annotations on scanned class " + cls.getName() + ".");
 			}
 		}
-		return foundClasses;
+		return classes;
 	}
 
-	private Set<T> getInstancesForMostRecentRules(Set<Class<T>> unfiltered, Function<Class<T>, T> instanceGenerator) {
+	private Set<T> selectImplementations(Set<Class<T>> unfiltered, Function<Class<T>, T> instanceGenerator) {
 		return unfiltered.stream().map(instanceGenerator).collect(Collectors.groupingBy(IKeyedItem::getKey)).values()
-			.stream().map(classGroup -> classGroup.stream().max(Comparator.comparing(this::getHierarchyLevel))
-				.orElseThrow(() -> new FantasyFootballException("No classes found in group."))).collect(Collectors.toSet());
+			.stream().map(classGroup -> {
+				T selected = classGroup.stream().max(Comparator.comparing(this::implementationPriority)).orElseThrow();
+				if (classGroup.stream().filter(item -> implementationPriority(item) == implementationPriority(selected)).count() != 1) {
+					throw new FantasyFootballException("Ambiguous BB2025 implementation for key " + selected.getKey());
+				}
+				return selected;
+			}).collect(Collectors.toSet());
 	}
 
-	private int getHierarchyLevel(T instance) {
-		RulesCollection singleRule = instance.getClass().getAnnotation(RulesCollection.class);
-		if (singleRule != null) {
-			return singleRule.value().getHierarchyLevel();
-		}
-		RulesCollections rules = instance.getClass().getAnnotation(RulesCollections.class);
-		return Arrays.stream(rules.value()).map(rule -> rule.value().getHierarchyLevel())
-			.max(Comparator.comparingInt(value -> value)).orElse(0);
+	private int implementationPriority(T instance) {
+		// BB2025 implementations override generic implementations of the same domain key.
+		return instance.getClass().getAnnotation(RulesCollection.class).value() == Rules.BB2025 ? 1 : 0;
 	}
 
 	private Collection<T> collectInstances(Set<Class<T>> classes) {

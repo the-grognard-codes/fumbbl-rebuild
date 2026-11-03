@@ -5,7 +5,7 @@ import com.fumbbl.ffb.inducement.bb2025.Prayer;
 import com.fumbbl.ffb.model.AnimationType;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.inducements.mixed.prayers.PrayerHandler;
+import com.fumbbl.ffb.server.inducements.bb2025.prayers.PrayerHandler;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
 public class DazzlingCatchingHandler extends PrayerHandler {

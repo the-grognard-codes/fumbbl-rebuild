@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
-public class IronManHandler extends com.fumbbl.ffb.server.inducements.mixed.prayers.IronManHandler {
+public class IronManHandler extends com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractIronManHandler {
 	@Override
 	public Prayer handledPrayer() {
 		return Prayer.IRON_MAN;

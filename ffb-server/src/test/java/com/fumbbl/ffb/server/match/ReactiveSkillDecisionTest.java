@@ -63,7 +63,7 @@ class ReactiveSkillDecisionTest {
                 step.setParameter(StepParameter.from(StepParameterKey.COORDINATE_TO, new FieldCoordinate(9, 7)));
                 step.setParameter(StepParameter.from(StepParameterKey.DODGE_ROLL, 4)); state.getStepStack().push(step);
             } else {
-                com.fumbbl.ffb.server.step.mixed.move.StepTentacles step = new com.fumbbl.ffb.server.step.mixed.move.StepTentacles(state);
+                com.fumbbl.ffb.server.step.bb2025.move.StepTentacles step = new com.fumbbl.ffb.server.step.bb2025.move.StepTentacles(state);
                 step.setParameter(StepParameter.from(StepParameterKey.COORDINATE_FROM, new FieldCoordinate(8, 7))); state.getStepStack().push(step);
             }
             state.startNextStep(); fixture.session.expireReactiveDecision(System.currentTimeMillis());
@@ -227,7 +227,7 @@ class ReactiveSkillDecisionTest {
             JsonObject selected = before.get("actions").asArray().values().stream().map(JsonValue::asObject)
                 .filter(value -> "reactiveSquare".equals(value.getString("kind", ""))).findFirst().orElseThrow(AssertionError::new);
             restored.apply("away", fixture.request("action", "atomic-use", before).add("actionId", selected.get("id")));
-            assertFalse(state(restored).getCurrentStep() instanceof com.fumbbl.ffb.server.step.mixed.pass.StepInitPassing, "Pass target must be dispatched after native transition");
+            assertFalse(state(restored).getCurrentStep() instanceof com.fumbbl.ffb.server.step.bb2025.pass.StepInitPassing, "Pass target must be dispatched after native transition");
             long deadline = before.get("reaction").asObject().get("expiresAt").asLong();
             fixture.session.expireReactiveDecision(deadline);
             assertEquals(new FieldCoordinate(8, 7), game.getFieldModel().getPlayerCoordinate(defender), skill);

@@ -19,11 +19,11 @@ import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepCommandStatus;
 import com.fumbbl.ffb.server.step.StepParameter;
 import com.fumbbl.ffb.server.step.StepParameterKey;
-import com.fumbbl.ffb.server.step.mixed.StepUnchannelledFury;
-import com.fumbbl.ffb.server.step.mixed.StepUnchannelledFury.StepState;
+import com.fumbbl.ffb.server.step.bb2025.StepUnchannelledFury;
+import com.fumbbl.ffb.server.step.bb2025.StepUnchannelledFury.StepState;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
-import com.fumbbl.ffb.skill.mixed.UnchannelledFury;
+import com.fumbbl.ffb.skill.bb2025.UnchannelledFury;
 import com.fumbbl.ffb.util.UtilCards;
 
 @RulesCollection(Rules.BB2025)

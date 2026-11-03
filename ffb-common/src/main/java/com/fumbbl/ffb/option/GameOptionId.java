@@ -21,34 +21,34 @@ public enum GameOptionId implements INamedObject {
 
 	ALLOW_STAR_ON_BOTH_TEAMS("allowStarOnBothTeams"),
 	ALLOW_STAFF_ON_BOTH_TEAMS("allowStaffOnBothTeams"),
-	FORCE_TREASURY_TO_PETTY_CASH("forceTreasuryToPettyCash"),
+
 	USE_PREDEFINED_INDUCEMENTS("usePredefinedInducements"),
 
 	ALLOW_KTM_REROLL("allowKtmReroll"), CLAW_DOES_NOT_STACK("clawDoesNotStack"), FOUL_BONUS("foulBonus"),
 	FOUL_BONUS_OUTSIDE_TACKLEZONE("foulBonusOutsideTacklezone"), FREE_INDUCEMENT_CASH("freeInducementCash"),
 	FREE_CARD_CASH("freeCardCash"), PILING_ON_DOES_NOT_STACK("pilingOnDoesNotStack"),
-	PILING_ON_INJURY_ONLY("pilingOnInjuryOnly"), PILING_ON_ARMOR_ONLY("pilingOnArmorOnly"),
-	PILING_ON_TO_KO_ON_DOUBLE("pilingOnToKoOnDouble"), PILING_ON_USES_A_TEAM_REROLL("pilingOnUsesATeamReroll"),
+
+	PILING_ON_TO_KO_ON_DOUBLE("pilingOnToKoOnDouble"),
 	RIGHT_STUFF_CANCELS_TACKLE("rightStuffCancelsTackle"), SNEAKY_GIT_AS_FOUL_GUARD("sneakyGitAsFoulGuard"),
 	SNEAKY_GIT_BAN_TO_KO("sneakyGitBanToKo"), STAND_FIRM_NO_DROP_ON_FAILED_DODGE("standFirmNoDropOnFailedDodge"),
 	SPIKED_BALL("spikedBall"), DIVING_TACKLE_LEAVING_TZ_ONLY("divingTackleLeavingTzOnly"),
 	ALLOW_SPECIAL_ACTIONS_FROM_PRONE("allowSpecialActionsFromProne"), ALLOW_BRAWLER_ON_BOTH_BLOCKS("allowBrawlerOnBothBlocks"),
 	ASK_FOR_KICK_AFTER_ROLL("askForKickAfterRoll"), GRAB_CANCELS_SIDESTEP_DURING_BLITZ("grabCancelsSidestepDuringBlitz"),
 
-	ARGUE_THE_CALL("argueTheCall"), MVP_NOMINATIONS("mvpNominations"), PETTY_CASH_AFFECTS_TV("pettyCashAffectsTv"),
+	ARGUE_THE_CALL("argueTheCall"), MVP_NOMINATIONS("mvpNominations"),
 	WIZARD_AVAILABLE("wizardAvailable"),
 
 	EXTRA_MVP("extraMvp"),
 
-	CARDS_MISCELLANEOUS_MAYHEM_COST("cardsMiscellaneousMayhemCost"),
-	CARDS_MISCELLANEOUS_MAYHEM_MAX("cardsMiscellaneousMayhemMax"),
-	CARDS_SPECIAL_TEAM_PLAY_COST("cardsSpecialTeamPlayCost"), CARDS_SPECIAL_TEAM_PLAY_MAX("cardsSpecialTeamPlayMax"),
-	CARDS_MAGIC_ITEM_COST("cardsMagicItemCost"), CARDS_MAGIC_ITEM_MAX("cardsMagicItemMax"),
-	CARDS_DIRTY_TRICK_COST("cardsDirtyTrickCost"), CARDS_DIRTY_TRICK_MAX("cardsDirtyTrickMax"),
-	CARDS_GOOD_KARMA_COST("cardsGoodKarmaCost"), CARDS_GOOD_KARMA_MAX("cardsGoodKarmaMax"),
-	CARDS_RANDOM_EVENT_COST("cardsRandomEventCost"), CARDS_RANDOM_EVENT_MAX("cardsRandomEventMax"),
-	CARDS_DESPERATE_MEASURE_COST("cardsDesperateMeasureCost"), CARDS_DESPERATE_MEASURE_MAX("cardsDesperateMeasureMax"),
-	CARDS_SPECIAL_PLAY_COST("cardsSpecialPlayCost"),
+
+
+
+
+
+
+
+
+
 
 	INDUCEMENT_APOS_COST("inducementAposCost"), INDUCEMENT_APOS_MAX("inducementAposMax"),
 	INDUCEMENT_BRIBES_COST("inducementBribesCost"), INDUCEMENT_BRIBES_REDUCED_COST("inducementBribesReducedCost"),
@@ -56,7 +56,7 @@ public enum GameOptionId implements INamedObject {
 	INDUCEMENT_CHEFS_COST("inducementChefsCost"), INDUCEMENT_CHEFS_REDUCED_COST("inducementChefsReducedCost"),
 	INDUCEMENT_CHEFS_MAX("inducementChefsMax"), INDUCEMENT_CHEFS_REDUCED_MAX("inducementChefsReducedMax"),
 	INDUCEMENT_EXTRA_TRAINING_COST("inducementExtraTrainingCost"), INDUCEMENT_EXTRA_TRAINING_MAX("inducementExtraTrainingMax"),
-	INDUCEMENT_IGORS_COST("inducementIgorsCost"), INDUCEMENT_IGORS_MAX("inducementIgorsMax"),
+
 	INDUCEMENT_MORTUARY_ASSISTANTS_COST("inducementMortuaryAssistantsCost"), INDUCEMENT_MORTUARY_ASSISTANTS_MAX("inducementMortuaryAssistantsMax"),
 	INDUCEMENT_PLAGUE_DOCTORS_COST("inducementPlagueDoctorsCost"), INDUCEMENT_PLAGUE_DOCTORS_MAX("inducementPlagueDoctorsMax"),
 	INDUCEMENT_KEGS_COST("inducementKegsCost"), INDUCEMENT_KEGS_MAX("inducementKegsMax"),
@@ -75,17 +75,17 @@ public enum GameOptionId implements INamedObject {
 	INDUCEMENT_WEATHER_MAGE_MAX("inducementWeatherMageMax"), INDUCEMENT_WEATHER_MAGE_COST("inducementWeatherMageCost"),
 	INDUCEMENTS_ALLOW_SPENDING_TREASURY_ON_EQUAL_CTV("inducementsAllowSpendingTreasuryOnEqualCTV"),
 	INDUCEMENTS_ALWAYS_USE_TREASURY("inducementsAlwaysUseTreasury"), INDUCEMENTS_ALLOW_OVERDOG_SPENDING("inducementsAllowOverdogSpending"),
-	INDUCEMENTS_ALLOW_UNDERDOG_SPENDING("inducementsAllowUnderdogSpending"), INDUCEMENT_DUMMY("inducementDummy"), 
+	INDUCEMENTS_ALLOW_UNDERDOG_SPENDING("inducementsAllowUnderdogSpending"), INDUCEMENT_DUMMY("inducementDummy"),
 	INDUCEMENT_JOSEF_BUGMAN_COST("inducementJosefBugmanCost"), INDUCEMENT_JOSEF_BUGMAN_MAX("inducementJosefBugmanMax"),
 
 	ENABLE_STALLING_CHECK("enableStallingCheck"), ALLOW_BALL_AND_CHAIN_RE_ROLL("allowBallAndChainReRoll"),
 	END_TURN_WHEN_HITTING_ANY_PLAYER_WITH_TTM("endTurnWhenHittingAnyPlayerWithTtm"), SWOOP_DISTANCE("swoopDistance"),
 	ALLOW_SPECIAL_BLOCKS_WITH_BALL_AND_CHAIN("allowSpecialBlocksWithBallAndChain"),
 	MB_STACKS_AGAINST_CHAINSAW("mbStacksAgainstChainsaw"),
-	CHAINSAW_TURNOVER_ON_AV_BREAK("chainsawTurnoverOnAvBreak"), // legacy, keep around to make sure old replays or running games do not break after update
+
 	CHAINSAW_TURNOVER("chainsawTurnover"), BOMBER_PLACED_PRONE_IGNORES_TURNOVER("bomberPlacedProneIgnoresTurnover"),
 	BOMB_TEAM_MATE_KNOCK_DOWN_CAUSES_TURNOVER("bombTeamMateKnockDownCausesTurnover"),
-	SNEAKY_GIT_CAN_MOVE_AFTER_FOUL("sneakyGitCanMoveAfterFoul"), BOMB_USES_MB("bombUsesMb"), CATCH_WORKS_FOR_BOMBS("catchWorksForBombs"),
+	BOMB_USES_MB("bombUsesMb"), CATCH_WORKS_FOR_BOMBS("catchWorksForBombs"),
 	ONLY_ONE_BRIBE_PER_SEND_OFF("onlyOneBribePerSendOff"),
 	OVERTIME_GOLDEN_GOAL("overtimeGoldenGoal"), OVERTIME_KICK_OFF_RESULTS("overtimeKickOffResults"),
 		ENABLE_TACKLEZONE_OVERLAYS("enableTacklezoneOverlays"), BOMB_BOUNCES_ON_EMPTY_SQUARES("bombBouncesOnEmptySquares"),

@@ -248,7 +248,7 @@ public class UtilServerInjury {
 			PlayerState.RIP == pInjuryResult.injuryContext().getPlayerState().getBase()) {
 			if (mechanic.canRaiseDead(necroTeam, necroTeamResult, deadPlayer)) {
 				raisedPlayer = raisePlayer(game, necroTeam, necroTeamResult, deadPlayer.getName(),
-					necroTeam.getRoster().hasVampireLord() ? RaiseType.THRALL : RaiseType.ZOMBIE, deadPlayer.getId());
+					RaiseType.ZOMBIE, deadPlayer.getId());
 			} else {
 				Player<?> attacker = game.getPlayerById(pInjuryResult.injuryContext().getAttackerId());
 				if (mechanic.canRaiseInfectedPlayers(necroTeam, necroTeamResult, attacker, deadPlayer)) {
@@ -323,8 +323,6 @@ public class UtilServerInjury {
 			} else if (raiseType == RaiseType.ZOMBIE) {
 				pGame.getFieldModel().setPlayerState(raisedPlayer, new PlayerState(PlayerState.RESERVE));
 				playerResult.setSendToBoxReason(SendToBoxReason.RAISED);
-			} else if (raiseType == RaiseType.THRALL) {
-				pGame.getFieldModel().setPlayerState(raisedPlayer, new PlayerState(PlayerState.MISSING));
 			}
 			UtilBox.putPlayerIntoBox(pGame, raisedPlayer);
 		}
