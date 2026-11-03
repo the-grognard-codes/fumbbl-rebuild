@@ -1,5 +1,13 @@
 [
   {
+    "number": 423,
+    "title": "Select and confirm kickoff players consistently",
+    "summary": "High Kick, Charge, Solid Defence, Quick Snap and touchbacks now share pitch selection and the standard confirmation control. Solid Defence keeps players on the pitch for repositioning and swaps; confirmed participants remain marked during the event. Server validation and recovery preserve confirmed choices.",
+    "category": "Gameplay",
+    "mergedAt": "2026-11-03T05:03:33Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/423"
+  },
+  {
     "number": 418,
     "title": "Approve the next decision-prompt designs and mole artwork",
     "summary": "Completed the visual design milestone for compact horizontal coin toss, kick/receive, apothecary, send-off and interception prompts. The approved mole artwork and exact generation prompts are saved as a reusable reference kit. Production prompt integration and Secret Weapon sequencing remain upcoming work.",
