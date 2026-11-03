@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GameView } from './SetupPanel.tsx';
+import { GameView } from './GameView.tsx';
 import { BuilderPanel } from './BuilderPanel.tsx';
 import { V2Client } from './v2-client.ts';
 import type { V2Message } from './v2-client.ts';
@@ -428,7 +428,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       {resultRoute && <a href="/play">Match preparation and games</a>}
     </div></div>}
     {matchRoute && !connection?.state && <section className="match-connect-panel" aria-label="Match connection"><h1>Match</h1><p role="status">{status}</p>{error && <p role="alert">{error}</p>}
-      <button type="button" onClick={() => connection?.connect()} disabled={connected}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
+      <button type="button" onClick={() => connection?.connect()} disabled={!connection || status === 'Connecting'}>Reconnect</button><button type="button" onClick={exitMatch}>Exit match</button></section>}
     {connection?.recoveryPending && <section><p>A submitted change needs confirmation. Reconnect with the same account and repeat the exact request.</p><button disabled={!connected || connection.pending?.accountId !== connection.accountId} onClick={() => run(() => connection.retry())}>Repeat retained request</button></section>}
     {!matchRoute && !resultRoute && <>
 

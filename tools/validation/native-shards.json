@@ -21,7 +21,6 @@
     [
       "com.fumbbl.ffb.test.BallAndFoulActionsTest",
       "com.fumbbl.ffb.test.BallPresentationTest",
-      "com.fumbbl.ffb.test.BrowserTeamAdapterTest",
       "com.fumbbl.ffb.test.kickoff.SwarmingEndTurnTest",
       "com.fumbbl.ffb.test.RecoverySessionTest",
       "com.fumbbl.ffb.test.RerollAccountingTest",
@@ -31,7 +30,6 @@
       "com.fumbbl.ffb.test.skill.pass.SafePassTest"
     ],
     [
-      "com.fumbbl.ffb.test.BrowserChoiceTest",
       "com.fumbbl.ffb.test.BrowserPreparedMatchAdapterTest",
       "com.fumbbl.ffb.test.GameStateExecuteStepTest",
       "com.fumbbl.ffb.test.KickoffSelectionMovementTest",
@@ -48,7 +46,6 @@
     ],
     [
       "com.fumbbl.ffb.test.BlockLogPresentationTest",
-      "com.fumbbl.ffb.test.BrowserMatchAdapterTest",
       "com.fumbbl.ffb.test.CrowdPushTest",
       "com.fumbbl.ffb.test.DefaultSetupSessionTest",
       "com.fumbbl.ffb.test.MovementChecksTest",

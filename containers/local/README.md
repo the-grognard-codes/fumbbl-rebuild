@@ -1,54 +1,47 @@
-# Local browser runtimes
+# Local browser runtime
 
-Use `node tools/dev-local.mjs --start` (or `--restart` for a managed running stack)
-for the complete current V2 application at <http://localhost:5000/play>. See
-[deployment usage](../../deployment/README.md) for prerequisites and service
-ownership. V2 is the standard runtime, with existing Firebase authentication and
-the separately provisioned browser schema. No remote publication is performed.
+Use `node tools/dev-local.mjs --start` (or `--restart` for a managed stack)
+for the current V2 application at <http://localhost:5000/play>. See
+[deployment usage](../../deployment/README.md) for prerequisites and service ownership.
+V2 uses existing Firebase authentication and the separately provisioned browser schema.
+No remote publication is performed.
 
-## V1 development diagnostics
+## V2 validation
 
-V1 remains development-only tooling. `server.ini` explicitly selects
-`local.browser.v2.enabled=false` with `server.local=true`. The fixture uses two
-browser bearer tokens and is independent of product matches. Its in-memory
-scenario resets when the diagnostic JVM restarts.
+The isolated acceptance profile uses `compose.v2-acceptance.yaml`, separate database
+and backup volumes, and game-server port 22235. `node tools/acceptance-local-server.mjs
+--start` builds the server, verifies/provisions its schema, and creates synthetic
+acceptance identities with existing authorized Firebase credentials. Its token file
+is ignored and must never be committed or printed.
 
-From the repository root in PowerShell, after Docker Desktop is running:
+With dev-local browser services stopped, `node tools/coach-match-acceptance.mjs
+--start-browser` serves the production bundle through the acceptance server.
+Set `COACH_ACCEPTANCE_TOKENS_FILE` to the returned ignored path and run
+`node tools/coach-match-acceptance.mjs --test` for live play, completion and replay.
+Set `COACH_ACCEPTANCE_PROCESS_KILL=1` to additionally exercise isolated V2 process
+restart recovery. Stop only these browser helpers with `--stop-browser`, then
+start dev-local for manual review. The acceptance helper never deletes volumes.
 
-```powershell
-./containers/local/setup.ps1
-docker compose -f containers/local/compose.r1.yaml up -d --build --wait
-# Real browser WebSocket fixture check; run once after fresh startup:
-docker compose -f containers/local/compose.r1.yaml exec -T server java -cp 'FantasyFootballServer.jar:lib/*' com.fumbbl.ffb.server.local.BrowserLocalProbe
-npm run dev --prefix browser-client
-```
+## Retired diagnostic storage
 
-Open <http://localhost:5173>. The diagnostic server is published only at
-`127.0.0.1:22228`; select that `/browser/v1` endpoint in the diagnostic UI. Tokens
-live under ignored `.secrets/` and must not be printed or committed. The V1
-container health check probes HTTP reachability without changing fixture state.
+V1 startup profiles, bearer-token setup, fixtures and executable callers are removed.
+The former `local.browser.v2.enabled=false` selection is rejected. Neither the
+endpoint retirement nor normal V2 startup migrates or deletes diagnostic data.
 
-```powershell
-docker compose -f containers/local/compose.r1.yaml stop
-docker compose -f containers/local/compose.r1.yaml start --wait
-```
+Existing Docker named volumes remain where Docker stores them, with their original
+Compose project labels. Historical projects are `ffb-local-m0b`, `ffb-local-r1`,
+`ffb-local-r2` (format-1 trial), and `ffb-local-r2b`. Their `<project>_database` volumes hold
+saved teams, prepared matches and recovery; `<project>_backup` holds backups. Inspect
+actual volume names and labels with `docker volume ls` and `docker volume inspect`.
+No retirement command prunes volumes, starts an old profile, or imports its data.
+Existing ignored `containers/local/.secrets/` files are also untouched.
 
-Stop/start retains named volumes. Startup never drops existing data. An empty
-V1 database receives only browser saved-team, prepared-match and recovery tables;
-existing partial/unversioned/unknown schemas fail closed. V2 schemas are separately
-provisioned and verified without migration writes during normal startup.
+Any later data migration or disposal requires separate review and authorization.
+Old configuration and forensic instructions remain available in Git history.
 
-Neither runtime exposes desktop transport, administration, static-file or launch
-services. Other routes return 404. Browser-owned services persist product match
-results and recovery. V1 process-restart evidence does not establish V2 recovery.
-
-## Validation and references
+## References
 
 - [Browser client](../../browser-client/README.md)
 - [Current match review](match-review.md)
 - [Runtime compatibility history](runtime-compatibility.md)
-- [Browser-only design and evidence](../../docs/specs/browser-only-support.md)
-
-The other versioned Compose profiles and verification records describe earlier
-browser-runtime experiments. Use the supported dev-local command for current V2
-work, and the explicit diagnostic profile above for V1.
+- [Retirement inventory](../../docs/specs/v1-retirement-inventory.md)

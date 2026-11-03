@@ -87,8 +87,8 @@ public class BrowserMatchTransportTest {
 		QueueFixture fixture = new QueueFixture();
 		List<String> handled = new ArrayList<>();
 		BrowserProtocol adapter = new BrowserProtocol() {
-			public void receive(BrowserMatchAdapter.Connection connection, String text) { }
-			public void disconnect(BrowserMatchAdapter.Connection connection) { }
+			public void receive(BrowserConnection connection, String text) { }
+			public void disconnect(BrowserConnection connection) { }
 			public void expireDecisions() { handled.add("deadline"); }
 		};
 		try {
@@ -197,8 +197,8 @@ public class BrowserMatchTransportTest {
 			queued.add(invocation.getArgument(0)); return true;
 		});
 		BrowserProtocol adapter = new BrowserProtocol() {
-			public void receive(BrowserMatchAdapter.Connection connection, String text) { }
-			public void disconnect(BrowserMatchAdapter.Connection connection) { }
+			public void receive(BrowserConnection connection, String text) { }
+			public void disconnect(BrowserConnection connection) { }
 			public void expireDecisions() { expired.incrementAndGet(); }
 		};
 		BrowserMatchTransport transport = new BrowserMatchTransport(server);

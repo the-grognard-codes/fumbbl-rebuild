@@ -13,7 +13,7 @@ import org.eclipse.jetty.ee8.websocket.api.annotations.WebSocket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @WebSocket(maxTextMessageSize = 16 * 1024)
-public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
+public class BrowserMatchSocket implements BrowserConnection {
 	private final BrowserProtocol adapter;
 	private final FantasyFootballServer server;
 	private final BrowserMatchTransport transport;
@@ -58,7 +58,7 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 				adapter.receive(this, message);
 			} catch (RuntimeException exception) {
 				// Protocol failures never log request bodies or provider exception details.
-				retireFromEngineWorker(1011, "Local fixture unavailable; operator restart required");
+				retireFromEngineWorker(1011, "Browser protocol unavailable; reconnect for a full snapshot");
 			}
 		}, () -> retire(1013, "Local browser transport overloaded"));
 	}
@@ -104,7 +104,7 @@ public class BrowserMatchSocket implements BrowserMatchAdapter.Connection {
 	}
 
 	void closeFromEngineWorker() {
-		retireFromEngineWorker(1012, "Local fixture reset; reconnect for a full snapshot");
+		retireFromEngineWorker(1012, "Browser transport stopping; reconnect for a full snapshot");
 	}
 
 	private void retireFromEngineWorker(int statusCode, String reason) {

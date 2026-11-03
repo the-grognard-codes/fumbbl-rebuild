@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # Browser setup protocol v1 (M3a)
 
 This file preserves the original M3a boundary. Current sources require Java 21;

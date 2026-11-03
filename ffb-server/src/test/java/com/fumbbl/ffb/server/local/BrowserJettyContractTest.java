@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 /** Exercises the EE8 Jetty endpoint over a loopback WebSocket, not mocked frames. */
 public class BrowserJettyContractTest {
-	private BrowserMatchAdapter adapter;
+	private BrowserV2Adapter adapter;
 	private ExecutorService communicationExecutor;
 	private Server jetty;
 	private BrowserMatchServlet servlet;
@@ -53,7 +53,7 @@ public class BrowserJettyContractTest {
 	public void startJetty() throws Exception {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
-		adapter = mock(BrowserMatchAdapter.class);
+		adapter = mock(BrowserV2Adapter.class);
 		communicationExecutor = Executors.newSingleThreadExecutor();
 		when(server.getCommunication()).thenReturn(communication);
 		when(server.getProperty(anyString())).thenReturn(null);
@@ -67,11 +67,13 @@ public class BrowserJettyContractTest {
 		connector.setHost("127.0.0.1");
 		connector.setPort(0);
 		jetty.addConnector(connector);
+		connector.open();
+		when(server.getProperty("server.base")).thenReturn("http://127.0.0.1:" + connector.getLocalPort());
 		ServletContextHandler context = new ServletContextHandler();
 		context.setContextPath("/");
 		JettyWebSocketServletContainerInitializer.configure(context, null);
 		servlet = new BrowserMatchServlet(server, adapter);
-		context.addServlet(new ServletHolder(servlet), "/browser/v1/*");
+		context.addServlet(new ServletHolder(servlet), "/browser/v2");
 		jetty.setHandler(context);
 		jetty.start();
 		port = connector.getLocalPort();
@@ -91,21 +93,21 @@ public class BrowserJettyContractTest {
 		for (String origin : new String[]{"http://127.0.0.1:5173", "http://localhost:5173"}) {
 			CountDownLatch received = new CountDownLatch(1);
 			CountDownLatch disconnected = new CountDownLatch(1);
-			AtomicReference<BrowserMatchAdapter.Connection> connection = new AtomicReference<>();
+			AtomicReference<BrowserConnection> connection = new AtomicReference<>();
 			doAnswer(invocation -> {
 				connection.set(invocation.getArgument(0));
 				received.countDown();
 				return null;
-			}).when(adapter).receive(any(BrowserMatchAdapter.Connection.class), anyString());
+			}).when(adapter).receive(any(BrowserConnection.class), anyString());
 			doAnswer(invocation -> {
 				disconnected.countDown();
 				return null;
-			}).when(adapter).disconnect(any(BrowserMatchAdapter.Connection.class));
+			}).when(adapter).disconnect(any(BrowserConnection.class));
 
 			try (RawWebSocket socket = open(origin, "Sec-WebSocket-Extensions: permessage-deflate")) {
 				assertFalse(socket.handshake.toLowerCase().contains("sec-websocket-extensions:"));
 				socket.sendFrame(0x1, false, false, true, "{\"type\":\"".getBytes(StandardCharsets.UTF_8));
-				socket.sendFrame(0x0, true, false, true, "join\"}".getBytes(StandardCharsets.UTF_8));
+				socket.sendFrame(0x0, true, false, true, "authenticate\"}".getBytes(StandardCharsets.UTF_8));
 				assertTrue(received.await(5, TimeUnit.SECONDS));
 				assertNotNull(connection.get());
 				connection.get().send("callback");
@@ -135,12 +137,12 @@ public class BrowserJettyContractTest {
 	@Test
 	public void setsBrowserMessageIdleTimeoutAndCleansUpAfterAnIdleClose() throws Exception {
 		CountDownLatch received = new CountDownLatch(1);
-		AtomicReference<BrowserMatchAdapter.Connection> connection = new AtomicReference<>();
+		AtomicReference<BrowserConnection> connection = new AtomicReference<>();
 		doAnswer(invocation -> {
 			connection.set(invocation.getArgument(0));
 			received.countDown();
 			return null;
-		}).when(adapter).receive(any(BrowserMatchAdapter.Connection.class), anyString());
+		}).when(adapter).receive(any(BrowserConnection.class), anyString());
 		try (RawWebSocket socket = open("http://127.0.0.1:5173")) {
 			socket.sendFrame(0x1, true, false, true, "{}".getBytes(StandardCharsets.UTF_8));
 			assertTrue(received.await(5, TimeUnit.SECONDS));
@@ -168,7 +170,7 @@ public class BrowserJettyContractTest {
 		doAnswer(invocation -> {
 			received.countDown();
 			return null;
-		}).when(adapter).receive(any(BrowserMatchAdapter.Connection.class), anyString());
+		}).when(adapter).receive(any(BrowserConnection.class), anyString());
 		byte[] exactlySixteenKiB = (repeat("€", 5461) + "a").getBytes(StandardCharsets.UTF_8);
 		assertEquals(16 * 1024, exactlySixteenKiB.length);
 		try (RawWebSocket socket = open("http://127.0.0.1:5173")) {
@@ -194,7 +196,7 @@ public class BrowserJettyContractTest {
 		assertEventuallyNoActiveConnections();
 	}
 
-	private Session session(BrowserMatchAdapter.Connection connection) throws Exception {
+	private Session session(BrowserConnection connection) throws Exception {
 		java.lang.reflect.Field field = BrowserMatchSocket.class.getDeclaredField("session");
 		field.setAccessible(true);
 		return (Session) field.get(connection);
@@ -234,7 +236,7 @@ public class BrowserJettyContractTest {
 		Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), port);
 		socket.setSoTimeout(5000);
 		String key = Base64.getEncoder().encodeToString(new byte[16]);
-		StringBuilder request = new StringBuilder("GET /browser/v1 HTTP/1.1\r\nHost: 127.0.0.1:")
+		StringBuilder request = new StringBuilder("GET /browser/v2 HTTP/1.1\r\nHost: 127.0.0.1:")
 			.append(port).append("\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: ")
 			.append(key).append("\r\n");
 		for (String origin : origins) request.append("Origin: ").append(origin).append("\r\n");

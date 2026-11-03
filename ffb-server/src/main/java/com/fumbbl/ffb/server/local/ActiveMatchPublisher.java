@@ -22,8 +22,8 @@ final class ActiveMatchPublisher {
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
 	private final V2PreparationService preparation;
-	private final Map<BrowserMatchAdapter.Connection, Viewer> viewers = new LinkedHashMap<>();
-	private final Set<BrowserMatchAdapter.Connection> liveTranscriptConnections = new HashSet<>();
+	private final Map<BrowserConnection, Viewer> viewers = new LinkedHashMap<>();
+	private final Set<BrowserConnection> liveTranscriptConnections = new HashSet<>();
 
 	ActiveMatchPublisher(V2MatchAccess access, SetupApplication setup, V2PreparationService preparation) {
 		this.access = access;
@@ -31,7 +31,7 @@ final class ActiveMatchPublisher {
 		this.preparation = preparation;
 	}
 
-	JsonObject watch(BrowserMatchAdapter.Connection connection, AuthenticatedPrincipal principal,
+	JsonObject watch(BrowserConnection connection, AuthenticatedPrincipal principal,
 		String matchId, String requestId) throws SQLException {
 		access.spectatorSnapshot(principal, matchId);
 		JsonObject view = setup.spectatorView(matchId);
@@ -39,22 +39,22 @@ final class ActiveMatchPublisher {
 		return state(requestId, view);
 	}
 
-	void enrollPlayer(BrowserMatchAdapter.Connection connection, AuthenticatedPrincipal principal, String matchId) {
+	void enrollPlayer(BrowserConnection connection, AuthenticatedPrincipal principal, String matchId) {
 		viewers.put(connection, new Viewer(principal, matchId, false));
 	}
 
-	void enrollComputer(BrowserMatchAdapter.Connection connection, String matchId) {
+	void enrollComputer(BrowserConnection connection, String matchId) {
 		viewers.put(connection, new Viewer(null, matchId, false));
 	}
 
-	void remove(BrowserMatchAdapter.Connection connection) { viewers.remove(connection); }
+	void remove(BrowserConnection connection) { viewers.remove(connection); }
 
-	void liveTranscript(BrowserMatchAdapter.Connection connection, boolean enabled) {
+	void liveTranscript(BrowserConnection connection, boolean enabled) {
 		if (enabled) liveTranscriptConnections.add(connection);
 		else liveTranscriptConnections.remove(connection);
 	}
 
-	void disconnect(BrowserMatchAdapter.Connection connection) {
+	void disconnect(BrowserConnection connection) {
 		remove(connection);
 		liveTranscript(connection, false);
 	}
@@ -63,7 +63,7 @@ final class ActiveMatchPublisher {
 		return new LiveMatchTranscript(setup, matchId, state);
 	}
 
-	void sendState(BrowserMatchAdapter.Connection connection, JsonObject response, LiveMatchTranscript transcript) {
+	void sendState(BrowserConnection connection, JsonObject response, LiveMatchTranscript transcript) {
 		if (liveTranscriptConnections.contains(connection) && "ACCEPTED".equals(response.getString("code", ""))
 			&& response.get("state") != null && response.get("state").isObject()) {
 			String frame = transcript.frame(response.get("state").asObject());
@@ -81,8 +81,8 @@ final class ActiveMatchPublisher {
 		return count;
 	}
 
-	void publishChat(String matchId, BrowserMatchAdapter.Connection source, JsonObject page) {
-		for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
+	void publishChat(String matchId, BrowserConnection source, JsonObject page) {
+		for (BrowserConnection connection : new ArrayList<>(viewers.keySet())) {
 			Viewer viewer = viewers.get(connection);
 			if (viewer == null || viewer.principal == null || connection == source || !matchId.equals(viewer.matchId)) continue;
 			try {
@@ -97,13 +97,13 @@ final class ActiveMatchPublisher {
 		}
 	}
 
-	void publish(String matchId, BrowserMatchAdapter.Connection source, JsonObject publicState) {
+	void publish(String matchId, BrowserConnection source, JsonObject publicState) {
 		publish(matchId, source, publicState, transcript(matchId, publicState));
 	}
 
-	void publish(String matchId, BrowserMatchAdapter.Connection source, JsonObject publicState, LiveMatchTranscript transcript) {
+	void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript) {
 		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
-			for (BrowserMatchAdapter.Connection connection : new ArrayList<>(viewers.keySet())) {
+			for (BrowserConnection connection : new ArrayList<>(viewers.keySet())) {
 				Viewer viewer = viewers.get(connection);
 				if (viewer == null || connection == source || !matchId.equals(viewer.matchId)) continue;
 				try {
@@ -143,7 +143,7 @@ final class ActiveMatchPublisher {
 			.add("code", "ACCEPTED").add("duplicate", false).add("state", view);
 	}
 
-	private void send(BrowserMatchAdapter.Connection connection, JsonObject response) {
+	private void send(BrowserConnection connection, JsonObject response) {
 		connection.send(response.set("version", 2).toString());
 	}
 

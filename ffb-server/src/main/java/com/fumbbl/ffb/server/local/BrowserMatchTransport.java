@@ -200,7 +200,7 @@ public class BrowserMatchTransport {
 		try {
 			JsonObject request = JsonObject.readFrom(message);
 			int version = request.getInt("version", -1);
-			if (version != 1 && version != 2) return false;
+			if (version != 2) return false;
 			String type = request.getString("type", "");
 			return "movementRange".equals(type) || "movementPreview".equals(type) || "routePreview".equals(type);
 		} catch (RuntimeException malformed) {
@@ -220,11 +220,6 @@ public class BrowserMatchTransport {
 			this.trackedIngress = trackedIngress;
 			this.timing = timing;
 		}
-	}
-
-	/** Safe from the communication worker: it does not wait for Jetty I/O. */
-	public void closeConnections() {
-		for (BrowserMatchSocket socket : sockets) socket.closeFromEngineWorker();
 	}
 
 	public BrowserMatchTransportMetrics getMetrics() { return metrics; }

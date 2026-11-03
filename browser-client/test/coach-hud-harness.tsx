@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../../site/src/assets/site.css';
 import '../src/play-brand.css';
 import { createRoot } from 'react-dom/client';
-import { GameView } from '../src/SetupPanel.tsx';
+import { GameView } from '../src/GameView.tsx';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { TranscriptRecord } from '../src/transcript-protocol.ts';
 

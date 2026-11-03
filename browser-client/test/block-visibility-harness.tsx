@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LivePitch } from '../src/LivePitch.tsx';
-import { GameView } from '../src/SetupPanel.tsx';
+import { GameView } from '../src/GameView.tsx';
 import { usePitchPlayback } from '../src/use-pitch-playback.ts';
 import type { BlockContext } from '../src/block-context.ts';
 import type { DiceMoment } from '../src/dice-presentation.ts';

@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { decode } from './protocol.ts';
 import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { PlayerHoverCard } from './PlayerHoverCard.tsx';
@@ -38,11 +37,9 @@ import { pitchPushChoices, pitchHitAndRunChoices, pitchPuntChoices } from './pus
 import { kickoffDraft, toggleKickoffPlayer } from './kickoff-choice.ts';
 import { currentGameStep } from './match-status.ts';
 import { matchTeamName } from './match-team-name.ts';
-import { canPlaceReserve, decodeSetupState } from './setup-protocol.ts';
-import type { SetupAction, SetupCode, SetupState } from './setup-protocol.ts';
+import { canPlaceReserve } from './setup-protocol.ts';
+import type { SetupAction, SetupState } from './setup-protocol.ts';
 import { canDragSetupPlayer, canDropSetupPlayer, solidDefenceDrop } from './setup-drag.ts';
-import { decodeRetainedSetup, setupOutcomeUncertain, setupRetryKey } from './setup-recovery.ts';
-import type { RetainedSetup } from './setup-recovery.ts';
 import './SetupPanel.css';
 import './player-action-menu.css';
 
@@ -54,147 +51,6 @@ function shortActionLabel(action: SetupAction, state: SetupState, selectedPlayer
 }
 type SmartIntent = { kind: 'move' | 'block' | 'blitz' | 'foul'; playerId: string; targetId?: string;
   destination?: RoutePoint; approachIndex?: number; stage: 'planned' | 'declaring' | 'targeting' | 'routing' | 'moving'; revision: number };
-const endpoint = 'ws://127.0.0.1:22227/browser/v1';
-const explanation = (code: SetupCode) => ({
-  PERSISTENCE_FAILED: 'Storage is unavailable. The engine may already have resolved the turn. Reload or retry the exact retained request to reconcile.',
-  MATCH_OUTCOME_UNKNOWN: 'The final save may have committed. Reload or retry the exact retained request; do not create a new action.',
-  REPLAY_UNSUPPORTED: 'This saved result uses an unsupported replay version. Its stored data has not been changed.',
-  REPLAY_LIMIT: 'This match has reached its recorded-history budget. No further action was executed.',
-  MATCH_COMPLETED: 'This match has already finished. Reload the final state or open its result.',
-  ILLEGAL_SETUP: 'Field 11 available players, at least three on the line of scrimmage, at most two in each wide zone, and your selected captain if any.',
-  ILLEGAL_PLACEMENT: 'Select an empty square in your half.',
-  WRONG_ACTOR: 'The other participant owns this decision.',
-  STALE_REVISION: 'The match changed. Reload its current state before submitting another action.',
-  NOT_FOUND: 'This match is not available to this local credential. Check the match ID and reconnect with a participant credential.',
-  COMPLETION_PENDING: 'The engine reached full time but the result still needs saving. Retry the exact retained request.',
-  COMPLETION_CONFLICT: 'Storage contains a different completed result. Stop play and retain the match ID for operator investigation.',
-  REQUEST_ID_REUSED: 'This request identifier has different recorded input. Reload the authoritative match.',
-  REQUEST_HISTORY_LIMIT: 'This match reached its action-history limit. Further play is unavailable; retained requests can still be reconciled.',
-  SAVE_HISTORY_LIMIT: 'This match reached its retained save/resume request limit. Repeat an existing request or contact the local operator.',
-  SAVE_RESUME_UNAVAILABLE: 'This match uses an earlier recovery runtime and cannot be changed into a saved match while active.',
-  SAVE_PROPOSAL_PENDING: 'A save or resume request is already awaiting the other participant.',
-  SAVE_PROPOSAL_MISSING: 'That save or resume proposal has expired or was resolved. Reload the match.',
-  SAVE_PROPOSAL_MISMATCH: 'That response belongs to a different save or resume proposal. Reload the match.',
-  SAVE_PROPOSAL_OWNER: 'Only the other participant can accept or reject; only the requester can cancel.',
-  MATCH_SUSPENDED: 'Both participants saved this match. Request and accept resume before playing.',
-  MATCH_NOT_SUSPENDED: 'This match is already active. Reload before requesting resume.',
-  MATCH_ABANDONED: 'This saved match passed its 30-day inactivity period and is retained as abandoned; it cannot resume.',
-  PROMPT_MISMATCH: 'This choice is no longer current. Reload the match to see the current decision.',
-  WRONG_PHASE: 'This action is unavailable in the current phase. Reload the match.',
-  AUTHENTICATION_REQUIRED: 'Re-enter a local credential and reconnect.',
-  SESSION_UNAVAILABLE: 'This activated session is unavailable. Setup cannot recover after a server restart or engine failure. Prepare a new match to play again.',
-  NOT_ACTIVATED: 'Activate this match from match preparation first.',
-  RECOVERY_UNSUPPORTED: 'This retained match cannot be recovered by this server. Stored data is retained; use a compatible runtime.',
-  RECOVERY_CORRUPT: 'The retained match data is corrupt and could not be recovered. Stored data is retained for investigation.',
-  RECOVERY_CONFLICT: 'Recovery found a conflicting match state. Stored data is retained; reload to reconcile the match.',
-  RECOVERY_LIMIT: 'The server recovery limit was reached. Stored data is retained; retry after reconciling the match.',
-  ACTIVATION_LIMIT: 'The local server has reached its activation capacity. Stored match data is retained.',
-} as Partial<Record<SetupCode, string>>)[code] ?? 'The server rejected this request.';
-
-export function SetupPanel() {
-  const [matchId, setMatchId] = useState(() => new URLSearchParams(location.search).get('matchId') ?? '');
-  const [token, setToken] = useState('');
-  const [status, setStatus] = useState('Disconnected');
-  const [error, setError] = useState('');
-  const [view, setView] = useState<SetupState | null>(null);
-  const [last, setLast] = useState<RetainedSetup | null>(() => { try { return decodeRetainedSetup(sessionStorage.getItem(setupRetryKey)); } catch { return null; } });
-  const [pending, setPending] = useState<string | null>(() => last ? String(last.request.requestId) : null);
-  const [subject, setSubject] = useState('');
-  const [acceptedActionId, setAcceptedActionId] = useState<string | null>(null);
-  const socket = useRef<WebSocket | null>(null);
-  const currentView = useRef<SetupState | null>(null);
-  const pendingId = useRef<string | null>(pending);
-  const loadId = useRef(''); const selectedMatch = useRef(matchId);
-  useEffect(() => () => socket.current?.close(), []);
-  const connected = status === 'Connected';
-  function load(ws = socket.current) {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !selectedMatch.current) return;
-    loadId.current = crypto.randomUUID();
-    ws.send(JSON.stringify({ version: 1, type: 'setup', operation: 'load', requestId: loadId.current, matchId: selectedMatch.current }));
-  }
-  function connect() {
-    if (socket.current) return;
-    selectedMatch.current = matchId;
-    const ws = new WebSocket(endpoint); socket.current = ws;
-    setStatus('Connecting'); setSubject(''); currentView.current = null; setView(null);
-    const current = () => socket.current === ws;
-    ws.onopen = () => { if (current()) ws.send(JSON.stringify({ version: 1, type: 'join', requestId: crypto.randomUUID(), token })); };
-    ws.onmessage = event => {
-      if (!current()) return;
-      try {
-        const type = JSON.parse(event.data).type;
-        if (type !== 'setupState') {
-          const message = decode(event.data);
-          if (message.type === 'snapshot') { setSubject(message.actor); setStatus('Connected'); setToken(''); load(ws); }
-          else if (message.status === 'rejected') { setError(message.code); ws.close(); }
-          return;
-        }
-        const message = decodeSetupState(event.data);
-        const isLoad = message.requestId === loadId.current;
-        const isAction = message.requestId !== null && message.requestId === pendingId.current;
-        if (message.requestId !== null && !isLoad && !isAction) return;
-        if (message.state && message.state.matchId !== selectedMatch.current) throw Error('Response belongs to another match');
-        if (message.state && message.state.matchId === selectedMatch.current) {
-          if (!currentView.current || message.state.revision >= currentView.current.revision) {
-            currentView.current = message.state; setView(message.state);
-          }
-        }
-        if (isAction && !setupOutcomeUncertain(message.code)) {
-          try {
-            const retained = decodeRetainedSetup(sessionStorage.getItem(setupRetryKey));
-            if (message.code === 'ACCEPTED' && retained?.request.operation === 'action' && typeof retained.request.actionId === 'string') setAcceptedActionId(retained.request.actionId);
-          } catch { /* A storage fault cannot invalidate a confirmed server response. */ }
-          pendingId.current = null; setPending(null);
-          try { sessionStorage.removeItem(setupRetryKey); } catch { /* The response is authoritative. */ }
-        }
-        if (message.code === 'NOT_FOUND') { currentView.current = null; setView(null); }
-        if (message.code === 'SESSION_UNAVAILABLE') {
-          currentView.current = null; setView(null); pendingId.current = null; setPending(null); setLast(null);
-          try { sessionStorage.removeItem(setupRetryKey); } catch { /* No resident session can be replayed. */ }
-        }
-        setError(message.code === 'ACCEPTED' ? '' : `${message.code}: ${explanation(message.code)}`);
-      } catch {
-        setError('Invalid server response. Reconnect to reload authoritative setup.'); ws.close();
-      }
-    };
-    ws.onclose = () => { if (current()) { socket.current = null; setStatus('Disconnected'); } };
-    ws.onerror = () => { if (current()) setError('Connection failed. Check the local server.'); };
-  }
-  function mutate(operation: string, fields: Request = {}) {
-    if (!view || !connected || pendingId.current || socket.current?.readyState !== WebSocket.OPEN) return;
-    const request = { version: 1, type: 'setup', operation, requestId: crypto.randomUUID(), matchId: view.matchId, expectedRevision: view.revision, ...fields };
-    const retained = { request, subject, matchId: view.matchId };
-    try { sessionStorage.setItem(setupRetryKey, JSON.stringify(retained)); }
-    catch { setError('The action was not sent because retry storage is unavailable. Enable session storage and try again.'); return; }
-    pendingId.current = request.requestId; setPending(request.requestId); setLast(retained);
-    socket.current.send(JSON.stringify(request));
-  }
-  function retry() {
-    if (!last || !view || !connected || socket.current?.readyState !== WebSocket.OPEN || last.subject !== subject || last.matchId !== view.matchId) return;
-    try { sessionStorage.setItem(setupRetryKey, JSON.stringify(last)); }
-    catch { setError('The retry was not sent because retry storage is unavailable.'); return; }
-    pendingId.current = String(last.request.requestId); setPending(pendingId.current);
-    socket.current?.send(JSON.stringify(last.request));
-  }
-  return <main className="team-builder setup-panel">
-    <nav><a href="/matches">Match preparation</a> · <a href={`/results?matchId=${encodeURIComponent(matchId)}`}>Match results</a> · <a href="/teams">Team builder</a> · <a href="/">Board scenarios</a></nav>
-    <h1>Match setup and play</h1>
-    <p>Play with the frozen teams. The server restores compatible checkpoints after restart. A deliberate save needs agreement from both participants; disconnecting alone does not save a match.</p>
-    <form onSubmit={event => { event.preventDefault(); connect(); }}>
-      <label>Local credential <input aria-label="Local credential" type="password" value={token} onChange={event => setToken(event.target.value)} autoComplete="off" required /></label>
-      <label>Match ID <input aria-label="Match ID" value={matchId} disabled={!!socket.current} onChange={event => setMatchId(event.target.value)} required /></label>
-      <button disabled={!!socket.current || !token || !matchId}>Join setup</button>
-      <button type="button" className="secondary" onClick={() => socket.current?.close()} disabled={!socket.current}>Disconnect</button>
-    </form>
-    <p role="status">{status}</p>{error && <p role="alert">{error}</p>}
-    {!connected && <p>The displayed match is read-only. Re-enter your local credential and join to load the current state. No action is automatically replayed.</p>}
-    {pending && <p role="status">Action outcome awaiting confirmation. Reconnect with the original credential for match {last?.matchId}, then repeat the retained request. New actions remain locked.</p>}
-    {pending && connected && last?.subject !== subject && <p role="alert">The retained action belongs to the other local credential. Disconnect and reconnect with the original credential to reconcile it.</p>}
-    <button type="button" className="secondary" onClick={() => load()} disabled={!connected}>Reload setup snapshot</button>
-    {view && <GameView view={view} connected={connected} pending={pending} mutate={mutate} acceptedActionId={acceptedActionId} />}
-    {last && view && <button type="button" onClick={retry} disabled={!connected || last.subject !== subject || last.matchId !== view.matchId}>Repeat last setup request</button>}
-  </main>;
-}
 
 /** The same board and decisions for players and read-only spectators. */
 export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,

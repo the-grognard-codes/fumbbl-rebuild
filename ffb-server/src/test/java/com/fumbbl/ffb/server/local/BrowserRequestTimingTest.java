@@ -124,7 +124,7 @@ class BrowserRequestTimingTest {
 			SetupApplication setup = mock(SetupApplication.class);
 			when(setup.spectatorView(MATCH)).thenReturn(new JsonObject());
 			ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, null);
-			BrowserMatchAdapter.Connection viewer = mock(BrowserMatchAdapter.Connection.class, call -> {
+			BrowserConnection viewer = mock(BrowserConnection.class, call -> {
 				if ("send".equals(call.getMethod().getName())) {
 					nanos.addAndGet(3000000);
 					if (failSend) throw new IllegalStateException("viewer unavailable");
@@ -170,7 +170,7 @@ class BrowserRequestTimingTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(any(), any())).thenThrow(new MatchService.Failure("NOT_FOUND"));
 		BrowserV2Adapter adapter = new BrowserV2Adapter(null, access, null, null, null, null);
-		BrowserMatchAdapter.Connection connection = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection connection = mock(BrowserConnection.class);
 		JsonObject request = new JsonObject().add("version", 1).add("type", "routePreview")
 			.add("requestId", "timed-preview").add("matchId", MATCH).add("expectedRevision", 3)
 			.add("waypoints", new JsonArray().add(new JsonObject().add("x", 1).add("y", 2)));
@@ -194,7 +194,7 @@ class BrowserRequestTimingTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(any(), any())).thenThrow(new MatchService.Failure("NOT_FOUND"));
 		BrowserV2Adapter adapter = new BrowserV2Adapter(null, access, null, null, null, null);
-		BrowserMatchAdapter.Connection connection = mock(BrowserMatchAdapter.Connection.class);
+		BrowserConnection connection = mock(BrowserConnection.class);
 		try {
 			BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
 			try {

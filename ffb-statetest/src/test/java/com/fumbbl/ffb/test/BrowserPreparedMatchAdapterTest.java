@@ -2,7 +2,11 @@ package com.fumbbl.ffb.test;
 
 import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.local.BrowserMatchAdapter;
+import com.fumbbl.ffb.server.local.BrowserConnection;
+import com.fumbbl.ffb.server.local.BrowserV2Adapter;
+import com.fumbbl.ffb.server.match.ApplicationScope;
+import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
+import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.MatchRepository;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
@@ -16,12 +20,17 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class BrowserPreparedMatchAdapterTest {
 	@Test
@@ -189,33 +198,6 @@ class BrowserPreparedMatchAdapterTest {
 		assertEquals(before, app.handle("home", load).toString());
 		assertEquals("SESSION_UNAVAILABLE", new SetupApplication(new TestServer().getServer(), service).handle("home", load).getString("code", null));
 	}
-	@Test
-	void authenticatedSubjectCreatesItsOwnMatchRoleWithoutChangingFixtureOrHistory() throws Exception {
-		RosterCatalog catalog = new RosterCatalog();
-		SavedTeamService teams = new SavedTeamService(new Teams(), catalog);
-		String id = teams.create("away", draft(catalog)).document.teamId;
-		BrowserMatchAdapter adapter = new BrowserMatchAdapter(new TestServer().getServer(), "home-token", "away-token");
-		adapter.setPreparedMatches(new MatchService(new Matches(), teams, catalog));
-		List<String> output = new ArrayList<>(); BrowserMatchAdapter.Connection connection = output::add;
-		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "create")
-			.add("requestId", "create-one").add("teamId", id).add("expectedDocumentVersion", 1).add("intendedOpponent", "home");
-		adapter.receive(connection, request.toString());
-		assertTrue(output.get(0).contains("AUTHENTICATION_REQUIRED"));
-		adapter.receive(connection, "{\"version\":1,\"type\":\"join\",\"requestId\":\"auth\",\"token\":\"away-token\"}");
-		Field field = BrowserMatchAdapter.class.getDeclaredField("gameState"); field.setAccessible(true);
-		GameState state = (GameState) field.get(adapter);
-		String before = state.getGame().toJsonValue().toString(), metrics = adapter.measurements().toString();
-		adapter.receive(connection, request.toString());
-		JsonObject response = JsonObject.readFrom(output.get(output.size() - 1));
-		assertEquals("ACCEPTED", response.getString("code", null));
-		assertEquals("home", response.getString("callerRole", null));
-		assertEquals("WAITING_FOR_OPPONENT", response.get("document").asObject().getString("lifecycle", null));
-		adapter.receive(connection, request.toString());
-		assertTrue(JsonObject.readFrom(output.get(output.size() - 1)).getBoolean("duplicate", false));
-		request.add("role", "away"); adapter.receive(connection, request.toString());
-		assertTrue(!"ACCEPTED".equals(JsonObject.readFrom(output.get(output.size() - 1)).getString("code", null)));
-		assertEquals(before, state.getGame().toJsonValue().toString()); assertEquals(metrics, adapter.measurements().toString());
-	}
     @Test void terminalPersistenceRetryBroadcastsOnceAndSurvivesApplicationRestart() throws Exception {
         for (boolean unknown : new boolean[] { false, true }) {
             RosterCatalog catalog = new RosterCatalog(); SavedTeamService teams = new SavedTeamService(new Teams(), catalog);
@@ -234,25 +216,23 @@ class BrowserPreparedMatchAdapterTest {
                 }
             };
             MatchService service = new MatchService(faulty, teams, catalog);
-            String h = teams.create("away", draft(catalog)).document.teamId, a = teams.create("home", draft(catalog)).document.teamId;
-            String id = service.create("away", "create", h, 1, "home").document.matchId;
-            service.join("home", "join", id, 1, a, 1);
-            BrowserMatchAdapter adapter = new BrowserMatchAdapter(new TestServer().getServer(), "home-token", "away-token");
-            adapter.setPreparedMatches(service);
-            List<String> home = new ArrayList<>(), away = new ArrayList<>();
-            BrowserMatchAdapter.Connection hc = home::add, ac = away::add;
-            adapter.receive(hc, "{\"version\":1,\"type\":\"join\",\"requestId\":\"auth\",\"token\":\"away-token\"}");
-            adapter.receive(ac, "{\"version\":1,\"type\":\"join\",\"requestId\":\"auth\",\"token\":\"home-token\"}");
-            adapter.receive(hc, new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "activate")
+            String h = teams.create("home", draft(catalog)).document.teamId, a = teams.create("away", draft(catalog)).document.teamId;
+            String id = service.create("home", "create", h, 1, "away").document.matchId;
+            service.join("away", "join", id, 1, a, 1);
+            SetupApplication app = new SetupApplication(new TestServer().getServer(), service);
+            app.activate("home", new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "activate")
                 .add("requestId", "activate").add("matchId", id).add("expectedRevision", 2).toString());
-            JsonObject load = new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", id);
+            BrowserV2Adapter adapter = v2Adapter(app, service, id);
+            List<String> home = new ArrayList<>(), away = new ArrayList<>();
+            BrowserConnection hc = home::add, ac = away::add;
+            authenticate(adapter, hc, "home"); authenticate(adapter, ac, "away");
+            JsonObject load = new JsonObject().add("version", 2).add("type", "setup").add("operation", "load").add("requestId", "load").add("matchId", id);
             adapter.receive(hc, load.toString()); adapter.receive(ac, load.toString());
             JsonObject view = JsonObject.readFrom(away.get(away.size() - 1)).get("state").asObject();
-            JsonObject choice = new JsonObject().add("version", 1).add("type", "setup").add("operation", "choice")
+            JsonObject choice = new JsonObject().add("version", 2).add("type", "setup").add("operation", "choice")
                 .add("requestId", "choose").add("matchId", id).add("expectedRevision", 0)
                 .add("promptId", view.get("prompt").asObject().get("id")).add("optionId", "heads");
             adapter.receive(ac, choice.toString());
-            SetupApplication app = (SetupApplication) field(adapter, "setup");
             com.fumbbl.ffb.server.match.SetupSession session = (com.fumbbl.ffb.server.match.SetupSession) ((Map<?, ?>) field(app, "sessions")).get(id);
             GameState engine = (GameState) field(session, "state");
             // A test-only terminal fixture isolates persistence and delivery from the separate native full-match characterization.
@@ -273,10 +253,99 @@ class BrowserPreparedMatchAdapterTest {
             assertEquals(1, home.size()); assertEquals(1, writes[0]);
             assertEquals(before, engine.toJsonValue().toString());
             SetupApplication restarted = new SetupApplication(new TestServer().getServer(), service);
-            assertEquals("FULL_TIME", restarted.handle("home", load).get("state").asObject().getString("phase", null));
-            assertEquals("MATCH_COMPLETED", restarted.handle("home", choice).getString("code", null));
+            assertEquals("FULL_TIME", restarted.handle("home", JsonObject.readFrom(load.toString()).set("version", 1)).get("state").asObject().getString("phase", null));
+            assertEquals("MATCH_COMPLETED", restarted.handle("home", JsonObject.readFrom(choice.toString()).set("version", 1)).getString("code", null));
             assertEquals(4, service.load("away", id).document.documentVersion);
         }
+    }
+    @Test void v2RejectionsPreserveNativeStateAndChoiceRetrySurvivesReconnectAndBlockedDelivery() throws Exception {
+        RosterCatalog catalog = new RosterCatalog();
+        SavedTeamService teams = new SavedTeamService(new Teams(), catalog);
+        MatchService service = new MatchService(new Matches(), teams, catalog);
+        String homeTeam = teams.create("home", draft(catalog)).document.teamId;
+        String awayTeam = teams.create("away", draft(catalog)).document.teamId;
+        String id = service.create("home", "create", homeTeam, 1, "away").document.matchId;
+        service.join("away", "join", id, 1, awayTeam, 1);
+        SetupApplication app = new SetupApplication(new TestServer().getServer(), service);
+        assertEquals("ACCEPTED", app.activate("home", new JsonObject().add("version", 1).add("type", "preparedMatch")
+            .add("operation", "activate").add("requestId", "activate").add("matchId", id).add("expectedRevision", 2).toString()).getString("code", null));
+        BrowserV2Adapter adapter = v2Adapter(app, service, id);
+        List<String> home = new ArrayList<>(), away = new ArrayList<>();
+        BrowserConnection hc = home::add, ac = away::add;
+        authenticate(adapter, hc, "home"); authenticate(adapter, ac, "away");
+        JsonObject load = new JsonObject().add("version", 2).add("type", "setup").add("operation", "load")
+            .add("requestId", "load").add("matchId", id);
+        adapter.receive(hc, load.toString()); adapter.receive(ac, load.toString());
+        JsonObject view = last(away).get("state").asObject();
+        com.fumbbl.ffb.server.match.SetupSession session = (com.fumbbl.ffb.server.match.SetupSession) ((Map<?, ?>) field(app, "sessions")).get(id);
+        GameState engine = (GameState) field(session, "state");
+        JsonObject choice = new JsonObject().add("version", 2).add("type", "setup").add("operation", "choice")
+            .add("requestId", "choice").add("matchId", id).add("expectedRevision", view.get("revision"))
+            .add("promptId", view.get("prompt").asObject().get("id")).add("optionId", "heads");
+        String unchanged = engine.toJsonValue().toString();
+        JsonObject[] rejected = {
+            JsonObject.readFrom(choice.toString()).set("version", 1),
+            JsonObject.readFrom(choice.toString()).add("dice", new com.eclipsesource.json.JsonArray().add(6)),
+            JsonObject.readFrom(choice.toString()).set("type", "move"),
+            JsonObject.readFrom(choice.toString()).set("expectedRevision", 42),
+            JsonObject.readFrom(choice.toString()).set("optionId", "invented")
+        };
+        String[] codes = {"UNSUPPORTED_VERSION", "INVALID_REQUEST", "UNSUPPORTED_MESSAGE", "STALE_REVISION", "INVALID_OPTION"};
+        for (int index = 0; index < rejected.length; index++) {
+            adapter.receive(ac, rejected[index].set("requestId", "denied-" + index).toString());
+            assertEquals(codes[index], last(away).getString("code", null));
+            assertEquals(unchanged, engine.toJsonValue().toString());
+        }
+        adapter.receive(hc, JsonObject.readFrom(choice.toString()).set("requestId", "wrong-actor").toString());
+        assertEquals("WRONG_ACTOR", last(home).getString("code", null));
+        assertEquals(unchanged, engine.toJsonValue().toString());
+        // A stalled transport must not stop the native mutation or the other coach's publication.
+        boolean[] open = {true};
+        com.fumbbl.ffb.server.local.BrowserMatchDelivery delivery = new com.fumbbl.ffb.server.local.BrowserMatchDelivery(
+            new com.fumbbl.ffb.server.local.BrowserMatchDelivery.Sink() {
+                public boolean isOpen() { return open[0]; }
+                public void close(int status, String reason) { open[0] = false; }
+                public void send(String message, com.fumbbl.ffb.server.local.BrowserMatchDelivery.Completion completion) { }
+            }, new com.fumbbl.ffb.server.local.BrowserMatchTransportMetrics(), 2, 2 * 1024 * 1024);
+        BrowserConnection slow = delivery::send;
+        adapter.disconnect(ac); authenticate(adapter, slow, "away"); adapter.receive(slow, load.toString());
+        int publications = home.size();
+        adapter.receive(slow, choice.toString());
+        assertTrue(!open[0]);
+        assertEquals(publications + 1, home.size());
+        assertEquals(1, last(home).get("state").asObject().getInt("revision", -1));
+        String acceptedState = engine.toJsonValue().toString();
+        adapter.disconnect(slow);
+        away.clear(); authenticate(adapter, ac, "away"); adapter.receive(ac, load.toString());
+        assertEquals(1, last(away).get("state").asObject().getInt("revision", -1));
+        publications = home.size();
+        // Reordering JSON fields does not change exact retry identity.
+        JsonObject reordered = new JsonObject();
+        List<String> names = new ArrayList<>(choice.names()); Collections.reverse(names);
+        for (String name : names) reordered.add(name, choice.get(name));
+        adapter.receive(ac, reordered.toString());
+        assertTrue(last(away).getBoolean("duplicate", false));
+        assertEquals(publications, home.size());
+        assertEquals(acceptedState, engine.toJsonValue().toString());
+        adapter.receive(ac, JsonObject.readFrom(choice.toString()).set("optionId", "tails").toString());
+        assertEquals("REQUEST_ID_REUSED", last(away).getString("code", null));
+        assertEquals(acceptedState, engine.toJsonValue().toString());
+    }
+
+    private JsonObject last(List<String> messages) { return JsonObject.readFrom(messages.get(messages.size() - 1)); }
+
+    private BrowserV2Adapter v2Adapter(SetupApplication app, MatchService service, String id) throws Exception {
+        AuthenticatedPrincipal home = new AuthenticatedPrincipal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", EnumSet.of(ApplicationScope.PLAYER), Long.MAX_VALUE);
+        AuthenticatedPrincipal away = new AuthenticatedPrincipal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", EnumSet.of(ApplicationScope.PLAYER), Long.MAX_VALUE);
+        V2MatchAccess access = mock(V2MatchAccess.class);
+        when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
+        when(access.playerRole(home, id)).thenReturn("home"); when(access.playerRole(away, id)).thenReturn("away");
+        return new BrowserV2Adapter(bearer -> "home".equals(bearer) ? home : away, access, app, service, null, null);
+    }
+
+    private void authenticate(BrowserV2Adapter adapter, BrowserConnection connection, String bearer) {
+        adapter.receive(connection, new JsonObject().add("version", 2).add("type", "authenticate")
+            .add("requestId", "auth").add("bearer", bearer).toString());
     }
     private Object field(Object target, String name) throws Exception {
         Field field = target.getClass().getDeclaredField(name); field.setAccessible(true); return field.get(target);

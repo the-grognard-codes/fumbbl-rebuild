@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import '../../site/src/assets/site.css';
 import '../src/play-brand.css';
-import { GameView } from '../src/SetupPanel.tsx';
+import { GameView } from '../src/GameView.tsx';
 import { HostedResult } from '../src/HostedResult.tsx';
 import type { SetupState } from '../src/setup-protocol.ts';
 import type { MatchResultMetadata } from '../src/result-protocol.ts';

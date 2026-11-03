@@ -813,7 +813,7 @@ class BrowserV2AdapterTest {
 	private JsonObject request(String type, String requestId) { return new JsonObject().add("version", 2).add("type", type).add("requestId", requestId); }
 	private String code(Connection connection, int index) { return JsonObject.readFrom(connection.messages.get(index)).getString("code", null); }
 
-	private static final class Connection implements BrowserMatchAdapter.Connection {
+	private static final class Connection implements BrowserConnection {
 		private final List<String> messages = new ArrayList<>();
 		private int closeStatusCode;
 		@Override public void send(String message) { messages.add(message); }

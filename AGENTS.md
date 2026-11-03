@@ -18,7 +18,7 @@
 - Testing: JUnit 5 with Mockito for mocking
 - Package naming: `com.fumbbl.*` 
 - Naming: Do not use legacy `f` or `p` prefixes for new fields or parameters.
-- Project structure: Maven modules `ffb-common`, `ffb-tools`, `ffb-server`, and `ffb-statetest`; the browser application lives in `browser-client`, with canonical assets in `assets/game`. Browser V2 is the product runtime; V1 remains development-only diagnostics.
+- Project structure: Maven modules `ffb-common`, `ffb-tools`, `ffb-server`, and `ffb-statetest`; the browser application lives in `browser-client`, with canonical assets in `assets/game`. Browser V2 is the sole runtime; V1 is retired. Preserve shared data-format compatibility used by V2 replay and recovery.
 - Architecture hotspots: server game flow uses `Step` / `SequenceGenerator` classes under `ffb-server/src/main/java/com/fumbbl/ffb/server/step`; browser protocol and rendering live under `browser-client/src`, with product entry in `play-entry.tsx`.
 - Ruleset: BB2025 is the only supported ruleset. Keep rules implementations in `bb2025` packages and reusable domain infrastructure in `common` packages. Reject unsupported ruleset input explicitly.
 - Error handling: Use appropriate exception types, document exceptions in method signatures

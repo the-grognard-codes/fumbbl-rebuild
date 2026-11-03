@@ -4,22 +4,27 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BrowserRuntimeSelectionTest {
 
 	@Test void defaultsToProductBrowserWithoutLocalDiagnosticFlag() {
-		assertTrue(new FantasyFootballServer(ServerMode.STANDALONE, new Properties()).isBrowserV2());
+		assertDoesNotThrow(() -> new FantasyFootballServer(ServerMode.STANDALONE, new Properties()));
 	}
 
-	@Test void diagnosticsRequireAnExplicitLocalSelection() {
+	@Test void retiredRuntimeCannotBeSelectedEvenInLocalMode() {
 		Properties properties = new Properties();
 		properties.setProperty("local.browser.v2.enabled", "false");
 		assertThrows(IllegalArgumentException.class, () -> new FantasyFootballServer(ServerMode.STANDALONE, properties));
 		properties.setProperty("server.local", "true");
-		assertFalse(new FantasyFootballServer(ServerMode.STANDALONE, properties).isBrowserV2());
+		assertThrows(IllegalArgumentException.class, () -> new FantasyFootballServer(ServerMode.STANDALONE, properties));
+	}
+
+	@Test void explicitTrueRemainsCompatibleWithExistingV2Profiles() {
+		Properties properties = new Properties();
+		properties.setProperty("local.browser.v2.enabled", "true");
+		assertDoesNotThrow(() -> new FantasyFootballServer(ServerMode.STANDALONE, properties));
 	}
 
 	@Test void malformedSelectionCannotSilentlyStartDiagnostics() {

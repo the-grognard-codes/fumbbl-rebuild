@@ -36,6 +36,7 @@
     ],
     [
       "browser-client/test/projected-pitch-ui.mjs",
+      "browser-client/test/renderer-diagnostics-ui.mjs",
       "browser-client/test/cursor-square-ui.mjs",
       "browser-client/test/movement-checks-ui.mjs",
       "browser-client/test/coach-hud-ui.mjs",
@@ -82,8 +83,7 @@
     "site/test/builder-browser.test.mjs",
     "site/test/m5d-blitz-browser.test.mjs",
     "site/test/m5e-result-browser.test.mjs",
-    "site/test/m5f-keyboard-browser.test.mjs",
-    "browser-client/test/client-path-ui.mjs"
+    "site/test/m5f-keyboard-browser.test.mjs"
   ],
   "standalone": [
     { "path": "browser-client/test/chat-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },

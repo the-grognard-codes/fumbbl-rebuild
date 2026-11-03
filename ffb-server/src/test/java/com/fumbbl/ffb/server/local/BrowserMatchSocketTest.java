@@ -7,8 +7,6 @@ import com.eclipsesource.json.JsonObject;
 import org.eclipse.jetty.ee8.websocket.api.Session;
 import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.ee8.websocket.api.WriteCallback;
-import org.eclipse.jetty.ee8.websocket.server.JettyServerUpgradeRequest;
-import org.eclipse.jetty.ee8.websocket.server.JettyServerUpgradeResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -81,8 +79,8 @@ public class BrowserMatchSocketTest {
 			queued.add(invocation.getArgument(0)); return true;
 		});
 		BrowserProtocol adapter = new BrowserProtocol() {
-			public void receive(BrowserMatchAdapter.Connection connection, String text) { received.add(text); }
-			public void disconnect(BrowserMatchAdapter.Connection connection) { }
+			public void receive(BrowserConnection connection, String text) { received.add(text); }
+			public void disconnect(BrowserConnection connection) { }
 		};
 		BrowserMatchTransport transport = new BrowserMatchTransport(server);
 		BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport);
@@ -103,7 +101,7 @@ public class BrowserMatchSocketTest {
 	public void disconnectedAdvisorySocketCannotReachAdapterOrDelayAnotherSocketGameplay() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
-		BrowserMatchAdapter adapter = mock(BrowserMatchAdapter.class);
+		BrowserProtocol adapter = mock(BrowserProtocol.class);
 		List<Runnable> queued = new ArrayList<>();
 		when(server.getCommunication()).thenReturn(communication);
 		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> {
@@ -130,47 +128,9 @@ public class BrowserMatchSocketTest {
 	}
 
 	@Test
-	public void servletOperatorControlIsAnOrderedBarrierBeforeLaterGameplay() throws Exception {
+	public void queuedBrowserMessageCannotReachAdapterAfterServerRetiresSocket() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
-		ServerCommunication communication = mock(ServerCommunication.class);
-		List<Runnable> queued = new java.util.concurrent.CopyOnWriteArrayList<>();
-		List<String> handled = new ArrayList<>();
-		when(server.getCommunication()).thenReturn(communication);
-		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> {
-			queued.add(invocation.getArgument(0)); return true;
-		});
-		BrowserProtocol adapter = new BrowserProtocol() {
-			public void receive(BrowserMatchAdapter.Connection connection, String text) { handled.add(text); }
-			public void disconnect(BrowserMatchAdapter.Connection connection) { }
-		};
-		BrowserMatchServlet servlet = new BrowserMatchServlet(server, adapter);
-		try {
-			JettyServerUpgradeRequest request = mock(JettyServerUpgradeRequest.class);
-			when(request.getHeader("Origin")).thenReturn("http://localhost:5173");
-			when(request.getHeaders("Origin")).thenReturn(java.util.Collections.singletonList("http://localhost:5173"));
-			BrowserMatchSocket socket = (BrowserMatchSocket) servlet.createWebSocket(request, mock(JettyServerUpgradeResponse.class));
-			Session session = mock(Session.class);
-			when(session.isOpen()).thenReturn(true);
-			socket.onConnect(session);
-			String range = "{\"version\":2,\"type\":\"movementRange\",\"requestId\":\"range\"}";
-			String action = "{\"version\":2,\"type\":\"setup\",\"requestId\":\"action\",\"operation\":\"action\"}";
-			socket.onText(range);
-			servlet.submitControl(() -> handled.add("operator"), () -> { throw new AssertionError("Unexpected rejection"); });
-			socket.onText(action);
-			while (!queued.isEmpty()) queued.remove(0).run();
-			assertEquals(java.util.Arrays.asList("operator", action, range), handled);
-		} finally {
-			// This unit fixture has no Jetty servlet lifecycle to destroy.
-			java.lang.reflect.Field transport = BrowserMatchServlet.class.getDeclaredField("transport");
-			transport.setAccessible(true);
-			((BrowserMatchTransport) transport.get(servlet)).destroy();
-		}
-	}
-
-	@Test
-	public void queuedBrowserMessageCannotReachAdapterAfterFixtureResetRetiresSocket() {
-		FantasyFootballServer server = mock(FantasyFootballServer.class);
-		BrowserMatchAdapter adapter = mock(BrowserMatchAdapter.class);
+		BrowserProtocol adapter = mock(BrowserProtocol.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
 		Session session = mock(Session.class);
 		List<Runnable> queuedWork = new ArrayList<>();
@@ -184,21 +144,21 @@ public class BrowserMatchSocketTest {
 		BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport);
 
 		socket.onConnect(session);
-		socket.onText("{\"type\":\"join\"}");
-		socket.closeFromEngineWorker();
+		socket.onText("{\"version\":2,\"type\":\"setup\",\"operation\":\"load\"}");
+		socket.close(1008, "Connection replaced");
 		queuedWork.get(0).run();
 		socket.onClose(1000, "closed");
 
-		verify(adapter, never()).receive(any(BrowserMatchAdapter.Connection.class), any(String.class));
+		verify(adapter, never()).receive(any(BrowserConnection.class), any(String.class));
 		verify(adapter, times(1)).disconnect(socket);
-		verify(session, times(1)).close(eq(1012), any(String.class));
+		verify(session, times(1)).close(eq(1008), any(String.class));
 		transport.destroy();
 	}
 
 	@Test
 	public void failedConnectionSetupReleasesAdmissionWithoutJettyCloseCallback() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
-		BrowserMatchAdapter adapter = mock(BrowserMatchAdapter.class);
+		BrowserProtocol adapter = mock(BrowserProtocol.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
 		when(server.getCommunication()).thenReturn(communication);
 		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> {
@@ -225,7 +185,7 @@ public class BrowserMatchSocketTest {
 	@Test
 	public void unadmittedSocketIgnoresFrames() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
-		BrowserMatchAdapter adapter = mock(BrowserMatchAdapter.class);
+		BrowserProtocol adapter = mock(BrowserProtocol.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
 		Session session = mock(Session.class);
 		BrowserMatchTransport transport = new BrowserMatchTransport(server);
@@ -235,7 +195,7 @@ public class BrowserMatchSocketTest {
 		BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport);
 
 		socket.onConnect(session);
-		socket.onText("{\"type\":\"join\"}");
+		socket.onText("{\"version\":2,\"type\":\"setup\",\"operation\":\"load\"}");
 		socket.onClose(1000, "closed");
 
 		verify(session).close(eq(1013), any(String.class));

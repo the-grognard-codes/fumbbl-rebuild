@@ -13,7 +13,7 @@ assert.equal(completed.passed, true);
 assert.equal(completed.protocol, '/browser/v2');
 const output = resolve(process.env.COACH_ACCEPTANCE_EVIDENCE ?? '../.tools/coach-oriented-match-ui/replay-cutover');
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: false });
+const browser = await chromium.launch({ channel: 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1' });
 const observations = [];
 try {
   for (const role of ['home', 'away']) {

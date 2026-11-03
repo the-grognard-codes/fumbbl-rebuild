@@ -17,7 +17,6 @@
     "predev": "npm run assets:sync",
     "predev:stadium": "npm run assets:sync",
     "prebuild": "npm run assets:sync",
-    "prebuild:play": "npm run assets:sync",
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "dev:stadium": "vite --host 127.0.0.1 --port 5174 --strictPort",
     "prereview:stadium": "npm run assets:sync",
@@ -25,17 +24,13 @@
     "prereview:stadium-walls": "npm run assets:sync",
     "review:stadium-walls": "node --experimental-strip-types test/stadium-wall-review.mjs",
     "build": "tsc --noEmit && vite build",
-    "build:play": "tsc --noEmit && vite build --config vite.play.config.ts",
+    "build:play": "npm run build",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "test:interaction": "node ../tools/validation/browser-suites.mjs --family interaction",
     "test:adjustments": "node test/match-adjustments-ui.mjs",
     "test:ui-comments": "node test/hud-comments-ui.mjs && node test/dugout-ui.mjs && node test/chat-ui.mjs && node test/chat-speaker-ui.mjs && node test/game-menu-events-ui.mjs",
     "test:reconnect-ui": "node test/reconnect-ui.mjs",
-    "demo": "node test/browser-demo.mjs",
-    "demo:choice": "node test/choice-demo.mjs",
-    "demo:renderer-failures": "node test/renderer-failure-demo.mjs",
-    "demo:renderer-lifecycle": "node test/renderer-lifecycle-demo.mjs",
-    "demo:prepared-match": "node test/prepared-match-demo.mjs prepare"
+    "test:renderer": "node test/renderer-diagnostics-ui.mjs"
   },
   "dependencies": {
     "pixi.js": "8.20.1",

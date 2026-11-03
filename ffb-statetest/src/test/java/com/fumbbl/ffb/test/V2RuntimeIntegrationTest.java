@@ -3,7 +3,7 @@ package com.fumbbl.ffb.test;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.local.BrowserMatchAdapter;
+import com.fumbbl.ffb.server.local.BrowserConnection;
 import com.fumbbl.ffb.server.local.BrowserSavedTeamJson;
 import com.fumbbl.ffb.server.local.BrowserV2Adapter;
 import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
@@ -283,7 +283,7 @@ class V2RuntimeIntegrationTest {
 		JsonObject response = send(adapter, peer, request("savedTeam").add("operation", "create").add("draft", draft));
 		assertEquals("OK", response.getString("code", null)); return response.get("document").asObject().getString("teamId", null);
 	}
-	private static final class Peer implements BrowserMatchAdapter.Connection {
+	private static final class Peer implements BrowserConnection {
 		final Map<String, JsonObject> responses = new LinkedHashMap<>();
 		final List<JsonObject> unsolicited = new ArrayList<>(); JsonObject last;
 		@Override public void send(String text) {

@@ -74,6 +74,7 @@ class BrowserV2RouteTest {
 	}
 
 	@Test void legacyAndAdministrativeRoutesAreNotMounted() throws Exception {
+		assertEquals(404, upgradeStatus("/browser/v1", new String[] {"http://localhost:5000"}));
 		for (String path : new String[] {"/browser/v1", "/session/v1", "/admin", "/command", "/gamestate", "/backup", "/replay", "/spectator"}) {
 			String response = http(path);
 			assertTrue(response.startsWith("HTTP/1.1 404"), path + " was exposed: " + response);
@@ -112,7 +113,7 @@ class BrowserV2RouteTest {
 
 	@Test void websocketAcceptsVersionTwoPathDeliversAuthenticationAndRejectsBinary() throws Exception {
 		CountDownLatch received = new CountDownLatch(1);
-		doAnswer(call -> { received.countDown(); return null; }).when(adapter).receive(any(BrowserMatchAdapter.Connection.class), anyString());
+		doAnswer(call -> { received.countDown(); return null; }).when(adapter).receive(any(BrowserConnection.class), anyString());
 		try (RawWebSocket socket = open("/browser/v2", new String[] {"http://localhost:5173"})) {
 			assertTrue(socket.header.startsWith("HTTP/1.1 101"), socket.header);
 			socket.send(0x1, "{\"version\":2,\"type\":\"authenticate\",\"requestId\":\"auth\",\"bearer\":\"opaque\"}".getBytes(StandardCharsets.UTF_8));

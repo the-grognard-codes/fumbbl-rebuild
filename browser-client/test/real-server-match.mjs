@@ -7,17 +7,19 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import { squarePosition } from './projected-pitch-helper.mjs';
 import { capturePresentation, captureNativeZoom, captureEdgeSmoke } from './real-server-presentation.mjs';
 import { observeGameplayPerformance, summarizeGameplayPerformance } from './gameplay-performance-observer.mjs';
+import { retainedRecoveryResults, v2ProcessRecovery } from './v2-process-recovery.mjs';
 
 const origin = 'http://localhost:5000';
 const computer = process.env.COACH_ACCEPTANCE_COMPUTER === '1';
 const performanceEnabled = process.env.COACH_ACCEPTANCE_PERFORMANCE === '1';
-const performanceTeamSuffix = performanceEnabled ? ` ${randomUUID().slice(0, 6)}` : '';
+// Retained acceptance identities may run more than once; team names are account-unique.
+const acceptanceTeamSuffix = ` ${randomUUID().slice(0, 8)}`;
 const performanceTarget = Number(process.env.COACH_ACCEPTANCE_PERFORMANCE_DECISIONS ?? 40);
 const performanceLimit = Number(process.env.COACH_ACCEPTANCE_PERFORMANCE_MAX_DECISIONS ?? 80);
 if (performanceEnabled && (!Number.isSafeInteger(performanceTarget) || performanceTarget < 1 || performanceTarget > 200
@@ -28,6 +30,10 @@ if (!['coach-bugman-random', 'coach-bogruk-weak'].includes(computerOpponent)) th
 const output = resolve(process.env.COACH_ACCEPTANCE_EVIDENCE ?? '../.tools/coach-oriented-match-ui/real-server-evidence');
 const resumed = process.env.COACH_ACCEPTANCE_RESUME_FROM ? JSON.parse(await readFile(process.env.COACH_ACCEPTANCE_RESUME_FROM, 'utf8')) : null;
 const completedContinuation = resumed?.state?.phase === 'FULL_TIME';
+const processRecoveryEnabled = process.env.COACH_ACCEPTANCE_PROCESS_KILL === '1';
+if (processRecoveryEnabled && (computer || performanceEnabled)) throw Error('Process recovery requires two-coach full-match acceptance');
+const previousRecovery = processRecoveryEnabled && resumed ? retainedRecoveryResults(
+  JSON.parse(await readFile(resolve(dirname(process.env.COACH_ACCEPTANCE_RESUME_FROM), 'process-recovery.json'), 'utf8')), resumed.matchId) : [];
 if (resumed) {
   assert.match(resumed.matchId ?? '', /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/);
   assert.ok(resumed.state && Array.isArray(resumed.assertions) && Array.isArray(resumed.checkpoints), 'Continuation requires the prior native-run evidence');
@@ -35,6 +41,7 @@ if (resumed) {
 const tokens = JSON.parse(await readFile(process.env.COACH_ACCEPTANCE_TOKENS_FILE, 'utf8'));
 assert.ok(tokens.home && tokens.away && tokens.spectator, 'Three independent real Firebase custom tokens are required');
 await mkdir(output, { recursive: true });
+if (previousRecovery.length) await writeFile(resolve(output, 'process-recovery.json'), JSON.stringify(previousRecovery, null, 2));
 const proxyServer = process.env.COACH_ACCEPTANCE_PROXY;
 if (proxyServer && !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}$/.test(proxyServer)) throw Error('Acceptance proxy must be an explicit loopback HTTP endpoint');
 const browser = await chromium.launch({ channel: process.env.COACH_ACCEPTANCE_BROWSER ?? 'chrome', headless: process.env.COACH_ACCEPTANCE_FOREGROUND !== '1',
@@ -46,6 +53,7 @@ let performanceDecisions = 0, performanceOutcome = 'failed';
 let performanceEventLimit;
 let performanceVisualActions = 0;
 let matchId, lastState, lastAction, teams = [], retainedSpectatorOnly = false;
+const recovery = processRecoveryEnabled ? v2ProcessRecovery({ pages, output, matchId: () => matchId, state, wire, origin, previousResults: previousRecovery }) : null;
 const record = (name, details = {}) => { assertions.push({ name, ...details }); console.log(name); };
 
 async function observe(context, role) {
@@ -103,27 +111,86 @@ function canonical(view) {
   return fields;
 }
 async function converge(revision) {
-  await Promise.all(pages.map(page => page.waitForFunction(revision => window.__acceptance.incoming.some(message => message.state?.revision >= revision), revision)));
+  const recovered = new Set();
+  const deadline = Date.now() + 30_000;
   let states;
-  for (let attempt = 0; attempt < 200; attempt++) {
-    states = await Promise.all(pages.map(state));
-    if (states.every(view => view.revision === states[0].revision)) break;
+  let recipients;
+  while (Date.now() < deadline) {
+    recipients = await Promise.all(pages.map(page => page.evaluate(() => {
+      const messages = window.__acceptance.incoming;
+      const index = messages.findLastIndex(message => message.type === 'setupState' && message.state);
+      const failure = messages.slice(index + 1).findLast(message => message.type === 'error');
+      return { view: index < 0 ? null : messages[index].state, code: failure?.code,
+        disconnected: window.__acceptance.socket?.readyState === WebSocket.CLOSED };
+    })));
+    let refreshed = false;
+    for (const [index, recipient] of recipients.entries()) {
+      const unavailable = recipient.code === 'VIEW_UNAVAILABLE';
+      const stale = !recipient.view || recipient.view.revision < revision;
+      if (!unavailable && !(stale && recipient.disconnected)) continue;
+      const code = unavailable ? recipient.code : 'DISCONNECTED';
+      if (recovered.has(index)) throw Error(`Recipient ${index} remains ${code} while converging revision ${revision}`);
+      recovered.add(index);
+      // A publication failure removes the server subscription while leaving the
+      // socket connected. Reload explicitly authenticates and loads the same
+      // match; it never repeats a retained mutation.
+      await pages[index].reload();
+      record('Explicitly reloaded an unavailable match recipient', {
+        role: recipient.view?.callerRole ?? `recipient-${index}`, code,
+        revision: recipient.view?.revision ?? null, expectedRevision: revision
+      });
+      refreshed = true;
+    }
+    if (refreshed) continue;
+    states = recipients.map(recipient => recipient.view);
+    if (states.every(view => view && view.revision >= revision && view.revision === states[0].revision)) break;
     await pages[0].waitForTimeout(20);
   }
+  assert.ok(states?.every(view => view && view.revision >= revision && view.revision === states[0].revision),
+    `Recipients did not converge at revision ${revision}: ${JSON.stringify(recipients?.map((recipient, index) => ({
+      index, revision: recipient.view?.revision ?? null, code: recipient.code ?? null, disconnected: recipient.disconnected
+    })))}`);
   for (const view of states) {
     assert.ok(view.revision >= revision); assert.equal(view.revision, states[0].revision);
     if (!computer) assert.equal(view.revision, revision);
     assert.deepEqual(canonical(view), canonical(states[0]));
   }
-  assert.deepEqual(states.map(view => view.callerRole), completedContinuation ? (computer ? ['home'] : ['home', 'away'])
+  assert.deepEqual(states.map(view => view.callerRole), completedContinuation || (processRecoveryEnabled && pages.length === 2) ? (computer ? ['home'] : ['home', 'away'])
     : computer ? retainedSpectatorOnly ? ['home', 'spectator'] : ['home', 'spectator', 'spectator'] : ['home', 'away', 'spectator']);
   lastState = states[0];
   return states[0];
 }
 async function advanced(before, intent) {
+  if (recovery?.pending) {
+    // The terminal result write is deliberately blocked; the process dies before acknowledgement.
+    const action = intent().catch(() => {});
+    await recovery.finishPending(); await action;
+    return converge((await state(pages[0])).revision);
+  }
+  const starts = await Promise.all(pages.map(page => page.evaluate(() => ({
+    incoming: window.__acceptance.incoming.length, outgoing: window.__acceptance.outgoing.length
+  }))));
   await intent();
-  await pages[0].waitForFunction(revision => window.__acceptance.incoming.some(message => message.state?.revision > revision), before.revision);
-  return converge((await state(pages[0])).revision);
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const outcomes = await Promise.all(pages.map((page, index) => page.evaluate(({ start, revision }) => {
+      const requests = window.__acceptance.outgoing.slice(start.outgoing)
+        .filter(request => request.type === 'setup' && request.operation !== 'load');
+      const messages = window.__acceptance.incoming.slice(start.incoming);
+      const failed = messages.find(message => message.code && message.code !== 'ACCEPTED'
+        && requests.some(request => request.requestId === message.requestId));
+      if (failed) {
+        const request = requests.find(request => request.requestId === failed.requestId);
+        return { failure: { code: failed.code, requestId: failed.requestId, operation: request.operation } };
+      }
+      return { advanced: messages.some(message => message.state?.revision > revision) };
+    }, { start: starts[index], revision: before.revision })));
+    const failure = outcomes.find(outcome => outcome.failure)?.failure;
+    if (failure) throw Error(`Setup ${failure.operation} failed at revision ${before.revision}: ${failure.code} (request ${failure.requestId})`);
+    if (outcomes[0].advanced) return converge((await state(pages[0])).revision);
+    await pages[0].waitForTimeout(20);
+  }
+  throw Error(`No authoritative revision after setup intent at revision ${before.revision}`);
 }
 async function wire(page, fields) {
   const request = { ...fields, version: 2, requestId: fields.requestId ?? randomUUID() };
@@ -140,7 +207,7 @@ async function buildTeam(page, roster) {
   await page.goto(`${origin}/teambuilder`);
   await page.getByRole('status').filter({ hasText: /^Connected$/ }).waitFor();
   await page.getByLabel('Team', { exact: true }).selectOption(roster);
-  await page.getByLabel('Team name', { exact: true }).fill((roster === 'human' ? 'Acceptance Ironbank Rovers' : 'Acceptance Cinderclaw Crew') + performanceTeamSuffix);
+  await page.getByLabel('Team name', { exact: true }).fill((roster === 'human' ? 'Acceptance Ironbank Rovers' : 'Acceptance Cinderclaw Crew') + acceptanceTeamSuffix);
   const catalog = await page.evaluate(roster => window.__acceptance.incoming.filter(message => message.type === 'catalog' && message.rosterId === roster).at(-1), roster);
   const positions = roster === 'human'
     ? ['ogre', 'blitzer', 'blitzer', 'catcher', 'thrower', 'halfling', ...Array(5).fill('lineman')]
@@ -314,7 +381,19 @@ async function actionUI(view, action) {
     // Push arrows expose the authoritative label; the text companion also remains usable.
     if (await direct.count()) return advanced(view, () => direct.click());
   }
-  if (action.kind === 'endTurn') {
+  const kickoffPlayerId = view.turnMode === 'TOUCHBACK' && action.kind === 'touchback' && action.target && 'playerId' in action.target
+    ? action.target.playerId : view.turnMode === 'HIGH_KICK' && action.kind === 'kickoffMove' ? action.sourcePlayerId : null;
+  if (kickoffPlayerId) {
+    // These kickoff decisions use a local pitch selection before confirmation;
+    // pinning the server action in Debug does not select its recipient.
+    await setDebug(page, false);
+    const player = view.players.find(player => player.id === kickoffPlayerId);
+    assert.ok(player && player.x !== null && player.y !== null, 'Kickoff recipient must be on the pitch');
+    await squarePosition(page, player.x, player.y);
+    await page.locator(`.live-marker[data-player-id="${player.id}"]`).press('Enter');
+    assert.match(await page.getByRole('status', { name: 'Current game step', exact: true }).textContent(), /Selected 1 of 1/);
+    assert.equal((await state(page)).revision, view.revision, 'Kickoff player selection is read-only until confirmed');
+  } else if (action.kind === 'endTurn') {
     await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   } else if (action.kind === 'move' && action.target && 'x' in action.target) {
     const player = view.players.find(player => player.id === action.sourcePlayerId);
@@ -423,6 +502,7 @@ try {
     record('Selected computer identity is visible and private policy state is absent from coach and spectator views');
   }
   record(completedContinuation ? 'Both coaches reload the same retained native full-time snapshot'
+    : resumed ? 'Participants reload the retained native match snapshot'
     : computer ? 'Human coach and independent spectators subscribe to the native computer match'
     : 'Two independent coaches and spectator converge on the real native prematch snapshot', { matchId });
   if (!completedContinuation && !assertions.some(item => item.name === 'Durable escaped chat delivered to both coaches and spectator')) {
@@ -441,6 +521,7 @@ try {
   let continuity = assertions.some(item => item.name.startsWith('Save, agree')), permission = assertions.some(item => item.name.startsWith('Wrong-coach')),
     route = assertions.some(item => item.name.startsWith('Real server-bound route')), decisionReconnect = assertions.some(item => item.name.startsWith('Reconnect preserved'));
   for (let index = 0; index < 1500 && view.phase !== 'FULL_TIME'; index++) {
+    await recovery?.inspect(view);
     const before = view;
     if (index % 30 === 0) console.log(JSON.stringify({ decisions: index, revision: view.revision, phase: view.phase, half: view.half, turns: [view.homeTurn, view.awayTurn], score: [view.homeScore, view.awayScore] }));
     if (computer && (view.prompt?.actor ?? view.actor) === 'away') {
@@ -473,6 +554,7 @@ try {
       if (!permission && !computer) { await negative(view); permission = true; }
       if (view.phase === 'PLAY' && !continuity && view.actions.some(action => action.kind === 'endTurn')) { view = await pauseResume(view); continuity = true; }
       const action = selectAction(view);
+      await recovery?.beforeAction(view, action);
       if (performanceEnabled && view.phase === 'PLAY' && action) {
         performanceDecisions++;
         performanceActions[action.kind] = (performanceActions[action.kind] ?? 0) + 1;
@@ -547,7 +629,11 @@ try {
       measurementsStoppedBeforeScreenshots: true, pages: visualEvidence }, null, 2));
   } else {
   assert.equal(view.phase, 'FULL_TIME'); assert.ok(checkpoints.some(checkpoint => checkpoint.half === 2), 'Native halftime reached');
-  assert.ok(view.homeScore + view.awayScore > 0, 'Native play includes at least one touchdown');
+  await recovery?.inspect(view);
+  recovery?.assertComplete();
+  // The recovery scenario validates durable completion for any legal final score.
+  // Keep the existing touchdown requirement for the separate scoring acceptance.
+  if (!processRecoveryEnabled) assert.ok(view.homeScore + view.awayScore > 0, 'Native play includes at least one touchdown');
   record(computer ? 'Human-versus-Orc computer match reached native full time with browser coach decisions'
     : 'Human-versus-Orc match reached full time through both halves using native UI decisions', { revision: view.revision, score: [view.homeScore, view.awayScore] });
   await pages[0].getByRole('link', { name: 'Open final result and replay', exact: true }).click();
@@ -602,5 +688,6 @@ try {
       label: process.env.COACH_ACCEPTANCE_PERFORMANCE_LABEL ?? 'unlabelled' });
     await writeFile(resolve(output, 'performance.json'), JSON.stringify(report, null, 2));
   }
+  await recovery?.close();
   await browser.close();
 }

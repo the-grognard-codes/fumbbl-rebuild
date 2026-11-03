@@ -1,3 +1,5 @@
+> Historical reference: V1 runtime and its executable tooling are retired. Use the V2 dev-local workflow; do not run the legacy startup or migration commands below.
+
 # R2 local recovery compatibility boundary
 
 This document records the isolated R2 recovery boundary (`ffb-local-r2b`, port
