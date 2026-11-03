@@ -1,0 +1,189 @@
+{
+  "version": 2,
+  "method": "Preserve archived material membership; grade original PNG weighted RGB brightness, shared across both images, into 16 evenly spaced indices using round(15*(brightness-min)/(max-min)). Not interpolation of old three-shade output.",
+  "brightnessWeights": [
+    0.2126,
+    0.7152,
+    0.0722
+  ],
+  "ranges": [
+    {
+      "min": 4.5486,
+      "max": 179.40439999999998
+    },
+    {
+      "min": 51.60339999999999,
+      "max": 239.24359999999996
+    }
+  ],
+  "anchorIndices": [
+    0,
+    4,
+    8,
+    12,
+    15
+  ],
+  "ramps": [
+    {
+      "id": "navy",
+      "anchors": [
+        "#080f2b",
+        "#152e65",
+        "#1648ae",
+        "#2869df",
+        "#79aaff"
+      ]
+    },
+    {
+      "id": "ivory",
+      "anchors": [
+        "#715027",
+        "#b18d4e",
+        "#e3cb93",
+        "#f2e0b5",
+        "#fff3d7"
+      ]
+    },
+    {
+      "id": "red",
+      "anchors": [
+        "#300412",
+        "#79051b",
+        "#d50d29",
+        "#f44038",
+        "#ff8a68"
+      ]
+    },
+    {
+      "id": "orange",
+      "anchors": [
+        "#431506",
+        "#963008",
+        "#e75d08",
+        "#ff8b1d",
+        "#ffc05b"
+      ]
+    },
+    {
+      "id": "gold",
+      "anchors": [
+        "#493007",
+        "#8c5706",
+        "#d69a08",
+        "#fbc526",
+        "#ffe46b"
+      ]
+    },
+    {
+      "id": "lemon",
+      "anchors": [
+        "#484506",
+        "#8c8504",
+        "#d6d208",
+        "#f5ef24",
+        "#fffa70"
+      ]
+    },
+    {
+      "id": "forest",
+      "anchors": [
+        "#062b1c",
+        "#07592d",
+        "#098f3d",
+        "#21be51",
+        "#6ee287"
+      ]
+    },
+    {
+      "id": "lime",
+      "anchors": [
+        "#213705",
+        "#466d06",
+        "#80ad08",
+        "#ade219",
+        "#d6ff5f"
+      ]
+    },
+    {
+      "id": "teal",
+      "anchors": [
+        "#042d32",
+        "#03616a",
+        "#009ca0",
+        "#16c9c6",
+        "#60ece2"
+      ]
+    },
+    {
+      "id": "sky",
+      "anchors": [
+        "#072c52",
+        "#065b9c",
+        "#048dd5",
+        "#22b6ef",
+        "#79dcff"
+      ]
+    },
+    {
+      "id": "violet",
+      "anchors": [
+        "#20083d",
+        "#4b0d80",
+        "#8124bf",
+        "#ad49e5",
+        "#d994ff"
+      ]
+    },
+    {
+      "id": "magenta",
+      "anchors": [
+        "#42082f",
+        "#8f0962",
+        "#d91091",
+        "#f23db4",
+        "#ff8bd2"
+      ]
+    },
+    {
+      "id": "brown",
+      "anchors": [
+        "#291509",
+        "#602b10",
+        "#9e4e1b",
+        "#c87c35",
+        "#ebad64"
+      ]
+    },
+    {
+      "id": "slate",
+      "anchors": [
+        "#1d2a3c",
+        "#3d5471",
+        "#607d9c",
+        "#8da6c2",
+        "#bdcede"
+      ]
+    },
+    {
+      "id": "black",
+      "anchors": [
+        "#080d16",
+        "#101a28",
+        "#1d2a3b",
+        "#354559",
+        "#62748b"
+      ]
+    },
+    {
+      "id": "white",
+      "anchors": [
+        "#687887",
+        "#929eaa",
+        "#bec9d1",
+        "#e3e9ed",
+        "#ffffff"
+      ]
+    }
+  ],
+  "paletteInterpolation": "Linear sRGB channel interpolation between listed anchor indices; round each channel to nearest integer. source/palettes.json is the explicit editable palette."
+}

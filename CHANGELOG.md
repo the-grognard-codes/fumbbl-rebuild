@@ -10,6 +10,8 @@
 - The match Reconnect control can restore an unavailable view even when its
   WebSocket remains connected, without automatically repeating gameplay actions.
 
+- Added a development-only shared sprite proof with 16 saturated color choices and 16 shades per ramp, all 256 combinations, lineman/halfling/ogre animations and busts, and Human helmet previews. Projected Pixi playback includes both coach ends, pause/step, reduced motion, static fallback and a 22-player comparison. Recorded the authoring/rendering contract for later production team colors and animation integration.
+
 - Added the approved compact horizontal decision prompts, mole artwork, player focus connectors, and preview/confirm interception selection. Player decisions keep pitch navigation available. BB2025 Secret Weapon send-offs now resolve one selected player at a time, retaining bribes after coach ejection and preserving pending choices across recovery.
 
 - Removed support for older Blood Bowl editions from the engine, bundled fixtures,

@@ -1,0 +1,487 @@
+﻿{
+    "team":  "Human lineman animation proof",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "lineman-front45-idle-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-idle-0.png",
+                        "original":  "originals/lineman-front45-idle-0.png",
+                        "sourceSha256":  "00414950A417E1CCD1F7A4D98668362B4DC95D463FBB756B18639DB7BD28DF65",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  41,
+                                       "height":  54,
+                                       "x":  10
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-idle-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-idle-1.png",
+                        "original":  "originals/lineman-front45-idle-1.png",
+                        "sourceSha256":  "02D5DFD5B299F10B2B2E0AC307423A55E9D32F0A509DDE5E579A37D68A6E83C2",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  3,
+                                       "width":  47,
+                                       "height":  57,
+                                       "x":  6
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-idle-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-idle-2.png",
+                        "original":  "originals/lineman-front45-idle-2.png",
+                        "sourceSha256":  "0CFE9D0EA009536B6AC9EEE5EF85DEA2EF520CE6A0E56A9A3C02625CFA18D497",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  8,
+                                       "width":  42,
+                                       "height":  55,
+                                       "x":  12
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-idle-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-idle-3.png",
+                        "original":  "originals/lineman-front45-idle-3.png",
+                        "sourceSha256":  "AF067F4075F564DA2BE48A95EC4C6CE43CE9D83B7B54D2A5AA0199502D9ACFAF",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  8,
+                                       "width":  42,
+                                       "height":  54,
+                                       "x":  13
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-move-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-move-0.png",
+                        "original":  "originals/lineman-front45-move-0.png",
+                        "sourceSha256":  "7987779D480CD4FC7C1EFD7AC84EACCC7099E6C1FDA897670EE9351ED1811EAE",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  7,
+                                       "width":  43,
+                                       "height":  56,
+                                       "x":  8
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-move-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-move-1.png",
+                        "original":  "originals/lineman-front45-move-1.png",
+                        "sourceSha256":  "F61A337D5DC66A2B44B721C79332E6FDEF8723CBAA09DA5DD44E70BB15C6101B",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  3,
+                                       "width":  38,
+                                       "height":  58,
+                                       "x":  13
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-move-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-move-2.png",
+                        "original":  "originals/lineman-front45-move-2.png",
+                        "sourceSha256":  "B233C331CEE85739F2B0B6F17E9B895C2583670BC062478B129F7A7075FA4722",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  51,
+                                       "height":  56,
+                                       "x":  7
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-move-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-move-3.png",
+                        "original":  "originals/lineman-front45-move-3.png",
+                        "sourceSha256":  "F54FC00A05BC2ED3A442E6159439F6DAA0EB0BE2FE5E1CC8AE12FF4C580CA509",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  4,
+                                       "width":  44,
+                                       "height":  55,
+                                       "x":  14
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-fall-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-fall-0.png",
+                        "original":  "originals/lineman-front45-fall-0.png",
+                        "sourceSha256":  "2D2FF30C0A88F82883EAAC93A30FF2D89C9389B18D1E966D4864BD39F79D1EE7",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  12,
+                                       "width":  48,
+                                       "height":  51,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-fall-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-fall-1.png",
+                        "original":  "originals/lineman-front45-fall-1.png",
+                        "sourceSha256":  "BF447CBD990D2E65EE5B2A6530665C90B75A177DA379ED0CB3B955B596D88867",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  49,
+                                       "height":  54,
+                                       "x":  6
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-fall-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-fall-2.png",
+                        "original":  "originals/lineman-front45-fall-2.png",
+                        "sourceSha256":  "DAFB337A885E6BC083F6F6C125D707567C82682794E053FE87A3CEB583ACEED4",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  11,
+                                       "width":  54,
+                                       "height":  52,
+                                       "x":  4
+                                   }
+                    },
+                    {
+                        "id":  "lineman-front45-fall-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-front45-fall-3.png",
+                        "original":  "originals/lineman-front45-fall-3.png",
+                        "sourceSha256":  "62C30D8913F1DD226AA54BDAC4F5287A13DF9AAC45DD600E66D1CCD51AF1A4E4",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  18,
+                                       "width":  56,
+                                       "height":  45,
+                                       "x":  4
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-idle-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-idle-0.png",
+                        "original":  "originals/lineman-back45-idle-0.png",
+                        "sourceSha256":  "EFE48A8767045B5602D394BCE3B19313DBB3804DEBF2914F7C063CC47D9AF903",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  6,
+                                       "width":  40,
+                                       "height":  55,
+                                       "x":  7
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-idle-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-idle-1.png",
+                        "original":  "originals/lineman-back45-idle-1.png",
+                        "sourceSha256":  "36860868356AE1C420DC53F871397464F5707849C69DD94EC53C8D205C8BFF69",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  4,
+                                       "width":  58,
+                                       "height":  57,
+                                       "x":  2
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-idle-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-idle-2.png",
+                        "original":  "originals/lineman-back45-idle-2.png",
+                        "sourceSha256":  "262DA2E63D9100F51AA61A0E889483607C301AA6100697A7206F56EF662714CD",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  40,
+                                       "height":  57,
+                                       "x":  10
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-idle-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-idle-3.png",
+                        "original":  "originals/lineman-back45-idle-3.png",
+                        "sourceSha256":  "24FCFE95A9925001AF804624493CF6C983C1A3AA529C77A3ECBE5E5EF79CA6E7",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  40,
+                                       "height":  58,
+                                       "x":  13
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-move-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-move-0.png",
+                        "original":  "originals/lineman-back45-move-0.png",
+                        "sourceSha256":  "83F190FB190A75C31DD8326EF59E485F5DC3C1EFCE98FFDD5B3678AEE05CE76A",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  4,
+                                       "width":  48,
+                                       "height":  57,
+                                       "x":  6
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-move-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-move-1.png",
+                        "original":  "originals/lineman-back45-move-1.png",
+                        "sourceSha256":  "A002D6A24B142F8DA11B323EC94493BF6DDC6C18C65770F3262E359B438D5502",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  4,
+                                       "width":  51,
+                                       "height":  56,
+                                       "x":  2
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-move-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-move-2.png",
+                        "original":  "originals/lineman-back45-move-2.png",
+                        "sourceSha256":  "4D4629F8BC60B481D3DA757C61B5595AD88E285764E0A6CC641753A1C1CA4192",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  57,
+                                       "height":  58,
+                                       "x":  2
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-move-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-move-3.png",
+                        "original":  "originals/lineman-back45-move-3.png",
+                        "sourceSha256":  "7A509A4610403357525F51D61EB8BD54DA9D13C0F53A5B433B3AF9F5739591D8",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  36,
+                                       "height":  58,
+                                       "x":  15
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-fall-0",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-fall-0.png",
+                        "original":  "originals/lineman-back45-fall-0.png",
+                        "sourceSha256":  "955151F34110140341258E55C0E42F434F2E5CE16E1DEAE984F4771AAD35C877",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  48,
+                                       "height":  55,
+                                       "x":  10
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-fall-1",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-fall-1.png",
+                        "original":  "originals/lineman-back45-fall-1.png",
+                        "sourceSha256":  "06619B220498255528F2F4729263DF2BBE87709D6CAA2ADBB3A4CF12AA75FEBA",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  6,
+                                       "width":  49,
+                                       "height":  57,
+                                       "x":  8
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-fall-2",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-fall-2.png",
+                        "original":  "originals/lineman-back45-fall-2.png",
+                        "sourceSha256":  "1F63AC786DD93BA1D474A207403E2288BD7B4DDC129E9C655FF05A9EB682ECB3",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  60,
+                                       "height":  55,
+                                       "x":  2
+                                   }
+                    },
+                    {
+                        "id":  "lineman-back45-fall-3",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/lineman-back45-fall-3.png",
+                        "original":  "originals/lineman-back45-fall-3.png",
+                        "sourceSha256":  "B9603465AE39ED8B91596364B2429EDF91AD2246088E2547DAB15BDCD206D459",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  56,
+                                       "height":  58,
+                                       "x":  2
+                                   }
+                    }
+                ]
+}

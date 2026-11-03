@@ -3,7 +3,9 @@
 param(
   [Parameter(Mandatory=$true)][string]$RosterPath,
   [Parameter(Mandatory=$true)][string]$OutputDirectory,
-  [ValidateRange(16,256)][int]$TileSize = 64
+  [ValidateRange(16,256)][int]$TileSize = 64,
+  # Animation sheets can share one source-space fit reference to avoid per-frame size pumping.
+  [ValidateRange(0,4096)][int]$FitReferencePixels = 0
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -54,6 +56,10 @@ foreach ($player in $players) {
     if ($player.sizeClass -eq 'small') { $fit = [int][Math]::Round($TileSize*46/64) }
     if ($player.sizeClass -eq 'big') { $canvas = [int][Math]::Round($TileSize*1.25); $fit = [int][Math]::Round($TileSize*76/64) }
     $ratio = [Math]::Min($fit/$bounds.Width,$fit/$bounds.Height)
+    if ($FitReferencePixels -gt 0) {
+      if ($FitReferencePixels -lt [Math]::Max($bounds.Width,$bounds.Height)) { throw 'Fit reference would clip artwork.' }
+      $ratio = $fit/$FitReferencePixels
+    }
     if ($ratio -gt 1) { throw "Source too small; use full-size artwork: $($player.id)" }
     $width = [Math]::Max(1,[int][Math]::Round($bounds.Width*$ratio))
     $height = [Math]::Max(1,[int][Math]::Round($bounds.Height*$ratio))

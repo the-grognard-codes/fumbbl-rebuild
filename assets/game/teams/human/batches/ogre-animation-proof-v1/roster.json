@@ -1,0 +1,90 @@
+﻿{
+    "players":  [
+                    {
+                        "source":  "source/ogre-front45-idle-0.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-idle-0",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-idle-1.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-idle-1",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-idle-2.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-idle-2",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-idle-3.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-idle-3",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-move-0.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-move-0",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-move-1.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-move-1",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-move-2.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-move-2",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-move-3.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-move-3",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-fall-0.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-fall-0",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-fall-1.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-fall-1",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-fall-2.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-fall-2",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    },
+                    {
+                        "source":  "source/ogre-front45-fall-3.png",
+                        "sizeClass":  "big",
+                        "id":  "ogre-front45-fall-3",
+                        "gender":  "man",
+                        "role":  "ogre"
+                    }
+                ],
+    "standardVersion":  "1.1",
+    "team":  "Human ogre animation proof"
+}

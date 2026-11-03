@@ -1,0 +1,90 @@
+﻿{
+    "players":  [
+                    {
+                        "source":  "source/halfling-front45-idle-0.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-idle-0",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-idle-1.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-idle-1",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-idle-2.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-idle-2",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-idle-3.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-idle-3",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-move-0.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-move-0",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-move-1.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-move-1",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-move-2.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-move-2",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-move-3.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-move-3",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-fall-0.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-fall-0",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-fall-1.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-fall-1",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-fall-2.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-fall-2",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    },
+                    {
+                        "source":  "source/halfling-front45-fall-3.png",
+                        "sizeClass":  "small",
+                        "id":  "halfling-front45-fall-3",
+                        "gender":  "woman",
+                        "role":  "halfling"
+                    }
+                ],
+    "standardVersion":  "1.1",
+    "team":  "Human halfling animation proof"
+}

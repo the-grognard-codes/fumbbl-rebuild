@@ -1,0 +1,18 @@
+[
+  {"id":"navy","name":"Navy","colors":["#101b38","#234b87","#5589c2"]},
+  {"id":"ivory","name":"Ivory","colors":["#8a775b","#d8c6a0","#fff0cd"]},
+  {"id":"red","name":"Red","colors":["#571c28","#b9363c","#ef7770"]},
+  {"id":"orange","name":"Orange","colors":["#71391d","#ce6826","#ffb360"]},
+  {"id":"gold","name":"Gold","colors":["#77551c","#c69a2d","#ffe37a"]},
+  {"id":"lemon","name":"Lemon","colors":["#77722a","#d3ca45","#fff799"]},
+  {"id":"forest","name":"Forest","colors":["#173d30","#34754a","#79ad70"]},
+  {"id":"lime","name":"Lime","colors":["#405728","#80a43a","#c1db70"]},
+  {"id":"teal","name":"Teal","colors":["#16464b","#287e83","#70c4bc"]},
+  {"id":"sky","name":"Sky","colors":["#255773","#4199bf","#9cdeec"]},
+  {"id":"violet","name":"Violet","colors":["#352452","#73529a","#b69cda"]},
+  {"id":"magenta","name":"Magenta","colors":["#602448","#b54d88","#ed9ac1"]},
+  {"id":"brown","name":"Brown","colors":["#3f2b26","#805039","#c28d61"]},
+  {"id":"slate","name":"Slate","colors":["#303b48","#667789","#b0becb"]},
+  {"id":"black","name":"Black","colors":["#10151c","#29323c","#53616b"]},
+  {"id":"white","name":"White","colors":["#889399","#d1dadd","#fcfaf1"]}
+]

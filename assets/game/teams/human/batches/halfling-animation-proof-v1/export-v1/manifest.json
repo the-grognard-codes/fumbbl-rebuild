@@ -1,0 +1,247 @@
+﻿{
+    "team":  "Human halfling animation proof",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "halfling-front45-idle-0",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-idle-0.png",
+                        "original":  "originals/halfling-front45-idle-0.png",
+                        "sourceSha256":  "B36C544D678A14A6145E4D2EA780D5C91A3F1D4B89233AA23FFF9789DAD30443",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  17,
+                                       "width":  26,
+                                       "height":  46,
+                                       "x":  14
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-idle-1",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-idle-1.png",
+                        "original":  "originals/halfling-front45-idle-1.png",
+                        "sourceSha256":  "7886187AA420A5C9304071587D42BE6142702A4A884436F99B507357CA4BB092",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  19,
+                                       "width":  25,
+                                       "height":  44,
+                                       "x":  14
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-idle-2",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-idle-2.png",
+                        "original":  "originals/halfling-front45-idle-2.png",
+                        "sourceSha256":  "AF59E933A1ABC9AE2334371ADEA7BDCED8F2C00CC5B2CB4D61AC2E70DA07C8C0",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  19,
+                                       "width":  40,
+                                       "height":  44,
+                                       "x":  10
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-idle-3",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-idle-3.png",
+                        "original":  "originals/halfling-front45-idle-3.png",
+                        "sourceSha256":  "000BF1A866422CCA8E07362E9BCE185A6664ACD1211C3AA1DFC54661AB7F3614",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  19,
+                                       "width":  26,
+                                       "height":  44,
+                                       "x":  17
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-move-0",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-move-0.png",
+                        "original":  "originals/halfling-front45-move-0.png",
+                        "sourceSha256":  "E537DBE934FB906E295F4C660A8E730E6A170DCED5D20B463643255A2A5F3CA9",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  19,
+                                       "width":  29,
+                                       "height":  44,
+                                       "x":  15
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-move-1",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-move-1.png",
+                        "original":  "originals/halfling-front45-move-1.png",
+                        "sourceSha256":  "695FCDACADA0E254F64237427AF1BB2A7735D63DCAC4DB815E73849C27EF8EF3",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  19,
+                                       "width":  26,
+                                       "height":  42,
+                                       "x":  19
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-move-2",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-move-2.png",
+                        "original":  "originals/halfling-front45-move-2.png",
+                        "sourceSha256":  "4085F863BC38534EAAE6F6B7A3DB20E9D59EA248FA3B370172C92C58B90C5D2B",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  20,
+                                       "width":  31,
+                                       "height":  43,
+                                       "x":  17
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-move-3",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-move-3.png",
+                        "original":  "originals/halfling-front45-move-3.png",
+                        "sourceSha256":  "66E74C56B6E6C6FE9E4E717A4311660540257DAA45D946F9C9B3058215B2DEFC",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  18,
+                                       "width":  26,
+                                       "height":  45,
+                                       "x":  22
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-fall-0",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-fall-0.png",
+                        "original":  "originals/halfling-front45-fall-0.png",
+                        "sourceSha256":  "58E15732981B4E7A9300EAC2600816A575FC9B81814EDA862B4AA02D6C36AFE2",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  23,
+                                       "width":  31,
+                                       "height":  40,
+                                       "x":  13
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-fall-1",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-fall-1.png",
+                        "original":  "originals/halfling-front45-fall-1.png",
+                        "sourceSha256":  "B6905E7B993E0E7E48EDB5BD3F2DA9EEDDD86A52DB481174BFA6C4C2075F9A1E",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  23,
+                                       "width":  34,
+                                       "height":  40,
+                                       "x":  12
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-fall-2",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-fall-2.png",
+                        "original":  "originals/halfling-front45-fall-2.png",
+                        "sourceSha256":  "4051FDEA2258D41B4E5BBA1358965D45A637904B7CEC57AC2DCEB38C11C30F8D",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  21,
+                                       "width":  41,
+                                       "height":  42,
+                                       "x":  11
+                                   }
+                    },
+                    {
+                        "id":  "halfling-front45-fall-3",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "small",
+                        "file":  "sprites/halfling-front45-fall-3.png",
+                        "original":  "originals/halfling-front45-fall-3.png",
+                        "sourceSha256":  "C720A2AA592F4CAAC7056B3BF06A6F9421F0C0DC3223DE6531D84D1877273716",
+                        "width":  64,
+                        "height":  64,
+                        "tileSize":  64,
+                        "anchorX":  32,
+                        "anchorY":  63,
+                        "bounds":  {
+                                       "y":  25,
+                                       "width":  43,
+                                       "height":  38,
+                                       "x":  11
+                                   }
+                    }
+                ]
+}

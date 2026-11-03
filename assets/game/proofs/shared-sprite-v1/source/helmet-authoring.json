@@ -1,0 +1,178 @@
+{
+  "source": "ui/mvp-art/match-ui-icon-atlas-v1.png",
+  "crop": {
+    "x": 64,
+    "y": 106,
+    "width": 336,
+    "height": 317
+  },
+  "materials": {
+    "primary": "painted blue shell",
+    "secondary": "crown stripe",
+    "fixed": "faceguard, rivets, edge metal, lining, outlines"
+  },
+  "seedRegions": {
+    "shell": [
+      [
+        0,
+        175
+      ],
+      [
+        5,
+        125
+      ],
+      [
+        27,
+        72
+      ],
+      [
+        65,
+        33
+      ],
+      [
+        120,
+        4
+      ],
+      [
+        147,
+        2
+      ],
+      [
+        175,
+        24
+      ],
+      [
+        203,
+        75
+      ],
+      [
+        184,
+        91
+      ],
+      [
+        114,
+        121
+      ],
+      [
+        92,
+        146
+      ],
+      [
+        108,
+        199
+      ],
+      [
+        119,
+        238
+      ],
+      [
+        150,
+        284
+      ],
+      [
+        105,
+        295
+      ],
+      [
+        80,
+        285
+      ],
+      [
+        48,
+        255
+      ],
+      [
+        24,
+        240
+      ],
+      [
+        10,
+        210
+      ]
+    ],
+    "rearShell": [
+      [
+        201,
+        8
+      ],
+      [
+        233,
+        24
+      ],
+      [
+        269,
+        67
+      ],
+      [
+        285,
+        97
+      ],
+      [
+        257,
+        87
+      ],
+      [
+        244,
+        68
+      ],
+      [
+        223,
+        36
+      ]
+    ],
+    "stripe": [
+      [
+        148,
+        6
+      ],
+      [
+        181,
+        2
+      ],
+      [
+        202,
+        9
+      ],
+      [
+        224,
+        30
+      ],
+      [
+        241,
+        58
+      ],
+      [
+        251,
+        78
+      ],
+      [
+        210,
+        86
+      ],
+      [
+        193,
+        55
+      ],
+      [
+        177,
+        28
+      ]
+    ]
+  },
+  "brightnessWeights": [
+    0.2126,
+    0.7152,
+    0.0722
+  ],
+  "ranges": [
+    {
+      "min": 1.8772,
+      "max": 220.69740000000002
+    },
+    {
+      "min": 29.6194,
+      "max": 254.99999999999997
+    }
+  ],
+  "method": "Explicit material selections from existing atlas; 16 shade indices from original weighted RGB brightness. No resizing or changes to the atlas; source/materials.json is the editable authority."
+}
