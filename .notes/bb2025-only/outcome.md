@@ -5,6 +5,26 @@ Issues: [#421 engine](https://github.com/the-grognard-codes/fumbbl-rebuild/issue
 
 ## Result
 
+Published in [PR #425](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425),
+merged on 2026-11-03 at 05:45:10 UTC as `f26ee8300f885b9fc79f4b581f09a0ae4006da4a`.
+The latest kickoff feature from main was integrated before validation. The original
+working branch was removed locally and remotely after its merged contents were
+verified identical. Dev-local is stopped; database volumes were retained.
+
+Final combined-state checks at `e63714e64ad4026eb5b4470fcf6dcce3d681b4c7`:
+- Source audit: 3,083 active text files; passed.
+- Focused Java registration, kickoff, placement and recovery: 43 passed, zero skips.
+- Browser unit suite: 466 passed; TypeScript passed.
+- Full local browser gate: all 72 registered suites passed in 660.6 seconds,
+  reports `.tools/validation/local-browser-q7Isgh`, log `.tools/bb2025-merge-browser-full.log`.
+- All enabled PR CI checks passed, including all four Java shards and aggregate
+  verification, baseline, static/build, service/lifecycle tests, secret scan and
+  CodeQL. Full-browser CI was skipped by policy; the full suite passed locally.
+
+The earlier handoff notes below describe the pre-publication state and remain as
+historical validation evidence. The completed-features tracker now records the
+actual merged feature.
+
 Publication handoff (2026-11-03): the owner approved staging all changes, committing,
 opening a PR, waiting for successful validation CI, merging into main, removing
 the local and remote working branch, recording the completed feature, and stopping

@@ -1,5 +1,13 @@
 [
   {
+    "number": 425,
+    "title": "Make BB2025 the sole supported Blood Bowl ruleset",
+    "summary": "Removed older-edition rules, unused fixtures and retired options while retaining the implementations used by BB2025. New matches, replays and recovery use the supported ruleset, and automated checks guard against reintroducing obsolete edition code. Compatibility with saves and replays from earlier builds is not guaranteed.",
+    "category": "Platform",
+    "mergedAt": "2026-11-03T05:45:10Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425"
+  },
+  {
     "number": 423,
     "title": "Select and confirm kickoff players consistently",
     "summary": "High Kick, Charge, Solid Defence, Quick Snap and touchbacks now share pitch selection and the standard confirmation control. Solid Defence keeps players on the pitch for repositioning and swaps; confirmed participants remain marked during the event. Server validation and recovery preserve confirmed choices.",
