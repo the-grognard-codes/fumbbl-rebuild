@@ -1,5 +1,7 @@
 # issues
 
+- [x] [#421 BB2025-only engine](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/421) and [#422 BB2025-only integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/422): merged in [PR #425](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425) after CI and the complete local browser gate passed. See [outcome and validation](.notes/bb2025-only/outcome.md).
+
 - [x] [#420 Consistent BB2025 kickoff selection](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/420): merged in [PR #423](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/423) after CI passed. See [validation and outcome](docs/specs/bb2025-kickoff-selection-outcome.md).
 
 - [x] [#414 Approved decision-prompt designs and reusable mole artwork](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/414): merged in [PR #418](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/418) after CI passed. This completes the visual design/artwork milestone; production work remains open in #415, #416 and #417. See [outcome](.notes/legacy-decision-prompts/outcome.md).
