@@ -34,6 +34,7 @@
       "com.fumbbl.ffb.test.BrowserChoiceTest",
       "com.fumbbl.ffb.test.BrowserPreparedMatchAdapterTest",
       "com.fumbbl.ffb.test.GameStateExecuteStepTest",
+      "com.fumbbl.ffb.test.KickoffSelectionMovementTest",
       "com.fumbbl.ffb.test.ManualSkillRerollTest",
       "com.fumbbl.ffb.test.MatchLogPresentationTest",
       "com.fumbbl.ffb.test.OnTheBallPassBlockIntegrationTest",

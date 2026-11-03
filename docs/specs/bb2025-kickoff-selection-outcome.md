@@ -142,3 +142,8 @@ The owner approved publication and CI-gated merge. Dev-local has been stopped;
 database volumes were retained. The earlier no-publication handoff boundary is
 superseded by this authorization. PR validation and tracker completion follow.
 
+
+Initial PR CI caught an omitted native shard registration for the new
+KickoffSelectionMovementTest. Added it to shard 3 alongside kickoff/recovery
+coverage; the CI manifest guard remains unchanged.
+
