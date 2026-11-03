@@ -1,4 +1,8 @@
 Production implementation resumed on feature/production-decision-prompts after approval of horizontal mole mockups. BB2025 is the sole supported ruleset under current repository instructions. Reuse #415, #416 and #417. Official May 2026 FAQ confirms bribes remain available when Argue the Call is unavailable; no multi-player ordering found in that FAQ, so apply the owner's explicitly approved choose-player / fully-resolve fallback. Source: https://assets.warhammer-community.com/eng_20-05_blood_bowl_faq_errata-gytvlserev-ngihd3chox.pdf
+
+## Delivery
+
+Owner approved production validation. [PR #427](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/427) merged on November 3, 2026 after CI passed; issues #415–#417 closed. The local and remote feature branches were removed. Dev-local was stopped, retaining database volumes. The following sections preserve implementation and manual-review evidence from before delivery.
 ## Implementation checkpoint
 
 - Branch: `feature/production-decision-prompts`; issues #415, #416, #417 reused.
