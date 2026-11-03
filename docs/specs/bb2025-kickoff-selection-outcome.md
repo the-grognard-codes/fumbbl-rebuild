@@ -147,3 +147,8 @@ Initial PR CI caught an omitted native shard registration for the new
 KickoffSelectionMovementTest. Added it to shard 3 alongside kickoff/recovery
 coverage; the CI manifest guard remains unchanged.
 
+
+PR #423 merged as `d03299574169dbe589f7ec9c2a87075571e2a55d` after all
+enabled checks passed, including all four Java shards and the aggregate gate.
+Full-browser CI was skipped by workflow policy; local browser evidence is above.
+Issue #420 is complete. Dev-local is stopped and its database volumes retained.
