@@ -86,6 +86,8 @@
     "site/test/m5f-keyboard-browser.test.mjs"
   ],
   "standalone": [
+    { "path": "browser-client/test/sprite-proof-ui.mjs", "reason": "Development-only sprite art review; run through review:sprites to generate local palette and UI evidence, separate from production interaction shards." },
+    { "path": "browser-client/test/sprite-proof-full-ui.mjs", "reason": "Development-only art/performance capture that writes canonical QA images and video; run explicitly for sprite-proof review on a named environment." },
     { "path": "browser-client/test/chat-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
     { "path": "browser-client/test/dugout-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },
     { "path": "browser-client/test/hud-comments-ui.mjs", "reason": "Existing local test:ui-comments suite; previously outside CI." },

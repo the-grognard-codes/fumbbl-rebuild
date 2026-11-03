@@ -65,6 +65,8 @@ Final raw/gzip sizes: static JSON 2,552,645 / 536,953 bytes; animation JSON 2,68
 
 Post-integration validation: the single V2 product build passed, 471 browser tests passed (the lower count reflects upstream V1 test removal), both sprite browser review passes passed, and 30 asset tests/486 delivered files passed. Logs: `.tools/sprite-proof/merge-*`. The entries below record the earlier pre-integration run. Native CI validation will be required before merge; the earlier local native result is not a test of the new upstream server changes.
 
+PR validation caught an omitted browser-inventory registration for the two new review harnesses. Both are now explicitly registered as standalone art/evidence capture tools, consistent with their local execution and canonical QA outputs; production browser shard coverage is unchanged. The validation/lifecycle tests were rerun after the fix.
+
 - `npm.cmd --prefix browser-client run proof:sprites:check`: 11 focused tests and deterministic JSON export checks passed.
 - `npm.cmd --prefix browser-client test`: 478 tests passed, zero skipped/failed.
 - `npm.cmd --prefix browser-client run review:sprites`: original/static browser checks and initial animation checks passed, including mobile/reduced motion.
