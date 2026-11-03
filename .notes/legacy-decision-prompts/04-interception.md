@@ -1,5 +1,7 @@
 # Feature: Preview and confirm interception candidate selection
 
+Production implementation: issue #417 on `feature/production-decision-prompts`. Player-card portraits, local preview switching and explicit confirmation are integrated. See [outcome and validation](production-outcome.md).
+
 ## Abstract
 Allow coaches to inspect eligible interceptors before committing a choice.
 

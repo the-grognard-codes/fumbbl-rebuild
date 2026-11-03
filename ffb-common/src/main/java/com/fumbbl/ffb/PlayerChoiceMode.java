@@ -15,7 +15,7 @@ public enum PlayerChoiceMode implements INamedObject {
 	RAIDING_PARTY("raidingParty", false), BALEFUL_HEX("balefulHex"), BLACK_INK("blackInk"),
 	QUICK_BITE("quickBite"), FURIOUS_OUTBURST("furiousOutburst"), SOLID_DEFENCE("solidDefence", false), CHARGE("charge", false), QUICK_SNAP("quickSnap", false),
 	ARM_BAR("armBar"), AUTO_GAZE_ZOAT("autoGazeZoat"), DWARFEN_WISDOM("dwarfenWisdom", false),
-	ILL_CARRY_YOU("illCarryYou"), CATCH("catch");
+	ILL_CARRY_YOU("illCarryYou"), CATCH("catch"), SECRET_WEAPON("secretWeapon", false);
 
 	private final String name;
 	private final boolean usePlayerPosition, preselect;

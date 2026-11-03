@@ -9,6 +9,7 @@ import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogBribesParameter;
+import com.fumbbl.ffb.dialog.DialogBriberyAndCorruptionParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
@@ -1192,12 +1193,16 @@ public final class SetupSession {
 		JsonArray savedActions = saved.get("actions").asArray();
 		JsonArray currentActions = current.get("actions").asArray();
 		// Older browser checkpoints could stop at this native choice without projecting any actions.
-		boolean legacyBribeChoice = state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.BRIBES
-			&& state.getGame().getDialogParameter() instanceof DialogBribesParameter
-			&& ((DialogBribesParameter) state.getGame().getDialogParameter()).getPlayerIds().length == 1;
+		boolean legacyBribeChoice = state.getCurrentStep() != null
+            && (state.getCurrentStep().getId() == StepId.BRIBES || state.getCurrentStep().getId() == StepId.END_TURN)
+            && (state.getGame().getDialogParameter() instanceof DialogBribesParameter
+                || state.getGame().getDialogParameter() instanceof DialogBriberyAndCorruptionParameter);
 		if (savedActions.isEmpty() && (legacyBribeChoice || state.getGame().getTurnMode() == TurnMode.HIT_AND_RUN
 			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN)) {
 			current.set("actions", new JsonArray());
+            // With no projected actions, the old view used the turn owner as its actor.
+            String legacyActor = state.getGame().isHomePlaying() ? "home" : "away";
+            if (legacyActor.equals(saved.getString("actor", null))) current.set("actor", legacyActor);
 		}
 		if (savedActions.size() == currentActions.size()) for (int index = 0; index < savedActions.size(); index++) {
 			JsonObject previous = savedActions.get(index).asObject(), now = currentActions.get(index).asObject();
@@ -1222,6 +1227,9 @@ public final class SetupSession {
 			// Follow-up targets are presentation metadata added after existing checkpoints were saved.
 			if ("followUp".equals(previous.getString("kind", null)) && JsonValue.NULL.equals(previous.get("target")))
 				now.set("target", JsonValue.NULL);
+            // New decision focus targets are presentation-only; retain exact native IDs and all other fields.
+            if (java.util.Arrays.asList("argueTheCall", "bribe", "interception").contains(previous.getString("kind", null))
+                && JsonValue.NULL.equals(previous.get("target"))) now.set("target", JsonValue.NULL);
 		}
 		int version = saved.get("projectionVersion") == null ? 1 : saved.getInt("projectionVersion", -1);
 		if (version < 1 || version > 4) return false;

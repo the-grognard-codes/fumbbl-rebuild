@@ -212,3 +212,15 @@ test('Kick uses a binary dialog with the original revision-bound action IDs', ()
   assert.equal(matchDecision({ ...frame, callerRole: 'spectator' }, actions), null);
   assert.equal(matchDecision({ ...frame, callerRole: frame.callerRole === 'home' ? 'away' : 'home' }, actions), null);
 });
+
+test('player decision targets remain authoritative for local candidate previews', () => {
+  const frame: SetupState = { ...frames[6].actor, callerRole: 'home', prompt: null };
+  for (const kind of ['interception', 'secretWeapon', 'argueTheCall', 'bribe']) {
+    const actions = ['first', 'second'].map(id => ({ id: `12:${kind}:${id}`, kind, actor: 'home' as const, label: `Choose ${id}`, target: { playerId: id } }));
+    const decision = matchDecision(frame, actions)!;
+    assert.deepEqual(decision.options.map(option => option.targetPlayerId), ['first', 'second']);
+    assert.deepEqual(decision.options.map(option => option.id), actions.map(action => action.id));
+    assert.equal(decision.circular, undefined);
+    if (kind === 'interception') assert.equal(decision.title, 'Nominate an interceptor');
+  }
+});

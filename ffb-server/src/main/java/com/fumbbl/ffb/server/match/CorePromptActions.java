@@ -6,20 +6,25 @@ import com.fumbbl.ffb.FactoryType;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.MoveSquare;
+import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.Pushback;
 import com.fumbbl.ffb.PushbackSquare;
+import com.fumbbl.ffb.ReRolledActions;
+import com.fumbbl.ffb.ReRollSources;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.bb2025.InjuryDescription;
 import com.fumbbl.ffb.dialog.DialogApothecaryChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogArgueTheCallParameter;
 import com.fumbbl.ffb.dialog.DialogBlockRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogBribesParameter;
+import com.fumbbl.ffb.dialog.DialogBriberyAndCorruptionParameter;
 import com.fumbbl.ffb.dialog.DialogConfirmEndActionParameter;
 import com.fumbbl.ffb.dialog.DialogFollowupChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogInterceptionParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogOpponentBlockSelectionPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogPileDriverParameter;
+import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.dialog.DialogReRollBlockForTargetsPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogSkillUseParameter;
@@ -44,10 +49,12 @@ import com.fumbbl.ffb.net.commands.ClientCommandFollowupChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandInterceptorChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandPileDriver;
 import com.fumbbl.ffb.net.commands.ClientCommandPushback;
+import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecaries;
 import com.fumbbl.ffb.net.commands.ClientCommandUseApothecary;
 import com.fumbbl.ffb.net.commands.ClientCommandUseInducement;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
+import com.fumbbl.ffb.net.commands.ClientCommandUseReRoll;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerJsonOption;
 import com.fumbbl.ffb.server.step.AbstractStepWithReRoll;
@@ -171,30 +178,42 @@ public final class CorePromptActions {
                     new ClientCommandApothecaryChoice(choice.getPlayerId(), choice.getPlayerStateNew(), choice.getSeriousInjuryNew(), choice.getPlayerStateOld()),
                     choice.getPlayerId()));
             }
+        } else if (dialog instanceof DialogBriberyAndCorruptionParameter choice) {
+            String role = roleForTeam(game, choice.getTeamId());
+            if (role != null) {
+                add(result, "argue-reroll:use", "reroll", "Use Bribery and Corruption", role,
+                    new ClientCommandUseReRoll(ReRolledActions.ARGUE_THE_CALL, ReRollSources.BRIBERY_AND_CORRUPTION));
+                add(result, "argue-reroll:none", "reroll", "Keep original roll", role,
+                    new ClientCommandUseReRoll(ReRolledActions.ARGUE_THE_CALL, null));
+            }
 		} else if (dialog instanceof DialogConfirmEndActionParameter) {
             String role = roleForTeam(game, ((DialogConfirmEndActionParameter) dialog).getTeamId());
 			if (role != null) add(result, "confirm-end", "endAction", "Confirm ending action", role, new ClientCommandConfirm());
-		} else if (dialog instanceof DialogArgueTheCallParameter) {
+		} else if (dialog instanceof DialogPlayerChoiceParameter choice && choice.getPlayerChoiceMode() == PlayerChoiceMode.SECRET_WEAPON) {
+            String role = roleForTeam(game, choice.getTeamId());
+            if (role != null) for (String id : choice.getPlayerIds()) result.add(new CoreTurnActions.Action(
+                "secret-weapon:" + id, "secretWeapon", "Resolve " + game.getPlayerById(id).getName(), role,
+                new ClientCommandPlayerChoice(PlayerChoiceMode.SECRET_WEAPON, new Player<?>[]{game.getPlayerById(id)}), id));
+        } else if (dialog instanceof DialogArgueTheCallParameter) {
 			DialogArgueTheCallParameter choice = (DialogArgueTheCallParameter) dialog;
 			String role = roleForTeam(game, choice.getTeamId());
 			if (role != null) {
-				add(result, "argue:no", "argueTheCall", "Do not argue the call", role, new ClientCommandArgueTheCall(new String[0]));
-				for (String playerId : choice.getPlayerIds()) add(result, "argue:" + playerId, "argueTheCall", "Argue the call for " + game.getPlayerById(playerId).getName(), role,
-					new ClientCommandArgueTheCall(playerId));
+				result.add(new CoreTurnActions.Action("argue:no", "argueTheCall", "Do not argue the call", role, new ClientCommandArgueTheCall(new String[0]), choice.getPlayerIds().length == 1 ? choice.getPlayerIds()[0] : null));
+				for (String playerId : choice.getPlayerIds()) result.add(new CoreTurnActions.Action("argue:" + playerId, "argueTheCall", "Argue the call for " + game.getPlayerById(playerId).getName(), role,
+                    new ClientCommandArgueTheCall(playerId), playerId));
 			}
 		} else if (dialog instanceof DialogBribesParameter && state.getCurrentStep() != null
-			&& state.getCurrentStep().getId() == StepId.BRIBES) {
+			&& (state.getCurrentStep().getId() == StepId.BRIBES || state.getCurrentStep().getId() == StepId.END_TURN)) {
 			DialogBribesParameter choice = (DialogBribesParameter) dialog;
 			String role = roleForTeam(game, choice.getTeamId());
-			if (role != null && choice.getPlayerIds().length == 1 && choice.getMaxNrOfBribes() > 0) {
+			if (role != null && choice.getPlayerIds().length > 0 && choice.getMaxNrOfBribes() > 0) {
 				InducementType bribe = ("home".equals(role) ? game.getTurnDataHome() : game.getTurnDataAway())
 					.getInducementSet().getInducementMapping().keySet().stream()
 					.filter(type -> type.hasUsage(Usage.AVOID_BAN)).findFirst().orElse(null);
 				if (bribe != null) {
-					String playerId = choice.getPlayerIds()[0];
-					add(result, "bribe:no", "bribe", "Do not use a bribe", role, new ClientCommandUseInducement(bribe));
-					add(result, "bribe:" + playerId, "bribe", "Use a bribe for " + game.getPlayerById(playerId).getName(), role,
-						new ClientCommandUseInducement(bribe, playerId));
+					result.add(new CoreTurnActions.Action("bribe:no", "bribe", "Do not use a bribe", role, new ClientCommandUseInducement(bribe), choice.getPlayerIds().length == 1 ? choice.getPlayerIds()[0] : null));
+					for (String playerId : choice.getPlayerIds()) result.add(new CoreTurnActions.Action("bribe:" + playerId, "bribe", "Use a bribe for " + game.getPlayerById(playerId).getName(), role,
+                        new ClientCommandUseInducement(bribe, playerId), playerId));
 				}
 			}
 		} else if (dialog instanceof DialogInterceptionParameter) {
@@ -204,8 +223,8 @@ public final class CorePromptActions {
 				new ClientCommandInterceptorChoice(null, null));
 			if (thrower != null) for (Player<?> interceptor : UtilPassing.findInterceptors(game, thrower, game.getPassCoordinate())) {
 				String role = roleForPlayer(game, interceptor);
-				if (role != null) add(result, "intercept:" + interceptor.getId(), "interception", "Intercept with " + interceptor.getName(), role,
-					new ClientCommandInterceptorChoice(interceptor.getId(), choice.getInterceptionSkill()));
+				if (role != null) result.add(new CoreTurnActions.Action("intercept:" + interceptor.getId(), "interception", "Intercept with " + interceptor.getName(), role,
+                    new ClientCommandInterceptorChoice(interceptor.getId(), choice.getInterceptionSkill()), interceptor.getId()));
 			}
 		} else if (dialog == null && game.getTurnMode() == TurnMode.HIT_AND_RUN
 			&& state.getCurrentStep() != null && state.getCurrentStep().getId() == StepId.HIT_AND_RUN) {

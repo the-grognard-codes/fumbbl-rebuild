@@ -1,5 +1,9 @@
 # Legacy decision prompts — review checkpoint
 
+## Production implementation
+
+The approved horizontal mole design is now implemented on `feature/production-decision-prompts` under issues #415–#417. See [production outcome and validation](production-outcome.md) for the current handoff. The sections below preserve the earlier prototype review history; their paused/deferred status describes that historical checkpoint.
+
 ## Final visual selection
 Mole alternatives approved. Bribe decline now reuses the same angry mole referee as argue-the-call decline. Horizontal captures refreshed; TypeScript and 30 browser checks passed with zero page/asset errors. The shrugging-coach source remains in the reusable kit. Production slices remain outstanding.
 

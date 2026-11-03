@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added the approved compact horizontal decision prompts, mole artwork, player focus connectors, and preview/confirm interception selection. Player decisions keep pitch navigation available. BB2025 Secret Weapon send-offs now resolve one selected player at a time, retaining bribes after coach ejection and preserving pending choices across recovery.
+
 - Removed support for older Blood Bowl editions from the engine, bundled fixtures,
   and active tools. MUTP now loads BB2025 only; current gameplay and newly created
   replay/recovery records retain the BB2025 implementations.

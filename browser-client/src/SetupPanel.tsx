@@ -32,6 +32,7 @@ import type { BlockContext } from './block-context.ts';
 import { blockFaceLabel } from './dice-presentation.ts';
 import { actionForPlayer, assistedTarget, attackApproaches, passTargetForPlayer, smartAttack, teammateTargetForPlayer } from './action-ribbon.ts';
 import { matchDecision } from './match-decision.ts';
+import { isRectangularDecision } from './RectangularDecisionPrompt.tsx';
 import { withProTest } from './reroll-presentation.ts';
 import { pitchPushChoices, pitchHitAndRunChoices, pitchPuntChoices } from './push-choice.ts';
 import { kickoffDraft, toggleKickoffPlayer } from './kickoff-choice.ts';
@@ -578,6 +579,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     cancelPlan();
   };
   const selectPlayer = (id: string, clickedAt?: number) => {
+    if (decision && isRectangularDecision(decision)) { setPlayerId(id); setTargetFocus('player'); return; }
     if (repeatTarget(`player:${id}`, clickedAt)) return;
     if (jumpMode) return;
     if (specialMode === 'jumpUp') {
@@ -772,6 +774,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     setActionId(targetAssist ? assistedTarget(candidates, explicitBlitz || view.turnMode === 'SELECT_BLITZ_TARGET')?.id ?? '' : '');
   };
   const selectSquare = (column: number, row: number, clickedAt?: number) => {
+    if (decision && isRectangularDecision(decision)) return;
     if (repeatTarget(`square:${column},${row}`, clickedAt)) return;
     if (specialMode === 'punt') {
       const choice = puntChoices.find(choice => choice.x === column && choice.y === row);
@@ -887,6 +890,7 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
     if (choice && !choice.selecting) mutate('action', { actionId: choice.action.id });
   });
   const commit = () => {
+    if (decision && isRectangularDecision(decision)) return;
     if (!confirmationEnabled) return;
     confirmationGesture.consume();
     if (kickoff?.confirm) {
@@ -1159,10 +1163,10 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       </div>}
       {hosted && setupErrors.length > 0 && <p className="setup-feedback" role="alert">{setupErrors.join(' · ')}</p>}
       {!playbackActive && decision && !decision.circular && !['blockDie', 'rerollDie', 'proTestReroll', 'reroll', 'skill'].includes(decision.kind) && <MatchDecisionDialog key={decision.key} decision={decision} disabled={!connected || !!pending || suspended}
-        activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
+        players={view.players} activeX={view.players.find(player => player.id === view.activePlayerId)?.x ?? null}
         onChoice={optionId => { const prompt = view.prompt; if (canChoose && prompt?.actor === view.callerRole && prompt.options.some(option => option === optionId)) mutate('choice', { promptId: prompt.id, optionId }); }}
         onAction={id => { if (canChoose && availableActions.some(action => action.id === id)) mutate('action', { actionId: id }); }}/>}
-      {hosted && showConfirmation && <div className="confirmation-row"
+      {hosted && showConfirmation && !(decision && isRectangularDecision(decision)) && <div className="confirmation-row"
         style={onTheBallMovement ? { bottom: `calc(var(--command-bar-bottom) + ${reactionBarHeight}px + 8px)` } : undefined}>
         {view.phase === 'PLAY' && !kickoff && <div className="command-preview">{specialMode === 'punt' && pinnedAction ? <span>{routeMode ? 'Confirm moves along the path, then punts in the selected direction.' : 'Confirm punts in the selected direction.'}</span> : jumpMode ? <span role="status">Choose a jump landing square or cancel Jump.</span> : (routeMode || confirmEndTurn || pinnedAction) && <span>{routeMode ? pathReady ? movementIntent?.kind === 'blitz' ? 'Confirm moves and blocks.'
           : movementIntent?.kind === 'foul' ? 'Confirm moves and fouls.'

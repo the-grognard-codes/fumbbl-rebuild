@@ -4,11 +4,18 @@ import type { DecisionOption, MatchDecision } from './match-decision.ts';
 import { ReactionCountdown } from './ReactionCountdown.tsx';
 import { PolygonDie } from './PolygonDie.tsx';
 import './match-decision.css';
+import type { SetupPlayer } from './setup-protocol.ts';
+import { isRectangularDecision, RectangularDecisionPrompt } from './RectangularDecisionPrompt.tsx';
+
+export function MatchDecisionDialog(props: { decision: MatchDecision; disabled: boolean; activeX: number | null; players: SetupPlayer[];
+  onChoice: (optionId: string) => void; onAction: (actionId: string) => void }) {
+  return isRectangularDecision(props.decision) ? <RectangularDecisionPrompt {...props}/> : <LegacyDecisionDialog {...props}/>;
+}
 
 const injuryIcons = `${import.meta.env.BASE_URL}assets/game/ui/injury-icons-v1.svg`;
 
 /** Pitch decisions remain open while the coach inspects and pans the board. */
-export function MatchDecisionDialog({ decision, disabled, activeX, onChoice, onAction }: {
+function LegacyDecisionDialog({ decision, disabled, activeX, onChoice, onAction }: {
   decision: MatchDecision; disabled: boolean; activeX: number | null;
   onChoice: (optionId: string) => void; onAction: (actionId: string) => void;
 }) {
