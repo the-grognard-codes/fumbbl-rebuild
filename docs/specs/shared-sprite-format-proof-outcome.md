@@ -4,9 +4,9 @@ Date: 2026-11-03. Branch: `feature/shared-sprite-format-proof`, based on `d3a871
 
 Integration update: rebased working content onto `da087a2c0` from origin/main after V1 retirement (#436/#437). The only conflict was CHANGELOG.md; both entries were retained. The proof stays an independent Vite art fixture and uses no V1 WSS path. Team-color planning no longer requires the retired diagnostic TeamPanel import/export UI. Generated proof JSON now has explicit LF attributes for deterministic Windows/Linux checkout checks. Handoff for the next feature was written to the OS temporary directory before commit.
 
-Status: **bounded proof implemented and validated; ready for final review**. The user approved the static palette/player/bust/helmet checkpoint and then the first lineman animation. That approval unlocked the halfling and ogre samples. The recommended format is formalized in [the shared sprite contract](shared-sprite-format-contract.md). No commits, pushes, PRs, merges or deployments occurred. Accepted production art, server state and default Match behavior remain unchanged.
+Status: **bounded proof approved and merged** in [PR #444](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/444) on 2026-11-03, commit `615df5fc91d44412ebcb0e187cb391cd1633d038`. The user approved the static palette/player/bust/helmet checkpoint and then the first lineman animation. That approval unlocked the halfling and ogre samples. The recommended format is formalized in [the shared sprite contract](shared-sprite-format-contract.md). The proof and approved next-feature specification landed together. No deployment occurred. Accepted production art, server state and default Match behavior remain unchanged.
 
-Review server: <http://127.0.0.1:5182/test/sprite-proof.html#animation-proof>. Server logs/PID: `.tools/sprite-proof/review-server*`. To restart, run Vite from `browser-client` with `--host 127.0.0.1 --port 5182 --strictPort`.
+Review server stopped after approval and merge preparation; port 5182 was verified closed. Review route: `/test/sprite-proof.html#animation-proof`. Server logs/PID: `.tools/sprite-proof/review-server*`. To restart, run Vite from `browser-client` with `--host 127.0.0.1 --port 5182 --strictPort`.
 
 ## Tracked slices
 
@@ -17,7 +17,7 @@ Review server: <http://127.0.0.1:5182/test/sprite-proof.html#animation-proof>. S
 | [#433](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/433) | 48 animation frames: lineman front45/back45, halfling/ogre front45; idle/move/fall for each; three recolorable busts. |
 | [#434](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/434) | Metadata-driven playback, projected Pixi scene, static fallback, evidence, performance comparison and format contract. |
 
-Issues remain open for the later commit/PR delivery process. Local working-tree completion is not a merged release.
+The proof issues closed with PR #444. Team-color implementation remains tracked separately in #438?#443.
 
 ## Acceptance coverage
 
@@ -63,7 +63,7 @@ Final raw/gzip sizes: static JSON 2,552,645 / 536,953 bytes; animation JSON 2,68
 
 ## Validation and artifacts
 
-Post-integration validation: the single V2 product build passed, 471 browser tests passed (the lower count reflects upstream V1 test removal), both sprite browser review passes passed, and 30 asset tests/486 delivered files passed. Logs: `.tools/sprite-proof/merge-*`. The entries below record the earlier pre-integration run. Native CI validation will be required before merge; the earlier local native result is not a test of the new upstream server changes.
+Post-integration validation: the single V2 product build passed, 471 browser tests passed (the lower count reflects upstream V1 test removal), both sprite browser review passes passed, and 30 asset tests/486 delivered files passed. Logs: `.tools/sprite-proof/merge-*`. The entries below record the earlier pre-integration run. Post-integration CI passed all four Java 21 state-test shards and target verification, static assets/unit tests/Hosting artifacts, static delivery, lifecycle, service, endpoint validation, security and CodeQL checks. [Validation run](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/41737450976). The workflow-dispatch full-browser job was intentionally skipped; both proof browser checks passed locally.
 
 PR validation caught an omitted browser-inventory registration for the two new review harnesses. Both are now explicitly registered as standalone art/evidence capture tools, consistent with their local execution and canonical QA outputs; production browser shard coverage is unchanged. The validation/lifecycle tests were rerun after the fix.
 
@@ -80,7 +80,7 @@ Primary evidence: [full-proof QA](../../assets/game/proofs/shared-sprite-v1/qa/f
 
 ## Remaining product work
 
-This is a completed bounded feasibility proof, not production rollout. Android and Linux were not tested. Full roster coverage, accepted-art promotion, persistent team colors, live builder wiring, production replay/reconnect/action routing and kit overrides remain separate. The roadmap remains sprite proof → team colors → Old World Classic stadium → core animations → expanded coverage. Broad production should follow the contract's per-design review gates and target-device budgets.
+This is a completed bounded feasibility proof, not production rollout. Android and Linux visual rendering were not tested; Linux CI validation passed. Full roster coverage, accepted-art promotion, persistent team colors, live builder wiring, production replay/reconnect/action routing and kit overrides remain separate. The roadmap remains sprite proof → team colors → Old World Classic stadium → core animations → expanded coverage. Broad production should follow the contract's per-design review gates and target-device budgets.
 
 ## Process retrospective
 
