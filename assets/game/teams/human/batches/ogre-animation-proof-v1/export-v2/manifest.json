@@ -1,0 +1,247 @@
+﻿{
+    "team":  "Human ogre animation proof",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "ogre-front45-idle-0",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-idle-0.png",
+                        "original":  "originals/ogre-front45-idle-0.png",
+                        "sourceSha256":  "2F12CF799EE159AC1F37A84FEE9BE2F982D154FEDCBC95C2FC606C4E0A1D2D02",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  7,
+                                       "width":  62,
+                                       "height":  72,
+                                       "x":  9
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-idle-1",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-idle-1.png",
+                        "original":  "originals/ogre-front45-idle-1.png",
+                        "sourceSha256":  "A6C9FEB6541857A7C91F2367E8250121B327690393ADA0711B2879E4A87958F4",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  6,
+                                       "width":  61,
+                                       "height":  73,
+                                       "x":  12
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-idle-2",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-idle-2.png",
+                        "original":  "originals/ogre-front45-idle-2.png",
+                        "sourceSha256":  "5B35D0AA34CA379FC4276A6C3EE93211146843646ACB254E3AD46102BA6A0A0C",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  6,
+                                       "width":  62,
+                                       "height":  73,
+                                       "x":  9
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-idle-3",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-idle-3.png",
+                        "original":  "originals/ogre-front45-idle-3.png",
+                        "sourceSha256":  "75A36A6374954278953CE889586ED9A7B39C1B6A8780AB71E506AB464BF8CB70",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  7,
+                                       "width":  61,
+                                       "height":  72,
+                                       "x":  13
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-move-0",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-move-0.png",
+                        "original":  "originals/ogre-front45-move-0.png",
+                        "sourceSha256":  "11EA71A733B20B32803B3305B204DF85C95CE1AD2B3D3FE880B9AF3381DB1653",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  6,
+                                       "width":  61,
+                                       "height":  71,
+                                       "x":  7
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-move-1",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-move-1.png",
+                        "original":  "originals/ogre-front45-move-1.png",
+                        "sourceSha256":  "D9C6F449FB852F7E6E30B0CB5B8359E9AAF27B66DA5B180209AE215C9E2E7A3C",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  8,
+                                       "width":  57,
+                                       "height":  71,
+                                       "x":  11
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-move-2",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-move-2.png",
+                        "original":  "originals/ogre-front45-move-2.png",
+                        "sourceSha256":  "964CA3F449DDC8401B66854B8EC38A323F7005DED4FBC54EFEC2E0FA3D9971B3",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  10,
+                                       "width":  62,
+                                       "height":  69,
+                                       "x":  8
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-move-3",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-move-3.png",
+                        "original":  "originals/ogre-front45-move-3.png",
+                        "sourceSha256":  "17355088AD488ACF0AA72048D1635BD4D26B841D01EC2177AE2C7576DB96B7E9",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  10,
+                                       "width":  55,
+                                       "height":  69,
+                                       "x":  17
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-fall-0",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-fall-0.png",
+                        "original":  "originals/ogre-front45-fall-0.png",
+                        "sourceSha256":  "3EF9D3A18779BCFC02E0372F53032B52ED6D827CC0A8D53114E7E040D809C4EA",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  5,
+                                       "width":  69,
+                                       "height":  74,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-fall-1",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-fall-1.png",
+                        "original":  "originals/ogre-front45-fall-1.png",
+                        "sourceSha256":  "D0A50C71D4E365B6B06AA24A74D239AD3AD73656A6EA863B3F97BFC0F51330A1",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  7,
+                                       "width":  72,
+                                       "height":  72,
+                                       "x":  4
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-fall-2",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-fall-2.png",
+                        "original":  "originals/ogre-front45-fall-2.png",
+                        "sourceSha256":  "7064483168045289E202406D368B2292DE8DE0B327D707E2C9769291E2FBF44B",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  17,
+                                       "width":  76,
+                                       "height":  62,
+                                       "x":  2
+                                   }
+                    },
+                    {
+                        "id":  "ogre-front45-fall-3",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "big",
+                        "file":  "sprites/ogre-front45-fall-3.png",
+                        "original":  "originals/ogre-front45-fall-3.png",
+                        "sourceSha256":  "C8E17C730E620CF583E11CA0D338451B7BF991D56B2223563DD0622C4B1DF075",
+                        "width":  80,
+                        "height":  80,
+                        "tileSize":  64,
+                        "anchorX":  40,
+                        "anchorY":  79,
+                        "bounds":  {
+                                       "y":  22,
+                                       "width":  73,
+                                       "height":  57,
+                                       "x":  3
+                                   }
+                    }
+                ]
+}

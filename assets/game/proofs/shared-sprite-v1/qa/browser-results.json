@@ -1,0 +1,15 @@
+{
+  "browser": "156.0.8078.80",
+  "platform": "win32",
+  "cases": [
+    "palette changes",
+    "original unchanged",
+    "four shared bust consumers",
+    "mirror",
+    "anchor modes",
+    "equal-color pairs",
+    "both 256-pair sheets",
+    "mobile/reduced-motion static"
+  ],
+  "errors": []
+}

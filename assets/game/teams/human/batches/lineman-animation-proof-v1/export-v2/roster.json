@@ -1,0 +1,174 @@
+﻿{
+    "players":  [
+                    {
+                        "source":  "source/lineman-front45-idle-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-idle-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-idle-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-idle-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-idle-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-idle-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-idle-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-idle-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-move-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-move-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-move-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-move-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-move-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-move-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-move-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-move-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-fall-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-fall-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-fall-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-fall-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-fall-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-fall-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-front45-fall-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-front45-fall-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-idle-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-idle-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-idle-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-idle-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-idle-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-idle-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-idle-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-idle-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-move-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-move-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-move-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-move-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-move-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-move-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-move-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-move-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-fall-0.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-fall-0",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-fall-1.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-fall-1",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-fall-2.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-fall-2",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    },
+                    {
+                        "source":  "source/lineman-back45-fall-3.png",
+                        "sizeClass":  "standard",
+                        "id":  "lineman-back45-fall-3",
+                        "gender":  "man",
+                        "role":  "lineman"
+                    }
+                ],
+    "standardVersion":  "1.1",
+    "team":  "Human lineman animation proof"
+}
