@@ -5,6 +5,7 @@ import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
 import com.fumbbl.ffb.IDialogParameter;
 import com.fumbbl.ffb.PlayerAction;
+import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.dialog.DialogBribesParameter;
@@ -28,6 +29,7 @@ import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ClientCommandActingPlayer;
 import com.fumbbl.ffb.net.commands.ClientCommandCoinChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandEndTurn;
+import com.fumbbl.ffb.net.commands.ClientCommandPlayerChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandReceiveChoice;
 import com.fumbbl.ffb.net.commands.ClientCommandSetupPlayer;
 import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
@@ -91,6 +93,7 @@ public final class SetupSession {
 	private final String matchId;
 	private final Map<String, Record> history = new LinkedHashMap<>();
 	private final Set<String> kickoffSelection = new LinkedHashSet<>();
+	private JsonObject confirmedKickoff;
 	private int revision;
 	private int drive = 1;
 	private int replayBytes;
@@ -258,6 +261,18 @@ public final class SetupSession {
 				if (!routeV2) throw new IllegalArgumentException("Unexpected pending activation");
 				payload.remove("pendingActivation");
 			}
+            JsonValue savedKickoff = payload.get("confirmedKickoff");
+            if (savedKickoff != null) {
+                confirmedKickoff = savedKickoff.asObject();
+                exactRecovery(confirmedKickoff, "event", "actor", "playerIds");
+                if (!java.util.Arrays.asList("QUICK_SNAP", "CHARGE", "SOLID_DEFENCE").contains(confirmedKickoff.getString("event", null))
+                    || !java.util.Arrays.asList("home", "away").contains(confirmedKickoff.getString("actor", null))
+                    || confirmedKickoff.get("playerIds").asArray().size() > 16) throw new IllegalArgumentException("Invalid confirmed kickoff");
+                Set<String> ids = new LinkedHashSet<>();
+                for (JsonValue id : confirmedKickoff.get("playerIds").asArray())
+                    if (!ids.add(id.asString())) throw new IllegalArgumentException("Duplicate kickoff participant");
+                payload.remove("confirmedKickoff");
+            }
 			if (r2) exactRecovery(payload, "recoveryVersion", "runtimeVersion", "engineVersion", "replayVersion", "matchId", "frozen",
 				"revision", "drive", "failed", "native", "dice", "testRolls", "turnTimeStarted", "lastCommandNr", "history",
 				"kickoffSelection", "eventsJson", "pendingTerminal", "homeView", "awayView");
@@ -413,6 +428,7 @@ public final class SetupSession {
 			.add("native", recoveryNative(from == null ? -1 : from[2])).add("dice", recoveryDice.snapshot()).add("testRolls", rolls)
 			.add("turnTimeStarted", state.getTurnTimeStarted()).add("lastCommandNr", state.getLastCommandNr()).add("history", requests).add("kickoffSelection", selections)
 			.add("eventsJson", recoveryEvents(from == null ? 0 : from[1])).add("pendingTerminal", isComplete()).add("homeView", view("home")).add("awayView", view("away"));
+		if (confirmedKickoff != null) payload.add("confirmedKickoff", confirmedKickoff);
 		if (reactiveDecision.pending()) payload.add("reactiveDecision", reactiveDecision.checkpoint());
 		payload.add("reactionVersion", 1);
 		payload.add("blockPresentation", blockPresentation.checkpoint());
@@ -738,6 +754,12 @@ public final class SetupSession {
             }
             command = selected.command;
 			reactionAction = selected;
+            if (request.get("playerIds") != null) {
+                if (!"event-confirm".equals(selected.id)) throw new MatchService.Failure("INVALID_OPTION");
+                List<String> chosen = new ArrayList<>();
+                for (JsonValue player : request.get("playerIds").asArray()) chosen.add(player.asString());
+                command = new KickoffActions(state).confirmSelection(role, chosen);
+            }
             if (command == null) {
                 if (!selected.id.startsWith("event-pick:")) throw new MatchService.Failure("INVALID_OPTION");
                 String player = selected.id.substring("event-pick:".length());
@@ -870,6 +892,16 @@ public final class SetupSession {
 				if (normalHomePlaying) homeReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, homeReserveUsedMs + excess);
 				else awayReserveUsedMs = Math.min(RESERVE_ALLOWANCE_MS, awayReserveUsedMs + excess);
 			}
+            if (command instanceof ClientCommandPlayerChoice choice
+                && (choice.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE
+                    || choice.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE
+                    || choice.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP)) {
+                JsonArray ids = new JsonArray();
+                for (String player : choice.getPlayerIds()) ids.add(player);
+                confirmedKickoff = new JsonObject().add("event", choice.getPlayerChoiceMode().name()).add("actor", role).add("playerIds", ids);
+            }
+            if (game.getTurnMode() == TurnMode.KICKOFF || game.getTurnMode() == TurnMode.REGULAR || game.getTurnMode() == TurnMode.TOUCHBACK
+                || game.getTurnMode() == TurnMode.SETUP || isComplete()) confirmedKickoff = null;
             kickoffSelection.clear();
 			assertSupported();
 			revision++;
@@ -1069,6 +1101,17 @@ public final class SetupSession {
 			if (!context.isNull()) projected.add("blockContext", context);
 		}
 		JsonObject kickoff = new KickoffPresentation().project(state, kickoffSelection);
+        if (kickoff == null && confirmedKickoff != null && "CHARGE".equals(confirmedKickoff.getString("event", null))) {
+            int count = confirmedKickoff.get("playerIds").asArray().size();
+            kickoff = new JsonObject().add("version", 1).add("event", "CHARGE").add("actor", confirmedKickoff.get("actor"))
+                .add("stage", "movement").add("allowed", count).add("completed", 0).add("selected", count);
+        }
+        if (kickoff != null && confirmedKickoff != null && "movement".equals(kickoff.getString("stage", null))
+            && kickoff.getString("event", "").equals(confirmedKickoff.getString("event", null))) {
+            JsonArray ids = confirmedKickoff.get("playerIds").asArray();
+            kickoff.set("participantIds", ids).set("selected", ids.size());
+            if ("CHARGE".equals(kickoff.getString("event", null))) kickoff.set("allowed", ids.size());
+        }
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
 		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
 		if (driveTracker != null) projected.add("driveTracker", driveTracker);
@@ -1132,6 +1175,8 @@ public final class SetupSession {
 				current.get(resources).asObject().remove("bribes");
 		}
 		if (saved.get("kickoff") == null) current.remove("kickoff");
+        else if (current.get("kickoff") != null && saved.get("kickoff").asObject().get("participantIds") == null)
+            current.get("kickoff").asObject().remove("participantIds");
 		if (saved.get("driveTracker") == null) current.remove("driveTracker");
 		if (saved.get("ballState") == null) current.remove("ballState");
 		if (saved.get("kickPreview") == null) current.remove("kickPreview");

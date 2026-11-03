@@ -143,29 +143,19 @@ try {
     } }]) {
       await page.evaluate(state => window.publishThreat(state), { ...view, ...patch }); await select(); await overlap.waitFor();
     }
-    // Both Charge selection paths retain the inspected participant, and deselection
-    // clears it. Each click still sends only its existing native action.
+    // Local Charge choices retain threat inspection without sending draft commands.
     await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
-    const charge = { ...view, turnMode: 'KICKOFF', kickoff: { version: 1, event: 'CHARGE', actor: role, stage: 'selection', allowed: 2, selected: 0, completed: 0 },
-      actions: [{ id: 'event:event-pick:friendly', label: 'Select friendly', actor: role, kind: 'kickoffChoice', target: { playerId: 'friendly' }, sourcePlayerId: null }] };
-    const deselect = { ...charge, actions: [{ ...charge.actions[0], label: 'Deselect friendly' }] };
+    const charge = { ...view, turnMode: 'KICKOFF', kickoff: { version: 1, event: 'CHARGE', actor: role, stage: 'selection', allowed: 1, selected: 0, completed: 0 },
+      actions: [{ id: 'event:event-pick:friendly', label: 'Select friendly', actor: role, kind: 'kickoffChoice', target: { playerId: 'friendly' }, sourcePlayerId: null }],
+      players: [...view.players, { ...view.players[0], id: 'unoffered', name: 'unoffered', x: 7, y: 7 }] };
     await page.evaluate(state => window.publishThreat(state), charge); await select(); await overlap.waitFor();
-    await page.evaluate(state => window.publishThreat(state), deselect); await select();
+    await select();
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));
-    await page.evaluate(state => window.publishThreat(state), charge);
-    await page.getByRole('button', { name: 'Select friendly', exact: true }).click(); await overlap.waitFor();
-    await page.evaluate(state => window.publishThreat(state), deselect);
-    await page.getByRole('button', { name: 'Deselect friendly', exact: true }).click();
-    await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));
-    await page.evaluate(state => window.publishThreat(state), charge);
-    await page.getByRole('button', { name: 'Select friendly', exact: true }).click(); await overlap.waitFor();
-    assert.deepEqual(await page.evaluate(() => window.threatIntents), Array(5).fill({ operation: 'action', fields: { actionId: 'event:event-pick:friendly' } }));
-    const fullCharge = { ...deselect, kickoff: { ...charge.kickoff, allowed: 1, selected: 1 },
-      players: [...charge.players, { ...charge.players[0], id: 'unoffered', name: 'unoffered', x: 7, y: 7 }] };
-    await page.evaluate(state => window.publishThreat(state), fullCharge);
+    await select(); await overlap.waitFor();
     await page.locator('[data-player-id="unoffered"]').focus(); await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));
-    assert.equal(await page.evaluate(() => window.threatIntents.length), 5, 'Inspecting an unoffered Charge candidate sends no pick');
+    assert.equal(await page.locator('.live-selection-square[data-selection="friendly"]').count(), 1, 'Inspection does not discard the selected group');
+    assert.deepEqual(await page.evaluate(() => window.threatIntents), [], 'Draft choices and inspection send no gameplay commands');
     await page.evaluate(state => window.publishThreat(state), view); await select(); await overlap.waitFor();
     await page.locator('.live-pitch-viewport').focus(); await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('[data-threat-square]'));

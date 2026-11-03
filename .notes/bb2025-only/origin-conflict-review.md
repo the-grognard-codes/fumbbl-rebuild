@@ -40,3 +40,15 @@ Review totals: Standards 0 actionable findings; Spec 0 actionable findings. The 
 After authorized integration, first run the source audit and focused Java checks for `Bb2025RegistrationTest`, `KickoffPresentationTest`, `SetupSessionPlacementTest`, `KickoffSelectionMovementTest`, `SetupSessionTest`, `SolidDefenceRedeploymentTest` and `RecoveryScenariosTest`. Run browser unit/type/build checks and the kickoff selection/setup/recovery browser coverage, then complete the repository's required delivery validation on the combined state before landing it.
 
 This review does not authorize or perform staging, committing, publishing, merging or deployment.
+
+## Authorized integration follow-up — 2026-11-03
+
+The owner subsequently authorized publication and CI-gated merge. Integrated
+`origin/main` at `287746430`, preserving both changelog entries and all incoming
+kickoff behavior. Combined-state source audit, TypeScript and all 466 browser unit
+tests pass. Focused Java registration, kickoff, placement and recovery checks pass:
+43 tests, zero failures/errors/skips (`.tools/bb2025-merge-focused-host.log`).
+The first sandboxed Java attempt failed because ClassGraph could not access the
+module directory; the same check passed outside the sandbox. Full browser and PR
+CI validation will complete before landing. Dev-local was stopped successfully,
+retaining its database volumes.

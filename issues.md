@@ -1,5 +1,7 @@
 # issues
 
+- [x] [#420 Consistent BB2025 kickoff selection](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/420): merged in [PR #423](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/423) after CI passed. See [validation and outcome](docs/specs/bb2025-kickoff-selection-outcome.md).
+
 - [x] [#414 Approved decision-prompt designs and reusable mole artwork](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/414): merged in [PR #418](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/418) after CI passed. This completes the visual design/artwork milestone; production work remains open in #415, #416 and #417. See [outcome](.notes/legacy-decision-prompts/outcome.md).
 
 Backlog review completed **2026-10-28**: 29 completed and six superseded issues

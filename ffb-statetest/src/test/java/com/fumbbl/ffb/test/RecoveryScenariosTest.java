@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.test;
 
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.FieldCoordinate;
@@ -65,6 +66,20 @@ class RecoveryScenariosTest {
 		assertEquals("QUICK_SNAP", initial.getString("turnMode", null));
 		assertEquals(4, initial.get("kickoff").asObject().getInt("allowed", -1));
 		assertEquals(0, initial.get("kickoff").asObject().getInt("completed", -1));
+        assertEquals("selection", initial.get("kickoff").asObject().getString("stage", null));
+        assertTrue(!hasAction(session, "kickoffMove"), "Movement waits for group confirmation");
+        JsonArray chosen = new JsonArray();
+        for (JsonValue offered : initial.get("actions").asArray()) {
+            JsonObject option = offered.asObject();
+            if (option.getString("id", "").contains(":event-pick:") && chosen.size() < 4)
+                chosen.add(option.get("target").asObject().get("playerId"));
+        }
+        JsonObject confirm = ending(session, ":event-confirm");
+        assertEquals("ACCEPTED", session.apply(confirm.getString("actor", null),
+            request(initial, "action", unique("quick-select")).add("actionId", confirm.get("id"))
+                .add("playerIds", chosen)).getString("code", null));
+        initial = view(session, "home");
+        assertEquals("movement", initial.get("kickoff").asObject().getString("stage", null));
 		JsonObject move = action(session, "kickoffMove");
 		String role = move.getString("actor", null), movedPlayer = move.getString("sourcePlayerId", null);
 		assertTrue(movedPlayer != null);

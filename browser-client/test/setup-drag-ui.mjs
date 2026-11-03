@@ -22,8 +22,8 @@ const server = await createServer({ root, configFile: false, server: { host: '12
 await server.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
-async function open(initial) {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+async function open(initial, touch = false) {
+  const page = await browser.newPage({ viewport: touch ? { width: 412, height: 915 } : { width: 1440, height: 900 }, hasTouch: touch, isMobile: touch });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
@@ -58,6 +58,15 @@ async function open(initial) {
         }
         if (request.type === 'setup' && request.operation === 'confirm') queueMicrotask(() => this.emit({version:2,type:'setupState',requestId:request.requestId,code:'ILLEGAL_SETUP',duplicate:false,state:this.state,
           setupErrors:['Too many players in a wide zone.','Minimum of 3 players on the Line of Scrimmage.']}));
+        if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':event-confirm')) {
+          this.state = { ...this.state, revision: this.state.revision + 1, actions: [],
+            kickoff: { ...this.state.kickoff, stage: 'movement', selected: request.playerIds.length, participantIds: request.playerIds } };
+          this.reply(request.requestId); return;
+        }
+        if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':touch-recipient')) {
+          this.state = { ...this.state, revision: this.state.revision + 1, turnMode: 'REGULAR', actions: [] };
+          this.reply(request.requestId); return;
+        }
         if (request.type === 'setup' && request.operation === 'action' && request.actionId.endsWith(':event-pick:home1')) {
           this.state = { ...this.state, revision: this.state.revision + 1,
             players: this.state.players.map(player => player.id === 'home1' ? { ...player, x: null, y: null, offPitch: 'reserve', state: 'is in reserve' } : player), actions: [
@@ -224,6 +233,54 @@ try {
   assert.deepEqual(choices.errors, []);
   await choices.page.close();
 
+  for (const touch of [false, true]) for (const name of ['QUICK_SNAP', 'CHARGE', 'SOLID_DEFENCE', 'TOUCHBACK', 'HIGH_KICK']) {
+    const single = ['TOUCHBACK', 'HIGH_KICK'].includes(name);
+    const selection = await open({ ...frame, turnMode: name === 'CHARGE' || name === 'SOLID_DEFENCE' ? 'KICKOFF' : name,
+      ...(single ? {} : { kickoff: { version: 1, event: name, actor: 'home', stage: 'selection', allowed: 1, selected: 0, completed: 0 } }),
+      actions: single ? [{ id: '0:touch-recipient', label: 'Choose home1', actor: 'home',
+        kind: name === 'TOUCHBACK' ? 'touchback' : 'kickoffMove', sourcePlayerId: name === 'HIGH_KICK' ? 'home1' : null,
+        target: name === 'TOUCHBACK' ? { playerId: 'home1' } : { x: 8, y: 7 } }]
+        : [{ id: '0:event-pick:home1', label: 'Select home1', kind: 'kickoffChoice', actor: 'home', sourcePlayerId: null, target: { playerId: 'home1' } },
+          { id: '0:event-confirm', label: `Confirm ${name}`, kind: 'kickoffChoice', actor: 'home', sourcePlayerId: null, target: null }] }, touch);
+    const current = selection.page;
+    const player = current.locator('.live-marker[data-player-id="home1"]');
+    const toggle = async () => { if (touch) await player.tap(); else { await player.focus(); await player.press('Enter'); } };
+    await toggle();
+    assert.equal(await current.locator('.live-selection-square[data-selection="home1"]').count(), 1);
+    assert.match(await player.getAttribute('class'), /selected/);
+    assert.equal(await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').length), 0);
+    await toggle();
+    assert.doesNotMatch(await player.getAttribute('class'), /selected/);
+    assert.equal(await current.locator('.live-selection-square[data-selection="home1"]').count(), 0);
+    await toggle();
+    assert.match(await current.getByRole('status', { name: 'Current game step' }).textContent(), /Selected 1 of 1/);
+    if (name === 'QUICK_SNAP' && !touch) {
+      await current.reload();
+      await current.locator('.live-pitch-scene').waitFor();
+      assert.equal(await current.locator('.live-selection-square[data-selection]').count(), 0, 'Reload discards the unconfirmed local group');
+      assert.match(await current.getByRole('status', { name: 'Current game step' }).textContent(), /Selected 0 of 1/);
+      await toggle();
+      await mkdir(new URL('../../.notes/kickoff-review/', import.meta.url), { recursive: true });
+      await current.screenshot({ path: fileURLToPath(new URL('../../.notes/kickoff-review/selection.png', import.meta.url)) });
+    }
+    assert.equal(await current.locator('.kickoff-command').count(), 0, 'No kickoff instruction panel');
+    assert.equal(await current.locator('.match-command-bar').isVisible(), false, 'Empty command box is hidden');
+    const confirmSelection = current.locator('.confirmation-row .commit-action');
+    assert.equal(await confirmSelection.textContent(), 'Confirmed!');
+    if (touch) await confirmSelection.tap();
+    else await current.keyboard.press('Space');
+    await current.waitForFunction(() => window.testSocket.state.revision === 1);
+    assert.doesNotMatch(await player.getAttribute('class'), / selected/);
+    const requests = await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action'));
+    assert.equal(requests.length, 1);
+    if (!single) {
+      assert.deepEqual(requests[0].playerIds, ['home1']);
+      assert.match(await player.getAttribute('class'), /kickoff-participant/);
+    }
+    assert.deepEqual(selection.errors, []);
+    await current.close();
+  }
+
   const event = await open(solid);
   const eventScene = event.page.locator('.live-pitch-scene');
   await event.page.locator('.live-marker.home').dragTo(eventScene, { targetPosition: await squarePosition(event.page, 8, 7) });
@@ -267,13 +324,9 @@ try {
       await player.dragTo(current.locator('.live-pitch-scene'), { targetPosition: await squarePosition(current, x, row + 5) });
       await current.waitForFunction(revision => window.testSocket.state.revision === revision, row + 1, { timeout: 3000 });
     }
-    const confirm = current.getByRole('button', { name: 'Confirmed!', exact: true });
+    const confirm = current.getByRole('button', { name: 'Confirm Solid Defence', exact: true });
     assert.equal(await confirm.isEnabled(), true, 'A redeployed formation can be confirmed without selecting an action in Debug');
-    if (callerRole === 'home') await confirm.click();
-    else {
-      await current.locator('.live-pitch-scene').focus();
-      await current.keyboard.press('Space');
-    }
+    await confirm.focus(); await confirm.press('Enter');
     await current.waitForFunction(() => window.testSocket.state.turnMode === 'KICKOFF', null, { timeout: 3000 });
     assert.deepEqual(await current.evaluate(() => window.testSocket.sent.filter(request => request.operation === 'action').map(request => request.actionId)), [
       `0:solid-place:redeploy2:${x}:5`, `1:solid-place:redeploy0:${x}:6`, `2:solid-place:redeploy1:${x}:7`, '3:confirm-solid-defence'
@@ -328,7 +381,7 @@ try {
     assert.deepEqual(facing.errors, []);
     await current.close();
   }
-  console.log('PASS: expanded dugout drag/drop, setup keyboard placement, required choices, Solid Defence reserve redeployment, and drive-start facing in both coach views and top-down.');
+  console.log('PASS: five kickoff selection flows with desktop/phone toggles and pitch highlights, touchback cleanup, setup drag/drop, legacy Solid Defence recovery placement, and both coach views.');
 } finally {
   await browser.close();
   await server.close();

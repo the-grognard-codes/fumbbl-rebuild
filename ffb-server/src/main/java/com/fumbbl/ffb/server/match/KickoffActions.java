@@ -65,7 +65,7 @@ public final class KickoffActions {
             }
         } else if (state.getCurrentStep().getId() == StepId.APPLY_KICKOFF_RESULT && game.getTurnMode() != TurnMode.SOLID_DEFENCE && game.getDialogParameter() instanceof DialogPlayerChoiceParameter) {
             DialogPlayerChoiceParameter dialog = (DialogPlayerChoiceParameter) game.getDialogParameter();
-            if (dialog.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE || dialog.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE) {
+            if (dialog.getPlayerChoiceMode() == PlayerChoiceMode.SOLID_DEFENCE || dialog.getPlayerChoiceMode() == PlayerChoiceMode.CHARGE || dialog.getPlayerChoiceMode() == PlayerChoiceMode.QUICK_SNAP) {
                 role = game.getTeamHome().getId().equals(dialog.getTeamId()) ? "home" : "away";
                 List<Player<?>> eligible = eligible(game, dialog);
                 for (Player<?> player : eligible) {
@@ -104,6 +104,29 @@ public final class KickoffActions {
         return actions;
     }
 
+    ClientCommandPlayerChoice confirmSelection(String role, List<String> ids) {
+        Game game = state.getGame();
+        if (state.getCurrentStep().getId() != StepId.APPLY_KICKOFF_RESULT
+            || game.getTurnMode() == TurnMode.SOLID_DEFENCE
+            || !(game.getDialogParameter() instanceof DialogPlayerChoiceParameter dialog))
+            throw new MatchService.Failure("INVALID_OPTION");
+        PlayerChoiceMode mode = dialog.getPlayerChoiceMode();
+        if (mode != PlayerChoiceMode.CHARGE && mode != PlayerChoiceMode.SOLID_DEFENCE && mode != PlayerChoiceMode.QUICK_SNAP)
+            throw new MatchService.Failure("INVALID_OPTION");
+        String actor = game.getTeamHome().getId().equals(dialog.getTeamId()) ? "home" : "away";
+        if (!actor.equals(role)) throw new MatchService.Failure("WRONG_ACTOR");
+        List<Player<?>> eligible = eligible(game, dialog);
+        if (ids.size() < dialog.getMinSelects() || ids.size() > dialog.getMaxSelects()
+            || ids.stream().distinct().count() != ids.size()) throw new MatchService.Failure("INVALID_OPTION");
+        List<Player<?>> chosen = new ArrayList<>();
+        for (String id : ids) {
+            Player<?> player = game.getPlayerById(id);
+            if (!eligible.contains(player)) throw new MatchService.Failure("INVALID_OPTION");
+            chosen.add(player);
+        }
+        return new ClientCommandPlayerChoice(mode, chosen.toArray(new Player<?>[0]));
+    }
+
     private List<Player<?>> eligible(Game game, DialogPlayerChoiceParameter dialog) {
         List<Player<?>> players = new ArrayList<>();
         Team team = game.getTeamHome().getId().equals(dialog.getTeamId()) ? game.getTeamHome() : game.getTeamAway();
@@ -121,6 +144,31 @@ public final class KickoffActions {
     }
 
     private void solidDefence(List<Action> actions, Game game, String role) {
+        if (!state.getCurrentStep().toJsonValue().getBoolean("pitchRedeployment", false)) {
+            legacySolidDefence(actions, game, role);
+            return;
+        }
+        Team team = game.getActingTeam();
+        List<Player<?>> placing = new ArrayList<>();
+        for (Player<?> player : team.getPlayers()) {
+            if (game.getFieldModel().getPlayerState(player).isActive()
+                && FieldCoordinateBounds.FIELD.isInBounds(game.getFieldModel().getPlayerCoordinate(player))) placing.add(player);
+        }
+        for (Player<?> player : placing) {
+            for (int x = "home".equals(role) ? 0 : 13; x < ("home".equals(role) ? 13 : 26); x++) for (int y = 0; y < 15; y++) {
+                FieldCoordinate to = new FieldCoordinate(x, y);
+                if (!to.equals(game.getFieldModel().getPlayerCoordinate(player))
+                    && (game.getFieldModel().getPlayer(to) == null || placing.contains(game.getFieldModel().getPlayer(to)))) actions.add(new Action("solid-place:" + player.getId() + ":" + x + ":" + y,
+                    "kickoffMove", "Place " + player.getName() + " at " + x + ", " + y, role,
+                    new ClientCommandSetupPlayer(player.getId(), oriented(to, role)), to));
+            }
+        }
+        actions.add(new Action("confirm-solid-defence", "kickoffChoice", "Confirm Solid Defence", role,
+            new ClientCommandEndTurn(TurnMode.SOLID_DEFENCE, coordinates(game, team, role))));
+    }
+
+    // Resume checkpoints created before on-pitch redeployment without rewriting their actions.
+    private void legacySolidDefence(List<Action> actions, Game game, String role) {
         Team team = game.getActingTeam();
         List<Player<?>> reserves = new ArrayList<>();
         for (Player<?> player : team.getPlayers()) {

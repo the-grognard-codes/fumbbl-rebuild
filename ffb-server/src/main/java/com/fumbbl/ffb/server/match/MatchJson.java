@@ -421,7 +421,17 @@ public final class MatchJson {
         if (state.get("kickoff") != null) {
             if (!detailsV4 || !"PLAY".equals(state.getString("phase", null))) throw new IllegalArgumentException();
             JsonObject kickoff = state.get("kickoff").asObject();
-            exact(kickoff, "version", "event", "actor", "stage", "allowed", "completed", "selected");
+            if (kickoff.get("participantIds") == null) exact(kickoff, "version", "event", "actor", "stage", "allowed", "completed", "selected");
+            else {
+                exact(kickoff, "version", "event", "actor", "stage", "allowed", "completed", "selected", "participantIds");
+                JsonArray ids = kickoff.get("participantIds").asArray();
+                if (ids.size() > 16) throw new IllegalArgumentException();
+                java.util.Set<String> unique = new java.util.HashSet<>();
+                for (JsonValue id : ids) {
+                    shortText(id);
+                    if (!unique.add(id.asString())) throw new IllegalArgumentException();
+                }
+            }
             if (kickoff.getInt("version", -1) != 1
                 || !Arrays.asList("HIGH_KICK", "SOLID_DEFENCE", "QUICK_SNAP", "CHARGE").contains(kickoff.getString("event", null))
                 || !("home".equals(kickoff.getString("actor", null)) || "away".equals(kickoff.getString("actor", null)))
