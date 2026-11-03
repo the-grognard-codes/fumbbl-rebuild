@@ -1,6 +1,15 @@
 # V1 retirement implementation report
 
-Date: 2026-11-03. Branch: `retire-browser-v1`. Status: implemented and validated; ready for manual review.
+Date: 2026-11-03. Implementation branch: `retire-browser-v1`. Status: merged in [PR #436](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/436).
+
+## Delivery
+
+After manual approval, all changes were committed as `80ca3bd95`. PR #436 passed
+all CI validation and security checks and merged into `main` as `5e43d07ef` on
+November 3, 2026 at 2:55 p.m. America/New_York (19:55:57 UTC). The opt-in full-browser
+CI job was skipped as configured; all 73 browser suites had passed locally.
+The completed-feature tracker records the actual merge in `site/updates.json`.
+Dev-local was stopped at the user's request, retaining its database volumes.
 
 ## Scope and delivery
 
@@ -18,8 +27,8 @@ development artwork previews are preserved. Useful renderer checks run against
 the V2 UI with test-only fault injection. Shared persisted formats remain supported.
 
 Old Compose/setup/copy workflows are retired. No existing V1 database, backup volume
-or ignored credential file was migrated or deleted. No commit, push, merge or remote
-deployment has been performed. The initial working tree was clean.
+or ignored credential file was migrated or deleted. The initial working tree was
+clean. No remote deployment was performed.
 
 ## Review and fixes
 
@@ -59,17 +68,17 @@ deployment has been performed. The initial working tree was clean.
 
 ## Manual validation handoff
 
-Dev-local is running at **http://localhost:5000/play**. The supported
+At the manual review handoff, dev-local was running at **http://localhost:5000/play**. The supported
 `node tools/dev-local.mjs --start` command exited successfully after browser preflight,
 the review server image build, database/server health checks, Firebase ADC validation,
 the real browser/proxy authentication and reconnect check, and computer-player startup.
 A subsequent `GET /play` returned 200. Evidence: `.tools/v1-retirement-dev-local.log`.
 Use the normal sign-in and match preparation flow for manual testing.
 
-The completed acceptance stack is stopped with its data retained; the review stack,
-Hosting, proxy and computer-player service remain running. No further implementation
-or required validation is pending. GitHub issues remain open for review, and all code
-is uncommitted on the working branch. The opt-in Java integration tests skipped by
+The acceptance stack was stopped with its data retained. After manual approval,
+the review stack, Hosting, proxy and computer-player service were also stopped.
+No further implementation or required validation is pending. PR #436 closes the
+four implementation issues. The opt-in Java integration tests skipped by
 the ordinary reactor were not enabled; real-server acceptance provides the separate
 live play/replay/recovery evidence described above.
 

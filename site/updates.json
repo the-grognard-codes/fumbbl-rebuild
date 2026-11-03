@@ -1,5 +1,13 @@
 [
   {
+    "number": 436,
+    "title": "Unify the game runtime and diagnostics on V2",
+    "summary": "Retired the older V1 browser runtime, diagnostic screens and local startup tools. Live play, replay and recovery now use V2, with automated renderer and restart checks. Reconnect can restore an unavailable match view while preserving uncertain actions for explicit retry. Existing stored data is retained.",
+    "category": "Platform",
+    "mergedAt": "2026-11-03T19:55:57Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/436"
+  },
+  {
     "number": 427,
     "title": "Unify decision prompts with approved mole artwork",
     "summary": "Coin toss, kick/receive, apothecary, argue-the-call, bribe and interception decisions now use compact horizontal prompts with mole artwork. Player-focused choices allow pitch inspection and mark the selected player; interceptors can be previewed before confirmation. Secret Weapon send-offs resolve one player at a time, including arguments and bribes, with recovery support.",
