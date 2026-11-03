@@ -25,7 +25,7 @@ function Review() {
   return React.createElement('main', { className: 'play-runtime live-match-page' },
     React.createElement('section', { className: 'hosted-match coach-match' },
       view && React.createElement(LiveMatchScoreboard, { view }),
-      decision && React.createElement(MatchDecisionDialog, { key: decision.key, decision, disabled: pending, activeX: null,
+      decision && React.createElement(MatchDecisionDialog, { key: decision.key, decision, disabled: pending, activeX: null, players: view.players,
         onChoice: () => { throw Error('Unexpected local choice'); },
         onAction: id => { window.selected.push(id); setPending(true); } })));
 }
@@ -55,14 +55,14 @@ try {
       }
       await page.evaluate(view => window.showView(view), journey.argue);
       const noArgue = journey.argue.actions.find(action => action.id.endsWith('argue:no'));
-      await page.getByRole('button', { name: noArgue.label, exact: true }).click();
+      await page.getByRole('button', { name: 'Decline', exact: true }).click();
       assert.equal(await page.evaluate(() => window.selected.at(-1)), noArgue.id);
       await page.evaluate(view => window.showView(view), journey.bribe);
       const dialog = page.getByRole('dialog');
       await page.getByRole('heading', { name: 'Use a bribe?', exact: true }).waitFor();
       assert.equal(await dialog.getByRole('button').count(), 2);
       const action = journey.bribe.actions.find(action => action.id === journey.actionId);
-      await dialog.getByRole('button', { name: action.label, exact: true }).click();
+      await dialog.getByRole('button', { name: action.id.endsWith(':no') ? 'Decline' : 'Use a bribe', exact: true }).click();
       assert.equal(await page.evaluate(() => window.selected.at(-1)), journey.actionId);
       for (const button of await dialog.getByRole('button').all()) assert.equal(await button.isDisabled(), true);
       await page.evaluate(view => window.showView(view), journey.result);

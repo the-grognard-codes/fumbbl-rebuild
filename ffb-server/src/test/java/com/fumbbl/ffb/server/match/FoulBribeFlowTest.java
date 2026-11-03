@@ -98,6 +98,18 @@ class FoulBribeFlowTest {
             journeys.toString().getBytes(StandardCharsets.UTF_8));
     }
 
+    @Test void legacyDecisionsWithoutFocusTargetsRecoverWithNativeCommandsIntact() throws Exception {
+        for (boolean home : new boolean[]{true, false}) {
+            Scenario scenario = new Scenario(home, false);
+            scenario.recover(false, true);
+            scenario.choose("argueTheCall", "argue:no");
+            scenario.recover(false, true);
+            scenario.rolls(6);
+            scenario.choose("bribe", "bribe:" + scenario.foulerId);
+            assertNull(scenario.game().getDialogParameter());
+        }
+    }
+
     @Test void legacyEmptyBribeActionsRecoverWithoutEditingNativeHistory() throws Exception {
         for (boolean home : new boolean[] {true, false}) {
             Scenario scenario = new Scenario(home, false);
@@ -191,10 +203,18 @@ class FoulBribeFlowTest {
                 .add("actionId", action(kind, suffix).get("id"))).get("state").asObject();
         }
         void recover(boolean legacy) throws Exception {
+            recover(legacy, false);
+        }
+        void recover(boolean legacy, boolean withoutTargets) throws Exception {
             String artifact = session.recoveryArtifact();
-            if (legacy) {
+            if (legacy || withoutTargets) {
                 JsonObject envelope = JsonObject.readFrom(artifact), payload = envelope.get("payload").asObject();
-                for (String seat : new String[] {"homeView", "awayView"}) payload.get(seat).asObject().set("actions", new JsonArray());
+                if (withoutTargets) stripNewSendOffFields(payload.get("native"));
+                for (String seat : new String[] {"homeView", "awayView"}) {
+                    if (legacy) payload.get(seat).asObject().set("actions", new JsonArray());
+                    else for (JsonValue action : payload.get(seat).asObject().get("actions").asArray())
+                        action.asObject().set("target", JsonValue.NULL);
+                }
                 StringBuilder checksum = new StringBuilder();
                 for (byte value : MessageDigest.getInstance("SHA-256").digest(payload.toString().getBytes(StandardCharsets.UTF_8)))
                     checksum.append(String.format("%02x", value & 255));
@@ -202,6 +222,13 @@ class FoulBribeFlowTest {
             }
             session = new SetupSession(fixture.server, fixture.document, artifact);
             view = session.reply("load", "ACCEPTED", false, role).get("state").asObject();
+        }
+        void stripNewSendOffFields(JsonValue value) {
+            if (value.isObject()) {
+                JsonObject object = value.asObject();
+                object.remove("sequentialSendOffs"); object.remove("resolvedSendOffs"); object.remove("sendOffPlayerId");
+                for (JsonObject.Member member : object) stripNewSendOffFields(member.getValue());
+            } else if (value.isArray()) for (JsonValue child : value.asArray()) stripNewSendOffFields(child);
         }
     }
 }

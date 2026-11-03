@@ -89,6 +89,7 @@ async function filesUnder(directory) {
 const inputs = [
   ['pitch', 'pitch'],
   ['ui/fonts', 'ui/fonts'],
+  ['ui/decision-prompts-v1', 'ui/decision-prompts-v1'],
   ['ui/mvp-art/match-ui-icon-atlas-v1.png', 'ui/match-ui-icon-atlas-v1.png'],
   ['ui/reroll-v1.png', 'ui/reroll-v1.png'],
   ['ui/player-action-icons-v1.png', 'ui/player-action-icons-v1.png'],

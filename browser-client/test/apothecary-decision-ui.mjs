@@ -25,7 +25,7 @@ const harness = `
         React.createElement('section', {className:'hosted-match coach-match'},
         React.createElement('button', {id:'outside', onClick:()=>window.outsideClicks++}, 'Outside action'),
         view && React.createElement(LiveMatchScoreboard,{view}),
-        decision && React.createElement(MatchDecisionDialog,{key:decision.key, decision, disabled:pending, activeX:null,
+        decision && React.createElement(MatchDecisionDialog,{key:decision.key, decision, disabled:pending, activeX:null, players:view.players,
           onChoice:()=>{throw Error('Unexpected local choice')},
           onAction:id=>{window.selected.push(id); setPending(true)}})));
     }
@@ -61,6 +61,9 @@ try {
   };
   const show = view => page.evaluate(view=>window.showView(view),view);
   const renderedIcons = async () => {
+    if (await page.locator('dialog.rectangular-decision').count()) {
+      await page.waitForFunction(() => [...document.querySelectorAll('dialog img')].every(img => img.complete && img.naturalWidth > 0)); return;
+    }
     await page.locator('dialog .injury-icon use').first().waitFor({state:'attached'});
     for (const icon of await page.locator('dialog .injury-icon use').all()) {
       assert.ok(await icon.evaluate(use=>{ const box=use.getBBox(); return box.width>0 && box.height>0; }), 'External injury symbol renders');
@@ -71,16 +74,16 @@ try {
     await show(initial);
     const modal = page.getByRole('dialog', {name:'Match decision'});
     await modal.waitFor();
-    assert.equal(await modal.getAttribute('aria-modal'),'true');
+    assert.equal(await modal.getAttribute('aria-modal'),'false');
     await renderedIcons();
     assert.ok(await modal.getByText('Accept Head Injury (-1AV, MNG)', {exact:true}).isVisible());
-    assert.ok(await modal.getByText(base.players.find(player=>player.role===role).name,{exact:true}).isVisible());
+    assert.ok(await modal.getByText(base.players.find(player=>player.role===role).name,{exact:false}).isVisible());
     await page.keyboard.press('Escape');
     assert.ok(await modal.isVisible(), 'Escape cannot dismiss a required choice');
     await page.evaluate(()=>document.getElementById('outside').focus());
-    assert.ok(await page.evaluate(()=>document.activeElement.closest('dialog') !== null), 'Modal contains focus');
+    assert.equal(await page.evaluate(()=>document.activeElement.id), 'outside', 'Player decisions allow pitch inspection');
     await page.keyboard.press('Tab');
-    assert.ok(await page.evaluate(()=>document.activeElement.closest('dialog') !== null));
+
     if (role === 'home') await modal.screenshot({path:`${evidence}/initial.png`});
     await modal.getByRole('button',{name:'Use Apothecary',exact:true}).click();
     await page.keyboard.press('Enter');
@@ -135,6 +138,8 @@ try {
   await modal.waitFor();
   await renderedIcons();
   await modal.getByRole('button',{name:/Second injured player Use Wandering Apothecary/}).click();
+  assert.notEqual((await page.evaluate(()=>window.selected)).at(-1),multiple.actions[2].id);
+  await modal.getByRole('button',{name:'Treat selected player',exact:true}).click();
   assert.equal((await page.evaluate(()=>window.selected)).at(-1),multiple.actions[2].id);
   await show(state('home',[],1));
   await modal.waitFor({state:'hidden'});

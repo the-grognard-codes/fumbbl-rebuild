@@ -1,5 +1,7 @@
 # Feature: Resolve Secret Weapon send-offs player by player
 
+Production implementation: issue #415 on `feature/production-decision-prompts`. See [outcome and validation](production-outcome.md). Current scope is BB2025 only; the owner-approved choose-player/fully-resolve ordering is implemented.
+
 ## Abstract
 Establish rules authority and complete each selected player's send-off before another player's resolution.
 

@@ -90,6 +90,7 @@ import com.fumbbl.ffb.util.UtilCards;
 import com.fumbbl.ffb.util.UtilPlayer;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonValue;
 
 import java.util.ArrayList;
@@ -125,6 +126,10 @@ public class StepEndTurn extends AbstractStep {
 	private Set<String> playerIdsFailedBribes = new HashSet<>();
 	private Set<String> playerIdsArgued = new HashSet<>();
 	private String touchdownPlayerId;
+	// Missing on older checkpoints: retain their already-started phase ordering.
+	private boolean sequentialSendOffs = true;
+	private String sendOffPlayerId;
+	private final Set<String> resolvedSendOffs = new HashSet<>();
 
 	public StepEndTurn(GameState pGameState) {
 		super(pGameState);
@@ -156,7 +161,16 @@ public class StepEndTurn extends AbstractStep {
 			switch (pReceivedCommand.getId()) {
 				case CLIENT_PLAYER_CHOICE:
 					ClientCommandPlayerChoice playerChoiceCommand = (ClientCommandPlayerChoice) pReceivedCommand.getCommand();
-					if (playerChoiceCommand.getPlayerChoiceMode() == PlayerChoiceMode.BRIBERY_AND_CORRUPTION) {
+					if (sequentialSendOffs && playerChoiceCommand.getPlayerChoiceMode() == PlayerChoiceMode.SECRET_WEAPON) {
+                        if (!(game.getDialogParameter() instanceof DialogPlayerChoiceParameter offered)
+                            || offered.getPlayerChoiceMode() != PlayerChoiceMode.SECRET_WEAPON
+                            || !team.getId().equals(offered.getTeamId())
+                            || playerChoiceCommand.getPlayerIds().length != 1
+                            || !Arrays.asList(offered.getPlayerIds()).contains(playerChoiceCommand.getPlayerId())) break;
+                        sendOffPlayerId = playerChoiceCommand.getPlayerId();
+                        fWithinSecretWeaponHandling = true;
+                        commandStatus = StepCommandStatus.EXECUTE_STEP;
+                    } else if (playerChoiceCommand.getPlayerChoiceMode() == PlayerChoiceMode.BRIBERY_AND_CORRUPTION) {
 						String playerId = playerChoiceCommand.getPlayerId();
 						playerIdsNaturalOnes.clear();
 
@@ -169,6 +183,11 @@ public class StepEndTurn extends AbstractStep {
 				case CLIENT_USE_RE_ROLL:
 					ClientCommandUseReRoll useReRollCommand = (ClientCommandUseReRoll) pReceivedCommand.getCommand();
 					if (useReRollCommand.getReRolledAction() == ReRolledActions.ARGUE_THE_CALL) {
+                        if (playerIdsNaturalOnes.isEmpty()
+                            || !(game.getDialogParameter() instanceof DialogBriberyAndCorruptionParameter offered)
+                            || !team.getId().equals(offered.getTeamId())
+                            || useReRollCommand.getReRollSource() != null
+                                && (useReRollCommand.getReRollSource() != ReRollSources.BRIBERY_AND_CORRUPTION || !canUseReRoll)) break;
 						String playerId = playerIdsNaturalOnes.get(0);
 						playerIdsNaturalOnes.clear();
 
@@ -181,15 +200,29 @@ public class StepEndTurn extends AbstractStep {
 					break;
 				case CLIENT_ARGUE_THE_CALL:
 					ClientCommandArgueTheCall argueTheCallCommand = (ClientCommandArgueTheCall) pReceivedCommand.getCommand();
-					argueTheCall(team, argueTheCallCommand.getPlayerIds(), friendsWithTheRef);
+					if (sequentialSendOffs) {
+                        if (!(game.getDialogParameter() instanceof DialogArgueTheCallParameter offered)
+                            || !team.getId().equals(offered.getTeamId()) || sendOffPlayerId == null
+                            || argueTheCallCommand.getPlayerIds().length > 1
+                            || Arrays.stream(argueTheCallCommand.getPlayerIds()).anyMatch(id -> !id.equals(sendOffPlayerId))) break;
+                        playerIdsArgued.add(sendOffPlayerId);
+                    }
+                    argueTheCall(team, argueTheCallCommand.getPlayerIds(), friendsWithTheRef);
 					fWithinSecretWeaponHandling = true;
 					commandStatus = StepCommandStatus.EXECUTE_STEP;
 					break;
 				case CLIENT_USE_INDUCEMENT:
 					ClientCommandUseInducement inducementCommand = (ClientCommandUseInducement) pReceivedCommand.getCommand();
 					if (inducementCommand.getInducementType().hasUsage(Usage.AVOID_BAN)) {
-						fWithinSecretWeaponHandling = true;
-						useSecretWeaponBribes(team, inducementCommand.getPlayerIds());
+						if (sequentialSendOffs) {
+                            if (!(game.getDialogParameter() instanceof DialogBribesParameter offered)
+                                || !team.getId().equals(offered.getTeamId()) || sendOffPlayerId == null
+                                || inducementCommand.getPlayerIds().length > 1
+                                || Arrays.stream(inducementCommand.getPlayerIds()).anyMatch(id -> !id.equals(sendOffPlayerId))) break;
+                            if (inducementCommand.getPlayerIds().length == 0) playerIdsFailedBribes.add(sendOffPlayerId);
+                        }
+                        fWithinSecretWeaponHandling = true;
+                        useSecretWeaponBribes(team, inducementCommand.getPlayerIds());
 					}
 					commandStatus = StepCommandStatus.EXECUTE_STEP;
 					break;
@@ -425,6 +458,10 @@ public class StepEndTurn extends AbstractStep {
 
 		}
 
+        if (sequentialSendOffs) {
+            if (!fEndGame && (fNewHalf || fTouchdown) && resolveSendOffs(game)) return;
+            fArgueTheCallChoiceHome = fArgueTheCallChoiceAway = fBribesChoiceHome = fBribesChoiceAway = false;
+        } else {
 		if (fArgueTheCallChoiceAway == null) {
 			fArgueTheCallChoiceAway = false;
 			boolean friendsWithTheRef = getGameState().getPrayerState().isFriendsWithRef(game.getTeamAway());
@@ -469,6 +506,8 @@ public class StepEndTurn extends AbstractStep {
 				fBribesChoiceHome = null;
 			}
 		}
+
+        }
 
 		if (fEndGame || ((fArgueTheCallChoiceHome != null) && (fArgueTheCallChoiceAway != null)
 			&& (fBribesChoiceHome != null) && (fBribesChoiceAway != null))) {
@@ -541,6 +580,43 @@ public class StepEndTurn extends AbstractStep {
 		}
 
 	}
+
+
+    private boolean resolveSendOffs(Game game) {
+        if (reRollArgueFailures(game)) return true;
+        for (Team team : new Team[]{game.getTeamAway(), game.getTeamHome()}) {
+            TurnData turnData = team == game.getTeamHome() ? game.getTurnDataHome() : game.getTurnDataAway();
+            List<String> pending = getPlayerIds(team, game);
+            pending.removeAll(resolvedSendOffs);
+            if (sendOffPlayerId != null && team.hasPlayer(game.getPlayerById(sendOffPlayerId))) {
+                if (pending.contains(sendOffPlayerId)) {
+                    if (askForArgueTheCall(team, getGameState().getPrayerState().isFriendsWithRef(team), turnData.getInducementSet())) return true;
+                    if (askForSecretWeaponBribes(team)) return true;
+                    removeUsedSecretWeapon(game, game.getPlayerById(sendOffPlayerId));
+                }
+                resolvedSendOffs.add(sendOffPlayerId);
+                pending.remove(sendOffPlayerId);
+                sendOffPlayerId = null;
+            }
+            if (pending.isEmpty()) continue;
+            boolean canArgue = !turnData.isCoachBanned() && UtilGameOption.isOptionEnabled(game, GameOptionId.ARGUE_THE_CALL);
+            boolean canBribe = turnData.getInducementSet().getInducementTypes().stream()
+                .anyMatch(type -> type.hasUsage(Usage.AVOID_BAN) && turnData.getInducementSet().hasUsesLeft(type));
+            if (!canArgue && !canBribe) {
+                for (String id : pending) { removeUsedSecretWeapon(game, game.getPlayerById(id)); resolvedSendOffs.add(id); }
+                continue;
+            }
+            fWithinSecretWeaponHandling = true;
+            if (pending.size() == 1) {
+                sendOffPlayerId = pending.get(0);
+                return resolveSendOffs(game);
+            }
+            UtilServerDialog.showDialog(getGameState(), new DialogPlayerChoiceParameter(team.getId(),
+                PlayerChoiceMode.SECRET_WEAPON, pending.toArray(new String[0]), null, 1, 1), false);
+            return true;
+        }
+        return false;
+    }
 
 	private boolean reRollArgueFailures(Game game) {
 		boolean result = false;
@@ -859,10 +935,10 @@ public class StepEndTurn extends AbstractStep {
 		if (playersForBribe(pTeam, game).isEmpty() || !ArrayTool.isProvided(pPlayerIds)) {
 			if (game.getTeamHome() == pTeam) {
 				fBribesChoiceHome = ArrayTool.isProvided(pPlayerIds);
-				playerIdsFailedBribes.clear();
+				if (!sequentialSendOffs) playerIdsFailedBribes.clear();
 			} else {
 				fBribesChoiceAway = ArrayTool.isProvided(pPlayerIds);
-				playerIdsFailedBribes.clear();
+				if (!sequentialSendOffs) playerIdsFailedBribes.clear();
 			}
 		}
 	}
@@ -947,12 +1023,14 @@ public class StepEndTurn extends AbstractStep {
 	private List<String> playersForArgue(Team team, Game game) {
 		List<String> playerIds = getPlayerIds(team, game);
 		playerIds.removeAll(playerIdsArgued);
+        if (sequentialSendOffs) playerIds.removeIf(id -> !id.equals(sendOffPlayerId));
 		return playerIds;
 	}
 
 	private List<String> playersForBribe(Team team, Game game) {
 		List<String> playerIds = getPlayerIds(team, game);
 		playerIds.removeAll(playerIdsFailedBribes);
+        if (sequentialSendOffs) playerIds.removeIf(id -> !id.equals(sendOffPlayerId));
 		return playerIds;
 	}
 
@@ -982,6 +1060,14 @@ public class StepEndTurn extends AbstractStep {
 	@Override
 	public JsonObject toJsonValue() {
 		JsonObject jsonObject = super.toJsonValue();
+        // Recovery compares native snapshots exactly. Legacy steps must keep these fields absent.
+        if (sequentialSendOffs) {
+            jsonObject.add("sequentialSendOffs", true);
+            if (sendOffPlayerId != null) jsonObject.add("sendOffPlayerId", sendOffPlayerId);
+            JsonArray resolved = new JsonArray();
+            resolvedSendOffs.stream().sorted().forEach(resolved::add);
+            jsonObject.add("resolvedSendOffs", resolved);
+        }
 		IServerJsonOption.TOUCHDOWN.addTo(jsonObject, fTouchdown);
 		IServerJsonOption.ARGUE_THE_CALL_CHOICE_HOME.addTo(jsonObject, fArgueTheCallChoiceHome);
 		IServerJsonOption.ARGUE_THE_CALL_CHOICE_AWAY.addTo(jsonObject, fArgueTheCallChoiceAway);
@@ -1006,6 +1092,11 @@ public class StepEndTurn extends AbstractStep {
 	public StepEndTurn initFrom(IFactorySource source, JsonValue jsonValue) {
 		super.initFrom(source, jsonValue);
 		JsonObject jsonObject = UtilJson.toJsonObject(jsonValue);
+        sequentialSendOffs = jsonObject.getBoolean("sequentialSendOffs", false);
+        sendOffPlayerId = jsonObject.getString("sendOffPlayerId", null);
+        resolvedSendOffs.clear();
+        if (jsonObject.get("resolvedSendOffs") != null)
+            for (JsonValue id : jsonObject.get("resolvedSendOffs").asArray()) resolvedSendOffs.add(id.asString());
 		fTouchdown = IServerJsonOption.TOUCHDOWN.getFrom(source, jsonObject);
 		fArgueTheCallChoiceHome = IServerJsonOption.ARGUE_THE_CALL_CHOICE_HOME.getFrom(source, jsonObject);
 		fArgueTheCallChoiceAway = IServerJsonOption.ARGUE_THE_CALL_CHOICE_AWAY.getFrom(source, jsonObject);

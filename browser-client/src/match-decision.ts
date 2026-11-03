@@ -33,10 +33,10 @@ export function decisionIcon(label: string): string | undefined {
 const promptTitles: Record<string, string> = {
   kickSkill: 'Use the Kick skill?', blockDie: 'Choose a block die', rerollDie: 'Choose a die to reroll', proTestReroll: 'Reroll the Pro test?', reroll: 'Use a re-roll?', skill: 'Use a skill?',
   apothecary: 'Apothecary decision', argueTheCall: 'Argue the call?', bribe: 'Use a bribe?',
-  interception: 'Choose an interceptor', followUp: 'Follow up?', push: 'Choose a push square', pileDriver: 'Use Pile Driver?',
+  interception: 'Nominate an interceptor', secretWeapon: 'Choose a player to resolve', followUp: 'Follow up?', push: 'Choose a push square', pileDriver: 'Use Pile Driver?',
   onTheBall: 'Use On the Ball?'
 };
-const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'pileDriver', 'onTheBall', 'apothecary', 'argueTheCall', 'bribe', 'interception', 'followUp', 'push'];
+const promptOrder = ['kickSkill', 'rerollDie', 'proTestReroll', 'blockDie', 'reroll', 'skill', 'pileDriver', 'onTheBall', 'apothecary', 'secretWeapon', 'argueTheCall', 'bribe', 'interception', 'followUp', 'push'];
 
 /** Only server-offered choices belonging to the signed-in coach enter a decision dialog. */
 function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision | null {
@@ -66,6 +66,8 @@ function nativeDecision(view: SetupState, actions: SetupAction[]): MatchDecision
       const label = kind === 'followUp' ? /^Do not follow up$/i.test(action.label) ? 'No' : /^Follow up$/i.test(action.label) ? 'Yes' : action.label : action.label;
       const option: DecisionOption = { id: action.id, label, kind: 'action', face, ...(face ? { dieKind: 'block' as const } : {}), icon: kind === 'apothecary' ? injuryIcon(label) : rollKinds.includes(kind) ? decisionIcon(label) : undefined };
       if (action.sourcePlayerId) option.sourcePlayerId = action.sourcePlayerId;
+      if (['apothecary', 'argueTheCall', 'bribe', 'interception', 'secretWeapon'].includes(kind) && action.target && 'playerId' in action.target)
+        option.targetPlayerId = action.target.playerId;
       if (action.id.includes(':multi:') && action.target && 'playerId' in action.target) {
         option.targetPlayerId = action.target.playerId;
         const target = view.players.find(player => player.id === option.targetPlayerId);

@@ -1,5 +1,7 @@
 # Feature: Unify rectangular coin, kickoff, apothecary and send-off prompts
 
+Production implementation: issue #416 on `feature/production-decision-prompts`. Approved horizontal mole artwork is integrated. See [outcome and validation](production-outcome.md).
+
 ## Abstract
 Implement the approved common prompt style and five decision families.
 

@@ -1,0 +1,20 @@
+.match-decision-dialog.rectangular-decision { z-index: 210; width: min(340px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 12px; color: #f4e5c7; background: linear-gradient(140deg, #18314a, #0b1929); border-color: #7cb6cd; transform: none; }
+.rectangular-decision h2 { font-size: 24px; margin-bottom: 10px; }
+.rectangular-decision p { margin-bottom: 10px; color: #f7dc9a; }
+.rectangular-decision .match-decision-options { gap: 6px; }
+.rectangular-decision button { min-width: 0; overflow-wrap: anywhere; }
+.rectangular-decision .match-decision-options button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 110px; padding: 6px; font: 600 15px 'Match Barlow', sans-serif; }
+.rectangular-decision .decision-art, .rectangular-decision .match-art { width: 66px; height: 66px; object-fit: contain; flex: none; }
+.rectangular-decision .decision-art.mole-stretcher { width: 112px; max-width: 100%; }
+.rectangular-decision .decision-art.heads, .rectangular-decision .decision-art.tails { width: 84px; height: 84px; }
+.rectangular-decision .portrait { image-rendering: pixelated; }
+.rectangular-decision button[aria-pressed=true] { outline: 2px solid #f7dc9a; background: #426d8d; }
+.rectangular-decision small { font-size: 12px; }
+.decision-confirm { display: flex; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #4aa8c6; }
+.decision-confirm button { flex: 1; min-height: 42px; padding: 5px; color: #f4e5c7; background: linear-gradient(#245677, #123450); border: 1px solid #4aa8c6; font: 600 14px 'Match Barlow', sans-serif; }
+.decision-confirm button:disabled { opacity: .45; }
+.decision-confirm .decision-art, .decision-confirm .match-art { width: 24px; height: 24px; vertical-align: middle; }
+.decision-decline { font-size: 30px; }
+.decision-pointer { position: fixed; inset: 0; width: 100vw; height: 100dvh; pointer-events: none; z-index: 209; }
+.decision-pointer path { fill: none; stroke: #63e1ed; stroke-width: 2; filter: drop-shadow(0 1px 2px #08131f); }
+.decision-pointer circle { fill: #baf8ff; stroke: #10283f; stroke-width: 2; }
