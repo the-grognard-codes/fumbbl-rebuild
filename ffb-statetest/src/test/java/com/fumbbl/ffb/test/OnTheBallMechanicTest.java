@@ -1,22 +1,26 @@
 package com.fumbbl.ffb.test;
 
-import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.mechanics.Mechanic;
-import com.fumbbl.ffb.mechanics.mixed.OnTheBallMechanic;
+import com.fumbbl.ffb.mechanics.bb2025.OnTheBallMechanic;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.FieldModel;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.property.NamedProperties;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class OnTheBallMechanicTest {
 
@@ -46,7 +50,7 @@ public class OnTheBallMechanicTest {
 		PlayerState standingActive = new PlayerState(PlayerState.STANDING).changeActive(true);
 		when(fieldModel.getPlayerState(playerWithSkill)).thenReturn(standingActive);
 
-		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team, false);
+		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team);
 
 		assertEquals(1, blockers.size());
 		assertTrue(blockers.contains(playerWithSkill));
@@ -66,7 +70,7 @@ public class OnTheBallMechanicTest {
 		PlayerState proneState = new PlayerState(PlayerState.PRONE).changeActive(true);
 		when(fieldModel.getPlayerState(pronePlayer)).thenReturn(proneState);
 
-		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team, false);
+		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team);
 
 		assertTrue(blockers.isEmpty());
 	}
@@ -85,7 +89,7 @@ public class OnTheBallMechanicTest {
 		PlayerState standingActive = new PlayerState(PlayerState.STANDING).changeActive(true);
 		when(fieldModel.getPlayerState(playerWithoutSkill)).thenReturn(standingActive);
 
-		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team, false);
+		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team);
 
 		assertTrue(blockers.isEmpty());
 	}
@@ -104,40 +108,37 @@ public class OnTheBallMechanicTest {
 		PlayerState confusedState = new PlayerState(PlayerState.STANDING).changeActive(true).changeConfused(true);
 		when(fieldModel.getPlayerState(confusedPlayer)).thenReturn(confusedState);
 
-		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team, false);
+		Set<Player<?>> blockers = mechanic.findPassBlockers(game, team);
 
 		assertTrue(blockers.isEmpty(), "Confused players should not have tacklezones and should be excluded");
 	}
 
 	@Test
 	public void validPassBlockMoveAllowsUpToThreeSquares() {
-		Game game = mock(Game.class, withSettings().lenient());
 		ActingPlayer actingPlayer = mock(ActingPlayer.class);
 		when(actingPlayer.getCurrentMove()).thenReturn(0);
 
-		assertTrue(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 3));
-		assertTrue(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 2));
-		assertTrue(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 1));
-		assertTrue(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 0));
+		assertTrue(mechanic.validPassBlockMove(actingPlayer, 3));
+		assertTrue(mechanic.validPassBlockMove(actingPlayer, 2));
+		assertTrue(mechanic.validPassBlockMove(actingPlayer, 1));
+		assertTrue(mechanic.validPassBlockMove(actingPlayer, 0));
 	}
 
 	@Test
 	public void validPassBlockMoveRejectsOverThreeSquares() {
-		Game game = mock(Game.class, withSettings().lenient());
 		ActingPlayer actingPlayer = mock(ActingPlayer.class);
 		when(actingPlayer.getCurrentMove()).thenReturn(0);
 
-		assertFalse(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 4));
+		assertFalse(mechanic.validPassBlockMove(actingPlayer, 4));
 	}
 
 	@Test
 	public void validPassBlockMoveAccountsForCurrentMove() {
-		Game game = mock(Game.class, withSettings().lenient());
 		ActingPlayer actingPlayer = mock(ActingPlayer.class);
 		when(actingPlayer.getCurrentMove()).thenReturn(2);
 
-		assertTrue(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 1));
-		assertFalse(mechanic.validPassBlockMove(game, actingPlayer, null, null, null, false, 2));
+		assertTrue(mechanic.validPassBlockMove(actingPlayer, 1));
+		assertFalse(mechanic.validPassBlockMove(actingPlayer, 2));
 	}
 
 	@Test

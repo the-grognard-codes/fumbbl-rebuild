@@ -6,7 +6,7 @@ import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffReturn;
-import com.fumbbl.ffb.server.step.mixed.pass.StepPassBlock;
+import com.fumbbl.ffb.server.step.bb2025.pass.StepPassBlock;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;

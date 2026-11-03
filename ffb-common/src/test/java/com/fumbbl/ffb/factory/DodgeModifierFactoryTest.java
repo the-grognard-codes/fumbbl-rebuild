@@ -68,7 +68,7 @@ class DodgeModifierFactoryTest {
             when(emptyCards.getActiveCards()).thenReturn(new Card[0]);
             when(emptyCards.getDeactivatedCards()).thenReturn(new Card[0]);
             DodgeModifierFactory factory = new DodgeModifierFactory();
-            factory.setModifierCollection(new com.fumbbl.ffb.modifiers.mixed.DodgeModifierCollection());
+            factory.setModifierCollection(new com.fumbbl.ffb.modifiers.bb2025.DodgeModifierCollection());
             Set<DodgeModifier> result = factory.findModifiers(new DodgeContext(game, selectedActing, from, to), selected);
             assertEquals(1, result.stream().filter(modifier -> modifier.getType() == ModifierType.PREHENSILE_TAIL).count());
             verify(game, never()).getActingPlayer();

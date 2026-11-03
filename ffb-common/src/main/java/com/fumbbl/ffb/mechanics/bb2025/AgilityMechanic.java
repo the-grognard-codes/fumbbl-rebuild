@@ -17,7 +17,7 @@ import com.fumbbl.ffb.modifiers.RollModifier;
 import com.fumbbl.ffb.modifiers.StatBasedRollModifier;
 import com.fumbbl.ffb.report.ReportSkillRoll;
 import com.fumbbl.ffb.report.ReportPickupRoll;
-import com.fumbbl.ffb.report.mixed.ReportDodgeRoll;
+import com.fumbbl.ffb.report.bb2025.ReportDodgeRoll;
 
 import java.util.Collections;
 import java.util.Set;

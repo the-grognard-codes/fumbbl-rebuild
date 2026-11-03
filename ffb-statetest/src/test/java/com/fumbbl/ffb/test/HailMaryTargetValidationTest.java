@@ -7,7 +7,7 @@ import com.fumbbl.ffb.Weather;
 import com.fumbbl.ffb.net.commands.ClientCommand;
 import com.fumbbl.ffb.net.commands.ServerCommandModelSync;
 import com.fumbbl.ffb.report.IReport;
-import com.fumbbl.ffb.report.mixed.ReportPassRoll;
+import com.fumbbl.ffb.report.bb2025.ReportPassRoll;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.net.ReceivedCommand;

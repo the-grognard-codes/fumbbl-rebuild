@@ -34,51 +34,6 @@ public class GameOptionFactory {
 					.setMessageTrue("An Infamous Staff member may be hired by both teams.");
 			case ARGUE_THE_CALL:
 				return new GameOptionBoolean(pOptionId).setDefault(true).setMessageFalse("Calls may not be argued.");
-			case CARDS_DESPERATE_MEASURE_COST:
-				return new GameOptionInt(pOptionId).setDefault(400000)
-					.setMessage("Desperate Measure cards can be bought for $1 gps each.");
-			case CARDS_DESPERATE_MEASURE_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Desperate Measure cards.");
-			case CARDS_DIRTY_TRICK_COST:
-				return new GameOptionInt(pOptionId).setDefault(50000)
-					.setMessage("Dirty Trick cards can be bought for $1 gps each.");
-			case CARDS_DIRTY_TRICK_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Dirty Trick cards.");
-			case CARDS_GOOD_KARMA_COST:
-				return new GameOptionInt(pOptionId).setDefault(100000)
-					.setMessage("Good Karma cards can be bought for $1 gps each.");
-			case CARDS_GOOD_KARMA_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Good Karma cards.");
-			case CARDS_MAGIC_ITEM_COST:
-				return new GameOptionInt(pOptionId).setDefault(50000)
-					.setMessage("Magic Item cards can be bought for $1 gps each.");
-			case CARDS_MAGIC_ITEM_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Magic Item cards.");
-			case CARDS_MISCELLANEOUS_MAYHEM_COST:
-				return new GameOptionInt(pOptionId).setDefault(50000)
-					.setMessage("Miscellaneous Mayhem cards can be bought for $1 gps each.");
-			case CARDS_MISCELLANEOUS_MAYHEM_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Miscellaneous Mayhem cards.");
-			case CARDS_RANDOM_EVENT_COST:
-				return new GameOptionInt(pOptionId).setDefault(200000)
-					.setMessage("Random Event cards can be bought for $1 gps each.");
-			case CARDS_RANDOM_EVENT_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Random Event cards.");
-			case CARDS_SPECIAL_TEAM_PLAY_COST:
-				return new GameOptionInt(pOptionId).setDefault(50000)
-					.setMessage("Special Team Play cards can be bought for $1 gps each.");
-			case CARDS_SPECIAL_TEAM_PLAY_MAX:
-				return new GameOptionInt(pOptionId).setDefault(Integer.MAX_VALUE)
-					.setMessage("Coaches may purchase up to $1 Special Team Play cards.");
-			case CARDS_SPECIAL_PLAY_COST:
-				return new GameOptionInt(pOptionId).setDefault(100000)
-					.setMessage("Special Play cards can be bought for $1 gps each.");
 			case CHECK_OWNERSHIP:
 				return new GameOptionBoolean(pOptionId).setDefault(true).setMessageFalse("Team ownership is not checked.");
 			case CLAW_DOES_NOT_STACK:
@@ -91,9 +46,6 @@ public class GameOptionFactory {
 			case EXTRA_MVP:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageTrue("An extra MVP is awarded at the end of the match");
-			case FORCE_TREASURY_TO_PETTY_CASH:
-				return new GameOptionBoolean(pOptionId).setDefault(true)
-					.setMessageFalse("Treasury is not automatically transferred to Petty Cash.");
 			case FOUL_BONUS:
 				return new GameOptionBoolean(pOptionId).setDefault(false).setMessageTrue("+1 to armour roll for a foul.");
 			case FOUL_BONUS_OUTSIDE_TACKLEZONE:
@@ -135,10 +87,6 @@ public class GameOptionFactory {
 			case INDUCEMENT_CHEFS_REDUCED_MAX:
 				return new GameOptionInt(pOptionId).setDefault(1)
 					.setMessage("Coaches may purchase up to $1 Halfling Master Chef(s) for reduced costs.");
-			case INDUCEMENT_IGORS_COST:
-				return new GameOptionInt(pOptionId).setDefault(100000).setMessage("Igors can be purchased for $1 gps each.");
-			case INDUCEMENT_IGORS_MAX:
-				return new GameOptionInt(pOptionId).setDefault(1).setMessage("Coaches may purchase up to $1 Igor(s).");
 			case INDUCEMENT_MORTUARY_ASSISTANTS_COST:
 				return new GameOptionInt(pOptionId).setDefault(100000)
 					.setMessage("Mortuary Assistants can be purchased for $1 gps each.");
@@ -214,30 +162,19 @@ public class GameOptionFactory {
 					.setMessageTrue("Game will go into overtime if there is a draw after 2nd half.");
 			case PETTY_CASH:
 				return new GameOptionBoolean(pOptionId).setDefault(true).setMessageFalse("Petty Cash is not available.");
-			case PETTY_CASH_AFFECTS_TV:
-				return new GameOptionBoolean(pOptionId).setDefault(false).setMessageTrue("Petty Cash affects Team Value.");
-			case PILING_ON_ARMOR_ONLY:
-				return new GameOptionBoolean(pOptionId).setDefault(false)
-					.setMessageTrue("Piling On lets you re-roll armour-rolls only.");
 			case PILING_ON_DOES_NOT_STACK:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageTrue("Piling On does not stack with other skills that modify armour- or injury-rolls.");
-			case PILING_ON_INJURY_ONLY:
-				return new GameOptionBoolean(pOptionId).setDefault(false)
-					.setMessageTrue("Piling On lets you re-roll injury-rolls only.");
 			case PILING_ON_TO_KO_ON_DOUBLE:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageTrue("Piling On player knocks himself out when rolling a double on armour or injury.");
-			case PILING_ON_USES_A_TEAM_REROLL:
-				return new GameOptionBoolean(pOptionId).setDefault(true)
-					.setMessageFalse("Piling On does not cost a Team Re-roll to use.");
 			case PITCH_URL:
 				return new GameOptionString(pOptionId).setMessage("Custom pitch set.");
 			case RIGHT_STUFF_CANCELS_TACKLE:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageTrue("Right Stuff prevents Tackle from negating Dodge for Pow/Pushback.");
 			case RULESVERSION:
-				return new GameOptionString(pOptionId).setDefault("BB2016")
+				return new GameOptionString(pOptionId).setDefault("BB2025")
 					.setMessage("Rules Version $1");
 			case SNEAKY_GIT_AS_FOUL_GUARD:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
@@ -346,10 +283,6 @@ public class GameOptionFactory {
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageFalse("Bombardier placed prone causes turnover")
 					.setMessageTrue("Bombardier placed prone ignores turnover");
-			case SNEAKY_GIT_CAN_MOVE_AFTER_FOUL:
-				return new GameOptionBoolean(pOptionId).setDefault(false)
-					.setMessageFalse("Sneaky Git has to end action after fouling")
-					.setMessageTrue("Sneaky Git may move after fouling");
 			case BOMB_USES_MB:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageFalse("Bombs do not use MB")
@@ -362,8 +295,6 @@ public class GameOptionFactory {
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageFalse("Multiple Bribes can be used")
 					.setMessageTrue("Only one Bribe can be used");
-			case CHAINSAW_TURNOVER_ON_AV_BREAK:
-				return new GameOptionBoolean(pOptionId).setDefault(false);
 			case OVERTIME_GOLDEN_GOAL:
 				return new GameOptionBoolean(pOptionId).setDefault(false)
 					.setMessageTrue("Overtime ends after first touchdown")

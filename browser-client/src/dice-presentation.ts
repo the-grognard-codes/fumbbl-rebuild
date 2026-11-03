@@ -33,13 +33,13 @@ export function diceRollGroups(moment: DiceMoment): DiceMoment[] {
 const blockFaces = ['SKULL', 'BOTH DOWN', 'PUSHBACK', 'PUSHBACK', 'POW/PUSH', 'POW'];
 // Explicit report semantics, never a guess based on the observed value.
 const scalarD6 = new Set(['goForItRoll', 'dodgeRoll', 'pickUpRoll', 'catchRoll', 'passRoll', 'leapRoll',
-  'jumpUpRoll', 'rightStuffRoll', 'interceptionRoll', 'safeThrowRoll', 'bloodLustRoll', 'confusionRoll',
+  'jumpUpRoll', 'rightStuffRoll', 'interceptionRoll', 'bloodLustRoll', 'confusionRoll',
   'hypnoticGazeRoll', 'throwTeamMateRoll', 'kickTeamMateRoll', 'standUpRoll', 'reRoll', 'alwaysHungryRoll',
   'animosityRoll', 'dauntlessRoll', 'foulAppearanceRoll', 'regenerationRoll', 'bribesRoll', 'argueTheCall',
-  'chainsawRoll', 'weepingDaggerRoll', 'cardEffectRoll', 'spellEffectRoll', 'officiousRefRoll',
+  'chainsawRoll', 'spellEffectRoll',
   'dodgySnackRoll', 'steadyFootingRoll', 'teamCaptainRoll', 'gettingEvenRoll', 'saboteurRoll', 'chompRoll',
   'lookIntoMyEyesRoll', 'dwarfenWisdomRoll', 'escapeRoll', 'allYouCanEat', 'balefulHex', 'breatheFire',
-  'catchOfTheDay', 'projectileVomit', 'bombExplodesAfterCatch', 'mascotUsed', 'kickoffRiot', 'oldPro',
+  'catchOfTheDay', 'projectileVomit', 'mascotUsed', 'oldPro',
   'pickMeUp', 'thenIStartedBlastin', 'throwAtStallingPlayer', 'thrownKeg', 'trapDoor', 'throwAtPlayer', 'biasedRef', 'tentaclesShadowingRoll']);
 
 function injuryRollPresentation(report: Record<string, unknown>, rolls: PresentedRoll[]): PresentedRoll[] {

@@ -47,7 +47,7 @@ public class PassMechanic extends com.fumbbl.ffb.mechanics.PassMechanic {
 	@Override
 	public Optional<Integer> minimumRoll(Player<?> thrower, PassingDistance distance, Collection<PassModifier> modifiers, StatBasedRollModifier statBasedRollModifier) {
 		if (thrower.getPassingWithModifiers() > 0) {
-			int roll = thrower.getPassingWithModifiers() + distance.getModifier2020() + modifiers.stream().mapToInt(PassModifier::getModifier).sum();
+			int roll = thrower.getPassingWithModifiers() + distance.getPassingModifier() + modifiers.stream().mapToInt(PassModifier::getModifier).sum();
 			if (statBasedRollModifier != null) {
 				roll += statBasedRollModifier.getModifier();
 			}
@@ -66,7 +66,7 @@ public class PassMechanic extends com.fumbbl.ffb.mechanics.PassMechanic {
 	public PassResult evaluatePass(Player<?> thrower, int roll, PassingDistance distance, Collection<PassModifier> modifiers,
 																 boolean bombAction, StatBasedRollModifier statBasedRollModifier) {
 
-		int resultAfterModifiers = roll - calculateModifiers(modifiers) - distance.getModifier2020();
+		int resultAfterModifiers = roll - calculateModifiers(modifiers) - distance.getPassingModifier();
 
 		if (statBasedRollModifier != null) {
 			resultAfterModifiers += statBasedRollModifier.getModifier();
@@ -100,7 +100,7 @@ public class PassMechanic extends com.fumbbl.ffb.mechanics.PassMechanic {
 		if (thrower.getPassingWithModifiers() <= 0) {
 			return "";
 		}
-		return " (Roll - " + distance.getModifier2020() + " " + distance.getName() + formattedModifiers +
+		return " (Roll - " + distance.getPassingModifier() + " " + distance.getName() + formattedModifiers +
 			" >= PA " + thrower.getPassingWithModifiers() + "+).";
 	}
 

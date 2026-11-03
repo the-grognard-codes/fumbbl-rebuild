@@ -21,7 +21,7 @@ import com.fumbbl.ffb.server.step.bb2025.block.StepPushback.StepState;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerPushback;
 import com.fumbbl.ffb.server.util.UtilServerTimer;
-import com.fumbbl.ffb.skill.mixed.Grab;
+import com.fumbbl.ffb.skill.bb2025.Grab;
 import com.fumbbl.ffb.skill.bb2025.Sidestep;
 import com.fumbbl.ffb.util.UtilCards;
 

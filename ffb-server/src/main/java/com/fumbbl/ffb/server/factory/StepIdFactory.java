@@ -20,11 +20,6 @@ public class StepIdFactory implements INamedObjectFactory<StepId> {
 				return stepId;
 			}
 		}
-		for (StepId stepId : StepId.values()) {
-			if (stepId.getOldName().equalsIgnoreCase(pName)) {
-				return stepId;
-			}
-		}
 
 		return null;
 	}

@@ -1,7 +1,7 @@
 package com.fumbbl.ffb;
 
 /**
- * LRB5 Skill Categories
+ * BB2025 skill categories
  *
  * @author Kalimar
  */

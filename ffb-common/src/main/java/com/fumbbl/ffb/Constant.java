@@ -5,7 +5,7 @@ import com.fumbbl.ffb.model.property.ISkillProperty;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.model.skill.SkillWithValue;
-import com.fumbbl.ffb.skill.mixed.special.BalefulHex;
+import com.fumbbl.ffb.skill.bb2025.special.BalefulHex;
 
 import java.util.HashSet;
 import java.util.Set;

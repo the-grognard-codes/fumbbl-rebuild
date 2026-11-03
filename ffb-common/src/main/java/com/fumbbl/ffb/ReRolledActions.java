@@ -4,11 +4,9 @@ import com.fumbbl.ffb.skill.common.Dauntless;
 import com.fumbbl.ffb.skill.common.FoulAppearance;
 import com.fumbbl.ffb.skill.common.JumpUp;
 import com.fumbbl.ffb.skill.common.Pass;
-import com.fumbbl.ffb.skill.bb2016.WildAnimal;
-import com.fumbbl.ffb.skill.mixed.AnimalSavagery;
-import com.fumbbl.ffb.skill.mixed.UnchannelledFury;
-import com.fumbbl.ffb.skill.mixed.special.CatchOfTheDay;
-import com.fumbbl.ffb.skill.bb2020.special.ThenIStartedBlastin;
+import com.fumbbl.ffb.skill.bb2025.AnimalSavagery;
+import com.fumbbl.ffb.skill.bb2025.UnchannelledFury;
+import com.fumbbl.ffb.skill.bb2025.special.CatchOfTheDay;
 import com.fumbbl.ffb.skill.bb2025.special.BlastinSolvesEverything;
 
 import java.lang.reflect.Field;
@@ -31,7 +29,6 @@ public class ReRolledActions {
 	public static final ReRolledAction REALLY_STUPID = new ReRolledAction("Really Stupid");
 	public static final ReRolledAction BONE_HEAD = new ReRolledAction("Bone Head");
 	public static final ReRolledAction BONEHEAD = new ReRolledAction("Bone-Head");
-	public static final ReRolledAction WILD_ANIMAL = new ReRolledAction(WildAnimal.class);
 	public static final ReRolledAction ANIMAL_SAVAGERY = new ReRolledAction(AnimalSavagery.class);
 	public static final ReRolledAction TAKE_ROOT = new ReRolledAction("Take Root");
 	public static final ReRolledAction WINNINGS = new ReRolledAction("Winnings");
@@ -67,7 +64,7 @@ public class ReRolledActions {
 	public static final ReRolledAction ALL_YOU_CAN_EAT = new ReRolledAction("All You Can Eat");
 	public static final ReRolledAction CATCH_OF_THE_DAY = new ReRolledAction(CatchOfTheDay.class);
 	public static final ReRolledAction SINGLE_BLOCK_DIE = new ReRolledAction("Single Block Die");
-	public static final ReRolledAction THEN_I_STARTED_BLASTIN = new ReRolledAction(ThenIStartedBlastin.class);
+	public static final ReRolledAction THEN_I_STARTED_BLASTIN = new ReRolledAction("\"Then I Started Blastin'!\"");
 	public static final ReRolledAction MULTI_BLOCK_DICE = new ReRolledAction("Multi Block Dice");
 	public static final ReRolledAction STEADY_FOOTING = new ReRolledAction("Steady Footing");
 	public static final ReRolledAction SINGLE_BOTH_DOWN = new ReRolledAction("Single BothDown");

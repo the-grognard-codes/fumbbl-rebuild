@@ -26,7 +26,7 @@ import com.fumbbl.ffb.server.step.StepParameterSet;
 import com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffReturn;
 import com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffScatterRollAskAfter;
-import com.fumbbl.ffb.server.step.mixed.pass.StepPassBlock;
+import com.fumbbl.ffb.server.step.bb2025.pass.StepPassBlock;
 import com.fumbbl.ffb.util.UtilBox;
 
 import java.lang.reflect.Field;
@@ -115,8 +115,6 @@ class Roundup5NativeActionsTest {
         assertEquals(report.get("blockRollAfterReroll"), followingPool.get("blockRoll"));
         com.fumbbl.ffb.report.bb2025.ReportBlockReRoll restored = new com.fumbbl.ffb.report.bb2025.ReportBlockReRoll().initFrom(scenario.game.getRules(), report);
         assertEquals(report, restored.toJsonValue()); assertEquals(report, restored.transform(scenario.game.getRules()).toJsonValue());
-        assertFalse(new com.fumbbl.ffb.report.mixed.ReportBlockReRoll(new int[] {2}, scenario.attacker.getId(), ReRollSources.BRAWLER)
-            .toJsonValue().names().contains("rerolledIndexes"));
         exportReroll("ordinary", step.getResult().getReportList());
     }
 

@@ -40,14 +40,14 @@ test('multi-player prompts distinguish injured players and preserve decline-all 
   const second = { ...player, id: 'second-injured-player', name: 'Second injured player' };
   const actions = [action('apothecaries:no', 'Accept all injuries'),
     action(`apothecaries:${player.id}:TEAM`, 'Use Apothecary: Knocked Out'),
-    { ...action(`apothecaries:${second.id}:WANDERING`, 'Use Wandering Apothecary: Neck Injury (-1AG, MNG)'),
+    { ...action(`apothecaries:${second.id}:WANDERING`, 'Use Wandering Apothecary: Dislocated Hip (-1AG, MNG)'),
       target: { playerId: second.id } }];
   actions[0].target = null;
   const decision = matchDecision({ ...frame, players: [...frame.players, second] }, actions)!;
   assert.equal(decision.playerName, undefined);
   assert.deepEqual(decision.options.map(option => [option.id, option.playerName, option.icon]), [
     [actions[0].id, undefined, undefined], [actions[1].id, player.name, 'injury:knocked-out'],
-    [actions[2].id, second.name, 'injury:neck-injury']]);
+    [actions[2].id, second.name, 'injury:dislocated-hip']]);
   assert.equal(decision.options.some(option => option.choices), false);
 });
 
@@ -62,17 +62,16 @@ test('KO and Badly Hurt do not invent a second decision after automatic server r
 test('all supported named injuries have distinct symbols and no guessed fallback artwork', () => {
   const svg = readFileSync(new URL('../../assets/game/ui/injury-icons-v1.svg', import.meta.url), 'utf8');
   const symbols = [...svg.matchAll(/<symbol id="([^"]+)"/g)].map(match => match[1]);
-  assert.equal(symbols.length, 28);
-  assert.equal(new Set(symbols).size, 28);
-  for (const ruleset of ['bb2016', 'bb2020', 'bb2025']) {
-    const source = readFileSync(new URL(`../../ffb-common/src/main/java/com/fumbbl/ffb/${ruleset}/SeriousInjury.java`, import.meta.url), 'utf8');
-    const names = [...source.matchAll(/^\s+[A-Z_]+\("([^"]+)"/gm)].map(match => match[1]);
-    assert.ok(names.length > 0);
-    for (const name of [...names, 'Knocked Out', 'Badly Hurt']) {
-      const icon = injuryIcon(`Accept ${name}`);
-      assert.ok(icon, `${ruleset}: ${name}`);
-      assert.ok(symbols.includes(icon.slice(7)), `${ruleset}: ${icon}`);
-    }
+  const source = readFileSync(new URL('../../ffb-common/src/main/java/com/fumbbl/ffb/bb2025/SeriousInjury.java', import.meta.url), 'utf8');
+  const names = [...source.matchAll(/^\s+[A-Z_]+\("([^"]+)"/gm)].map(match => match[1]);
+  assert.ok(names.length > 0);
+  const supportedNames = [...names, 'Knocked Out', 'Badly Hurt'];
+  const expectedSymbols = [...supportedNames.map(name => name.replace(/\s*\(.*\)$/, '').toLowerCase().replace(/\s+/g, '-')), 'apothecary'];
+  assert.deepEqual(symbols.sort(), expectedSymbols.sort());
+  for (const name of supportedNames) {
+    const icon = injuryIcon(`Accept ${name}`);
+    assert.ok(icon, name);
+    assert.ok(symbols.includes(icon.slice(7)), icon);
   }
   assert.equal(injuryIcon('Accept Unknown Injury'), undefined);
 });

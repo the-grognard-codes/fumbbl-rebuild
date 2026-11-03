@@ -4,7 +4,7 @@ import com.fumbbl.ffb.RulesCollection;
 import com.fumbbl.ffb.inducement.bb2025.Prayer;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
-public class PerfectPassingHandler extends com.fumbbl.ffb.server.inducements.mixed.prayers.PerfectPassingHandler {
+public class PerfectPassingHandler extends com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractPerfectPassingHandler {
 	@Override
 	public Prayer handledPrayer() {
 		return Prayer.PERFECT_PASSING;

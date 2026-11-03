@@ -1,10 +1,7 @@
-/** Pictograms follow the server's ruleset-specific injury names, never roll or resolve injuries. */
+/** Pictograms follow the server's BB2025 injury names, never roll or resolve injuries. */
 const injuryNames = new Set([
-  'knocked-out', 'badly-hurt', 'broken-ribs', 'groin-strain', 'gouged-eye', 'broken-jaw',
-  'fractured-arm', 'fractured-leg', 'smashed-hand', 'pinched-nerve', 'damaged-back',
-  'smashed-knee', 'smashed-hip', 'smashed-ankle', 'serious-concussion', 'fractured-skull',
-  'broken-neck', 'smashed-collar-bone', 'dead', 'poisoned', 'seriously-hurt', 'serious-injury',
-  'head-injury', 'broken-arm', 'neck-injury', 'dislocated-shoulder', 'dislocated-hip'
+  'knocked-out', 'badly-hurt', 'smashed-knee', 'dead', 'seriously-hurt', 'serious-injury',
+  'head-injury', 'broken-arm', 'dislocated-shoulder', 'dislocated-hip'
 ]);
 
 export function injuryIcon(label: string): string | undefined {

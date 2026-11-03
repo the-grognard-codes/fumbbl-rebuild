@@ -221,6 +221,7 @@ try {
   assert.equal(await cancel.isVisible(), true);
   assert.equal((await mutations(hybrid.page)).length, 0);
   await hybrid.page.locator('.live-pitch-viewport').dispatchEvent('wheel', { deltaY: 1 });
+  await cancel.waitFor({ state: 'detached' });
   assert.equal(await cancel.count(), 0, 'Trackpad/wheel input hides Cancel');
   await tapSquare(hybrid.page, end);
   assert.equal(await cancel.isVisible(), true);

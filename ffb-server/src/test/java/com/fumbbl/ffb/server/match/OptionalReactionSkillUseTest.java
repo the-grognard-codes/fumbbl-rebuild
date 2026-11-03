@@ -35,7 +35,7 @@ import com.fumbbl.ffb.server.step.bb2025.block.StepFollowup;
 import com.fumbbl.ffb.server.step.bb2025.block.StepPushback;
 import com.fumbbl.ffb.server.step.bb2025.pass.StepPass;
 import com.fumbbl.ffb.server.step.bb2025.shared.StepSteadyFooting;
-import com.fumbbl.ffb.server.step.mixed.shared.StepPickMeUp;
+import com.fumbbl.ffb.server.step.bb2025.shared.StepPickMeUp;
 import com.fumbbl.ffb.util.UtilBox;
 
 import com.eclipsesource.json.JsonObject;

@@ -41,7 +41,7 @@ public void setUp() throws Exception {
 @Test
 public void myTest() {
     GameState state = new GameStateBuilder(testServer.getGameState())
-        .withRule("BB2025")   // or "BB2020", "BB2016"
+        .withRule("BB2025")
         .withTeam(true, t -> t            // home team
             .player("home1", p -> p.at(7, 7).stats(6, 3, 3, 5, 8)))
         .withTeam(false, t -> t           // away team
@@ -89,7 +89,7 @@ assertTrue(defenderState.getBase() == PlayerState.PRONE ||
 
 | Method | Description |
 |--------|-------------|
-| `withRule(String)` | Rules version: `"BB2025"`, `"BB2020"`, `"BB2016"` |
+| `withRule(String)` | Rules version: `"BB2025"` (the only supported ruleset) |
 | `withTeam(boolean, Consumer<TeamDef>)` | `true` = home, `false` = away |
 | `.player(String id, Consumer<PlayerDef>)` | Add a player to the team |
 | `.at(int x, int y)` | Set player field coordinate |
@@ -236,6 +236,6 @@ mvn test -pl ffb-statetest -Dtest=BlockTest#pushbackResolvesWithNoFallAndPlayers
 - **Test isolation:** Each test creates its own `TestServer`. The `@BeforeEach setUp()` in the test class handles this.
 - **Roll ordering matters:** If a step does one block roll then two armor rolls, you need `TestRolls.on(state).block("pushback").armor(2,2).armor(3,4)` declared before the step executes.
 - **Missing roll throws NPE or returns random:** If you don't pre-declare enough rolls, the DiceRoller falls through to `Fortuna` RNG. Always declare all expected rolls.
-- **Rule version matters:** BB2025 and BB2020 have different step implementations. Always specify the rule version.
+- **Ruleset:** Use BB2025 when constructing a game state; unsupported ruleset input is rejected.
 - **Pushback direction:** Must match an available coordinate that the pushback logic accepts (adjacent, not occupied by another player).
 - **Native engine tests:** Route commands through trusted application-side coach ownership; browser transport tests remain in the server module.

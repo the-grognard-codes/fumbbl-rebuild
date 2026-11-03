@@ -12,7 +12,7 @@ import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.GameState;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
-public class ThrowARockHandler extends com.fumbbl.ffb.server.inducements.mixed.prayers.ThrowARockHandler {
+public class ThrowARockHandler extends com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractThrowARockHandler {
 	@Override
 	public Prayer handledPrayer() {
 		return Prayer.THROW_A_ROCK;

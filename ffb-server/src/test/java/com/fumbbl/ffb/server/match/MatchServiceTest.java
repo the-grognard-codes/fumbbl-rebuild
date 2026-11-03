@@ -181,7 +181,7 @@ class MatchServiceTest {
 			String version = original.catalogVersion;
 			if ("invalid".equals(kind)) draft.get("players").asArray().remove(0);
 			if ("catalog".equals(kind)) { version = "unavailable"; draft.set("catalogVersion", version); document.set("catalogVersion", version); }
-			if ("ruleset".equals(kind)) { draft.set("ruleset", "BB2020"); document.set("ruleset", "BB2020"); }
+			if ("ruleset".equals(kind)) { draft.set("ruleset", "UNSUPPORTED"); document.set("ruleset", "UNSUPPORTED"); }
 			if ("preset".equals(kind)) draft.set("presetId", "unsupported");
 			sources.rows.put(homeTeam, new SavedTeamRepository.Record(homeTeam, "home", 1, version, document.toString()));
 			JsonObject rejected = invoke("home", create(homeTeam, "away")); assertNotEquals("ACCEPTED", rejected.getString("code", null));

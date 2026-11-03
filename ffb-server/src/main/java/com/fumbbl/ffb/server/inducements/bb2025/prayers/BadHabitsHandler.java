@@ -7,20 +7,20 @@ import com.fumbbl.ffb.inducement.bb2025.Prayer;
 import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.model.skill.Skill;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.inducements.mixed.prayers.PlayerSelector;
+import com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractPlayerSelector;
 
 import java.util.Collections;
 import java.util.Set;
 
 @RulesCollection(RulesCollection.Rules.BB2025)
-public class BadHabitsHandler extends com.fumbbl.ffb.server.inducements.mixed.prayers.BadHabitsHandler {
+public class BadHabitsHandler extends com.fumbbl.ffb.server.inducements.bb2025.prayers.AbstractBadHabitsHandler {
 	@Override
 	public Prayer handledPrayer() {
 		return Prayer.BAD_HABITS;
 	}
 
 	@Override
-	protected PlayerSelector selector() {
+	protected AbstractPlayerSelector selector() {
 		return OpponentPlayerSelector.INSTANCE;
 	}
 

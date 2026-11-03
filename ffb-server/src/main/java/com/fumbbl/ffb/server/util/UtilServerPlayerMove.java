@@ -31,7 +31,6 @@ import com.fumbbl.ffb.server.DiceInterpreter;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.IServerLogLevel;
 import com.fumbbl.ffb.util.ArrayTool;
-import com.fumbbl.ffb.util.UtilPassing;
 import com.fumbbl.ffb.util.UtilPlayer;
 
 import java.util.Arrays;
@@ -101,18 +100,14 @@ public class UtilServerPlayerMove {
 					}
 				} else {
 					int steps = jumping ? 2 : 1;
-					Set<FieldCoordinate> validPassBlockCoordinates = UtilPassing.findValidPassBlockEndCoordinates(game);
 					FieldCoordinate[] adjacentCoordinates = fieldModel.findAdjacentCoordinates(playerCoordinate,
 							FieldCoordinateBounds.FIELD, steps, false);
-					JumpMechanic mechanic = (JumpMechanic) game.getFactory(Factory.MECHANIC).forName(Mechanic.Type.JUMP.name());
-					boolean canStillJump = mechanic.canStillJump(game, actingPlayer);
 					OnTheBallMechanic onTheBallMechanic = (OnTheBallMechanic) game.getFactory(Factory.MECHANIC).forName(Mechanic.Type.ON_THE_BALL.name());
 					for (FieldCoordinate coordinate : adjacentCoordinates) {
 						if (fieldModel.getPlayer(coordinate) == null) {
 							if (game.getTurnMode() == TurnMode.PASS_BLOCK) {
 								int distance = coordinate.distanceInSteps(playerCoordinate);
-								if (onTheBallMechanic.validPassBlockMove(game, actingPlayer, playerCoordinate, coordinate,
-									validPassBlockCoordinates, canStillJump, distance)) {
+								if (onTheBallMechanic.validPassBlockMove(actingPlayer, distance)) {
 									addMoveSquare(pGameState, jumping, coordinate);
 								}
 							} else if (game.getTurnMode() == TurnMode.KICKOFF_RETURN) {

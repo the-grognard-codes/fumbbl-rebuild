@@ -1,6 +1,5 @@
 package com.fumbbl.ffb.mechanics;
 
-import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.model.ActingPlayer;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
@@ -14,10 +13,9 @@ public abstract class OnTheBallMechanic implements Mechanic {
 		return Type.ON_THE_BALL;
 	}
 
-	public abstract Set<Player<?>> findPassBlockers(Game game, Team pTeam, boolean pCheckCanReach);
+	public abstract Set<Player<?>> findPassBlockers(Game game, Team team);
 
-	public abstract boolean validPassBlockMove(Game game, ActingPlayer actingPlayer, FieldCoordinate fromCoordinate, FieldCoordinate toCoordinate,
-	                                           Set<FieldCoordinate> validPassBlockCoordinates, boolean canStillJump, int distance);
+	public abstract boolean validPassBlockMove(ActingPlayer actingPlayer, int distance);
 
 	public abstract String displayStringPassInterference();
 

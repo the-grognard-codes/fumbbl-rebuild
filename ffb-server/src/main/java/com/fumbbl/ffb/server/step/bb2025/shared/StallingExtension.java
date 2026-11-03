@@ -3,15 +3,14 @@ package com.fumbbl.ffb.server.step.bb2025.shared;
 import com.fumbbl.ffb.ApothecaryMode;
 import com.fumbbl.ffb.FieldCoordinate;
 import com.fumbbl.ffb.FieldCoordinateBounds;
-import com.fumbbl.ffb.model.TeamResult;
-import com.fumbbl.ffb.util.pathfinding.PathFinderWithPassBlockSupport;
 import com.fumbbl.ffb.model.Animation;
 import com.fumbbl.ffb.model.AnimationType;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.TeamResult;
 import com.fumbbl.ffb.model.property.ISkillProperty;
 import com.fumbbl.ffb.model.property.NamedProperties;
-import com.fumbbl.ffb.report.mixed.ReportThrowAtStallingPlayer;
+import com.fumbbl.ffb.report.bb2025.ReportThrowAtStallingPlayer;
 import com.fumbbl.ffb.server.GameState;
 import com.fumbbl.ffb.server.InjuryResult;
 import com.fumbbl.ffb.server.injury.injuryType.InjuryTypeThrowARockStalling;
@@ -24,6 +23,7 @@ import com.fumbbl.ffb.server.util.UtilServerGame;
 import com.fumbbl.ffb.server.util.UtilServerInjury;
 import com.fumbbl.ffb.util.ArrayTool;
 import com.fumbbl.ffb.util.UtilPlayer;
+import com.fumbbl.ffb.util.pathfinding.PathFinder;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,7 +56,7 @@ public class StallingExtension {
 			Arrays.stream(endzoneBounds.fieldCoordinates()).collect(Collectors.toSet());
 
 		return ArrayTool.isProvided(
-			PathFinderWithPassBlockSupport.INSTANCE.getShortestPath(game, endZoneCoordinates, player, 0));
+			PathFinder.INSTANCE.getShortestPath(game, endZoneCoordinates, player, 0));
 	}
 
 	public void handleStaller(IStep step, Player<?> player) {

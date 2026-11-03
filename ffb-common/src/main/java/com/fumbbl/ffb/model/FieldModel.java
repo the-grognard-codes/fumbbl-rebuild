@@ -395,9 +395,6 @@ public class FieldModel implements IJsonSerializable {
 		}
 		Set<CardEffect> cardEffects = fCardEffectsByPlayerId.computeIfAbsent(pPlayer.getId(), k -> new HashSet<>());
 		cardEffects.add(pCardEffect);
-		SkillFactory factory = getGame().getFactory(Factory.SKILL);
-		pPlayer.addTemporarySkills(pCardEffect.getName(),
-			pCardEffect.skills().stream().map(cls -> new SkillWithValue(factory.forClass(cls))).collect(Collectors.toSet()));
 		notifyObservers(ModelChangeId.FIELD_MODEL_ADD_CARD_EFFECT, pPlayer.getId(), pCardEffect);
 	}
 

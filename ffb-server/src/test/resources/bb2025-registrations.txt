@@ -1,0 +1,632 @@
+factory|ANIMATION_TYPE|com.fumbbl.ffb.factory.AnimationTypeFactory
+factory|APOTHECARY_MODE|com.fumbbl.ffb.factory.ApothecaryModeFactory
+factory|APOTHECARY_STATUS|com.fumbbl.ffb.factory.ApothecaryStatusFactory
+factory|ARMOUR_MODIFIER|com.fumbbl.ffb.factory.ArmorModifierFactory
+factory|BLOCK_RESULT|com.fumbbl.ffb.factory.BlockResultFactory
+factory|CARD_EFFECT|com.fumbbl.ffb.factory.CardEffectFactory
+factory|CARD_HANDLER|com.fumbbl.ffb.server.factory.CardHandlerFactory
+factory|CARD_TYPE|com.fumbbl.ffb.factory.CardTypeFactory
+factory|CARD|com.fumbbl.ffb.factory.CardFactory
+factory|CASUALTY_MODIFIER|com.fumbbl.ffb.factory.bb2025.CasualtyModifierFactory
+factory|CATCH_MODIFIER|com.fumbbl.ffb.factory.CatchModifierFactory
+factory|CATCH_SCATTER_THROWIN_MODE|com.fumbbl.ffb.factory.CatchScatterThrowInModeFactory
+factory|CONCEDE_GAME_STATUS|com.fumbbl.ffb.factory.ConcedeGameStatusFactory
+factory|DEFERRED_COMMAND_ID|com.fumbbl.ffb.server.factory.bb2025.DeferredCommandIdFactory
+factory|DEFERRED_COMMAND|com.fumbbl.ffb.server.factory.bb2025.DeferredCommandFactory
+factory|DIALOG_ID|com.fumbbl.ffb.factory.DialogIdFactory
+factory|DIRECTION|com.fumbbl.ffb.factory.DirectionFactory
+factory|DODGE_MODIFIER|com.fumbbl.ffb.factory.DodgeModifierFactory
+factory|GAME_OPTION_ID|com.fumbbl.ffb.factory.GameOptionIdFactory
+factory|GAME_STATUS|com.fumbbl.ffb.factory.GameStatusFactory
+factory|GAZE_MODIFIER|com.fumbbl.ffb.factory.GazeModifierFactory
+factory|GO_FOR_IT_MODIFIER|com.fumbbl.ffb.factory.common.GoForItModifierFactory
+factory|INDUCEMENT_PHASE|com.fumbbl.ffb.factory.InducementPhaseFactory
+factory|INDUCEMENT_TYPE|com.fumbbl.ffb.factory.InducementTypeFactory
+factory|INJURY_MODIFIER|com.fumbbl.ffb.factory.InjuryModifierFactory
+factory|INJURY_TYPE_SERVER|com.fumbbl.ffb.server.factory.InjuryTypeServerFactory
+factory|INJURY_TYPE|com.fumbbl.ffb.factory.InjuryTypeFactory
+factory|INTERCEPTION_MODIFIER|com.fumbbl.ffb.factory.InterceptionModifierFactory
+factory|JUMP_MODIFIER|com.fumbbl.ffb.factory.bb2025.JumpModifierFactory
+factory|JUMP_UP_MODIFIER|com.fumbbl.ffb.factory.JumpUpModifierFactory
+factory|KICKOFF_RESULT|com.fumbbl.ffb.factory.KickoffResultFactory
+factory|LEADER_STATE|com.fumbbl.ffb.factory.LeaderStateFactory
+factory|MECHANIC|com.fumbbl.ffb.factory.MechanicsFactory
+factory|MODEL_CHANGE_DATA_TYPE|com.fumbbl.ffb.factory.ModelChangeDataTypeFactory
+factory|MODEL_CHANGE_ID|com.fumbbl.ffb.factory.ModelChangeIdFactory
+factory|NET_COMMAND_ID|com.fumbbl.ffb.factory.application.NetCommandIdFactory
+factory|OBSERVERS|com.fumbbl.ffb.server.factory.ObserverFactory
+factory|PASSING_DISTANCE|com.fumbbl.ffb.factory.PassingDistanceFactory
+factory|PASS_MODIFIER|com.fumbbl.ffb.factory.PassModifierFactory
+factory|PASS_RESULT|com.fumbbl.ffb.factory.PassResultFactory
+factory|PICKUP_MODIFIER|com.fumbbl.ffb.factory.PickupModifierFactory
+factory|PLAYER_ACTION|com.fumbbl.ffb.factory.PlayerActionFactory
+factory|PLAYER_CHOICE_MODE|com.fumbbl.ffb.factory.PlayerChoiceModeFactory
+factory|PLAYER_GENDER|com.fumbbl.ffb.factory.PlayerGenderFactory
+factory|PLAYER_TYPE|com.fumbbl.ffb.factory.PlayerTypeFactory
+factory|PRAYER_HANDLER|com.fumbbl.ffb.server.factory.bb2025.PrayerHandlerFactory
+factory|PRAYER|com.fumbbl.ffb.factory.bb2025.PrayerFactory
+factory|PUSHBACK_MODE|com.fumbbl.ffb.factory.PushbackModeFactory
+factory|REPORT_ID|com.fumbbl.ffb.factory.ReportIdFactory
+factory|REPORT|com.fumbbl.ffb.factory.ReportFactory
+factory|RE_ROLLED_ACTION|com.fumbbl.ffb.factory.ReRolledActionFactory
+factory|RE_ROLL_PROPERTY|com.fumbbl.ffb.factory.ReRollPropertyFactory
+factory|RE_ROLL_SOURCE|com.fumbbl.ffb.factory.ReRollSourceFactory
+factory|RIGHT_STUFF_MODIFIER|com.fumbbl.ffb.factory.RightStuffModifierFactory
+factory|SEND_TO_BOX_REASON|com.fumbbl.ffb.factory.SendToBoxReasonFactory
+factory|SEQUENCE_GENERATOR|com.fumbbl.ffb.server.factory.SequenceGeneratorFactory
+factory|SERIOUS_INJURY|com.fumbbl.ffb.factory.SeriousInjuryFactory
+factory|SKILL_CATEGORY|com.fumbbl.ffb.factory.SkillCategoryFactory
+factory|SKILL_PROPERTIES|com.fumbbl.ffb.factory.SkillPropertiesFactory
+factory|SKILL_USE|com.fumbbl.ffb.factory.SkillUseFactory
+factory|SKILL|com.fumbbl.ffb.factory.SkillFactory
+factory|SOUND_ID|com.fumbbl.ffb.factory.SoundIdFactory
+factory|SPECIAL_EFFECT|com.fumbbl.ffb.factory.SpecialEffectFactory
+factory|STEP_ACTION|com.fumbbl.ffb.server.factory.StepActionFactory
+factory|STEP_ID|com.fumbbl.ffb.server.factory.StepIdFactory
+factory|TEAM_STATUS|com.fumbbl.ffb.factory.TeamStatusFactory
+factory|TEMPORARY_STAT_MODIFIER|com.fumbbl.ffb.factory.TemporaryStatModifierFactory
+factory|TURN_MODE|com.fumbbl.ffb.factory.TurnModeFactory
+factory|WEATHER|com.fumbbl.ffb.factory.WeatherFactory
+mechanic|AGILITY|com.fumbbl.ffb.mechanics.bb2025.AgilityMechanic
+mechanic|APOTHECARY|com.fumbbl.ffb.mechanics.bb2025.ApothecaryMechanic
+mechanic|GAME|com.fumbbl.ffb.mechanics.bb2025.GameMechanic
+mechanic|INJURY|com.fumbbl.ffb.mechanics.bb2025.InjuryMechanic
+mechanic|JUMP|com.fumbbl.ffb.mechanics.bb2025.JumpMechanic
+mechanic|ON_THE_BALL|com.fumbbl.ffb.mechanics.bb2025.OnTheBallMechanic
+mechanic|PASS|com.fumbbl.ffb.mechanics.bb2025.PassMechanic
+mechanic|ROLL|com.fumbbl.ffb.server.mechanic.bb2025.RollMechanic
+mechanic|SETUP|com.fumbbl.ffb.server.mechanic.bb2025.SetupMechanic
+mechanic|SKILL|com.fumbbl.ffb.mechanics.bb2025.SkillMechanic
+mechanic|SPP|com.fumbbl.ffb.mechanics.bb2025.SppMechanic
+mechanic|STATE|com.fumbbl.ffb.server.mechanic.bb2025.StateMechanic
+mechanic|STAT|com.fumbbl.ffb.mechanics.bb2025.StatsMechanic
+mechanic|THROW_IN|com.fumbbl.ffb.mechanics.bb2025.ThrowInMechanic
+mechanic|TTM|com.fumbbl.ffb.mechanics.bb2025.TtmMechanic
+report|allYouCanEat|com.fumbbl.ffb.report.bb2025.ReportAllYouCanEatRoll
+report|alwaysHungryRoll|com.fumbbl.ffb.report.ReportAlwaysHungryRoll
+report|animalSavagery|com.fumbbl.ffb.report.bb2025.ReportAnimalSavagery
+report|animosityRoll|com.fumbbl.ffb.report.ReportAnimosityRoll
+report|apothecaryChoice|com.fumbbl.ffb.report.ReportApothecaryChoice
+report|apothecaryRoll|com.fumbbl.ffb.report.bb2025.ReportApothecaryRoll
+report|argueTheCall|com.fumbbl.ffb.report.bb2025.ReportArgueTheCallRoll
+report|balefulHex|com.fumbbl.ffb.report.bb2025.ReportBalefulHexRoll
+report|biasedRef|com.fumbbl.ffb.report.bb2025.ReportBiasedRef
+report|biteSpectator|com.fumbbl.ffb.report.ReportBiteSpectator
+report|blitzRoll|com.fumbbl.ffb.report.bb2025.ReportBlitzRoll
+report|blockChoice|com.fumbbl.ffb.report.ReportBlockChoice
+report|blockReRoll|com.fumbbl.ffb.report.bb2025.ReportBlockReRoll
+report|blockRoll|com.fumbbl.ffb.report.ReportBlockRoll
+report|block|com.fumbbl.ffb.report.ReportBlock
+report|bloodLustRoll|com.fumbbl.ffb.report.ReportBloodLustRoll
+report|bombExplodesAfterCatch|com.fumbbl.ffb.report.ReportBombExplodesAfterCatch
+report|bombOutOfBounds|com.fumbbl.ffb.report.ReportBombOutOfBounds
+report|breatheFire|com.fumbbl.ffb.report.bb2025.ReportBreatheFire
+report|briberyAndCorruptionReRoll|com.fumbbl.ffb.report.bb2025.ReportBriberyAndCorruptionReRoll
+report|bribesRoll|com.fumbbl.ffb.report.ReportBribesRoll
+report|brilliantCoachingReRoll|com.fumbbl.ffb.report.bb2025.ReportBrilliantCoachingReRollsLost
+report|cardDeactivated|com.fumbbl.ffb.report.ReportCardDeactivated
+report|cardEffectRoll|com.fumbbl.ffb.report.ReportCardEffectRoll
+report|catchOfTheDay|com.fumbbl.ffb.report.bb2025.ReportCatchOfTheDayRoll
+report|catchRoll|com.fumbbl.ffb.report.ReportCatchRoll
+report|chainsawRoll|com.fumbbl.ffb.report.ReportChainsawRoll
+report|cheeringFans|com.fumbbl.ffb.report.bb2025.ReportCheeringFans
+report|chompRemoved|com.fumbbl.ffb.report.bb2025.ReportChompRemoved
+report|chompRoll|com.fumbbl.ffb.report.bb2025.ReportChompRoll
+report|cloudBurster|com.fumbbl.ffb.report.bb2025.ReportCloudBurster
+report|coinThrow|com.fumbbl.ffb.report.ReportCoinThrow
+report|confusionRoll|com.fumbbl.ffb.report.ReportConfusionRoll
+report|dauntlessRoll|com.fumbbl.ffb.report.ReportDauntlessRoll
+report|dedicatedFans|com.fumbbl.ffb.report.bb2025.ReportDedicatedFans
+report|defectingPlayers|com.fumbbl.ffb.report.ReportDefectingPlayers
+report|dodgeRoll|com.fumbbl.ffb.report.bb2025.ReportDodgeRoll
+report|dodgySnackRoll|com.fumbbl.ffb.report.bb2025.ReportDodgySnackRoll
+report|doubleHiredStaff|com.fumbbl.ffb.report.bb2025.ReportDoubleHiredStaff
+report|doubleHiredStarPlayer|com.fumbbl.ffb.report.ReportDoubleHiredStarPlayer
+report|dwarfenWisdomRoll|com.fumbbl.ffb.report.bb2025.ReportDwarfenWisdomRoll
+report|escapeRoll|com.fumbbl.ffb.report.ReportEscapeRoll
+report|event|com.fumbbl.ffb.report.bb2025.ReportEvent
+report|extraReRoll|com.fumbbl.ffb.report.bb2025.ReportKickoffExtraReRoll
+report|fanFactor|com.fumbbl.ffb.report.bb2025.ReportFanFactor
+report|foulAppearanceRoll|com.fumbbl.ffb.report.ReportFoulAppearanceRoll
+report|foul|com.fumbbl.ffb.report.ReportFoul
+report|freePettyCash|com.fumbbl.ffb.report.bb2025.ReportFreePettyCash
+report|fumbblResultUpload|com.fumbbl.ffb.report.ReportFumbblResultUpload
+report|fumblerooskie|com.fumbbl.ffb.report.bb2025.ReportFumblerooskie
+report|gameOptions|com.fumbbl.ffb.report.ReportGameOptions
+report|gettingEvenRoll|com.fumbbl.ffb.report.bb2025.ReportGettingEvenRoll
+report|goForItRoll|com.fumbbl.ffb.report.ReportGoForItRoll
+report|handOver|com.fumbbl.ffb.report.ReportHandOver
+report|hitAndRun|com.fumbbl.ffb.report.bb2025.ReportHitAndRun
+report|hypnoticGazeRoll|com.fumbbl.ffb.report.bb2025.ReportHypnoticGazeRoll
+report|indomitable|com.fumbbl.ffb.report.bb2025.ReportIndomitable
+report|inducement|com.fumbbl.ffb.report.ReportInducement
+report|injury|com.fumbbl.ffb.report.bb2025.ReportInjury
+report|interceptionRoll|com.fumbbl.ffb.report.ReportInterceptionRoll
+report|jumpUpRoll|com.fumbbl.ffb.report.ReportJumpUpRoll
+report|kickTeamMateFumble|com.fumbbl.ffb.report.bb2025.ReportKickTeamMateFumble
+report|kickoffDodgySnack|com.fumbbl.ffb.report.bb2025.ReportKickoffDodgySnack
+report|kickoffPitchInvasion|com.fumbbl.ffb.report.bb2025.ReportKickoffPitchInvasion
+report|kickoffResult|com.fumbbl.ffb.report.ReportKickoffResult
+report|kickoffScatter|com.fumbbl.ffb.report.ReportKickoffScatter
+report|kickoffSequenceActivationsCount|com.fumbbl.ffb.report.bb2025.ReportKickoffSequenceActivationsCount
+report|kickoffSequenceActivationsExhausted|com.fumbbl.ffb.report.bb2025.ReportKickoffSequenceActivationsExhausted
+report|kickoffTimeout|com.fumbbl.ffb.report.bb2025.ReportKickoffTimeout
+report|leader|com.fumbbl.ffb.report.ReportLeader
+report|leapRoll|com.fumbbl.ffb.report.ReportJumpRoll
+report|lookIntoMyEyesRoll|com.fumbbl.ffb.report.bb2025.ReportLookIntoMyEyesRoll
+report|mascotUsed|com.fumbbl.ffb.report.bb2025.ReportMascotUsed
+report|masterChefRoll|com.fumbbl.ffb.report.ReportMasterChefRoll
+report|modifiedDodgeResultSuccessful|com.fumbbl.ffb.report.bb2025.ReportModifiedDodgeResultSuccessful
+report|modifiedPassResult|com.fumbbl.ffb.report.bb2025.ReportModifiedPassResult
+report|mostValuablePlayers|com.fumbbl.ffb.report.ReportMostValuablePlayers
+report|nervesOfSteel|com.fumbbl.ffb.report.bb2025.ReportNervesOfSteel
+report|oldPro|com.fumbbl.ffb.report.bb2025.ReportOldPro
+report|passBlock|com.fumbbl.ffb.report.ReportPassBlock
+report|passDeviate|com.fumbbl.ffb.report.ReportPassDeviate
+report|passRoll|com.fumbbl.ffb.report.bb2025.ReportPassRoll
+report|penaltyShootout|com.fumbbl.ffb.report.bb2025.ReportPenaltyShootout
+report|pettyCash|com.fumbbl.ffb.report.ReportPettyCash
+report|pickMeUp|com.fumbbl.ffb.report.bb2025.ReportPickMeUp
+report|pickUpRoll|com.fumbbl.ffb.report.bb2025.ReportPickupRoll
+report|pilingOn|com.fumbbl.ffb.report.ReportPilingOn
+report|placedBallDirection|com.fumbbl.ffb.report.bb2025.ReportPlaceBallDirection
+report|playCard|com.fumbbl.ffb.report.ReportPlayCard
+report|playerAction|com.fumbbl.ffb.report.ReportPlayerAction
+report|playerEvent|com.fumbbl.ffb.report.bb2025.ReportPlayerEvent
+report|prayerAmount|com.fumbbl.ffb.report.bb2025.ReportPrayerAmount
+report|prayerEnd|com.fumbbl.ffb.report.bb2025.ReportPrayerEnd
+report|prayerRoll|com.fumbbl.ffb.report.bb2025.ReportPrayerRoll
+report|prayerWasted|com.fumbbl.ffb.report.bb2025.ReportPrayerWasted
+report|prayersAndInducementsBought|com.fumbbl.ffb.report.bb2025.ReportPrayersAndInducementsBought
+report|projectileVomit|com.fumbbl.ffb.report.bb2025.ReportProjectileVomit
+report|pumpUpTheCrowdReRollLost|com.fumbbl.ffb.report.bb2025.ReportPumpUpTheCrowdReRollsLost
+report|pumpUpTheCrowdReRoll|com.fumbbl.ffb.report.bb2025.ReportPumpUpTheCrowdReRoll
+report|puntDirectionRoll|com.fumbbl.ffb.report.bb2025.ReportPuntDirection
+report|puntDistanceRoll|com.fumbbl.ffb.report.bb2025.ReportPuntDistance
+report|pushback|com.fumbbl.ffb.report.ReportPushback
+report|quickSnapRoll|com.fumbbl.ffb.report.bb2025.ReportQuickSnapRoll
+report|raidingParty|com.fumbbl.ffb.report.bb2025.ReportRaidingParty
+report|raiseDead|com.fumbbl.ffb.report.ReportRaiseDead
+report|reRoll|com.fumbbl.ffb.report.ReportReRoll
+report|receiveChoice|com.fumbbl.ffb.report.ReportReceiveChoice
+report|referee|com.fumbbl.ffb.report.bb2025.ReportReferee
+report|regenerationRoll|com.fumbbl.ffb.report.ReportRegenerationRoll
+report|rightStuffRoll|com.fumbbl.ffb.report.ReportRightStuffRoll
+report|riotousRookies|com.fumbbl.ffb.report.ReportRiotousRookies
+report|saboteurRoll|com.fumbbl.ffb.report.bb2025.ReportSaboteurRoll
+report|safeThrowRoll|com.fumbbl.ffb.report.ReportSafeThrowRoll
+report|scatterBall|com.fumbbl.ffb.report.ReportScatterBall
+report|scatterPlayer|com.fumbbl.ffb.report.ReportScatterPlayer
+report|secretWeaponBan|com.fumbbl.ffb.report.ReportSecretWeaponBan
+report|selectBlitzTarget|com.fumbbl.ffb.report.bb2025.ReportSelectBlitzTarget
+report|selectGazeTarget|com.fumbbl.ffb.report.bb2025.ReportSelectGazeTarget
+report|showStarReRollLost|com.fumbbl.ffb.report.bb2025.ReportShowStarReRollsLost
+report|showStarReRoll|com.fumbbl.ffb.report.bb2025.ReportShowStarReRoll
+report|skillUse|com.fumbbl.ffb.report.ReportSkillUse
+report|skillWasted|com.fumbbl.ffb.report.bb2025.ReportSkillWasted
+report|solidDefenceRoll|com.fumbbl.ffb.report.bb2025.ReportSolidDefenceRoll
+report|spellEffectRoll|com.fumbbl.ffb.report.ReportSpecialEffectRoll
+report|stallerDetected|com.fumbbl.ffb.report.bb2025.ReportStallerDetected
+report|standUpRoll|com.fumbbl.ffb.report.ReportStandUpRoll
+report|startHalf|com.fumbbl.ffb.report.ReportStartHalf
+report|steadyFootingRoll|com.fumbbl.ffb.report.bb2025.ReportSteadyFootingRoll
+report|swarmingPlayersRoll|com.fumbbl.ffb.report.bb2025.ReportSwarmingRoll
+report|swoopDirectionRoll|com.fumbbl.ffb.report.bb2025.ReportSwoopDirection
+report|swoopPlayer|com.fumbbl.ffb.report.bb2025.ReportSwoopPlayer
+report|teamCaptainRoll|com.fumbbl.ffb.report.bb2025.ReportTeamCaptainRoll
+report|teamEvent|com.fumbbl.ffb.report.bb2025.ReportTeamEvent
+report|tentaclesShadowingRoll|com.fumbbl.ffb.report.bb2025.ReportTentaclesShadowingRoll
+report|thenIStartedBlastin|com.fumbbl.ffb.report.bb2025.ReportThenIStartedBlastin
+report|throwAtPlayer|com.fumbbl.ffb.report.bb2025.ReportThrowAtPlayer
+report|throwAtStallingPlayer|com.fumbbl.ffb.report.bb2025.ReportThrowAtStallingPlayer
+report|throwIn|com.fumbbl.ffb.report.ReportThrowIn
+report|throwTeamMateRoll|com.fumbbl.ffb.report.bb2025.ReportThrowTeamMateRoll
+report|thrownKeg|com.fumbbl.ffb.report.bb2025.ReportThrownKeg
+report|timeoutEnforced|com.fumbbl.ffb.report.ReportTimeoutEnforced
+report|trapDoor|com.fumbbl.ffb.report.bb2025.ReportTrapDoor
+report|turnEnd|com.fumbbl.ffb.report.bb2025.ReportTurnEnd
+report|weatherMageResult|com.fumbbl.ffb.report.bb2025.ReportWeatherMageResult
+report|weatherMageRoll|com.fumbbl.ffb.report.bb2025.ReportWeatherMageRoll
+report|weather|com.fumbbl.ffb.report.ReportWeather
+report|weepingDaggerRoll|com.fumbbl.ffb.report.ReportWeepingDaggerRoll
+report|winnings|com.fumbbl.ffb.report.bb2025.ReportWinnings
+report|wizardUse|com.fumbbl.ffb.report.ReportWizardUse
+sequence|AutoGazeZoat|com.fumbbl.ffb.server.step.generator.bb2025.AutoGazeZoat
+sequence|BalefulHex|com.fumbbl.ffb.server.step.generator.bb2025.BalefulHex
+sequence|BlackInk|com.fumbbl.ffb.server.step.generator.bb2025.BlackInk
+sequence|BlitzBlock|com.fumbbl.ffb.server.step.generator.bb2025.BlitzBlock
+sequence|BlitzMove|com.fumbbl.ffb.server.step.generator.bb2025.BlitzMove
+sequence|Block|com.fumbbl.ffb.server.step.generator.bb2025.Block
+sequence|Bomb|com.fumbbl.ffb.server.step.generator.bb2025.Bomb
+sequence|CarriedPlayerScatter|com.fumbbl.ffb.server.step.generator.bb2025.CarriedPlayerScatter
+sequence|CatchOfTheDay|com.fumbbl.ffb.server.step.generator.bb2025.CatchOfTheDay
+sequence|EndGame|com.fumbbl.ffb.server.step.generator.bb2025.EndGame
+sequence|EndPlayerAction|com.fumbbl.ffb.server.step.generator.bb2025.EndPlayerAction
+sequence|EndTurn|com.fumbbl.ffb.server.step.generator.bb2025.EndTurn
+sequence|Foul|com.fumbbl.ffb.server.step.generator.bb2025.Foul
+sequence|FuriousOutburst|com.fumbbl.ffb.server.step.generator.bb2025.FuriousOutburst
+sequence|IllCarryYou|com.fumbbl.ffb.server.step.generator.bb2025.IllCarryYou
+sequence|Inducement|com.fumbbl.ffb.server.step.generator.common.Inducement
+sequence|Kickoff|com.fumbbl.ffb.server.step.generator.bb2025.Kickoff
+sequence|LookIntoMyEyes|com.fumbbl.ffb.server.step.generator.bb2025.LookIntoMyEyes
+sequence|Move|com.fumbbl.ffb.server.step.generator.bb2025.Move
+sequence|MultiBlock|com.fumbbl.ffb.server.step.generator.bb2025.MultiBlock
+sequence|Pass|com.fumbbl.ffb.server.step.generator.bb2025.Pass
+sequence|PileDriver|com.fumbbl.ffb.server.step.generator.bb2025.PileDriver
+sequence|Punt|com.fumbbl.ffb.server.step.generator.bb2025.Punt
+sequence|QuickBite|com.fumbbl.ffb.server.step.generator.bb2025.QuickBite
+sequence|RaidingParty|com.fumbbl.ffb.server.step.generator.bb2025.RaidingParty
+sequence|RiotousRookies|com.fumbbl.ffb.server.step.generator.common.RiotousRookies
+sequence|ScatterPlayer|com.fumbbl.ffb.server.step.generator.bb2025.ScatterPlayer
+sequence|SelectBlitzTarget|com.fumbbl.ffb.server.step.generator.bb2025.SelectBlitzTarget
+sequence|Select|com.fumbbl.ffb.server.step.generator.bb2025.Select
+sequence|SpecialEffect|com.fumbbl.ffb.server.step.generator.bb2025.SpecialEffect
+sequence|SpikedBallApo|com.fumbbl.ffb.server.step.generator.common.SpikedBallApo
+sequence|StartGame|com.fumbbl.ffb.server.step.generator.bb2025.StartGame
+sequence|ThenIStartedBlastin|com.fumbbl.ffb.server.step.generator.bb2025.ThenIStartedBlastin
+sequence|ThrowARock|com.fumbbl.ffb.server.step.generator.bb2025.ThrowARock
+sequence|ThrowKeg|com.fumbbl.ffb.server.step.generator.bb2025.ThrowKeg
+sequence|ThrowTeamMate|com.fumbbl.ffb.server.step.generator.bb2025.ThrowTeamMate
+sequence|Treacherous|com.fumbbl.ffb.server.step.generator.bb2025.Treacherous
+sequence|Wizard|com.fumbbl.ffb.server.step.generator.common.Wizard
+skill|"Blastin' Solves Everything"|com.fumbbl.ffb.skill.bb2025.special.BlastinSolvesEverything
+skill|"Excuse Me, Are You a Zoat?"|com.fumbbl.ffb.skill.bb2025.special.ExcuseMeAreYouAZoat
+skill|+AG|com.fumbbl.ffb.skill.bb2025.AgilityIncrease
+skill|+AV|com.fumbbl.ffb.skill.bb2025.ArmourIncrease
+skill|+MA|com.fumbbl.ffb.skill.common.MovementIncrease
+skill|+PA|com.fumbbl.ffb.skill.bb2025.PassingIncrease
+skill|+ST|com.fumbbl.ffb.skill.bb2025.StrengthIncrease
+skill|A Sneaky Pair|com.fumbbl.ffb.skill.bb2025.special.ASneakyPair
+skill|Accurate|com.fumbbl.ffb.skill.bb2025.Accurate
+skill|All You Can Eat|com.fumbbl.ffb.skill.bb2025.special.AllYouCanEat
+skill|Always Hungry|com.fumbbl.ffb.skill.bb2025.AlwaysHungry
+skill|Animal Savagery|com.fumbbl.ffb.skill.bb2025.AnimalSavagery
+skill|Animosity|com.fumbbl.ffb.skill.bb2025.Animosity
+skill|Arm Bar|com.fumbbl.ffb.skill.bb2025.ArmBar
+skill|Baleful Hex|com.fumbbl.ffb.skill.bb2025.special.BalefulHex
+skill|Ball and Chain|com.fumbbl.ffb.skill.bb2025.BallAndChain
+skill|Beer Barrel Bash!|com.fumbbl.ffb.skill.bb2025.special.BeerBarrelBash
+skill|Big Hand|com.fumbbl.ffb.skill.bb2025.BigHand
+skill|Black Ink|com.fumbbl.ffb.skill.bb2025.special.BlackInk
+skill|Blast It!|com.fumbbl.ffb.skill.bb2025.special.BlastIt
+skill|Blind Rage|com.fumbbl.ffb.skill.bb2025.special.BlindRage
+skill|Block|com.fumbbl.ffb.skill.common.Block
+skill|Bloodlust|com.fumbbl.ffb.skill.bb2025.Bloodlust
+skill|Bombardier|com.fumbbl.ffb.skill.bb2025.Bombardier
+skill|Bone Head|com.fumbbl.ffb.skill.bb2025.BoneHead
+skill|Bounding Leap|com.fumbbl.ffb.skill.bb2025.special.BoundingLeap
+skill|Brawler|com.fumbbl.ffb.skill.bb2025.Brawler
+skill|Break Tackle|com.fumbbl.ffb.skill.bb2025.BreakTackle
+skill|Breathe Fire|com.fumbbl.ffb.skill.bb2025.BreatheFire
+skill|Bugman's XXXXXX|com.fumbbl.ffb.skill.bb2025.special.BugmansXXXXXX
+skill|Bullseye|com.fumbbl.ffb.skill.bb2025.Bullseye
+skill|Cannoneer|com.fumbbl.ffb.skill.bb2025.Cannoneer
+skill|Catch of the Day|com.fumbbl.ffb.skill.bb2025.special.CatchOfTheDay
+skill|Catch|com.fumbbl.ffb.skill.common.Catch
+skill|Chainsaw|com.fumbbl.ffb.skill.bb2025.Chainsaw
+skill|Claws|com.fumbbl.ffb.skill.bb2025.Claws
+skill|Cloud Burster|com.fumbbl.ffb.skill.bb2025.CloudBurster
+skill|Crushing Blow|com.fumbbl.ffb.skill.bb2025.special.CrushingBlow
+skill|Dauntless|com.fumbbl.ffb.skill.common.Dauntless
+skill|Decay|com.fumbbl.ffb.skill.bb2025.Decay
+skill|Defensive|com.fumbbl.ffb.skill.bb2025.Defensive
+skill|Dirty Player|com.fumbbl.ffb.skill.bb2025.DirtyPlayer
+skill|Disturbing Presence|com.fumbbl.ffb.skill.common.DisturbingPresence
+skill|Diving Catch|com.fumbbl.ffb.skill.common.DivingCatch
+skill|Diving Tackle|com.fumbbl.ffb.skill.bb2025.DivingTackle
+skill|Dodge|com.fumbbl.ffb.skill.bb2025.Dodge
+skill|Drunkard|com.fumbbl.ffb.skill.bb2025.Drunkard
+skill|Dump-Off|com.fumbbl.ffb.skill.common.DumpOff
+skill|Dwarfen Grit|com.fumbbl.ffb.skill.bb2025.special.DwarfenGrit
+skill|Dwarven Scourge|com.fumbbl.ffb.skill.bb2025.special.DwarvenScourge
+skill|Extra Arms|com.fumbbl.ffb.skill.common.ExtraArms
+skill|Eye Gouge|com.fumbbl.ffb.skill.bb2025.EyeGouge
+skill|Fend|com.fumbbl.ffb.skill.common.Fend
+skill|Foul Appearance|com.fumbbl.ffb.skill.common.FoulAppearance
+skill|Frenzied Rush|com.fumbbl.ffb.skill.bb2025.special.FrenziedRush
+skill|Frenzy|com.fumbbl.ffb.skill.bb2025.Frenzy
+skill|Fumblerooski|com.fumbbl.ffb.skill.bb2025.Fumblerooski
+skill|Furious Outburst|com.fumbbl.ffb.skill.bb2025.special.FuriousOutburst
+skill|Fury of the Blood God|com.fumbbl.ffb.skill.bb2025.special.FuryOfTheBloodGod
+skill|Give and Go|com.fumbbl.ffb.skill.bb2025.GiveAndGo
+skill|Gored By The Bull|com.fumbbl.ffb.skill.bb2025.special.GoredByTheBull
+skill|Grab|com.fumbbl.ffb.skill.bb2025.Grab
+skill|Guard|com.fumbbl.ffb.skill.bb2025.Guard
+skill|Hail Mary Pass|com.fumbbl.ffb.skill.common.HailMaryPass
+skill|Halfling Luck|com.fumbbl.ffb.skill.bb2025.special.HalflingLuck
+skill|Hatred|com.fumbbl.ffb.skill.bb2025.Hatred
+skill|Hit And Run|com.fumbbl.ffb.skill.bb2025.HitAndRun
+skill|Horns|com.fumbbl.ffb.skill.common.Horns
+skill|Hypnotic Gaze|com.fumbbl.ffb.skill.bb2025.HypnoticGaze
+skill|I'll Carry You|com.fumbbl.ffb.skill.bb2025.special.IllCarryYou
+skill|I'll be back!|com.fumbbl.ffb.skill.bb2025.special.IllBeBack
+skill|Incorporeal|com.fumbbl.ffb.skill.bb2025.special.Incorporeal
+skill|Indomitable|com.fumbbl.ffb.skill.bb2025.special.Indomitable
+skill|Insignificant|com.fumbbl.ffb.skill.bb2025.Insignificant
+skill|Iron Hard Skin|com.fumbbl.ffb.skill.bb2025.IronHardSkin
+skill|Juggernaut|com.fumbbl.ffb.skill.bb2025.Juggernaut
+skill|Jump Up|com.fumbbl.ffb.skill.common.JumpUp
+skill|Kaboom!|com.fumbbl.ffb.skill.bb2025.special.Kaboom
+skill|Keen Player|com.fumbbl.ffb.skill.bb2025.special.KeenPlayer
+skill|Kick 'em while they're down!|com.fumbbl.ffb.skill.bb2025.special.KickEmWhileTheyReDown
+skill|Kick Team-Mate|com.fumbbl.ffb.skill.bb2025.KickTeamMate
+skill|Kick|com.fumbbl.ffb.skill.bb2025.Kick
+skill|Krump and Smash|com.fumbbl.ffb.skill.bb2025.special.KrumpAndSmash
+skill|Leader|com.fumbbl.ffb.skill.bb2025.Leader
+skill|Leap|com.fumbbl.ffb.skill.bb2025.Leap
+skill|Lethal Flight|com.fumbbl.ffb.skill.bb2025.LethalFlight
+skill|Lone Fouler|com.fumbbl.ffb.skill.bb2025.LoneFouler
+skill|Loner|com.fumbbl.ffb.skill.bb2025.Loner
+skill|Look Into My Eyes|com.fumbbl.ffb.skill.bb2025.special.LookIntoMyEyes
+skill|Lord of Chaos|com.fumbbl.ffb.skill.bb2025.special.LordOfChaos
+skill|Master Assassin|com.fumbbl.ffb.skill.bb2025.special.MasterAssassin
+skill|Maximum Carnage|com.fumbbl.ffb.skill.bb2025.special.MaximumCarnage
+skill|Mesmerising Dance|com.fumbbl.ffb.skill.bb2025.special.MesmerisingDance
+skill|Mighty Blow|com.fumbbl.ffb.skill.bb2025.MightyBlow
+skill|Monstrous Mouth|com.fumbbl.ffb.skill.bb2025.MonstrousMouth
+skill|Multiple Block|com.fumbbl.ffb.skill.bb2025.MultipleBlock
+skill|My Ball|com.fumbbl.ffb.skill.bb2025.MyBall
+skill|Nerves of Steel|com.fumbbl.ffb.skill.bb2025.NervesOfSteel
+skill|No Ball|com.fumbbl.ffb.skill.bb2025.NoBall
+skill|Old Pro|com.fumbbl.ffb.skill.bb2025.special.OldPro
+skill|On The Ball|com.fumbbl.ffb.skill.bb2025.OnTheBall
+skill|Pass|com.fumbbl.ffb.skill.common.Pass
+skill|Pick-me-up|com.fumbbl.ffb.skill.bb2025.PickMeUp
+skill|Pile Driver|com.fumbbl.ffb.skill.bb2025.PileDriver
+skill|Plague Ridden|com.fumbbl.ffb.skill.bb2025.PlagueRidden
+skill|Pogo|com.fumbbl.ffb.skill.bb2025.Pogo
+skill|Prehensile Tail|com.fumbbl.ffb.skill.bb2025.PrehensileTail
+skill|Primal Savagery|com.fumbbl.ffb.skill.bb2025.special.PrimalSavagery
+skill|Projectile Vomit|com.fumbbl.ffb.skill.bb2025.ProjectileVomit
+skill|Pro|com.fumbbl.ffb.skill.bb2025.Pro
+skill|Pump Up The Crowd|com.fumbbl.ffb.skill.bb2025.special.PumpUpTheCrowd
+skill|Punt|com.fumbbl.ffb.skill.bb2025.Punt
+skill|Put the Boot In|com.fumbbl.ffb.skill.bb2025.PutTheBootIn
+skill|Putrid Regurgitation|com.fumbbl.ffb.skill.bb2025.special.PutridRegurgitation
+skill|Quick Bite|com.fumbbl.ffb.skill.bb2025.special.QuickBite
+skill|Quick Foul|com.fumbbl.ffb.skill.bb2025.QuickFoul
+skill|Raiding Party|com.fumbbl.ffb.skill.bb2025.special.RaidingParty
+skill|Ram|com.fumbbl.ffb.skill.bb2025.special.Ram
+skill|Really Stupid|com.fumbbl.ffb.skill.bb2025.ReallyStupid
+skill|Regeneration|com.fumbbl.ffb.skill.bb2025.Regeneration
+skill|Reliable|com.fumbbl.ffb.skill.bb2025.special.Reliable
+skill|Right Stuff|com.fumbbl.ffb.skill.bb2025.RightStuff
+skill|Saboteur|com.fumbbl.ffb.skill.bb2025.Saboteur
+skill|Safe Pair Of Hands|com.fumbbl.ffb.skill.bb2025.SafePairOfHands
+skill|Safe Pass|com.fumbbl.ffb.skill.bb2025.SafePass
+skill|Savage Blow|com.fumbbl.ffb.skill.bb2025.special.SavageBlow
+skill|Savage Mauling|com.fumbbl.ffb.skill.bb2025.special.SavageMauling
+skill|Secret Weapon|com.fumbbl.ffb.skill.bb2025.SecretWeapon
+skill|Shadowing|com.fumbbl.ffb.skill.bb2025.Shadowing
+skill|Shot to Nothing|com.fumbbl.ffb.skill.bb2025.special.ShotToNothing
+skill|Sidestep|com.fumbbl.ffb.skill.bb2025.Sidestep
+skill|Slashing Nails|com.fumbbl.ffb.skill.bb2025.special.SlashingNails
+skill|Slayer|com.fumbbl.ffb.skill.bb2025.special.Slayer
+skill|Sneakiest of the Lot|com.fumbbl.ffb.skill.bb2025.special.SneakiestOfTheLot
+skill|Sneaky Git|com.fumbbl.ffb.skill.bb2025.SneakyGit
+skill|Sprint|com.fumbbl.ffb.skill.common.Sprint
+skill|Stab|com.fumbbl.ffb.skill.bb2025.Stab
+skill|Stand Firm|com.fumbbl.ffb.skill.common.StandFirm
+skill|Star of the Show|com.fumbbl.ffb.skill.bb2025.special.StarOfTheShow
+skill|Steady Footing|com.fumbbl.ffb.skill.bb2025.SteadyFooting
+skill|Strip Ball|com.fumbbl.ffb.skill.common.StripBall
+skill|Strong Arm|com.fumbbl.ffb.skill.bb2025.StrongArm
+skill|Strong Passing Game|com.fumbbl.ffb.skill.bb2025.special.StrongPassingGame
+skill|Stunty|com.fumbbl.ffb.skill.bb2025.Stunty
+skill|Sure Feet|com.fumbbl.ffb.skill.bb2025.SureFeet
+skill|Sure Hands|com.fumbbl.ffb.skill.common.SureHands
+skill|Swift As The Breeze|com.fumbbl.ffb.skill.bb2025.special.SwiftAsTheBreeze
+skill|Swoop|com.fumbbl.ffb.skill.bb2025.Swoop
+skill|Tackle|com.fumbbl.ffb.skill.common.Tackle
+skill|Take Root|com.fumbbl.ffb.skill.bb2025.TakeRoot
+skill|Tasty Morsel|com.fumbbl.ffb.skill.bb2025.special.TastyMorsel
+skill|Taunt|com.fumbbl.ffb.skill.bb2025.Taunt
+skill|Team Captain|com.fumbbl.ffb.skill.bb2025.special.TeamCaptain
+skill|Tentacles|com.fumbbl.ffb.skill.common.Tentacles
+skill|The Ballista|com.fumbbl.ffb.skill.bb2025.special.TheBallista
+skill|The Flashing Blade|com.fumbbl.ffb.skill.bb2025.special.TheFlashingBlade
+skill|Thick Skull|com.fumbbl.ffb.skill.common.ThickSkull
+skill|Thinking Man's Troll|com.fumbbl.ffb.skill.bb2025.special.ThinkingMansTroll
+skill|Throw Team-Mate|com.fumbbl.ffb.skill.bb2025.ThrowTeamMate
+skill|Timmm-ber!|com.fumbbl.ffb.skill.bb2025.Timmmber
+skill|Titchy|com.fumbbl.ffb.skill.bb2025.Titchy
+skill|Toxin Connoisseur|com.fumbbl.ffb.skill.bb2025.special.ToxinConnoisseur
+skill|Treacherous|com.fumbbl.ffb.skill.bb2025.special.Treacherous
+skill|Trickster|com.fumbbl.ffb.skill.bb2025.Trickster
+skill|Two Heads|com.fumbbl.ffb.skill.common.TwoHeads
+skill|Unchannelled Fury|com.fumbbl.ffb.skill.bb2025.UnchannelledFury
+skill|Unsteady|com.fumbbl.ffb.skill.bb2025.Unsteady
+skill|Unstoppable Momentum|com.fumbbl.ffb.skill.bb2025.special.UnstoppableMomentum
+skill|Very Long Legs|com.fumbbl.ffb.skill.bb2025.VeryLongLegs
+skill|Vicious Vines|com.fumbbl.ffb.skill.bb2025.special.ViciousVines
+skill|Violent Innovator|com.fumbbl.ffb.skill.bb2025.ViolentInnovator
+skill|Watch Out!|com.fumbbl.ffb.skill.bb2025.special.WatchOut
+skill|Whirling Dervish|com.fumbbl.ffb.skill.bb2025.special.WhirlingDervish
+skill|Wisdom of the White Dwarf|com.fumbbl.ffb.skill.bb2025.special.WisdomOfTheWhiteDwarf
+skill|Woodland Fury|com.fumbbl.ffb.skill.bb2025.special.WoodlandFury
+skill|Working in Tandem|com.fumbbl.ffb.skill.bb2025.special.WorkingInTandem
+skill|Wrestle|com.fumbbl.ffb.skill.common.Wrestle
+skill|Yoink!|com.fumbbl.ffb.skill.bb2025.special.Yoink
+step|allYouCanEat|com.fumbbl.ffb.server.step.bb2025.pass.StepAllYouCanEat
+step|alwaysHungry|com.fumbbl.ffb.server.step.bb2025.ttm.StepAlwaysHungry
+step|animalSavagery|com.fumbbl.ffb.server.step.bb2025.shared.StepAnimalSavagery
+step|animosity|com.fumbbl.ffb.server.step.action.pass.StepAnimosity
+step|apothecaryMultiple|com.fumbbl.ffb.server.step.bb2025.mutliblock.StepApothecaryMultiple
+step|apothecary|com.fumbbl.ffb.server.step.bb2025.shared.StepApothecary
+step|applyKickoffResult|com.fumbbl.ffb.server.step.bb2025.kickoff.StepApplyKickoffResult
+step|assignTouchdowns|com.fumbbl.ffb.server.step.bb2025.end.StepAssignTouchdowns
+step|autoGazeZoat|com.fumbbl.ffb.server.step.bb2025.StepAutoGazeZoat
+step|balefulHex|com.fumbbl.ffb.server.step.bb2025.StepBalefulHex
+step|blackInk|com.fumbbl.ffb.server.step.bb2025.StepBlackInk
+step|blitzTurn|com.fumbbl.ffb.server.step.bb2025.kickoff.StepBlitzTurn
+step|blockBallAndChain|com.fumbbl.ffb.server.step.bb2025.block.StepBlockBallAndChain
+step|blockChainsaw|com.fumbbl.ffb.server.step.bb2025.block.StepBlockChainsaw
+step|blockChoice|com.fumbbl.ffb.server.step.bb2025.block.StepBlockChoice
+step|blockDodge|com.fumbbl.ffb.server.step.bb2025.block.StepBlockDodge
+step|blockRollMultiple|com.fumbbl.ffb.server.step.bb2025.mutliblock.StepBlockRollMultiple
+step|blockRoll|com.fumbbl.ffb.server.step.bb2025.block.StepBlockRoll
+step|blockStatistics|com.fumbbl.ffb.server.step.action.block.StepBlockStatistics
+step|bloodLust|com.fumbbl.ffb.server.step.bb2025.shared.StepBloodLust
+step|bombardier|com.fumbbl.ffb.server.step.action.pass.StepBombardier
+step|boneHead|com.fumbbl.ffb.server.step.action.common.StepBoneHead
+step|bothDown|com.fumbbl.ffb.server.step.bb2025.block.StepBothDown
+step|breatheFire|com.fumbbl.ffb.server.step.bb2025.block.StepBreatheFire
+step|bribes|com.fumbbl.ffb.server.step.bb2025.foul.StepBribes
+step|buyInducements|com.fumbbl.ffb.server.step.bb2025.start.StepBuyInducements
+step|catchOfTheDay|com.fumbbl.ffb.server.step.bb2025.StepCatchOfTheDay
+step|catchScatterThrowIn|com.fumbbl.ffb.server.step.bb2025.shared.StepCatchScatterThrowIn
+step|chomp|com.fumbbl.ffb.server.step.bb2025.block.StepChomp
+step|coinChoice|com.fumbbl.ffb.server.step.phase.kickoff.StepCoinChoice
+step|consumeParameter|com.fumbbl.ffb.server.step.bb2025.shared.StepConsumeParameter
+step|dauntlessMultiple|com.fumbbl.ffb.server.step.bb2025.multiblock.StepDauntlessMultiple
+step|dauntless|com.fumbbl.ffb.server.step.action.block.StepDauntless
+step|dedicatedFans|com.fumbbl.ffb.server.step.bb2025.end.StepDedicatedFans
+step|dispatchDumpOff|com.fumbbl.ffb.server.step.bb2025.multiblock.StepDispatchDumpOff
+step|dispatchPassing|com.fumbbl.ffb.server.step.action.pass.StepDispatchPassing
+step|dispatchScatterPlayer|com.fumbbl.ffb.server.step.bb2025.ttm.StepDispatchScatterPlayer
+step|divingTackle|com.fumbbl.ffb.server.step.action.move.StepDivingTackle
+step|doubleStrength|com.fumbbl.ffb.server.step.bb2025.multiblock.StepDoubleStrength
+step|dropDivingTackler|com.fumbbl.ffb.server.step.bb2025.move.StepDropDivingTackler
+step|dropFallingPlayers|com.fumbbl.ffb.server.step.bb2025.shared.StepDropFallingPlayers
+step|dropPileDriverPlayer|com.fumbbl.ffb.server.step.bb2025.StepDropActingPlayer
+step|dumpOff|com.fumbbl.ffb.server.step.action.block.StepDumpOff
+step|dwarfenWisdom|com.fumbbl.ffb.server.step.bb2025.kickoff.StepDwarfenWisdom
+step|eatTeamMate|com.fumbbl.ffb.server.step.action.ttm.StepEatTeamMate
+step|ejectPlayer|com.fumbbl.ffb.server.step.bb2025.foul.StepEjectPlayer
+step|endBlocking|com.fumbbl.ffb.server.step.bb2025.block.StepEndBlocking
+step|endBomb|com.fumbbl.ffb.server.step.bb2025.special.StepEndBomb
+step|endFeeding|com.fumbbl.ffb.server.step.bb2025.shared.StepEndFeeding
+step|endFouling|com.fumbbl.ffb.server.step.bb2025.foul.StepEndFouling
+step|endFuriousOutburst|com.fumbbl.ffb.server.step.bb2025.StepEndFuriousOutburst
+step|endGame|com.fumbbl.ffb.server.step.game.end.StepEndGame
+step|endInducement|com.fumbbl.ffb.server.step.bb2025.inducements.StepEndInducement
+step|endKickTeamMate|com.fumbbl.ffb.server.step.action.ktm.StepEndKickTeamMate
+step|endKickoff|com.fumbbl.ffb.server.step.phase.kickoff.StepEndKickoff
+step|endMoving|com.fumbbl.ffb.server.step.bb2025.move.StepEndMoving
+step|endPassing|com.fumbbl.ffb.server.step.bb2025.pass.StepEndPassing
+step|endPunt|com.fumbbl.ffb.server.step.bb2025.punt.StepEndPunt
+step|endScatterPlayer|com.fumbbl.ffb.server.step.bb2025.ttm.StepEndScatterPlayer
+step|endSelecting|com.fumbbl.ffb.server.step.bb2025.shared.StepEndSelecting
+step|endThenIStartedBlastin|com.fumbbl.ffb.server.step.bb2025.StepEndThenIStartedBlastin
+step|endThrowKeg|com.fumbbl.ffb.server.step.bb2025.StepEndThrowKeg
+step|endThrowTeamMate|com.fumbbl.ffb.server.step.bb2025.ttm.StepEndThrowTeamMate
+step|endTurn|com.fumbbl.ffb.server.step.bb2025.StepEndTurn
+step|fallDown|com.fumbbl.ffb.server.step.bb2025.move.StepFallDown
+step|firstMoveFuriousOutburst|com.fumbbl.ffb.server.step.bb2025.StepFirstMoveFuriousOutburst
+step|followup|com.fumbbl.ffb.server.step.bb2025.block.StepFollowup
+step|forgoneStalling|com.fumbbl.ffb.server.step.bb2025.shared.StepForgoneStalling
+step|foulAppearanceMultiple|com.fumbbl.ffb.server.step.bb2025.multiblock.StepFoulAppearanceMultiple
+step|foulAppearance|com.fumbbl.ffb.server.step.bb2025.StepFoulAppearance
+step|foulChainsaw|com.fumbbl.ffb.server.step.bb2025.foul.StepFoulChainsaw
+step|foul|com.fumbbl.ffb.server.step.bb2025.foul.StepFoul
+step|gettingEven|com.fumbbl.ffb.server.step.bb2025.shared.StepGettingEven
+step|goForIt|com.fumbbl.ffb.server.step.bb2025.move.StepGoForIt
+step|gotoLabel|com.fumbbl.ffb.server.step.StepGotoLabel
+step|hailMaryPass|com.fumbbl.ffb.server.step.bb2025.pass.StepHailMaryPass
+step|handOver|com.fumbbl.ffb.server.step.bb2025.pass.StepHandOver
+step|handleDropPlayerContext|com.fumbbl.ffb.server.step.bb2025.shared.StepHandleDropPlayerContext
+step|hitAndRun|com.fumbbl.ffb.server.step.bb2025.block.StepHitAndRun
+step|horns|com.fumbbl.ffb.server.step.action.block.StepHorns
+step|hypnoticGaze|com.fumbbl.ffb.server.step.bb2025.move.StepHypnoticGaze
+step|illCarryYou|com.fumbbl.ffb.server.step.bb2025.StepIllCarryYou
+step|initActivation|com.fumbbl.ffb.server.step.bb2025.shared.StepInitActivation
+step|initBlocking|com.fumbbl.ffb.server.step.bb2025.block.StepInitBlocking
+step|initBomb|com.fumbbl.ffb.server.step.bb2025.special.StepInitBomb
+step|initEndGame|com.fumbbl.ffb.server.step.bb2025.end.StepInitEndGame
+step|initFeeding|com.fumbbl.ffb.server.step.bb2025.shared.StepInitFeeding
+step|initFouling|com.fumbbl.ffb.server.step.bb2025.foul.StepInitFouling
+step|initFuriousOutburst|com.fumbbl.ffb.server.step.bb2025.StepInitFuriousOutburst
+step|initInducement|com.fumbbl.ffb.server.step.bb2025.inducements.StepInitInducement
+step|initKickTeamMate|com.fumbbl.ffb.server.step.action.ktm.StepInitKickTeamMate
+step|initKickoff|com.fumbbl.ffb.server.step.bb2025.kickoff.StepInitKickoff
+step|initLookIntoMyEyes|com.fumbbl.ffb.server.step.bb2025.StepInitLookIntoMyEyes
+step|initMoving|com.fumbbl.ffb.server.step.bb2025.move.StepInitMoving
+step|initPassing|com.fumbbl.ffb.server.step.bb2025.pass.StepInitPassing
+step|initPunt|com.fumbbl.ffb.server.step.bb2025.punt.StepInitPunt
+step|initScatterPlayer|com.fumbbl.ffb.server.step.bb2025.ttm.StepInitScatterPlayer
+step|initSelecting|com.fumbbl.ffb.server.step.bb2025.shared.StepInitSelecting
+step|initStartGame|com.fumbbl.ffb.server.step.game.start.StepInitStartGame
+step|initThrowTeamMate|com.fumbbl.ffb.server.step.bb2025.ttm.StepInitThrowTeamMate
+step|intercept|com.fumbbl.ffb.server.step.bb2025.pass.StepIntercept
+step|juggernaut|com.fumbbl.ffb.server.step.action.block.StepJuggernaut
+step|jumpUp|com.fumbbl.ffb.server.step.action.select.StepJumpUp
+step|kickTeamMateDoubleRolled|com.fumbbl.ffb.server.step.action.ktm.StepKickTeamMateDoubleRolled
+step|kickTeamMate|com.fumbbl.ffb.server.step.action.ktm.StepKickTeamMate
+step|kickoffAnimation|com.fumbbl.ffb.server.step.phase.kickoff.StepKickoffAnimation
+step|kickoffResultRoll|com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffResultRoll
+step|kickoffReturn|com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffReturn
+step|kickoffScatterRollAskAfter|com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffScatterRollAskAfter
+step|kickoffScatterRoll|com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoffScatterRoll
+step|kickoff|com.fumbbl.ffb.server.step.bb2025.kickoff.StepKickoff
+step|leap|com.fumbbl.ffb.server.step.bb2025.move.StepJump
+step|lookIntoMyEyes|com.fumbbl.ffb.server.step.bb2025.StepLookIntoMyEyes
+step|masterChef|com.fumbbl.ffb.server.step.bb2025.start.StepMasterChef
+step|missedPass|com.fumbbl.ffb.server.step.bb2025.pass.StepMissedPass
+step|moveBallAndChain|com.fumbbl.ffb.server.step.bb2025.move.StepMoveBallAndChain
+step|moveDodge|com.fumbbl.ffb.server.step.bb2025.move.StepMoveDodge
+step|move|com.fumbbl.ffb.server.step.bb2025.move.StepMove
+step|multiBlockFork|com.fumbbl.ffb.server.step.bb2025.mutliblock.StepMultipleBlockFork
+step|mvp|com.fumbbl.ffb.server.step.bb2025.end.StepMvp
+step|nextStepAndRepeat|com.fumbbl.ffb.server.step.StepNextStepAndRepeat
+step|nextStep|com.fumbbl.ffb.server.step.StepNextStep
+step|passBlock|com.fumbbl.ffb.server.step.bb2025.pass.StepPassBlock
+step|pass|com.fumbbl.ffb.server.step.bb2025.pass.StepPass
+step|penaltyShootout|com.fumbbl.ffb.server.step.bb2025.end.StepPenaltyShootout
+step|pettyCash|com.fumbbl.ffb.server.step.bb2025.start.StepPettyCash
+step|pickMeUp|com.fumbbl.ffb.server.step.bb2025.shared.StepPickMeUp
+step|pickUp|com.fumbbl.ffb.server.step.bb2025.move.StepPickUp
+step|pileDriver|com.fumbbl.ffb.server.step.bb2025.foul.StepPileDriver
+step|placeBall|com.fumbbl.ffb.server.step.bb2025.shared.StepPlaceBall
+step|placeCarriedPlayer|com.fumbbl.ffb.server.step.bb2025.StepPlaceCarriedPlayer
+step|playerLoss|com.fumbbl.ffb.server.step.bb2025.end.StepPlayerLoss
+step|prayers|com.fumbbl.ffb.server.step.bb2025.start.StepPrayers
+step|prayer|com.fumbbl.ffb.server.step.bb2025.StepPrayer
+step|projectileVomit|com.fumbbl.ffb.server.step.bb2025.block.StepProjectileVomit
+step|pro|com.fumbbl.ffb.server.step.bb2025.StepPro
+step|puntDirection|com.fumbbl.ffb.server.step.bb2025.punt.StepPuntDirection
+step|puntDistance|com.fumbbl.ffb.server.step.bb2025.punt.StepPuntDistance
+step|pushback|com.fumbbl.ffb.server.step.bb2025.block.StepPushback
+step|quickBite|com.fumbbl.ffb.server.step.bb2025.StepQuickBite
+step|raidingParty|com.fumbbl.ffb.server.step.bb2025.StepRaidingParty
+step|reallyStupid|com.fumbbl.ffb.server.step.action.common.StepReallyStupid
+step|receiveChoice|com.fumbbl.ffb.server.step.phase.kickoff.StepReceiveChoice
+step|recheckExplodeSkill|com.fumbbl.ffb.server.step.bb2025.special.StepRecheckExplodeSkill
+step|referee|com.fumbbl.ffb.server.step.action.foul.StepReferee
+step|removeTargetSelectionState|com.fumbbl.ffb.server.step.bb2025.blitz.StepRemoveTargetSelectionState
+step|resetFumblerooskie|com.fumbbl.ffb.server.step.bb2025.move.StepResetFumblerooskie
+step|resetToMove|com.fumbbl.ffb.server.step.StepResetToMove
+step|resolveBomb|com.fumbbl.ffb.server.step.bb2025.special.StepResolveBomb
+step|resolvePass|com.fumbbl.ffb.server.step.bb2025.pass.StepResolvePass
+step|rightStuff|com.fumbbl.ffb.server.step.bb2025.ttm.StepRightStuff
+step|riotousRookies|com.fumbbl.ffb.server.step.phase.inducement.StepRiotousRookies
+step|secondMoveFuriousOutburst|com.fumbbl.ffb.server.step.bb2025.StepSecondMoveFuriousOutburst
+step|selectBlitzTargetEnd|com.fumbbl.ffb.server.step.bb2025.blitz.StepSelectBlitzTargetEnd
+step|selectBlitzTarget|com.fumbbl.ffb.server.step.bb2025.StepSelectBlitzTarget
+step|setDefender|com.fumbbl.ffb.server.step.bb2025.shared.StepSetDefender
+step|setup|com.fumbbl.ffb.server.step.bb2025.kickoff.StepSetup
+step|shadowing|com.fumbbl.ffb.server.step.bb2025.move.StepShadowing
+step|specialEffect|com.fumbbl.ffb.server.step.bb2025.special.StepSpecialEffect
+step|spectators|com.fumbbl.ffb.server.step.bb2025.start.StepSpectators
+step|stab|com.fumbbl.ffb.server.step.action.block.StepStab
+step|stallingPlayer|com.fumbbl.ffb.server.step.bb2025.shared.StepStallingPlayer
+step|standUp|com.fumbbl.ffb.server.step.bb2025.move.StepStandUp
+step|steadyFooting|com.fumbbl.ffb.server.step.bb2025.shared.StepSteadyFooting
+step|swarming|com.fumbbl.ffb.server.step.bb2025.kickoff.StepSwarming
+step|swoop|com.fumbbl.ffb.server.step.bb2025.ttm.StepSwoop
+step|takeRoot|com.fumbbl.ffb.server.step.bb2025.shared.StepTakeRoot
+step|tentacles|com.fumbbl.ffb.server.step.bb2025.move.StepTentacles
+step|thenIStartedBlastin|com.fumbbl.ffb.server.step.bb2025.StepThenIStartedBlastin
+step|throwARock|com.fumbbl.ffb.server.step.bb2025.inducements.StepThrowARock
+step|throwKeg|com.fumbbl.ffb.server.step.bb2025.StepThrowKeg
+step|throwTeamMate|com.fumbbl.ffb.server.step.bb2025.ttm.StepThrowTeamMate
+step|touchback|com.fumbbl.ffb.server.step.bb2025.kickoff.StepTouchback
+step|trapDoor|com.fumbbl.ffb.server.step.bb2025.move.StepTrapDoor
+step|treacherous|com.fumbbl.ffb.server.step.bb2025.StepTreacherous
+step|trickster|com.fumbbl.ffb.server.step.bb2025.block.StepTrickster
+step|unchannelledFury|com.fumbbl.ffb.server.step.bb2025.StepUnchannelledFury
+step|weatherMage|com.fumbbl.ffb.server.step.bb2025.inducements.StepWeatherMage
+step|weather|com.fumbbl.ffb.server.step.game.start.StepWeather
+step|winnings|com.fumbbl.ffb.server.step.bb2025.end.StepWinnings
+step|wisdomOfTheWhiteDwarf|com.fumbbl.ffb.server.step.bb2025.StepWisdomOfTheWhiteDwarf
+step|wizard|com.fumbbl.ffb.server.step.bb2025.StepWizard
+step|wrestle|com.fumbbl.ffb.server.step.action.block.StepWrestle

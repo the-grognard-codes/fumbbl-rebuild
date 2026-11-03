@@ -55,7 +55,7 @@ public class TtmMechanic extends com.fumbbl.ffb.mechanics.TtmMechanic {
 
 	@Override
 	public int modifierSum(PassingDistance distance, Set<PassModifier> modifiers) {
-		return calculateModifiers(modifiers) + distance.getModifier2020();
+		return calculateModifiers(modifiers) + distance.getPassingModifier();
 	}
 
 	@Override

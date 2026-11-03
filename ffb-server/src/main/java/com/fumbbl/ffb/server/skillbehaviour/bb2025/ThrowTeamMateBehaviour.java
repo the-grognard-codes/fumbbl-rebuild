@@ -20,7 +20,7 @@ import com.fumbbl.ffb.model.property.NamedProperties;
 import com.fumbbl.ffb.modifiers.PassContext;
 import com.fumbbl.ffb.modifiers.PassModifier;
 import com.fumbbl.ffb.net.commands.ClientCommandUseSkill;
-import com.fumbbl.ffb.report.mixed.ReportThrowTeamMateRoll;
+import com.fumbbl.ffb.report.bb2025.ReportThrowTeamMateRoll;
 import com.fumbbl.ffb.server.model.SkillBehaviour;
 import com.fumbbl.ffb.server.model.StepModifier;
 import com.fumbbl.ffb.server.step.StepAction;
@@ -31,7 +31,7 @@ import com.fumbbl.ffb.server.step.bb2025.ttm.StepThrowTeamMate;
 import com.fumbbl.ffb.server.step.bb2025.ttm.StepThrowTeamMate.StepState;
 import com.fumbbl.ffb.server.util.UtilServerDialog;
 import com.fumbbl.ffb.server.util.UtilServerReRoll;
-import com.fumbbl.ffb.skill.mixed.ThrowTeamMate;
+import com.fumbbl.ffb.skill.bb2025.ThrowTeamMate;
 
 import java.util.Collections;
 import java.util.List;
