@@ -106,13 +106,14 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
   try {
     const page = await (await browser.newContext({ viewport: { width: 1280, height: 660 } })).newPage();
-    const requests = []; let selected = new Set(); let revision = 0;
-    const choice = (name, playerId) => ({ id: `${revision}:event-pick:${playerId}`, label: `${selected.has(playerId) ? 'Deselect' : 'Select'} ${name}`,
+    const requests = []; let revision = 0;
+    const choice = (name, playerId) => ({ id: `${revision}:event-pick:${playerId}`, label: `Select ${name}`,
       actor: 'home', kind: 'kickoffChoice', target: { playerId }, sourcePlayerId: null });
-    const state = () => ({ ...beforeFinalDecision, revision, turnMode: revision < 5 ? 'CHARGE' : 'REGULAR',
+    const state = () => ({ ...beforeFinalDecision, revision, turnMode: revision === 0 ? 'KICKOFF' : 'REGULAR',
+      ...(revision === 0 ? { kickoff: { version: 1, event: 'CHARGE', actor: 'home', stage: 'selection', allowed: 2, selected: 0, completed: 0 } } : {}),
       players: [...beforeFinalDecision.players, { ...beforeFinalDecision.players[0], id: 'p3', name: 'Runner', slot: 3, number: 3, x: 4 }],
-      actions: revision < 5 ? [choice('Lineman', 'p1'), choice('Runner', 'p3'),
-        ...(selected.size === 2 ? [{ id: `${revision}:event-confirm`, label: 'Confirm CHARGE', actor: 'home', kind: 'kickoffChoice', target: null, sourcePlayerId: null }] : [])]
+      actions: revision === 0 ? [choice('Lineman', 'p1'), choice('Runner', 'p3'),
+        { id: `${revision}:event-confirm`, label: 'Confirm CHARGE', actor: 'home', kind: 'kickoffChoice', target: null, sourcePlayerId: null }]
         : beforeFinalDecision.actions });
     await page.route('**/assets/auth-client.js', route => route.fulfill({ contentType: 'text/javascript', body: 'export const authentication=()=>({auth:{},config:window.MOLES_FIREBASE_CONFIG});' }));
     await page.route('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js', route => route.fulfill({ contentType: 'text/javascript', body: "export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback({getIdToken:async()=>'fixture'}));return()=>{};}" }));
@@ -123,10 +124,10 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
         if (request.type === 'authenticate') send({ type: 'authentication', requestId: request.requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
         if (request.type === 'setup') {
           if (request.operation === 'action') {
-            requests.push([request.actionId, request.expectedRevision]);
+            requests.push([request.actionId, request.expectedRevision, request.playerIds]);
             assert.equal(request.expectedRevision, revision);
-            if (request.actionId.endsWith(':event-confirm')) assert.equal(selected.size, 2);
-            else { const id = request.actionId.split(':').at(-1); if (selected.has(id)) selected.delete(id); else selected.add(id); }
+            assert.equal(request.actionId, '0:event-confirm');
+            assert.deepEqual(request.playerIds, ['p1', 'p3']);
             revision++;
           }
           send({ type: 'setupState', requestId: request.requestId, code: 'ACCEPTED', duplicate: false, state: state() });
@@ -134,24 +135,26 @@ test('hosted kickoff player choices toggle in one click and confirm separately',
       });
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
-    const ribbon = page.locator('.kickoff-command');
-    await ribbon.getByRole('button', { name: 'Select Lineman' }).click();
-    await ribbon.getByRole('button', { name: 'Deselect Lineman' }).click();
-    await ribbon.getByRole('button', { name: 'Select Lineman' }).click();
-    await ribbon.getByRole('button', { name: 'Select Runner' }).click();
-    await page.waitForFunction(() => {
-      const confirm = document.querySelector('.kickoff-command-confirm button:last-child');
-      return confirm instanceof HTMLButtonElement && !confirm.disabled;
-    });
-    assert.equal(await ribbon.getByRole('button', { name: 'Confirm selection' }).isEnabled(), true);
+    const confirmSelection = page.locator('.confirmation-row .commit-action');
+    const toggle = async id => { const player = page.locator(`[data-player-id="${id}"]`); await revealPlayer(page, player); await player.click(); };
+    await toggle('p1');
+    assert.equal(await page.locator('.live-selection-square[data-selection="p1"]').count(), 1);
+    await toggle('p1');
+    assert.equal(await page.locator('.live-selection-square[data-selection]').count(), 0);
+    await toggle('p1'); await toggle('p3');
+    assert.equal(await page.locator('.live-selection-square[data-selection]').count(), 2);
+    assert.deepEqual(requests, [], 'Draft choices remain local until confirmation');
+    assert.equal(await confirmSelection.isEnabled(), true);
     if (process.env.MATCH_CAPTURE_DIR) {
       await mkdir(process.env.MATCH_CAPTURE_DIR, { recursive: true });
       await page.screenshot({ path: resolve(process.env.MATCH_CAPTURE_DIR, 'kickoff-player-selection.png') });
     }
-    await ribbon.getByRole('button', { name: 'Confirm selection' }).click();
-    await ribbon.waitFor({ state: 'detached' });
-    assert.deepEqual(requests, [['0:event-pick:p1', 0], ['1:event-pick:p1', 1], ['2:event-pick:p1', 2],
-      ['3:event-pick:p3', 3], ['4:event-confirm', 4]]);
+    assert.equal(await page.locator('.kickoff-command').count(), 0);
+    await confirmSelection.click();
+    await page.waitForFunction(() => document.querySelector('[data-testid="setup-status"]')?.textContent.includes('Revision 1'));
+    await page.getByLabel('Live match pitch').waitFor();
+    assert.match(await page.getByTestId('setup-status').textContent(), /Revision 1.*\(REGULAR\)/);
+    assert.deepEqual(requests, [['0:event-confirm', 0, ['p1', 'p3']]]);
   } finally { await browser.close(); await new Promise(done => server.close(done)); }
 });
 

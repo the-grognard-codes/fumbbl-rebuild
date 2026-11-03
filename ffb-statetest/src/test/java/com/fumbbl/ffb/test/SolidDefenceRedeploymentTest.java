@@ -26,7 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 class SolidDefenceRedeploymentTest {
-    @Test void everySelectedReserveCanRedeployInAnyOrderForEitherCoach() throws Exception {
+    @Test void everySelectedPlayerCanRedeployInAnyOrderForEitherCoach() throws Exception {
         for (boolean home : new boolean[] { true, false }) {
             TestServer server = new TestServer();
             int line = home ? 12 : 13;
@@ -56,8 +56,11 @@ class SolidDefenceRedeploymentTest {
             List<Action> actions = new KickoffActions(state).actions();
             for (int index = 0; index < 3; index++) {
                 String id = "solid-place:own" + index + ":" + line + ":8";
-                assertTrue(actions.stream().anyMatch(action -> action.id.equals(id)), "Every reserve must have a placement: " + id);
+                assertTrue(actions.stream().anyMatch(action -> action.id.equals(id)), "Every selected player must have a placement: " + id);
             }
+            perform(state, home, "solid-place:own0:" + line + ":6");
+            assertEquals(new FieldCoordinate(line, 6), game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own0")));
+            assertEquals(new FieldCoordinate(line, 5), game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own1")));
             for (int index : new int[] { 2, 0, 1 }) {
                 perform(state, home, "solid-place:own" + index + ":" + line + ":" + (index + 8));
                 assertEquals(new FieldCoordinate(line, index + 8), game.getFieldModel().getPlayerCoordinate(game.getPlayerById("own" + index)));
@@ -67,7 +70,7 @@ class SolidDefenceRedeploymentTest {
         }
     }
 
-    @Test void selectedReserveCanRedeployAndConfirmOnlyALegalFormationForEitherCoach() throws Exception {
+    @Test void selectedPlayerCanRedeployAndConfirmOnlyALegalFormationForEitherCoach() throws Exception {
         for (boolean home : new boolean[] { true, false }) {
             TestServer server = new TestServer();
             int line = home ? 12 : 13;
@@ -94,11 +97,9 @@ class SolidDefenceRedeploymentTest {
             StepEngine.start(state);
             Player<?> selected = game.getPlayerById("own0");
             StepEngine.respond(state, new ClientCommandPlayerChoice(PlayerChoiceMode.SOLID_DEFENCE, new Player<?>[] { selected }), home);
-            assertEquals(PlayerState.RESERVE, game.getFieldModel().getPlayerState(selected).getBase());
-            assertTrue(game.getFieldModel().getPlayerCoordinate(selected).isBoxCoordinate());
-            perform(state, home, "confirm-solid-defence");
-            assertEquals(TurnMode.SOLID_DEFENCE, game.getTurnMode());
-            assertTrue(game.getDialogParameter() instanceof DialogSetupErrorParameter);
+            assertEquals(PlayerState.STANDING, game.getFieldModel().getPlayerState(selected).getBase());
+            assertEquals(new FieldCoordinate(line, 5), game.getFieldModel().getPlayerCoordinate(selected));
+            assertTrue(new KickoffActions(state).actions().stream().noneMatch(action -> action.id.equals("solid-place:own0:" + line + ":6")), "Cannot swap with an unselected player");
             int behindLine = home ? 8 : 17;
             perform(state, home, "solid-place:own0:" + behindLine + ":8");
             assertEquals(new FieldCoordinate(behindLine, 8), game.getFieldModel().getPlayerCoordinate(selected));

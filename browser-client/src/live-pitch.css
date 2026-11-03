@@ -534,3 +534,5 @@
 .live-jump-landings { pointer-events: none; }
 .live-jump-outline { fill: none; stroke: #b7c9da; stroke-width: 1; }
 .live-jump-target { fill: #f3ecd4; paint-order: stroke; stroke: #091726; stroke-width: 3px; font: 12px MUTP,sans-serif; text-anchor: middle; }
+
+.projected-pitch .live-marker.kickoff-participant .live-number { outline: 2px solid #36ddff; outline-offset: 1px; }

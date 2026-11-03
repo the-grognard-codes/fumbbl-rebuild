@@ -718,7 +718,17 @@ public final class SetupApplication {
 			case "load": case "concessionStatus": case "confirm": case "concede": case "saveRequest": case "resumeRequest": break;
 			case "saveAccept": case "saveReject": case "saveCancel": case "resumeAccept": case "resumeReject": case "resumeCancel":
 				fields.add("proposalId"); if (!request.get("proposalId").asString().matches("[0-9a-f-]{36}")) throw new IllegalArgumentException(); break;
-			case "action": fields.add("actionId"); if (request.get("actionId").asString().length() > 200) throw new IllegalArgumentException(); break;
+			case "action":
+                fields.add("actionId");
+                if (request.get("actionId").asString().length() > 200) throw new IllegalArgumentException();
+                if (request.get("playerIds") != null) {
+                    fields.add("playerIds");
+                    if (!request.get("actionId").asString().endsWith(":event-confirm")
+                        || request.get("playerIds").asArray().size() > 16) throw new IllegalArgumentException();
+                    for (JsonValue player : request.get("playerIds").asArray())
+                        if (player.asString().isEmpty() || player.asString().length() > 200) throw new IllegalArgumentException();
+                }
+                break;
 			case "route":
 				fields.add("playerId"); fields.add("waypoints");
 				if (request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();

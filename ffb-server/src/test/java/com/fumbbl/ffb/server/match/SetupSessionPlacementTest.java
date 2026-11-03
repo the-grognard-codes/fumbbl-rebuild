@@ -1,7 +1,12 @@
 package com.fumbbl.ffb.server.match;
 
+import com.eclipsesource.json.Json;
 import com.fumbbl.ffb.FactoryManager;
 import com.fumbbl.ffb.FactoryType;
+import com.fumbbl.ffb.FieldCoordinate;
+import com.fumbbl.ffb.PlayerState;
+import com.fumbbl.ffb.TurnMode;
+import com.fumbbl.ffb.dialog.DialogPlayerChoiceParameter;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
 import com.fumbbl.ffb.factory.InducementTypeFactory;
 import com.fumbbl.ffb.inducement.Inducement;
@@ -9,6 +14,8 @@ import com.fumbbl.ffb.inducement.InducementType;
 import com.fumbbl.ffb.inducement.Usage;
 import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
+import com.fumbbl.ffb.model.Player;
+import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.server.DebugLog;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.GameState;
@@ -223,6 +230,84 @@ class SetupSessionPlacementTest {
         JsonObject recoveredRetry = restored.apply(actor, confirm);
         assertTrue(recoveredRetry.getBoolean("duplicate", false));
         assertEquals(errors, recoveredRetry.get("setupErrors"));
+    }
+
+    @Test void kickoffBatchSelectionIsValidatedAndConfirmedGroupSurvivesRecovery() throws Exception {
+        for (KickoffResult event : new KickoffResult[] { KickoffResult.QUICK_SNAP, KickoffResult.SOLID_DEFENCE }) {
+            Fixture fixture = new Fixture();
+            fixture.setup();
+            Field field = SetupSession.class.getDeclaredField("state");
+            field.setAccessible(true);
+            GameState nativeState = (GameState) field.get(fixture.session);
+            Game game = nativeState.getGame();
+            for (Team team : new Team[] { game.getTeamHome(), game.getTeamAway() }) {
+                int row = 0;
+                for (Player<?> player : team.getPlayers()) {
+                    game.getFieldModel().setPlayerCoordinate(player, new FieldCoordinate(team == game.getTeamHome() ? 5 : 20, row++));
+                    game.getFieldModel().setPlayerState(player, new PlayerState(PlayerState.STANDING).changeActive(true));
+                }
+            }
+            game.setTurnMode(TurnMode.KICKOFF);
+            game.setDialogParameter(null);
+            StepApplyKickoffResult kickoff = new StepApplyKickoffResult(nativeState);
+            kickoff.setParameter(StepParameter.from(StepParameterKey.KICKOFF_RESULT, event));
+            nativeState.getStepStack().clear();
+            nativeState.getStepStack().push(kickoff);
+            nativeState.startNextStep();
+            DialogPlayerChoiceParameter dialog =
+                (DialogPlayerChoiceParameter) game.getDialogParameter();
+            assertTrue(dialog.getPlayerIds().length >= 2);
+            String actor = game.isHomePlaying() ? "home" : "away";
+            JsonObject before = fixture.session.reply("load", "ACCEPTED", false, actor).get("state").asObject();
+            String first = dialog.getPlayerIds()[0], second = dialog.getPlayerIds()[1];
+            String actionId = before.getInt("revision", -1) + ":event-confirm";
+            JsonObject invalid = fixture.request("action", "invalid", before).add("actionId", actionId)
+                .add("playerIds", new JsonArray().add(first).add(first));
+            assertEquals("INVALID_OPTION", fixture.failure(actor, invalid));
+            assertEquals(before, fixture.session.reply("load", "ACCEPTED", false, actor).get("state"));
+            JsonObject request = fixture.request("action", "choose-group", before).add("actionId", actionId)
+                .add("playerIds", new JsonArray().add(first).add(second));
+            JsonObject accepted = fixture.session.apply(actor, request);
+            assertEquals("ACCEPTED", accepted.getString("code", null));
+            JsonObject view = accepted.get("state").asObject();
+            assertEquals("movement", view.get("kickoff").asObject().getString("stage", null));
+            assertEquals(2, view.get("kickoff").asObject().getInt("selected", -1));
+            assertTrue(fixture.session.apply(actor, request).getBoolean("duplicate", false));
+            SetupSession restored = new SetupSession(fixture.server, fixture.document, fixture.session.recoveryArtifact());
+            assertEquals(view, restored.reply("load", "ACCEPTED", false, actor).get("state"));
+            JsonObject legacy = JsonObject.readFrom(fixture.session.recoveryArtifact());
+            removeField(legacy.get("payload"), "participantIds");
+            StringBuilder checksum = new StringBuilder();
+            for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(legacy.get("payload").toString()
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8))) checksum.append(String.format("%02x", value & 255));
+            legacy.set("sha256", checksum.toString());
+            assertEquals(view, new SetupSession(fixture.server, fixture.document, legacy.toString())
+                .reply("load", "ACCEPTED", false, actor).get("state"));
+            for (JsonValue item : view.get("actions").asArray()) {
+                JsonObject action = item.asObject();
+                if ("kickoffMove".equals(action.getString("kind", null))) {
+                    String source = action.getString("sourcePlayerId", null);
+                    assertTrue(first.equals(source) || second.equals(source));
+                }
+            }
+            assertEquals(fixture.player(before, first).get("x"), fixture.player(view, first).get("x"));
+            assertEquals(fixture.player(before, first).get("y"), fixture.player(view, first).get("y"));
+            if (event == KickoffResult.QUICK_SNAP) {
+                JsonObject move = null;
+                for (JsonValue item : view.get("actions").asArray())
+                    if ("kickoffMove".equals(item.asObject().getString("kind", null))
+                        && first.equals(item.asObject().getString("sourcePlayerId", null))) { move = item.asObject(); break; }
+                assertTrue(move != null);
+                JsonObject moved = restored.apply(actor, fixture.request("action", "move-once", view)
+                    .add("actionId", move.get("id"))).get("state").asObject();
+                assertEquals(2, moved.get("kickoff").asObject().get("participantIds").asArray().size());
+                assertEquals(1, moved.get("kickoff").asObject().getInt("completed", -1));
+                for (JsonValue item : moved.get("actions").asArray())
+                    assertTrue(!Json.value(first).equals(item.asObject().get("sourcePlayerId")), "A moved player cannot move twice");
+                SetupSession afterMove = new SetupSession(fixture.server, fixture.document, restored.recoveryArtifact());
+                assertEquals(moved, afterMove.reply("load", "ACCEPTED", false, actor).get("state"));
+            }
+        }
     }
 
     private static final class Fixture {

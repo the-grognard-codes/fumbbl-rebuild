@@ -13,7 +13,7 @@ public enum PlayerChoiceMode implements INamedObject {
 	INDOMITABLE("indomitable"), PICK_ME_UP("pickMeUp", false, true),
 	LORD_OF_CHAOS("lordOfChaos", false), WISDOM("wisdomOfTheWhiteDwarf"),
 	RAIDING_PARTY("raidingParty", false), BALEFUL_HEX("balefulHex"), BLACK_INK("blackInk"),
-	QUICK_BITE("quickBite"), FURIOUS_OUTBURST("furiousOutburst"), SOLID_DEFENCE("solidDefence", false), CHARGE("charge", false),
+	QUICK_BITE("quickBite"), FURIOUS_OUTBURST("furiousOutburst"), SOLID_DEFENCE("solidDefence", false), CHARGE("charge", false), QUICK_SNAP("quickSnap", false),
 	ARM_BAR("armBar"), AUTO_GAZE_ZOAT("autoGazeZoat"), DWARFEN_WISDOM("dwarfenWisdom", false),
 	ILL_CARRY_YOU("illCarryYou"), CATCH("catch");
 
@@ -124,6 +124,9 @@ public enum PlayerChoiceMode implements INamedObject {
 			case SOLID_DEFENCE:
 				header.append("Select players to setup again");
 				break;
+			case QUICK_SNAP:
+				header.append("Select players for Quick Snap");
+				break;
 			case CHARGE:
 				header.append("Select players to perform actions");
 				break;
@@ -226,6 +229,9 @@ public enum PlayerChoiceMode implements INamedObject {
 			case SOLID_DEFENCE:
 				title.append("Solid Defence");
 				break;
+            case QUICK_SNAP:
+                title.append("Quick Snap!");
+                break;
 			case CHARGE:
 				title.append("Charge!");
 				break;
@@ -327,6 +333,9 @@ public enum PlayerChoiceMode implements INamedObject {
 			case SOLID_DEFENCE:
 				message.append("Waiting for coach to select players to setup again");
 				break;
+            case QUICK_SNAP:
+                message.append("Waiting for coach to select players for Quick Snap.");
+                break;
 			case CHARGE:
 				message.append("Waiting for coach to select players to perform actions");
 				break;
