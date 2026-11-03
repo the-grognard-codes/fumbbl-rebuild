@@ -16,16 +16,20 @@
   <main class="updates-page">
     <div class="updates-intro"><p class="kicker">Project updates</p><h1>What's new under the pitch.</h1>
       <p>A brief look at the work behind MUTP, from game-day improvements to the tools that keep the project moving. Each entry links to its merged pull request for the full details.</p>
-      <p class="updates-coverage">185 merged pull requests · Latest merge November 3, 2026 · Newest first</p></div>
+      <p class="updates-coverage">186 merged pull requests · Latest merge November 3, 2026 · Newest first</p></div>
     <form id="updates-search" class="updates-tools" action="/updates" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">185 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">186 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-427" data-pr="427" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-03T15:33:30Z">November 3, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/427" target="_blank" rel="noreferrer">PR #427<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Unify decision prompts with approved mole artwork</h2><p>Coin toss, kick/receive, apothecary, argue-the-call, bribe and interception decisions now use compact horizontal prompts with mole artwork. Player-focused choices allow pitch inspection and mark the selected player; interceptors can be previewed before confirmation. Secret Weapon send-offs resolve one player at a time, including arguments and bribes, with recovery support.</p>
+    </article>
     <article class="panel update-entry" id="pr-425" data-pr="425" data-category="Platform">
       <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-03T05:45:10Z">November 3, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425" target="_blank" rel="noreferrer">PR #425<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h2>Make BB2025 the sole supported Blood Bowl ruleset</h2><p>Removed older-edition rules, unused fixtures and retired options while retaining the implementations used by BB2025. New matches, replays and recovery use the supported ruleset, and automated checks guard against reintroducing obsolete edition code. Compatibility with saves and replays from earlier builds is not guaranteed.</p>

@@ -1,5 +1,13 @@
 [
   {
+    "number": 427,
+    "title": "Unify decision prompts with approved mole artwork",
+    "summary": "Coin toss, kick/receive, apothecary, argue-the-call, bribe and interception decisions now use compact horizontal prompts with mole artwork. Player-focused choices allow pitch inspection and mark the selected player; interceptors can be previewed before confirmation. Secret Weapon send-offs resolve one player at a time, including arguments and bribes, with recovery support.",
+    "category": "Gameplay",
+    "mergedAt": "2026-11-03T15:33:30Z",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/427"
+  },
+  {
     "number": 425,
     "title": "Make BB2025 the sole supported Blood Bowl ruleset",
     "summary": "Removed older-edition rules, unused fixtures and retired options while retaining the implementations used by BB2025. New matches, replays and recovery use the supported ruleset, and automated checks guard against reintroducing obsolete edition code. Compatibility with saves and replays from earlier builds is not guaranteed.",
