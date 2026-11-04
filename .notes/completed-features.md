@@ -13,6 +13,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Team Builder MVP](#team-builder-mvp)
+  - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
 - [Movement and action planning](#movement-and-action-planning)
   - [Movement-range rollback](#movement-range-rollback)
   - [Replacement movement-range markings](#replacement-movement-range-markings)
@@ -119,6 +120,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Supported sideline staff, rerolls, fan factor, and up to five valid skill/stat advances per player, with accurate team-value calculation and no spending cap for the MVP.
 - Validated rosters before enabling JSON download; generated a stored team UUID usable alongside JSON uploads on the create/join page, which also validated teams.
 - Excluded league progression, star player point tracking, biographies, custom imagery, star-player recruitment, and inducements.
+
+### Saved Human and Orc team colors
+
+- Coaches choose and save primary and secondary colors from the shared 16-color palette, with immediate builder previews and persistent team identity.
+- Match creation freezes colors for live play, recovery and replay. Pitch players, busts, helmets, dugouts, player choices and match announcements use the same kit; historical teams retain compatible fallback behavior.
+- Includes approved chibi portraits and splash helmets for both rosters, explicit material masks, fixed skin/metal/leather, player-matched base tones and distinct same-color helmet trim.
+- Validated all 256 palette pairs, cache/fallback behavior, static-site builder and live-game rendering. Final manual validation was accepted on 2026-11-04.
+- Scope and evidence: [team-color spec](../docs/specs/team-colors.md), [outcome](../docs/specs/team-colors-outcome.md), [issue #438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
+- Merged in [PR #446](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446) on 2026-11-04; CI passed and dev-local was stopped.
 
 ## Movement and action planning
 
@@ -335,11 +345,3 @@ Difficulty: **Random**. Description: **"Calls plays by throwing a squig at the p
 
 - Removed the then-current stadium and crowd graphics as a clean-slate step for a full visual overhaul.
 - Retained the pitch and other game elements. This records a separate historical milestone from the modular stadium work above.
-
-### Saved Human and Orc team colors
-
-- Coaches choose and save primary and secondary colors from the shared 16-color palette, with immediate builder previews and persistent team identity.
-- Match creation freezes colors for live play, recovery and replay. Pitch players, busts, helmets, dugouts, player choices and match announcements use the same kit; historical teams retain compatible fallback behavior.
-- Includes approved chibi portraits and splash helmets for both rosters, explicit material masks, fixed skin/metal/leather, player-matched base tones and distinct same-color helmet trim.
-- Validated all 256 palette pairs, cache/fallback behavior, static-site builder and live-game rendering. Final manual validation was accepted on 2026-11-04.
-- Scope and evidence: [team-color spec](../docs/specs/team-colors.md), [outcome](../docs/specs/team-colors-outcome.md), [issue #438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
