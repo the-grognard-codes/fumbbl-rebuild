@@ -76,6 +76,9 @@ for (const roster of ['human', 'orc']) {
   }
   if (seed) await writeFile(mapsUrl, JSON.stringify(maps) + '\n');
   const raw = Buffer.concat(chunks), compressed = gzipSync(raw, { level: 9, mtime: 0 });
+  // Gzip otherwise writes a platform-specific OS byte (Windows 10, Unix 3).
+  // The payload is platform-independent; mark the container OS as unspecified.
+  compressed[9] = 255;
   await emit(new URL(`delivery/${roster}.bin.gz`, output), compressed);
   packs[roster] = { url: `/assets/game/team-colors/v1/${roster}.bin.gz`, bytes: raw.length, sha256: hash(raw), images: entries };
   console.log(`${roster}: ${entries.length} images, ${raw.length} decoded / ${compressed.length} transferred bytes`);
