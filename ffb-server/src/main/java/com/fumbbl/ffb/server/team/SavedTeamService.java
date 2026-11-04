@@ -44,6 +44,7 @@ public final class SavedTeamService {
 	public Loaded load(String owner, String id) throws SQLException { return inspect(required(owner, id)); }
 	public Loaded create(String owner, TeamDraft draft) throws SQLException {
 		TeamValidation.Evaluation result = accepted(draft);
+		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) draft = draft.withEffectiveColors();
 		uniqueName(owner, null, draft);
 		SavedTeamDocument document = new SavedTeamDocument(UUID.randomUUID().toString(), owner, 1, draft, json.evaluation(result).toString());
 		repository.insert(record(document));
@@ -55,6 +56,7 @@ public final class SavedTeamService {
 		if (draft.draftVersion != TeamDraft.FORMAT_VERSION) throw new Failure("INVALID_DOCUMENT_VERSION");
 		String id = UUID.nameUUIDFromBytes(("saved-team-v2\n" + owner + "\n" + requestId).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
 		TeamValidation.Evaluation result = accepted(draft);
+		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) draft = draft.withEffectiveColors();
 		SavedTeamDocument document = new SavedTeamDocument(id, owner, 1, draft, json.evaluation(result).toString());
 		SavedTeamRepository.Record previous = repository.find(owner, id);
 		if (previous != null) {
@@ -74,6 +76,7 @@ public final class SavedTeamService {
 		if (draft.draftVersion != previous.document.draft.draftVersion) throw new Failure("MIGRATION_REQUIRED");
 		if (!previous.document.draft.catalogVersion.equals(draft.catalogVersion)) throw new Failure("MIGRATION_REQUIRED");
 		TeamValidation.Evaluation result = accepted(draft);
+		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) draft = draft.withEffectiveColors();
 		uniqueName(owner, id, draft);
 		if (expectedVersion >= 2147483646) throw new Failure("INVALID_DOCUMENT_VERSION");
 		SavedTeamDocument document = new SavedTeamDocument(id, owner, expectedVersion + 1, draft, json.evaluation(result).toString());

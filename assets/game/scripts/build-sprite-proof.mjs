@@ -16,7 +16,10 @@ for (const assignment of assignments.images) {
   if (helmet ? assignment.source !== 'ui/mvp-art/match-ui-icon-atlas-v1.png'
     : !/^teams\/human\/poses\/coach-oriented-v1\/master\/(lineman-(front45|portrait)|(halfling|ogre)-portrait)\.png$/.test(assignment.source))
     throw Error('Proof source is not a scoped asset');
-  const source = new URL('../' + assignment.source, import.meta.url);
+  // The historical proof retains its approved pixels when production portraits advance.
+  if (assignment.archiveSource && assignment.archiveSource !== `proofs/shared-sprite-v1/source/originals/${assignment.source.split('/').at(-1)}`)
+    throw Error('Invalid archived proof source');
+  const source = new URL('../' + (assignment.archiveSource ?? assignment.source), import.meta.url);
   let image = await readRgbaPng(fileURLToPath(source));
   const sourceSha256 = createHash('sha256').update(await readFile(source)).digest('hex');
   if (sourceSha256 !== assignment.sourceSha256) throw Error('Source artwork changed; review the material map again');

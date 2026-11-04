@@ -1,3 +1,4 @@
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DecisionOption, MatchDecision } from './match-decision.ts';
@@ -14,9 +15,10 @@ export function isRectangularDecision(decision: MatchDecision) {
 }
 const declines = (option: DecisionOption) => /(?:^|:)(?:no|none)$/.test(option.id);
 function ChoiceArt({ decision, option, player }: { decision: MatchDecision; option: DecisionOption; player?: SetupPlayer }) {
+  const colors = useTeamColorContext();
   const decline = declines(option);
   if (['interception', 'secretWeapon'].includes(decision.kind) && player) {
-    const portrait = resolvePlayerPortrait(player);
+    const portrait = resolvePlayerPortrait(player, colors[player.role]);
     return portrait ? <img className="decision-art portrait" src={portrait} alt=""/> : <span className="decision-art">#{player.number}</span>;
   }
   if (!decline && ['apothecary', 'bribe'].includes(decision.kind)) return <MatchArt name={decision.kind === 'bribe' ? 'bribe' : 'apothecary'}/>;

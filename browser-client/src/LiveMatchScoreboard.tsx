@@ -122,15 +122,15 @@ export function LiveMatchScoreboard({ view, endTurn }: { view: SetupState; endTu
   const clock = view.clock ? clockValues(view.clock, elapsedSinceProjection, paused) : null;
   const homeName = matchTeamName(view, 'home');
   const awayName = matchTeamName(view, 'away');
-  const homeArt = view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
-  const awayArt = view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
+  const homeArt = view.homeTeamArt?.rosterId ?? view.players.find(player => player.role === 'home' && player.art)?.art?.rosterId;
+  const awayArt = view.awayTeamArt?.rosterId ?? view.players.find(player => player.role === 'away' && player.art)?.art?.rosterId;
   const weather = weatherPresentation(view.weather);
   return <div className="match-scoreboard live-match-scoreboard" aria-label="Match scoreboard">
     <Resources role="home" teamName={homeName} items={hudResources(view, 'home')}/>
     {(clock || endTurn && view.callerRole === 'home') && <ClockPanel role="home" teamName={homeName} clock={clock} endTurn={view.callerRole === 'home' ? endTurn : undefined}/>}
     <div className="coach-score-center">
       <div className="live-team-nameplate home">
-        {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt}/>}
+        {(homeArt === 'human' || homeArt === 'orc') && <MatchArt name={homeArt} colors={view.homeTeamArt?.colors}/>}
         <TeamName name={homeName}/>
       </div>
       <div className="coach-score">
@@ -139,7 +139,7 @@ export function LiveMatchScoreboard({ view, endTurn }: { view: SetupState; endTu
       </div>
       <div className="live-team-nameplate away">
         <TeamName name={awayName}/>
-        {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt}/>}
+        {(awayArt === 'human' || awayArt === 'orc') && <MatchArt name={awayArt} colors={view.awayTeamArt?.colors}/>}
       </div>
     </div>
     {(clock || endTurn && view.callerRole === 'away') && <ClockPanel role="away" teamName={awayName} clock={clock} endTurn={view.callerRole === 'away' ? endTurn : undefined}/>}

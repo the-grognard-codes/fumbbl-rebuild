@@ -1,3 +1,4 @@
+import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LivePitch } from './LivePitch.tsx';
@@ -103,7 +104,7 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   </section>;
 }
 
-function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, interactionBlocked, onBusy, onRevision }: {
+function ReplayBoardContent({ event, records, skipAnimations, speed, snapshotKey, interactionBlocked, onBusy, onRevision }: {
   event: ReplayEvent; records: TranscriptRecord[]; skipAnimations: boolean; speed: number;
   snapshotKey?: number;
   interactionBlocked: boolean;
@@ -137,4 +138,8 @@ function ReplayBoard({ event, records, skipAnimations, speed, snapshotKey, inter
     {summaryMoments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{summaryMoments.map((moment, index) =>
       <div key={index}><span>{moment.label}</span>{moment.faces.map((face, faceIndex) => <DiceFace key={faceIndex} face={face} selected={moment.selected === faceIndex}/>)}</div>)}</div>}
   </>;
+}
+
+function ReplayBoard(props: Parameters<typeof ReplayBoardContent>[0]) {
+  return <TeamColorArtProvider home={props.event.state.homeTeamArt} away={props.event.state.awayTeamArt}><ReplayBoardContent {...props}/></TeamColorArtProvider>;
 }

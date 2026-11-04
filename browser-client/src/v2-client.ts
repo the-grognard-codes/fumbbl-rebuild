@@ -334,7 +334,7 @@ export class V2Client {
     }
     if (message.type === 'savedTeam') {
       const document = message.document;
-      if (document && (![2, 3].includes(document.formatVersion) || document.owner?.namespace !== 'account'
+      if (document && (![2, 3, 4].includes(document.formatVersion) || document.owner?.namespace !== 'account'
         || Object.keys(document.owner).length !== 2 || document.owner.subject !== this.accountId
         || (request?.teamId && request.teamId !== document.teamId))) throw Error('Foreign team');
       decodeSavedTeam(JSON.stringify({ ...message, version: 1 }));

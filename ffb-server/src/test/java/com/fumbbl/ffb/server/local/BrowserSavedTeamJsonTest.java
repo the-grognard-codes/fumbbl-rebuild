@@ -45,10 +45,38 @@ class BrowserSavedTeamJsonTest {
 		assertFalse("OK".equals(denied.getString("code", null)));
 		assertTrue(denied.get("document").isNull()); assertFalse(denied.toString().contains(owner));
 	}
+    @Test void colorsRoundTripAndLegacyReadsDoNotRewriteStoredBytes() {
+        BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+        String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+        JsonObject colors = new JsonObject().add("version", 1).add("primary", "violet").add("secondary", "violet");
+        JsonObject created = accounts.handle(owner, request("create").add("draft", namedDraft().add("colors", colors)).toString());
+        assertEquals("OK", created.getString("code", null));
+        JsonObject document = created.get("document").asObject();
+        assertEquals(colors, document.get("draft").asObject().get("colors"));
+        String id = document.getString("teamId", null);
+        JsonObject legacy = JsonObject.readFrom(document.toString()).set("formatVersion", 3);
+        legacy.get("draft").asObject().remove("colors");
+        repository.rows.put(id, new SavedTeamRepository.Record(id, owner, 1, RosterCatalog.VERSION, legacy.toString()));
+        String before = repository.rows.get(id).json;
+        JsonObject loaded = accounts.handle(owner, request("load").add("teamId", id).toString());
+        assertEquals("CURRENT", loaded.getString("versionStatus", null));
+        assertEquals(before, repository.rows.get(id).json);
+        JsonObject saved = accounts.handle(owner, update(legacy, legacy.get("draft").asObject()).toString());
+        assertEquals("OK", saved.getString("code", null));
+        assertEquals("navy", saved.get("document").asObject().get("draft").asObject().get("colors").asObject().getString("primary", null));
+        for (JsonObject invalid : new JsonObject[] { new JsonObject().add("version", 1).add("primary", "navy"),
+            new JsonObject().add("version", 1).add("primary", "bogus").add("secondary", "white") }) {
+            assertFalse("OK".equals(accounts.handle(owner, request("create").set("requestId", "bad").add("draft", namedDraft().add("colors", invalid)).toString()).getString("code", null)));
+        }
+    }
 	@BeforeEach
 	void initialize() {
 		catalog = new RosterCatalog(); repository = new MemoryRepository();
 		adapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog));
+	}
+	@Test void legacyDraftCannotSilentlyDiscardExplicitColors() {
+		JsonObject colors = new JsonObject().add("version", 1).add("primary", "red").add("secondary", "white");
+		assertEquals("red", new BrowserTeamJson(catalog).decodeDraft(draft().add("colors", colors)).colors.primary());
 	}
 	private JsonObject draft() {
 		JsonArray players = new JsonArray();
@@ -112,7 +140,7 @@ class BrowserSavedTeamJsonTest {
 		assertFalse(original.get("teamId").equals(copied.get("teamId")));
 		assertEquals("TEAM_NAME_TAKEN", accounts.handle(owner, update(copied, namedDraft()).toString()).getString("code", null));
 		assertEquals("OK", accounts.handle(owner, update(original, namedDraft().set("teamName", "The MOLES")).toString()).getString("code", null));
-		assertEquals(copyDraft, accounts.handle(owner, request("load").add("teamId", copied.get("teamId")).toString()).get("document").asObject().get("draft"));
+		assertEquals(copyDraft.add("colors", new com.fumbbl.ffb.server.team.TeamColorPalette().defaults("human").encode()), accounts.handle(owner, request("load").add("teamId", copied.get("teamId")).toString()).get("document").asObject().get("draft"));
 	}
 	@Test
 	void checkedInHumanStarterDraftIsAcceptedByTheFrozenCatalog() throws IOException {
@@ -151,7 +179,7 @@ class BrowserSavedTeamJsonTest {
 		JsonObject created = adapter.handle(account, input.toString());
 		assertEquals("OK", created.getString("code", ""));
 		JsonObject document = created.get("document").asObject();
-		assertEquals(3, document.getInt("formatVersion", 0));
+		assertEquals(4, document.getInt("formatVersion", 0));
 		assertEquals("account", document.get("owner").asObject().getString("namespace", ""));
 		assertEquals(document, adapter.handle(account, input.toString()).get("document"));
 		assertEquals(1, repository.rows.size());

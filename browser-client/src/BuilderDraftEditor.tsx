@@ -1,36 +1,21 @@
+import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
+import { defaultTeamColors } from './team-colors.ts';
+import { TeamColorPicker, BuilderPortrait } from './TeamColorPicker.tsx';
 import { useState } from 'react';
 import { randomPlayerName } from './player-names';
 
 import { canPurchaseSkill } from './team-protocol';
 import type { Catalog, DraftPlayer, Position, TeamDraft, Validation } from './team-protocol';
 
-const spriteFiles: Record<string, string> = {
-  ogre: '01-ogre-man.png',
-  blitzer: '02-blitzer-man.png',
-  catcher: '05-catcher-man.png',
-  thrower: '06-thrower-man.png',
-  lineman: '08-lineman-man.png',
-  halfling: '14-halfling-man.png'
-};
-const orcSpriteFiles: Record<string, string> = {
-  troll: '01-troll-man.png', 'orc-blitzer': '02-blitzer-man.png',
-  'big-un-blocker': '04-big-un-man.png', 'orc-thrower': '06-thrower-man.png',
-  'orc-lineman': '08-line-orc-man.png', 'goblin-lineman': '14-goblin-man.png'
-};
 const positionOrder = ['ogre', 'blitzer', 'catcher', 'thrower', 'lineman', 'halfling'];
 const orcPositionOrder = ['troll', 'orc-blitzer', 'big-un-blocker', 'orc-thrower', 'orc-lineman', 'goblin-lineman'];
 const money = (value: number) => `${value.toLocaleString('en-US')} GP`;
-
-function sprite(rosterId: string, positionId: string) {
-  const file = (rosterId === 'orc' ? orcSpriteFiles : spriteFiles)[positionId];
-  return file ? `${import.meta.env.BASE_URL}assets/game/teams/${rosterId}/${file}` : null;
-}
 
 function nextAvailable(values: number[], maximum: number) {
   return Array.from({ length: maximum }, (_, index) => index + 1).find(value => !values.includes(value));
 }
 
-export function BuilderDraftEditor({ catalog, draft, update, editable, validate, validation, selectRoster }: {
+function BuilderDraftEditorContent({ catalog, draft, update, editable, validate, validation, selectRoster }: {
   catalog: Catalog;
   draft: TeamDraft;
   update: (draft: TeamDraft) => void;
@@ -91,6 +76,8 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
       <button className="button secondary" type="button" aria-expanded={detailsVisible} onClick={() => setDetailsVisible(value => !value)}>{detailsVisible ? 'Hide' : 'Show'} Team Details</button>
     </section>
 
+    <TeamColorPicker rosterId={draft.rosterId} colors={draft.colors} disabled={!editable} onChange={colors => update({ ...draft, colors })}/>
+
     {detailsVisible && <section className="panel team-details" aria-label="Team details">
       <h2>{catalog.name} Team Details</h2>
       <p><strong>Team Re-rolls:</strong> {money(catalog.resources.find(resource => resource.id === 'rerolls')?.cost ?? 0)} · <strong>Special Rule:</strong> {catalog.specialRule}</p>
@@ -102,9 +89,9 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
     <div className="builder-grid">
       <section className="panel recruitment"><h2>Recruit Players</h2><div className="position-list">{positions.map(position => {
         const count = counts.get(position.id) ?? 0;
-        const image = sprite(catalog.rosterId, position.id);
+
         return <article className="position" key={position.id}>
-          {image && <img className="sprite" src={image} alt="" />}
+          <BuilderPortrait rosterId={catalog.rosterId} positionId={position.id}/>
           <h3>{position.name}</h3><p>{count} / {position.maximum} · {money(position.cost)}</p>
           <button type="button" disabled={!editable || count >= position.maximum || draft.players.length >= catalog.maxPlayers} onClick={() => addPlayer(position)}>Add {position.name}</button>
         </article>;
@@ -124,9 +111,9 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
       <div className="roster" aria-live="polite">{orderedPlayers.length ? orderedPlayers.map((player, index) => {
         const position = catalog.positions.find(item => item.id === player.positionId);
         const eligibleSkills = catalog.skills.filter(skill => position && canPurchaseSkill(skill, position, draft.captainId === player.id));
-        const image = sprite(catalog.rosterId, player.positionId);
+
         return <article className="roster-row" key={player.id}>
-          {image && <img src={image} alt="" />}
+          <BuilderPortrait rosterId={catalog.rosterId} positionId={player.positionId}/>
           <div className="position-name">{position?.name ?? player.positionId}<div className="skills">{position?.baseSkills.map(skill => skillNames.get(skill.id) ?? skill.id).join(', ') || 'No starting skills'}</div></div>
           <label>Name<input aria-label={`Name for slot ${player.slot}`} maxLength={30} disabled={!editable} value={player.playerName} onChange={event => changePlayer(player.id, { playerName: event.target.value.normalize('NFC') })} /></label>
           <label>Number<input aria-label={`Jersey for slot ${player.slot}`} type="number" min="1" max="99" disabled={!editable} value={player.jerseyNumber} onChange={event => changePlayer(player.id, { jerseyNumber: event.target.valueAsNumber })} /></label>
@@ -142,4 +129,8 @@ export function BuilderDraftEditor({ catalog, draft, update, editable, validate,
       return <article className="resource" key={resource.id}><h3>{resource.name}</h3><p>{money(resource.cost)} each · max {resource.maximum}</p><div className="resource-controls"><button type="button" aria-label={`Subtract ${resource.name}`} disabled={!editable || value === 0} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value - 1 } })}><span className="resource-sign" aria-hidden="true" /></button><output aria-label={resource.name}>{value}</output><button type="button" aria-label={`Add ${resource.name}`} disabled={!editable || value >= resource.maximum} onClick={() => update({ ...draft, resources: { ...draft.resources, [resource.id]: value + 1 } })}><span className="resource-sign resource-sign-plus" aria-hidden="true" /></button></div></article>;
     })}</div></section>
   </>;
+}
+
+export function BuilderDraftEditor(props: Parameters<typeof BuilderDraftEditorContent>[0]) {
+  return <TeamColorArtProvider home={{ rosterId: props.draft.rosterId, league: null, colors: props.draft.colors ?? defaultTeamColors(props.draft.rosterId) }}><BuilderDraftEditorContent {...props}/></TeamColorArtProvider>;
 }

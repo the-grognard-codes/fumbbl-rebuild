@@ -26,5 +26,6 @@ async function renderHeaders(directory) {
 await renderHeaders(output);
 await cp(new URL('../../browser-client/dist-play/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
 await cp(new URL('../../browser-client/public/assets/game/', import.meta.url), new URL('../dist/assets/game/', import.meta.url), { recursive: true });
+await cp(new URL('../../browser-client/src/team-colors.css', import.meta.url), new URL('../dist/assets/team-colors.css', import.meta.url));
 await versionSiteAssets(output);
 console.log(`Built static site from ${root}src to ${root}dist`);

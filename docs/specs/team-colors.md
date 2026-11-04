@@ -2,11 +2,11 @@
 
 Date: 2026-11-03.
 
-Status: design approved on 2026-11-03. The user accepted all four scope and behavior recommendations. This is the implementation specification; coding, commits, PR delivery and deployment require their separate handoff/authorization.
+Status: implemented and validated locally on 2026-11-03 after the approved implementation handoff. See the [outcome report](team-colors-outcome.md). Final manual review accepted on 2026-11-04; CI-gated PR delivery and branch cleanup are authorized. Remote deployment remains outside scope.
 
 Tracker: [#438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
 
-Prerequisite: [shared sprite-format proof](shared-sprite-format-proof.md) and [format contract](shared-sprite-format-contract.md). The proof and contract landed in [PR #444](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/444), commit `615df5fc9`. Team-color implementation has not started.
+Prerequisite: [shared sprite-format proof](shared-sprite-format-proof.md) and [format contract](shared-sprite-format-contract.md). The proof and contract landed in [PR #444](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/444), commit `615df5fc9`. Team-color implementation is ready for review on `feature/saved-team-colors`.
 
 ## Abstract
 
@@ -73,7 +73,7 @@ The feature occupies the team-colors step of the agreed sequence: sprite proof â
 - Every active Human and Orc position has all supported static poses, a recolorable bust and its roster helmet; the manifest inventory and visual review show no in-scope omissions.
 - All palette pairs preserve fixed pixels, alpha and geometry; actual consumer sizes, palette extremes and resource behavior are verified.
 - Unsaved swatch changes update builder busts and the compact helmet/pitch preview immediately; normal Validate/Save persists them and failed saves retain truthful draft state.
-- A repeatable full-match resource check records asset size, cold/warm rendering cost and bounded cache/resource lifetime for both rosters and repeated kit changes. Repeatable stutter, leaks or blocking fallback behavior must be fixed before acceptance.
+- A repeatable full-match resource check records asset size, cold/warm rendering cost and bounded cache/resource lifetime for both rosters and repeated kit changes. Performance measurements and observed overhead are report-only, with no performance acceptance gate (confirmed 2026-11-03). Resource cleanup, bounded caches and non-blocking fallback remain functional requirements.
 
 ## Constraints
 
@@ -113,6 +113,6 @@ Run asset export/sync/checks, focused shared-art and protocol tests, browser int
 | [#442](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/442) | Builder 8Ã—2 grids, live previews and normal save flow | #439, #440, #441 |
 | [#443](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/443) | Frozen-color match rendering, lifecycle/resource checks and final acceptance | #439, #440, #441, #442 |
 
-All slices are specified; dependency notes govern implementation order. No code work for this feature has started. The Human/Orc conversion slices share one pack contract and can progress independently. Final feature acceptance requires both complete rosters.
+All slices are implemented locally, including both complete rosters. The [outcome report](team-colors-outcome.md) records acceptance evidence, platform limits and the running dev-local instance. Performance results are report-only by confirmed decision on 2026-11-03. Issues remain open for review and later authorized publication.
 
 Implementation must follow the usual workflow on a new working branch, include self-review, required checks, full-roster visual evidence, a local review server and an outcome report against every acceptance criterion. Documentation and issue publication alone do not complete this feature. No production animation, stadium work or live deployment is implied by this request.

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "human-blitzer-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 11162,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-blitzer-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 12468,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  }
+]

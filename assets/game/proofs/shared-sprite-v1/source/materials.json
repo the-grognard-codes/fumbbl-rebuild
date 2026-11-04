@@ -30164,7 +30164,8 @@
           0,
           0
         ]
-      ]
+      ],
+      "archiveSource": "proofs/shared-sprite-v1/source/originals/lineman-portrait.png"
     },
     {
       "id": "human-helmet",
@@ -163252,7 +163253,8 @@
           0,
           0
         ]
-      ]
+      ],
+      "archiveSource": "proofs/shared-sprite-v1/source/originals/halfling-portrait.png"
     },
     {
       "id": "ogre-portrait",
@@ -189180,7 +189182,8 @@
           0,
           0
         ]
-      ]
+      ],
+      "archiveSource": "proofs/shared-sprite-v1/source/originals/ogre-portrait.png"
     }
   ]
 }

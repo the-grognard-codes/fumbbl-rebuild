@@ -12,6 +12,7 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
 const poseAsset = '**/teams/*/poses/**/*.png';
+const colorPack = '**/team-colors/v1/*.bin.gz';
 const turfAsset = '**/pitch/stadium-v1.png';
 const errors = [];
 
@@ -95,6 +96,7 @@ try {
     page.on('request', request => { if (/\/poses\/.*\.png$/.test(request.url())) artRequests.push(request.url()); });
     if (scenario === 'failed-assets') {
       await page.route(poseAsset, route => route.fulfill({ status: 404, body: '' }));
+      await page.route(colorPack, route => route.fulfill({ status: 404, body: '' }));
       await page.route(turfAsset, route => route.fulfill({ status: 404, body: '' }));
     }
     await mount(page);
@@ -113,7 +115,7 @@ try {
       for (const url of artRequests) counts.set(url, (counts.get(url) ?? 0) + 1);
       assert.ok(counts.size > 0);
       assert.ok([...counts.values()].every(count => count === 1), 'Failed player art is not repeatedly fetched');
-      await page.unroute(poseAsset); await page.unroute(turfAsset);
+      await page.unroute(poseAsset); await page.unroute(colorPack); await page.unroute(turfAsset);
       await unmount(page); await mount(page);
       await page.waitForFunction(() => [...document.querySelectorAll('.live-marker img')].some(image => image.complete && image.naturalWidth > 0));
       assert.equal(await page.locator('.live-pitch-error').count(), 0, 'Remount restores available textures');

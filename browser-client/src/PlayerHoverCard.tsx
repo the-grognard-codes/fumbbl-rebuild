@@ -1,3 +1,4 @@
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { spriteUrl } from './LivePitch.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
@@ -21,7 +22,8 @@ export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: Se
     element.style.top = `${Math.max(8, Math.min(anchor.top, window.innerHeight - height - 8))}px`;
   }, [anchor, player, dock]);
   const subtypes = playerCardSubtypes(player);
-  const image = resolvePlayerPortrait(player) ?? spriteUrl(player);
+  const colors = useTeamColorContext();
+  const image = resolvePlayerPortrait(player, colors[player.role]) ?? spriteUrl(player);
   return <aside ref={card} popover="manual" className={`live-player-hover tooltip-popover ${player.role}${dock ? ` dock-${dock}` : ''}`} role="tooltip" style={style} aria-label={`${player.name} player card`}>
     <header><div className="live-player-card-intro"><small>#{player.number ?? player.slot} · {teamName}</small><h3>{player.name}</h3>
       <span>{player.position ?? player.role}{subtypes && ` (${subtypes})`}</span></div>

@@ -644,18 +644,14 @@ class SetupSessionMovementTest {
         String role = view.getString("actor", null);
         String otherRole = "home".equals(role) ? "away" : "home";
         int revision = view.getInt("revision", -1);
-        String activeId = null, inactiveId = null;
-        for (JsonValue value : view.get("players").asArray()) {
-            JsonObject candidate = value.asObject();
-            if (!"pitch".equals(candidate.getString("offPitch", null))) continue;
-            if (role.equals(candidate.getString("role", null)) && activeId == null)
-                activeId = candidate.getString("id", null);
-            if (otherRole.equals(candidate.getString("role", null)) && inactiveId == null)
-                inactiveId = candidate.getString("id", null);
-        }
-        Field stateField = SetupSession.class.getDeclaredField("state");
-        stateField.setAccessible(true);
-        Game game = ((GameState) stateField.get(fixture.session)).getGame();
+        Game game = nativeState(fixture.session).getGame();
+        Player<?> activePlayer = game.getActingTeam().getPlayers()[0];
+        Player<?> inactivePlayer = game.getOtherTeam(game.getActingTeam()).getPlayers()[0];
+        // This tests turn-mode allowances, independently of random kickoff injuries.
+        UtilBox.putAllPlayersIntoBox(game);
+        place(game, activePlayer, 7, 7, PlayerState.STANDING);
+        place(game, inactivePlayer, 20, 7, PlayerState.STANDING);
+        String activeId = activePlayer.getId(), inactiveId = inactivePlayer.getId();
         JsonObject regularInactive = fixture.session.movementRange(role, revision, inactiveId);
         assertTrue(regularInactive.getInt("remaining", -1) > 2);
         game.getActingPlayer().setPlayerId(activeId);

@@ -1,0 +1,27 @@
+﻿{
+    "team":  "Humans",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "human-blitzer-portrait",
+                        "role":  "blitzer",
+                        "gender":  "woman",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-blitzer-portrait.png",
+                        "original":  "originals/human-blitzer-portrait.png",
+                        "sourceSha256":  "9DB1D59E0EDAA103CA6EE60CD1B0CA8EB0C684C688D4AD3EFFBC80A50AE68164",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  129,
+                                       "height":  150,
+                                       "x":  15
+                                   }
+                    }
+                ]
+}

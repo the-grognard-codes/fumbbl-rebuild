@@ -32,7 +32,7 @@ public final class SavedTeamJson {
 		JsonObject object = JsonObject.readFrom(text);
 		fields(object, "formatVersion", "teamId", "documentVersion", "ruleset", "catalogVersion", "owner", "draft", "validation");
 		int format = object.get("formatVersion").asInt();
-		if (format != 1 && format != 2 && format != 3) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
+		if (format != 1 && format != 2 && format != 3 && format != 4) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
 		String id = teamId(object.get("teamId"));
 		int version = documentVersion(object.get("documentVersion"));
 		JsonObject owner = object.get("owner").asObject();
@@ -43,7 +43,8 @@ public final class SavedTeamJson {
 			throw new IllegalArgumentException("Unsupported owner metadata");
 		}
 		TeamDraft draft = draft(object.get("draft").asObject());
-		if ((format == 3) != (draft.draftVersion == TeamDraft.FORMAT_VERSION)) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
+		if (format == 4 && draft.colors == null) throw new IllegalArgumentException("Missing team colors");
+		if ((format >= 3) != (draft.draftVersion == TeamDraft.FORMAT_VERSION)) throw new SavedTeamService.Failure("INVALID_DOCUMENT_VERSION");
 		if (!draft.catalogVersion.equals(object.get("catalogVersion").asString()) || !draft.ruleset.equals(object.get("ruleset").asString())) {
 			throw new IllegalArgumentException("Inconsistent catalog metadata");
 		}
@@ -59,7 +60,7 @@ public final class SavedTeamJson {
 	}
 	public JsonObject encode(SavedTeamDocument document) {
 		boolean local = "home".equals(document.owner) || "away".equals(document.owner);
-		return new JsonObject().add("formatVersion", document.draft.draftVersion == TeamDraft.FORMAT_VERSION ? 3 : local ? 1 : 2).add("teamId", document.teamId)
+		return new JsonObject().add("formatVersion", document.draft.draftVersion == TeamDraft.FORMAT_VERSION ? (document.draft.colors == null ? 3 : 4) : local ? 1 : 2).add("teamId", document.teamId)
 			.add("documentVersion", document.documentVersion).add("ruleset", document.draft.ruleset)
 			.add("catalogVersion", document.draft.catalogVersion)
 			.add("owner", new JsonObject().add("namespace", local ? "local" : "account").add("subject", document.owner))
@@ -79,6 +80,7 @@ public final class SavedTeamJson {
 		JsonObject result = new JsonObject().add("catalogVersion", draft.catalogVersion).add("ruleset", draft.ruleset).add("rosterId", draft.rosterId)
 			.add("presetId", draft.presetId).add("captainId", draft.captainId).add("players", players).add("resources", resources);
 		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) result.add("draftVersion", draft.draftVersion).add("teamName", draft.teamName);
+		if (draft.colors != null) result.add("colors", draft.colors.encode());
 		return result;
 	}
 	public JsonObject evaluation(TeamValidation.Evaluation evaluation) {

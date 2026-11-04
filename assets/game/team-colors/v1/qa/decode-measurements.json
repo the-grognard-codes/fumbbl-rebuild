@@ -1,0 +1,14 @@
+[
+  {
+    "roster": "human",
+    "compressedBytes": 592905,
+    "decodedBytes": 2220800,
+    "decodeMs": 47.93949999999995
+  },
+  {
+    "roster": "orc",
+    "compressedBytes": 585368,
+    "decodedBytes": 2220800,
+    "decodeMs": 22.902000000001863
+  }
+]

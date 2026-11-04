@@ -1,0 +1,92 @@
+[
+  {
+    "id": "human-lineman-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 11375,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "human-catcher-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 16,
+    "transparentPixels": 10942,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "human-thrower-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 11894,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "human-ogre-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 13,
+    "transparentPixels": 10736,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "human-halfling-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 14,
+    "secondaryShadeLevels": 10,
+    "transparentPixels": 11561,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-orc-lineman-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 12054,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-big-un-blocker-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 16,
+    "transparentPixels": 10780,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-orc-thrower-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 14,
+    "transparentPixels": 12608,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-troll-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 13,
+    "transparentPixels": 10356,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-goblin-lineman-portrait",
+    "width": 160,
+    "height": 160,
+    "primaryShadeLevels": 15,
+    "secondaryShadeLevels": 16,
+    "transparentPixels": 10750,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  }
+]

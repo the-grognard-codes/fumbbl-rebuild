@@ -1,0 +1,13 @@
+{
+  "tool": "built-in image_gen",
+  "mode": "edit",
+  "transparent_background": true,
+  "human": {
+    "reference": "assets/game/teams/human/batches/blitzer-bust-redesign-v2/originals/human-blitzer-portrait.png",
+    "prompt": "Edit this approved HUMAN BLITZER portrait ONLY to restore slightly chibi proportions: enlarge the head (face, helmet, hair and attached faceguard together) approximately 12-15 percent relative to shoulders/chest; enlarge both eyes approximately 15 percent within the face, keeping determined adult expression, brown eyes and recognizable woman. Make neck slightly shorter. Fit entire hair, helmet and spikes within square transparent canvas. Preserve exactly the rich dimensional shading, texture, lighting, polished steel, skin tone, saturated magenta primary panels and lime secondary trim, material boundaries, dreadlock style, armor design and pose. Do not flatten shading, change colors, add texture, redesign armor or make baby-like. Subtle heroic chibi adjustment, not exaggerated cartoon. Transparent background; one portrait only, no text."
+  },
+  "orc": {
+    "reference": "assets/game/teams/orc/batches/blitzer-bust-redesign-v2/originals/orc-blitzer-portrait.png",
+    "prompt": "Edit this approved ORC BLITZER portrait ONLY for slightly chibi proportions: enlarge head (face, helmet, attached grille and tusks) about 15 percent relative to shoulders and chest, enlarge both red eyes about 20 percent with more visible eye opening but preserve fierce adult orc brow and expression. Slightly shorten neck. Keep all helmet spikes and shoulders within transparent square canvas. Preserve the exact rich dimensional shading, deep shadow, lighting, textures, magenta primary armor, lime secondary stripe/trim, olive-brown skin, bone tusks, neutral steel and leather, and clearly separated material boundaries. Preserve identity, armor design, asymmetric spikes, crossed straps and front-facing pose. Do not flatten shading, redesign, change palette or make infantile. Subtle heroic chibi with slightly bigger readable face/eyes. One portrait only; transparent background, no text."
+  }
+}

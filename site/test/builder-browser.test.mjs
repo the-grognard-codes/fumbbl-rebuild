@@ -60,7 +60,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
               if (ownedTeams.some(document => document.draft.teamName.toLowerCase() === request.draft.teamName.toLowerCase())) {
                 send({ type: 'savedTeam', requestId: request.requestId, code: 'TEAM_NAME_TAKEN', document: null, versionStatus: null, validation: null, teams: [] }); return;
               }
-              const document = { formatVersion: 3, teamId: ownedTeams.length ? '23456789-1234-1234-1234-123456789abc' : teamId, documentVersion: 1, ruleset: 'BB2025', catalogVersion: catalog.catalogVersion,
+              const document = { formatVersion: 4, teamId: ownedTeams.length ? '23456789-1234-1234-1234-123456789abc' : teamId, documentVersion: 1, ruleset: 'BB2025', catalogVersion: catalog.catalogVersion,
                 owner: { namespace: 'account', subject: accounts[index] }, draft: request.draft, validation };
               documents.set(accounts[index], document);
               savedCopies.set(`${accounts[index]}:${document.teamId}`, document);
@@ -102,10 +102,33 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByLabel('Skill for slot 1', { exact: true }).selectOption('wrestle');
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
     await pages[0].getByText(/Valid draft/).waitFor();
+    const primary = pages[0].getByRole('radiogroup', { name: 'Primary color', exact: true });
+    const secondary = pages[0].getByRole('radiogroup', { name: 'Secondary color', exact: true });
+    assert.equal(await primary.getByRole('radio').count(), 16);
+    assert.equal(await secondary.getByRole('radio').count(), 16);
+    await pages[0].waitForFunction(() => document.querySelector('.team-color-preview img[alt]')?.getAttribute('src')?.startsWith('data:'));
+    const beforeKit = await pages[0].getByAltText('Pitch player preview').getAttribute('src');
+    await primary.getByRole('radio', { name: 'Red', exact: true }).click();
+    await secondary.getByRole('radio', { name: 'Red', exact: true }).click();
+    assert.equal(await pages[0].getByRole('button', { name: 'Save team', exact: true }).isDisabled(), true);
+    assert.notEqual(await pages[0].getByAltText('Pitch player preview').getAttribute('src'), beforeKit);
+    assert.equal(await primary.getByRole('radio', { name: 'Red', exact: true }).getAttribute('aria-checked'), 'true');
+    await primary.getByRole('radio', { name: 'Red', exact: true }).press('ArrowRight');
+    assert.equal(await primary.getByRole('radio', { name: 'Orange', exact: true }).getAttribute('aria-checked'), 'true');
+    await primary.getByRole('radio', { name: 'Orange', exact: true }).press('ArrowLeft');
+    await pages[0].setViewportSize({ width: 360, height: 800 });
+    const layout = await pages[0].locator('.team-colors').evaluate(element => ({ width: element.clientWidth, scroll: element.scrollWidth, children: [...element.children].map(child => ({ tag: child.tagName, width: child.getBoundingClientRect().width, scroll: child.scrollWidth, css: getComputedStyle(child).width })) }));
+    await pages[0].locator('.team-colors').screenshot({ path: fileURLToPath(new URL('../../.tools/team-colors-builder-mobile.png', import.meta.url)) });
+    assert.ok(layout.scroll <= layout.width + 1, JSON.stringify(layout));
+    await pages[0].locator('.team-colors').screenshot({ path: fileURLToPath(new URL('../../.tools/team-colors-builder-mobile.png', import.meta.url)) });
+    await pages[0].setViewportSize({ width: 1440, height: 1000 });
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
+    await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Moles/).waitFor();
     assert.deepEqual(documents.get(accounts[0]).draft.players[0].skillIds, ['wrestle']);
     assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'Coach Choice');
+    assert.deepEqual(documents.get(accounts[0]).draft.colors, { version: 1, primary: 'red', secondary: 'red' });
     assert.doesNotMatch(await pages[0].locator('.saved-teams-panel').innerText(), /version \d/);
     assert.match(await pages[0].locator('.saved-teams-panel').innerText(), /The Moles\s*· Human/);
     assert.equal(await pages[1].getByText('No saved teams yet.').count(), 1);
@@ -135,6 +158,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByText('Saved team The Moles Copy', { exact: true }).waitFor();
     assert.deepEqual(savedCopies.get(`${accounts[0]}:${teamId}`), original);
     assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'New Captain');
+    assert.deepEqual(documents.get(accounts[0]).draft.colors, { version: 1, primary: 'red', secondary: 'red' });
     await pages[0].locator('.saved-teams-panel').getByText('The Moles Copy', { exact: true }).waitFor();
     assert.equal(await pages[0].locator('.saved-teams-panel li').count(), 2);
     pages[0].once('dialog', dialog => dialog.accept());
@@ -157,7 +181,8 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
       await pages[0].locator('.team-details').screenshot({ path: fileURLToPath(new URL(`../../.tools/builder-orc-details-${width}.png`, import.meta.url)) });
     }
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'catalog' && entry.rosterId === 'orc'));
-    assert.match(await pages[0].locator('.recruitment img.sprite').first().getAttribute('src'), /assets\/game\/teams\/orc\//);
+    await pages[0].waitForFunction(() => document.querySelector('.recruitment img.sprite')?.getAttribute('src')?.startsWith('data:'));
+    assert.equal(await pages[0].getByRole('radiogroup', { name: 'Primary color', exact: true }).getByRole('radio', { name: 'Black', exact: true }).getAttribute('aria-checked'), 'true');
     await pages[0].getByLabel('Team name').fill('The Orcs');
     for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).click();
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();

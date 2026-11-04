@@ -28,7 +28,12 @@ class RecipientProjectionTest {
 			assertEquals("Home", view.getString("homeTeamName", null));
 			assertEquals("Away", view.getString("awayTeamName", null));
 			for (String field : Arrays.asList("homeTeamArt", "awayTeamArt")) {
-				keys(view.get(field).asObject(), "rosterId", "league");
+				keys(view.get(field).asObject(), "rosterId", "league", "colors");
+				JsonObject colors = view.get(field).asObject().get("colors").asObject();
+				keys(colors, "version", "primary", "secondary");
+				assertEquals(1, colors.getInt("version", 0));
+				assertEquals("navy", colors.getString("primary", null));
+				assertEquals("ivory", colors.getString("secondary", null));
 				assertEquals("human", view.get(field).asObject().getString("rosterId", null));
 				assertEquals("Old World Classic", view.get(field).asObject().getString("league", null));
 			}

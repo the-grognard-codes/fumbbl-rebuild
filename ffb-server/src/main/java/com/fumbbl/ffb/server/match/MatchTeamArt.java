@@ -7,7 +7,9 @@ import com.eclipsesource.json.JsonValue;
 public final class MatchTeamArt {
     public JsonObject project(FrozenTeam team) {
         String league = JsonObject.readFrom(team.resolvedCatalogJson).getString("league", null);
-        return new JsonObject().add("rosterId", team.rosterId)
+        JsonObject result = new JsonObject().add("rosterId", team.rosterId)
             .add("league", league == null ? JsonValue.NULL : JsonValue.valueOf(league));
+        if (team.colors != null) result.add("colors", team.colors.encode());
+        return result;
     }
 }

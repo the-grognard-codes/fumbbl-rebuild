@@ -1,3 +1,4 @@
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useState } from 'react';
 
 import { spriteUrl } from './LivePitch.tsx';
@@ -24,6 +25,7 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
   draggableIds?: Set<string>; reserveDropIds?: Set<string>; draggingPlayerId?: string; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   onDropReserve?: (id: string, role: 'home' | 'away') => void;
 }) {
+  const colors = useTeamColorContext();
   const [modes, setModes] = useState<Record<'home' | 'away', DugoutMode>>({ home: 'compact', away: 'compact' });
   const [failedImages, setFailedImages] = useState<Record<string, string>>({});
   const setMode = (role: 'home' | 'away', mode: DugoutMode) => setModes(current => ({ ...current, [role]: mode }));
@@ -54,7 +56,7 @@ export function LiveDugouts({ players, homeName, awayName, onSelect, onFocusPlay
           {mode === 'compact' ? <button type="button" className="live-dugout-zone-summary" onClick={() => setMode(role, 'expanded')}
             aria-label={`${name} ${zone.label}: ${members.length}; expand dugout`}>{zone.label} <b>{members.length}</b></button>
             : <><span>{zone.label} <b>{members.length}</b></span><div className="live-dugout-players">
-          {members.map(player => { const image = resolvePlayerPortrait(player) ?? spriteUrl(player); return <button key={player.id} type="button" onClick={() => onSelect(player.id)} draggable={draggableIds?.has(player.id) ?? false}
+          {members.map(player => { const image = resolvePlayerPortrait(player, colors[player.role]) ?? spriteUrl(player); return <button key={player.id} type="button" onClick={() => onSelect(player.id)} draggable={draggableIds?.has(player.id) ?? false}
             onDragStart={event => { if (!draggableIds?.has(player.id)) return;
               event.dataTransfer.setData('application/x-fumbbl-setup-player', player.id); event.dataTransfer.effectAllowed = 'move'; onStartDrag?.(player.id); }}
             onDragEnd={() => onEndDrag?.()}

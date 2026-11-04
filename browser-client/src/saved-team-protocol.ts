@@ -1,7 +1,8 @@
+import { decodeTeamColors } from './team-colors.ts';
 import type { TeamDraft } from './team-protocol';
 
 export type SavedValidation = { valid: boolean; total: number | null; budget: number; skillPoints: number; messages: { code: string; path: string; text: string }[] };
-export type SavedDocument = { formatVersion: 1 | 2 | 3; teamId: string; documentVersion: number; ruleset: 'BB2025'; catalogVersion: string; owner: { namespace: 'local' | 'account'; subject: string }; draft: TeamDraft; validation: SavedValidation };
+export type SavedDocument = { formatVersion: 1 | 2 | 3 | 4; teamId: string; documentVersion: number; ruleset: 'BB2025'; catalogVersion: string; owner: { namespace: 'local' | 'account'; subject: string }; draft: TeamDraft; validation: SavedValidation };
 export type SavedTeamSummary = { teamId: string; documentVersion: number; catalogVersion: string; teamName?: string; rosterId?: string; eligibility?: string };
 export type SavedTeamResponse = { version: 1; type: 'savedTeam'; requestId: string; code: SavedTeamCode; document: SavedDocument | null; versionStatus: null | 'CURRENT' | 'MIGRATION_REQUIRED' | 'VERSION_UNAVAILABLE'; validation: SavedValidation | null; teams: SavedTeamSummary[] };
 export type SavedTeamCode = 'OK' | 'MALFORMED_TEAM_REQUEST' | 'INVALID_DOCUMENT_VERSION' | 'CONFLICT' | 'NOT_FOUND' | 'VALIDATION_FAILED' | 'MIGRATION_REQUIRED' | 'VERSION_UNAVAILABLE' | 'PERSISTENCE_FAILED' | 'SAVE_OUTCOME_UNKNOWN' | 'DELETE_OUTCOME_UNKNOWN' | 'LIMIT_REACHED' | 'TEAM_NAME_TAKEN';
@@ -30,7 +31,9 @@ export function parseUniqueJson(source: string): unknown {
 }
 function validateDraft(value: unknown): TeamDraft {
   const named = !!value && typeof value === 'object' && Object.hasOwn(value, 'draftVersion');
-  const draft = object(value, [...(named ? ['draftVersion', 'teamName'] : []), 'catalogVersion', 'ruleset', 'rosterId', 'presetId', 'captainId', 'players', 'resources']);
+  const colored = !!value && typeof value === 'object' && Object.hasOwn(value, 'colors');
+  const draft = object(value, [...(colored ? ['colors'] : []), ...(named ? ['draftVersion', 'teamName'] : []), 'catalogVersion', 'ruleset', 'rosterId', 'presetId', 'captainId', 'players', 'resources']);
+  if (colored) decodeTeamColors(draft.colors);
   if (named) { if (draft.draftVersion !== 2) throw Error('Unsupported draft'); name(draft.teamName, 50); }
   for (const key of ['catalogVersion', 'rosterId', 'presetId']) text(draft[key], 100);
   if (draft.ruleset !== 'BB2025') throw Error('Invalid ruleset');
@@ -45,9 +48,9 @@ function validation(value: unknown): SavedValidation {
 }
 export function decodeSavedDocument(value: unknown): SavedDocument {
   const document = object(value, ['formatVersion', 'teamId', 'documentVersion', 'ruleset', 'catalogVersion', 'owner', 'draft', 'validation']);
-  if (![1, 2, 3].includes(document.formatVersion as number) || document.ruleset !== 'BB2025') throw Error('Unsupported document'); text(document.teamId, 36); if (!uuid.test(document.teamId)) throw Error('Invalid team id'); integer(document.documentVersion); if (document.documentVersion < 1) throw Error('Invalid document version'); text(document.catalogVersion, 100);
+  if (![1, 2, 3, 4].includes(document.formatVersion as number) || document.ruleset !== 'BB2025') throw Error('Unsupported document'); text(document.teamId, 36); if (!uuid.test(document.teamId)) throw Error('Invalid team id'); integer(document.documentVersion); if (document.documentVersion < 1) throw Error('Invalid document version'); text(document.catalogVersion, 100);
   const owner = object(document.owner, ['namespace', 'subject']); if (document.formatVersion === 1 ? owner.namespace !== 'local' || (owner.subject !== 'home' && owner.subject !== 'away') : owner.namespace !== 'account' || typeof owner.subject !== 'string' || !uuid.test(owner.subject)) throw Error('Invalid owner');
-  const draft = validateDraft(document.draft); if ((document.formatVersion === 3) !== (draft.draftVersion === 2) || draft.ruleset !== document.ruleset || draft.catalogVersion !== document.catalogVersion) throw Error('Document/draft mismatch');
+  const draft = validateDraft(document.draft); if (document.formatVersion === 4 && !draft.colors) throw Error('Missing team colors'); if ((Number(document.formatVersion) >= 3) !== (draft.draftVersion === 2) || draft.ruleset !== document.ruleset || draft.catalogVersion !== document.catalogVersion) throw Error('Document/draft mismatch');
   return { ...document, draft, validation: validation(document.validation) } as SavedDocument;
 }
 export function decodeSavedTeam(textJson: string): SavedTeamResponse {

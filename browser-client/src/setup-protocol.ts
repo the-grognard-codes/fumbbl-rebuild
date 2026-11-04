@@ -1,3 +1,4 @@
+import { decodeTeamColors, type TeamColors } from './team-colors.ts';
 import { decodeRouteStep, type RouteStep } from './route-protocol.ts';
 import { parseUniqueJson } from './saved-team-protocol.ts';
 import type { MatchRole } from './prepared-match-protocol.ts';
@@ -18,7 +19,7 @@ export type SetupPrompt = { id: string; actor: MatchRole; kind: 'coin' | 'receiv
 export type ActionTarget = { playerId: string } | { x: number; y: number };
 export type SetupAction = { id: string; label: string; actor: MatchRole; kind: string; target?: ActionTarget | null; sourcePlayerId?: string | null };
 export type PlayerActionMenuEntry = { playerId: string; kind: string; spent: boolean };
-export type MatchTeamArt = { rosterId: string; league: string | null };
+export type MatchTeamArt = { colors?: TeamColors; rosterId: string; league: string | null };
 export type TeamResources = { apothecaries: number; assistantCoaches: number; cheerleaders: number; bribes?: number };
 export type SaveResumeStatus = { status: 'ACTIVE' | 'SAVE_PENDING' | 'SUSPENDED' | 'RESUME_PENDING' | 'ABANDONED'; proposalId: string | null; proposer: MatchRole | null; expiresAt: number | null };
 export type Reaction = { id: string; actor: MatchRole; title: string; detail?: string; expiresAt: number; serverNow: number; allowanceMs?: number };
@@ -67,7 +68,9 @@ export function decodeSetupStateValue(value: unknown, spectator = false): SetupS
 	}
 	if (Object.hasOwn(source, 'homeTeamArt') !== Object.hasOwn(source, 'awayTeamArt')) throw Error('Incomplete team art');
     if (Object.hasOwn(source, 'homeTeamArt')) for (const key of ['homeTeamArt', 'awayTeamArt']) {
-        const art = object(source[key], ['rosterId', 'league']); text(art.rosterId, 60);
+        const colored = !!source[key] && typeof source[key] === 'object' && Object.hasOwn(source[key] as object, 'colors');
+        const art = object(source[key], ['rosterId', 'league', ...(colored ? ['colors'] : [])]);
+        if (colored) decodeTeamColors(art.colors); text(art.rosterId, 60);
         if (art.league !== null) text(art.league, 100);
     }
 	if (Object.hasOwn(source, 'driveTracker')) {
