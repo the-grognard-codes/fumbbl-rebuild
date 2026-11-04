@@ -1,3 +1,4 @@
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { MatchArt } from './MatchScoreboard.tsx';
@@ -13,6 +14,7 @@ export type MatchSplashProps = {
 
 /** No focus transfer: Escape and the explicit button dismiss without reaching pitch shortcuts. */
 export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon, colors }: MatchSplashProps) {
+  const teamColors = useTeamColorContext();
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -33,7 +35,7 @@ export function MatchSplash({ announcement, onDismiss, hold, exiting, rate, icon
       {hold && <button type="button" className="match-splash-close" aria-label="Dismiss announcement" aria-keyshortcuts="Escape"
         onClick={event => { event.stopPropagation(); onDismiss(); }}><span aria-hidden="true">×</span></button>}
       <div className="match-splash-rule" aria-hidden="true"/>
-      <div className="match-splash-icon" aria-hidden="true">{icon ?? <MatchArt name={announcement.helmet}/>}</div>
+      <div className="match-splash-icon" aria-hidden="true">{icon ?? <MatchArt name={announcement.helmet} colors={teamColors[announcement.team]}/>}</div>
       <p className="match-splash-team">{announcement.teamName}</p>
       <h2>{announcementHeadline(announcement)}</h2>
       {announcement.reason && <p className="match-splash-reason">{announcement.reason}</p>}

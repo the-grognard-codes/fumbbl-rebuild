@@ -87,6 +87,8 @@ async function filesUnder(directory) {
 }
 
 const inputs = [
+  ['ui/helmets-v1', 'ui/helmets-v1'],
+  ['team-colors/v1/delivery', 'team-colors/v1'],
   ['proofs/shared-sprite-v1/delivery', 'proofs/shared-sprite-v1'],
   ['pitch', 'pitch'],
   ['ui/fonts', 'ui/fonts'],

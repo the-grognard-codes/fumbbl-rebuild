@@ -1,3 +1,6 @@
+import { teamColorArt } from './team-color-art.ts';
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
+import type { TeamColors } from './team-colors.ts';
 import { useId } from 'react';
 
 type ArtName = 'human' | 'orc' | 'weather' | 'wizard' | 'keg' | 'bribe' | 'apothecary' | 'ball';
@@ -7,8 +10,12 @@ const art: Record<ArtName, number[]> = {
   apothecary: [931, 489, 360, 315], ball: [1385, 514, 341, 292]
 };
 
-export function MatchArt({ name, atlasUrl = `${import.meta.env.BASE_URL}assets/game/ui/match-ui-icon-atlas-v1.png` }: { name: ArtName; atlasUrl?: string }) {
+export function MatchArt({ name, colors, atlasUrl = `${import.meta.env.BASE_URL}assets/game/ui/match-ui-icon-atlas-v1.png` }: { name: ArtName; atlasUrl?: string; colors?: TeamColors }) {
+  useTeamColorContext();
   const [x, y, width, height] = art[name];
+  const colored = teamColorArt.resolve(`${atlasUrl}#${name}`, colors);
+  if (colored?.startsWith('data:')) return <img className={`match-art art-${name}`} src={colored} alt="" aria-hidden="true" style={{ objectFit: 'contain' }}/>;
+  if (name === 'human' || name === 'orc') return <img className={`match-art art-${name}`} src={`${import.meta.env.BASE_URL}assets/game/ui/helmets-v1/${name}.png`} alt="" aria-hidden="true" style={{ objectFit: 'contain' }}/>;
   return <svg className={`match-art art-${name}`} viewBox={`${x} ${y} ${width} ${height}`} aria-hidden="true" focusable="false">
     <image href={atlasUrl} width="1774" height="887"/>
   </svg>;

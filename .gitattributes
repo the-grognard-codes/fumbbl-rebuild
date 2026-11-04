@@ -14,3 +14,7 @@ browser-client/public/assets/game/ui/player-skill-markers-v1/text/*.svg -text wh
 # Sprite proof exports are regenerated and compared byte-for-byte on every platform.
 assets/game/proofs/**/delivery/**/*.json text eol=lf
 browser-client/public/assets/game/proofs/**/*.json text eol=lf
+
+browser-client/src/generated-team-colors.ts text eol=lf
+assets/game/team-colors/**/*.json text eol=lf
+browser-client/public/assets/game/team-colors/**/*.json text eol=lf

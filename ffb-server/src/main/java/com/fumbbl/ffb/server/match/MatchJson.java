@@ -4,6 +4,8 @@ import com.fumbbl.ffb.SkillCategory;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.SkillDefinitions;
+import com.fumbbl.ffb.server.team.TeamColors;
+import com.fumbbl.ffb.server.team.TeamColorPalette;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -625,6 +627,9 @@ public final class MatchJson {
     }
 
 	private MatchDocument.Member readMember(JsonObject object, String owner, boolean away, boolean named) {
+        object = JsonObject.readFrom(object.toString());
+        TeamColors colors = object.get("colors") == null ? null : new TeamColorPalette().decode(object.get("colors").asObject());
+        object.remove("colors");
 		String coachName = null;
 		if (away && object.get("coachName") != null) {
 			coachName = object.get("coachName").asString();
@@ -694,7 +699,7 @@ public final class MatchJson {
 		}
 		if (captain != null && !ids.contains(captain)) throw new IllegalArgumentException();
 		FrozenTeam team = new FrozenTeam(uuid(object.get("sourceTeamId")), positive(object.get("sourceDocumentVersion")), owner, ruleset,
-			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString(), coachName);
+			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString(), coachName, colors);
 		verifyFrozenEvaluation(team, resolved);
 		return new MatchDocument.Member(object.get("role").asString(), owner, team);
 	}
@@ -823,6 +828,7 @@ public final class MatchJson {
 			.add("validation", new JsonObject().add("valid", true).add("total", team.total).add("budget", team.budget).add("skillPoints", team.skillPoints).add("messages", new JsonArray()))
 			.add("roster", new JsonObject().add("captainId", team.captainId).add("resources", resources).add("players", players));
 		if (!team.teamName.isEmpty()) result.add("teamName", team.teamName);
+		if (team.colors != null) result.add("colors", team.colors.encode());
 		return result;
 	}
 	private JsonObject response(String id, String code, boolean duplicate, String role, JsonObject document, String recovery) {
@@ -840,8 +846,12 @@ public final class MatchJson {
 	private int amount(JsonValue value) { int number = value.asInt(); if (number < 0 || number > 5000000) throw new IllegalArgumentException(); return number; }
 	private void validateTeamArt(JsonValue value, FrozenTeam team) {
         JsonObject art = value.asObject();
-        exact(art, "rosterId", "league");
+        if (art.get("colors") == null) exact(art, "rosterId", "league");
+        else { exact(art, "rosterId", "league", "colors"); new TeamColorPalette().decode(art.get("colors").asObject()); }
         JsonObject expected = new MatchTeamArt().project(team);
+        if (team.colors == null ? art.get("colors") != null
+            : art.get("colors") == null || !team.colors.equals(new TeamColorPalette().decode(art.get("colors").asObject())))
+            throw new IllegalArgumentException("Frozen colors differ");
         if (!expected.get("rosterId").equals(art.get("rosterId"))
             || !expected.get("league").equals(art.get("league"))) throw new IllegalArgumentException();
     }

@@ -1,0 +1,107 @@
+﻿{
+    "team":  "human",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "human-lineman-portrait",
+                        "role":  "lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-lineman-portrait.png",
+                        "original":  "originals/human-lineman-portrait.png",
+                        "sourceSha256":  "58E1496FF706A42B22A76B32C6C7499116BACC60280F7C717FF9786F61447598",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  16,
+                                       "width":  150,
+                                       "height":  143,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "human-catcher-portrait",
+                        "role":  "catcher",
+                        "gender":  "woman",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-catcher-portrait.png",
+                        "original":  "originals/human-catcher-portrait.png",
+                        "sourceSha256":  "B1709E29F7E360E11924ED99D57C2B96ACE14D2A672647C44D9BA6C25880AE01",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  137,
+                                       "height":  150,
+                                       "x":  11
+                                   }
+                    },
+                    {
+                        "id":  "human-thrower-portrait",
+                        "role":  "thrower",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-thrower-portrait.png",
+                        "original":  "originals/human-thrower-portrait.png",
+                        "sourceSha256":  "4D78B30EEA77F6225016E476D23A18D9DBD45F733AE8E823C807E013D1C2C5FF",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  17,
+                                       "width":  150,
+                                       "height":  142,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "human-ogre-portrait",
+                        "role":  "ogre",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-ogre-portrait.png",
+                        "original":  "originals/human-ogre-portrait.png",
+                        "sourceSha256":  "74F6B6618780B4A6B0C3BF977705602E93A8B5D824F9B3DC473F045EBE1EBA3F",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  26,
+                                       "width":  150,
+                                       "height":  133,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "human-halfling-portrait",
+                        "role":  "halfling",
+                        "gender":  "woman",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/human-halfling-portrait.png",
+                        "original":  "originals/human-halfling-portrait.png",
+                        "sourceSha256":  "AF66E917D71AD265AE1313BB83D6A14AE7A984A64E1D15BC0BF12B3602F2FE7E",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  140,
+                                       "height":  150,
+                                       "x":  10
+                                   }
+                    }
+                ]
+}

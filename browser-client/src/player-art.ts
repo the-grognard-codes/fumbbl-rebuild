@@ -1,3 +1,5 @@
+import { teamColorArt } from './team-color-art.ts';
+import type { TeamColors } from './team-colors.ts';
 import { playerArtCatalog } from './generated-player-art.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
 
@@ -32,12 +34,12 @@ function assetUrl(roster: RosterRecord, file: string): string {
 }
 
 /** Portraits remain available for reserve, KO, casualty, and sent-off cards. */
-export function resolvePlayerPortrait(player: SetupPlayer): string | null {
+export function resolvePlayerPortrait(player: SetupPlayer, colors?: TeamColors): string | null {
   const art = positionFor(player);
-  return art ? assetUrl(art.roster, art.position.portrait.file) : null;
+  return art ? teamColorArt.resolve(assetUrl(art.roster, art.position.portrait.file), colors) : null;
 }
 
-export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | 'away'; facing?: PlayerFacing; setupPerspective?: boolean; topDown?: boolean }): {
+export function resolvePlayerArt(player: SetupPlayer, options: { colors?: TeamColors; end: 'home' | 'away'; facing?: PlayerFacing; setupPerspective?: boolean; topDown?: boolean }): {
   body: BodyRecord & { url: string; mirror: boolean; pose: string };
   portraitUrl: string;
 } | null {
@@ -67,8 +69,8 @@ export function resolvePlayerArt(player: SetupPlayer, options: { end: 'home' | '
   const bodyAnchor = mirror ? { ...selected.bodyAnchor, x: selected.width - selected.bodyAnchor.x } : selected.bodyAnchor;
   const groundAnchor = mirror ? { ...selected.groundAnchor, x: selected.width - selected.groundAnchor.x } : selected.groundAnchor;
   return {
-    body: { ...selected, bounds, bodyAnchor, footAnchor, groundAnchor, url: assetUrl(art.roster, selected.file), mirror, pose },
-    portraitUrl: assetUrl(art.roster, art.position.portrait.file),
+    body: { ...selected, bounds, bodyAnchor, footAnchor, groundAnchor, url: teamColorArt.resolve(assetUrl(art.roster, selected.file), options.colors)!, mirror, pose },
+    portraitUrl: teamColorArt.resolve(assetUrl(art.roster, art.position.portrait.file), options.colors)!,
   };
 }
 

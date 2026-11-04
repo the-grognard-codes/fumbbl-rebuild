@@ -1,3 +1,4 @@
+import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
@@ -65,7 +66,8 @@ function PlayerMarker({ player, teamName, camera, facing, setupPerspective, orde
   canDrag: boolean; onStartDrag?: (id: string) => void; onEndDrag?: () => void;
   markers: ReturnType<typeof playerSkillMarkers>; markerPreferences: SkillMarkerPreferences; showLimitedActions: boolean; showConditions: boolean;
 }) {
-  const art = resolvePlayerArt(player, { end: camera.end, facing, setupPerspective, topDown: camera.mode === 'top-down' });
+  const colors = useTeamColorContext();
+  const art = resolvePlayerArt(player, { colors: colors[player.role], end: camera.end, facing, setupPerspective, topDown: camera.mode === 'top-down' });
   const position = camera.project(centerOf({ x: player.x!, y: player.y! }));
   const visible = !!position && camera.square({ x: player.x!, y: player.y! }, 0, true).length >= 3;
   const body = art?.body;
@@ -170,6 +172,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
   onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
+  const colors = useTeamColorContext();
   const [destinationStage, setDestinationStage] = useState<string | null>(null);
   const selection = decision?.pitchSelection;
   const selectingDestination = !!selection && (selection.committed || destinationStage === decision?.key);
@@ -433,7 +436,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
           <BlockVisibility context={blocks} camera={camera} layer="assists" animated={animateBlockMarkers}/>
           {occupants.map(player => {
             const center = centerOf({ x: player.x!, y: player.y! });
-            const body = resolvePlayerArt(player, { end, facing: facings[player.id], setupPerspective, topDown: mode === 'top-down' })?.body;
+            const body = resolvePlayerArt(player, { colors: colors[player.role], end, facing: facings[player.id], setupPerspective, topDown: mode === 'top-down' })?.body;
             const placement = body && !failedArt.has(body.url) ? playerArtPlacement(body, mode === 'top-down') : null;
             const scale = (camera.project(center)?.pixelsPerSquare ?? camera.scale) * 1.08 / 64;
             const offset = placement ? { x: (placement.shadowAnchor.x - placement.anchor.x) * scale,

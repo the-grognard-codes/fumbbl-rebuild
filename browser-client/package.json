@@ -16,7 +16,7 @@
     "mockups:block-assists": "node prototypes/block-assists/serve.mjs",
     "mockups:dice-effects": "node prototypes/dice-effects/serve.mjs",
     "assets:sync": "node ../assets/game/scripts/sync-browser-assets.mjs",
-    "assets:check": "node ../assets/game/scripts/build-sprite-proof.mjs --check && node ../assets/game/scripts/build-sprite-animation-proof.mjs --check && node --test ../assets/game/scripts/png-art.test.mjs ../assets/game/scripts/stadium-geometry.test.mjs ../assets/game/scripts/stadium-jigsaw-catalog.test.mjs ../assets/game/scripts/sync-browser-assets.test.mjs && node ../assets/game/scripts/sync-browser-assets.mjs --check",
+    "assets:check": "node ../assets/game/scripts/build-team-colors.mjs --check && node ../assets/game/scripts/build-sprite-proof.mjs --check && node ../assets/game/scripts/build-sprite-animation-proof.mjs --check && node --test ../assets/game/scripts/png-art.test.mjs ../assets/game/scripts/stadium-geometry.test.mjs ../assets/game/scripts/stadium-jigsaw-catalog.test.mjs ../assets/game/scripts/sync-browser-assets.test.mjs && node ../assets/game/scripts/sync-browser-assets.mjs --check",
     "predev": "npm run assets:sync",
     "predev:stadium": "npm run assets:sync",
     "prebuild": "npm run assets:sync",

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "human-helmet",
+    "width": 320,
+    "height": 320,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 15,
+    "transparentPixels": 35909,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  },
+  {
+    "id": "orc-helmet",
+    "width": 320,
+    "height": 320,
+    "primaryShadeLevels": 16,
+    "secondaryShadeLevels": 16,
+    "transparentPixels": 55674,
+    "validation": "All 256 palette pairs preserve fixed RGB and all alpha."
+  }
+]

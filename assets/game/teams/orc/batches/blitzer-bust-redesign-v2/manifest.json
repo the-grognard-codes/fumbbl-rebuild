@@ -1,0 +1,27 @@
+﻿{
+    "team":  "Orcs",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "orc-blitzer-portrait",
+                        "role":  "blitzer",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-blitzer-portrait.png",
+                        "original":  "originals/orc-blitzer-portrait.png",
+                        "sourceSha256":  "A9AA850A0C326079F26BDCD50CADF6E04A4E911A380AB23101611E6FC17C72C8",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  10,
+                                       "width":  146,
+                                       "height":  149,
+                                       "x":  7
+                                   }
+                    }
+                ]
+}

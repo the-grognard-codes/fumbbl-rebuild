@@ -1,0 +1,271 @@
+{
+  "approvalDate": "2026-11-04",
+  "images": [
+    {
+      "id": "human-lineman-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/human-lineman-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/lineman-portrait.png",
+      "sourceSha256": "5f8ba1565eb9c42724800378c797046083a2b2ad7ea4ff925497ea19eb6803bb",
+      "materialSource": "teams/human/batches/roster-bust-redesign-v1/human-lineman-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 4,
+          "gamma": 2.102668838823944
+        },
+        {
+          "sourceMedian": 12,
+          "targetMedian": 11,
+          "gamma": 1.3899345353122425
+        }
+      ]
+    },
+    {
+      "id": "human-blitzer-portrait",
+      "approved": "team-colors/trials/blitzer-bust-redesign-v3/human-blitzer-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/blitzer-portrait.png",
+      "sourceSha256": "16a6a7b90ac19f2e4ad53a5e8325e046a52dd08a0dce152aa14b825d11587e17",
+      "materialSource": "teams/human/batches/blitzer-bust-redesign-v3/material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 3,
+          "gamma": 2.56031775622214
+        },
+        {
+          "sourceMedian": 11,
+          "targetMedian": 11,
+          "gamma": 1
+        }
+      ]
+    },
+    {
+      "id": "human-catcher-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/human-catcher-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/catcher-portrait.png",
+      "sourceSha256": "a396183dec19f41577ae47dc1c19fcd657fcd5e5e5df3b3a2b5a7eca39b46183",
+      "materialSource": "teams/human/batches/roster-bust-redesign-v1/human-catcher-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 3,
+          "gamma": 2.56031775622214
+        },
+        {
+          "sourceMedian": 12,
+          "targetMedian": 8,
+          "gamma": 2.8170594925112877
+        }
+      ]
+    },
+    {
+      "id": "human-thrower-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/human-thrower-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/thrower-portrait.png",
+      "sourceSha256": "c7bf6bf1bcedbfba67010ee7f3728a373846fa93e47a950fa5bc6084f77e3cd3",
+      "materialSource": "teams/human/batches/roster-bust-redesign-v1/human-thrower-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 4,
+          "gamma": 2.102668838823944
+        },
+        {
+          "sourceMedian": 12,
+          "targetMedian": 11,
+          "gamma": 1.3899345353122425
+        }
+      ]
+    },
+    {
+      "id": "human-ogre-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/human-ogre-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/ogre-portrait.png",
+      "sourceSha256": "40347344bfafd644428feb0f9ac68f0edd3c2a78e7751a2d47a4b1e075ca1945",
+      "materialSource": "teams/human/batches/roster-bust-redesign-v1/human-ogre-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 9,
+          "targetMedian": 4,
+          "gamma": 2.587489308460799
+        },
+        {
+          "sourceMedian": 11,
+          "targetMedian": 8,
+          "gamma": 2.026756959368916
+        }
+      ]
+    },
+    {
+      "id": "human-halfling-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/human-halfling-portrait-original.png",
+      "destination": "teams/human/poses/coach-oriented-v1/master/halfling-portrait.png",
+      "sourceSha256": "8223318dfee4ca3682616b9f8baa66dd9c6283718f27982ed8b62695103dd2f9",
+      "materialSource": "teams/human/batches/roster-bust-redesign-v1/human-halfling-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 3,
+          "gamma": 2.56031775622214
+        },
+        {
+          "sourceMedian": 12,
+          "targetMedian": 9,
+          "gamma": 2.289224226994103
+        }
+      ]
+    },
+    {
+      "id": "human-helmet",
+      "approved": "team-colors/trials/helmet-redesign-v1/human-helmet-original.png",
+      "destination": "ui/helmets-v1/human.png",
+      "sourceSha256": "74822c49d0ac94616b355f8775bec17fd1677f6012171aab93e2564fa83804df",
+      "materialSource": "team-colors/trials/helmet-redesign-v1/sources/human-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 9,
+          "targetMedian": 4,
+          "gamma": 2.587489308460799
+        },
+        {
+          "sourceMedian": 12,
+          "targetMedian": 9,
+          "gamma": 2.289224226994103
+        }
+      ]
+    },
+    {
+      "id": "orc-orc-lineman-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/orc-orc-lineman-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/orc-lineman-portrait.png",
+      "sourceSha256": "94be31beaf6d211daa6af500eafd1a3f57c4db89d17fa98d733fcf95c739a71b",
+      "materialSource": "teams/orc/batches/roster-bust-redesign-v1/orc-orc-lineman-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 4,
+          "gamma": 2.102668838823944
+        },
+        {
+          "sourceMedian": 10,
+          "targetMedian": 7,
+          "gamma": 1.8796686491790149
+        }
+      ]
+    },
+    {
+      "id": "orc-orc-blitzer-portrait",
+      "approved": "team-colors/trials/blitzer-bust-redesign-v3/orc-blitzer-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/orc-blitzer-portrait.png",
+      "sourceSha256": "bcf71eb21417b77b209725519cfdd96c9032655c14de3b3bf2073c8174e167a3",
+      "materialSource": "teams/orc/batches/blitzer-bust-redesign-v3/material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 5,
+          "gamma": 1.747688760249692
+        },
+        {
+          "sourceMedian": 9,
+          "targetMedian": 7,
+          "gamma": 1.4919769420103193
+        }
+      ]
+    },
+    {
+      "id": "orc-big-un-blocker-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/orc-big-un-blocker-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/big-un-blocker-portrait.png",
+      "sourceSha256": "59551602510e3a7844bd39a3a81567ed14832b5c98b6595d683195ed42a32355",
+      "materialSource": "teams/orc/batches/roster-bust-redesign-v1/orc-big-un-blocker-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 8,
+          "targetMedian": 4,
+          "gamma": 2.102668838823944
+        },
+        {
+          "sourceMedian": 9,
+          "targetMedian": 6,
+          "gamma": 1.7937446542303992
+        }
+      ]
+    },
+    {
+      "id": "orc-orc-thrower-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/orc-orc-thrower-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/orc-thrower-portrait.png",
+      "sourceSha256": "0f7a3b29e381f7dfcc6dd180237687d80c4f72a0a141e8abe8113c5d99de3812",
+      "materialSource": "teams/orc/batches/roster-bust-redesign-v1/orc-orc-thrower-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 7,
+          "targetMedian": 4,
+          "gamma": 1.7342689659629487
+        },
+        {
+          "sourceMedian": 9,
+          "targetMedian": 7,
+          "gamma": 1.4919769420103193
+        }
+      ]
+    },
+    {
+      "id": "orc-troll-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/orc-troll-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/troll-portrait.png",
+      "sourceSha256": "d16d2c96bb498eec1ccdc76eb5a6b60957426576f8c6c91dcc6adeb2f5ad6655",
+      "materialSource": "teams/orc/batches/roster-bust-redesign-v1/orc-troll-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 7,
+          "targetMedian": 3,
+          "gamma": 2.1117351175962957
+        },
+        {
+          "sourceMedian": 10,
+          "targetMedian": 6,
+          "gamma": 2.2598510045646627
+        }
+      ]
+    },
+    {
+      "id": "orc-goblin-lineman-portrait",
+      "approved": "team-colors/trials/roster-bust-redesign-v1/orc-goblin-lineman-portrait-original.png",
+      "destination": "teams/orc/poses/coach-oriented-v1/master/goblin-lineman-portrait.png",
+      "sourceSha256": "4a25bbe56fc498f67a6ef3648444c57d15a3191718bd05a7b006696fba9fd09f",
+      "materialSource": "teams/orc/batches/roster-bust-redesign-v1/orc-goblin-lineman-portrait-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 9,
+          "targetMedian": 6,
+          "gamma": 1.7937446542303992
+        },
+        {
+          "sourceMedian": 10,
+          "targetMedian": 7,
+          "gamma": 1.8796686491790149
+        }
+      ]
+    },
+    {
+      "id": "orc-helmet",
+      "approved": "team-colors/trials/helmet-redesign-v1/orc-helmet-original.png",
+      "destination": "ui/helmets-v1/orc.png",
+      "sourceSha256": "807593622181fbb78c70745e424f234fd8dc304e17a884390ffc014602df9498",
+      "materialSource": "team-colors/trials/helmet-redesign-v1/sources/orc-material-indices.json",
+      "toneCalibration": [
+        {
+          "sourceMedian": 9,
+          "targetMedian": 4,
+          "gamma": 2.587489308460799
+        },
+        {
+          "sourceMedian": 7,
+          "targetMedian": 7,
+          "gamma": 1
+        }
+      ]
+    }
+  ]
+}

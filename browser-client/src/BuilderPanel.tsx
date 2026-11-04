@@ -71,10 +71,10 @@ export function BuilderPanel({ options }: { options: Options }) {
             const document = message.document as SavedDocument;
             setSaved(document); setEligibility(message.versionStatus ?? 'CURRENT');
             setCopyName(null);
-            if (document.formatVersion === 3 && document.draft.rosterId !== catalogRef.current?.rosterId) {
+            if (document.formatVersion >= 3 && document.draft.rosterId !== catalogRef.current?.rosterId) {
               const id = connection.request('catalog', { rosterId: document.draft.rosterId });
               catalogSelections.current.set(id, document.draft); setDraft(null);
-            } else setDraft(document.formatVersion === 3 ? document.draft : null);
+            } else setDraft(document.formatVersion >= 3 ? document.draft : null);
             setValidation(null); setValidatedDraft(null);
           } else if (operation === 'delete') {
             setSaved(null); setCopyName(null); setDraft(null); setValidation(null); setValidatedDraft(null);

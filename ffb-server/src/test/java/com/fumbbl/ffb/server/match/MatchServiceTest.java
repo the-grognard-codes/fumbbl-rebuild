@@ -48,6 +48,27 @@ class MatchServiceTest {
 		homeTeam = teams.create("home", draft(0)).document.teamId; awayTeam = teams.create("away", draft(0)).document.teamId;
 	}
 
+    @Test void frozenColorsSurviveSourceEditsDeletionAndStoredReloadWhileHistoricalAbsenceStaysAbsent() throws Exception {
+        String id = matchId(accepted("home", create(homeTeam, "away")));
+        accepted("away", join(id, awayTeam));
+        String frozen = matches.rows.get(id).json;
+        TeamDraft old = draft(0);
+        TeamDraft changed = new TeamDraft(old.draftVersion, old.teamName, old.catalogVersion, old.ruleset, old.rosterId,
+            old.presetId, old.captainId, old.players, old.resources, new com.fumbbl.ffb.server.team.TeamColors("red", "white"));
+        teams.update("home", homeTeam, 1, changed);
+        teams.delete("away", awayTeam, 1);
+        MatchDocument recovered = json.decode(frozen, 2);
+        assertEquals("navy", recovered.home.team.colors.primary());
+        assertEquals("ivory", recovered.away.team.colors.secondary());
+        assertEquals(frozen, matches.rows.get(id).json);
+        assertEquals(recovered.home.team.colors.encode(), new MatchTeamArt().project(recovered.home.team).get("colors"));
+        assertEquals(recovered.home.team.colors, recovered.home.team.copyForMatch(homeTeam, "home", "Copy").colors);
+        JsonObject historical = JsonObject.readFrom(frozen);
+        historical.get("home").asObject().remove("colors"); historical.get("away").asObject().remove("colors");
+        MatchDocument prior = json.decode(historical.toString(), 2);
+        assertEquals(null, prior.home.team.colors);
+        assertEquals(null, new MatchTeamArt().project(prior.home.team).get("colors"));
+    }
 	@Test
 	void bothIdentitiesCanCreateAndOnlyInvitedIdentityTakesAwayRole() {
 		for (String owner : new String[] { "home", "away" }) {
@@ -584,6 +605,11 @@ class MatchServiceTest {
 	}
 	private static final class Teams implements SavedTeamRepository {
 		final Map<String, Record> rows = new LinkedHashMap<>(); Runnable afterRead;
+		public boolean delete(String owner, String id, int expected) {
+			Record record = rows.get(id);
+			if (record == null || !owner.equals(record.owner) || record.documentVersion != expected) return false;
+			rows.remove(id); return true;
+		}
 		public Record find(String owner, String id) { Record r = rows.get(id); if (afterRead != null) { Runnable callback = afterRead; afterRead = null; callback.run(); } return r != null && owner.equals(r.owner) ? r : null; }
 		public List<Record> list(String owner) { return new ArrayList<>(rows.values()); }
 		public void insert(Record record) { rows.put(record.teamId, record); }

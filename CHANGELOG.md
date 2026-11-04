@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Portrait and helmet kit shading now matches player-sprite base tones, including
+  the two-tone contrast when primary and secondary use the same palette color.
+
+- Approved Human and Orc portraits and splash helmets now share the production
+  team-color masks across the builder and match views, with updated static fallback
+  artwork, rich shading, and fixed skin, metal, leather, and spike colors.
+
+- Saved Human and Orc teams can choose primary and secondary kit colors from the
+  approved palette, with immediate builder previews. Match artwork uses the colors
+  frozen at create/join across play, recovery and replay; older matches retain their
+  original artwork.
+  Recolorable details include hair ties, shoulder and shoe trim, helmet rims and
+  worn helmet paint; exposed metal and facial features retain their materials.
+  Reviewed bust masks preserve faceguards, pauldron rims, rivets and leather
+  borders while retaining the surrounding primary and secondary kit regions.
+
 - Retired the development-only V1 browser runtime and diagnostic client. Play,
   replay, and maintained diagnostics use V2; public `/play` URLs and existing
   saved-data compatibility are preserved. Existing diagnostic database volumes

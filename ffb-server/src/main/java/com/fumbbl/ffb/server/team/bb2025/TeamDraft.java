@@ -1,5 +1,8 @@
 package com.fumbbl.ffb.server.team.bb2025;
 
+import com.fumbbl.ffb.server.team.TeamColors;
+import com.fumbbl.ffb.server.team.TeamColorPalette;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +15,7 @@ import java.util.Objects;
 public final class TeamDraft {
 	public static final int FORMAT_VERSION = 2;
 	public final int draftVersion;
+	public final TeamColors colors;
 	public final String teamName;
 	public final String catalogVersion, ruleset, rosterId, presetId, captainId;
 	public final List<Player> players;
@@ -19,6 +23,11 @@ public final class TeamDraft {
 
 	public TeamDraft(int draftVersion, String teamName, String catalogVersion, String ruleset, String rosterId, String presetId,
 		String captainId, List<Player> players, Map<String, Integer> resources) {
+        this(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, null);
+    }
+    public TeamDraft(int draftVersion, String teamName, String catalogVersion, String ruleset, String rosterId, String presetId,
+        String captainId, List<Player> players, Map<String, Integer> resources, TeamColors colors) {
+        this.colors = colors;
 		this.draftVersion = draftVersion;
 		this.teamName = canonicalName(Objects.requireNonNull(teamName));
 		this.catalogVersion = Objects.requireNonNull(catalogVersion);
@@ -34,6 +43,11 @@ public final class TeamDraft {
 		String captainId, List<Player> players, Map<String, Integer> resources) {
 		this(1, "", catalogVersion, ruleset, rosterId, presetId, captainId, players, resources);
 	}
+
+    public TeamColors effectiveColors() { return colors == null ? new TeamColorPalette().defaults(rosterId) : colors; }
+    public TeamDraft withEffectiveColors() {
+        return new TeamDraft(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, effectiveColors());
+    }
 
 	public static final class Player {
 		public final String id, positionId, playerName;

@@ -1,3 +1,4 @@
+import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
@@ -53,7 +54,7 @@ type SmartIntent = { kind: 'move' | 'block' | 'blitz' | 'foul'; playerId: string
   destination?: RoutePoint; approachIndex?: number; stage: 'planned' | 'declaring' | 'targeting' | 'routing' | 'moving'; revision: number };
 
 /** The same board and decisions for players and read-only spectators. */
-export function GameView({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
+function GameViewContent({ view, connected, pending: requestPending, mutate, acceptedActionId = null, results = true, resultUrl, hosted = false,
   logRecords = [], logLoading = false, logUnavailable = false, chatMessages = [], chatLoading = false,
   chatUnavailable = false, chatSendError = '', chatSent = null, chatSending = false, sendChat = () => {},
   routePreview = null, routeError = '', requestRoutePreview, movementPlan = null,
@@ -1220,4 +1221,8 @@ export function GameView({ view, connected, pending: requestPending, mutate, acc
       </section>}
       {!hosted && rosterTable}
     </section>);
+}
+
+export function GameView(props: Parameters<typeof GameViewContent>[0]) {
+  return <TeamColorArtProvider home={props.view.homeTeamArt} away={props.view.awayTeamArt}><GameViewContent {...props}/></TeamColorArtProvider>;
 }

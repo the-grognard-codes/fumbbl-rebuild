@@ -3,6 +3,8 @@ package com.fumbbl.ffb.server.local;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.server.team.TeamColors;
+import com.fumbbl.ffb.server.team.TeamColorPalette;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
 import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
@@ -53,6 +55,10 @@ public final class BrowserTeamJson {
 	}
 
 	public TeamDraft decodeDraft(JsonObject draft) {
+        // Copy before removing the optional versioned extension; retain caller-owned JSON.
+        draft = JsonObject.readFrom(draft.toString());
+        TeamColors colors = draft.get("colors") == null ? null : new TeamColorPalette().decode(draft.get("colors").asObject());
+        draft.remove("colors");
 		boolean legacy = draft.get("draftVersion") == null;
 		if (legacy) fields(draft, "catalogVersion", "ruleset", "rosterId", "presetId", "captainId", "players", "resources");
 		else {
@@ -82,8 +88,8 @@ public final class BrowserTeamJson {
 		String catalogVersion = identifier(draft.get("catalogVersion")), ruleset = identifier(draft.get("ruleset"));
 		String roster = identifier(draft.get("rosterId")), preset = identifier(draft.get("presetId"));
 		String captain = draft.get("captainId").isNull() ? null : identifier(draft.get("captainId"));
-		return legacy ? new TeamDraft(catalogVersion, ruleset, roster, preset, captain, choices, quantities)
-			: new TeamDraft(TeamDraft.FORMAT_VERSION, draft.get("teamName").asString(), catalogVersion, ruleset, roster, preset, captain, choices, quantities);
+		return legacy ? new TeamDraft(1, "", catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors)
+			: new TeamDraft(TeamDraft.FORMAT_VERSION, draft.get("teamName").asString(), catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors);
 	}
 
 	public JsonObject evaluate(String requestId, JsonObject draft) {

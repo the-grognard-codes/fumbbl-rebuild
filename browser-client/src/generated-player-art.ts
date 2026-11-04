@@ -174,10 +174,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 20,
-            "width": 152,
-            "height": 119
+            "x": 5,
+            "y": 16,
+            "width": 150,
+            "height": 143
           }
         }
       },
@@ -351,10 +351,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 19,
-            "y": 4,
-            "width": 122,
-            "height": 152
+            "x": 15,
+            "y": 9,
+            "width": 129,
+            "height": 150
           }
         }
       },
@@ -529,9 +529,9 @@ export const playerArtCatalog = {
           "height": 160,
           "bounds": {
             "x": 11,
-            "y": 12,
+            "y": 9,
             "width": 137,
-            "height": 144
+            "height": 150
           }
         }
       },
@@ -705,10 +705,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 15,
-            "width": 152,
-            "height": 130
+            "x": 5,
+            "y": 17,
+            "width": 150,
+            "height": 142
           }
         }
       },
@@ -882,10 +882,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 15,
-            "width": 152,
-            "height": 130
+            "x": 5,
+            "y": 26,
+            "width": 150,
+            "height": 133
           }
         }
       },
@@ -1059,10 +1059,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 5,
-            "width": 152,
-            "height": 149
+            "x": 10,
+            "y": 9,
+            "width": 140,
+            "height": 150
           }
         }
       }
@@ -1243,10 +1243,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 15,
-            "width": 152,
-            "height": 129
+            "x": 5,
+            "y": 21,
+            "width": 150,
+            "height": 138
           }
         }
       },
@@ -1420,10 +1420,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 14,
-            "y": 4,
-            "width": 131,
-            "height": 152
+            "x": 10,
+            "y": 9,
+            "width": 140,
+            "height": 150
           }
         }
       },
@@ -1597,10 +1597,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 8,
-            "y": 4,
-            "width": 144,
-            "height": 152
+            "x": 7,
+            "y": 9,
+            "width": 145,
+            "height": 150
           }
         }
       },
@@ -1774,10 +1774,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 15,
-            "y": 4,
-            "width": 129,
-            "height": 152
+            "x": 20,
+            "y": 9,
+            "width": 119,
+            "height": 150
           }
         }
       },
@@ -1951,10 +1951,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 10,
-            "y": 4,
-            "width": 140,
-            "height": 152
+            "x": 5,
+            "y": 11,
+            "width": 150,
+            "height": 148
           }
         }
       },
@@ -2128,10 +2128,10 @@ export const playerArtCatalog = {
           "width": 160,
           "height": 160,
           "bounds": {
-            "x": 4,
-            "y": 10,
-            "width": 152,
-            "height": 139
+            "x": 5,
+            "y": 15,
+            "width": 150,
+            "height": 144
           }
         }
       }

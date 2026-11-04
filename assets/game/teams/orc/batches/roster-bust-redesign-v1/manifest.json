@@ -1,0 +1,107 @@
+﻿{
+    "team":  "orc",
+    "standardVersion":  "1.1",
+    "filter":  "nearest-neighbor",
+    "players":  [
+                    {
+                        "id":  "orc-orc-lineman-portrait",
+                        "role":  "orc-lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-orc-lineman-portrait.png",
+                        "original":  "originals/orc-orc-lineman-portrait.png",
+                        "sourceSha256":  "528BCC17C722A4C3DB3609A639FAEBCA31A1EADEA77196B653E1C96EBE4E6F5B",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  21,
+                                       "width":  150,
+                                       "height":  138,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "orc-big-un-blocker-portrait",
+                        "role":  "big-un-blocker",
+                        "gender":  "woman",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-big-un-blocker-portrait.png",
+                        "original":  "originals/orc-big-un-blocker-portrait.png",
+                        "sourceSha256":  "1DF11AD04CE21E259DCB4F2CC8A14951C00C934350ED96758AC6CD380F49D824",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  145,
+                                       "height":  150,
+                                       "x":  7
+                                   }
+                    },
+                    {
+                        "id":  "orc-orc-thrower-portrait",
+                        "role":  "orc-thrower",
+                        "gender":  "woman",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-orc-thrower-portrait.png",
+                        "original":  "originals/orc-orc-thrower-portrait.png",
+                        "sourceSha256":  "234266FA0422AC0A5DD70AC31BFA0021D87EF843230CA3C779A054C65CD93D86",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  9,
+                                       "width":  119,
+                                       "height":  150,
+                                       "x":  20
+                                   }
+                    },
+                    {
+                        "id":  "orc-troll-portrait",
+                        "role":  "troll",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-troll-portrait.png",
+                        "original":  "originals/orc-troll-portrait.png",
+                        "sourceSha256":  "2C5B0E208456225003060EE69681DC84A099C696E68355451AE643FBDD99E771",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  11,
+                                       "width":  150,
+                                       "height":  148,
+                                       "x":  5
+                                   }
+                    },
+                    {
+                        "id":  "orc-goblin-lineman-portrait",
+                        "role":  "goblin-lineman",
+                        "gender":  "man",
+                        "sizeClass":  "standard",
+                        "file":  "sprites/orc-goblin-lineman-portrait.png",
+                        "original":  "originals/orc-goblin-lineman-portrait.png",
+                        "sourceSha256":  "8D8FBCE343423EC76A2E317E6FE2FA8D853DB57D6EF875934FB5A551D8FD4EB9",
+                        "width":  160,
+                        "height":  160,
+                        "tileSize":  160,
+                        "anchorX":  80,
+                        "anchorY":  159,
+                        "bounds":  {
+                                       "y":  15,
+                                       "width":  150,
+                                       "height":  144,
+                                       "x":  5
+                                   }
+                    }
+                ]
+}
