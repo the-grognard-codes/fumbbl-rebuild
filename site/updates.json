@@ -1,5 +1,13 @@
 [
   {
+    "number": 446,
+    "title": "Choose saved team colors across the builder and match",
+    "summary": "Human and Orc coaches can save primary and secondary kit colors with immediate previews. Matches preserve those choices across play, recovery and replay, including player sprites, redesigned chibi portraits, helmets and announcements. Material masks retain skin and metal colors, and matching color selections keep distinct helmet trim.",
+    "category": "Gameplay",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446",
+    "mergedAt": "2026-11-04T21:33:14Z"
+  },
+  {
     "number": 444,
     "title": "Prove shared sprite colors and animation formats",
     "summary": "Completed a reusable art-format proof with 16 team-color choices and 16 shades, lineman/halfling/ogre animation samples, recolorable busts and Human helmet previews. Recorded visual and 22-player rendering evidence, the production authoring contract, and the approved next feature for complete Human and Orc team-color integration. Live team customization remains upcoming work.",

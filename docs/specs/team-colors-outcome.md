@@ -1,9 +1,7 @@
 # Saved team colors implementation outcome
 
 Branch: `feature/saved-team-colors`. Parent issue: [#438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
-Implementation is local and uncommitted. Publishing, merging and deployment are
-outside this handoff. Implementation, self-review and validation are complete;
-dev-local is running and ready for manual review (2026-11-03).
+Merged in [PR #446](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446) on 2026-11-04 after manual acceptance and passing CI. Dev-local is stopped. Remote deployment was not requested. Earlier validation entries below are historical.
 
 ## Delivered scope
 
@@ -248,7 +246,7 @@ concurrent screenshot work produced a 65.2 ms Human first-recolor outlier versus
 2.5 ms for Orc, while warm median frame samples were 6.9/6.8 ms. These are noisy
 observations, not acceptance gates or evidence of a causal regression.
 
-### Gray-mask cleanup review ï¿½ 2026-11-04
+### Gray-mask cleanup review - 2026-11-04
 
 Applied the second annotated bust review: gray marks preserve original materials,
 pink marks identify primary, and green identifies secondary. Native source edges
@@ -269,7 +267,7 @@ roster overviews in `assets/game/team-colors/v1/qa/bust-review/`, with the galle
 and `.tools/exports/team-bust-material-review.zip` ready for the next visual review.
 This is a review iteration, not a claim of final visual approval.
 
-### Pink/green bust annotations ï¿½ 2026-11-04
+### Pink/green bust annotations - 2026-11-04
 
 Applied explicit material contours to the remaining marked Human Blitzer helmet
 highlights and forehead fitting, Human Catcher shoulder trim, Orc Lineman inner
@@ -283,7 +281,7 @@ were added. All five focused tests, 256-pair RGBA/alpha preservation, 30 asset t
 bust review gallery, individual comparisons, overviews and ZIP. Compressed packs
 are 832,716 bytes Human and 792,542 bytes Orc; decoded sizes and runtime are unchanged.
 
-### Fourth annotated bust review ï¿½ 2026-11-04
+### Fourth annotated bust review - 2026-11-04
 
 Compared every portrait with the prior round using side-by-side previous/current
 high-contrast renderings and masks. Applied native-boundary interpretations of the
@@ -316,7 +314,7 @@ are `.tools/human-round4-audit.png` and `.tools/orc-round4-audit.png`; per-image
 assignment counts are in `.tools/bust-round4-audit.json`. Compressed pack sizes:
 832,642 bytes Human and 791,968 bytes Orc. Runtime and decoded dimensions unchanged.
 
-### Approved portrait and helmet production promotion ï¿½ 2026-11-04
+### Approved portrait and helmet production promotion - 2026-11-04
 
 Continued on `feature/saved-team-colors`, reusing #440, #441 and #443. Final art
 review is accepted. Promoted all 12 portraits and both helmets from the approved
@@ -347,7 +345,7 @@ Pack sizes: Human 592,905 bytes and Orc 585,368 bytes compressed; each decodes t
 local browser suite: warm median frame observations were 15.6ms for each roster
 versus static 14.7ms Human / 11.5ms Orc; p95 was lower for colored rendering in
 both cases. These are noisy local observations, not isolated regression estimates
-or gates. Cache lookups were 0ï¿½0.1ms; measured first recolor was 88ms Human / 5.2ms
+or gates. Cache lookups were 0-0.1ms; measured first recolor was 88ms Human / 5.2ms
 Orc. Full environment and observations are in `qa/runtime-measurements.json`.
 
 Dev-local startup completed successfully. Startup initially encountered a
@@ -367,7 +365,7 @@ Manual validation: http://localhost:5000/play and http://localhost:5000/teambuil
 The container Maven build passed; environment-dependent database integration
 tests retain their configured opt-in skips. No artwork acceptance work remains.
 
-### Match portrait and helmet tones to player sprites — 2026-11-04
+### Match portrait and helmet tones to player sprites - 2026-11-04
 
 The brighter kit came from trial shade assignment, not swapped material labels:
 Human Lineman primary median was shade 8 against the body sprite's shade 4; the
@@ -395,12 +393,12 @@ byte-for-byte, and the current color manifest at http://localhost:5000.
 Pack transfers are 585,572 bytes Human / 582,145 bytes Orc; decoded sizes unchanged.
 Runtime measurement observations remain report-only in qa/runtime-measurements.json.
 
-### Same-color helmet contrast — 2026-11-04
+### Same-color helmet contrast - 2026-11-04
 
 The earlier median calibration did not fully address the helmet at the actual
 72px picker size: glossy primary highlights overlapped the secondary stripe.
 Same-color helmets now use separate interpolated tonal ranges within the selected
-palette (primary 0–10, secondary 9–15), retaining 16 sampled shades per material.
+palette (primary 0-10, secondary 9-15), retaining 16 sampled shades per material.
 This is conditional on helmet kind and identical color IDs. Different-color kits,
 all busts and all body sprites are unchanged. Fixed metal/spikes and alpha remain
 unchanged. The material maps and delivered packs are unchanged by this fix.
@@ -416,9 +414,19 @@ checks, hosted builder test, TypeScript and production build pass. Local Hosting
 was refreshed; HTTP verification confirms the corrected renderer bundle, both
 pages, current manifest and all 14 approved asset PNGs. Dev-local remains ready.
 
-### Delivery authorization — 2026-11-04
+### Delivery authorization - 2026-11-04
 
 Owner accepted final manual validation and authorized staging all checkout changes,
 commit, PR publication, CI-gated merge to main, branch removal, completed-feature
 tracking, and dev-local shutdown. Dev-local is stopped; database volumes retained.
 Remote deployment remains outside this request.
+
+
+### Merge completion - 2026-11-04
+
+PR #446 merged as 08ec602b9615197766edcdee120ce3d07317a3bd. CI portability finding fixed by
+normalizing the gzip OS header; exports were verified byte-for-byte in Linux.
+CodeQL logging finding fixed using a constant format string. Final validation and
+security checks passed. Public completion tracker now records the actual merge.
+Dev-local hosting, proxy, computer player and game/database containers are stopped;
+database volumes retained. Working branches are removed after merge.

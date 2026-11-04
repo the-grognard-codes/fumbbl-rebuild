@@ -13,6 +13,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Team Builder MVP](#team-builder-mvp)
+  - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
 - [Movement and action planning](#movement-and-action-planning)
   - [Movement-range rollback](#movement-range-rollback)
   - [Replacement movement-range markings](#replacement-movement-range-markings)
@@ -343,3 +344,4 @@ Difficulty: **Random**. Description: **"Calls plays by throwing a squig at the p
 - Includes approved chibi portraits and splash helmets for both rosters, explicit material masks, fixed skin/metal/leather, player-matched base tones and distinct same-color helmet trim.
 - Validated all 256 palette pairs, cache/fallback behavior, static-site builder and live-game rendering. Final manual validation was accepted on 2026-11-04.
 - Scope and evidence: [team-color spec](../docs/specs/team-colors.md), [outcome](../docs/specs/team-colors-outcome.md), [issue #438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
+- Merged in [PR #446](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446) on 2026-11-04; CI passed and dev-local was stopped.
