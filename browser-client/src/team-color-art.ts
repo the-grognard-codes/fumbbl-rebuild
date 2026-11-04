@@ -84,7 +84,7 @@ export class TeamColorArt {
         for (const [key, value] of images) this.images.set(key, value);
         this.revision++; for (const listener of this.listeners) listener();
       } catch (error) {
-        if (!signal.aborted) console.warn(`Team colors unavailable for ${roster}; retaining static artwork.`, error);
+        if (!signal.aborted) console.warn('Team colors unavailable; retaining static artwork.', roster, error);
       }
     })();
     this.loads.set(roster, promise); return promise;
