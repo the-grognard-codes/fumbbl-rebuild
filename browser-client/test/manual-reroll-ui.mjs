@@ -68,13 +68,14 @@ try {
       const button = page.getByRole('button', { name: action.label, exact: true });
       await button.click({ trial: true });
       if (stage > 0) {
-        await page.getByRole('status', { name: `Pro test: ${stage === 1 ? '1, failure' : '6, success'}`, exact: true }).waitFor();
-        if (stage === 1) assert.equal(await page.getByRole('status', { name: block ? 'Original block dice' : 'Original action roll', exact: true }).locator('.match-die').count(), block ? 2 : 1);
+        const proLabel = stage === 1 ? 'Pro - Failed: 1' : 'Pro - Success: 6';
+        await page.getByRole('status', { name: proLabel, exact: true }).waitFor();
+        if (stage === 1) assert.equal(await page.getByRole('status', { name: block ? 'Original block dice' : 'Pick up - Failed: 1', exact: true }).locator('.match-die').count(), block ? 2 : 1);
         else assert.equal(await page.getByRole('dialog').locator('.live-die-choice').count(), 2);
         await page.evaluate(() => window.testSocket.close());
         await page.getByRole('button', { name: 'Reconnect', exact: true }).click();
         await button.click({ trial: true });
-        await page.getByRole('status', { name: `Pro test: ${stage === 1 ? '1, failure' : '6, success'}`, exact: true }).waitFor();
+        await page.getByRole('status', { name: proLabel, exact: true }).waitFor();
       }
       if (evidence && stage > 0) await page.screenshot({ path: resolve(evidence, `${journey.role}-${journey.mode}-pro-phase-${stage}.png`) });
       if (stage === 0) await page.evaluate(() => { window.testTransport.dropReply = true; });

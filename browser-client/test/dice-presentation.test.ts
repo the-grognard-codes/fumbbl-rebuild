@@ -34,7 +34,9 @@ test('block graphics use the native six-face mapping and selected die index', ()
 test('ordinary dice display the recorded raw roll and target', () => {
   assert.deepEqual(reportedDice({ reportId: 'goForItRoll', roll: 3, minimumRoll: 2, successful: true, playerId: 'runner' }), {
     label: 'Rush · 2+ needed · success', faces: ['3'], subjectId: 'runner', selected: null, reportId: 'goForItRoll', continuous: true,
-    rolls: [{ kind: 'd6', face: '3', label: 'Rush · 2+ needed · success' }]
+    presentation: { name: 'Rush', icon: 'rush', result: 'Success' },
+    rolls: [{ kind: 'd6', face: '3', label: 'Rush · 2+ needed · success',
+      presentation: { name: 'Rush', icon: 'rush', result: 'Success' } }]
   });
   assert.equal(reportedDice({ reportId: 'goForItRoll', roll: 7 }), null);
 });

@@ -14,6 +14,7 @@ import { BlockVisibility } from './BlockVisibility.tsx';
 import { BallMarker } from './BallMarker.tsx';
 import { kickoffMarkerPosition, kickoffPlacementTarget } from './kickoff-ball-presentation.ts';
 import { PitchDecisionOverlay } from './PitchDecisionOverlay.tsx';
+import { diceDirectionAngles } from './dice-direction-presentation.ts';
 import { CircularSkillPrompt } from './CircularSkillPrompt.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
@@ -546,6 +547,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
           </button>;
         })}
         <PitchDecisionOverlay decision={decision?.circular ? null : decision} diceMoment={diceMoment}
+          directionAngles={diceDirectionAngles(camera)}
           diceSnapshot={diceSnapshot} presentationKey={view.matchId}
           rollContext={decision?.circular ? decision : null}
           potentialDice={(!readOnly && !playback || diceAwaiting) ? potentialDice : null} awaiting={diceAwaiting}

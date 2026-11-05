@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Non-block dice now show approved event icons and concise result captions, with
+  independent icon/text controls in Game Menu > Interface. Preferences apply to
+  live play, replay, and recovery; scatter arrows follow the pitch view, and
+  casualty rolls show the extra D6 only when it supplies an injury detail.
+
 - Portrait and helmet kit shading now matches player-sprite base tones, including
   the two-tone contrast when primary and secondary use the same palette color.
 

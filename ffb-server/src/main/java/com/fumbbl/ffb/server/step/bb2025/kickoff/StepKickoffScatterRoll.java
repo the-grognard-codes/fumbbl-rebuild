@@ -138,7 +138,8 @@ public final class StepKickoffScatterRoll extends AbstractStep {
 		FieldCoordinate ballCoordinateEnd = UtilServerCatchScatterThrowIn.findScatterCoordinate(fKickoffStartCoordinate, 
 			fScatterDirection, fScatterDistance);
 		getResult().addReport(
-			new ReportKickoffScatter(ballCoordinateEnd, fScatterDirection, rollScatterDirection, fScatterDistance));
+			new ReportKickoffScatter(ballCoordinateEnd, fScatterDirection, rollScatterDirection, fScatterDistance,
+				fUseKickChoice ? 3 : 6));
 
 		int distance = fScatterDistance;
 		FieldCoordinate lastValidCoordinate = ballCoordinateEnd;

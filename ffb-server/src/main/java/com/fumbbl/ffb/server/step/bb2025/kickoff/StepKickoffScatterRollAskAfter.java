@@ -120,7 +120,7 @@ public final class StepKickoffScatterRollAskAfter extends AbstractStep {
 			FieldCoordinate ballCoordinateEnd = UtilServerCatchScatterThrowIn.findScatterCoordinate(fKickoffStartCoordinate,
 				fScatterDirection, fScatterDistance);
 			getResult().addReport(
-				new ReportKickoffScatter(ballCoordinateEnd, fScatterDirection, rollScatterDirection, fScatterDistance));
+				new ReportKickoffScatter(ballCoordinateEnd, fScatterDirection, rollScatterDirection, fScatterDistance, 6));
 
 			if (kickingPlayer != null) {
 				fKickingPlayerCoordinate = game.getFieldModel().getPlayerCoordinate(kickingPlayer);

@@ -18,7 +18,8 @@ export async function verifyNumericDice(browser, url, view, evidence) {
   await page.locator('.numeric-die').first().waitFor();
   assert.deepEqual(await page.locator('.numeric-die').evaluateAll(dice => dice.map(die => [die.dataset.dieKind, die.dataset.face])), [['d6', '3'], ['d8', '2']]);
   await publish({ view: quiet, report: reports[1], replay: true, readOnly: true });
-  assert.deepEqual(await page.locator('.numeric-die').evaluateAll(dice => dice.map(die => [die.dataset.dieKind, die.dataset.face])), [['d16', '3'], ['d6', '2']]);
+  assert.deepEqual(await page.locator('.numeric-die').evaluateAll(dice => dice.map(die => [die.dataset.dieKind, die.dataset.face])), [['d16', '3']],
+    'The native Badly Hurt result does not use its stored extra D6');
   assert.equal(await page.locator('.live-dice-overlay button:not(:disabled)').count(), 0, 'Replay exposes no native choices');
   for (const sides of [6, 8, 16]) {
     for (let value = 1; value <= sides; value++) {

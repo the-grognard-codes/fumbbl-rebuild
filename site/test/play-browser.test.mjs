@@ -244,7 +244,8 @@ test('hosted native numeric results retain D8 and D16 types on the main pitch', 
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/play/match?matchId=${matchId}`);
     await openGrid(page);
-    for (const [index, kinds] of [[1, ['d6', 'd8']], [2, ['d16', 'd6']]]) {
+    // The modern Badly Hurt report retains its raw D6, but only its D16 contributes on pitch.
+    for (const [index, kinds] of [[1, ['d6', 'd8']], [2, ['d16']]]) {
       deliver(index);
       // Earlier groups retain their own lifetime while this native group arrives.
       const dice = page.locator('.live-dice-overlay .pitch-roll-group').last().locator('.numeric-die');
