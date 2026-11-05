@@ -32,6 +32,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 - [Game interface and presentation](#game-interface-and-presentation)
   - [Smooth gameplay and predictable game speed](#smooth-gameplay-and-predictable-game-speed)
   - [Dice effects and visible duration](#dice-effects-and-visible-duration)
+  - [Dice event icons and readable outcomes](#dice-event-icons-and-readable-outcomes)
   - [Chat and game log sizing](#chat-and-game-log-sizing)
   - [Game log enhancements](#game-log-enhancements)
   - [Game phase tracker](#game-phase-tracker)
@@ -239,6 +240,14 @@ Consolidated the overlapping "Smooth gameplay" and "Game speed setting" entries.
 - Added small animated indicators for broken armor, Stunned, Knocked Out, casualty removal, Badly Hurt, MNG, Niggling Injury, stat reduction, and death.
 - Doubled the normal display duration for broken-armor, injury, and casualty results independently of fade timing.
 - The original artwork review covered both MUTP-color and event-appropriate color variants.
+
+### Dice event icons and readable outcomes
+
+- Added approved static event icons and short roll/outcome captions to non-block dice, with independent saved icon and text preferences.
+- Preserved dice animation and result timing across live play, replay and recovery; existing armor, injury and casualty artwork respects both preferences.
+- Added camera-aware scatter arrows and kickoff Deviation showing the actual D8 plus D6/D3 distance roll. Older reports retain compatible display behavior.
+- Approved artwork includes catch v3 and weather v1. Other previously absent server-roll displays remain deferred.
+- Delivered in [PR #452](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/452); issues #448–#451 closed. Local browser and native verification passed, followed by successful required CI checks.
 
 ### Chat and game log sizing
 
