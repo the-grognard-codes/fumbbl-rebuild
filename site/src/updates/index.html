@@ -16,16 +16,20 @@
   <main class="updates-page">
     <div class="updates-intro"><p class="kicker">Project updates</p><h1>What's new under the pitch.</h1>
       <p>A brief look at the work behind MUTP, from game-day improvements to the tools that keep the project moving. Each entry links to its merged pull request for the full details.</p>
-      <p class="updates-coverage">189 merged pull requests · Latest merge November 4, 2026 · Newest first</p></div>
+      <p class="updates-coverage">190 merged pull requests · Latest merge November 5, 2026 · Newest first</p></div>
     <form id="updates-search" class="updates-tools" action="/updates" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">189 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">190 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-452" data-pr="452" data-category="Gameplay">
+      <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-05T06:14:04Z">November 5, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/452" target="_blank" rel="noreferrer">PR #452<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h2>Read dice rolls with event icons and concise outcomes</h2><p>Non-block dice now show approved event icons and short outcome captions, with independent saved icon and text settings. Live play, replay and recovery preserve dice timing. Scatter arrows follow the camera, and kickoff Deviation displays its actual D8 plus D6 or D3 distance roll. Existing armor, injury and casualty artwork respects the display settings.</p>
+    </article>
     <article class="panel update-entry" id="pr-446" data-pr="446" data-category="Gameplay">
       <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-04T21:33:14Z">November 4, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446" target="_blank" rel="noreferrer">PR #446<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h2>Choose saved team colors across the builder and match</h2><p>Human and Orc coaches can save primary and secondary kit colors with immediate previews. Matches preserve those choices across play, recovery and replay, including player sprites, redesigned chibi portraits, helmets and announcements. Material masks retain skin and metal colors, and matching color selections keep distinct helmet trim.</p>
