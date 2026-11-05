@@ -102,6 +102,7 @@ const inputs = [
   ['ui/ball-v1.svg', 'ui/ball-v1.svg'],
   ['ui/weather', 'ui/weather'],
   ['ui/dice', 'ui/dice'],
+  ['ui/dice-events-v1', 'ui/dice-events-v1'],
   ['references/match-screen-concept-v1.png', 'references/match-screen-concept-v1.png'],
   ['archive/teams/human/36px-v1/sprites', 'archive/humans-36px-v1']
 ];

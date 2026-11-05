@@ -18,7 +18,7 @@ const skillIcons = `${import.meta.env.BASE_URL}assets/game/ui/skill-icons-v1.svg
 /** Keep required pitch choices inside the visible viewport, including after pan/resize. */
 export function PitchDecisionOverlay({ decision = null, diceMoment: currentMoment = null, potentialDice = null, awaiting = false,
   attackerRole, chooserRole, disabled, viewport, onAction, onInspectTarget, rollContext = null,
-  diceSnapshot = false, presentationKey = '' }: {
+  diceSnapshot = false, presentationKey = '', directionAngles }: {
   decision?: MatchDecision | null; disabled: boolean; viewport: RefObject<HTMLDivElement | null>;
   rollContext?: MatchDecision | null;
   diceMoment?: DiceMoment | null;
@@ -28,6 +28,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   onAction?: (id: string) => void;
   onInspectTarget?: (id: string | undefined) => void;
   diceSnapshot?: boolean; presentationKey?: string;
+  directionAngles?: Record<string, number>;
 }) {
   const rollDecision = decision ?? rollContext;
   const diceMoment = potentialDice && !awaiting ? null : currentMoment;
@@ -133,14 +134,17 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     {decision?.reaction && <><strong>{decision.title}</strong>
       {decision.detail && <p>{decision.detail}</p>}
       <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/></>}
-    {original.value && <PitchDiceEffects exiting={original.exiting} isStatic={isStatic} rate={rate}>
+    {original.value && (original.value.faces.every(face => blockFaceLabel(face)) ? <PitchDiceEffects exiting={original.exiting} isStatic={isStatic} rate={rate}>
       <div className="pitch-decision-roll" role="status" aria-label={original.value.label ?? 'Original block dice'}>
       {original.value.faces.map((face, index) => <PolygonDie key={index} face={face} index={index}
-        kind={original.value!.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div></PitchDiceEffects>}
-    {pro.value && <PitchDiceEffects exiting={pro.exiting} isStatic={isStatic} rate={rate}>
-      <div className="pitch-pro-test" role="status" aria-label={`Pro test: ${pro.value.test.face}, ${pro.value.test.successful ? 'success' : 'failure'}`}>
-      <span>Pro</span><PolygonDie kind="d6" face={pro.value.test.face} rollKey={pro.value.rollKey}
-        rollDuration={pro.value.duration ?? PITCH_DICE_ROLL_MS}/></div></PitchDiceEffects>}
+        kind={original.value!.rolls?.[index]?.kind ?? (blockFaceLabel(face) ? 'block' : 'd6')}/>)}</div></PitchDiceEffects>
+      : diceRollGroups({ label: original.value.label ?? 'Original roll', faces: original.value.faces,
+        rolls: original.value.rolls, subjectId: null, selected: null }).map((group, index) =>
+        <PitchDiceGroup key={`original:${index}`} group={{ ...group, exiting: original.exiting, rate }} forceStatic={isStatic} role="status" directionAngles={directionAngles}/>))}
+    {pro.value && <div className="pitch-pro-test"><PitchDiceGroup role="status" forceStatic={isStatic}
+      group={{ label: 'Pro', faces: [pro.value.test.face], subjectId: null, selected: null,
+        rollKey: pro.value.rollKey, rollDuration: pro.value.duration, exiting: pro.exiting, rate,
+        presentation: pro.value.test.presentation ?? { name: 'Pro', icon: 'pro', result: pro.value.test.successful ? 'Success' : 'Failed' } }}/></div>}
     {primary.value && <PitchDiceEffects exiting={primary.exiting} isStatic={isStatic} rate={rate}>
       <div className="live-dice-choices pitch-block-dice">{primary.value.faces.map((face, index) => {
       const shown = primary.value!;
@@ -159,7 +163,7 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     {diceMoment && (diceMoment.groups ?? diceRollGroups(diceMoment).map((group, index) => ({ ...group, key: `result:${index}` })))
       .filter(group => !(primary.value && group.faces.every(face => blockFaceLabel(face)))
         && (group.exiting || !rollDecision?.proTest && (!primaryFaces.length || !!activeGroups))).map(group =>
-        <PitchDiceGroup key={group.key} group={group} caption={!!diceMoment.groups} forceStatic={isStatic}
+        <PitchDiceGroup key={group.key} group={group} caption={!!diceMoment.groups} forceStatic={isStatic} directionAngles={directionAngles}
           role={decision || (diceMoment.groups?.length ?? 0) > 1 ? 'status' : undefined}/>)}
     {otherOptions.length > 0 && <div className="live-dice-choices">{otherOptions.map(option => <button key={option.id} type="button"
       className={option.face ? 'live-die-choice' : option.icon ? 'pitch-dice-icon-choice' : undefined}

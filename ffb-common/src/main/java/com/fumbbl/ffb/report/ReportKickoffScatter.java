@@ -19,6 +19,7 @@ public class ReportKickoffScatter extends NoDiceReport {
 	private Direction fScatterDirection;
 	private int fRollScatterDirection;
 	private int fRollScatterDistance;
+	private int distanceDieSides;
 
 	public ReportKickoffScatter() {
 		super();
@@ -30,6 +31,15 @@ public class ReportKickoffScatter extends NoDiceReport {
 		fScatterDirection = pScatterDirection;
 		fRollScatterDirection = pRollScatterDirection;
 		fRollScatterDistance = pRollScatterDistance;
+	}
+
+	public ReportKickoffScatter(FieldCoordinate ballCoordinateEnd, Direction scatterDirection,
+			int rollScatterDirection, int rollScatterDistance, int distanceDieSides) {
+		this(ballCoordinateEnd, scatterDirection, rollScatterDirection, rollScatterDistance);
+		if (distanceDieSides != 3 && distanceDieSides != 6) {
+			throw new IllegalArgumentException("Kickoff distance requires D3 or D6");
+		}
+		this.distanceDieSides = distanceDieSides;
 	}
 
 	public ReportId getId() {
@@ -55,8 +65,10 @@ public class ReportKickoffScatter extends NoDiceReport {
 	// transformation
 
 	public IReport transform(IFactorySource source) {
-		return new ReportKickoffScatter(FieldCoordinate.transform(getBallCoordinateEnd()),
+		ReportKickoffScatter transformed = new ReportKickoffScatter(FieldCoordinate.transform(getBallCoordinateEnd()),
 				getScatterDirection().transform(), getRollScatterDirection(), getRollScatterDistance());
+		transformed.distanceDieSides = distanceDieSides;
+		return transformed;
 	}
 
 	// JSON serialization
@@ -68,6 +80,7 @@ public class ReportKickoffScatter extends NoDiceReport {
 		IJsonOption.SCATTER_DIRECTION.addTo(jsonObject, fScatterDirection);
 		IJsonOption.ROLL_SCATTER_DIRECTION.addTo(jsonObject, fRollScatterDirection);
 		IJsonOption.ROLL_SCATTER_DISTANCE.addTo(jsonObject, fRollScatterDistance);
+		if (distanceDieSides != 0) jsonObject.add("scatterDistanceSides", distanceDieSides);
 		return jsonObject;
 	}
 
@@ -78,6 +91,10 @@ public class ReportKickoffScatter extends NoDiceReport {
 		fScatterDirection = (Direction) IJsonOption.SCATTER_DIRECTION.getFrom(source, jsonObject);
 		fRollScatterDirection = IJsonOption.ROLL_SCATTER_DIRECTION.getFrom(source, jsonObject);
 		fRollScatterDistance = IJsonOption.ROLL_SCATTER_DISTANCE.getFrom(source, jsonObject);
+		distanceDieSides = jsonObject.getInt("scatterDistanceSides", 0);
+		if (distanceDieSides != 0 && distanceDieSides != 3 && distanceDieSides != 6) {
+			throw new IllegalArgumentException("Kickoff distance requires D3 or D6");
+		}
 		return this;
 	}
 

@@ -1,0 +1,1841 @@
+[
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.CommonPropertyTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.CommonPropertyValueTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.factory.DodgeModifierFactoryTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.RulesTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.ScannerTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.util.pathfinding.PathFinderTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-common",
+        "name":  "com.fumbbl.ffb.util.StringToolTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.Bb2025RegistrationTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.BrowserRuntimeSelectionTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.commandline.InifileParamFilterTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.injury.injuryType.InjuryTypeBlockBB2025Test",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.ActiveMatchPublisherTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserJettyContractTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserMatchDeliveryTest",
+        "tests":  10,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserMatchSocketTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserMatchTransportTest",
+        "tests":  10,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserRequestTimingTest",
+        "tests":  10,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserSavedTeamJsonTest",
+        "tests":  16,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserSchemaMariaDbTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "freshBootstrapCreatesAndVerifiesOnlyBrowserTables"
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserSkillUsePreferencesTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserTeamJsonTest",
+        "tests":  13,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserV2AdapterTest",
+        "tests":  29,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserV2LiveTranscriptTest",
+        "tests":  13,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserV2ProjectionTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserV2RouteTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.BrowserV2TransportPolicyTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.LocalAcceptanceBootstrapTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.LocalAcceptanceTokenMintTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.LocalSchemaTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.LocalServerMainTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.Marker6SchemaTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "verifiesOptInMarkerSixMariaDbTargetReadOnly"
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.NativeMarker6ServerMainTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.local.SkillUsePreferenceSchemaIntegrationTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "migrationPersistsIndependentAccountCasesAcrossConnectionsAndRejectsInvalidRows"
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ActionSourceTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ApothecaryPresentationTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.BallAndFoulActionsTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.BlockHighlightJsonTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.BlockVisibilityTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.BoundedJsonStorageCodecTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.CompletedMatchMemoryTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.CompletedMatchTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ComputerPolicyRecoveryTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ComputerPolicyStateTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.DriveTrackerPresentationTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.FirebaseSessionVerificationTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticatorTest",
+        "tests":  12,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.FollowUpActionsTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.FoulBribeFlowTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.FrozenTeamEngineConverterTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JdbcMatchMembershipRepositoryTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JdbcMatchRepositoryTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JdbcRecoveryRepositoryTest",
+        "tests":  15,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JdbcV2PrincipalDirectoryTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JsonDigestTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JumpPlanningTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.JumpUpBlockPreviewTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.KickoffPresentationTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.KickSkillActionsTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.LimitedActionTagsTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MatchAnnouncementPresentationTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MatchResultV2Test",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MatchServiceTest",
+        "tests":  29,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MatchTranscriptTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MovementWaypointRegressionTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.MultipleBlockActionsTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.NativeOutcomeCaptureTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.NativeRuleFlowTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.NegativeConditionMarkersTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.OnTheBallMovementTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.OptionalBlockSkillUseTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.OptionalReactionSkillUseTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.OptionalRerollSkillUseTest",
+        "tests":  12,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.PlayerActivationAllowanceTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.PlayerActivationRecoveryTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ReactiveDecisionAllowanceTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ReactiveSkillDecisionTest",
+        "tests":  14,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RecoveryArtifactJsonTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RecoveryDiceTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RecoveryJournalMariaDbTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "additiveMigrationCasCrashReconciliationAndCompactionPreserveNativeState"
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RecoveryJournalTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RecoveryNativeJsonTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RetainedConcessionTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.Roundup5NativeActionsTest",
+        "tests":  15,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RoundupActionFlowTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.RoutePlannerTest",
+        "tests":  23,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationCheckpointTest",
+        "tests":  14,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationJournalTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationReadOnlyLoadTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationRecoveryFailureTest",
+        "tests":  10,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationSkillUsePreferencesTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupApplicationTranscriptTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupBrowseSummaryTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupSessionConcessionTest",
+        "tests":  8,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupSessionMovementTest",
+        "tests":  23,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SetupSessionPlacementTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SkillMarkerProjectionTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SpecialBlockActionsTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.SpecialTurnActionsTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.ThreatPresentationTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.Utf8SizeTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.V2MatchAccessTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.V2PreparationJdbcTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "createsJoinsRetriesReleasesAndExpiresInvitationsOnIsolatedMarker6Target"
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.match.V2PreparationServiceTest",
+        "tests":  12,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.net.BrowserEngineQueueTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.ServerUrlPropertyTest",
+        "tests":  8,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.skilluse.JdbcSkillUsePreferenceRepositoryTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.skilluse.SkillUsePreferencesTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.step.action.move.StepDivingTackleTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.step.bb2025.mutliblock.StepApothecaryMultipleTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.bb2025.OrcContentMappingTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.bb2025.SkillDefinitionsTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.JdbcObsoleteSavedTeamStoreTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.JdbcSavedTeamRepositoryTest",
+        "tests":  12,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupMainTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.team.ObsoleteSavedTeamCleanupTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-server",
+        "name":  "com.fumbbl.ffb.server.util.ReRollApiEquivalenceTest",
+        "tests":  12,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.server.match.NativeRollPresentationTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.server.match.NumericDicePresentationTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.ApothecaryStunRecoveryTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.BallAndFoulActionsTest",
+        "tests":  21,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.BallPresentationTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.BlockLogPresentationTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.BlockTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.BrowserPreparedMatchAdapterTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.CoreTurnActionsTest",
+        "tests":  13,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.CrowdPushTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.DefaultSetupSessionTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.DiceProjectionTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.GameStateExecuteStepTest",
+        "tests":  34,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.HailMaryBombAllowanceTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.HailMaryTargetValidationTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.HailMaryWorkflowTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.kickoff.SwarmingEndTurnTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.KickoffSelectionMovementTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.ManualSkillRerollTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.MatchChatTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.MatchLogPresentationTest",
+        "tests":  8,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.MovementChecksTest",
+        "tests":  6,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.OnTheBallMechanicTest",
+        "tests":  13,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.OnTheBallPassBlockIntegrationTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.OnTheBallSkillTest",
+        "tests":  5,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.pass.HandOffTurnoverTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.PassRangeProjectionTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.PassWorkflowTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.PushbackArtworkTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.R5CompletedFixtureGeneratorTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "createsCurrentCompletedFixtureWithoutChangingPausedFixture"
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.R5RestoredContinuationTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "reconcilesRetainedRequestThenContinuesPausedDecisionForBothMembers"
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RecipientProjectionTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RecoveryApplicationTest",
+        "tests":  20,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  2,
+        "skippedTests":  [
+                             "isolatedJdbcRetentionSerializesLastSlotAndPreservesExistingCheckpoint",
+                             "isolatedJdbcLifecyclePressure"
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RecoveryArtifactInspectionTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  1,
+        "skippedTests":  [
+                             "retainedArtifactHasNativeAndDecisionParityInAnotherJvm"
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RecoveryScenariosTest",
+        "tests":  7,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RecoverySessionTest",
+        "tests":  9,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RerollAccountingTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RerollChoicesTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.RouteForecastTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.SecretWeaponDecisionTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.SecureBallRerollTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.ServerCommunicationWorkTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.SetupSessionTest",
+        "tests":  19,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.skill.move.ShadowingTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.skill.pass.HailMaryPassRangeTest",
+        "tests":  4,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.skill.pass.HailMaryPassTest",
+        "tests":  14,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.skill.pass.SafePassTest",
+        "tests":  3,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.SolidDefenceRedeploymentTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.SpectatorProjectionTest",
+        "tests":  1,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.TeammateActivationTest",
+        "tests":  8,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  0,
+        "skippedTests":  [
+
+                         ]
+    },
+    {
+        "module":  "ffb-statetest",
+        "name":  "com.fumbbl.ffb.test.V2RuntimeIntegrationTest",
+        "tests":  2,
+        "failures":  0,
+        "errors":  0,
+        "skipped":  2,
+        "skippedTests":  [
+                             "twoAccountsAndViewerShareNativeStateAndRecoverWithoutReexecuting",
+                             "uncertainTerminalCommitPublishesOneFinalFrameAfterExactRetry"
+                         ]
+    }
+]

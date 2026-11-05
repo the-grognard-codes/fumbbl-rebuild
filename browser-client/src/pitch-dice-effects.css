@@ -6,8 +6,15 @@
 .pitch-roll-result { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 7px; }
 .pitch-roll-group { --effect-fill: #22547c; --effect-edge: #4db2ff; --effect-light: #c1e9ff; --effect-dark: #101c2b; font-family: MUTP,sans-serif; font-weight: 700; }
 .pitch-roll-group[data-casualty-type=true] { --effect-fill: #466276; --effect-edge: #afc9da; --effect-light: #e9ecdc; }
+.pitch-dice-event-icon { width: 42px; height: 42px; object-fit: contain; flex: 0 0 42px; filter: drop-shadow(0 2px 2px #071321b0); }
+.pitch-die-with-direction { display: inline-flex; align-items: center; gap: 2px; }
+.pitch-dice-direction { display: block; width: 25px; height: 25px; object-fit: contain; }
+.pitch-dice-direction-unknown { fill: none; stroke: #49e6ff; stroke-width: 2; }
+.pitch-roll-caption { text-align: center; overflow-wrap: anywhere; max-width: 100%; }
+.live-dice-overlay.pitch-decision-overlay .pitch-dice-content { flex-wrap: nowrap; }
 .pitch-dice-outcome { display: block; width: 48px; height: 48px; flex: 0 0 48px;
   animation: pitch-outcome-reveal 1ms linear both; animation-delay: var(--outcome-delay,620ms); }
+.pitch-dice-outcome.dice-icons-hidden { position: absolute; visibility: hidden; width: 0; height: 0; flex-basis: 0; pointer-events: none; }
 .pitch-dice-outcome .outcome-art { display: block; width: 48px; height: 48px; overflow: visible; filter: drop-shadow(0 2px 2px #071321b0); }
 .pitch-dice-outcome :is(.armor-left,.armor-right,.impact-flare,.star-orbit,.bonk,.bonked-player,.stretcher,.stretcher-player,.result-pulse,.casualty-upper-body,.casualty-lower-body) {
   animation-delay: var(--outcome-delay,620ms); animation-fill-mode: both;

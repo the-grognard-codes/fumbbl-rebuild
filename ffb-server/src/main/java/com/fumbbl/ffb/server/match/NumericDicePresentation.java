@@ -21,11 +21,14 @@ final class NumericDicePresentation {
                 group(dice, report.get("casualtyRollDecay"), sides, "Decay casualty");
             }
         } else if ("kickoffScatter".equals(id)) {
-            die(dice, report.get("rollScatterDirection"), 8, "Kick direction");
-            // BB2025 distance is D3, deliberately outside the polygon variants.
+            int distanceSides = report.getInt("scatterDistanceSides", 0);
+            boolean typedDistance = distanceSides == 3 || distanceSides == 6;
+            String label = typedDistance ? "Deviation" : "Kick direction";
+            die(dice, report.get("rollScatterDirection"), 8, label);
+            if (typedDistance) die(dice, report.get("rollScatterDistance"), distanceSides, label);
         } else if ("scatterPlayer".equals(id)) {
             JsonValue scatter = report.get("isScatter");
-            // Scatter is D8; deviation is a separate direction/distance pair.
+            // Non-scatter player bounces remain outside the approved display scope.
             if (scatter != null && scatter.isBoolean() && scatter.asBoolean()) {
                 JsonValue rolls = report.get("rolls");
                 if (rolls != null && rolls.isArray()) for (JsonValue roll : rolls.asArray()) die(dice, roll, 8, "Player scatter");

@@ -71,7 +71,12 @@ test('a Pro test has its own d6 while original block outcomes remain visible', (
     { index: 1, revision: 1, kind: 'ACTION', actor: 'home' as const, at: 1, decision: {}, state: frame,
       native: [{ reportList: { reports: [{ reportId: 'reRoll', reRollSource: 'Pro', roll: 1, successful: false }] } }] }];
   assert.deepEqual(withProTest(decision, records, 1)?.originalFaces, ['SKULL', 'BOTH DOWN']);
-  assert.deepEqual(withProTest(decision, records, 1)?.proTest, { face: '1', successful: false, rollKey: '1:pro' });
+  assert.deepEqual(withProTest(decision, records, 1)?.proTest, { face: '1', successful: false, rollKey: '1:pro',
+    presentation: { name: 'Pro', icon: 'pro', result: 'Failed' } });
+  const retryRecord = { ...records[1], native: [{ reportList: { reports: [
+    { reportId: 'reRoll', reRollSource: 'Pro', roll: 4, successful: true, logTest: { version: 1, rerolled: true } }] } }] };
+  assert.deepEqual(withProTest(decision, [records[0], retryRecord], 1)?.proTest?.presentation,
+    { name: 'Pro (reroll)', icon: 'pro', result: 'Success' });
   const selectiveRecord = { ...records[1], native: [{ reportList: { reports: [
     { reportId: 'reRoll', reRollSource: 'Pro', roll: 6, successful: true },
     { reportId: 'blockReRoll', blockRoll: [1, 2] }] } }] };

@@ -2,7 +2,7 @@ import type { Reaction, SetupAction, SetupState } from './setup-protocol.ts';
 import { pitchPushChoices, pitchSidestepChoices, type PushChoice } from './push-choice.ts';
 import { injuryIcon } from './injury-presentation.ts';
 import type { DieKind } from './die-geometry.ts';
-import type { PresentedRoll } from './dice-presentation.ts';
+import type { DiceEventPresentation, PresentedRoll } from './dice-presentation.ts';
 import { visibleBlockActions } from './dice-presentation.ts';
 import { isOnTheBallMovement } from './movement-interaction.ts';
 
@@ -11,7 +11,7 @@ export type MatchDecision = { title: string; key: string; kind: string; options:
   playerName?: string; instruction?: string; detail?: string; circular?: boolean; reaction?: Reaction & { matchId: string };
   pitchSelection?: { playerId: string; choices: PushChoice[]; committed: boolean };
   originalFaces?: string[]; originalRolls?: PresentedRoll[]; originalLabel?: string; uphill?: boolean;
-  proTest?: { face: string; successful: boolean; rollKey?: string } };
+  proTest?: { face: string; successful: boolean; rollKey?: string; presentation?: DiceEventPresentation } };
 
 // These names come from RerollPromptActions and ReRollSources. Automatic skill
 // rerolls have no offered action and therefore never acquire a manual button.

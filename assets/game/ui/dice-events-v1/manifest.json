@@ -1,0 +1,784 @@
+{
+  "version": 1,
+  "viewBox": "0 0 48 48",
+  "events": [
+    {
+      "id": "dodge",
+      "label": "Dodge",
+      "file": "dodge.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "dodgeRoll"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "rush",
+      "label": "Rush",
+      "file": "rush.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "goForItRoll"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "pass",
+      "label": "Pass",
+      "file": "pass.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "passRoll"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "catch",
+      "label": "Catch",
+      "file": "catch.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "catchRoll"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "tentacles",
+      "label": "Tentacles",
+      "file": "tentacles.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "tentaclesShadowingRoll"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "weather",
+      "label": "Weather",
+      "file": "weather.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "weather"
+      ],
+      "approvedSampleVersion": 1
+    },
+    {
+      "id": "deviation",
+      "label": "Deviation",
+      "file": "deviation.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "kickoffScatter"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "scatter",
+      "label": "Scatter",
+      "file": "scatter.svg",
+      "category": "Approved samples",
+      "reportIds": [
+        "scatterBall",
+        "scatterPlayer"
+      ],
+      "approvedSampleVersion": 3
+    },
+    {
+      "id": "pick-up",
+      "label": "Pick up",
+      "reportIds": [
+        "pickUpRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "pick-up.svg"
+    },
+    {
+      "id": "jump",
+      "label": "Jump",
+      "reportIds": [
+        "leapRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "jump.svg"
+    },
+    {
+      "id": "leap",
+      "label": "Leap",
+      "reportIds": [
+        "leapRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "leap.svg"
+    },
+    {
+      "id": "jump-up",
+      "label": "Jump Up",
+      "reportIds": [
+        "jumpUpRoll"
+      ],
+      "reference": "jump-up",
+      "category": "Skills and traits",
+      "file": "jump-up.svg"
+    },
+    {
+      "id": "landing",
+      "label": "Landing",
+      "reportIds": [
+        "rightStuffRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "landing.svg"
+    },
+    {
+      "id": "interception",
+      "label": "Interception",
+      "reportIds": [
+        "interceptionRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "interception.svg"
+    },
+    {
+      "id": "bloodlust",
+      "label": "Bloodlust",
+      "reportIds": [
+        "bloodLustRoll"
+      ],
+      "reference": "bloodlust",
+      "category": "Skills and traits",
+      "file": "bloodlust.svg"
+    },
+    {
+      "id": "bone-head",
+      "label": "Bone Head",
+      "reportIds": [
+        "confusionRoll"
+      ],
+      "reference": "bone-head",
+      "category": "Skills and traits",
+      "file": "bone-head.svg"
+    },
+    {
+      "id": "really-stupid",
+      "label": "Really Stupid",
+      "reportIds": [
+        "confusionRoll"
+      ],
+      "reference": "really-stupid",
+      "category": "Skills and traits",
+      "file": "really-stupid.svg"
+    },
+    {
+      "id": "animal-savagery",
+      "label": "Animal Savagery",
+      "reportIds": [
+        "confusionRoll"
+      ],
+      "reference": "animal-savagery",
+      "category": "Skills and traits",
+      "file": "animal-savagery.svg"
+    },
+    {
+      "id": "take-root",
+      "label": "Take Root",
+      "reportIds": [
+        "confusionRoll"
+      ],
+      "reference": "take-root",
+      "category": "Skills and traits",
+      "file": "take-root.svg"
+    },
+    {
+      "id": "unchannelled-fury",
+      "label": "Unchannelled Fury",
+      "reportIds": [
+        "confusionRoll"
+      ],
+      "reference": "unchannelled-fury",
+      "category": "Skills and traits",
+      "file": "unchannelled-fury.svg"
+    },
+    {
+      "id": "hypnotic-gaze",
+      "label": "Hypnotic Gaze",
+      "reportIds": [
+        "hypnoticGazeRoll"
+      ],
+      "reference": "hypnotic-gaze",
+      "category": "Skills and traits",
+      "file": "hypnotic-gaze.svg"
+    },
+    {
+      "id": "throw-team-mate",
+      "label": "Throw Team-mate",
+      "reportIds": [
+        "throwTeamMateRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "throw-team-mate.svg"
+    },
+    {
+      "id": "kick-team-mate",
+      "label": "Kick Team-mate",
+      "reportIds": [
+        "kickTeamMateRoll"
+      ],
+      "reference": "kick-team-mate",
+      "category": "Skills and traits",
+      "file": "kick-team-mate.svg"
+    },
+    {
+      "id": "stand-up",
+      "label": "Stand up",
+      "reportIds": [
+        "standUpRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "stand-up.svg"
+    },
+    {
+      "id": "pro",
+      "label": "Pro",
+      "reportIds": [
+        "reRoll"
+      ],
+      "reference": "pro",
+      "category": "Skills and traits",
+      "file": "pro.svg"
+    },
+    {
+      "id": "loner",
+      "label": "Loner",
+      "reportIds": [
+        "reRoll"
+      ],
+      "reference": "loner",
+      "category": "Skills and traits",
+      "file": "loner.svg"
+    },
+    {
+      "id": "reroll",
+      "label": "Reroll test",
+      "reportIds": [
+        "reRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "reroll.svg"
+    },
+    {
+      "id": "always-hungry",
+      "label": "Always Hungry",
+      "reportIds": [
+        "alwaysHungryRoll"
+      ],
+      "reference": "always-hungry",
+      "category": "Skills and traits",
+      "file": "always-hungry.svg"
+    },
+    {
+      "id": "animosity",
+      "label": "Animosity",
+      "reportIds": [
+        "animosityRoll"
+      ],
+      "reference": "animosity",
+      "category": "Skills and traits",
+      "file": "animosity.svg"
+    },
+    {
+      "id": "dauntless",
+      "label": "Dauntless",
+      "reportIds": [
+        "dauntlessRoll"
+      ],
+      "reference": "dauntless",
+      "category": "Skills and traits",
+      "file": "dauntless.svg"
+    },
+    {
+      "id": "foul-appearance",
+      "label": "Foul Appearance",
+      "reportIds": [
+        "foulAppearanceRoll"
+      ],
+      "reference": "foul-appearance",
+      "category": "Skills and traits",
+      "file": "foul-appearance.svg"
+    },
+    {
+      "id": "regeneration",
+      "label": "Regeneration",
+      "reportIds": [
+        "regenerationRoll"
+      ],
+      "reference": "regeneration",
+      "category": "Skills and traits",
+      "file": "regeneration.svg"
+    },
+    {
+      "id": "bribe",
+      "label": "Bribe",
+      "reportIds": [
+        "bribesRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "bribe.svg"
+    },
+    {
+      "id": "argue-the-call",
+      "label": "Argue the Call",
+      "reportIds": [
+        "argueTheCall"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "argue-the-call.svg"
+    },
+    {
+      "id": "chainsaw",
+      "label": "Chainsaw",
+      "reportIds": [
+        "chainsawRoll"
+      ],
+      "reference": "chainsaw",
+      "category": "Skills and traits",
+      "file": "chainsaw.svg"
+    },
+    {
+      "id": "lightning",
+      "label": "Lightning",
+      "reportIds": [
+        "spellEffectRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "lightning.svg"
+    },
+    {
+      "id": "fireball",
+      "label": "Fireball",
+      "reportIds": [
+        "spellEffectRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "fireball.svg"
+    },
+    {
+      "id": "zap",
+      "label": "Zap",
+      "reportIds": [
+        "spellEffectRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "zap.svg"
+    },
+    {
+      "id": "bomb",
+      "label": "Bomb",
+      "reportIds": [
+        "spellEffectRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "bomb.svg"
+    },
+    {
+      "id": "dodgy-snack",
+      "label": "Dodgy Snack",
+      "reportIds": [
+        "dodgySnackRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "dodgy-snack.svg"
+    },
+    {
+      "id": "steady-footing",
+      "label": "Steady Footing",
+      "reportIds": [
+        "steadyFootingRoll"
+      ],
+      "reference": "steady-footing",
+      "category": "Skills and traits",
+      "file": "steady-footing.svg"
+    },
+    {
+      "id": "team-captain",
+      "label": "Team Captain",
+      "reportIds": [
+        "teamCaptainRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "team-captain.svg"
+    },
+    {
+      "id": "getting-even",
+      "label": "Getting Even",
+      "reportIds": [
+        "gettingEvenRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "getting-even.svg"
+    },
+    {
+      "id": "saboteur",
+      "label": "Saboteur",
+      "reportIds": [
+        "saboteurRoll"
+      ],
+      "reference": "saboteur",
+      "category": "Skills and traits",
+      "file": "saboteur.svg"
+    },
+    {
+      "id": "chomp",
+      "label": "Chomp",
+      "reportIds": [
+        "chompRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "chomp.svg"
+    },
+    {
+      "id": "look-into-my-eyes",
+      "label": "Look Into My Eyes",
+      "reportIds": [
+        "lookIntoMyEyesRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "look-into-my-eyes.svg"
+    },
+    {
+      "id": "dwarfen-wisdom",
+      "label": "Dwarfen Wisdom",
+      "reportIds": [
+        "dwarfenWisdomRoll"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "dwarfen-wisdom.svg"
+    },
+    {
+      "id": "escape",
+      "label": "Escape",
+      "reportIds": [
+        "escapeRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "escape.svg"
+    },
+    {
+      "id": "all-you-can-eat",
+      "label": "All You Can Eat",
+      "reportIds": [
+        "allYouCanEat"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "all-you-can-eat.svg"
+    },
+    {
+      "id": "baleful-hex",
+      "label": "Baleful Hex",
+      "reportIds": [
+        "balefulHex"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "baleful-hex.svg"
+    },
+    {
+      "id": "breathe-fire",
+      "label": "Breathe Fire",
+      "reportIds": [
+        "breatheFire"
+      ],
+      "reference": "breathe-fire",
+      "category": "Skills and traits",
+      "file": "breathe-fire.svg"
+    },
+    {
+      "id": "catch-of-the-day",
+      "label": "Catch of the Day",
+      "reportIds": [
+        "catchOfTheDay"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "catch-of-the-day.svg"
+    },
+    {
+      "id": "projectile-vomit",
+      "label": "Projectile Vomit",
+      "reportIds": [
+        "projectileVomit"
+      ],
+      "reference": "projectile-vomit",
+      "category": "Skills and traits",
+      "file": "projectile-vomit.svg"
+    },
+    {
+      "id": "mascot",
+      "label": "Mascot",
+      "reportIds": [
+        "mascotUsed"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "mascot.svg"
+    },
+    {
+      "id": "old-pro",
+      "label": "Old Pro",
+      "reportIds": [
+        "oldPro"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "old-pro.svg"
+    },
+    {
+      "id": "pick-me-up",
+      "label": "Pick-me-up",
+      "reportIds": [
+        "pickMeUp"
+      ],
+      "reference": "pick-me-up",
+      "category": "Skills and traits",
+      "file": "pick-me-up.svg"
+    },
+    {
+      "id": "then-i-started-blastin",
+      "label": "Then I Started Blastin'",
+      "reportIds": [
+        "thenIStartedBlastin"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "then-i-started-blastin.svg"
+    },
+    {
+      "id": "stalling-throw",
+      "label": "Stalling throw",
+      "reportIds": [
+        "throwAtStallingPlayer"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "stalling-throw.svg"
+    },
+    {
+      "id": "thrown-keg",
+      "label": "Thrown Keg",
+      "reportIds": [
+        "thrownKeg"
+      ],
+      "reference": null,
+      "category": "Skills and traits",
+      "file": "thrown-keg.svg"
+    },
+    {
+      "id": "trap-door",
+      "label": "Trap Door",
+      "reportIds": [
+        "trapDoor"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "trap-door.svg"
+    },
+    {
+      "id": "throw-at-player",
+      "label": "Throw at player",
+      "reportIds": [
+        "throwAtPlayer"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "throw-at-player.svg"
+    },
+    {
+      "id": "biased-referee",
+      "label": "Biased Referee",
+      "reportIds": [
+        "biasedRef"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "biased-referee.svg"
+    },
+    {
+      "id": "shadowing",
+      "label": "Shadowing",
+      "reportIds": [
+        "tentaclesShadowingRoll"
+      ],
+      "reference": "shadowing",
+      "category": "Skills and traits",
+      "file": "shadowing.svg"
+    },
+    {
+      "id": "throw-in",
+      "label": "Throw-in distance",
+      "reportIds": [
+        "throwIn"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "throw-in.svg"
+    },
+    {
+      "id": "kick-direction",
+      "label": "Kick direction",
+      "reportIds": [
+        "kickoffScatter"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "kick-direction.svg"
+    },
+    {
+      "id": "fan-factor",
+      "label": "Fan factor",
+      "reportIds": [
+        "fanFactor"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "fan-factor.svg"
+    },
+    {
+      "id": "bounce",
+      "label": "Bounce",
+      "reportIds": [
+        "scatterBall"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "bounce.svg"
+    },
+    {
+      "id": "throw-bomb",
+      "label": "Throw Bomb",
+      "reportIds": [
+        "passRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "throw-bomb.svg"
+    },
+    {
+      "id": "hail-mary-pass",
+      "label": "Hail Mary Pass",
+      "reportIds": [
+        "passRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "hail-mary-pass.svg"
+    },
+    {
+      "id": "hail-mary-bomb",
+      "label": "Hail Mary Bomb",
+      "reportIds": [
+        "passRoll"
+      ],
+      "reference": null,
+      "category": "Actions and movement",
+      "file": "hail-mary-bomb.svg"
+    },
+    {
+      "id": "direction-north",
+      "label": "north",
+      "file": "direction-north.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 0
+    },
+    {
+      "id": "direction-northeast",
+      "label": "northeast",
+      "file": "direction-northeast.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 45
+    },
+    {
+      "id": "direction-east",
+      "label": "east",
+      "file": "direction-east.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 90
+    },
+    {
+      "id": "direction-southeast",
+      "label": "southeast",
+      "file": "direction-southeast.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 135
+    },
+    {
+      "id": "direction-south",
+      "label": "south",
+      "file": "direction-south.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 180
+    },
+    {
+      "id": "direction-southwest",
+      "label": "southwest",
+      "file": "direction-southwest.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 225
+    },
+    {
+      "id": "direction-west",
+      "label": "west",
+      "file": "direction-west.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 270
+    },
+    {
+      "id": "direction-northwest",
+      "label": "northwest",
+      "file": "direction-northwest.svg",
+      "category": "Direction indicators",
+      "reportIds": [],
+      "rotationDegrees": 315
+    }
+  ],
+  "retainedAnimatedOutcomes": [
+    "armor",
+    "stun",
+    "ko",
+    "casualty",
+    "bh",
+    "mng",
+    "ni",
+    "stat",
+    "dead"
+  ],
+  "unknownEventPolicy": "Preserve existing text; omit icon. Generic direction falls back to scatter artwork.",
+  "scope": "Existing recognized on-pitch rolls plus Deviation. Other absent adapters deferred."
+}

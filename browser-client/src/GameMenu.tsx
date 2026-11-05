@@ -13,6 +13,7 @@ import { useNegativeConditionMarkers } from './use-negative-condition-markers.ts
 import { AutomaticSkillUse } from './AutomaticSkillUse.tsx';
 import type { SkillUseControls } from './skill-use-preferences.ts';
 import { useAnnouncementPreferences } from './use-announcement-preferences.ts';
+import { useDicePreferences } from './use-dice-preferences.ts';
 
 type Tab = 'Game Options' | 'Game Settings' | 'Skills & Traits' | 'Interface' | 'Key Bindings' | 'Game Log';
 
@@ -30,6 +31,7 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
   const { visible: showLimitedActions, change: changeLimitedActions } = useLimitedActionTags();
   const { visible: showConditions, change: changeConditions } = useNegativeConditionMarkers();
   const { holdAnnouncements, changeHoldAnnouncements } = useAnnouncementPreferences();
+  const { preferences: dicePreferences, change: changeDicePreferences } = useDicePreferences();
   const neutral = replay || view.callerRole === 'spectator';
   const skillControl = (name: 'showOwn' | 'showOpponent' | 'showBase' | 'showAcquired' | 'showTraits' | 'showBigGuyNegatraits', label: string) =>
     <label><input type="checkbox" checked={skillMarkers[name]} onChange={event => changeSkillMarkers(name, event.target.checked)}/>{label}</label>;
@@ -126,7 +128,11 @@ export function GameMenu({ view, connected, pending, mutate, records, logLoading
             </section>
           </>}
           {tab === 'Game Log' && <MatchEventLog records={records} loading={logLoading} unavailable={logUnavailable}/>}
-          {tab === 'Interface' && <section><h3>Pitch and interface</h3><div className="threat-settings"><div role="group" aria-label="Gameplay helpers"><label><input type="checkbox" checked={showLimitedActions} onChange={event => changeLimitedActions(event.target.checked)}/>Show limited action tags</label><label><input type="checkbox" checked={showConditions} onChange={event => changeConditions(event.target.checked)}/>Show negative condition markers</label></div></div>{interfaceControls}<p>Background opacity preserves readable text, icons and borders. Event log text has three size controls.</p></section>}
+          {tab === 'Interface' && <section><h3>Pitch and interface</h3><div className="threat-settings"><div role="group" aria-label="Gameplay helpers"><label><input type="checkbox" checked={showLimitedActions} onChange={event => changeLimitedActions(event.target.checked)}/>Show limited action tags</label><label><input type="checkbox" checked={showConditions} onChange={event => changeConditions(event.target.checked)}/>Show negative condition markers</label></div>
+            <div role="group" aria-label="Dice presentation">
+              <label><input type="checkbox" checked={dicePreferences.showIcons} onChange={event => changeDicePreferences('showIcons', event.target.checked)}/>Show dice icons</label>
+              <label><input type="checkbox" checked={dicePreferences.showText} onChange={event => changeDicePreferences('showText', event.target.checked)}/>Show dice text</label>
+            </div></div>{interfaceControls}<p>Background opacity preserves readable text, icons and borders. Event log text has three size controls.</p></section>}
           {tab === 'Key Bindings' && <section><h3>Keyboard controls</h3><p>Arrow keys: navigate the pitch. Enter on the pitch: choose a square. Space: confirm a valid proposal or the warning about unactivated players. Backspace: end your team's turn. Right-click: undo a waypoint. Enter outside controls: chat. Escape: close chat or this menu.</p><p>Tab navigates players and commands. Debug offers numeric setup placement controls.</p></section>}
         </div>
       </div>

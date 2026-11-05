@@ -40,5 +40,6 @@ export function withProTest(decision: MatchDecision | null, records: TranscriptR
     }
   }
   return { ...decision, originalFaces, originalRolls, originalLabel, ...(uphill !== undefined ? { uphill } : {}),
-    proTest: { face: String(pro.roll), successful: pro.successful, rollKey: `${revision}:pro` } };
+    proTest: { face: String(pro.roll), successful: pro.successful, rollKey: `${revision}:pro`,
+      presentation: reportedDice(pro)?.presentation } };
 }

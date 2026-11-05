@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 import { createServer } from './browser-test-server.mjs';
 import { verifyNumericDice } from './numeric-dice-checks.mjs';
 import { verifyDiceEffects } from './dice-effects-checks.mjs';
+import { verifyDiceReadability } from './dice-readability-checks.mjs';
 
 const journeys = JSON.parse(readFileSync(new URL('./fixtures/adr0003-dice.json', import.meta.url), 'utf8')).sort((a, b) => b.count - a.count);
 const evidence = process.env.DICE_UI_EVIDENCE;
@@ -251,5 +252,6 @@ try {
   }
   await verifyNumericDice(browser, `http://127.0.0.1:${server.httpServer.address().port}`, journeys.find(journey => journey.count === 0).offered, evidence);
   await verifyDiceEffects(browser, `http://127.0.0.1:${server.httpServer.address().port}`);
+  await verifyDiceReadability(browser, `http://127.0.0.1:${server.httpServer.address().port}`);
   console.log('PASS: native D6/D8/D16 and block faces, all landing orientations, shared motion, continuity, diffuse backing, exact keyboard choices, focus, viewport, both coaches, spectator and replay.');
 } finally { await browser.close(); await server.close(); }
