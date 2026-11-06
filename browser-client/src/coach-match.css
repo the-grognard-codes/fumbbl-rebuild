@@ -310,3 +310,12 @@
 }
 
 .play-runtime .replay-menu .game-menu-trigger { position: static; max-width: none; width: auto; margin: 8px 0; padding: 5px 10px; }
+
+.play-runtime .coach-match.hosted-match .confirmation-row:has(.saved-formations){bottom:var(--history-panel-bottom)}
+.play-runtime .coach-match.hosted-match .saved-formations{grid-column:1/-1;grid-row:2;pointer-events:auto;justify-self:center;width:min(100%,30rem);box-sizing:border-box;border:1px solid #40637e;background:#091726ed;padding:4px 6px;margin-bottom:0}
+.saved-formations h3{font:700 11px MUTP,sans-serif;text-align:center;margin:0 0 4px;color:#dbeaff}
+.saved-formations>div{display:flex;gap:5px}
+.saved-formations button{flex:1;min-width:0;margin:0;padding:5px 3px;font:700 11px MUTP,sans-serif;overflow-wrap:anywhere;min-height:2.2rem}
+@media (max-width:600px){
+  .play-runtime .coach-match.hosted-match .confirmation-row:has(.saved-formations){bottom:var(--command-bar-bottom)}
+}

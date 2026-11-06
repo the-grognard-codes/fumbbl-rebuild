@@ -8,8 +8,8 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerChoiceMode;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
-import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogBriberyAndCorruptionParameter;
+import com.fumbbl.ffb.dialog.DialogBribesParameter;
 import com.fumbbl.ffb.dialog.DialogKickSkillParameter;
 import com.fumbbl.ffb.dialog.DialogReRollPropertiesParameter;
 import com.fumbbl.ffb.dialog.DialogReceiveChoiceParameter;
@@ -49,12 +49,9 @@ import com.fumbbl.ffb.server.step.StepId;
 import com.fumbbl.ffb.server.step.generator.EndGame;
 import com.fumbbl.ffb.server.step.generator.SequenceGenerator;
 import com.fumbbl.ffb.server.step.generator.StartGame;
+import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.util.UtilSkillBehaviours;
 import com.fumbbl.ffb.util.UtilBox;
-
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,6 +61,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 /** One authoritative engine lifetime, initialized once or restored from a versioned private checkpoint. */
 public final class SetupSession {
 	private static final int MAX_RECOVERY_ARTIFACT_BYTES = 128 * 1024 * 1024;
@@ -788,7 +789,12 @@ public final class SetupSession {
 			else if (step() == StepId.RECEIVE_CHOICE && ("receive".equals(option) || "kick".equals(option)))
 				command = new ClientCommandReceiveChoice("receive".equals(option));
 			else throw new MatchService.Failure("INVALID_OPTION");
-		} else if ("place".equals(operation)) {
+		} else if ("formation".equals(operation)) {
+            if (step() != StepId.SETUP || game.getTurnMode() != TurnMode.SETUP) throw new MatchService.Failure("WRONG_PHASE");
+            int index = request.getInt("formationIndex", -1);
+            if (index < 0 || index >= savedFormations().size()) throw new MatchService.Failure("INVALID_OPTION");
+            command = null;
+        } else if ("place".equals(operation)) {
 			if (step() != StepId.SETUP) throw new MatchService.Failure("WRONG_PHASE");
 			Player<?> player = game.getPlayerById(request.getString("playerId", null));
 			Team team = "home".equals(role) ? game.getTeamHome() : game.getTeamAway();
@@ -866,7 +872,11 @@ public final class SetupSession {
 				state.startNextStep();
 				if (!isComplete()) throw new IllegalStateException("Concession stopped at " + step()
 					+ " with dialog " + game.getDialogParameter());
-			} else if (command != null) {
+			} else if ("formation".equals(operation)) {
+                FrozenTeam frozen = "home".equals(role) ? document.home.team : document.away.team;
+                new SavedFormationDeployment().apply(state, "home".equals(role), frozen,
+                    savedFormations().get(request.getInt("formationIndex", -1)), document.computer != null && "away".equals(role));
+            } else if (command != null) {
 				if (swapTarget != null) {
 					boolean home = "home".equals(role);
 					state.handleCommand(new ReceivedCommand(new ClientCommandSetupPlayer(
@@ -927,8 +937,22 @@ public final class SetupSession {
 	}
 
 	/** Apply ordinary native setup commands as part of the triggering mutation, before checkpoint/ack. */
+    private List<TeamFormations.Formation> savedFormations() {
+        FrozenTeam frozen = "home".equals(actor()) ? document.home.team : document.away.team;
+        return frozen.formations == null ? List.of() : frozen.formations.forReceiving(state.getGame().isSetupOffense());
+    }
+
 	private void deployDefaultSetup() {
 		Game game = state.getGame();
+        FrozenTeam selectedTeam = "home".equals(actor()) ? document.home.team : document.away.team;
+        if (selectedTeam.formations != null) {
+            List<TeamFormations.Formation> group = savedFormations();
+            boolean computer = document.computer != null && "away".equals(actor());
+            // A stable per-drive draw survives journal replay without another source of randomness.
+            int index = computer && !group.isEmpty() ? new java.util.Random(java.util.Objects.hash(matchId, drive, actor())).nextInt(group.size()) : 0;
+            new SavedFormationDeployment().apply(state, "home".equals(actor()), selectedTeam, group.isEmpty() ? null : group.get(index), computer);
+            return;
+        }
 		boolean home = "home".equals(actor());
 		Team team = home ? game.getTeamHome() : game.getTeamAway();
 		java.util.ArrayList<Player<?>> eligible = new java.util.ArrayList<>();
@@ -1117,6 +1141,13 @@ public final class SetupSession {
 		if (kickoff != null && "PLAY".equals(projected.getString("phase", null))) projected.add("kickoff", kickoff);
 		JsonObject driveTracker = new DriveTrackerPresentation().project(state, transcript, drive, browsePhase());
 		if (driveTracker != null) projected.add("driveTracker", driveTracker);
+		if (step() == StepId.SETUP && game.getTurnMode() == TurnMode.SETUP && role.equals(actor()) && !savedFormations().isEmpty()) {
+			JsonArray formations = new JsonArray();
+			List<TeamFormations.Formation> group = savedFormations();
+			for (int index = 0; index < group.size(); index++)
+				formations.add(new JsonObject().add("name", group.get(index).name()).add("index", index));
+			projected.add("savedFormations", formations);
+		}
 		return projected;
 	}
 	private JsonObject resources(Team team, TurnData turnData) {
@@ -1170,6 +1201,7 @@ public final class SetupSession {
 	}
 	private boolean matchesRecoveredView(JsonObject saved, String role) {
 		JsonObject current = view(role);
+        if (saved.get("savedFormations") == null) current.remove("savedFormations");
 		// Existing checkpoints predate this optional, independently versioned public guidance.
 		if (saved.get("passing") == null) current.remove("passing");
 		for (String resources : new String[] { "homeResources", "awayResources" }) {
@@ -1334,6 +1366,7 @@ public final class SetupSession {
 
     private void recordEvent(String kind, String role, JsonValue decision, NativeRollPresentation rollPresentation) {
         JsonObject snapshot = view("home").set("actions", new JsonArray()).set("prompt", JsonValue.NULL);
+        snapshot.remove("savedFormations");
         if (computerPolicy != null) computerPolicy.observe(snapshot,
             reactiveDecision.pending() ? reactiveDecision.normalHome() : state.getGame().isHomePlaying());
         snapshot.remove("movementForecast"); // Available actions are absent from frozen replay snapshots.

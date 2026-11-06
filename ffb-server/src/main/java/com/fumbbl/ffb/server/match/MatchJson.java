@@ -2,14 +2,11 @@ package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.SkillCategory;
 import com.fumbbl.ffb.server.team.SavedTeamService;
+import com.fumbbl.ffb.server.team.TeamColorPalette;
+import com.fumbbl.ffb.server.team.TeamColors;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.SkillDefinitions;
-import com.fumbbl.ffb.server.team.TeamColors;
-import com.fumbbl.ffb.server.team.TeamColorPalette;
-
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -21,6 +18,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 /** Versioned match requests, public projection and private frozen persistence. */
 public final class MatchJson {
@@ -113,6 +114,8 @@ public final class MatchJson {
 
 	private JsonObject envelope(MatchDocument document) {
 		JsonObject out = publicDocument(document).add("homeOwner", document.home.owner);
+        if (document.home.team.formations != null) out.get("home").asObject().add("formations", new TeamFormations().encode(document.home.team.formations));
+        if (document.away != null && document.away.team.formations != null) out.get("away").asObject().add("formations", new TeamFormations().encode(document.away.team.formations));
 		out.get("home").asObject().add("resolvedCatalog", JsonObject.readFrom(document.home.team.resolvedCatalogJson));
 		if (document.away != null) out.get("away").asObject().add("owner", document.away.owner)
 			.add("resolvedCatalog", JsonObject.readFrom(document.away.team.resolvedCatalogJson));
@@ -630,6 +633,8 @@ public final class MatchJson {
         object = JsonObject.readFrom(object.toString());
         TeamColors colors = object.get("colors") == null ? null : new TeamColorPalette().decode(object.get("colors").asObject());
         object.remove("colors");
+        TeamFormations.FormationSet formations = object.get("formations") == null ? null : new TeamFormations().decode(object.get("formations").asObject());
+        object.remove("formations");
 		String coachName = null;
 		if (away && object.get("coachName") != null) {
 			coachName = object.get("coachName").asString();
@@ -699,7 +704,7 @@ public final class MatchJson {
 		}
 		if (captain != null && !ids.contains(captain)) throw new IllegalArgumentException();
 		FrozenTeam team = new FrozenTeam(uuid(object.get("sourceTeamId")), positive(object.get("sourceDocumentVersion")), owner, ruleset,
-			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString(), coachName, colors);
+			catalogVersion, rosterId, presetId, presetVersion, captain, teamName, total, budget, points, players, quantities, resolved.toString(), coachName, colors, formations);
 		verifyFrozenEvaluation(team, resolved);
 		return new MatchDocument.Member(object.get("role").asString(), owner, team);
 	}

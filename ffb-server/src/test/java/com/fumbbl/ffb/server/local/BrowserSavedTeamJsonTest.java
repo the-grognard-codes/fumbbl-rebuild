@@ -1,13 +1,9 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.team.SavedTeamJson;
 import com.fumbbl.ffb.server.team.SavedTeamRepository;
 import com.fumbbl.ffb.server.team.SavedTeamService;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -73,6 +74,22 @@ class BrowserSavedTeamJsonTest {
 	void initialize() {
 		catalog = new RosterCatalog(); repository = new MemoryRepository();
 		adapter = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog));
+	}
+	@Test void olderUpdatesRetainAssignmentsAndNeverRegenerateDeletedDefaults() {
+		BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		JsonObject created = accounts.handle(owner, request("create").add("draft", namedDraft()).toString()).get("document").asObject();
+		JsonObject changed = JsonObject.readFrom(created.get("draft").toString());
+		changed.remove("formations");
+		changed.get("players").asArray().get(0).asObject().set("jerseyNumber", 20);
+		JsonObject updated = accounts.handle(owner, update(created, changed).toString()).get("document").asObject();
+		assertEquals(created.get("draft").asObject().get("formations"), updated.get("draft").asObject().get("formations"));
+		changed.add("formations", new JsonObject().add("offense", new JsonArray()).add("defense", new JsonArray()));
+		JsonObject empty = accounts.handle(owner, update(updated, changed).toString()).get("document").asObject();
+		changed.remove("formations");
+		JsonObject retained = accounts.handle(owner, update(empty, changed).toString()).get("document").asObject();
+		assertEquals(0, retained.get("draft").asObject().get("formations").asObject().get("offense").asArray().size());
+		assertEquals(0, retained.get("draft").asObject().get("formations").asObject().get("defense").asArray().size());
 	}
 	@Test void legacyDraftCannotSilentlyDiscardExplicitColors() {
 		JsonObject colors = new JsonObject().add("version", 1).add("primary", "red").add("secondary", "white");
@@ -140,7 +157,7 @@ class BrowserSavedTeamJsonTest {
 		assertFalse(original.get("teamId").equals(copied.get("teamId")));
 		assertEquals("TEAM_NAME_TAKEN", accounts.handle(owner, update(copied, namedDraft()).toString()).getString("code", null));
 		assertEquals("OK", accounts.handle(owner, update(original, namedDraft().set("teamName", "The MOLES")).toString()).getString("code", null));
-		assertEquals(copyDraft.add("colors", new com.fumbbl.ffb.server.team.TeamColorPalette().defaults("human").encode()), accounts.handle(owner, request("load").add("teamId", copied.get("teamId")).toString()).get("document").asObject().get("draft"));
+		assertEquals(new SavedTeamJson(catalog).encodeDraft(new BrowserTeamJson(catalog).decodeDraft(copyDraft).withEffectiveColors()), accounts.handle(owner, request("load").add("teamId", copied.get("teamId")).toString()).get("document").asObject().get("draft"));
 	}
 	@Test
 	void checkedInHumanStarterDraftIsAcceptedByTheFrozenCatalog() throws IOException {

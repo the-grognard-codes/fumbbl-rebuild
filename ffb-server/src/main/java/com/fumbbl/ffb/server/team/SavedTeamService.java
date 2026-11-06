@@ -75,6 +75,9 @@ public final class SavedTeamService {
 		if (!"CURRENT".equals(previous.versionStatus)) throw new Failure(previous.versionStatus);
 		if (draft.draftVersion != previous.document.draft.draftVersion) throw new Failure("MIGRATION_REQUIRED");
 		if (!previous.document.draft.catalogVersion.equals(draft.catalogVersion)) throw new Failure("MIGRATION_REQUIRED");
+		// Older callers may omit the extension; retain stored choices (including intentional deletion).
+		if (draft.formations == null && draft.draftVersion == TeamDraft.FORMAT_VERSION)
+			draft = draft.withFormations(previous.document.draft.effectiveFormations());
 		TeamValidation.Evaluation result = accepted(draft);
 		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) draft = draft.withEffectiveColors();
 		uniqueName(owner, id, draft);

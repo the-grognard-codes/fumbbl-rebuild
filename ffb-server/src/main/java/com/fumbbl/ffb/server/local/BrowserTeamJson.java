@@ -1,12 +1,10 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-import com.fumbbl.ffb.server.team.TeamColors;
 import com.fumbbl.ffb.server.team.TeamColorPalette;
+import com.fumbbl.ffb.server.team.TeamColors;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
 
 import java.nio.charset.StandardCharsets;
@@ -16,6 +14,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 /** Explicit browser projection; never serializes the legacy model or input claims. */
 public final class BrowserTeamJson {
@@ -59,6 +61,8 @@ public final class BrowserTeamJson {
         draft = JsonObject.readFrom(draft.toString());
         TeamColors colors = draft.get("colors") == null ? null : new TeamColorPalette().decode(draft.get("colors").asObject());
         draft.remove("colors");
+        TeamFormations.FormationSet formations = draft.get("formations") == null ? null : new TeamFormations().decode(draft.get("formations").asObject());
+        draft.remove("formations");
 		boolean legacy = draft.get("draftVersion") == null;
 		if (legacy) fields(draft, "catalogVersion", "ruleset", "rosterId", "presetId", "captainId", "players", "resources");
 		else {
@@ -88,8 +92,8 @@ public final class BrowserTeamJson {
 		String catalogVersion = identifier(draft.get("catalogVersion")), ruleset = identifier(draft.get("ruleset"));
 		String roster = identifier(draft.get("rosterId")), preset = identifier(draft.get("presetId"));
 		String captain = draft.get("captainId").isNull() ? null : identifier(draft.get("captainId"));
-		return legacy ? new TeamDraft(1, "", catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors)
-			: new TeamDraft(TeamDraft.FORMAT_VERSION, draft.get("teamName").asString(), catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors);
+		return legacy ? new TeamDraft(1, "", catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors, formations)
+			: new TeamDraft(TeamDraft.FORMAT_VERSION, draft.get("teamName").asString(), catalogVersion, ruleset, roster, preset, captain, choices, quantities, colors, formations);
 	}
 
 	public JsonObject evaluate(String requestId, JsonObject draft) {

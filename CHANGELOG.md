@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Saved teams can manage three offensive and three defensive deployment formations
+  with numbered chits, starter layouts, and a default for each role. Drive setup
+  loads the default and offers formation buttons; unavailable players leave holes.
+  Computer coaches choose saved formations and complete legal setups.
+  Starters include 5-4-2 and 7-2-2 Offense, corrected Chevron Defense, and Anchor
+  Defense. Setup selection aligns with the chat/log panels, with Confirm above it.
+
 - Touchdown scores update when the TOUCHDOWN announcement starts; the next-drive
   tracker waits until it finishes. Mandatory decision prompts keep Game Menu and concession accessible.
 - Explicitly confirmed Pass actions now offer a small square-targeting toggle,

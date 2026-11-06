@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '26'
-      - run: node --test tools/test/dev-local.test.mjs tools/test/dev-local-clear-games.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs tools/test/game-service-start.test.mjs
+      - run: node --test tools/test/dev-local.test.mjs tools/test/dev-local-clear-games.test.mjs tools/test/dev-local-install-formations.test.mjs tools/test/review-mount-source.test.mjs tools/test/match-review-start.test.mjs tools/test/review-current-matches-index.test.mjs tools/test/game-service-start.test.mjs
       - run: node --test tools/test/validation.test.mjs tools/test/browser-local.test.mjs tools/test/deploy.test.mjs
       - run: npm test --prefix computer-player
 

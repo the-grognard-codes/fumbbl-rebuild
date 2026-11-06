@@ -1,0 +1,246 @@
+{
+  "offense": [
+    {
+      "name": "5-4-2 Offense",
+      "players": [
+        {
+          "jerseyNumber": 10,
+          "column": 5,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 8,
+          "column": 6,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 1,
+          "column": 7,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 9,
+          "column": 8,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 11,
+          "column": 9,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 2,
+          "column": 2,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 4,
+          "column": 3,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 5,
+          "column": 11,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 3,
+          "column": 12,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 6,
+          "column": 4,
+          "depth": 6
+        },
+        {
+          "jerseyNumber": 7,
+          "column": 10,
+          "depth": 6
+        }
+      ]
+    },
+    {
+      "name": "7-2-2 Offense",
+      "players": [
+        {
+          "jerseyNumber": 2,
+          "column": 4,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 8,
+          "column": 5,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 9,
+          "column": 6,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 1,
+          "column": 7,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 10,
+          "column": 8,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 11,
+          "column": 9,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 3,
+          "column": 10,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 4,
+          "column": 3,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 5,
+          "column": 11,
+          "depth": 1
+        },
+        {
+          "jerseyNumber": 6,
+          "column": 4,
+          "depth": 5
+        },
+        {
+          "jerseyNumber": 7,
+          "column": 10,
+          "depth": 5
+        }
+      ]
+    }
+  ],
+  "defense": [
+    {
+      "name": "Chevron Defense",
+      "players": [
+        {
+          "jerseyNumber": 8,
+          "column": 6,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 1,
+          "column": 7,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 9,
+          "column": 8,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 10,
+          "column": 2,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 6,
+          "column": 5,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 7,
+          "column": 9,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 11,
+          "column": 12,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 2,
+          "column": 3,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 4,
+          "column": 6,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 5,
+          "column": 8,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 3,
+          "column": 11,
+          "depth": 3
+        }
+      ]
+    },
+    {
+      "name": "Anchor Defense",
+      "players": [
+        {
+          "jerseyNumber": 8,
+          "column": 6,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 10,
+          "column": 7,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 9,
+          "column": 8,
+          "depth": 0
+        },
+        {
+          "jerseyNumber": 1,
+          "column": 4,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 7,
+          "column": 7,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 11,
+          "column": 10,
+          "depth": 2
+        },
+        {
+          "jerseyNumber": 4,
+          "column": 5,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 3,
+          "column": 6,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 6,
+          "column": 7,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 2,
+          "column": 8,
+          "depth": 3
+        },
+        {
+          "jerseyNumber": 5,
+          "column": 9,
+          "depth": 3
+        }
+      ]
+    }
+  ]
+}

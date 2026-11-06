@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { FormationManager } from './FormationManager.tsx';
+import { starterFormations } from './team-formations.ts';
 import { BuilderDraftEditor } from './BuilderDraftEditor';
 import { rosterDisplayName } from './roster-display-name';
 import { TeamValidationView } from './team-validation-view';
@@ -21,6 +23,8 @@ export function BuilderPanel({ options }: { options: Options }) {
   const [validation, setValidation] = useState<Validation | null>(null);
   const [validatedDraft, setValidatedDraft] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDocument | null>(null);
+  const [formationEditor, setFormationEditor] = useState(false);
+  const [formationChanged, setFormationChanged] = useState(false);
   const [copyName, setCopyName] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState('CURRENT');
   const [teams, setTeams] = useState<SavedTeamSummary[]>([]);
@@ -69,7 +73,7 @@ export function BuilderPanel({ options }: { options: Options }) {
           if (Array.isArray(message.teams)) setTeams(message.teams);
           if (message.document) {
             const document = message.document as SavedDocument;
-            setSaved(document); setEligibility(message.versionStatus ?? 'CURRENT');
+            setFormationChanged(false); setSaved(document); setEligibility(message.versionStatus ?? 'CURRENT');
             setCopyName(null);
             if (document.formatVersion >= 3 && document.draft.rosterId !== catalogRef.current?.rosterId) {
               const id = connection.request('catalog', { rosterId: document.draft.rosterId });
@@ -103,14 +107,16 @@ export function BuilderPanel({ options }: { options: Options }) {
     const id = client.current!.request('savedTeam', { operation, ...fields }, mutation);
     operations.current.set(id, operation);
   }
-  function update(next: TeamDraft) { draftRef.current = next; setDraft(next); setValidation(null); setValidatedDraft(null); }
+  function update(next: TeamDraft) {
+    if (next.formations === undefined && next.players.length >= 11) next = { ...next, formations: starterFormations(next.players) };
+    draftRef.current = next; setDraft(next); setValidation(null); setValidatedDraft(null); }
   function selectRoster(rosterId: string) {
     if (!catalog || rosterId === catalog.rosterId || !['human', 'orc'].includes(rosterId)) return;
     if ((saved || draft?.players.length || draft?.teamName) && !window.confirm('Start a new team with this roster? Unsaved edits will be discarded.')) return;
     run(() => {
       const id = client.current!.request('catalog', { rosterId });
       catalogSelections.current.set(id, null);
-      setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(null); setValidation(null); setValidatedDraft(null);
+      setFormationChanged(false); setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(null); setValidation(null); setValidatedDraft(null);
     });
   }
   function validate() {
@@ -144,6 +150,11 @@ export function BuilderPanel({ options }: { options: Options }) {
     {!connected && <button type="button" onClick={() => client.current?.connect()}>Reconnect</button>}
     {client.current?.pending && <p className="builder-error">A change needs confirmation. Reconnect with the same account and <button type="button" onClick={() => run(() => client.current?.retry())}>repeat the retained request</button>.</p>}
     {catalog && draft && <BuilderDraftEditor catalog={catalog} draft={draft} update={update} editable={editable && !busy} validate={validate} validation={validation} selectRoster={selectRoster} />}
+    {draft && <section className="panel" aria-label="Team formations"><h2>Deployment Formations</h2><p>Save up to three formations each for offense and defense.</p>
+      <button type="button" className="button secondary" disabled={!editable || busy} onClick={() => setFormationEditor(true)}>Manage formations</button>
+      {formationChanged && <p className="formation-draft-status" role="status">Formation changes are in your draft. Validate and save the team to keep them.</p>}
+    </section>}
+    {formationEditor && draft && <FormationManager draft={draft} close={() => setFormationEditor(false)} save={formations => { update({ ...draft, formations }); setFormationChanged(true); setFormationEditor(false); }} />}
     {validation && <div className="panel validation-errors"><TeamValidationView result={validation} /></div>}
     <section className="builder-actions panel" aria-label="Save team"><div>
       <button type="button" disabled={!saveable} onClick={save}>{copyName !== null ? 'Save new team' : saved ? 'Save changes' : 'Save team'}</button>
@@ -154,7 +165,7 @@ export function BuilderPanel({ options }: { options: Options }) {
     {eligibility !== 'CURRENT' && <p className="builder-error" role="alert">This saved team cannot enter a new match until its catalog is explicitly migrated and validated.</p>}
     <section className="panel saved-teams-panel" aria-label="Your saved teams"><div className="section-heading"><div><h2>Your Teams</h2><p>Only teams owned by this account are shown here.</p></div><div className="roster-actions">
       <button type="button" className="button secondary" disabled={!connected} onClick={() => run(() => requestSaved('list'))}>Refresh teams</button>
-      <button type="button" disabled={!catalog || busy} onClick={() => { setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
+      <button type="button" disabled={!catalog || busy} onClick={() => { setFormationChanged(false); setSaved(null); setCopyName(null); setEligibility('CURRENT'); setDraft(emptyDraft(catalog!)); setValidation(null); setValidatedDraft(null); }}>New team</button>
     </div></div>
       {teams.length ? <ul>{teams.map(team => <li key={team.teamId}>
         <strong>{team.teamName || 'Unnamed older team'}</strong> · {rosterDisplayName(team.rosterId)}

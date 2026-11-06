@@ -30,6 +30,7 @@
       "browser-client/test/reroll-accounting-ui.mjs",
       "browser-client/test/pass-ranges-ui.mjs",
       "browser-client/test/setup-drag-ui.mjs",
+      "browser-client/test/formation-ui.mjs",
       "browser-client/test/push-artwork-ui.mjs",
       "browser-client/test/follow-up-ui.mjs",
       "browser-client/test/dice-ui.mjs",
