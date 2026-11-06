@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T18:19:38.668Z",
+  "title": "Design System: Moles Under the Pitch",
+  "extensions": {
+    "colorMeta": {
+      "pitch-blue": {
+        "displayName": "Pitch Blue",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0243 244.82)",
+          "oklch(26.43% 0.0798 244.82)",
+          "oklch(37.86% 0.1353 244.82)",
+          "oklch(49.29% 0.1457 244.82)",
+          "oklch(60.71% 0.1457 244.82)",
+          "oklch(72.14% 0.1457 244.82)",
+          "oklch(83.57% 0.0957 244.82)",
+          "oklch(95.00% 0.0291 244.82)"
+        ]
+      },
+      "pale-gold": {
+        "displayName": "Pale Gold",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0210 93.36)",
+          "oklch(26.43% 0.0691 93.36)",
+          "oklch(37.86% 0.1172 93.36)",
+          "oklch(49.29% 0.1263 93.36)",
+          "oklch(60.71% 0.1263 93.36)",
+          "oklch(72.14% 0.1263 93.36)",
+          "oklch(83.57% 0.0830 93.36)",
+          "oklch(95.00% 0.0253 93.36)"
+        ]
+      },
+      "action-gold": {
+        "displayName": "Action Gold",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0230 76.85)",
+          "oklch(26.43% 0.0756 76.85)",
+          "oklch(37.86% 0.1282 76.85)",
+          "oklch(49.29% 0.1381 76.85)",
+          "oklch(60.71% 0.1381 76.85)",
+          "oklch(72.14% 0.1381 76.85)",
+          "oklch(83.57% 0.0907 76.85)",
+          "oklch(95.00% 0.0276 76.85)"
+        ]
+      },
+      "turf-green": {
+        "displayName": "Turf Green",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0224 143.98)",
+          "oklch(26.43% 0.0735 143.98)",
+          "oklch(37.86% 0.1246 143.98)",
+          "oklch(49.29% 0.1342 143.98)",
+          "oklch(60.71% 0.1342 143.98)",
+          "oklch(72.14% 0.1342 143.98)",
+          "oklch(83.57% 0.0882 143.98)",
+          "oklch(95.00% 0.0268 143.98)"
+        ]
+      },
+      "deep-turf": {
+        "displayName": "Deep Turf",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0153 151.80)",
+          "oklch(26.43% 0.0501 151.80)",
+          "oklch(37.86% 0.0850 151.80)",
+          "oklch(49.29% 0.0916 151.80)",
+          "oklch(60.71% 0.0916 151.80)",
+          "oklch(72.14% 0.0916 151.80)",
+          "oklch(83.57% 0.0602 151.80)",
+          "oklch(95.00% 0.0183 151.80)"
+        ]
+      },
+      "soil-rust": {
+        "displayName": "Soil Rust",
+        "role": "secondary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0155 45.22)",
+          "oklch(26.43% 0.0509 45.22)",
+          "oklch(37.86% 0.0864 45.22)",
+          "oklch(49.29% 0.0930 45.22)",
+          "oklch(60.71% 0.0930 45.22)",
+          "oklch(72.14% 0.0930 45.22)",
+          "oklch(83.57% 0.0611 45.22)",
+          "oklch(95.00% 0.0186 45.22)"
+        ]
+      },
+      "chalk-white": {
+        "displayName": "Chalk White",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0027 253.90)",
+          "oklch(26.43% 0.0087 253.90)",
+          "oklch(37.86% 0.0148 253.90)",
+          "oklch(49.29% 0.0159 253.90)",
+          "oklch(60.71% 0.0159 253.90)",
+          "oklch(72.14% 0.0159 253.90)",
+          "oklch(83.57% 0.0104 253.90)",
+          "oklch(95.00% 0.0032 253.90)"
+        ]
+      },
+      "night-navy": {
+        "displayName": "Night Navy",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0036 257.25)",
+          "oklch(26.43% 0.0119 257.25)",
+          "oklch(37.86% 0.0202 257.25)",
+          "oklch(49.29% 0.0218 257.25)",
+          "oklch(60.71% 0.0218 257.25)",
+          "oklch(72.14% 0.0218 257.25)",
+          "oklch(83.57% 0.0143 257.25)",
+          "oklch(95.00% 0.0044 257.25)"
+        ]
+      },
+      "panel-navy": {
+        "displayName": "Panel Navy",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0057 254.54)",
+          "oklch(26.43% 0.0187 254.54)",
+          "oklch(37.86% 0.0317 254.54)",
+          "oklch(49.29% 0.0341 254.54)",
+          "oklch(60.71% 0.0341 254.54)",
+          "oklch(72.14% 0.0341 254.54)",
+          "oklch(83.57% 0.0224 254.54)",
+          "oklch(95.00% 0.0068 254.54)"
+        ]
+      },
+      "site-panel": {
+        "displayName": "Site Panel",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0058 251.11)",
+          "oklch(26.43% 0.0192 251.11)",
+          "oklch(37.86% 0.0326 251.11)",
+          "oklch(49.29% 0.0351 251.11)",
+          "oklch(60.71% 0.0351 251.11)",
+          "oklch(72.14% 0.0351 251.11)",
+          "oklch(83.57% 0.0230 251.11)",
+          "oklch(95.00% 0.0070 251.11)"
+        ]
+      },
+      "input-navy": {
+        "displayName": "Input Navy",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0049 253.13)",
+          "oklch(26.43% 0.0161 253.13)",
+          "oklch(37.86% 0.0273 253.13)",
+          "oklch(49.29% 0.0294 253.13)",
+          "oklch(60.71% 0.0294 253.13)",
+          "oklch(72.14% 0.0294 253.13)",
+          "oklch(83.57% 0.0193 253.13)",
+          "oklch(95.00% 0.0059 253.13)"
+        ]
+      },
+      "steel-frame": {
+        "displayName": "Steel Frame",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0099 242.63)",
+          "oklch(26.43% 0.0326 242.63)",
+          "oklch(37.86% 0.0552 242.63)",
+          "oklch(49.29% 0.0595 242.63)",
+          "oklch(60.71% 0.0595 242.63)",
+          "oklch(72.14% 0.0595 242.63)",
+          "oklch(83.57% 0.0391 242.63)",
+          "oklch(95.00% 0.0119 242.63)"
+        ]
+      },
+      "hud-frame": {
+        "displayName": "HUD Frame",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0147 252.32)",
+          "oklch(26.43% 0.0484 252.32)",
+          "oklch(37.86% 0.0821 252.32)",
+          "oklch(49.29% 0.0884 252.32)",
+          "oklch(60.71% 0.0884 252.32)",
+          "oklch(72.14% 0.0884 252.32)",
+          "oklch(83.57% 0.0581 252.32)",
+          "oklch(95.00% 0.0177 252.32)"
+        ]
+      },
+      "hud-text": {
+        "displayName": "HUD Text",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0043 244.43)",
+          "oklch(26.43% 0.0140 244.43)",
+          "oklch(37.86% 0.0238 244.43)",
+          "oklch(49.29% 0.0256 244.43)",
+          "oklch(60.71% 0.0256 244.43)",
+          "oklch(72.14% 0.0256 244.43)",
+          "oklch(83.57% 0.0168 244.43)",
+          "oklch(95.00% 0.0051 244.43)"
+        ]
+      },
+      "hud-cyan": {
+        "displayName": "HUD Cyan",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.0218 210.48)",
+          "oklch(26.43% 0.0718 210.48)",
+          "oklch(37.86% 0.1217 210.48)",
+          "oklch(49.29% 0.1311 210.48)",
+          "oklch(60.71% 0.1311 210.48)",
+          "oklch(72.14% 0.1311 210.48)",
+          "oklch(83.57% 0.0861 210.48)",
+          "oklch(95.00% 0.0262 210.48)"
+        ]
+      },
+      "pale-blue": {
+        "displayName": "Pale Blue",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0091 227.97)",
+          "oklch(26.43% 0.0299 227.97)",
+          "oklch(37.86% 0.0507 227.97)",
+          "oklch(49.29% 0.0546 227.97)",
+          "oklch(60.71% 0.0546 227.97)",
+          "oklch(72.14% 0.0546 227.97)",
+          "oklch(83.57% 0.0359 227.97)",
+          "oklch(95.00% 0.0109 227.97)"
+        ]
+      },
+      "button-ink": {
+        "displayName": "Button Ink",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0042 256.47)",
+          "oklch(26.43% 0.0137 256.47)",
+          "oklch(37.86% 0.0233 256.47)",
+          "oklch(49.29% 0.0251 256.47)",
+          "oklch(60.71% 0.0251 256.47)",
+          "oklch(72.14% 0.0251 256.47)",
+          "oklch(83.57% 0.0165 256.47)",
+          "oklch(95.00% 0.0050 256.47)"
+        ]
+      },
+      "button-edge": {
+        "displayName": "Button Edge",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0153 97.81)",
+          "oklch(26.43% 0.0503 97.81)",
+          "oklch(37.86% 0.0854 97.81)",
+          "oklch(49.29% 0.0919 97.81)",
+          "oklch(60.71% 0.0919 97.81)",
+          "oklch(72.14% 0.0919 97.81)",
+          "oklch(83.57% 0.0604 97.81)",
+          "oklch(95.00% 0.0184 97.81)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Public site display headings; responsive size remains in the source CSS."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Public site section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Public reading and explanations."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Public primary button labels."
+      },
+      "navigation": {
+        "displayName": "Navigation",
+        "purpose": "Shared site navigation."
+      },
+      "spectate-control": {
+        "displayName": "Spectate Control",
+        "purpose": "Spectating secondary actions; Spectate Chakra is the locally served Chakra Petch alias."
+      },
+      "hud-body": {
+        "displayName": "Hud Body",
+        "purpose": "Match support panel text; MUTP is the local Chakra Petch Bold alias."
+      },
+      "hud-label": {
+        "displayName": "Hud Label",
+        "purpose": "Compact match headings."
+      },
+      "hud-confirm": {
+        "displayName": "Hud Confirm",
+        "purpose": "Match confirmation action."
+      }
+    },
+    "shadows": [
+      {
+        "name": "site-header",
+        "value": "5px 5px 0 #03070c, -3px -3px 0 #24394e",
+        "purpose": "Hard frame layers around the public header."
+      },
+      {
+        "name": "button-rest",
+        "value": "4px 4px 0 #6b321f",
+        "purpose": "Structural public primary button backing."
+      },
+      {
+        "name": "button-hover",
+        "value": "2px 2px 0 #6b321f",
+        "purpose": "Hover reduces depth while the pointer target remains fixed."
+      },
+      {
+        "name": "public-panel",
+        "value": "6px 6px 0 #05090e",
+        "purpose": "Information panel separation."
+      },
+      {
+        "name": "hud-score",
+        "value": "inset 0 0 0 1px #142e4b, 0 0 0 1px #081522",
+        "purpose": "HUD scoreboard frame."
+      },
+      {
+        "name": "hud-support",
+        "value": "inset 0 0 0 1px #142e4b",
+        "purpose": "Match history inner frame."
+      },
+      {
+        "name": "formation-dialog",
+        "value": "0 1rem 4rem #0009",
+        "purpose": "Existing modal separation; an exception to hard page shadows."
+      }
+    ],
+    "motion": [
+      {
+        "name": "action-feedback",
+        "value": "transform 180ms ease-out, box-shadow 180ms ease-out, color 180ms ease-out",
+        "purpose": "Icon action response; disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "chat-unread",
+        "value": "chat-unread-pulse 1.8s ease-in-out infinite",
+        "purpose": "Existing unread indicator; static under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "site-narrow",
+        "value": "42rem"
+      },
+      {
+        "name": "builder-narrow",
+        "value": "760px"
+      },
+      {
+        "name": "hud-compact",
+        "value": "900px"
+      },
+      {
+        "name": "hud-phone",
+        "value": "600px"
+      },
+      {
+        "name": "hud-short-height",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Public site filled action with its observed hover shadow and browser focus behavior.",
+      "html": "<button class=\"ds-primary\">Save team</button>",
+      "css": ".ds-primary{display:inline-block;appearance:none;border:3px solid #fff0a8;border-radius:0;background:#e6a83f;color:#101823;padding:.85rem 1rem;box-shadow:4px 4px 0 #6b321f;font:800 .68rem/1.45 \"Press Start 2P\",monospace;text-decoration:none;cursor:pointer}.ds-primary:hover{background:#ffe17b;box-shadow:2px 2px 0 #6b321f}.ds-primary:focus-visible{outline:auto;outline-offset:0}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cool framed secondary action used in spectating; gold outline follows its scoped focus rule.",
+      "html": "<button class=\"ds-secondary\">Refresh</button>",
+      "css": ".ds-secondary{appearance:none;border:2px solid #40637e;border-radius:0;background:#172b3e;color:#bdeaff;padding:.6rem 1rem;box-shadow:3px 3px 0 #03070c;font:800 .9rem/1.4 'Spectate Chakra',sans-serif;cursor:pointer}.ds-secondary:hover{box-shadow:2px 2px 0 #6b321f}.ds-secondary:focus-visible{outline:3px solid #ffe17b;outline-offset:4px}.ds-secondary:disabled{opacity:.5;cursor:default;transform:none}"
+    },
+    {
+      "name": "Builder Input",
+      "kind": "input",
+      "refersTo": "input-builder",
+      "description": "The builder text field and its explicit gold keyboard focus treatment.",
+      "html": "<label class=\"ds-field\">Team name<input class=\"ds-input\" value=\"Team name\"></label>",
+      "css": ".ds-field{display:inline-flex;flex-direction:column;gap:.45rem;color:#bdeaff;font:700 1rem/1.65 Inter,ui-sans-serif,system-ui,sans-serif}.ds-input{min-height:2.7rem;border:3px solid #40637e;border-radius:0;background:#07111d;color:#edf5ff;padding:.5rem;font:inherit;max-width:100%;box-sizing:border-box}.ds-input:focus-visible{outline:3px solid #ffe17b;outline-offset:2px}"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Wrapping navigation links; the existing full logo is intentionally not reconstructed in this snippet.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Example navigation\"><a href=\"#\" aria-current=\"page\">Play</a><a href=\"#\">Team Builder</a><a href=\"#\">Spectate</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem 1.5rem}.ds-nav a{color:#c1e9ff;font:400 .62rem/1.7 \"Press Start 2P\",monospace;text-decoration:none}.ds-nav a:hover,.ds-nav a[aria-current=\"page\"]{color:#ffe17b;text-shadow:2px 2px 0 #874a2d}.ds-nav a:focus-visible{outline:auto;outline-offset:0}"
+    },
+    {
+      "name": "Public Information Panel",
+      "kind": "card",
+      "refersTo": "card-public",
+      "description": "Square public-page panel with a hard structural shadow and responsive padding.",
+      "html": "<section class=\"ds-card\"><h2>Saved teams</h2><p>Choose a team for your next match.</p></section>",
+      "css": ".ds-card{position:relative;padding:clamp(1.25rem,4vw,2.25rem);border:3px solid #40637e;background:#111f2e;color:#edf5ff;box-shadow:6px 6px 0 #05090e;font:400 1rem/1.65 Inter,ui-sans-serif,system-ui,sans-serif}.ds-card h2{color:#bdeaff;font:700 clamp(1.25rem,2.4vw,1.75rem)/1.15 \"Chakra Petch\",sans-serif;letter-spacing:.015em}.ds-card p{font:inherit}"
+    },
+    {
+      "name": "Spectating Count",
+      "kind": "chip",
+      "refersTo": "chip-count",
+      "description": "A noninteractive rectangular count beside a spectating heading.",
+      "html": "<div class=\"ds-count-context\"><h2>Matches <span class=\"ds-count\" aria-label=\"3 matches\">3</span></h2></div>",
+      "css": ".ds-count-context h2{color:#bdeaff;font:700 clamp(1.3rem,2.5vw,1.8rem)/1.15 'Spectate Chakra',\"Chakra Petch\",sans-serif;letter-spacing:.015em;margin:.5rem 0 .8rem}.ds-count{display:inline-block;margin-left:.45rem;padding:.1rem .6rem;color:#77d8ff;background:#07111d;border:1px solid #40637e;font-size:1rem;vertical-align:middle}"
+    },
+    {
+      "name": "HUD Support Panel",
+      "kind": "card",
+      "refersTo": "panel-hud",
+      "description": "Match history backing with its existing adjustable opacity; the fallback is the observed default.",
+      "html": "<section class=\"ds-hud\"><h3>Game log</h3><p>Choose your next action.</p></section>",
+      "css": ".ds-hud{box-sizing:border-box;max-width:100%;padding:5px 10px;border:2px solid #426c9b;border-radius:4px;color:#d9e9f7;background:rgb(9 23 38 / var(--support-panel-opacity,30%));box-shadow:inset 0 0 0 1px #142e4b;font:700 14px/1.35 MUTP,\"Chakra Petch\",sans-serif}.ds-hud h3{margin:0;font:700 11px MUTP,\"Chakra Petch\",sans-serif;letter-spacing:1px;color:#a4bfd5}.ds-hud p{font:inherit}"
+    },
+    {
+      "name": "Match Confirmation",
+      "kind": "button",
+      "refersTo": "button-confirm",
+      "description": "The confirmation label and control treatment; the runtime supplies the approved raster glyph, omitted here rather than redrawn.",
+      "html": "<button class=\"ds-confirm\">Confirmed!</button>",
+      "css": ".ds-confirm{display:flex;align-items:center;gap:7px;margin:0;padding:1px 14px;color:#45e7ff;border:2px solid #3edfff;border-radius:0;background:#091726db;box-shadow:4px 4px 0 #6b321f;font:700 15px MUTP,\"Chakra Petch\",sans-serif;text-transform:uppercase;cursor:pointer}.ds-confirm:hover{box-shadow:2px 2px 0 #6b321f}.ds-confirm:focus-visible{outline:3px solid #ffe17b;outline-offset:2px}.ds-confirm:disabled{opacity:.5;cursor:default}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pixel Pitch",
+    "overview": "MUTP uses crisp pixel artwork, dark framed surfaces, and clear controls around\nfantasy-football. Its original mole-under-gridiron mark, established palette,\nand readable player silhouettes carry the identity. The character is welcoming\nand lightly tabletop-fantasy inspired. Keep the description understated.\n\nButtons, panels, and inputs are **tactile and legible**. Public pages allow more\nspace around content; the match HUD uses compact controls and translucent\nsupporting panels to keep the pitch visible. These are related treatments,\nnot a requirement to make every screen use identical typography or density.",
+    "keyCharacteristics": [
+      "Crisp pixel artwork and approved outlined logo lettering.",
+      "Dark surfaces with visible frames, warm actions, and cool information accents.",
+      "Structural framed layers: offset shadows on public pages, inset framing in play.",
+      "Distinct typography roles for site reading, pixel controls, and the match HUD."
+    ],
+    "rules": [
+      {
+        "name": "The Palette Scope Rule",
+        "body": "The eight-color logo palette is fixed by\n[brand package v4](site/src/assets/brand-package-v4/README.md). UI variants may use\nthe other extracted interface colors. Team-kit choices use the separate\n[team-color system](docs/specs/team-colors.md); neither interface nor team art\nauthorizes recoloring the logo. Sidecar tonal ramps are generated preview aids,\nnot additional approved production colors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lettering Rule",
+        "body": "Use HTML text for editable names, controls, and game\nstate. Keep the approved logo wordmark as artwork; do not recreate it by typing\nthe name in one of the interface fonts. Earlier Alegreya/Barlow preview guidance\nin the [font inventory](assets/game/ui/fonts/README.md) is not a global font policy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Readable Layer Rule",
+        "body": "Support-panel opacity affects the backing, not the\ntext, player art, or controls. Preserve foreground legibility while the pitch\nremains visible. Exact shadows and motion values are recorded in the sidecar.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Preserve the approved mole-under-gridiron identity, logo artwork, and typography roles.",
+      "Use the public-site and HUD variants in their existing contexts.",
+      "Keep match controls legible over the pitch and preserve canonical interaction behavior.",
+      "Use live text for labels, game state, and accessible explanations.",
+      "Follow canonical asset, team-color, and sprite documentation for their respective scopes.",
+      "Preserve observed focus, disabled, reduced-motion, and responsive behavior."
+    ],
+    "donts": [
+      "Recolor, stretch, apply effects to, or retype the approved logo.",
+      "Treat historical concepts, old font previews, or asset wishlists as current implementation.",
+      "Force the logo palette onto every team kit or replace approved pixel art with a new style.",
+      "Make the entire product use one font, radius, density, or shadow treatment.",
+      "Reuse outdated homepage positioning instead of the confirmed product purpose.",
+      "Claim accessibility conformance or physical-device coverage from these extracted styles."
+    ]
+  }
+}
