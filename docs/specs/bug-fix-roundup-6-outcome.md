@@ -57,6 +57,14 @@ The reported intermittent native concession lock did not reproduce in the phase-
 
 The user confirmed that the original changes passed manual validation except Bogruk kickoff participation (#458), which still needs the relevant randomly occurring events. Its deterministic native-offer integration tests have passed. The user subsequently accepted the regression-tested touchdown-score adjustment (#454) and authorized delivery.
 
-Remaining manual coverage: validate Bogruk participation when Charge!, Quick Snap or Solid Defence occurs. Dev-local was available throughout acceptance and will be stopped as part of the authorized delivery cleanup.
+Remaining manual coverage: validate Bogruk participation when Charge!, Quick Snap or Solid Defence occurs. Dev-local was available throughout acceptance and was stopped after merge, with database volumes retained.
 
 Final evidence: `.tools/roundup6-maven-summary.json`, `.tools/roundup6-browser-summary.json`, `.tools/roundup6-runtime-ready.json`, `.tools/roundup6-dev-local-verified.log`, `.tools/roundup6-final-artifact.log`, and `.tools/roundup6-accepted-*.log`. The final queue correction's complete browser unit rerun is `.tools/roundup6-browser-unit-complete.log`. The primary checkout still has precisely its original unrelated edits; generated test previews were removed only from this worktree.
+
+## Delivery follow-up
+
+- Committed the 46 reviewed files as `b36824f0ad9b19a6167e26877cb4c403ff625f55` and merged [PR #463](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/463) on 2026-11-06 at 05:00:26 UTC. Main merge commit: `cf4541b0871e3a941ae8c5520029ba9101f83333`.
+- [Checks run 42165114198](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/42165114198) passed, including Validate, all four Java state-test shards, Java 21 target verification, browser/static assets/unit/Hosting checks, session-service checks and local lifecycle/computer-player tests. Static delivery, workflow lint, secret scanning and all four CodeQL analyses also passed. The optional dispatch-only full-browser CI job was skipped as designed; local browser validation is recorded above.
+- Verified the merged main tree matched the reviewed feature commit, then removed local and remote `bug-roundup-6` branches.
+- Stopped dev-local using `node tools/dev-local.mjs --stop`; managed processes and both review containers stopped, with database volumes retained. Evidence: `.tools/roundup6-dev-local-stop.log`.
+- Added the completed-feature archive entry and the public update using the actual PR merge timestamp. No remote deployment was requested or performed.
