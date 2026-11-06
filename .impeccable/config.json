@@ -1,3 +1,27 @@
 {
-  "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "site/src/teambuilder/index.html"
+        ],
+        "createdAt": "2026-11-06T22:28:37.006Z",
+        "reason": "Agent: the unchanged site.css background predates issue470 and is intentionally retained by the approved Pixel Pitch refinement; this work adds no radial halo."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "browser-client/src/FormationManager.css"
+        ],
+        "createdAt": "2026-11-06T23:50:43.449Z",
+        "reason": "Agent: formation-grid wide-boundary marks the pitch wide-zone divisions after columns 4 and 11; this is a functional field marking, not a card accent."
+      }
+    ]
+  }
 }

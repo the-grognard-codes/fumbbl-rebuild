@@ -1,0 +1,131 @@
+/* The workbench keeps purchases, the roster and completion in one working area. */
+.builder-shell { width: min(80rem, calc(100% - 2rem)); max-width: none; padding: 1.5rem 0 3rem; }
+/* Spatial formation controls size to the pitch instead of the workbench buttons. */
+.builder-shell button:not([data-formation-cell], .formation-chit), .builder-shell .button { min-height: 2.75rem; font-size: .75rem; }
+.builder-heading { align-items: center; gap: 1rem; margin-bottom: .75rem; }
+.builder-heading h1 { max-width: none; font-size: clamp(1.5rem, 3vw, 2.2rem); line-height: 1.15; }
+.builder-heading p { margin: .5rem 0 0; }
+.builder-team-access { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.saved-teams-panel { position: static; }
+.saved-teams-panel > summary { min-height: 2.75rem; display: flex; align-items: center; padding: .5rem .75rem; border: 1px solid #8f7e51; color: #e4d49d; cursor: pointer; font-weight: 700; }
+.saved-teams-panel > summary::after { content: ''; width: .5rem; height: .5rem; margin-left: .75rem; border-bottom: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
+.saved-teams-panel[open] > summary::after { transform: rotate(225deg); }
+.saved-teams-menu { position: absolute; right: 0; top: calc(100% + .5rem); z-index: 40; width: min(28rem, calc(100vw - 2rem)); max-height: min(30rem, 70dvh); overflow: auto; padding: 1rem; background: #101c2b; border: 3px solid #4db2ff; box-shadow: 4px 4px 0 #03070c; }
+.saved-teams-menu h2 { margin: 0; }
+.saved-teams-menu p { margin: .75rem 0; }
+.saved-teams-panel li > div { min-width: 0; overflow-wrap: anywhere; }
+.builder-controls { grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr) auto; gap: 1rem; margin: 1rem 0; }
+.builder-budget { margin: 0; align-self: center; color: #a9c8da; font-size: .875rem; }
+.builder-budget strong { color: #bdeaff; }
+.workbench-status { position: sticky; top: .5rem; z-index: 10; padding: .75rem 1rem; margin-bottom: .75rem; background: #101c2b; border: 2px solid #40637e; box-shadow: 4px 4px 0 #03070c; }
+.workbench-totals { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem 1.25rem; padding-bottom: .6rem; margin-bottom: .6rem; border-bottom: 1px solid #40637e; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.workbench-totals .treasury { margin: 0 0 0 auto; color: #ffe17b; }
+.workbench-totals .over-budget { color: #ffd1bb; }
+.builder-completion { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.completion-buttons { display: flex; flex-wrap: wrap; gap: .5rem; flex-shrink: 0; }
+.completion-label-short { display: none; }
+.builder-completion > p { margin: 0; max-width: 50ch; font-size: .875rem; color: #a9c8da; }
+.builder-completion .formation-draft-status { color: #ffe17b; }
+.builder-options { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .5rem .75rem; margin: 1rem 0; }
+.builder-options > button { padding: .5rem .75rem; }
+.builder-kit-options { min-width: 0; }
+.builder-kit-options > summary { display: flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: .25rem .75rem; color: #e4d49d; border: 1px solid #8f7e51; cursor: pointer; font-weight: 700; }
+.builder-kit-options > summary .sprite { width: 2rem; height: 2rem; object-fit: contain; }
+.builder-kit-options[open] { flex-basis: 100%; }
+.builder-kit-options[open] > summary { width: fit-content; }
+.builder-kit-options .team-colors { margin: .75rem 0; padding: 1rem; }
+.builder-workbench { display: grid; grid-template-columns: 19rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+.builder-workbench > .panel { min-width: 0; margin: 0; padding: 1rem; border-width: 2px; box-shadow: 4px 4px 0 #03070c; }
+.builder-workbench > .panel::before { content: none; }
+.builder-workbench h2 { font-size: 1.25rem; margin: 0 0 .75rem; }
+.builder-purchases .position-list { display: flex; flex-direction: column; gap: 0; }
+.builder-purchases .position { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: .5rem; align-items: center; min-height: 0; padding: .55rem 0; border: 0; border-bottom: 1px solid #40637e; border-radius: 0; background: transparent; }
+.builder-purchases .position .sprite { float: none; width: 2.5rem; height: 2.5rem; }
+.builder-purchases h3 { margin: 0; color: #bdeaff; font: 700 1rem/1.25 'Chakra Petch', Inter, sans-serif; }
+.builder-purchases .position p { margin: .25rem 0 0; font-size: .875rem; white-space: normal; }
+.builder-purchases .position button { padding: .5rem; }
+.builder-purchases .resources { margin-top: 1.5rem; }
+.builder-purchases #resource-list { display: flex; flex-direction: column; gap: 0; }
+.builder-purchases .resource { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem 0; border: 0; border-bottom: 1px solid #40637e; border-radius: 0; }
+.builder-purchases .resource > div:first-child { min-width: 0; }
+.builder-purchases .resource p { margin: .3rem 0 0; color: #a9c8da; font-size: .875rem; }
+.builder-purchases .resource-controls { flex-shrink: 0; gap: .35rem; }
+.builder-purchases .resource-controls button { width: 2rem; height: 2rem; min-height: 2rem; border-width: 1px; box-shadow: none; }
+.builder-purchases .resource-controls output { width: 1.2rem; }
+.value-breakdown { margin-top: 1rem; font-size: .875rem; }
+.value-breakdown summary { padding: .5rem 0; cursor: pointer; color: #bdeaff; }
+.value-breakdown dl { display: grid; grid-template-columns: 1fr auto; gap: .4rem; }
+.value-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
+.roster-panel .section-heading { display: block; }
+.roster-panel .section-heading p { margin: 0 0 1rem; font-size: .875rem; color: #a9c8da; }
+.roster { gap: 0; }
+.roster-row { grid-template-columns: 2.5rem minmax(0, 1fr) 4rem auto; gap: .5rem .75rem; align-items: center; padding: .6rem 0; border: 0; border-bottom: 1px solid #40637e; border-radius: 0; }
+.roster-row > .sprite { width: 2.5rem; height: 2.5rem; }
+.roster-row .roster-player-name { display: flex; gap: .25rem; }
+.roster-row .position-name { font-size: .875rem; font-weight: 400; color: #a9c8da; overflow-wrap: anywhere; }
+.roster-row .field-caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.roster-row input { min-height: 2.5rem; border-width: 2px; }
+.roster-row .roster-jersey { font-size: .875rem; gap: .15rem; }
+.roster-row .row-buttons { grid-column: auto; gap: .3rem; }
+.roster-row .row-buttons button { width: 2rem; min-height: 2rem; padding: .3rem; border-width: 1px; box-shadow: none; }
+.row-buttons svg { display: block; width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.roster-player-options { grid-column: 2 / -1; min-width: 0; font-size: .875rem; }
+.roster-player-options > summary { padding: .4rem 0; cursor: pointer; color: #77d8ff; overflow-wrap: anywhere; }
+.player-options-fields { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 2fr); gap: .75rem; padding: .5rem 0; }
+.roster-row .player-options-fields .roster-skill { grid-column: auto; }
+.player-options-fields .skills { grid-column: 1 / -1; margin: 0; }
+.workbench-validation { padding: .75rem 1rem; margin-bottom: 1rem; border: 2px solid #b8735b; background: #30212a; scroll-margin-top: 12rem; }
+.workbench-validation.is-valid { border-color: #40637e; background: #101c2b; }
+.workbench-validation h2 { font-size: 1.1rem; margin: 0 0 .5rem; }
+.workbench-validation p { font-size: .875rem; margin: .35rem 0; }
+.workbench-validation ul { padding-left: 1.25rem; margin: .5rem 0 0; }
+.workbench-validation .validation-link { min-height: 2.75rem; padding: .35rem 0; background: none; border: 0; box-shadow: none; color: #bdeaff; font: inherit; text-align: left; text-decoration: underline; text-underline-offset: .2em; }
+.builder-shell input, .builder-shell select { caret-color: #ffe17b; }
+.builder-shell ::selection { background: #ffe17b; color: #101823; }
+
+@media (min-width: 1150px) {
+  .roster-row { grid-template-columns: 2.5rem minmax(8rem, 1fr) 4rem auto minmax(7rem, .65fr); }
+  .roster-player-options { grid-column: auto; }
+  .roster-player-options[open] { grid-column: 1 / -1; }
+}
+@media (max-width: 1000px) {
+  .builder-completion { flex-wrap: wrap; gap: .5rem; }
+  .completion-buttons { flex-shrink: 1; }
+  .workbench-totals .treasury { margin-left: 0; }
+}
+@media (max-width: 900px) {
+  .builder-workbench { grid-template-columns: minmax(0, 1fr); }
+  .builder-purchases { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
+  .builder-purchases .resources { margin-top: 0; }
+  .value-breakdown { grid-column: 1 / -1; margin-top: 0; }
+}
+@media (max-width: 600px) {
+  .completion-label-full { display: none; }
+  .completion-label-short { display: inline; }
+  .builder-shell { padding-top: 1rem; }
+  .builder-heading { display: block; }
+  .builder-team-access { margin-top: 1rem; }
+  .saved-teams-menu { right: 0; left: auto; }
+  .builder-controls { grid-template-columns: minmax(0, 1fr) 7rem; gap: .75rem; }
+  .builder-budget { grid-column: 1 / -1; }
+  .builder-budget br { display: none; }
+  .builder-budget strong { margin-left: .5rem; }
+  .workbench-status { top: 0; padding: .6rem; }
+  .workbench-totals { gap: .25rem .75rem; }
+  .builder-purchases { display: block; }
+  .builder-purchases .resources { margin-top: 1.5rem; }
+  .builder-workbench > .panel { padding: .75rem; }
+  .roster-row { grid-template-columns: 2rem minmax(0, 1fr) 3.5rem; gap: .5rem; }
+  .roster-row > .sprite { width: 2rem; height: 2rem; }
+  .roster-row .roster-player-name, .roster-row .roster-jersey { grid-column: auto; }
+  .roster-row .row-buttons { grid-column: 2 / -1; justify-content: flex-end; }
+  .roster-player-options { grid-column: 1 / -1; }
+  .player-options-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) and (max-height: 600px) {
+  .workbench-status { position: static; }
+}
+@media (pointer: coarse) {
+  .builder-purchases .resource-controls button, .roster-row .row-buttons button { min-width: 2.75rem; min-height: 2.75rem; }
+  .roster-player-options > summary { min-height: 2.75rem; }
+}
