@@ -5,6 +5,18 @@ import { canPlaceReserve, decodeSetupState, decodeSetupStateValue } from '../src
 
 const state = { matchId: '12345678-1234-1234-1234-123456789abc', revision: 2, callerRole: 'home', phase: 'SETUP', actor: 'home', prompt: null, players: [{ id: 'p1', name: 'Captain', slot: 1, role: 'home', x: 3, y: 4, state: 'standing' }, { id: 'p2', name: 'Reserve', slot: 2, role: 'home', x: null, y: null, state: 'reserve' }], weather: 'Nice', homeRerolls: 2, awayRerolls: 1, actions: [], turn: 0, turnMode: 'setup', ball: null, activePlayerId: null, half: 1, homeTurn: 0, awayTurn: 0, homeScore: 0, awayScore: 0, drive: 1 };
 const response = { version: 1, type: 'setupState', requestId: 'load', code: 'ACCEPTED', duplicate: false, state };
+
+test('saved formation controls are bounded and confined to the setup actor', () => {
+  const frame = JSON.parse(readFileSync(new URL('./fixtures/m5a-blitz-projections.json', import.meta.url), 'utf8'))[0].actor;
+  const setup = { ...frame, phase: 'SETUP', turnMode: 'SETUP', actor: 'home', callerRole: 'home', actions: [], activePlayerId: null,
+    savedFormations: [{ name: '5-4-2 Offense', index: 0 }] };
+  delete setup.playerActionMenu;
+  assert.doesNotThrow(() => decodeSetupStateValue(setup));
+  for (const changes of [{ phase: 'PLAY' }, { callerRole: 'away' }, { turnMode: 'SOLID_DEFENCE' },
+    { savedFormations: [{ name: '<invalid>', index: 0 }] }, { savedFormations: [{ name: 'Valid', index: 2 }] },
+    { savedFormations: Array.from({ length: 4 }, (_, index) => ({ name: 'Formation', index })) }])
+    assert.throws(() => decodeSetupStateValue({ ...setup, ...changes }));
+});
 test('decodes a complete authoritative setup snapshot', () => assert.equal(decodeSetupState(JSON.stringify(response)).state?.players[1].x, null));
 test('legacy setup decoder accepts native illegal-setup diagnostics without admitting private fields', () => {
   const illegal = {...response,code:'ILLEGAL_SETUP',setupErrors:['Too many players in a wide zone.']};

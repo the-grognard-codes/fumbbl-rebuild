@@ -1,8 +1,9 @@
+import type { TeamFormations } from './team-formations.ts';
 import { defaultTeamColors, type TeamColors } from './team-colors.ts';
 
 export type ResourceId = 'rerolls' | 'assistantCoaches' | 'cheerleaders' | 'apothecary' | 'dedicatedFans';
 export type DraftPlayer = { id: string; slot: number; jerseyNumber: number; playerName: string; positionId: string; skillIds: string[] };
-export type TeamDraft = { colors?: TeamColors; draftVersion: 2; teamName: string; catalogVersion: string; ruleset: 'BB2025'; rosterId: string; presetId: string; captainId: string | null; players: DraftPlayer[]; resources: Record<ResourceId, number> };
+export type TeamDraft = { formations?: TeamFormations; colors?: TeamColors; draftVersion: 2; teamName: string; catalogVersion: string; ruleset: 'BB2025'; rosterId: string; presetId: string; captainId: string | null; players: DraftPlayer[]; resources: Record<ResourceId, number> };
 export type Position = { id: string; name: string; maximum: number; cost: number; ma: number; st: number; ag: number; pa: number; av: number; role: string; race: string; primary: string; secondary: string; baseSkills: { id: string; value: number }[]; canCaptain: boolean };
 export type Skill = { id: string; name: string; category: string; selectable: boolean; elite: boolean };
 type Header = { version: 1; requestId: string; catalogVersion: string; ruleset: 'BB2025'; draftVersion: 2 };

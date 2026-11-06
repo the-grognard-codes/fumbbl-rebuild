@@ -302,6 +302,7 @@ function promptDecision(state, actions, board, plan, exhausted) {
 }
 
 function setup(state, variant) {
+  if (state.savedFormations?.length && variant === 0) return { operation: 'confirm' };
   const role = state.callerRole;
   const eligible = state.players.filter(player => player.role === role && (player.offPitch === 'reserve' || player.offPitch === 'pitch'
     || !player.offPitch && !/knocked out|casualty|dead|killed|injur|hurt|banned|sent off|prevented|missing|stunned/i.test(player.state)))

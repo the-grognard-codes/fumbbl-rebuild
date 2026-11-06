@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../browser-client/node_modules/playwright/index.mjs';
@@ -12,6 +12,8 @@ const catalog = JSON.parse(await readFile(new URL('../../browser-client/test/fix
 const orcCatalog = JSON.parse(await readFile(new URL('../../browser-client/test/fixtures/catalog-orc-v1.json', import.meta.url), 'utf8'));
 const accounts = ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'];
 const teamId = '12345678-1234-1234-1234-123456789abc';
+const formationEvidence = process.env.FORMATION_EVIDENCE_DIR;
+if (formationEvidence) await mkdir(formationEvidence, { recursive: true });
 
 test('signed-in builder saves an owned named team and Play selects it by name', async () => {
   const server = createServer(async (request, response) => {
@@ -124,8 +126,27 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].setViewportSize({ width: 1440, height: 1000 });
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
     await pages[0].getByText(/Valid draft/).waitFor();
+    await pages[0].getByRole('button', { name: 'Manage formations' }).click();
+    await pages[0].getByRole('dialog').waitFor();
+    assert.equal(await pages[0].locator('.formation-grid').evaluate(element => getComputedStyle(element).display), 'grid',
+      'The published builder must load the formation pitch stylesheet');
+    await pages[0].getByLabel('Formation name').fill('Moles Offense');
+    if (formationEvidence) {
+      await pages[0].getByRole('dialog').screenshot({ path: `${formationEvidence}/editor-public-desktop.png` });
+      await pages[0].setViewportSize({ width: 390, height: 844 });
+      await pages[0].getByRole('dialog').screenshot({ path: `${formationEvidence}/editor-public-mobile.png` });
+      await pages[0].setViewportSize({ width: 1440, height: 1000 });
+    }
+    const persistedBeforeFormationSave = documents.get(accounts[0]);
+    await pages[0].getByRole('button', { name: 'Save formation', exact: true }).click();
+    await pages[0].getByRole('dialog').waitFor({ state: 'hidden' });
+    assert.equal(documents.get(accounts[0]), persistedBeforeFormationSave, 'Saving a formation only updates the draft');
+    await pages[0].getByText('Formation changes are in your draft. Validate and save the team to keep them.').waitFor();
+    await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
+    await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Moles/).waitFor();
+    assert.equal(documents.get(accounts[0]).draft.formations.offense[0].name, 'Moles Offense');
     assert.deepEqual(documents.get(accounts[0]).draft.players[0].skillIds, ['wrestle']);
     assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'Coach Choice');
     assert.deepEqual(documents.get(accounts[0]).draft.colors, { version: 1, primary: 'red', secondary: 'red' });

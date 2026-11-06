@@ -1,7 +1,7 @@
 package com.fumbbl.ffb.server.team.bb2025;
 
-import com.fumbbl.ffb.server.team.TeamColors;
 import com.fumbbl.ffb.server.team.TeamColorPalette;
+import com.fumbbl.ffb.server.team.TeamColors;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -16,6 +16,7 @@ public final class TeamDraft {
 	public static final int FORMAT_VERSION = 2;
 	public final int draftVersion;
 	public final TeamColors colors;
+	public final TeamFormations.FormationSet formations;
 	public final String teamName;
 	public final String catalogVersion, ruleset, rosterId, presetId, captainId;
 	public final List<Player> players;
@@ -27,6 +28,11 @@ public final class TeamDraft {
     }
     public TeamDraft(int draftVersion, String teamName, String catalogVersion, String ruleset, String rosterId, String presetId,
         String captainId, List<Player> players, Map<String, Integer> resources, TeamColors colors) {
+        this(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, colors, null);
+    }
+    public TeamDraft(int draftVersion, String teamName, String catalogVersion, String ruleset, String rosterId, String presetId,
+        String captainId, List<Player> players, Map<String, Integer> resources, TeamColors colors, TeamFormations.FormationSet formations) {
+        this.formations = formations;
         this.colors = colors;
 		this.draftVersion = draftVersion;
 		this.teamName = canonicalName(Objects.requireNonNull(teamName));
@@ -44,9 +50,15 @@ public final class TeamDraft {
 		this(1, "", catalogVersion, ruleset, rosterId, presetId, captainId, players, resources);
 	}
 
+    public TeamFormations.FormationSet effectiveFormations() { return formations == null ? new TeamFormations().defaults(players) : formations; }
+
+    public TeamDraft withFormations(TeamFormations.FormationSet value) {
+        return new TeamDraft(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, colors, value);
+    }
+
     public TeamColors effectiveColors() { return colors == null ? new TeamColorPalette().defaults(rosterId) : colors; }
     public TeamDraft withEffectiveColors() {
-        return new TeamDraft(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, effectiveColors());
+        return new TeamDraft(draftVersion, teamName, catalogVersion, ruleset, rosterId, presetId, captainId, players, resources, effectiveColors(), effectiveFormations());
     }
 
 	public static final class Player {

@@ -1057,6 +1057,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         {touchInput && confirmationTarget && <button type="button" className="secondary" disabled={!canChoose}
           onClick={cancelPlan}>Cancel plan</button>}
         {teammateProposal && <button type="button" className="secondary" disabled={!canChoose} onClick={cancelProposal}>Cancel teammate selection</button>}
+        {view.phase === 'SETUP' && !playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+          select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </div>}
       {hosted && <div ref={commandBar} className="match-command-bar" aria-label="Current decision">
         {view.reaction ? !decision && !playbackActive ? <div className={`reaction-status${onTheBallMovement ? ' on-the-ball-movement' : ''}`} role="status">
@@ -1250,6 +1252,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         <button type="button" onClick={() => mutate('place', { playerId, to: { x, y } })} disabled={!maySetup || !canPlaceReserve(view, playerId, x, y)}>Place on empty own-half square</button>
         <button type="button" className="secondary" onClick={() => mutate('place', { playerId, to: null })} disabled={!maySetup || !own.some(player => player.id === playerId && player.x !== null)}>Return selected player to reserve</button>
         <button type="button" onClick={() => mutate('confirm')} disabled={!maySetup}>Confirm Setup</button>
+        {!playbackActive && <SavedFormationButtons formations={view.savedFormations} disabled={!maySetup}
+          select={index => { setPlayerId(''); mutate('formation', { formationIndex: index }); }} />}
       </section>}
       {!hosted && rosterTable}
     </section>);
@@ -1257,4 +1261,11 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
 
 export function GameView(props: Parameters<typeof GameViewContent>[0]) {
   return <TeamColorArtProvider home={props.view.homeTeamArt} away={props.view.awayTeamArt}><GameViewContent {...props}/></TeamColorArtProvider>;
+}
+
+function SavedFormationButtons({ formations, disabled, select }: { formations: SetupState['savedFormations']; disabled: boolean; select: (index: number) => void }) {
+  if (!formations?.length) return null;
+  return <section className="saved-formations" aria-label="Saved Formations"><h3>Saved Formations</h3><div>
+    {formations.map(formation => <button type="button" key={formation.index} disabled={disabled} onClick={() => select(formation.index)}>{formation.name}</button>)}
+  </div></section>;
 }

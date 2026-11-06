@@ -33,3 +33,43 @@ The [implementation slices](specs/team-builder/README.md) turn this contract int
 - An invalid draft cannot be saved. A changed or stale saved team cannot be frozen from an old validation result; create and join each revalidate independently.
 - A different account cannot load, modify, delete or select the team, including by guessing its ID. Separate login identities are not merged by email.
 - An existing match keeps its named roster and resolved catalog after the source team is edited, deleted or made unavailable for new matches. Opponent and spectator views show approved match names and roster facts without account details.
+
+## Saved deployment formations
+
+Named draft version 2 accepts an optional `formations` extension with `offense`
+and `defense` arrays, each containing at most three `{name, players}` objects.
+Each assignment contains `jerseyNumber` (1–99), `column` (0–14), and `depth`
+(0–12, measured back from the team's line of scrimmage). Names contain 1–16
+trimmed ASCII letters, numbers, spaces, or common punctuation. Templates require
+eleven unique numbers and squares, at least three on the line, and at most two
+in each four-column wide zone. Current roster membership is not required.
+
+Existing document formats remain readable. Absent metadata receives the approved
+starter formations when projecting/saving a named team; explicit empty arrays
+remain empty. Reads do not rewrite stored document versions. Starter diagram
+values 1–11 map to the first eleven actual jersey numbers in ascending order.
+Subsequent roster changes do not remap saved assignments.
+
+The preinstalled library contains `5-4-2 Offense` and `7-2-2 Offense`, plus
+`Chevron Defense` and `Anchor Defense`. Chevron leaves one empty row behind the
+line before its two staggered rows. These occupy ordinary editable slots.
+An explicit maintenance command updates the existing dev-local saved teams:
+`node tools/dev-local-install-formations.mjs` previews the change, and `--apply`
+backs up the documents and installs it in one guarded transaction. It corrects
+stored Chevron templates, inserts missing new formations, preserves other
+choices and their order, and refuses full groups rather than discarding choices.
+It changes only formation data and document revisions. After installation,
+coaches can still edit or delete these formations without automatic reinstallation.
+
+The builder stages formation changes in its team draft. Save Formation closes
+the dialog; Validate Roster and Save Team persist the draft through the existing
+optimistic-concurrency contract. Closing the dialog discards its pending changes.
+
+Match preparation freezes formations privately with each team. Public preparation
+documents retain their existing shape. Ordinary setup privately projects up to
+three `{name, index}` controls in `savedFormations` to the acting coach. A setup
+mutation with `operation: "formation"` and `formationIndex: 0..2` replaces the
+deployment atomically at the expected revision, without confirming. Receiving
+uses offense, kicking uses defense. Missing or unavailable numbers leave holes.
+Historical frozen teams without the extension retain their original setup path.
+Replay snapshots omit these interactive controls; recovery retains actual positions.

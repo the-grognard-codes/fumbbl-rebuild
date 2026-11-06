@@ -1,12 +1,14 @@
 package com.fumbbl.ffb.server.team;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.local.BrowserTeamJson;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 /** Explicit saved document format 1. Imported computed fields are shape-checked, then discarded on save. */
 public final class SavedTeamJson {
@@ -81,6 +83,8 @@ public final class SavedTeamJson {
 			.add("presetId", draft.presetId).add("captainId", draft.captainId).add("players", players).add("resources", resources);
 		if (draft.draftVersion == TeamDraft.FORMAT_VERSION) result.add("draftVersion", draft.draftVersion).add("teamName", draft.teamName);
 		if (draft.colors != null) result.add("colors", draft.colors.encode());
+        if (draft.draftVersion == TeamDraft.FORMAT_VERSION || draft.formations != null)
+            result.add("formations", new TeamFormations().encode(draft.effectiveFormations()));
 		return result;
 	}
 	public JsonObject evaluation(TeamValidation.Evaluation evaluation) {

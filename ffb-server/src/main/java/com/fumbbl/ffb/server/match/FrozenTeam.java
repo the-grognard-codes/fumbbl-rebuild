@@ -1,10 +1,10 @@
 package com.fumbbl.ffb.server.match;
 
-import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.local.BrowserTeamJson;
 import com.fumbbl.ffb.server.team.TeamColors;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 import com.fumbbl.ffb.server.team.bb2025.TeamDraft;
+import com.fumbbl.ffb.server.team.bb2025.TeamFormations;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,12 +12,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.eclipsesource.json.JsonObject;
+
 /** Immutable accepted facts. Catalog content is resolved once, never refreshed when reading a match. */
 public final class FrozenTeam {
 	public final String sourceTeamId, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion, captainId, teamName;
 	public final String resolvedCatalogJson;
 	public final String coachName;
 	public final TeamColors colors;
+	public final TeamFormations.FormationSet formations;
 	public final int sourceDocumentVersion, total, budget, skillPoints;
 	public final List<Player> players;
 	public final Map<String, Integer> resources;
@@ -26,7 +29,7 @@ public final class FrozenTeam {
 		int total, int skillPoints, RosterCatalog catalog) {
 		this(sourceTeamId, sourceDocumentVersion, owner, draft.ruleset, draft.catalogVersion, draft.rosterId,
 			draft.presetId, draft.catalogVersion, draft.captainId, draft.teamName, total, RosterCatalog.BUDGET, skillPoints,
-			freezePlayers(draft, catalog.forRoster(draft.rosterId)), draft.resources, frozenCatalog(catalog.forRoster(draft.rosterId)), null, draft.effectiveColors());
+			freezePlayers(draft, catalog.forRoster(draft.rosterId)), draft.resources, frozenCatalog(catalog.forRoster(draft.rosterId)), null, draft.effectiveColors(), draft.formations != null || draft.draftVersion == TeamDraft.FORMAT_VERSION ? draft.effectiveFormations() : null);
 	}
 
 	private static String frozenCatalog(RosterCatalog catalog) {
@@ -59,6 +62,14 @@ public final class FrozenTeam {
     public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
         String rosterId, String presetId, String presetVersion, String captainId, String teamName, int total, int budget, int skillPoints,
         List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson, String coachName, TeamColors colors) {
+        this(sourceTeamId, sourceDocumentVersion, owner, ruleset, catalogVersion, rosterId, presetId, presetVersion,
+            captainId, teamName, total, budget, skillPoints, players, resources, resolvedCatalogJson, coachName, colors, null);
+    }
+    public FrozenTeam(String sourceTeamId, int sourceDocumentVersion, String owner, String ruleset, String catalogVersion,
+        String rosterId, String presetId, String presetVersion, String captainId, String teamName, int total, int budget, int skillPoints,
+        List<Player> players, Map<String, Integer> resources, String resolvedCatalogJson, String coachName, TeamColors colors,
+        TeamFormations.FormationSet formations) {
+        this.formations = formations;
         this.colors = colors;
 		this.sourceTeamId = sourceTeamId; this.sourceDocumentVersion = sourceDocumentVersion; this.owner = owner;
 		this.coachName = coachName;
@@ -79,7 +90,7 @@ public final class FrozenTeam {
 	public FrozenTeam copyForMatch(String matchTeamId, String matchOwner, String matchTeamName, String matchCoachName) {
 		return new FrozenTeam(matchTeamId, sourceDocumentVersion, matchOwner, ruleset, catalogVersion,
 			rosterId, presetId, presetVersion, captainId, matchTeamName, total, budget, skillPoints,
-			players, resources, resolvedCatalogJson, matchCoachName, colors);
+			players, resources, resolvedCatalogJson, matchCoachName, colors, formations);
 	}
 
 	private static List<Player> freezePlayers(TeamDraft draft, RosterCatalog catalog) {

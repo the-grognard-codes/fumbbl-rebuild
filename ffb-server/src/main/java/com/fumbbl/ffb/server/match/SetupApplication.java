@@ -4,15 +4,15 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-
 import java.sql.SQLException;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 /** Invoked on the existing communication worker; optional private checkpoints preserve activated engines. */
 public final class SetupApplication {
@@ -769,6 +769,10 @@ public final class SetupApplication {
 				}
 				break;
 			case "choice": fields.add("promptId"); fields.add("optionId"); request.get("promptId").asString(); request.get("optionId").asString(); break;
+            case "formation":
+                fields.add("formationIndex");
+                if (request.get("formationIndex").asInt() < 0 || request.get("formationIndex").asInt() > 2) throw new IllegalArgumentException();
+                break;
 			case "place":
 				fields.add("playerId"); fields.add("to"); request.get("playerId").asString();
 				if (!request.get("to").isNull()) {

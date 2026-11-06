@@ -1,3 +1,4 @@
+import { decodeTeamFormations } from './team-formations.ts';
 import { decodeTeamColors } from './team-colors.ts';
 import type { TeamDraft } from './team-protocol';
 
@@ -32,8 +33,10 @@ export function parseUniqueJson(source: string): unknown {
 function validateDraft(value: unknown): TeamDraft {
   const named = !!value && typeof value === 'object' && Object.hasOwn(value, 'draftVersion');
   const colored = !!value && typeof value === 'object' && Object.hasOwn(value, 'colors');
-  const draft = object(value, [...(colored ? ['colors'] : []), ...(named ? ['draftVersion', 'teamName'] : []), 'catalogVersion', 'ruleset', 'rosterId', 'presetId', 'captainId', 'players', 'resources']);
+  const formed = !!value && typeof value === 'object' && Object.hasOwn(value, 'formations');
+  const draft = object(value, [...(formed ? ['formations'] : []), ...(colored ? ['colors'] : []), ...(named ? ['draftVersion', 'teamName'] : []), 'catalogVersion', 'ruleset', 'rosterId', 'presetId', 'captainId', 'players', 'resources']);
   if (colored) decodeTeamColors(draft.colors);
+  if (formed) decodeTeamFormations(draft.formations);
   if (named) { if (draft.draftVersion !== 2) throw Error('Unsupported draft'); name(draft.teamName, 50); }
   for (const key of ['catalogVersion', 'rosterId', 'presetId']) text(draft[key], 100);
   if (draft.ruleset !== 'BB2025') throw Error('Invalid ruleset');

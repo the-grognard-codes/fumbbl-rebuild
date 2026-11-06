@@ -1,12 +1,12 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 /** Opt-in, bounded diagnostics for one ingress request; never retains request bodies or game state. */
 public final class BrowserRequestTiming {
@@ -75,7 +75,7 @@ public final class BrowserRequestTiming {
 		if ("setup".equals(type)) {
 			if (operationValue == null || !operationValue.isString()) return;
 			operation = operationValue.asString();
-			if (!Arrays.asList("load", "action", "choice", "place", "confirm", "route", "movement",
+			if (!Arrays.asList("load", "action", "choice", "place", "formation", "confirm", "route", "movement",
 				"concede", "saveRequest", "saveAccept", "saveReject", "saveCancel", "resumeRequest", "resumeAccept", "resumeReject", "resumeCancel").contains(operation)) return;
 		} else {
 			if (!Arrays.asList("routePreview", "movementPreview", "movementRange", "matchTranscript", "watch", "currentMatches", "browse", "catalog").contains(type)) return;

@@ -42,6 +42,7 @@ function pick(items, random) {
 }
 
 function setupDecision(state, setupVariant) {
+  if (state.savedFormations?.length && setupVariant === 0) return { operation: 'confirm' };
   const role = state.callerRole;
   const available = state.players.filter(player => player.role === role && (player.offPitch === 'reserve' || player.offPitch === 'pitch'
     || !player.offPitch && !/knocked out|casualty|dead|killed|injur|hurt|banned|sent off|prevented|missing|stunned/i.test(player.state)));

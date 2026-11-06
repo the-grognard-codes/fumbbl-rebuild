@@ -14,6 +14,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Team Builder MVP](#team-builder-mvp)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
+  - [Saved deployment formations](#saved-deployment-formations)
 - [Movement and action planning](#movement-and-action-planning)
   - [Movement-range rollback](#movement-range-rollback)
   - [Replacement movement-range markings](#replacement-movement-range-markings)
@@ -131,6 +132,16 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Validated all 256 palette pairs, cache/fallback behavior, static-site builder and live-game rendering. Final manual validation was accepted on 2026-11-04.
 - Scope and evidence: [team-color spec](../docs/specs/team-colors.md), [outcome](../docs/specs/team-colors-outcome.md), [issue #438](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/438).
 - Merged in [PR #446](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/446) on 2026-11-04; CI passed and dev-local was stopped.
+
+### Saved deployment formations
+
+- Coaches can manage three offensive and three defensive formations per saved team using numbered chits, mouse/touch/keyboard placement, names, deletion, and Make default. Save Formation updates the draft; Save Team persists it.
+- New teams receive four editable starters: 5-4-2 Offense, 7-2-2 Offense, corrected Chevron Defense, and Anchor Defense. The approved revision was installed on all 29 dev-local saved teams with backup, transaction guards, and verified rollback.
+- Ordinary drive setup loads the appropriate role default and offers formation buttons below Confirm. Loading replaces placement without confirming; unavailable players leave holes, and empty groups require manual deployment.
+- Computer coaches choose a stable random saved formation per drive and complete legal setups. Match teams freeze their templates; later saved-team changes, recovery, and replay preserve actual match positions.
+- Setup controls align with chat/log bottoms on desktop and landscape, with phone controls stacked below history. Templates enforce eleven unique assignments, at least three on the LoS, and at most two per wide zone.
+- Manual acceptance completed on 2026-11-06. Validation included 961 passing Java tests (12 existing opt-in skips), 500 browser unit tests, all 77 browser suites, and migration rollback/idempotence checks.
+- Scope and evidence: issues [#465](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/465), [#466](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/466), and [#467](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/467), [approved design](deployment-formations.md), and [implementation outcome](deployment-formations-outcome.md).
 
 ## Movement and action planning
 
