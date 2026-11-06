@@ -1,5 +1,13 @@
 [
   {
+    "number": 463,
+    "title": "Gameplay fixes for scoring, Pass targeting, dice and computer coaches",
+    "summary": "Touchdown scores now update with the splash, followed by the next-drive tracker. Explicit Pass actions can switch between movement planning and square targeting. Failed Loner/Pro preserves original dice, and proposed block dice stay above prerequisite checks. Mandatory prompts keep concession accessible. Bogruk uses kickoff events, both computer coaches use the selected resources under their agreed policies, and the stray turn-counter outline is removed.",
+    "category": "Gameplay",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/463",
+    "mergedAt": "2026-11-06T05:00:26Z"
+  },
+  {
     "number": 452,
     "title": "Read dice rolls with event icons and concise outcomes",
     "summary": "Non-block dice now show approved event icons and short outcome captions, with independent saved icon and text settings. Live play, replay and recovery preserve dice timing. Scatter arrows follow the camera, and kickoff Deviation displays its actual D8 plus D6 or D3 distance roll. Existing armor, injury and casualty artwork respects the display settings.",

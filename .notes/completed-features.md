@@ -33,6 +33,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Smooth gameplay and predictable game speed](#smooth-gameplay-and-predictable-game-speed)
   - [Dice effects and visible duration](#dice-effects-and-visible-duration)
   - [Dice event icons and readable outcomes](#dice-event-icons-and-readable-outcomes)
+  - [Bug fix roundup #6](#bug-fix-roundup-6)
   - [Chat and game log sizing](#chat-and-game-log-sizing)
   - [Game log enhancements](#game-log-enhancements)
   - [Game phase tracker](#game-phase-tracker)
@@ -248,6 +249,15 @@ Consolidated the overlapping "Smooth gameplay" and "Game speed setting" entries.
 - Added camera-aware scatter arrows and kickoff Deviation showing the actual D8 plus D6/D3 distance roll. Older reports retain compatible display behavior.
 - Approved artwork includes catch v3 and weather v1. Other previously absent server-roll displays remain deferred.
 - Delivered in [PR #452](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/452); issues #448–#451 closed. Local browser and native verification passed, followed by successful required CI checks.
+
+### Bug fix roundup #6
+
+- Kept the previous score through scoring movement, revealed the touchdown score with the TOUCHDOWN splash, and waited for that announcement to finish before showing the next-drive tracker.
+- Kept Game Menu/concession accessible during mandatory setup decisions, with native priority, terminal-result, spectator and recovery regression coverage.
+- Added a small movement/throw targeting toggle to explicitly confirmed Pass actions. Coaches can preserve a planned route or finish movement before targeting empty, opposing or friendly squares; normal teammate shortcuts remain available.
+- Preserved original dice when Loner/Pro fails, including later decline and priority changes. Proposed block dice remain above prerequisite checks through possible rerolls, then are replaced by the block roll or fade on definitive cancellation. Removed the stray turn-counter outline.
+- Made Bogruk participate legally in Charge!, Quick Snap and Solid Defence with simple choices. Bogruk accepts Apothecary, Bribe and Argue the Call; Random accepts each independently half the time. Both choose the least harmful Apothecary result.
+- Delivered in [PR #463](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/463), covering issues #454–#459 and #461–#462. Local validation and required CI/security checks passed. The user accepted the changes; randomly occurring Bogruk kickoff events still await manual coverage and have deterministic native-offer integration tests. See the [outcome report](../docs/specs/bug-fix-roundup-6-outcome.md). The separate pre-existing recovery defect remains in #460.
 
 ### Chat and game log sizing
 
