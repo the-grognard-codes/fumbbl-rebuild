@@ -14,6 +14,9 @@ export function withProTest(decision: MatchDecision | null, records: TranscriptR
     && String(report.reRollSource).toLowerCase() === 'pro').lastIndexOf(true);
   const pro = currentReports[proIndex];
   if (!pro || !Number.isInteger(pro.roll) || Number(pro.roll) < 1 || Number(pro.roll) > 6 || typeof pro.successful !== 'boolean') return decision;
+  // The ordinary block choice already owns the unchanged original pool. The
+  // shared stream shows the failed Pro test below it without a duplicate row.
+  if (decision.kind === 'blockDie' && !pro.successful) return decision;
   if (['reroll', 'skill'].includes(decision.kind)
     && currentReports.slice(proIndex + 1).some(report => report.reportId !== 'reRoll' && reportedDice(report))) return decision;
   let originalFaces: string[] | undefined;

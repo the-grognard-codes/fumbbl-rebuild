@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { playbackBeats, withConfirmedBallChanges, withConfirmedMove, withBlockContext, withConfirmedPlayerChanges } from './pitch-playback.ts';
+import { playbackBeats, failedRerollGate, withConfirmedBallChanges, withConfirmedMove, withBlockContext, withConfirmedPlayerChanges } from './pitch-playback.ts';
 import { blockFaceLabel, diceRollGroups, offeredBlockDice, isOfferedPartialReroll } from './dice-presentation.ts';
 import { MultipleBlockDiceReveals } from './multiple-block-dice.ts';
 import { DiceStream } from './dice-stream.ts';
@@ -82,6 +82,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     if (seeking) receivedSnapshotKey.current = snapshotKey;
     const rate = playbackRate(speed, mode);
     const requiresResponse = !!view.prompt || !!view.reaction || view.actions.some(action => responseKinds.has(action.kind));
+    const deferScoringResponse = view.drive > presented.current.drive
+      || view.homeScore > presented.current.homeScore || view.awayScore > presented.current.awayScore;
     const responseKey = `${view.matchId}:${view.revision}`;
     const responseDice = () => {
       const finalRecord = records[view.revision];
@@ -120,7 +122,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       snapshot();
       return;
     }
-    if (mode === 'live' && requiresResponse && pendingAnnouncement.current) {
+    if (mode === 'live' && requiresResponse && pendingAnnouncement.current && !deferScoringResponse) {
       snapshot();
       return;
     }
@@ -147,7 +149,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     // A resolved response releases its pinned roll. Ordinary groups keep their
     // individual lifetimes across newer revisions of the same action.
     if (running.current) return;
-    if (view.revision > diceRevision.current && pinnedDice.current) {
+    const nextRecord = records[completed.current + 1];
+    const retainRoll = !!nextRecord && failedRerollGate(nextRecord, records);
+    if (view.revision > diceRevision.current && pinnedDice.current && !retainRoll) {
       pinnedDice.current = false; diceStream.current!.release();
     }
     if (completed.current >= view.revision) {
@@ -160,12 +164,16 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     const record = records[completed.current + 1];
     if (!record || record.revision !== completed.current + 1) {
       // A missing transcript cannot postpone a newly offered mandatory response.
-      if (view.prompt || view.actions.some(action => responseKinds.has(action.kind)) || view.phase === 'FULL_TIME') {
+      if (!deferScoringResponse && (view.prompt || view.actions.some(action => responseKinds.has(action.kind)) || view.phase === 'FULL_TIME')) {
         snapshot();
         return;
       }
       setActive(true);
       setSynchronizing(true);
+      // A future drive decision cannot stand in for its missing scoring
+      // movement/announcement. Resume when the transcript arrives, or recover
+      // through the normal reconnect/log-unavailable snapshot path.
+      if (deferScoringResponse) return;
       if (!waiting.current) {
         waiting.current = true;
         timer.current = setTimeout(() => {
@@ -181,7 +189,8 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     waiting.current = false; timer.current = null;
     setSynchronizing(false);
     multipleReveals.current.update(record.state);
-    let beats = playbackBeats(record, presented.current.ball);
+    const inheritedGate = failedRerollGate({ ...record, native: [] }, records);
+    let beats = playbackBeats(record, presented.current.ball, inheritedGate);
     if (prediction) {
       const remaining = remainingConfirmedBeats(beats, prediction.shown);
       provisional.current = null;
@@ -196,7 +205,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     // Some native decisions (notably Multiple Block) offer authoritative faces
     // before emitting a report. Present those faces once at the queue boundary.
     const offered = mode === 'live' && record.revision === latest.current.revision ? offeredBlockDice(latest.current) : null;
-    if (offered && !beats.some(beat => beat.kind === 'dice' && isOfferedPartialReroll(beat.dice, offered))
+    if (offered && !retainRoll && !beats.some(beat => beat.kind === 'dice' && isOfferedPartialReroll(beat.dice, offered))
       && (latest.current.activePlayerAction === 'multipleBlock' || !beats.some(beat => beat.kind === 'dice'
       && beat.dice.selected === null && beat.dice.faces.some(face => blockFaceLabel(face))))) {
       beats.push({ kind: 'dice', dice: offered });
@@ -236,7 +245,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         }
         diceStream.current!.enqueue({ ...beat.dice, revision: record.revision, rollDuration: PITCH_DICE_ROLL_MS / rate,
           rollKey: !reduced && beat.dice.selected === null ? `${record.revision}:${index}` : undefined },
-          sequenceKey(record.state), keep, false, rate, reduced);
+          sequenceKey(record.state), keep, false, rate, reduced, retainRoll);
         return true;
       }
     };
@@ -248,9 +257,15 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         if (beat.kind === 'announcement') {
           const response = mode === 'live' && (!!latest.current.prompt || !!latest.current.reaction
             || latest.current.actions.some(action => responseKinds.has(action.kind)));
-          if (response || announced.current.has(beat.announcement.id)) continue;
+          if (response && !deferScoringResponse || announced.current.has(beat.announcement.id)) continue;
           announced.current.add(beat.announcement.id);
           clearDice(); setMoveMillis(0);
+          if (beat.announcement.kind === 'touchdown') {
+            // Reveal the score with its announcement, retaining the pitch and
+            // drive presentation until the remaining beats have completed.
+            presented.current = { ...presented.current, homeScore: record.state.homeScore, awayScore: record.state.awayScore };
+            setPitchView(presented.current);
+          }
           const nextIndex = index + 1;
           pendingAnnouncement.current = { id: beat.announcement.id, closing: false, advance: () => advance(nextIndex) };
           setAnnouncement(beat.announcement);

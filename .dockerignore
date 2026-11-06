@@ -18,6 +18,11 @@
 !browser-client/test/
 !browser-client/test/fixtures/
 !browser-client/test/fixtures/catalog-v1.json
+!computer-player/
+!computer-player/src/
+!computer-player/src/**
+!computer-player/test/
+!computer-player/test/native-decision.mjs
 # Parent directory exceptions must never admit generated classes or dependencies.
 **/target
 **/node_modules

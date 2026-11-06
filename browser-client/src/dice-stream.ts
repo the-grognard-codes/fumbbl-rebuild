@@ -38,11 +38,13 @@ export class DiceStream {
     this.advance();
   }
 
-  enqueue(moment: DiceMoment, sequence: string, pinned = false, snapshot = false, rate = 1, reduced = false) {
+  enqueue(moment: DiceMoment, sequence: string, pinned = false, snapshot = false, rate = 1, reduced = false, retain = false) {
     rate = Number.isFinite(rate) && rate > 0 ? rate : 1;
     if (moment.continuous) this.clear();
-    if (snapshot || this.snapshot) this.clear();
-    else if (this.sequence !== sequence || pinned || this.pinned) this.release();
+    if (snapshot || this.snapshot && !retain) this.clear();
+    // A failed reroll gate can return priority to the opposing block chooser
+    // without changing the original roll.
+    else if (!retain && (this.sequence !== sequence || pinned || this.pinned)) this.release();
     this.sequence = sequence; this.pinned = pinned;
     this.snapshot = snapshot;
     this.interval = DICE_GROUP_INTERVAL_MS / rate;

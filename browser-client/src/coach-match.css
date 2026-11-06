@@ -75,7 +75,7 @@
 .play-runtime .coach-match.hosted-match .live-chess-clock.active { border-color: #38cce4; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.active [data-clock-line=turn] b { color: #49e6ff; }
 .play-runtime .coach-match.hosted-match .live-chess-clock.urgent [data-clock-line=turn] b { color: #ffb357; }
-.play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { position: absolute; top: 58px; display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; width: calc(21% - 52px); height: 27px; list-style: none; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; pointer-events: none; }
+.play-runtime .coach-match.hosted-match .live-match-scoreboard > .live-turn-track { position: absolute; top: 58px; display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; width: calc(21% - 52px); height: 27px; list-style: none; margin: 0; padding: 0; border: 0; outline: 0; background: none; box-shadow: none; pointer-events: none; }
 .play-runtime .coach-match.hosted-match .live-turn-track.home { left: 29%; }
 .play-runtime .coach-match.hosted-match .live-turn-track.away { right: 29%; }
 .play-runtime .coach-match.hosted-match .live-turn-track li { display: grid; place-items: center; border: 1px solid #426c9b; border-radius: 2px; background: #091726bb; color: #b7c9da; font-size: 14px; }

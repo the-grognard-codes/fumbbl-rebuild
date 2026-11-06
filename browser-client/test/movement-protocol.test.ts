@@ -11,6 +11,29 @@ const range = { rangeVersion: 2, playerId: 'home1', from: { x: 7, y: 7 }, remain
 const route = { routeVersion: 3, playerId: 'home1', from: range.from, remaining: 8, steps: [step], revision: 4, actor: 'home' };
 const plan = { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: [{ x: 8, y: 7 }], route };
 
+test('an explicitly declared pass can review a square target with a route or no remaining movement', () => {
+  for (const steps of [[], [step]]) {
+    const squarePass = { ...plan, kind: 'pass', targetPlayerId: null, targetSquare: { x: 12, y: 8 },
+      waypoints: steps.length ? [square] : [], route: { ...route, steps } };
+    const response = { ...envelope, type: 'movementPreview', plan: squarePass };
+    assert.deepEqual(decodeMovementPreview(JSON.stringify(response)).plan.targetSquare, { x: 12, y: 8 });
+    for (const invalid of [{ ...squarePass, kind: 'handOff' }, { ...squarePass, targetPlayerId: 'home2' },
+      { ...squarePass, targetSquare: { x: 26, y: 7 } }, { ...squarePass, targetSquare: null }])
+      assert.throws(() => decodeMovementPreview(JSON.stringify({ ...response, plan: invalid })));
+  }
+});
+
+test('native square-pass plans preserve their optional target through movement and stationary previews', () => {
+  const journeys = JSON.parse(readFileSync(new URL('./fixtures/square-pass-projections.json', import.meta.url), 'utf8'));
+  assert.equal(journeys.length, 3);
+  for (const journey of journeys) {
+    const decoded = decodeMovementPreview(JSON.stringify({ ...envelope, type: 'movementPreview', plan: journey.plan })).plan;
+    assert.deepEqual(decoded.targetSquare, journey.request.targetSquare);
+    assert.equal(decoded.targetPlayerId, null);
+    assert.equal(decoded.route.playerId, journey.ready.activePlayerId);
+  }
+});
+
 test('pass and handoff plans support stationary transfers and routed pickups with a required recipient', () => {
   for (const kind of ['pass', 'handOff']) {
     for (const steps of [[], [step]]) {

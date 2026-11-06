@@ -49,6 +49,141 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 class SetupSessionMovementTest {
+    @Test void explicitlyDeclaredPassMovesThenThrowsToTheReviewedSquare() throws Exception {
+        JsonArray journeys = new JsonArray();
+        for (int mode = 0; mode < 3; mode++) {
+            boolean moving = mode == 1;
+            BallFixture ball = new BallFixture(false, 12, 8, 0);
+            JsonObject ready = ball.ready();
+            JsonObject declaration = offered(ready, "declarePass", ball.source.getId());
+            JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "square-pass-declare", ready)
+                .add("actionId", declaration.get("id"))).get("state").asObject();
+            if (mode == 2) {
+                ball.game.getActingPlayer().setPlayerAction(PlayerAction.PASS);
+                ball.game.getActingPlayer().setCurrentMove(ball.source.getMovementWithModifiers() + 2);
+                active = ball.ready();
+            }
+            JsonObject targetSquare = new JsonObject().add("x", 12).add("y", 8);
+            JsonArray waypoints = moving ? points(8, 7) : new JsonArray();
+            String checkpoint = ball.fixture.session.recoveryArtifact();
+            JsonObject plan = ball.fixture.session.movementPreview(ball.role, active.getInt("revision", -1),
+                ball.source.getId(), "pass", null, targetSquare, waypoints);
+            assertEquals(checkpoint, ball.fixture.session.recoveryArtifact(), "Preview is read only");
+            assertEquals(targetSquare, plan.get("targetSquare"));
+            if (mode == 2) assertEquals(0, plan.get("range").asObject().getInt("remaining", -1));
+            forceGeneralRolls(ball.fixture.session, 6, 6, 6, 6, 6, 6);
+            JsonObject request = ball.fixture.request("movement", "square-pass-commit", active)
+                .add("playerId", ball.source.getId()).add("kind", "pass").add("targetPlayerId", JsonValue.NULL)
+                .add("targetSquare", targetSquare).add("waypoints", waypoints);
+            JsonObject accepted = ball.fixture.session.apply(ball.role, request);
+            assertEquals("ACCEPTED", accepted.getString("code", null));
+            assertTrue(UtilPlayer.hasBall(ball.game, ball.target), "The reviewed square receives the pass");
+            assertEquals(new FieldCoordinate(moving ? 8 : 7, 7), ball.game.getFieldModel().getPlayerCoordinate(ball.source));
+            assertTrue(ball.fixture.session.apply(ball.role, request).getBoolean("duplicate", false));
+            journeys.add(new JsonObject().add("mode", mode).add("ready", active).add("plan", plan)
+                .add("request", request).add("accepted", accepted.get("state")));
+        }
+        String output = System.getProperty("squarePass.fixture");
+        if (output != null) Files.write(Paths.get(output), journeys.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test void squarePassAllowsEmptyOpponentAndFriendlySquaresWithoutChangingRecipientShortcuts() throws Exception {
+        for (String occupant : new String[] { "empty", "opponent", "friendly" }) {
+            BallFixture ball = new BallFixture(false, 12, 8, 0);
+            Player<?> catcher = ball.target;
+            if (!"friendly".equals(occupant)) place(ball.game, ball.target, 15, 12, PlayerState.STANDING);
+            if ("opponent".equals(occupant)) {
+                catcher = ball.game.getOtherTeam(ball.game.getActingTeam()).getPlayers()[0];
+                place(ball.game, catcher, 12, 8, PlayerState.STANDING);
+            }
+            JsonObject ready = ball.ready();
+            JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "declare-square-" + occupant, ready)
+                .add("actionId", offered(ready, "declarePass", ball.source.getId()).get("id"))).get("state").asObject();
+            JsonObject square = new JsonObject().add("x", 12).add("y", 8);
+            ball.fixture.session.movementPreview(ball.role, active.getInt("revision", -1), ball.source.getId(), "pass", null, square, points(8, 7));
+            forceGeneralRolls(ball.fixture.session, 6, 6, 6, 6, 6, 6);
+            ball.fixture.session.apply(ball.role, ball.fixture.request("movement", "throw-square-" + occupant, active)
+                .add("playerId", ball.source.getId()).add("kind", "pass").add("targetPlayerId", JsonValue.NULL)
+                .add("targetSquare", square).add("waypoints", points(8, 7)));
+            assertFalse(UtilPlayer.hasBall(ball.game, ball.source), occupant + " receives a native throw");
+            if (!"empty".equals(occupant)) assertTrue(UtilPlayer.hasBall(ball.game, catcher), occupant + " catches normally");
+        }
+    }
+
+    @Test void squarePassCannotAcquireAnUndeclaredActionOrBypassAnInvalidNativeTarget() throws Exception {
+        BallFixture ball = new BallFixture(false, 12, 8, 0);
+        JsonObject ready = ball.ready();
+        JsonObject square = new JsonObject().add("x", 12).add("y", 8);
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role, ready.getInt("revision", -1),
+            ball.source.getId(), "pass", null, square, points(8, 7)));
+        JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "declare-square", ready)
+            .add("actionId", offered(ready, "declarePass", ball.source.getId()).get("id"))).get("state").asObject();
+        String checkpoint = ball.fixture.session.recoveryArtifact();
+        for (JsonObject invalid : new JsonObject[] { new JsonObject().add("x", 26).add("y", 8),
+            new JsonObject().add("x", 25).add("y", 14), new JsonObject().add("x", 7).add("y", 7) })
+            assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role, active.getInt("revision", -1),
+                ball.source.getId(), "pass", null, invalid, new JsonArray()));
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role, active.getInt("revision", -1),
+            ball.source.getId(), "pass", ball.target.getId(), square, new JsonArray()));
+        assertThrows(MatchService.Failure.class, () -> ball.fixture.session.movementPreview(ball.role, active.getInt("revision", -1),
+            ball.source.getId(), "handOff", null, square, new JsonArray()));
+        assertEquals(checkpoint, ball.fixture.session.recoveryArtifact());
+    }
+
+    @Test void squarePassResumesAfterADodgeRerollAndRecovery() throws Exception {
+        BallFixture ball = new BallFixture(false, 12, 8, 1);
+        place(ball.game, ball.game.getOtherTeam(ball.game.getActingTeam()).getPlayers()[0], 6, 7, PlayerState.STANDING);
+        JsonObject ready = ball.ready();
+        JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "declare-square-dodge", ready)
+            .add("actionId", offered(ready, "declarePass", ball.source.getId()).get("id"))).get("state").asObject();
+        forceGeneralRolls(ball.fixture.session, 1, 6, 6, 6, 6, 6);
+        JsonObject request = ball.fixture.request("movement", "square-dodge", active)
+            .add("playerId", ball.source.getId()).add("kind", "pass").add("targetPlayerId", JsonValue.NULL)
+            .add("targetSquare", new JsonObject().add("x", 12).add("y", 8)).add("waypoints", points(8, 7));
+        JsonObject paused = ball.fixture.session.apply(ball.role, request).get("state").asObject();
+        assertTrue(hasAction(paused, "reroll"));
+        assertEquals(com.fumbbl.ffb.server.step.StepId.MOVE_DODGE, nativeState(ball.fixture.session).getCurrentStep().getId(),
+            "The confirmed route pauses at its failed dodge");
+        assertEquals(1, nativeState(ball.fixture.session).getCurrentStep().toJsonValue().getInt("dodgeRoll", -1));
+        String checkpoint = ball.fixture.session.recoveryArtifact();
+        assertEquals(new JsonObject().add("x", 12).add("y", 8), JsonObject.readFrom(checkpoint).get("payload").asObject()
+            .get("pendingRoute").asObject().get("targetSquare"));
+        SetupSession restored = new SetupSession(ball.fixture.server, ball.fixture.document, checkpoint);
+        assertTrue(restored.apply(ball.role, request).getBoolean("duplicate", false));
+        forceGeneralRolls(restored, 6, 6, 6, 6, 6, 6);
+        chooseReroll(restored, ball.role, paused, "team");
+        Game resumed = nativeState(restored).getGame();
+        assertTrue(UtilPlayer.hasBall(resumed, resumed.getPlayerById(ball.target.getId())));
+        assertTrue(JsonObject.readFrom(restored.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+    }
+
+    @Test void squarePassWaitsForPickupAndCancelsWhenItsRerollIsDeclined() throws Exception {
+        BallFixture ball = new BallFixture(true, 12, 8, 1);
+        JsonObject ready = ball.ready();
+        JsonObject active = ball.fixture.session.apply(ball.role, ball.fixture.request("action", "declare-square-pickup", ready)
+            .add("actionId", offered(ready, "declarePass", ball.source.getId()).get("id"))).get("state").asObject();
+        forceGeneralRolls(ball.fixture.session, 1, 6, 6, 6, 6, 6);
+        JsonObject request = ball.fixture.request("movement", "square-pickup", active)
+            .add("playerId", ball.source.getId()).add("kind", "pass").add("targetPlayerId", JsonValue.NULL)
+            .add("targetSquare", new JsonObject().add("x", 12).add("y", 8)).add("waypoints", points(8, 7));
+        JsonObject paused = ball.fixture.session.apply(ball.role, request).get("state").asObject();
+        assertTrue(hasAction(paused, "reroll"));
+        assertEquals(com.fumbbl.ffb.server.step.StepId.PICK_UP, nativeState(ball.fixture.session).getCurrentStep().getId());
+        String checkpoint = ball.fixture.session.recoveryArtifact();
+        SetupSession declined = new SetupSession(ball.fixture.server, ball.fixture.document, checkpoint);
+        chooseReroll(declined, ball.role, paused, "none");
+        Game failed = nativeState(declined).getGame();
+        assertFalse(UtilPlayer.hasBall(failed, failed.getPlayerById(ball.target.getId())));
+        assertTrue(JsonObject.readFrom(declined.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+        SetupSession restored = new SetupSession(ball.fixture.server, ball.fixture.document, checkpoint);
+        assertTrue(restored.apply(ball.role, request).getBoolean("duplicate", false));
+        forceGeneralRolls(restored, 6, 6, 6, 6, 6, 6);
+        chooseReroll(restored, ball.role, paused, "team");
+        Game resumed = nativeState(restored).getGame();
+        assertTrue(UtilPlayer.hasBall(resumed, resumed.getPlayerById(ball.target.getId())));
+        assertTrue(JsonObject.readFrom(restored.recoveryArtifact()).get("payload").asObject().get("pendingRoute").isNull());
+    }
+
     @Test void plannedTransfersValidateTheEndpointWithoutChangingTheGameAndExecuteOnce() throws Exception {
         JsonArray journeys = new JsonArray();
         for (String kind : new String[] {"pass", "handOff"}) for (boolean loose : new boolean[] {false, true})

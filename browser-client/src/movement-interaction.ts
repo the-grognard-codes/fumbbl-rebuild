@@ -18,8 +18,9 @@ export function canPlanMovement(view: SetupState, actions: SetupAction[], player
   const offered = actions.filter(action => action.sourcePlayerId === playerId);
   if (isOnTheBallMovement(view, actions)) return kind === 'move' && view.activePlayerId === playerId
     && offered.some(action => action.kind === 'reactionMove');
-  if (isBallTransfer(kind)) return view.activePlayerId !== playerId && view.turnMode === 'REGULAR'
-    && offered.some(action => action.kind === (kind === 'pass' ? 'declarePass' : 'declareHandOff'));
+  if (isBallTransfer(kind)) return kind === 'pass' && canPlanSquarePass(view, actions, playerId)
+    || view.activePlayerId !== playerId && view.turnMode === 'REGULAR'
+      && offered.some(action => action.kind === (kind === 'pass' ? 'declarePass' : 'declareHandOff'));
   if (kind === 'move') return offered.some(action => ['select', 'stand'].includes(action.kind))
     || view.activePlayerId === playerId && view.turnMode === 'SELECT_BLITZ_TARGET'
       && offered.some(action => action.kind === 'blitzTarget')
@@ -33,6 +34,7 @@ export function canPlanMovement(view: SetupState, actions: SetupAction[], player
 
 export function matchesMovementPlan(plan: MovementPlan | null, intent: MovementRequest | null, view: SetupState): boolean {
   if (!plan || !intent || plan.kind !== intent.kind || plan.targetPlayerId !== intent.targetPlayerId
+    || plan.targetSquare?.x !== intent.targetSquare?.x || plan.targetSquare?.y !== intent.targetSquare?.y
     || plan.route.revision !== view.revision || plan.route.actor !== view.callerRole
     || plan.route.playerId !== intent.playerId) return false;
   const player = view.players.find(player => player.id === intent.playerId);
@@ -40,6 +42,16 @@ export function matchesMovementPlan(plan: MovementPlan | null, intent: MovementR
   return (['blitz', 'foul'].includes(intent.kind) ? intent.waypoints.length <= plan.waypoints.length : intent.waypoints.length === plan.waypoints.length)
     && intent.waypoints.every((point, index) => point.x === plan.waypoints[index].x && point.y === plan.waypoints[index].y
       && !!point.jump === !!plan.waypoints[index].jump);
+}
+
+/** Square throws only continue a native Pass already declared for this active player. */
+export function canPlanSquarePass(view: SetupState, actions: SetupAction[], playerId: string): boolean {
+  return view.phase === 'PLAY' && view.callerRole !== 'spectator' && view.actor === view.callerRole
+    && view.turnMode === 'REGULAR' && view.activePlayerId === playerId
+    && ['passMove', 'pass'].includes(view.activePlayerAction ?? '')
+    && view.players.some(player => player.id === playerId && player.role === view.callerRole && player.x !== null && player.y !== null)
+    && actions.some(action => action.actor === view.callerRole && action.sourcePlayerId === playerId
+      && ['move', 'jump', 'pass'].includes(action.kind));
 }
 
 export function isBallTransfer(kind: string | undefined): kind is 'pass' | 'handOff' {

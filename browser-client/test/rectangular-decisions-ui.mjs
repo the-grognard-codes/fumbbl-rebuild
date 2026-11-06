@@ -63,7 +63,7 @@ try {
  for(const kind of ['coin','receive']) {
   const options=kind==='coin'?['heads','tails']:['kick','receive'];
   await open({...frame('interception'),phase:'PRE_MATCH',actions:[],prompt:{id:kind,actor:'home',kind,options}});
-  assert.equal(await page.getByRole('dialog').getAttribute('aria-modal'),'true');
+  assert.equal(await page.getByRole('dialog').getAttribute('aria-modal'),'false');
   await page.waitForFunction(()=>[...document.querySelectorAll('dialog img')].every(img=>img.complete&&img.naturalWidth>0));
   await page.getByRole('dialog').screenshot({path:`${evidence}/${kind}.png`});
   await page.getByRole('button',{name:kind==='coin'?'Heads':'Kick',exact:true}).click();
@@ -75,5 +75,5 @@ try {
  assert.equal(await page.getByText('Player #1',{exact:true}).isVisible(),true);
  await page.getByRole('dialog').screenshot({path:`${evidence}/off-pitch-bribe.png`});
  assert.deepEqual(errors,[]);
- console.log('PASS rectangular choices: modal coin/kick, candidate previews/confirm/decline, stale drafts, portraits, inspection, pending input, off-pitch identity, desktop and phone.');
+ console.log('PASS rectangular choices: coin/kick, candidate previews/confirm/decline, stale drafts, portraits, inspection, pending input, off-pitch identity, desktop and phone.');
 } finally { await browser.close(); await server.close(); }

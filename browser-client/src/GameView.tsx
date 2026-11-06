@@ -1,5 +1,5 @@
 import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
 import { PlayerHoverCard } from './PlayerHoverCard.tsx';
@@ -24,7 +24,7 @@ import { useHudOpacity } from './hud-opacity.ts';
 import type { RoutePoint, RoutePreview } from './route-protocol.ts';
 import type { MovementPlan, MovementRange, MovementRequest } from './movement-protocol.ts';
 import { matchesMovementRange } from './movement-range-read.ts';
-import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer, isBallTransfer, isOnTheBallMovement } from './movement-interaction.ts';
+import { canPlanMovement, canPlanSquarePass, matchesMovementPlan, canPlanBallTransfer, isBallTransfer, isOnTheBallMovement } from './movement-interaction.ts';
 import { potentialBlockDice } from './block-dice-presentation.ts';
 import type { PotentialBlockDice } from './block-dice-presentation.ts';
 import { proposedBlockContext } from './block-context.ts';
@@ -123,6 +123,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const [explicitMove, setExplicitMove] = useState(false);
   const [confirmEndTurn, setConfirmEndTurn] = useState(false);
   const [routeMode, setRouteMode] = useState(false);
+  const [passSquareMode, setPassSquareMode] = useState(false);
   const [waypoints, setWaypoints] = useState<RoutePoint[]>([]);
   const [jumpMode, setJumpMode] = useState(false);
   const [specialMode, setSpecialMode] = useState<'jumpUp' | 'punt' | null>(null);
@@ -156,6 +157,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     if (displayedRevision.current === view.revision) return;
     displayedRevision.current = view.revision;
     setSpecialMode(null);
+    setPassSquareMode(false);
     setMultipleTargets([]);
     setActionId(''); setActionFilter(''); setMenuChoices([]); setExplicitBlitz(false); setConfirmEndTurn(false);
     const modeRoute = passModeRoute.current;
@@ -231,6 +233,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const endTurnAction = availableActions.find(action => action.kind === 'endTurn');
   const showEndTurn = hosted && view.phase === 'PLAY' && view.actor === view.callerRole && !!endTurnAction && !kickoff && !kickoffMovement;
   const canChoose = connected && !pending && !suspended;
+  const squarePassAvailable = movementFlow && canPlanSquarePass(view, availableActions, playerId);
+  useEffect(() => { setPassSquareMode(false); }, [playerId, view.matchId, view.activePlayerId, connected, suspended]);
   const canMove = canChoose && !decision && canPlanMovement(view, availableActions, playerId, 'move');
   const targetlessBlitz = view.activePlayerId === playerId && view.turnMode === 'SELECT_BLITZ_TARGET'
     && movementIntent?.kind === 'move';
@@ -263,11 +267,11 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     ? movementReviewed ? movementPlan?.range ?? null : null : originalRange : null;
   const displayedWaypoints = movementFlow && movementIntent?.kind !== 'move' && !waypoints.length && movementReady
     ? movementPlan!.waypoints : waypoints;
-  const previewMovement = (kind: MovementRequest['kind'], targetId: string | null, points: RoutePoint[]) => {
+  const previewMovement = (kind: MovementRequest['kind'], targetId: string | null, points: RoutePoint[], targetSquare?: RoutePoint) => {
     if (!isBallTransfer(kind)) transferRollback.current = null;
     setJumpMode(false);
     if (kind !== 'move') setExplicitMove(false);
-    const intent = { playerId, kind, targetPlayerId: targetId, waypoints: points };
+    const intent = { playerId, kind, targetPlayerId: targetId, waypoints: points, ...(targetSquare ? { targetSquare } : {}) };
     setMovementIntent(intent); setRouteMode(true); setWaypoints(points); setSmartIntent(null); setActionId('');
     setConfirmEndTurn(false);
     requestMovementPreview?.(intent);
@@ -317,7 +321,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const updateWaypoints = (points: RoutePoint[]) => {
     if (movementFlow && movementIntent) {
       if (!points.length) clearMovement(movementIntent.kind === 'move');
-      else previewMovement(movementIntent.kind, movementIntent.targetPlayerId, points);
+      else previewMovement(movementIntent.kind, movementIntent.targetPlayerId, points, movementIntent.targetSquare);
       return;
     }
     if (smartIntent?.stage === 'routing') setSmartIntent({ ...smartIntent, approachIndex: -1 });
@@ -399,16 +403,17 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       movementReady && movementIntent?.kind === 'blitz' ? movementPlan : null) : null;
   useLayoutEffect(() => {
     if (!confirmedDice) return;
-    const revealed = decision?.options.some(option => !!option.face)
+    const caughtUp = pitchView.revision === view.revision && !playbackActive;
+    const revealed = caughtUp && decision?.options.some(option => !!option.face)
       || (diceMoment?.revision ?? -1) > confirmedDice.revision && diceMoment?.faces.some(face => blockFaceLabel(face));
-    const stopped = !connected || suspended || confirmedDice.matchId !== view.matchId || view.phase !== 'PLAY'
-      || !requestPending && !playbackActive && confirmedDice.pendingSeen && !revealed
+    const stopped = !connected || suspended || confirmedDice.matchId !== view.matchId
+      || caughtUp && (view.phase !== 'PLAY' || !requestPending && confirmedDice.pendingSeen && !revealed
         && (view.revision === confirmedDice.revision
-          || view.actor !== view.callerRole || view.activePlayerId !== confirmedDice.playerId);
+          || view.actor !== view.callerRole || view.activePlayerId !== confirmedDice.playerId));
     if (revealed || stopped) setConfirmedDice(null);
     else if (requestPending && !confirmedDice.pendingSeen) setConfirmedDice({ ...confirmedDice, pendingSeen: true });
   }, [confirmedDice, requestPending, playbackActive, decision, diceMoment, connected, suspended,
-    view.matchId, view.revision, view.phase, view.actor, view.callerRole, view.activePlayerId]);
+    view.matchId, view.revision, view.phase, view.actor, view.callerRole, view.activePlayerId, pitchView.revision]);
   const retainConfirmedDice = () => {
     if (potentialDice || proposedBlocks) setConfirmedDice({ preview: potentialDice, context: proposedBlocks, matchId: view.matchId, playerId,
       revision: view.revision, pendingSeen: false });
@@ -436,6 +441,11 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
     cancelPlan();
   };
   const selectPlayer = (id: string, clickedAt?: number) => {
+    if (passSquareMode && squarePassAvailable && canChoose && !decision) {
+      const target = view.players.find(player => player.id === id);
+      if (target?.x != null && target.y != null) selectSquare(target.x, target.y, clickedAt);
+      return;
+    }
     if (decision && isRectangularDecision(decision)) { setPlayerId(id); setTargetFocus('player'); return; }
     if (repeatTarget(`player:${id}`, clickedAt)) return;
     if (jumpMode) return;
@@ -633,6 +643,11 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const selectSquare = (column: number, row: number, clickedAt?: number) => {
     if (decision && isRectangularDecision(decision)) return;
     if (repeatTarget(`square:${column},${row}`, clickedAt)) return;
+    if (passSquareMode && squarePassAvailable && canChoose && !decision) {
+      setX(column); setY(row); setTargetFocus('square'); setTargetPlayerId('');
+      previewMovement('pass', null, displayedWaypoints, { x: column, y: row });
+      return;
+    }
     if (specialMode === 'punt') {
       const choice = puntChoices.find(choice => choice.x === column && choice.y === row);
       if (canChoose && choice) setActionId(choice.action.id);
@@ -773,6 +788,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         mutate('movement', {
         playerId: movementIntent.playerId, kind: movementIntent.kind,
         targetPlayerId: movementIntent.targetPlayerId, waypoints: movementPlan.waypoints,
+        ...(movementIntent.targetSquare ? { targetSquare: movementIntent.targetSquare } : {}),
       });
       }
       return;
@@ -907,6 +923,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   };
   const selectMenuItem = (item: PlayerMenuItem) => {
     if (!canChoose || item.spent) return;
+    setPassSquareMode(false);
     setMenuChoices([]);
     if (item.key === 'jumpUp') {
       clearMovement(); setSmartIntent(null); setActionId(''); setTargetPlayerId('');
@@ -1014,7 +1031,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
       <h2>{view.phase.replaceAll('_', ' ').toLowerCase()}</h2>
       {synchronizing && <p className="setup-feedback" role="status">Synchronizing match…</p>}
       <p aria-label="Coach labels">{view.callerRole === 'spectator' ? `${matchTeamName(view, 'home')} / ${matchTeamName(view, 'away')}` : view.callerRole === 'home' ? `${matchTeamName(view, 'home')}: You / ${matchTeamName(view, 'away')}: Opponent` : `${matchTeamName(view, 'home')}: Opponent / ${matchTeamName(view, 'away')}: You`}</p>
-      {hosted && <LiveMatchScoreboard view={view} endTurn={showEndTurn ? { onClick: useEndTurn, disabled: !canChoose } : undefined}/>}
+      {hosted && <LiveMatchScoreboard view={{ ...view, homeScore: pitchView.homeScore, awayScore: pitchView.awayScore,
+        driveTracker: pitchView.driveTracker }} endTurn={showEndTurn ? { onClick: useEndTurn, disabled: !canChoose } : undefined}/>}
       {hosted && gameStep && <div className="match-game-step" role="status" aria-label="Current game step" aria-live="polite">
         <strong>{gameStep.title}</strong><span>{gameStep.instruction}</span>{gameStep.progress && <small>{gameStep.progress}</small>}
       </div>}
@@ -1072,15 +1090,28 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
             onClick={() => { setMultipleTargets([]); setActionId(''); setTargetPlayerId(''); }}>Clear targets</button>
         </div>}
         {menuItems.length > 0 && <div className="command-buttons player-action-icons" role="group" aria-label="Player actions"
-          style={{ ['--action-count' as string]: menuItems.length,
-            gridTemplateColumns: menuItems.map(item => item.key === 'jumpUp' || item.key === 'puntTarget' || item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? '30px' : 'minmax(0,var(--action-button-width,42px))').join(' ') }}>
-          {menuItems.map(item => <button key={item.key} type="button" className={item.key === 'jumpUp' || item.key === 'puntTarget' || item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? 'jump-companion' : item.spent ? 'spent' : undefined}
+          style={{ ['--action-count' as string]: menuItems.length + (squarePassAvailable ? 1 : 0),
+            gridTemplateColumns: menuItems.flatMap(item => [item.key === 'jumpUp' || item.key === 'puntTarget' || item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? '30px' : 'minmax(0,var(--action-button-width,42px))',
+              ...(item.key === 'pass' && squarePassAvailable ? ['30px'] : [])]).join(' ') }}>
+          {menuItems.map(item => <Fragment key={item.key}><button type="button" className={item.key === 'jumpUp' || item.key === 'puntTarget' || item.key === 'jump' && localJump || item.key.startsWith('hailMary') ? 'jump-companion' : item.spent ? 'spent' : undefined}
             aria-label={item.label} title={`${item.label}${item.spent ? ' - Used' : ''}${!(item.key === 'jump' && localJump ? canJump : item.actions.length) && !item.spent ? ' - Unavailable now' : ''}`}
             aria-pressed={specialMode ? item.key === (specialMode === 'punt' ? 'puntTarget' : specialMode) : item.key === 'jump' && localJump ? jumpMode : !jumpMode && (!!pinnedAction && item.kinds.includes(pinnedAction.kind) || movementIntent?.kind === item.key
               || !pinnedAction && !movementIntent && !confirmEndTurn && (explicitMove ? item.key === 'move' : activeMenuKey === item.key))}
             disabled={!canChoose || item.spent || (item.key === 'jump' && localJump ? !canJump && !jumpMode : !item.actions.length)}
-            onClick={() => selectMenuItem(item)}><ActionGlyph kind={item.icon}/></button>)}
+            onClick={() => selectMenuItem(item)}><ActionGlyph kind={item.icon}/></button>
+            {item.key === 'pass' && squarePassAvailable && <button type="button" className="jump-companion pass-square-toggle"
+              aria-label="Target pass square" title={passSquareMode ? 'Return to movement planning' : 'Target a pass to any legal square'}
+              onKeyDown={event => { if (event.code === 'Space') event.stopPropagation(); }}
+              aria-pressed={passSquareMode} disabled={!canChoose || !!decision} onClick={() => {
+                if (passSquareMode && movementIntent?.targetSquare) {
+                  if (displayedWaypoints.length) previewMovement('move', null, displayedWaypoints);
+                  else clearMovement();
+                }
+                setPassSquareMode(!passSquareMode); setActionId(''); setSmartIntent(null); setJumpMode(false);
+              }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1"/></svg></button>}
+            </Fragment>)}
         </div>}
+        {passSquareMode && <p className="sr-only" aria-live="polite">Pass targeting: choose a square or player, then Confirm. Switch targeting off to continue planning movement.</p>}
         {specialMode && <p role="status" className="action-target-choices">{specialMode === 'jumpUp'
           ? 'Jump Up: select an adjacent opponent, then Confirm.' : 'Punt: select a direction, then Confirm. Right-click cancels Punt selection.'}</p>}
         {menuChoices.length > 0 && <div className="action-target-choices" role="group" aria-label="Action targets">
@@ -1103,7 +1134,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         actions={playbackActive ? [] : pitchActions} pinnedAction={playbackActive ? undefined : pinnedAction}
         blockPreview={confirmedDice?.context ?? proposedBlocks}
         plannedTransfer={!playbackActive && movementReviewed && movementPlan && isBallTransfer(movementPlan.kind)
-          ? { targetPlayerId: movementPlan.targetPlayerId!, from: movementPlan.route.steps.at(-1) ?? movementPlan.route.from } : null}
+          ? { targetPlayerId: movementPlan.targetPlayerId ?? undefined, targetSquare: movementPlan.targetSquare,
+            from: movementPlan.route.steps.at(-1) ?? movementPlan.route.from } : null}
         jumpOptions={jumpMode && canChoose && !decision && !playbackActive ? jumpOptions : null}
         potentialDice={confirmedDice?.preview ?? potentialDice} diceAwaiting={!!confirmedDice}
         movementRange={displayedRange}

@@ -118,6 +118,10 @@ jobs:
             exit 1
           }
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
       - name: Check native validation tooling
         shell: pwsh
         run: ./tools/validation/test-native-shard.ps1

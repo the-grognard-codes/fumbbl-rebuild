@@ -43,7 +43,8 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
   const momentIsBlock = (!potentialDice || awaiting)
     && !!blockMoment?.faces.length && blockMoment.faces.every(face => blockFaceLabel(face));
   const resultFaces = blockOptions.length ? blockOptions.map(option => option.face!)
-    : momentIsBlock && !rollDecision?.proTest ? blockMoment!.faces : [];
+    : momentIsBlock ? blockMoment!.faces
+      : rollDecision?.originalFaces?.every(face => blockFaceLabel(face)) ? rollDecision.originalFaces : [];
   const preview = resultFaces.length ? null : potentialDice;
   const primaryFaces: (string | undefined)[] = resultFaces.length ? resultFaces
     : preview ? Array.from({ length: Math.abs(preview.dice) }, () => undefined) : [];
@@ -60,8 +61,10 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
     && !diceMoment?.groups && (!diceMoment || diceMoment.selected === null && diceMoment.faces.some(face => blockFaceLabel(face)))
     ? decision.key : undefined;
   const primary = useDicePresence(primaryFaces.length ? { faces: primaryFaces, preview, awaiting,
-    moment: momentIsBlock ? blockMoment : diceMoment, options: blockOptions, optionRollKey } : null, presentationKey, isStatic, rate);
-  const original = useDicePresence(rollDecision?.originalFaces ? { faces: rollDecision.originalFaces,
+    moment: momentIsBlock ? blockMoment : null, options: blockOptions, optionRollKey } : null, presentationKey, isStatic, rate);
+  const originalIsPrimary = !!rollDecision?.originalFaces && resultFaces.length === rollDecision.originalFaces.length
+    && resultFaces.every((face, index) => face === rollDecision.originalFaces![index]);
+  const original = useDicePresence(rollDecision?.originalFaces && !originalIsPrimary ? { faces: rollDecision.originalFaces,
     rolls: rollDecision.originalRolls, label: rollDecision.originalLabel } : null, presentationKey, isStatic, rate);
   const pro = useDicePresence(rollDecision?.proTest ? { test: rollDecision.proTest,
     rollKey: !isStatic && !diceMoment?.groups && diceMoment?.rollKey ? rollDecision.proTest.rollKey : undefined,
@@ -141,12 +144,9 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
       : diceRollGroups({ label: original.value.label ?? 'Original roll', faces: original.value.faces,
         rolls: original.value.rolls, subjectId: null, selected: null }).map((group, index) =>
         <PitchDiceGroup key={`original:${index}`} group={{ ...group, exiting: original.exiting, rate }} forceStatic={isStatic} role="status" directionAngles={directionAngles}/>))}
-    {pro.value && <div className="pitch-pro-test"><PitchDiceGroup role="status" forceStatic={isStatic}
-      group={{ label: 'Pro', faces: [pro.value.test.face], subjectId: null, selected: null,
-        rollKey: pro.value.rollKey, rollDuration: pro.value.duration, exiting: pro.exiting, rate,
-        presentation: pro.value.test.presentation ?? { name: 'Pro', icon: 'pro', result: pro.value.test.successful ? 'Success' : 'Failed' } }}/></div>}
     {primary.value && <PitchDiceEffects exiting={primary.exiting} isStatic={isStatic} rate={rate}>
-      <div className="live-dice-choices pitch-block-dice">{primary.value.faces.map((face, index) => {
+      <div className="live-dice-choices pitch-block-dice" role={originalIsPrimary ? 'status' : undefined}
+        aria-label={originalIsPrimary ? 'Original block dice' : undefined}>{primary.value.faces.map((face, index) => {
       const shown = primary.value!;
       const option = primary.exiting ? undefined : shown.options[index];
       return <button key={`die:${index}`} type="button" className="live-die-choice" data-passive={!option}
@@ -160,6 +160,10 @@ export function PitchDecisionOverlay({ decision = null, diceMoment: currentMomen
         <span className="sr-only">{option?.label}</span>
       </button>;
     })}</div></PitchDiceEffects>}
+    {pro.value && <div className="pitch-pro-test"><PitchDiceGroup role="status" forceStatic={isStatic}
+      group={{ label: 'Pro', faces: [pro.value.test.face], subjectId: null, selected: null,
+        rollKey: pro.value.rollKey, rollDuration: pro.value.duration, exiting: pro.exiting, rate,
+        presentation: pro.value.test.presentation ?? { name: 'Pro', icon: 'pro', result: pro.value.test.successful ? 'Success' : 'Failed' } }}/></div>}
     {diceMoment && (diceMoment.groups ?? diceRollGroups(diceMoment).map((group, index) => ({ ...group, key: `result:${index}` })))
       .filter(group => !(primary.value && group.faces.every(face => blockFaceLabel(face)))
         && (group.exiting || !rollDecision?.proTest && (!primaryFaces.length || !!activeGroups))).map(group =>

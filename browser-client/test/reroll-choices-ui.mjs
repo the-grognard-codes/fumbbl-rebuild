@@ -120,9 +120,12 @@ try {
         assert.ok(await icon.evaluate(image => image.naturalWidth > 0 && image.src.endsWith('/assets/game/ui/reroll-v1.png')), option.label);
       } else {
         // External SVG symbols can finish loading after the button becomes visible.
-        await page.waitForFunction(use => {
+        // A late projection can replace the icon while it loads. Re-resolve the
+        // current glyph instead of waiting forever on a detached element.
+        await offeredButton.locator('svg use').waitFor({ state: 'visible', timeout: 30000 });
+        assert.ok(await offeredButton.locator('svg use').evaluate(use => {
           const bounds = use.getBBox(); return bounds.width > 0 && bounds.height > 0;
-        }, await offeredButton.locator('svg use').elementHandle(), { timeout: 30000 });
+        }));
       }
     }
     if (!journey.mode.startsWith('block-')) {

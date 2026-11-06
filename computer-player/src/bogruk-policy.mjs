@@ -1,5 +1,6 @@
 import { BogrukBoard, distance, hasSkill, onPitch, playerValue, probability, prone, standing } from './bogruk-board.mjs';
 import { isComputerGameOperation } from './computer-operations.mjs';
+import { resourceDecision } from './resource-decision.mjs';
 
 export const BOGRUK_SETTINGS = Object.freeze({ riskChances: [0.3, 0.5, 0.7], maxActions: 192, maxPathExpansions: 1800 });
 
@@ -41,6 +42,10 @@ export function chooseBogrukDecision(state, options = {}) {
   if (!actions.length) return result(null, 'No offered decision.');
   const board = new BogrukBoard(state, { maxExpansions: settings.maxPathExpansions });
   const actionResult = (action, reason, plan = null, mistake = false) => result({ operation: 'action', actionId: action.id }, reason, plan, mistake);
+  const resource = resourceDecision(actions, () => true);
+  if (resource) return actionResult(resource, 'Use the offered resource or keep the least harmful injury.', memory.plan);
+  const event = kickoffDecision(state, actions, memory.plan);
+  if (event) return actionResult(event.action, 'Participate in the kickoff with a simple legal choice.', event.plan);
   const kick = actions.filter(action => action.kind === 'kickoff');
   if (kick.length) {
     const depth = random('kick-depth') < 0.5 ? 3 : 9;
@@ -182,6 +187,47 @@ export function chooseBogrukDecision(state, options = {}) {
 
 function planFor(player, kind, target, targetPlayerId = null) {
   return { playerId: player.id, kind, targetPlayerId, target: { x: target.x, y: target.y } };
+}
+
+function kickoffDecision(state, actions, plan) {
+  const kickoff = state.kickoff;
+  if (!kickoff || !['CHARGE', 'QUICK_SNAP', 'SOLID_DEFENCE'].includes(kickoff.event)) return null;
+  const named = suffix => actions.find(action => action.id.endsWith(suffix));
+  if (kickoff.stage === 'selection') {
+    const select = actions.find(action => action.kind === 'kickoffChoice' && /^Select /i.test(action.label));
+    const confirm = named('event-confirm');
+    const action = select ?? confirm ?? named('decline-event');
+    return action ? { action, plan: null } : null;
+  }
+  if (kickoff.event === 'QUICK_SNAP') {
+    const action = actions.find(action => action.kind === 'kickoffMove') ?? named('end-event');
+    return action ? { action, plan: null } : null;
+  }
+  const moved = plan && state.players.some(player => player.id === plan.playerId && distance(player, plan.target) === 0);
+  if (kickoff.event === 'SOLID_DEFENCE') {
+    const zone = y => y < 4 ? 0 : y > 10 ? 2 : 1;
+    // One small redeployment preserves the line and wide-zone counts, then confirm.
+    const move = !moved && actions.find(action => {
+      if (action.kind !== 'kickoffMove') return false;
+      const player = state.players.find(item => item.id === action.sourcePlayerId);
+      return player && action.target?.x === player.x && zone(action.target.y) === zone(player.y)
+        && distance(player, action.target) === 1
+        && !state.players.some(item => item.x === action.target.x && item.y === action.target.y);
+    });
+    const player = move && state.players.find(item => item.id === move.sourcePlayerId);
+    const action = move ?? named('confirm-solid-defence');
+    return action ? { action, plan: move ? planFor(player, 'move', move.target) : null } : null;
+  }
+  // Charge needs no tactical search: activate each offered player, move once, finish.
+  const endAction = actions.find(action => action.kind === 'endAction');
+  if (moved && endAction) return { action: endAction, plan: null };
+  const move = actions.find(action => action.kind === 'move');
+  if (move) {
+    const player = state.players.find(item => item.id === state.activePlayerId);
+    return { action: move, plan: planFor(player, 'move', move.target) };
+  }
+  const action = endAction ?? actions.find(action => action.kind === 'select') ?? actions.find(action => action.kind === 'endTurn');
+  return action ? { action, plan: null } : null;
 }
 
 function bestAdjacent(paths, target) {
