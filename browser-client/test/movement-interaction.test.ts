@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer } from '../src/movement-interaction.ts';
+import { canPlanMovement, matchesMovementPlan, canPlanBallTransfer, canPlanSquarePass } from '../src/movement-interaction.ts';
 import { decodeSetupStateValue } from '../src/setup-protocol.ts';
 import type { MovementPlan, MovementRequest } from '../src/movement-protocol.ts';
 
@@ -12,6 +12,31 @@ const intent: MovementRequest = { playerId: 'home1', kind: 'move', targetPlayerI
 const plan: MovementPlan = { planVersion: 1, kind: 'move', targetPlayerId: null, waypoints: intent.waypoints,
   route: { routeVersion: 3, playerId: 'home1', from: { x: 7, y: 7 }, remaining: 8, revision: view.revision, actor: 'home',
     steps: [{ x: 8, y: 7, dodge: 0, rush: 0, dodgeModifier: 0, reactions: [], checks: [] }] } };
+
+test('an active explicitly declared Pass can plan a square throw without acquiring another action', () => {
+  const active = { ...view, activePlayerId: 'home1', activePlayerAction: 'passMove',
+    ballState: { version: 1 as const, inPlay: true, moving: false, carrierPlayerId: 'home1' } };
+  const pass = { ...view.actions.find(action => action.sourcePlayerId === 'home1')!, kind: 'pass', target: { x: 12, y: 8 } };
+  assert.equal(canPlanMovement(active, [pass], 'home1', 'pass'), true);
+  for (const action of ['move', 'handOverMove', 'blitzMove', 'hailMaryPass'])
+    assert.equal(canPlanMovement({ ...active, activePlayerAction: action }, [pass], 'home1', 'pass'), false);
+  assert.equal(canPlanMovement(active, [pass], 'home1', 'handOff'), false);
+});
+
+test('square-pass confirmation binds the reviewed square and accepts native stationary pass offers', () => {
+  const squareIntent: MovementRequest = { ...intent, kind: 'pass', targetSquare: { x: 12, y: 8 } };
+  const squarePlan: MovementPlan = { ...plan, kind: 'pass', targetSquare: squareIntent.targetSquare };
+  assert.equal(matchesMovementPlan(squarePlan, squareIntent, view), true);
+  assert.equal(matchesMovementPlan(squarePlan, { ...squareIntent, targetSquare: { x: 12, y: 9 } }, view), false);
+  assert.equal(matchesMovementPlan(squarePlan, { ...squareIntent, targetSquare: undefined }, view), false);
+  assert.equal(matchesMovementPlan({ ...squarePlan, targetSquare: undefined }, squareIntent, view), false);
+  const journeys = JSON.parse(readFileSync(new URL('./fixtures/square-pass-projections.json', import.meta.url), 'utf8'));
+  for (const journey of journeys) {
+    const native = decodeSetupStateValue(journey.ready);
+    assert.equal(canPlanSquarePass(native, native.actions, native.activePlayerId!), true);
+    assert.equal(matchesMovementPlan(journey.plan, journey.request, native), true);
+  }
+});
 
 test('implied transfers require an unactivated player and the offered native declaration', () => {
   const select = view.actions.find(action => action.sourcePlayerId === 'home1')!;

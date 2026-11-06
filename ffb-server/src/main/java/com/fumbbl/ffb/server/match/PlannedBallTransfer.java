@@ -20,6 +20,11 @@ import java.util.List;
 /** Validates a hypothetical transfer on a detached native game, without rolling or declaring. */
 final class PlannedBallTransfer {
     void validate(GameState state, String playerId, String targetId, String kind, String role, JsonObject route) {
+        validate(state, playerId, targetId, kind, role, route, null);
+    }
+
+    void validate(GameState state, String playerId, String targetId, String kind, String role, JsonObject route,
+                  FieldCoordinate targetSquare) {
         Game live = state.getGame();
         Player<?> source = live.getPlayerById(playerId);
         boolean possession = UtilPlayer.hasBall(live, source);
@@ -48,10 +53,10 @@ final class PlannedBallTransfer {
         game.getActingPlayer().setPlayer(player);
         game.getActingPlayer().setHasPassed(false);
         game.getActingPlayer().setPlayerAction("pass".equals(kind) ? PlayerAction.PASS_MOVE : PlayerAction.HAND_OVER_MOVE);
-        if (!eligibleRecipient(game, player, targetId, kind)) throw new MatchService.Failure("INVALID_TARGET");
+        if (targetSquare == null && !eligibleRecipient(game, player, targetId, kind)) throw new MatchService.Failure("INVALID_TARGET");
         List<Action> targets = new ArrayList<>();
         new BallAndFoulActions().targets(game, role, targets);
-        if (targets.stream().noneMatch(action -> matches(game, action, targetId, kind)))
+        if (targets.stream().noneMatch(action -> matches(game, action, targetId, kind, targetSquare)))
             throw new MatchService.Failure("INVALID_TARGET");
     }
 
@@ -65,6 +70,11 @@ final class PlannedBallTransfer {
     }
 
     boolean matches(Game game, Action action, String targetId, String kind) {
+        return matches(game, action, targetId, kind, null);
+    }
+
+    boolean matches(Game game, Action action, String targetId, String kind, FieldCoordinate targetSquare) {
+        if (targetSquare != null) return "pass".equals(kind) && kind.equals(action.kind) && targetSquare.equals(action.targetSquare);
         return kind.equals(action.kind) && ("handOff".equals(kind) ? targetId.equals(action.targetPlayerId)
             : game.getFieldModel().getPlayerCoordinate(game.getPlayerById(targetId)).equals(action.targetSquare));
     }

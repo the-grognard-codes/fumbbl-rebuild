@@ -36,7 +36,7 @@ export function RectangularDecisionPrompt({ decision, players, disabled, onChoic
 }) {
   const panel = useRef<HTMLDialogElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const blocking = ['coin', 'receive'].includes(decision.kind);
+  const centered = ['coin', 'receive'].includes(decision.kind);
   const choices = decision.options.filter(option => !declines(option));
   const candidateIds = new Set(choices.map(option => option.targetPlayerId).filter(Boolean));
   const chooser = ['interception', 'secretWeapon'].includes(decision.kind) || candidateIds.size > 1;
@@ -47,10 +47,11 @@ export function RectangularDecisionPrompt({ decision, players, disabled, onChoic
   useEffect(() => {
     const element = panel.current!;
     const prior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (blocking) element.showModal(); else element.show();
+    // Mandatory decisions must leave Game Menu available, including concession.
+    element.show();
     element.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true });
     return () => { element.close(); if (prior?.isConnected) prior.focus({ preventScroll: true }); };
-  }, [decision.key, blocking]);
+  }, [decision.key]);
   useEffect(() => {
     const element = panel.current!;
     const update = () => {
@@ -72,7 +73,7 @@ export function RectangularDecisionPrompt({ decision, players, disabled, onChoic
         width: Math.max(...cells.map(cell => cell.right)) - Math.min(...cells.map(cell => cell.left)),
         height: Math.max(...cells.map(cell => cell.bottom)) - Math.min(...cells.map(cell => cell.top)) } : null;
       const obstacles = [...document.querySelectorAll('.live-match-scoreboard, .match-command-bar, .match-menu-triggers')].map(node => node.getBoundingClientRect());
-      const next = blocking ? { left: (innerWidth - size.width) / 2, top: Math.max(8, (innerHeight - size.height) / 2) }
+      const next = centered ? { left: (innerWidth - size.width) / 2, top: Math.max(8, (innerHeight - size.height) / 2) }
         : { ...placeSkillPrompt(bounds.width > 0 && bounds.height > size.height + 16 ? bounds : { left: 0, top: 0, width: innerWidth, height: innerHeight }, { width: size.width, height: size.height }, protectedSubject, obstacles),
           ...(visible ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : {}) };
       setPosition(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
@@ -85,7 +86,7 @@ export function RectangularDecisionPrompt({ decision, players, disabled, onChoic
     mutations.observe(document.body, { attributes: true, childList: true, subtree: true, attributeFilter: ['style', 'class'] });
     window.addEventListener('resize', update); window.addEventListener('scroll', update, true);
     return () => { resize.disconnect(); mutations.disconnect(); window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
-  }, [subjectId, subject?.x, subject?.y, decision.key, blocking]);
+  }, [subjectId, subject?.x, subject?.y, decision.key, centered]);
   const submit = (option: DecisionOption) => {
     if (!disabled && decision.options.some(current => current.id === option.id)) {
       if (option.kind === 'choice') onChoice(option.id); else onAction(option.id);
@@ -105,7 +106,7 @@ export function RectangularDecisionPrompt({ decision, players, disabled, onChoic
   };
   return createPortal(<>
     {position?.x !== undefined && <svg className="decision-pointer" aria-hidden="true"><path d={`M${position.left + (panel.current?.offsetWidth ?? 340) / 2},${position.top + (panel.current?.offsetHeight ?? 150) / 2} L${position.x},${position.y}`}/><circle cx={position.x} cy={position.y} r="3"/></svg>}
-    <dialog ref={panel} className="match-decision-dialog rectangular-decision" aria-label="Match decision" aria-modal={blocking} aria-busy={disabled}
+    <dialog ref={panel} className="match-decision-dialog rectangular-decision" aria-label="Match decision" aria-modal={false} aria-busy={disabled}
       style={{ left: position?.left ?? 0, top: position?.top ?? 0 }} onCancel={event => event.preventDefault()}>
       <h2>{decision.kind === 'interception' ? 'Nominate an interceptor' : decision.kind === 'receive' ? 'Kick or receive?' : decision.kind === 'apothecary' && chooser ? 'Choose a player to treat' : decision.title}</h2>
       {subject && !chooser && <p>{identity(subject)}</p>}

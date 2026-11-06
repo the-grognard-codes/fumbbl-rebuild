@@ -689,6 +689,11 @@ public final class SetupApplication {
 		return movementSession(role, matchId).movementPreview(role, revision, playerId, kind, targetPlayerId, waypoints);
 	}
 
+	public JsonObject movementPreview(String role, String matchId, int revision, String playerId,
+		String kind, String targetPlayerId, JsonObject targetSquare, com.eclipsesource.json.JsonArray waypoints) throws SQLException {
+		return movementSession(role, matchId).movementPreview(role, revision, playerId, kind, targetPlayerId, targetSquare, waypoints);
+	}
+
 	private SetupSession movementSession(String role, String matchId) throws SQLException {
 		MatchDocument document = matches.load(role, matchId).document;
 		if (!role.equals(document.home.owner) && (document.away == null || !role.equals(document.away.owner))
@@ -742,6 +747,14 @@ public final class SetupApplication {
 				break;
 			case "movement":
 				fields.add("playerId"); fields.add("kind"); fields.add("targetPlayerId"); fields.add("waypoints");
+				if (request.get("targetSquare") != null) {
+					fields.add("targetSquare");
+					JsonObject square = request.get("targetSquare").asObject();
+					if (!"pass".equals(request.getString("kind", null)) || !request.get("targetPlayerId").isNull()
+						|| square.size() != 2 || !square.names().containsAll(java.util.Arrays.asList("x", "y"))
+						|| square.get("x").asInt() < 0 || square.get("x").asInt() > 25
+						|| square.get("y").asInt() < 0 || square.get("y").asInt() > 14) throw new IllegalArgumentException();
+				}
 				if (request.get("playerId").asString().length() > 200) throw new IllegalArgumentException();
 				String kind = request.get("kind").asString();
 				if (!("move".equals(kind) || "blitz".equals(kind) || "foul".equals(kind)

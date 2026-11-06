@@ -44,6 +44,34 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BrowserV2AdapterTest {
+    @Test void movementPreviewAcceptsOnlyAnAdditivePassSquareWithNoRecipient() throws Exception {
+        AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.PLAYER);
+        V2MatchAccess access = mock(V2MatchAccess.class);
+        when(access.require(player, ApplicationScope.PLAYER)).thenReturn(player);
+        when(access.playerRole(player, MATCH)).thenReturn("home");
+        SetupApplication setup = mock(SetupApplication.class);
+        JsonObject square = new JsonObject().add("x", 12).add("y", 8);
+        JsonArray path = new JsonArray();
+        when(setup.movementPreview("home", MATCH, 9, "p1", "pass", null, square, path)).thenReturn(new JsonObject());
+        BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+        Connection connection = new Connection();
+        adapter.receive(connection, authenticate("auth", "player").toString());
+        JsonObject preview = request("movementPreview", "square-preview").add("matchId", MATCH)
+            .add("expectedRevision", 9).add("playerId", "p1").add("kind", "pass")
+            .add("targetPlayerId", JsonValue.NULL).add("targetSquare", square).add("waypoints", path);
+        adapter.receive(connection, preview.toString());
+        assertEquals("ACCEPTED", code(connection, 1));
+        verify(setup).movementPreview("home", MATCH, 9, "p1", "pass", null, square, path);
+        for (JsonObject invalid : new JsonObject[] {
+            JsonObject.readFrom(preview.toString()).set("kind", "handOff"),
+            JsonObject.readFrom(preview.toString()).set("targetPlayerId", "p2"),
+            JsonObject.readFrom(preview.toString()).set("targetSquare", new JsonObject().add("x", 26).add("y", 8)),
+            JsonObject.readFrom(preview.toString()).set("targetSquare", JsonValue.NULL) }) {
+            adapter.receive(connection, invalid.toString());
+            assertEquals("MALFORMED_MESSAGE", code(connection, connection.messages.size() - 1));
+        }
+    }
+
 	@Test void unknownConnectionPurposeDoesNotAuthenticateOrEvictAnExistingPlayer() throws Exception {
 		BrowserV2Adapter adapter = adapter(bearer -> principal(FIRST, ApplicationScope.PLAYER), mock(V2MatchAccess.class), mock(SetupApplication.class));
 		Connection play = new Connection(), unknown = new Connection();

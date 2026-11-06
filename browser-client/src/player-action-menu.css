@@ -23,6 +23,7 @@
   width: 30px; height: 30px; padding: 4px; align-self: center; justify-self: start;
 }
 .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion > svg { width: 21px; height: 21px; }
+.play-runtime .coach-match.hosted-match .player-action-icons > button.pass-square-toggle > svg { fill: none; stroke: currentColor; stroke-width: 1.6; }
 .play-runtime .coach-match.hosted-match .player-action-icons > button.jump-companion:disabled { opacity: .28; }
 @media(pointer: coarse) {
   .play-runtime .coach-match.hosted-match .match-command-bar .player-action-icons { grid-template-columns: repeat(var(--action-count),44px); }

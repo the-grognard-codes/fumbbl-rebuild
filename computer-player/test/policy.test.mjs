@@ -59,19 +59,22 @@ for (const [name, choose] of setupPolicies) test(`${name}: setup respects off-pi
   }
 });
 
-test('uses and declines multi-injury apothecaries and resolves either injury from fresh offered IDs', () => {
+test('uses or declines multi-injury apothecaries with equal probability and keeps the least harmful offered injury', () => {
   for (const role of ['home', 'away']) {
     const state = { ...base, callerRole: role, actor: role, revision: 50, actions: [
       action('50:apothecaries:no', 'apothecary', role),
       action('50:apothecaries:p1:TEAM', 'apothecary', role),
       action('50:apothecaries:p2:WANDERING', 'apothecary', role),
     ] };
-    assert.equal(chooseDecision(state, () => 0).actionId, '50:apothecaries:no');
-    assert.equal(chooseDecision(state, () => 0.5).actionId, '50:apothecaries:p1:TEAM');
-    assert.equal(chooseDecision(state, () => 0.99).actionId, '50:apothecaries:p2:WANDERING');
-    state.actions = [action('51:injury:old', 'apothecary', role), action('51:injury:new', 'apothecary', role)];
+    assert.equal(chooseDecision(state, () => 0).actionId, '50:apothecaries:p1:TEAM');
+    assert.equal(chooseDecision(state, () => 0.5).actionId, '50:apothecaries:no');
+    assert.equal(chooseDecision(state, () => 0.99).actionId, '50:apothecaries:no');
+    const draws = [0.1, 0.99];
+    assert.equal(chooseDecision(state, () => draws.shift()).actionId, '50:apothecaries:p2:WANDERING');
+    state.actions = [{ ...action('51:injury:old', 'apothecary', role), label: 'Keep Badly Hurt' },
+      { ...action('51:injury:new', 'apothecary', role), label: 'Choose Dead' }];
     assert.equal(chooseDecision(state, () => 0).actionId, '51:injury:old');
-    assert.equal(chooseDecision(state, () => 0.99).actionId, '51:injury:new');
+    assert.equal(chooseDecision(state, () => 0.99).actionId, '51:injury:old');
     state.actions = [action('52:apothecaries:no', 'apothecary', role)];
     assert.equal(chooseDecision(state, () => 0).actionId, '52:apothecaries:no');
   }

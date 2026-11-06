@@ -157,7 +157,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
   view: SetupState; selectedId: string; selectedIds?: string[]; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
-  plannedTransfer?: { targetPlayerId: string; from: RoutePoint } | null;
+  plannedTransfer?: { targetPlayerId?: string; targetSquare?: RoutePoint; from: RoutePoint } | null;
   potentialDice?: PotentialBlockDice | null; diceAwaiting?: boolean; diceSnapshot?: boolean;
   blockPreview?: BlockContext | null; animateBlockMarkers?: boolean; movementDuration?: number;
   splash?: MatchSplashProps;
@@ -328,12 +328,12 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
   const placementSquares = draggingPlayerId && (view.phase === 'SETUP' || view.turnMode === 'SOLID_DEFENCE')
     ? Array.from({ length: 390 }, (_, index) => ({ x: index % 26, y: Math.floor(index / 26) })).filter(square => canPlaceReserve({ ...view, phase: 'SETUP' }, draggingPlayerId, square.x, square.y)) : [];
   const target = pinnedAction?.target, pinnedTarget = plannedTransfer
-    ? view.players.find(player => player.id === plannedTransfer.targetPlayerId)
+    ? plannedTransfer.targetSquare ?? view.players.find(player => player.id === plannedTransfer.targetPlayerId)
     : target && ('playerId' in target ? view.players.find(player => player.id === target.playerId) : target);
   const targetSource = plannedTransfer?.from ?? view.players.find(player => player.id === pinnedAction?.sourcePlayerId);
   const showTargetLine = !!plannedTransfer || !!pinnedAction && ['block', 'blitzTarget', 'foul', 'pass', 'handOff', 'liftTeamMate',
     'throwTeamMate', 'kickMate', 'kickMateTo', 'gaze', 'bomb', 'punt'].includes(pinnedAction.kind);
-  if (plannedTransfer) targetPlayers.add(plannedTransfer.targetPlayerId);
+  if (plannedTransfer?.targetPlayerId) targetPlayers.add(plannedTransfer.targetPlayerId);
   const kickTarget = kickoffPlacementTarget(view, actions, pinnedAction, hover ?? cursor);
   if (pinnedAction?.kind === 'pass' && pinnedTarget?.x != null && pinnedTarget.y != null) {
     const recipient = view.players.find(player => player.x === pinnedTarget.x && player.y === pinnedTarget.y);

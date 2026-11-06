@@ -22,14 +22,14 @@ function LegacyDecisionDialog({ decision, disabled, activeX, onChoice, onAction 
   const dialog = useRef<HTMLDialogElement>(null);
   const [skillChoices, setSkillChoices] = useState<DecisionOption | null>(null);
   const centeredPitchDecision = ['followUp', 'hitAndRun', 'reaction'].includes(decision.kind);
-  const nonModal = centeredPitchDecision || decision.kind === 'kickSkill';
+  const compact = centeredPitchDecision || decision.kind === 'kickSkill';
   useEffect(() => {
     const element = dialog.current;
     setSkillChoices(null);
     if (!element) return;
     const prior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (nonModal) element.show();
-    else element.showModal();
+    // Keep match controls reachable while the mandatory decision stays open.
+    element.show();
     const scene = centeredPitchDecision ? document.querySelector(decision.kind === 'reaction' ? '.live-marker.target' : '.live-marker.active')?.closest('.live-pitch-scene')
       ?? document.querySelector('.live-pitch-scene') : null;
     const positionPitchDecision = () => {
@@ -62,8 +62,8 @@ function LegacyDecisionDialog({ decision, disabled, activeX, onChoice, onAction 
       element.style.removeProperty('top'); element.close(); if (prior?.isConnected) prior.focus();
     };
   }, [decision.key]);
-  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${decision.kind === 'apothecary' ? 'apothecary-decision' : ''} ${nonModal ? 'compact' : ''} ${centeredPitchDecision ? `${decision.kind === 'reaction' ? 'reaction' : decision.kind === 'followUp' ? 'follow-up' : 'hit-and-run'} center` : activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
-    aria-label="Match decision" aria-modal={!nonModal} onCancel={event => event.preventDefault()}>
+  return createPortal(<dialog ref={dialog} className={`match-decision-dialog ${decision.kind === 'apothecary' ? 'apothecary-decision' : ''} ${compact ? 'compact' : ''} ${centeredPitchDecision ? `${decision.kind === 'reaction' ? 'reaction' : decision.kind === 'followUp' ? 'follow-up' : 'hit-and-run'} center` : activeX === null ? 'center' : activeX < 13 ? 'right' : 'left'}`}
+    aria-label="Match decision" aria-modal={false} onCancel={event => event.preventDefault()}>
     <h2>{decision.title}</h2>
     {decision.detail && <p>{decision.detail}</p>}
     {decision.reaction && <ReactionCountdown reaction={decision.reaction} matchId={decision.reaction.matchId}/>}

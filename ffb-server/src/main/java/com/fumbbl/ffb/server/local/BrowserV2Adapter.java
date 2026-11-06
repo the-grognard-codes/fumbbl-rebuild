@@ -258,7 +258,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 			if ("movementRange".equals(type) || "movementPreview".equals(type)) {
 				boolean preview = "movementPreview".equals(type);
-				if (preview) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
+				if (preview && request.get("targetSquare") != null) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
+					"playerId", "kind", "targetPlayerId", "targetSquare", "waypoints");
+				else if (preview) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
 					"playerId", "kind", "targetPlayerId", "waypoints");
 				else fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "playerId");
 				principal = access.require(principal, ApplicationScope.PLAYER);
@@ -274,10 +276,18 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 						|| "pass".equals(kind) || "handOff".equals(kind))) throw new IllegalArgumentException();
 					String target = request.get("targetPlayerId").isNull() ? null : request.get("targetPlayerId").asString();
 					if (target != null && target.length() > 200) throw new IllegalArgumentException();
+					if (request.get("targetSquare") != null) {
+						JsonObject square = request.get("targetSquare").asObject();
+						if (!"pass".equals(kind) || target != null || square.size() != 2
+							|| !square.names().containsAll(Arrays.asList("x", "y"))
+							|| square.get("x").asInt() < 0 || square.get("x").asInt() > 25
+							|| square.get("y").asInt() < 0 || square.get("y").asInt() > 14) throw new IllegalArgumentException();
+					}
 					JsonArray waypoints = request.get("waypoints").asArray();
 					if (waypoints.size() > 20) throw new IllegalArgumentException();
 					result = setup.movementPreview(role, id, request.get("expectedRevision").asInt(),
-						request.get("playerId").asString(), kind, target, waypoints);
+						request.get("playerId").asString(), kind, target,
+						request.get("targetSquare") == null ? null : request.get("targetSquare").asObject(), waypoints);
 				} else result = setup.movementRange(role, id, request.get("expectedRevision").asInt(),
 					request.get("playerId").asString());
 				send(connection, new JsonObject().add("type", type).add("requestId", requestId)

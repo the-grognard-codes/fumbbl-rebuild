@@ -6,6 +6,7 @@
       "browser-client/test/reroll-readiness-ui.mjs",
       "browser-client/test/apothecary-decision-ui.mjs",
       "browser-client/test/rectangular-decisions-ui.mjs",
+      "browser-client/test/concession-priority-ui.mjs",
       "browser-client/test/reactive-decisions-ui.mjs",
       "browser-client/test/skill-prompts-ui.mjs",
       "browser-client/test/smart-pitch-ui.mjs",
@@ -21,6 +22,7 @@
       "browser-client/test/dice-mark-alignment-ui.mjs",
       "browser-client/test/roundup-dice-hover-ui.mjs",
       "browser-client/test/roundup5-presentation-ui.mjs",
+      "browser-client/test/roundup6-presentation-ui.mjs",
       "browser-client/test/roundup5-actions-ui.mjs",
       "browser-client/test/on-the-ball-ui.mjs"
     ],
@@ -51,6 +53,7 @@
     ],
     [
       "browser-client/test/pass-workflow-ui.mjs",
+      "browser-client/test/pass-square-target-ui.mjs",
       "browser-client/test/hail-mary-pass-ui.mjs",
       "browser-client/test/planned-transfers-ui.mjs",
       "browser-client/test/movement-flow-ui.mjs",

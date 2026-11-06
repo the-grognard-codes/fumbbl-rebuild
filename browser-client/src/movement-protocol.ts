@@ -6,9 +6,9 @@ import type { BlockHighlight } from './block-context.ts';
 
 export type MovementRange = { rangeVersion: 2; playerId: string; from: RoutePoint; remaining: number;
   normalRemaining: number; normal: RoutePoint[]; full: RoutePoint[]; revision: number };
-export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul' | 'pass' | 'handOff'; targetPlayerId: string | null; waypoints: RoutePoint[] };
+export type MovementRequest = { playerId: string; kind: 'move' | 'blitz' | 'foul' | 'pass' | 'handOff'; targetPlayerId: string | null; targetSquare?: RoutePoint; waypoints: RoutePoint[] };
 export type MovementPlan = { planVersion: 1; kind: MovementRequest['kind']; targetPlayerId: string | null;
-  waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; blockHighlight?: BlockHighlight; range?: MovementRange; jumpOptions?: RouteStep[] };
+  targetSquare?: RoutePoint; waypoints: RoutePoint[]; route: RoutePreview; blockDice?: number; blockHighlight?: BlockHighlight; range?: MovementRange; jumpOptions?: RouteStep[] };
 export type MovementRangeResponse = { version: 2; type: 'movementRange'; requestId: string;
   code: 'ACCEPTED'; matchId: string; range: MovementRange };
 export type MovementPreviewResponse = { version: 2; type: 'movementPreview'; requestId: string;
@@ -75,12 +75,15 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
   const hasRange = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'range');
   const hasJumps = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'jumpOptions');
   const hasHighlight = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'blockHighlight');
-  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : []), ...(hasHighlight ? ['blockHighlight'] : [])]);
+  const hasSquare = !!response.plan && typeof response.plan === 'object' && Object.hasOwn(response.plan, 'targetSquare');
+  const value = object(response.plan, ['planVersion', 'kind', 'targetPlayerId', 'waypoints', 'route', ...(hasDice ? ['blockDice'] : []), ...(hasRange ? ['range'] : []), ...(hasJumps ? ['jumpOptions'] : []), ...(hasHighlight ? ['blockHighlight'] : []), ...(hasSquare ? ['targetSquare'] : [])]);
   if (value.planVersion !== 1 || !['move', 'blitz', 'foul', 'pass', 'handOff'].includes(value.kind as string)
     || !Array.isArray(value.waypoints) || value.waypoints.length > 20) throw Error('Invalid movement plan');
   const kind = value.kind as MovementRequest['kind'];
   if (hasDice && (kind !== 'blitz' || ![1, 2, 3, -2, -3].includes(value.blockDice as number))) throw Error('Invalid blitz dice');
-  const targetPlayerId = kind !== 'move' ? playerId(value.targetPlayerId) : null;
+  if (hasSquare && (kind !== 'pass' || value.targetPlayerId !== null)) throw Error('Invalid square pass target');
+  const targetSquare = hasSquare ? point(value.targetSquare) : undefined;
+  const targetPlayerId = kind !== 'move' && !hasSquare ? playerId(value.targetPlayerId) : null;
   if (kind === 'move' && value.targetPlayerId !== null) throw Error('Unexpected movement target');
   const route = decodeRoutePreviewValue(value.route, kind !== 'move' || hasJumps);
   if (![3,4].includes(route.routeVersion) || targetPlayerId === route.playerId) throw Error('Invalid movement plan route');
@@ -114,5 +117,5 @@ export function decodeMovementPreview(json: string): MovementPreviewResponse {
     });
   }
   return { ...response, plan: { planVersion: 1, kind, targetPlayerId, waypoints, route,
-    ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(blockHighlight ? { blockHighlight } : {}), ...(range ? { range } : {}), ...(jumpOptions ? {jumpOptions} : {}) } } as MovementPreviewResponse;
+    ...(targetSquare ? { targetSquare } : {}), ...(hasDice ? { blockDice: value.blockDice as number } : {}), ...(blockHighlight ? { blockHighlight } : {}), ...(range ? { range } : {}), ...(jumpOptions ? {jumpOptions} : {}) } } as MovementPreviewResponse;
 }

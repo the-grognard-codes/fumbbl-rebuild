@@ -9,6 +9,28 @@ import type { MatchAnnouncement } from './match-announcements.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
 
 export type ConfirmedMove = { playerId: string; x: number; y: number };
+
+/** A failed conditional reroll leaves the action's original dice untouched. */
+export function failedRerollGate(record: TranscriptRecord, history: TranscriptRecord[] = []): boolean {
+  const activation = [record];
+  for (let index = history.length - 1; index >= 0; index--) {
+    const prior = history[index];
+    if (prior.revision >= record.revision) continue;
+    if (prior.state.matchId !== record.state.matchId || prior.state.activePlayerId !== record.state.activePlayerId
+      || prior.state.half !== record.state.half || prior.state.drive !== record.state.drive || prior.state.turn !== record.state.turn) break;
+    activation.unshift(prior);
+  }
+  let failed = false;
+  for (const entry of activation) for (const sync of entry.native) {
+    const reports = (sync.reportList as { reports?: Record<string, unknown>[] } | undefined)?.reports ?? [];
+    for (const report of reports) {
+      if (report.reportId === 'reRoll') failed = report.successful === false
+        && (report.reRollSource === 'Loner' || /^Pro(?: |$)/.test(String(report.reRollSource)));
+      else if (['block', 'blockReRoll', 'blockChoice'].includes(String(report.reportId)) || report.reRolled === true) failed = false;
+    }
+  }
+  return failed;
+}
 type BallChanges = { coordinate?: { x: number; y: number } | null; inPlay?: boolean; moving?: boolean };
 export type PlaybackBeat = { kind: 'move'; move: ConfirmedMove; ballChanges?: BallChanges }
   | { kind: 'ball'; ballChanges: BallChanges } | { kind: 'dice'; dice: DiceMoment }
@@ -73,11 +95,12 @@ export function withConfirmedMove(view: SetupState, move: ConfirmedMove): SetupS
 }
 
 /** The native sync stream is ordered by command number inside each durable decision. */
-export function playbackBeats(record: TranscriptRecord, initialBall?: { x: number; y: number } | null): PlaybackBeat[] {
+export function playbackBeats(record: TranscriptRecord, initialBall?: { x: number; y: number } | null, retainedGate = false): PlaybackBeat[] {
   const beats: PlaybackBeat[] = [];
   let previousDice: DiceMoment | null = null;
   let knownBall = initialBall;
   const known = new Set(record.state.players.map(player => player.id));
+  let failedGate = retainedGate;
   for (const sync of record.native) {
     const announcements = () => syncAnnouncements(record, sync).forEach(announcement => beats.push({ kind: 'announcement', announcement }));
     const hasBlock = Object.hasOwn(sync, 'blockContext');
@@ -87,8 +110,14 @@ export function playbackBeats(record: TranscriptRecord, initialBall?: { x: numbe
     const reports = (sync.reportList as { reports?: unknown[] } | undefined)?.reports;
     if (Array.isArray(reports)) for (const value of reports) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+      const report = value as Record<string, unknown>;
+      if (report.reportId === 'reRoll') failedGate = report.successful === false
+        && (report.reRollSource === 'Loner' || /^Pro(?: |$)/.test(String(report.reRollSource)));
+      else if (report.reportId === 'block' || report.reportId === 'blockReRoll' || report.reRolled === true) failedGate = false;
       const dice = reportedDice(value as Record<string, unknown>, record.state.players);
       if (dice) {
+        // Reopening the block dialog repeats its full pool without rolling it.
+        if (failedGate && dice.reportId === 'blockRoll') continue;
         // Native partial rerolls are followed by a full-pool decision report.
         // It confirms the same result, rather than rolling the untouched dice.
         const echo = dice.reportId === 'blockRoll' && previousDice?.rerolledIndexes

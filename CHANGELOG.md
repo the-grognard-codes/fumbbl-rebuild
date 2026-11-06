@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Touchdown scores update when the TOUCHDOWN announcement starts; the next-drive
+  tracker waits until it finishes. Mandatory decision prompts keep Game Menu and concession accessible.
+- Explicitly confirmed Pass actions now offer a small square-targeting toggle,
+  supporting empty or occupied targets after planned or completed movement.
+- Failed Loner/Pro tests preserve the original dice. Proposed block dice remain
+  above prerequisite rolls and reroll choices until the block resolves or is cancelled.
+- Bogruk participates in kickoff events and uses Apothecary, Bribe and Argue the Call.
+  Random accepts those resources half the time; both keep the least harmful injury result.
+- Removed the stray black outline behind both turn counters.
+
 - Non-block dice now show approved event icons and concise result captions, with
   independent icon/text controls in Game Menu > Interface. Preferences apply to
   live play, replay, and recovery; scatter arrows follow the pitch view, and

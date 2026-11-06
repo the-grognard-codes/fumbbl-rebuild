@@ -1,3 +1,5 @@
+import { resourceDecision } from './resource-decision.mjs';
+
 /** A policy returns a protocol operation, never an engine command. Replace this module to train a player. */
 export function chooseDecision(state, random = Math.random, actionsThisTurn = 0, setupVariant = 0) {
   const role = state.callerRole;
@@ -19,6 +21,8 @@ export function chooseDecision(state, random = Math.random, actionsThisTurn = 0,
 
   const actions = state.actions.filter(action => action.actor === role);
   if (!actions.length) return null;
+  const resource = resourceDecision(actions, () => random() < 0.5, random);
+  if (resource) return { operation: 'action', actionId: resource.id };
   const endTurn = actions.find(action => action.kind === 'endTurn');
   const reactionEnd = actions.find(action => action.kind === 'reactionEnd');
   if (actionsThisTurn >= 30 && reactionEnd) return { operation: 'action', actionId: reactionEnd.id };
