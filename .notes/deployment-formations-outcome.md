@@ -6,6 +6,9 @@ Implementation and the final revision were manually accepted on 2026-11-06.
 The user authorized staging, committing, a CI-gated PR merge, branch cleanup,
 the completed-features entry, and dev-local shutdown. This report records the
 pre-merge validation; GitHub and the completed-features tracker record delivery.
+Publishing preflight registered `SavedFormationSessionTest` in the native CI
+shard manifest and added the maintenance tests to the lifecycle CI job. The
+manifest was checked against the completed clean-build execution reports.
 
 Status: implementation, self-review, local automated validation, and manual
 acceptance complete. Dev-local startup was verified with healthy services and
