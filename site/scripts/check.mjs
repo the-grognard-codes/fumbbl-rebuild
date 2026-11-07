@@ -16,6 +16,7 @@ const required = [
   'src/teambuilder/index.html',
   'src/assets/site.css',
   'src/assets/home.css',
+  'src/assets/login.css',
   'src/assets/updates-redirect.js',
   'src/assets/builder-workbench.css',
   'src/assets/updates.css',

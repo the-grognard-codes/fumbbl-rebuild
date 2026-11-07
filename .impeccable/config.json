@@ -52,6 +52,34 @@
         ],
         "createdAt": "2026-11-07T00:12:52.168Z",
         "reason": "Agent: formation-grid wide-boundary marks the pitch wide-zone divisions after columns 4 and 11; this is a functional field marking, not a card accent."
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/src/support/index.html"
+        ],
+        "createdAt": "2026-11-07T01:26:09.202Z",
+        "reason": "Agent: Chromium measurements in test-output/support-page/geometry.json show every panel has 36px padding at 1440px, 30.72px at 768px, 25.6px at 640px and 20px at 390/320px; the detector misreads the inherited clamp() padding."
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "site/src/support/index.html"
+        ],
+        "createdAt": "2026-11-07T01:26:10.752Z",
+        "reason": "Agent: the unchanged shared site.css background predates issue474 and was reviewed in the supplied November 6 critique; this scoped Support refinement preserves the approved Pixel Pitch identity and adds no halo."
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "site/src/login/complete/index.html",
+          "site/src/login/index.html"
+        ],
+        "createdAt": "2026-11-07T01:28:25.260Z",
+        "reason": "Agent: main already contains the unchanged shared site.css background, reviewed in the supplied public-site critique; issue474 adds only help links to these pages and preserves the approved Pixel Pitch identity."
       }
     ]
   }

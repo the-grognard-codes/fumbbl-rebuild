@@ -1,17 +1,36 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'node:http';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../browser-client/node_modules/playwright/index.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 
-test('support scaling preserves CSS targets, rounds up physical space and works with keyboard, touch and no script', async () => {
+async function checkTopicNavigation(page, keyboard = false) {
+  const links = await page.getByRole('navigation', { name: 'Support topics' }).getByRole('link').all();
+  assert.equal(links.length, 6, 'Every main help/reference topic has an opening shortcut');
+  for (const link of links) {
+    const fragment = await link.getAttribute('href');
+    assert.ok(fragment.startsWith('#'));
+    const target = page.locator(fragment);
+    assert.equal(await target.count(), 1, `Topic ${fragment} has one destination`);
+    if (keyboard) { await link.focus(); await link.press('Enter'); }
+    else await link.click();
+    assert.equal(new URL(page.url()).hash, fragment);
+    await page.waitForFunction(id => document.activeElement?.id === id, fragment.slice(1));
+    await page.waitForFunction(id => {
+      const box = document.getElementById(id).getBoundingClientRect();
+      return box.y >= 0 && box.y < innerHeight;
+    }, fragment.slice(1));
+  }
+}
+
+test('support topics and sign-in help work without scripts while scaling preserves keyboard and touch behavior', async () => {
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://local').pathname;
-    const file = resolve(root, `.${path === '/support' ? '/support/index.html' : path}`);
+    const file = resolve(root, `.${['/support', '/login', '/login/complete'].includes(path) ? `${path}/index.html` : path}`);
     if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) { response.writeHead(404).end(); return; }
     try {
       response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[extname(file)] ?? 'application/octet-stream');
@@ -23,11 +42,25 @@ test('support scaling preserves CSS targets, rounds up physical space and works 
   try {
     browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined) });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await context.route('https://fonts.googleapis.com/**', route => route.abort());
+    if (!process.env.FFB_VISUAL_FONTS) await context.route('https://fonts.googleapis.com/**', route => route.abort());
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}/support`);
+    const output = fileURLToPath(new URL('../../test-output/support-page/', import.meta.url));
+    await mkdir(output, { recursive: true });
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: resolve(output, 'desktop-opening.png') });
+    await checkTopicNavigation(page, true);
+    const sectionOrder = await page.locator('main > section > h2').evaluateAll(headings => headings.map(heading => heading.id));
+    assert.ok(sectionOrder.indexOf('sign-in-help') < sectionOrder.indexOf('viewing-heading'));
+    assert.ok(sectionOrder.indexOf('contact') < sectionOrder.indexOf('viewing-heading'));
+    for (const help of await page.locator('.support-auth-help').all()) {
+      await help.locator('summary').focus();
+      await help.locator('summary').press('Enter');
+      assert.equal(await help.getAttribute('open'), '', 'Method help opens with the keyboard');
+    }
+    await page.locator('section[aria-labelledby="sign-in-help"]').screenshot({ path: resolve(output, 'sign-in-help-desktop.png') });
     const slider = page.getByRole('slider', { name: 'OS / display scaling' });
     await page.waitForFunction(() => !document.querySelector('#display-scale').disabled);
     await slider.focus();
@@ -58,20 +91,40 @@ test('support scaling preserves CSS targets, rounds up physical space and works 
     assert.equal(await page.getByText('1350 × 300 CSS pixels for live coaching/spectating', { exact: true }).isVisible(), true);
     await page.getByText('Layout fit is different from comfortable play', { exact: true }).click();
 
-    const output = fileURLToPath(new URL('../../test-output/support-page/', import.meta.url));
-    await mkdir(output, { recursive: true });
     await page.screenshot({ path: resolve(output, 'desktop.png'), fullPage: true });
-    for (const width of [768, 390, 320]) {
+    const geometryEvidence = [];
+    for (const width of [1440, 768, 640, 390, 320]) {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `No horizontal overflow at ${width}px`);
-      if (width === 390) await page.screenshot({ path: resolve(output, 'mobile.png'), fullPage: true });
+      const topicBoxes = await page.getByRole('navigation', { name: 'Support topics' }).getByRole('link').evaluateAll(links => links.map(link => {
+        const { width, height } = link.getBoundingClientRect();
+        return { width, height, fontSize: parseFloat(getComputedStyle(link).fontSize) };
+      }));
+      assert.ok(topicBoxes.every(box => box.width >= 44 && box.height >= 44), `Topic links retain touch targets at ${width}px`);
+      assert.ok(topicBoxes.every(box => box.fontSize >= 11), `Topic links remain legible at ${width}px`);
+      geometryEvidence.push({ width, topicBoxes, panelPadding: await page.locator('.panel').evaluateAll(panels => panels.map(panel => {
+        const style = getComputedStyle(panel);
+        return [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft];
+      })) });
+      if (width === 390) {
+        await page.screenshot({ path: resolve(output, 'mobile.png'), fullPage: true });
+        for (const help of await page.locator('.support-auth-help').all()) await help.locator('summary').click();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({ path: resolve(output, 'mobile-opening.png') });
+        for (const help of await page.locator('.support-auth-help').all()) await help.locator('summary').click();
+        await page.locator('section[aria-labelledby="sign-in-help"]').screenshot({ path: resolve(output, 'sign-in-help-mobile.png') });
+      }
     }
+    await writeFile(resolve(output, 'geometry.json'), JSON.stringify(geometryEvidence, null, 2));
     assert.deepEqual(errors, []);
 
     const touch = await browser.newContext({ viewport: { width: 820, height: 1180 }, hasTouch: true, isMobile: true });
     await touch.route('https://fonts.googleapis.com/**', route => route.abort());
     const touchPage = await touch.newPage();
     await touchPage.goto(page.url());
+    await touchPage.getByRole('navigation', { name: 'Support topics' }).getByRole('link', { name: 'Contact support', exact: true }).tap();
+    assert.equal(new URL(touchPage.url()).hash, '#contact');
+    assert.equal(await touchPage.locator('#contact').evaluate(element => document.activeElement === element), true);
     const touchSlider = touchPage.getByRole('slider');
     await touchSlider.scrollIntoViewIfNeeded();
     await touchPage.waitForFunction(() => !document.querySelector('#display-scale').disabled);
@@ -81,15 +134,43 @@ test('support scaling preserves CSS targets, rounds up physical space and works 
     assert.equal(await touchPage.locator('.physical-size').first().textContent(), '2880 × 1350 physical px');
 
     const noScript = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 320, height: 900 } });
-    await noScript.route('https://fonts.googleapis.com/**', route => route.abort());
+    if (!process.env.FFB_VISUAL_FONTS) await noScript.route('https://fonts.googleapis.com/**', route => route.abort());
     const fallback = await noScript.newPage();
     await fallback.goto(page.url());
+    await checkTopicNavigation(fallback, true);
+    for (const help of await fallback.locator('.support-auth-help').all()) {
+      await help.locator('summary').click();
+      assert.equal(await help.getAttribute('open'), '', 'Method help remains available without JavaScript');
+    }
     assert.equal(await fallback.getByRole('slider').isDisabled(), true);
     assert.deepEqual(await fallback.locator('.physical-size').allTextContents(), expected[0].map(size => `${size} physical px`));
     assert.equal(await fallback.locator('noscript').isVisible(), true);
     assert.equal(await fallback.getByRole('heading', { name: 'Planning for animated matches' }).isVisible(), true);
     assert.equal(await fallback.getByRole('link', { name: 'support@molesunderthepitch.org', exact: true }).isVisible(), true);
     assert.equal(await fallback.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const authGeometry = [];
+    for (const route of ['/login', '/login/complete']) {
+      for (const width of [1280, 390, 320]) {
+        await fallback.setViewportSize({ width, height: 900 });
+        await fallback.goto(`http://127.0.0.1:${server.address().port}${route}`);
+        await fallback.evaluate(() => {
+          // Exercise the existing email-confirmation form without requesting a sign-in.
+          const form = document.querySelector('#completion-form');
+          if (form) form.hidden = false;
+        });
+        await fallback.evaluate(() => document.fonts.ready);
+        const fontSizes = await fallback.locator('main .button').evaluateAll(buttons => buttons.map(button => parseFloat(getComputedStyle(button).fontSize)));
+        assert.ok(fontSizes.every(size => size >= 11), `Sign-in controls stay legible on ${route} at ${width}px`);
+        assert.equal(await fallback.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${route} fits at ${width}px`);
+        authGeometry.push({ route, width, fontSizes });
+        await fallback.screenshot({ path: resolve(output, `${route === '/login' ? 'login' : 'email-completion'}-${width}.png`), fullPage: true });
+      }
+      await fallback.getByRole('link', { name: 'Help with Google or email sign-in', exact: true }).click();
+      assert.equal(new URL(fallback.url()).pathname, '/support');
+      assert.equal(new URL(fallback.url()).hash, '#sign-in-help');
+      assert.equal(await fallback.locator('#sign-in-help').evaluate(element => document.activeElement === element), true);
+    }
+    await writeFile(resolve(output, 'auth-geometry.json'), JSON.stringify(authGeometry, null, 2));
   } finally {
     await browser?.close();
     await new Promise(done => server.close(done));

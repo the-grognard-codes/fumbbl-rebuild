@@ -9,6 +9,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Coach-first home and Development archive](#coach-first-home-and-development-archive)
   - [Browser-only client support](#browser-only-client-support)
   - [Device support and display-scaling guidance](#device-support-and-display-scaling-guidance)
+  - [Support navigation and sign-in help](#support-navigation-and-sign-in-help)
   - [Java 21 baseline](#java-21-baseline)
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
@@ -90,6 +91,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Recorded manufacturer-sourced iPad and Galaxy Tab generations and generic desktop estimates for future animated matches. Hardware estimates remain separate from measured performance and physical-device validation.
 - Preserved site styling, support contact and no-JavaScript guidance. See [issue #390](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/390) and the [implementation outcome](../docs/specs/support-device-guidance-outcome.md) for validation and remaining limits.
 
+### Support navigation and sign-in help
+
+- Support opens with six native topic links, keyboard-focusable destinations, Google/email troubleshooting and contact before the device reference. Native disclosures keep method-specific help available without JavaScript.
+- Sign-in guidance covers popup/account selection, Google account recovery, Spam/Junk and mail filters, address checks, completing email links in another browser and requesting fresh links. Both sign-in pages link directly to the help.
+- Retained the existing device qualifications, support address, scaling calculator and layout-fit disclosure. Removed the two redundant sign-in-page labels and increased their four action-button labels to 12px with page-scoped styling.
+- Verified production build, site checks, 12 site unit tests and two focused browser suites; follow-up sign-in layout/help checks and asset-version verification pass. Browser checks cover keyboard, pointer/touch, JavaScript-disabled use and narrow layouts.
+- Scope and evidence: [issue #474](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/474), [the spec](../docs/specs/support-navigation-sign-in-help.md) and [outcome](../docs/specs/support-navigation-sign-in-help-outcome.md). The closing PR records final CI and merge evidence.
+
 ### Java 21 baseline
 
 - Established JDK 21 as the minimum for every Java module, with release-21 project bytecode and pinned Temurin 21.0.11+10 validation. Compatible third-party libraries may retain older bytecode.
@@ -142,6 +151,7 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Formation pitch cells remain square, with circular markers and contained two-digit jersey numbers on desktop and narrow screens. Pitch wide-zone boundaries remain visible.
 - Accepted manually on 2026-11-06. Focused builder browser verification passed all eight tests, alongside formation interaction checks and the production build; the full local browser preflight also passed before the final formation-sizing refinement.
 - Scope and evidence: [issue #470](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/470), [implementation outcome](../docs/specs/team-builder-workbench-outcome.md). A guided walkthrough and workflow-choice modal remain in [#471](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/471).
+- Merged in [PR #472](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/472) after CI passed; issue #470 is closed. The feature branches and worktree were removed, and dev-local was stopped with database volumes retained.
 
 ### Saved Human and Orc team colors
 

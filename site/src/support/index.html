@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Device, screen size, scaling and input guidance for Moles Under the Pitch, plus project support.">
+  <meta name="description" content="Get help signing in to Moles Under the Pitch with Google or email, contact support, and find screen, scaling and input guidance.">
   <title>Support · Moles Under the Pitch</title>
   <link rel="stylesheet" href="/assets/site.css?v=20261008-6">
   <link rel="stylesheet" href="/assets/support.css">
@@ -11,12 +11,52 @@
 <body>
   <!-- site-header -->
   <main class="reading support-page">
-    <p class="kicker">Support</p>
-    <h1>Find your space on the pitch</h1>
-    <p>We design live coaching for desktop and laptop computers first, with landscape tablet support. Phones are best suited to the website, replays and spectating. Direct coaching on a phone is best effort.</p>
+    <h1>Support</h1>
+    <p>Get help signing in, find comfortable settings for your screen, or contact us.</p>
+
+    <nav class="support-topics" aria-label="Support topics">
+      <ul>
+        <li><a href="#sign-in-help">Sign-in help</a></li>
+        <li><a href="#contact">Contact support</a></li>
+        <li><a href="#viewing-heading">Screen sizes</a></li>
+        <li><a href="#scaling-heading">Scaling &amp; zoom</a></li>
+        <li><a href="#controls-heading">Mouse, keyboard &amp; touch</a></li>
+        <li><a href="#hardware-heading">Hardware guidance</a></li>
+      </ul>
+    </nav>
+
+    <section class="panel" aria-labelledby="sign-in-help">
+      <h2 id="sign-in-help" tabindex="-1">Help signing in</h2>
+      <p>Choose the method you used below. When you are ready to try again, <a href="/login">return to Sign in</a>.</p>
+      <details class="support-auth-help">
+        <summary>Google sign-in</summary>
+        <ol>
+          <li><strong>No Google window?</strong> Check whether it opened behind your browser. If your browser blocked it, allow pop-ups for this MUTP site, then choose <strong>Continue with Google</strong> again.</li>
+          <li><strong>Closed the window or chose the wrong account?</strong> Try again, select the Google account you want to use for MUTP, and finish any verification prompts in Google's window.</li>
+          <li><strong>Cannot sign in to Google itself?</strong> Follow <a href="https://support.google.com/accounts/answer/7682439">Google's account recovery guidance</a>. For a work or school account, your administrator may need to help with sign-in restrictions.</li>
+        </ol>
+        <p>If Google sign-in finishes but MUTP still will not open, <a href="#contact">contact support</a> with the error you see.</p>
+      </details>
+      <details class="support-auth-help">
+        <summary>Email sign-in links</summary>
+        <ol>
+          <li><strong>No email?</strong> Check the address you entered, then look in Spam or Junk and any folders used by mail filters. If you find the message there, mark it as not spam. Allow a few minutes for delivery before requesting another link.</li>
+          <li><strong>Opening the link?</strong> Use the most recent message. For the simplest return, open it in the same browser and device where you requested it. If it opens elsewhere and asks for your email, enter the exact address used to request the link.</li>
+          <li><strong>Link expired, already used, or still failing?</strong> Return to <a href="/login">Sign in</a>, check your email address, and choose <strong>Email a sign-in link</strong> to request a fresh link. If delivery or sign-in keeps failing, <a href="#contact">contact support</a>.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="panel" aria-labelledby="contact">
+      <h2 id="contact" tabindex="-1">Contact support</h2>
+      <p>For MUTP help, project or privacy questions, email <a href="mailto:support@molesunderthepitch.org">support@molesunderthepitch.org</a>.</p>
+      <p>Tell us what you were trying to do, what happened, and which browser and device you used. For sign-in trouble, include the method you chose and any error wording.</p>
+      <p>Please do not send game credentials, account details, or other sensitive information, including passwords, verification codes or sign-in links. This project cannot provide support for FUMBBL accounts or services.</p>
+    </section>
 
     <section class="panel" aria-labelledby="viewing-heading">
-      <h2 id="viewing-heading">Recommended viewing sizes</h2>
+      <h2 id="viewing-heading" tabindex="-1">Recommended viewing sizes</h2>
+      <p>We design live coaching for desktop and laptop computers first, with landscape tablet support. Phones are best suited to the website, replays and spectating. Direct coaching on a phone is best effort.</p>
       <p>These sizes describe the available browser content area in <strong>CSS pixels</strong>, after display scaling and browser zoom. They are guidance, not access restrictions.</p>
       <dl class="support-sizes">
         <div><dt>Desktop coaching &amp; spectating</dt><dd><strong>1920 × 900</strong> CSS pixels</dd><dd>Our primary desktop reference is 1920 × 1080 in full screen at 100% display scale and browser zoom.</dd></div>
@@ -31,7 +71,7 @@
     </section>
 
     <section class="panel" aria-labelledby="scaling-heading">
-      <h2 id="scaling-heading">Display scaling &amp; browser zoom</h2>
+      <h2 id="scaling-heading" tabindex="-1">Display scaling &amp; browser zoom</h2>
       <p>A high-resolution screen can provide much less layout space when scaling is enabled. For example, a 1920 × 1080 screen at 150% display scale provides at most <strong>1280 × 720 CSS pixels</strong> at 100% browser zoom, before browser bars and the taskbar take their share.</p>
       <p>Start with 100% browser zoom and a display scale that keeps text comfortable. Full screen can reclaim space. Reducing scaling makes controls physically smaller, so it is not always an improvement.</p>
       <div class="support-calculator">
@@ -54,14 +94,14 @@
     </section>
 
     <section class="panel" aria-labelledby="controls-heading">
-      <h2 id="controls-heading">Mouse, keyboard &amp; touch</h2>
+      <h2 id="controls-heading" tabindex="-1">Mouse, keyboard &amp; touch</h2>
       <p><strong>Mouse and keyboard:</strong> the preferred setup for desktop coaching. Use a mouse or trackpad for pitch and menu controls, and a keyboard for chat and text entry. Keyboard support does not imply that every match action can be completed without a pointer.</p>
       <p><strong>Touch screens:</strong> supported for tapping pitch and menu controls, with landscape tablets the intended touch-coaching format. Leave room for controls as well as the pitch. An on-screen keyboard reduces the available viewing area while typing.</p>
       <p><strong>Phones:</strong> use the website, watch a replay or spectate when a larger screen is unavailable. Viewing needs fewer interactions than coaching, but small screens can still crowd controls. Rotate to landscape when watching a match.</p>
     </section>
 
     <section class="panel" aria-labelledby="hardware-heading">
-      <h2 id="hardware-heading">Planning for animated matches</h2>
+      <h2 id="hardware-heading" tabindex="-1">Planning for animated matches</h2>
       <p>These are <strong>project estimates</strong> for future animated players, pitch and stadium, not tested minimums or a frame-rate guarantee. Try your existing device before considering an upgrade.</p>
       <dl class="support-sizes">
         <div><dt>Desktop &amp; laptop</dt><dd>Estimated starting point: a modern mainstream four-core processor, 8 GB RAM and hardware-accelerated integrated graphics. We recommend 16 GB RAM and a recent integrated GPU for more headroom. A dedicated graphics card is not part of this estimate.</dd></div>
@@ -73,8 +113,6 @@
       <p>We have not benchmarked the future combined animation workload. Actual performance will depend on the finished scenes, rendering resolution, browser and available memory. Manufacturer links verify device specifications, not game performance.</p>
     </section>
 
-    <h2>Get help with the project</h2>
-    <section class="panel"><p>For project and privacy questions, email <a href="mailto:support@molesunderthepitch.org">support@molesunderthepitch.org</a>.</p><p>Please do not send game credentials, account details, or other sensitive information. This project cannot provide support for FUMBBL accounts or services.</p></section>
   </main>
   <footer><span>© 2026 Moles Under the Pitch</span><a href="/">Home</a></footer>
   <script src="/firebase-web-config.js"></script>

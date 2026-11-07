@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Support now opens with topic links, Google and email sign-in troubleshooting,
+  and a direct contact route. Sign-in pages link to the help, while existing
+  device guidance and the scaling calculator remain available. Sign-in pages
+  use clearer 12px button labels and omit redundant labels above their headings.
+
 - The home page now leads with coaching and a three-step route into a match.
   Development combines the project's educational background and searchable merged
   PR history, replacing Updates in navigation while keeping old links working.
