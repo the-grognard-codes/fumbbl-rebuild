@@ -82,6 +82,9 @@ export async function squarePosition(page, x, y) {
     await page.mouse.down({ button: 'right' });
     // LivePitch pans by client-pixel deltas. The viewport's border is not part
     // of the camera surface and must not scale the drag (especially at 30°).
+    // Capture the pointer before the longer drag can cross a floating HUD.
+    const captureScale = Math.min(1, 8 / Math.hypot(delta.x, delta.y));
+    await page.mouse.move(start.x + delta.x * captureScale, start.y + delta.y * captureScale);
     await page.mouse.move(start.x + delta.x, start.y + delta.y, { steps: 5 });
     await page.mouse.up({ button: 'right' });
     await page.waitForFunction(({ before, expected }) => {

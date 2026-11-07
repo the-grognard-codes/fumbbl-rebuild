@@ -102,6 +102,29 @@ async function assertProjectedBallAndPitch(page, role, mode, angle, ball = { x: 
   assert.equal(await scene.locator('.live-ball-arrow').count(), 4);
 }
 try {
+  {
+    const page = await open('home');
+    await setCameraMode(page, 'top-down');
+    await squarePosition(page, 13, 7);
+    // Leave room for a natural drag start, then cover the remaining coarse
+    // mouse samples as a floating panel can. Travel must capture before it.
+    await page.locator('.live-pitch-viewport').evaluate(viewport => {
+      const bounds = viewport.getBoundingClientRect();
+      const panel = document.createElement('div');
+      panel.id = 'capture-test-panel';
+      panel.textContent = 'Floating panel';
+      Object.assign(panel.style, { position: 'fixed', left: `${bounds.left}px`, top: `${bounds.top}px`,
+        width: `${bounds.width}px`, height: `${bounds.height / 2 - 12}px`, zIndex: '9999' });
+      document.body.append(panel);
+    });
+    const target = await squarePosition(page, 0, 7);
+    await page.locator('#capture-test-panel').evaluate(panel => panel.remove());
+    await page.locator('.live-pitch-scene').click({ position: target });
+    assert.deepEqual(await page.evaluate(() => window.intents), [{ x: 0, y: 7 }],
+      'Automated travel captures the pointer before crossing a floating panel and preserves canonical targeting');
+    await page.close();
+    console.log('PASS: automated pitch travel captures before crossing a floating panel.');
+  }
   for (const role of ['home', 'away']) for (const carried of [false, true]) {
     const page = await open(role, false, null, { ball: { x: 12, y: 7 },
       ballState: { version: 1, carrierPlayerId: carried ? 'human' : null, inPlay: true, moving: !carried } });
