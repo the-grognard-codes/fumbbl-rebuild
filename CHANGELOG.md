@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added separate DEV and PROD Microsoft Entra publisher-domain verification files
+  to the Hosting artifacts at `/.well-known/microsoft-identity-association.json`.
+
 - Support now opens with topic links, Google and email sign-in troubleshooting,
   and a direct contact route. Sign-in pages link to the help, while existing
   device guidance and the scaling calculator remain available. Sign-in pages

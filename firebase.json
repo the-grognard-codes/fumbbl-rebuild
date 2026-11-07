@@ -3,12 +3,20 @@
     "public": "deployment/firebase/hosting",
     "ignore": [
       "firebase.json",
-      "**/.*",
+      "**/.!(well-known)",
+      "**/.!(well-known)/**",
       "**/node_modules/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
     "headers": [
+      {
+        "source": "/.well-known/microsoft-identity-association.json",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+          { "key": "Cache-Control", "value": "no-store" }
+        ]
+      },
       {
         "source": "/play/assets/**",
         "headers": [

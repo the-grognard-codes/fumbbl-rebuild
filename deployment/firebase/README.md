@@ -5,6 +5,7 @@
 - `/` is the static project site.
 - `/play` is the Firebase-authenticated game setup and browser client, including human and computer opponent selection.
 - `/login/complete` completes email-link authentication against the explicitly selected Firebase project.
+- `/.well-known/microsoft-identity-association.json` serves the selected environment's Microsoft Entra publisher-domain verification file as UTF-8 JSON. The source files are in `identity-associations/`; local profiles use the DEV association.
 
 Assembly generates `firebase.generated.json` from the repository-root `firebase.json`, adding an environment-specific Content Security Policy. Verify it with `node deployment/firebase/scripts/verify-hosting-artifact.mjs --environment dev` (or `prod`). Deploy with `firebase deploy --config firebase.generated.json --only hosting --project <matching-project>`. The CI workflows use this generated configuration. Do not deploy the base configuration directly. Its root `.firebaserc` maps `dev` to `dev-moles-under-the-pitch-org` and `prod` to `molesunderthepitch-dotorg`. The build rejects an omitted or unknown environment and never consults a developer's active Firebase CLI project. The public Firebase web configurations are committed in `scripts/environment.mjs`; they are browser identifiers, not service credentials. The browser game connects to `wss://game-dev.molesunderthepitch.org/browser/v2` or `wss://game.molesunderthepitch.org/browser/v2` for the matching environment. Do not commit credentials or OAuth secrets.
 
