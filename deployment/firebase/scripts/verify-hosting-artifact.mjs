@@ -59,8 +59,8 @@ const association = JSON.parse(await readFile(new URL(associationPath, root), 'u
 assert.deepEqual(association, {
   associatedApplications: [{
     applicationId: environment === 'dev'
-      ? '9686eb62-1151-4945-845b-a282cfb2cc2d'
-      : '16d08054-2866-4737-a220-62a11ea237bd'
+      ? '527c3196-8930-421e-ab7c-06028fc9fb31'
+      : 'b3f701a9-ce63-40cf-93d8-d0d87b8a5281'
   }]
 }, 'Publisher domain association must contain only the selected environment application ID.');
 
