@@ -1,7 +1,5 @@
 # issues
 
-- [ ] [#476 Microsoft Entra publisher-domain verification](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/476): separate DEV/PROD association files are included during Hosting assembly. Both environment builds and artifact checks passed; local HTTP checks returned 200 with the matching app ID, UTF-8 JSON and no redirect. Publication to both environments is authorized and pending deployment gates.
-
 - [x] [#421 BB2025-only engine](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/421) and [#422 BB2025-only integration](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/422): merged in [PR #425](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/425) after CI and the complete local browser gate passed. See [outcome and validation](.notes/bb2025-only/outcome.md).
 
 - [x] [#420 Consistent BB2025 kickoff selection](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/420): merged in [PR #423](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/423) after CI passed. See [validation and outcome](docs/specs/bb2025-kickoff-selection-outcome.md).
