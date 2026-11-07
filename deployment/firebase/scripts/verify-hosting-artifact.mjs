@@ -2,6 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveEnvironment } from './environment.mjs';
+import assert from 'node:assert/strict';
 
 function argument(args, name) {
   const index = args.indexOf(name);
@@ -53,6 +54,16 @@ const required = [
 ];
 for (const path of required) await access(new URL(path, root));
 
+const associationPath = '.well-known/microsoft-identity-association.json';
+const association = JSON.parse(await readFile(new URL(associationPath, root), 'utf8'));
+assert.deepEqual(association, {
+  associatedApplications: [{
+    applicationId: environment === 'dev'
+      ? '9686eb62-1151-4945-845b-a282cfb2cc2d'
+      : '16d08054-2866-4737-a220-62a11ea237bd'
+  }]
+}, 'Publisher domain association must contain only the selected environment application ID.');
+
 const script = await readFile(new URL('firebase-web-config.js', root), 'utf8');
 const prefix = 'window.MOLES_FIREBASE_CONFIG = Object.freeze(';
 if (!script.startsWith(prefix) || !script.endsWith(');\n')) throw new Error('Generated Firebase configuration has an unexpected format.');
@@ -69,6 +80,13 @@ if (!publicPage.includes('assets/site.css?v=') || !playPage.includes('/assets/pl
 const playScript = await readFile(new URL('assets/play.js', root), 'utf8');
 if (playScript.includes('ws://') || playScript.includes('/browser/v1')) throw new Error('Local diagnostic transport leaked into hosted play.');
 const hosting = JSON.parse(await readFile(hostingConfig ? resolve(hostingConfig) : new URL('../../../firebase.generated.json', import.meta.url), 'utf8'));
+assert.ok(hosting.hosting.ignore.includes('**/.!(well-known)')
+  && hosting.hosting.ignore.includes('**/.!(well-known)/**')
+  && !hosting.hosting.ignore.includes('**/.*'),
+  'Hosting must publish .well-known while excluding other dotfiles.');
+const associationHeaders = hosting.hosting.headers.find(rule => rule.source === `/${associationPath}`)?.headers;
+assert.ok(associationHeaders?.some(header => header.key === 'Content-Type' && header.value === 'application/json; charset=utf-8'),
+  'Publisher domain association must be served as UTF-8 JSON.');
 const csp = hosting.hosting.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy')?.value;
 const expectedConnectSources = new Set([
   "'self'",
