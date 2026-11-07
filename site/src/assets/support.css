@@ -2,6 +2,15 @@
 .support-page h1 { max-width: 20ch; }
 .support-page h2 { margin-top: 0; }
 .support-page a { overflow-wrap: anywhere; }
+.support-page h2[id] { scroll-margin-top: 1.5rem; }
+.support-topics ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem 1rem; list-style: none; margin: 1rem 0 2rem; padding: .75rem 0; border-block: 1px solid #40637e; }
+.support-topics a { display: flex; align-items: center; min-height: 2.75rem; padding: .5rem .75rem; font: inherit; font-size: 1rem; color: #bdeaff; text-underline-offset: .2em; }
+.support-topics a:hover { background: #101c2b; color: #ffe17b; }
+.support-page a:focus-visible { outline: 2px solid #ffe17b; outline-offset: 3px; }
+.support-auth-help { margin-top: 1rem; border-top: 1px solid #40637e; }
+.support-auth-help > summary { padding: .75rem 0; }
+.support-auth-help ol { margin: .5rem 0 1rem; padding-left: 1.5rem; }
+.support-auth-help li + li { margin-top: .75rem; }
 .support-sizes { margin: 1.5rem 0; }
 .support-sizes > div { padding: 1rem 0; border-top: 1px solid #40637e; }
 .support-sizes dt { color: #bdeaff; font-weight: 700; }
@@ -21,6 +30,7 @@
 }
 @media (max-width: 30rem) {
   .support-page { padding: 2rem 0 0; }
+  .support-topics ul { grid-template-columns: 1fr; }
   .support-calculator { padding: .75rem; }
   .support-scale-stops { font-size: .7rem; }
 }
