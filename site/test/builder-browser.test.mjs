@@ -15,6 +15,11 @@ const teamId = '12345678-1234-1234-1234-123456789abc';
 const formationEvidence = process.env.FORMATION_EVIDENCE_DIR;
 if (formationEvidence) await mkdir(formationEvidence, { recursive: true });
 
+async function openDisclosure(page, selector) {
+  const disclosure = page.locator(selector);
+  if (!(await disclosure.evaluate(element => element.open))) await disclosure.locator(':scope > summary').click();
+}
+
 test('signed-in builder saves an owned named team and Play selects it by name', async () => {
   const server = createServer(async (request, response) => {
     const pathname = new URL(request.url, 'http://local').pathname;
@@ -98,12 +103,14 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
       await pages[0].locator('.team-details').screenshot({ path: fileURLToPath(new URL(`../../.tools/builder-human-details-${width}.png`, import.meta.url)) });
     }
     assert.equal(await pages[0].getByText('Roster values are estimates until server validation.').count(), 0);
+    await openDisclosure(pages[0], '.roster-row:first-child .roster-player-options');
     const skillChoices = await pages[0].getByLabel('Skill for slot 1', { exact: true }).locator('option').allTextContents();
     for (const skill of ['Guard (Elite)', 'Wrestle', 'Sidestep', 'Sure Feet', 'Mighty Blow (Elite)'])
       assert.ok(skillChoices.includes(skill), skill);
     await pages[0].getByLabel('Skill for slot 1', { exact: true }).selectOption('wrestle');
     await pages[0].getByRole('button', { name: 'Validate Roster' }).click();
     await pages[0].getByText(/Valid draft/).waitFor();
+    await openDisclosure(pages[0], '.builder-kit-options');
     const primary = pages[0].getByRole('radiogroup', { name: 'Primary color', exact: true });
     const secondary = pages[0].getByRole('radiogroup', { name: 'Secondary color', exact: true });
     assert.equal(await primary.getByRole('radio').count(), 16);
@@ -150,8 +157,10 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     assert.deepEqual(documents.get(accounts[0]).draft.players[0].skillIds, ['wrestle']);
     assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'Coach Choice');
     assert.deepEqual(documents.get(accounts[0]).draft.colors, { version: 1, primary: 'red', secondary: 'red' });
+    await openDisclosure(pages[0], '.saved-teams-panel');
     assert.doesNotMatch(await pages[0].locator('.saved-teams-panel').innerText(), /version \d/);
     assert.match(await pages[0].locator('.saved-teams-panel').innerText(), /The Moles\s*· Human/);
+    await openDisclosure(pages[1], '.saved-teams-panel');
     assert.equal(await pages[1].getByText('No saved teams yet.').count(), 1);
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/play`);
     await pages[0].getByLabel('Saved team').waitFor();
@@ -162,6 +171,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     assert.equal(documents.has(accounts[1]), false);
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'savedTeam' && entry.operation === 'create'));
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
+    await openDisclosure(pages[0], '.saved-teams-panel');
     await pages[0].getByRole('button', { name: 'Load' }).click();
     const original = structuredClone(savedCopies.get(`${accounts[0]}:${teamId}`));
     await pages[0].getByRole('button', { name: 'Save as new', exact: true }).click();
@@ -177,6 +187,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save new team', exact: true }).click();
     await pages[0].getByText('Saved team The Moles Copy', { exact: true }).waitFor();
+    await openDisclosure(pages[0], '.saved-teams-panel');
     assert.deepEqual(savedCopies.get(`${accounts[0]}:${teamId}`), original);
     assert.equal(documents.get(accounts[0]).draft.players[0].playerName, 'New Captain');
     assert.deepEqual(documents.get(accounts[0]).draft.colors, { version: 1, primary: 'red', secondary: 'red' });
@@ -189,6 +200,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByRole('button', { name: 'Delete team' }).waitFor();
     pages[0].once('dialog', dialog => dialog.accept());
     await pages[0].getByRole('button', { name: 'Delete team' }).click();
+    await openDisclosure(pages[0], '.saved-teams-panel');
     await pages[0].getByText('No saved teams yet.').waitFor();
     assert.equal(documents.has(accounts[0]), false);
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'savedTeam' && entry.operation === 'delete'));
@@ -203,6 +215,7 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     }
     assert.ok(requests.some(entry => entry.index === 0 && entry.type === 'catalog' && entry.rosterId === 'orc'));
     await pages[0].waitForFunction(() => document.querySelector('.recruitment img.sprite')?.getAttribute('src')?.startsWith('data:'));
+    await openDisclosure(pages[0], '.builder-kit-options');
     assert.equal(await pages[0].getByRole('radiogroup', { name: 'Primary color', exact: true }).getByRole('radio', { name: 'Black', exact: true }).getAttribute('aria-checked'), 'true');
     await pages[0].getByLabel('Team name').fill('The Orcs');
     for (let count = 0; count < 11; count++) await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).click();
@@ -210,9 +223,11 @@ test('signed-in builder saves an owned named team and Play selects it by name', 
     await pages[0].getByText(/Valid draft/).waitFor();
     await pages[0].getByRole('button', { name: 'Save team' }).click();
     await pages[0].getByText(/Saved team The Orcs/).waitFor();
+    await openDisclosure(pages[0], '.saved-teams-panel');
     await pages[0].locator('.saved-teams-panel').getByText(/The Orcs · Orc/).waitFor();
     assert.equal(documents.get(accounts[0]).draft.rosterId, 'orc');
     await pages[0].goto(`http://127.0.0.1:${server.address().port}/teambuilder`);
+    await openDisclosure(pages[0], '.saved-teams-panel');
     await pages[0].getByRole('button', { name: 'Load' }).click();
     await pages[0].getByRole('button', { name: 'Add Orc Lineman' }).waitFor();
     assert.equal(await pages[0].getByLabel('Team', { exact: true }).inputValue(), 'orc');

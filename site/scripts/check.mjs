@@ -17,6 +17,7 @@ const required = [
   'src/assets/site.css',
   'src/assets/home.css',
   'src/assets/updates-redirect.js',
+  'src/assets/builder-workbench.css',
   'src/assets/updates.css',
   'src/assets/updates.js',
   'src/assets/support.css',

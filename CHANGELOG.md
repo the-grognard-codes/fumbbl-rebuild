@@ -6,6 +6,12 @@
   Development combines the project's educational background and searchable merged
   PR history, replacing Updates in navigation while keeping old links working.
 
+- Team Builder now uses a compact workbench with recruitment and resources beside
+  the editable roster, a shared budget/validation/save strip, top-level saved-team
+  access, and optional kit customization. Validation can jump to affected fields,
+  and starting or loading a team protects unsaved draft changes. Formation pitch
+  cells stay square and numbered markers fit within them on narrow screens.
+
 - Saved teams can manage three offensive and three defensive deployment formations
   with numbered chits, starter layouts, and a default for each role. Drive setup
   loads the default and offers formation buttons; unavailable players leave holes.

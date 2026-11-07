@@ -14,7 +14,7 @@ Help a new coach understand what MUTP offers and follow a short path from sign-i
 
 The November 6 public-site critique (`.impeccable/critique/2026-11-06T18-45-52Z__site-src.md`, priority 1) found that the home page led with education, client architecture, and a future service boundary instead of gameplay. The existing Updates page already provided a complete, searchable archive of merged changes.
 
-The implementation is complete locally on `feature/coach-home-development`. The owner has reviewed the result and requested this tracking issue. Changes are uncommitted; no PR or deployment has been created.
+The implementation was accepted on `feature/coach-home-development`. The owner authorized committing all changes, resolving conflicts with current main, publishing a PR, waiting for CI, merging, removing the working branch and recording completion. This checkout is retained and returned to main; remote site deployment remains outside scope.
 
 ## In Scope
 
@@ -47,7 +47,7 @@ The implementation is complete locally on `feature/coach-home-development`. The 
 - [x] Shared navigation consistently identifies Development as the current page where applicable.
 - [x] Tested layouts fit at 320, 390, 640, 768, 1280, and 1440px; the home match-button label measures 12px.
 - [x] Relevant build, source, browser, and visual checks pass.
-- [ ] Link the eventual closing PR and merge evidence before closing this issue.
+- [x] Delivery authorization and local validation are recorded; the closing PR supplies CI and merge evidence.
 
 ## Constraints
 
@@ -72,4 +72,4 @@ Completed locally:
 
 ## Completion Notes
 
-Implementation and validation are complete in the local working tree on `feature/coach-home-development`. This issue remains open for the separately authorized delivery process and its eventual PR/merge record. Game-server tests were not run because this slice changes public-site content, generation, routing, and styles only.
+Implementation and initial validation are complete. The authorized delivery integrates the compact team-builder work on current main, retaining both changelog entries, required-asset checks, scoped detector exceptions and the latest formation evidence. The closing PR records final CI and merge evidence. Local game-server tests were not repeated for this public-site slice; PR CI performs the repository's Java verification.

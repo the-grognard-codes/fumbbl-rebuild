@@ -6,6 +6,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 
 - [Web delivery and team building](#web-delivery-and-team-building)
   - [Monorepo web integration](#monorepo-web-integration)
+  - [Coach-first home and Development archive](#coach-first-home-and-development-archive)
   - [Browser-only client support](#browser-only-client-support)
   - [Device support and display-scaling guidance](#device-support-and-display-scaling-guidance)
   - [Java 21 baseline](#java-21-baseline)
@@ -13,6 +14,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Team Builder MVP](#team-builder-mvp)
+  - [Compact team-builder workbench](#compact-team-builder-workbench)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
   - [Saved deployment formations](#saved-deployment-formations)
 - [Movement and action planning](#movement-and-action-planning)
@@ -63,6 +65,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Assembled a single Firebase Hosting artifact serving the public site at `/`, the client at `/play`, and authentication completion at `/login/complete`.
 - Included project updates, privacy, support, and the educational project's non-affiliation statement in the public site.
 - Recorded source provenance and imported-file destinations or exclusions before removing temporary import staging. Excluded nested Git metadata and secrets.
+
+### Coach-first home and Development archive
+
+- The home page leads with BB2025 coaching, Human/Orc teams and human or computer opponents, with a prominent match action and a three-step sign-in, team-building and opponent-choice guide.
+- `/development` combines educational roots, AI-assisted development context, source/setup references and the complete merged-PR archive. Shared navigation and the home footer link to Development.
+- Search, category filters, pagination, browser navigation, local merge dates and all existing history entries remain available. Legacy `/updates` routes preserve query/hash state when forwarding, with a direct Development link without JavaScript.
+- Preserved the approved visual identity and independence statement. Desktop/narrow layout and focused browser checks were accepted on 2026-11-06.
+- Scope and evidence: [issue #469](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/469), [design record](../docs/specs/coach-home-development.md), [implementation outcome](../docs/specs/coach-home-development-outcome.md).
 
 ### Browser-only client support
 
@@ -123,6 +133,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Supported sideline staff, rerolls, fan factor, and up to five valid skill/stat advances per player, with accurate team-value calculation and no spending cap for the MVP.
 - Validated rosters before enabling JSON download; generated a stored team UUID usable alongside JSON uploads on the create/join page, which also validated teams.
 - Excluded league progression, star player point tracking, biographies, custom imagery, star-player recruitment, and inducements.
+
+### Compact team-builder workbench
+
+- Recruitment and resource spending sit beside the editable roster, with player count, skill points, value and treasury in a shared validation/save strip. Narrow and short windows reflow without hiding the work.
+- Saved teams and New team appear at entry. Kit customization, player options, roster reference and formation management stay optional. Dirty drafts are protected before New team, Load and page exit.
+- Validation links focus affected fields and open their disclosures. Saving requires validation of the exact current draft; reconnects can retry validation, and delayed loads/catalogs cannot replace newer work.
+- Formation pitch cells remain square, with circular markers and contained two-digit jersey numbers on desktop and narrow screens. Pitch wide-zone boundaries remain visible.
+- Accepted manually on 2026-11-06. Focused builder browser verification passed all eight tests, alongside formation interaction checks and the production build; the full local browser preflight also passed before the final formation-sizing refinement.
+- Scope and evidence: [issue #470](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/470), [implementation outcome](../docs/specs/team-builder-workbench-outcome.md). A guided walkthrough and workflow-choice modal remain in [#471](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/471).
 
 ### Saved Human and Orc team colors
 
