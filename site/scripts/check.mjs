@@ -14,6 +14,7 @@ const required = [
   'src/spectate/index.html',
   'src/teambuilder/index.html',
   'src/assets/site.css',
+  'src/assets/builder-workbench.css',
   'src/assets/updates.css',
   'src/assets/updates.js',
   'src/assets/support.css',

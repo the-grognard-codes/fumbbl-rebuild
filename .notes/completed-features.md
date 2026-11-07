@@ -13,6 +13,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Team Builder MVP](#team-builder-mvp)
+  - [Compact team-builder workbench](#compact-team-builder-workbench)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
   - [Saved deployment formations](#saved-deployment-formations)
 - [Movement and action planning](#movement-and-action-planning)
@@ -123,6 +124,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Supported sideline staff, rerolls, fan factor, and up to five valid skill/stat advances per player, with accurate team-value calculation and no spending cap for the MVP.
 - Validated rosters before enabling JSON download; generated a stored team UUID usable alongside JSON uploads on the create/join page, which also validated teams.
 - Excluded league progression, star player point tracking, biographies, custom imagery, star-player recruitment, and inducements.
+
+### Compact team-builder workbench
+
+- Recruitment and resource spending sit beside the editable roster, with player count, skill points, value and treasury in a shared validation/save strip. Narrow and short windows reflow without hiding the work.
+- Saved teams and New team appear at entry. Kit customization, player options, roster reference and formation management stay optional. Dirty drafts are protected before New team, Load and page exit.
+- Validation links focus affected fields and open their disclosures. Saving requires validation of the exact current draft; reconnects can retry validation, and delayed loads/catalogs cannot replace newer work.
+- Formation pitch cells remain square, with circular markers and contained two-digit jersey numbers on desktop and narrow screens. Pitch wide-zone boundaries remain visible.
+- Accepted manually on 2026-11-06. Focused builder browser verification passed all eight tests, alongside formation interaction checks and the production build; the full local browser preflight also passed before the final formation-sizing refinement.
+- Scope and evidence: [issue #470](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/470), [implementation outcome](../docs/specs/team-builder-workbench-outcome.md). A guided walkthrough and workflow-choice modal remain in [#471](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/471).
 
 ### Saved Human and Orc team colors
 
