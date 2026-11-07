@@ -1,2 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@500&display=swap');
+
 /* Shared legibility sizing for sign-in and email-link completion controls. */
 .auth-page .button { font-size: .75rem; }
+
+.sign-in-page { max-width: 34rem; padding: 2.5rem 0 0; }
+.sign-in-page h1 { max-width: none; font-size: 2.5rem; margin-bottom: .75rem; }
+.auth-intro { margin: 0; color: #bdeaff; }
+.auth-panel { margin: 1.5rem 0; }
+.auth-panel::before { content: none; }
+.auth-panel fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.auth-method-label { padding: 0; margin-bottom: 1rem; font-weight: 700; color: #bdeaff; }
+/* Keep provider marks above the site's decorative scanline overlay. */
+.auth-providers { position: relative; z-index: 11; display: grid; gap: .75rem; }
+.auth-page .auth-provider { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 3.25rem; padding: 12px; border: 1px solid #747775; background: #fff; color: #1f1f1f; box-shadow: none; font: 500 .875rem/1.4 'Google Sans', Inter, sans-serif; }
+.auth-page .auth-provider:hover { background: #f2f2f2; border-color: #1f1f1f; box-shadow: none; }
+.auth-provider img { display: block; width: 20px; height: 20px; object-fit: contain; }
+#microsoft-sign-in { font-family: 'Segoe UI', Inter, sans-serif; }
+.auth-divider { display: flex; align-items: center; gap: 1rem; margin: 1.75rem 0; color: #a9c8da; font-size: .875rem; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-top: 1px solid #40637e; }
+.auth-panel form { display: grid; gap: .5rem; }
+.auth-panel [hidden] { display: none; }
+.auth-panel input { width: 100%; min-width: 0; min-height: 3rem; }
+.auth-hint { margin: 0 0 .75rem; color: #a9c8da; font-size: .875rem; }
+.auth-panel #email-link-submit { min-height: 3rem; color: #bdeaff; background: #172b3e; border-color: #40637e; box-shadow: 3px 3px 0 #05090e; }
+.auth-panel #email-link-submit:hover { background: #24394e; border-color: #4db2ff; }
+.auth-page :is(button, input, a):focus-visible { outline: 3px solid #ffe17b; outline-offset: 4px; }
+.auth-panel button:disabled { opacity: .65; cursor: wait; box-shadow: none; }
+.auth-panel input:disabled { opacity: .65; }
+#auth-message { min-height: 1.65em; margin: 1.25rem 0 0; overflow-wrap: anywhere; }
+#auth-message[data-state="error"] { color: #ffe17b; }
+#auth-message[data-state="success"] { color: #bdeaff; }
+.auth-environment { margin: 0 0 1.25rem; color: #ffe17b; font-size: .875rem; }
+.auth-help { margin-bottom: 0; }
+.auth-help a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+.auth-footnote { color: #a9c8da; font-size: .875rem; margin: .75rem 0; }
+@media (max-width: 30rem) {
+  .sign-in-page { padding-top: 1.75rem; }
+  .sign-in-page h1 { font-size: 2rem; }
+  .auth-panel { padding: 1.25rem; }
+}

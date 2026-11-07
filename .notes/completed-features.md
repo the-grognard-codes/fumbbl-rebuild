@@ -10,6 +10,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Browser-only client support](#browser-only-client-support)
   - [Device support and display-scaling guidance](#device-support-and-display-scaling-guidance)
   - [Support navigation and sign-in help](#support-navigation-and-sign-in-help)
+  - [Microsoft sign-in and authentication UX](#microsoft-sign-in-and-authentication-ux)
   - [Java 21 baseline](#java-21-baseline)
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
@@ -98,6 +99,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Retained the existing device qualifications, support address, scaling calculator and layout-fit disclosure. Removed the two redundant sign-in-page labels and increased their four action-button labels to 12px with page-scoped styling.
 - Verified production build, site checks, 12 site unit tests and two focused browser suites; follow-up sign-in layout/help checks and asset-version verification pass. Browser checks cover keyboard, pointer/touch, JavaScript-disabled use and narrow layouts.
 - Scope and evidence: [issue #474](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/474), [the spec](../docs/specs/support-navigation-sign-in-help.md) and [outcome](../docs/specs/support-navigation-sign-in-help-outcome.md). The closing PR records final CI and merge evidence.
+
+### Microsoft sign-in and authentication UX
+
+- Added equally prominent Google and Microsoft sign-in actions with official provider marks, plus email-link sign-in, readable controls, pending guards and actionable recovery messages.
+- Microsoft targets the `consumers` authority to match the personal-account-only registrations. The owner verified the corrected localhost flow and the expected conflict handling for an email already associated with Google; account linking remains separate.
+- `/signin` and `/login` share one page source. Email completion preserves allowed return destinations, tolerates blocked browser storage and handles expired links. Support documents all three sign-in methods and the Microsoft personal-account restriction.
+- Failed authentication exposes validated Firebase and Microsoft error identifiers with sanitized browser-console diagnostics. Raw SDK errors, credentials, email addresses and OAuth state are excluded; cloud activity logging remains separately configured.
+- Generated versioned SVG, PNG and 16/32px ICO favicons from the approved MUTP brand artwork for every built site page. Verified provider assets, desktop/mobile layouts, browser recovery paths and DEV/PROD artifacts.
+- Scope and evidence: [issue #479](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/479), [implementation notes](microsoft-sign-in-ux.md) and [outcome](microsoft-sign-in-ux-outcome.md).
 
 ### Java 21 baseline
 

@@ -55,6 +55,12 @@ test('support topics and sign-in help work without scripts while scaling preserv
     const sectionOrder = await page.locator('main > section > h2').evaluateAll(headings => headings.map(heading => heading.id));
     assert.ok(sectionOrder.indexOf('sign-in-help') < sectionOrder.indexOf('viewing-heading'));
     assert.ok(sectionOrder.indexOf('contact') < sectionOrder.indexOf('viewing-heading'));
+    assert.deepEqual(await page.locator('.support-auth-help > summary').allTextContents(),
+      ['Google sign-in', 'Microsoft sign-in', 'Email sign-in links']);
+    const microsoftHelp = page.locator('.support-auth-help').filter({ has: page.locator('summary', { hasText: 'Microsoft sign-in' }) });
+    assert.match(await microsoftHelp.textContent(), /personal Microsoft account/);
+    assert.match(await microsoftHelp.textContent(), /Work or school accounts are not supported/);
+    assert.match(await microsoftHelp.textContent(), /another sign-in method/);
     for (const help of await page.locator('.support-auth-help').all()) {
       await help.locator('summary').focus();
       await help.locator('summary').press('Enter');
@@ -165,7 +171,7 @@ test('support topics and sign-in help work without scripts while scaling preserv
         authGeometry.push({ route, width, fontSizes });
         await fallback.screenshot({ path: resolve(output, `${route === '/login' ? 'login' : 'email-completion'}-${width}.png`), fullPage: true });
       }
-      await fallback.getByRole('link', { name: 'Help with Google or email sign-in', exact: true }).click();
+      await fallback.getByRole('link', { name: 'Help signing in', exact: true }).click();
       assert.equal(new URL(fallback.url()).pathname, '/support');
       assert.equal(new URL(fallback.url()).hash, '#sign-in-help');
       assert.equal(await fallback.locator('#sign-in-help').evaluate(element => document.activeElement === element), true);

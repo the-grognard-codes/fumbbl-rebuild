@@ -10,7 +10,20 @@
 </head>
 <body>
   <!-- site-header -->
-  <main class="reading auth-page"><h1>Complete your email-link sign-in.</h1><section class="panel"><p id="completion-message" role="status">Checking your email link…</p><form id="completion-form" hidden><label>Email address <input id="completion-email" type="email" autocomplete="email" required></label> <button class="button" type="submit">Complete sign-in</button></form><p><a href="/support#sign-in-help">Help with Google or email sign-in</a></p><p><a class="button" href="/">Return to the project site</a></p></section></main>
+  <main class="reading auth-page sign-in-page">
+    <h1 id="completion-heading">Finish signing in</h1>
+    <section class="panel auth-panel" aria-labelledby="completion-heading">
+      <p id="completion-message" role="status" aria-live="polite" aria-atomic="true">Checking your email link…</p>
+      <form id="completion-form" hidden>
+        <label for="completion-email">Email address</label>
+        <input id="completion-email" type="email" autocomplete="email" inputmode="email" required>
+        <button class="button" id="completion-submit" type="submit" disabled>Complete sign-in</button>
+      </form>
+      <noscript><p>Enable JavaScript in your browser to complete sign-in.</p></noscript>
+      <p><a href="/login">Request another sign-in link</a></p>
+      <p class="auth-help"><a href="/support#sign-in-help">Help signing in</a></p>
+    </section>
+  </main>
   <script src="/firebase-web-config.js"></script><script type="module" src="/assets/complete.js"></script>
   <footer><span>© 2026 Moles Under the Pitch</span><a href="/support">Support</a></footer>
   <script type="module" src="/assets/account-menu.js"></script>

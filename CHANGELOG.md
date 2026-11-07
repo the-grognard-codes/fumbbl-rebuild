@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Sign-in now offers Google, Microsoft and email links with clearer loading,
+  recovery and email guidance. Support includes Microsoft account sign-in help,
+  and `/signin` opens the existing sign-in page. Provider buttons use official
+  Google and Microsoft icons; site tabs use the approved MUTP favicon.
+  Microsoft sign-in targets personal accounts to match the app registrations.
+  Sign-in failures show support error codes and record sanitized browser diagnostics.
+
 - Added separate DEV and PROD Microsoft Entra publisher-domain verification files
   to the Hosting artifacts at `/.well-known/microsoft-identity-association.json`.
 

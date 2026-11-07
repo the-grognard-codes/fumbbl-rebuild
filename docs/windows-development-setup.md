@@ -27,7 +27,7 @@ terminal afterward so newly installed commands are on `PATH`.
 | Browser packages and Chromium | Browser builds and Playwright tests | `npm ci --prefix browser-client`, then Playwright's Chromium installer |
 | Firebase CLI | Local emulators or manual Hosting operations | `npm install -g firebase-tools` |
 | Google Cloud CLI | Google Cloud administration, game-service deployment and local Application Default Credentials when needed | winget `Google.CloudSDK` |
-| Azure CLI | Future Microsoft Entra OAuth administration; Microsoft sign-in is currently deferred | winget `Microsoft.AzureCLI` |
+| Azure CLI | Microsoft Entra OAuth administration | winget `Microsoft.AzureCLI` |
 | Docker Desktop with Linux engine and WSL 2 | Local Java/database stack and Compose acceptance | winget `Docker.DockerDesktop`; Windows WSL setup |
 
 All Node tooling uses the same 26.x runtime. Setup pins 26.7.0, while existing

@@ -9,7 +9,7 @@
 
 Assembly generates `firebase.generated.json` from the repository-root `firebase.json`, adding an environment-specific Content Security Policy. Verify it with `node deployment/firebase/scripts/verify-hosting-artifact.mjs --environment dev` (or `prod`). Deploy with `firebase deploy --config firebase.generated.json --only hosting --project <matching-project>`. The CI workflows use this generated configuration. Do not deploy the base configuration directly. Its root `.firebaserc` maps `dev` to `dev-moles-under-the-pitch-org` and `prod` to `molesunderthepitch-dotorg`. The build rejects an omitted or unknown environment and never consults a developer's active Firebase CLI project. The public Firebase web configurations are committed in `scripts/environment.mjs`; they are browser identifiers, not service credentials. The browser game connects to `wss://game-dev.molesunderthepitch.org/browser/v2` or `wss://game.molesunderthepitch.org/browser/v2` for the matching environment. Do not commit credentials or OAuth secrets.
 
-All environments assemble `browser-client/` at `/play`. Google and email links are supported; Microsoft is deferred. Java hosting and the standalone computer daemon are separate; see [game-service deployment](../game-service/README.md) and [computer player](../../computer-player/README.md).
+All environments assemble `browser-client/` at `/play`. Google, Microsoft and email links are supported. Java hosting and the standalone computer daemon are separate; see [game-service deployment](../game-service/README.md) and [computer player](../../computer-player/README.md).
 
 The CI workflows authenticate with GitHub OIDC and Google Workload Identity
 Federation (WIF), then let the Firebase CLI use Application Default

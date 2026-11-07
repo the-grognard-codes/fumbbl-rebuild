@@ -29,6 +29,12 @@ const hostingConfig = argument(process.argv.slice(2), '--hosting-config');
 const root = artifactRoot ? pathToFileURL(resolve(artifactRoot) + sep) : new URL('../hosting/', import.meta.url);
 const required = [
   'index.html',
+  'assets/auth-diagnostics.js',
+  'favicon.ico',
+  'favicon.svg',
+  'favicon-32.png',
+  'assets/sign-in-providers/google.png',
+  'assets/sign-in-providers/microsoft.svg',
   'play/index.html',
   'assets/game/game.js',
   'assets/game/game.css',
@@ -46,6 +52,7 @@ const required = [
   'assets/game/teams/human/10-lineman-man.png',
   'assets/game/teams/human/14-halfling-man.png',
   'login/index.html',
+  'signin/index.html',
   'login/complete/index.html',
   'privacy/index.html',
   'support/index.html',
