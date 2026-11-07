@@ -10,7 +10,33 @@
 </head>
 <body>
   <!-- site-header -->
-  <main class="reading auth-page"><h1>Use an environment-specific account.</h1><section class="panel"><p id="auth-environment" role="status">Loading sign-in configuration…</p><button id="google-sign-in" class="button" type="button">Continue with Google</button><hr><form id="email-link-form"><label>Email address <input id="email" type="email" autocomplete="email" required></label> <button class="button" type="submit">Email a sign-in link</button></form><p id="auth-message" role="status"></p><p><a href="/support#sign-in-help">Help with Google or email sign-in</a></p><p>This project does not use, link, or migrate FUMBBL accounts.</p></section></main>
+  <main class="reading auth-page sign-in-page">
+    <h1 id="sign-in-heading">Sign in to MUTP</h1>
+    <p class="auth-intro">Keep your teams ready for the next match.</p>
+    <section class="panel auth-panel" aria-labelledby="sign-in-heading">
+      <p id="auth-environment" class="auth-environment" hidden></p>
+      <fieldset id="sign-in-methods" disabled>
+        <legend class="auth-method-label">Choose how to sign in</legend>
+        <div class="auth-providers">
+          <button id="google-sign-in" class="button auth-provider" type="button"><img src="/assets/sign-in-providers/google.png" alt="" width="20" height="20"><span>Continue with Google</span></button>
+          <button id="microsoft-sign-in" class="button auth-provider" type="button" aria-describedby="microsoft-account-help"><img src="/assets/sign-in-providers/microsoft.svg" alt="" width="20" height="20"><span>Continue with Microsoft</span></button>
+          <p id="microsoft-account-help" class="auth-hint">Use a personal Microsoft account.</p>
+        </div>
+        <p class="auth-divider">or use your email</p>
+        <form id="email-link-form">
+          <label for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email" inputmode="email" aria-describedby="email-link-help" required>
+          <p id="email-link-help" class="auth-hint">We’ll send you a sign-in link. No password needed.</p>
+          <button id="email-link-submit" class="button" type="submit">Email a sign-in link</button>
+        </form>
+      </fieldset>
+      <p id="auth-message" role="status" aria-live="polite" aria-atomic="true">Getting sign-in ready…</p>
+      <noscript><p>Enable JavaScript in your browser to sign in. You can still <a href="/support#sign-in-help">read the sign-in help</a>.</p></noscript>
+      <p class="auth-help"><a href="/support#sign-in-help">Help signing in</a></p>
+    </section>
+    <p class="auth-footnote">Returning coach? Use your usual sign-in method to get back to your teams.</p>
+    <p class="auth-footnote">MUTP accounts are separate from FUMBBL accounts.</p>
+  </main>
   <script src="/firebase-web-config.js"></script><script type="module" src="/assets/login.js"></script>
   <script type="module" src="/assets/account-menu.js"></script>
 </body>

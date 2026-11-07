@@ -78,6 +78,7 @@
     ]
   ],
   "hosted": [
+    "site/test/signin-browser.test.mjs",
     "site/test/account-menu-browser.test.mjs",
     "site/test/play-browser.test.mjs",
     "site/test/current-games-browser.test.mjs",

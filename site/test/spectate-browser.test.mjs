@@ -117,6 +117,7 @@ test('spectate browses live details, filters matches, prepares replay searches a
       export function onAuthStateChanged(auth,callback){queueMicrotask(()=>callback(sessionStorage.getItem('fixture-signed-in')?{getIdToken:async()=>'fixture'}:null));return()=>{};}
       export async function signInWithPopup(){sessionStorage.setItem('fixture-signed-in','1');}
       export async function sendSignInLinkToEmail(){}
+      export class OAuthProvider { constructor(providerId){this.providerId=providerId;} }
     ` }));
     await signedOut.routeWebSocket('**/browser/v2', socket => socket.onMessage(raw => {
       const request = JSON.parse(raw);

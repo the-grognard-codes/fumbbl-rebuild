@@ -60,7 +60,7 @@ so Node 26 takes precedence over an older Node 24 setup entry.
 | Playwright Chromium and Linux libraries | Browser tests | `browser-client/node_modules/.bin/playwright install --with-deps chromium` |
 | Firebase CLI | Emulators and manual Hosting operations | `npm_config_prefix="$HOME/.local" npm install --global firebase-tools` ([Firebase CLI instructions](https://firebase.google.com/docs/cli)) |
 | Google Cloud CLI | Cloud administration and local Google credentials | Direct [Google CLI archive](https://docs.cloud.google.com/sdk/docs/downloads-versioned-archives) under `~/.local/opt` |
-| Azure CLI | Future Microsoft Entra OAuth administration | Direct Ubuntu 26.04 `azure-cli_2.90.0-1~resolute_amd64.deb` from [Microsoft's package index](https://packages.microsoft.com/repos/azure-cli/pool/main/a/azure-cli/), installed with `sudo apt-get install ./azure-cli.deb`; current Microsoft sign-in remains deferred |
+| Azure CLI | Microsoft Entra OAuth administration | Direct Ubuntu 26.04 `azure-cli_2.90.0-1~resolute_amd64.deb` from [Microsoft's package index](https://packages.microsoft.com/repos/azure-cli/pool/main/a/azure-cli/), installed with `sudo apt-get install ./azure-cli.deb` |
 | Docker CLI and Compose | Local Java/database containers | Enable [Docker Desktop WSL integration](https://docs.docker.com/desktop/features/wsl/) for `Ubuntu-26.04` in Windows |
 
 The setup script runs the project launchers with explicit JDK locations. To

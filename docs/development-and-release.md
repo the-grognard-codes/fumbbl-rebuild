@@ -75,7 +75,8 @@ local Firebase CLI project.
 Create separate Firebase Authentication user stores, authorized domains,
 email-link return URLs, and Google provider registrations in the two
 projects. A Hosting release does **not** create or change any Auth provider,
-user, session, or existing FUMBBL account. Microsoft is deferred.
+user, session, or existing FUMBBL account. Google, Microsoft and email links are
+supported; configure providers independently in each Firebase project.
 
 ## Branches, checks, and DEV
 

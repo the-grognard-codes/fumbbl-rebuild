@@ -40,6 +40,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
       export function onAuthStateChanged(auth,callback){callbacks.add(callback);queueMicrotask(()=>callback(user));return()=>callbacks.delete(callback);}
       export async function signOut(){if(window.__rejectSignOut)throw Error('fixture');window.__setAccount(null);}
       export class GoogleAuthProvider{} export function connectAuthEmulator(){}
+      export class OAuthProvider { constructor(providerId){this.providerId=providerId;} }
       export async function signInWithPopup(){} export async function sendSignInLinkToEmail(){}
       export function isSignInWithEmailLink(){return false;} export async function signInWithEmailLink(){}
     ` }));

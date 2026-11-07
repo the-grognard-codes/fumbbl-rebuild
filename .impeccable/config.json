@@ -80,6 +80,24 @@
         ],
         "createdAt": "2026-11-07T01:28:25.260Z",
         "reason": "Agent: main already contains the unchanged shared site.css background, reviewed in the supplied public-site critique; issue474 adds only help links to these pages and preserves the approved Pixel Pitch identity."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "google sans",
+        "files": [
+          "site/src/assets/login.css"
+        ],
+        "createdAt": "2026-11-07T05:01:56.486Z",
+        "reason": "Agent: Google sign-in branding guidelines require Google Sans Medium for the Google provider control; this scoped provider exception preserves the existing MUTP type system elsewhere. https://developers.google.com/identity/branding-guidelines"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "sans\",inter,sans-serif",
+        "files": [
+          "site/src/login/index.html"
+        ],
+        "createdAt": "2026-11-07T05:01:56.534Z",
+        "reason": "Agent: this partial font-family match refers to the scoped Google Sans provider-button exception required by official Google sign-in branding; the general site type system is unchanged. https://developers.google.com/identity/branding-guidelines"
       }
     ]
   }
