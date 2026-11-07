@@ -5,6 +5,7 @@ import { renderUpdates } from './render-updates.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const required = [
   'src/index.html',
+  'src/development/index.html',
   'src/updates/index.html',
   'src/privacy/index.html',
   'src/support/index.html',
@@ -14,6 +15,8 @@ const required = [
   'src/spectate/index.html',
   'src/teambuilder/index.html',
   'src/assets/site.css',
+  'src/assets/home.css',
+  'src/assets/updates-redirect.js',
   'src/assets/updates.css',
   'src/assets/updates.js',
   'src/assets/support.css',
@@ -27,7 +30,7 @@ const required = [
 
 for (const file of required) {
   await access(new URL(`../${file}`, import.meta.url));
-  if (file.endsWith('.html') && file !== 'src/updates/index.html') {
+  if (file.endsWith('.html') && file !== 'src/development/index.html') {
     const html = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
     if (!html.includes('<!-- site-header -->') || !html.includes('/assets/account-menu.js'))
       throw new Error(`The shared site header is missing from ${file}.`);

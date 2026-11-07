@@ -1,4 +1,4 @@
-const links = [['teambuilder', 'Team Builder'], ['play', 'Play'], ['spectate', 'Spectate'], ['updates', 'Updates']];
+const links = [['teambuilder', 'Team Builder'], ['play', 'Play'], ['spectate', 'Spectate'], ['development', 'Development']];
 
 export function renderSiteHeader(page) {
   const navigation = links.map(([path, label]) =>

@@ -29,6 +29,7 @@ test('URL state rejects invalid page/category values and round trips literal sea
   for (const page of ['-1', '0', '1.2', 'Infinity', 'bad']) assert.equal(updatesState(`?page=${page}`).page, 1);
   assert.equal(updatesState('?category=unknown').category, '');
   const state = { query: 'team & pitch #125', category: 'Developer tools', page: 3 };
+  assert.equal(updatesHref(state), '/development?q=team+%26+pitch+%23125&category=Developer+tools&page=3#updates-list');
   assert.deepEqual(updatesState(new URL(updatesHref(state), 'https://example.test').search), state);
   assert.equal(updatesState(`?q=${'a'.repeat(500)}`).query.length, 200);
   assert.deepEqual(paginationPages(5, 10), [1, 4, 5, 6, 10]);
@@ -37,6 +38,9 @@ test('URL state rejects invalid page/category values and round trips literal sea
 test('the complete merged history remains in static HTML with escaped prose and local merge dates', () => {
   assert.doesNotThrow(() => validateUpdates(history));
   const page = renderUpdatesPage(history);
+  assert.match(page, /<title>Development · Moles Under the Pitch<\/title>/);
+  assert.match(page, /action="\/development"/);
+  assert.doesNotMatch(page, /href="\/updates/);
   assert.equal((page.match(/class="panel update-entry"/g) ?? []).length, history.length);
   assert.match(page, /PR #1<span/);
   assert.match(page, /PR #126<span/);

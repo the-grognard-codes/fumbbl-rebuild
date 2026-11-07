@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The home page now leads with coaching and a three-step route into a match.
+  Development combines the project's educational background and searchable merged
+  PR history, replacing Updates in navigation while keeping old links working.
+
 - Saved teams can manage three offensive and three defensive deployment formations
   with numbered chits, starter layouts, and a default for each role. Drive setup
   loads the default and offers formation buttons; unavailable players leave holes.
