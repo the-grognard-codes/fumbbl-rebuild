@@ -6,6 +6,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
 
 - [Web delivery and team building](#web-delivery-and-team-building)
   - [Monorepo web integration](#monorepo-web-integration)
+  - [Coach-first home and Development archive](#coach-first-home-and-development-archive)
   - [Browser-only client support](#browser-only-client-support)
   - [Device support and display-scaling guidance](#device-support-and-display-scaling-guidance)
   - [Java 21 baseline](#java-21-baseline)
@@ -64,6 +65,14 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Assembled a single Firebase Hosting artifact serving the public site at `/`, the client at `/play`, and authentication completion at `/login/complete`.
 - Included project updates, privacy, support, and the educational project's non-affiliation statement in the public site.
 - Recorded source provenance and imported-file destinations or exclusions before removing temporary import staging. Excluded nested Git metadata and secrets.
+
+### Coach-first home and Development archive
+
+- The home page leads with BB2025 coaching, Human/Orc teams and human or computer opponents, with a prominent match action and a three-step sign-in, team-building and opponent-choice guide.
+- `/development` combines educational roots, AI-assisted development context, source/setup references and the complete merged-PR archive. Shared navigation and the home footer link to Development.
+- Search, category filters, pagination, browser navigation, local merge dates and all existing history entries remain available. Legacy `/updates` routes preserve query/hash state when forwarding, with a direct Development link without JavaScript.
+- Preserved the approved visual identity and independence statement. Desktop/narrow layout and focused browser checks were accepted on 2026-11-06.
+- Scope and evidence: [issue #469](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/469), [design record](../docs/specs/coach-home-development.md), [implementation outcome](../docs/specs/coach-home-development-outcome.md).
 
 ### Browser-only client support
 

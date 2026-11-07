@@ -126,7 +126,7 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
     await page.addInitScript(() => { window.__initialAccount = { email: 'coach@example.test', getIdToken: async () => 'fixture' }; });
     await page.routeWebSocket('**/browser/v2', socket => socket.close({ code: 1000, reason: 'Header-only fixture' }));
     const gameDisplays = ['/play/match', '/play/match?watch=1', '/play/result'];
-    const routes = ['/', '/teambuilder', '/play', '/spectate', '/updates', '/privacy', '/support', '/login', '/login/complete', ...gameDisplays];
+    const routes = ['/', '/teambuilder', '/play', '/spectate', '/development', '/privacy', '/support', '/login', '/login/complete', ...gameDisplays];
     for (const width of [1224, 360]) {
       await page.setViewportSize({ width, height: 800 });
       let reference;
@@ -152,8 +152,8 @@ test('shared navigation and account disclosure stay consistent on site pages, wi
         assert.ok(logoBounds.width <= 240 && logoBounds.height <= 70, 'The existing logo is scaled down for navigation');
         const navigation = header.getByRole('navigation', { name: 'Primary navigation' });
         assert.deepEqual(await navigation.locator(':scope > a:not([hidden])').evaluateAll(links => links.map(link => [link.getAttribute('href'), link.textContent])),
-          [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/updates', 'Updates']]);
-        const active = ['/teambuilder', '/play', '/spectate', '/updates'].find(path => route === path || route.startsWith(path + '/'));
+          [['/teambuilder', 'Team Builder'], ['/play', 'Play'], ['/spectate', 'Spectate'], ['/development', 'Development']]);
+        const active = ['/teambuilder', '/play', '/spectate', '/development'].find(path => route === path || route.startsWith(path + '/'));
         assert.deepEqual(await navigation.locator('[aria-current="page"]').evaluateAll(links => links.map(link => link.getAttribute('href'))), active ? [active] : []);
         const styles = await header.evaluate(element => {
           const h = getComputedStyle(element), nav = getComputedStyle(element.querySelector('nav')), brand = getComputedStyle(element.querySelector('.brand'));

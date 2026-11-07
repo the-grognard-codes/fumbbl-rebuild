@@ -3,7 +3,13 @@
 .updates-page :focus-visible { outline: 3px solid #ffe17b; outline-offset: 4px; }
 .updates-intro h1 { max-width: none; font-size: clamp(2rem, 4.8vw, 3.3rem); margin: .75rem 0 1rem; }
 .updates-intro > p:not(.kicker) { color: #a9c8da; max-width: 65ch; }
-.updates-intro .updates-coverage { color: #bdeaff; font-size: .85rem; margin-top: 1.25rem; }
+.updates-coverage { color: #bdeaff; font-size: .85rem; margin-top: 1.25rem; }
+.development-links { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+.development-links a { padding-block: .5rem; }
+.development-background { padding-bottom: 1.5rem; margin-block: 2rem; border-bottom: 1px solid #40637e; }
+.development-background p, .development-history > p { max-width: 68ch; }
+.development-background h2, .development-history > h2 { margin: 0 0 1rem; }
+.development-background, .development-history { scroll-margin-top: 1.5rem; }
 .updates-tools { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: 1rem; padding: 1.25rem; margin: 1.75rem 0 1rem; background: #101c2b; border: 2px solid #40637e; box-shadow: 4px 4px 0 #03070c; }
 .updates-tools label { display: flex; min-width: 0; font-size: .85rem; }
 .updates-tools input, .updates-tools select { min-width: 0; width: 100%; background: #07111d; color: #edf5ff; border: 2px solid #40637e; border-radius: 0; padding: .65rem; min-height: 2.8rem; font: inherit; }
@@ -23,7 +29,7 @@
 .update-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; font-size: .8rem; color: #a9c8da; }
 .update-category { color: #bdeaff; padding: .1rem .4rem; background: #1b3549; border: 1px solid #40637e; font-size: .7rem; }
 .update-meta > a { margin-left: auto; white-space: nowrap; }
-.update-entry h2 { margin: .7rem 0 .6rem; font-size: clamp(1.2rem, 2.4vw, 1.5rem); line-height: 1.25; }
+.update-entry h3 { font-family: 'Chakra Petch', Inter, sans-serif; font-weight: 700; letter-spacing: .015em; color: #bdeaff; margin: .7rem 0 .6rem; font-size: clamp(1.2rem, 2.4vw, 1.5rem); line-height: 1.25; }
 .update-entry > p { margin: 0; color: #d1e1ec; font-size: .95rem; }
 .updates-empty { margin: 1rem 0; padding: 2rem 1rem; background: #101c2b; border: 1px dashed #40637e; text-align: center; }
 .updates-empty h2 { margin-top: 0; }.updates-empty p { color: #a9c8da; }

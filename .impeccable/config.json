@@ -5,12 +5,43 @@
     "ignoreFiles": [],
     "ignoreValues": [
       {
+        "rule": "design-system-font",
+        "value": "petch\",inter,sans-serif",
+        "createdAt": "2026-11-06T20:47:42.812Z",
+        "reason": "DESIGN.md explicitly approves Chakra Petch, Inter, sans-serif; this finding is a partial font-family parser match."
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-06T20:56:16.306Z",
+        "reason": "DESIGN.md Typography explicitly approves Inter for reading text; this scoped content refinement preserves that established role."
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "site/src/index.html"
+        ],
+        "createdAt": "2026-11-06T20:56:16.327Z",
+        "reason": "Agent: rendered Chromium measurements confirm 36px padding on all panel sides at 1440/1280px and 20px at 390/320px; clamp() is misread by the detector."
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "site/src/index.html",
+          "site/src/updates/index.html"
+        ],
+        "createdAt": "2026-11-06T20:56:16.350Z",
+        "reason": "Agent: retained incumbent site.css background under the scoped refinement; the supplied 2026-11-06 critique already reviewed this decoration and established no user harm."
+      },
+      {
         "rule": "radial-halo",
         "value": "*",
         "files": [
           "site/src/teambuilder/index.html"
         ],
-        "createdAt": "2026-11-06T22:28:37.006Z",
+        "createdAt": "2026-11-07T00:12:50.176Z",
         "reason": "Agent: the unchanged site.css background predates issue470 and is intentionally retained by the approved Pixel Pitch refinement; this work adds no radial halo."
       },
       {
@@ -19,7 +50,7 @@
         "files": [
           "browser-client/src/FormationManager.css"
         ],
-        "createdAt": "2026-11-06T23:50:43.449Z",
+        "createdAt": "2026-11-07T00:12:52.168Z",
         "reason": "Agent: formation-grid wide-boundary marks the pitch wide-zone divisions after columns 4 and 11; this is a functional field marking, not a card accent."
       }
     ]

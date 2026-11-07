@@ -1,7 +1,7 @@
 # Moles Under the Pitch public site
 
-This is a dependency-free static project site. It includes the public project page,
-updates, privacy policy, support contact, non-affiliation statement, and Firebase
+This is a dependency-free static game site. It includes the coach-facing home page,
+development background and updates, privacy policy, support contact, non-affiliation statement, and Firebase
 Authentication sign-in/completion routes. Their public configuration is generated
 only by the explicitly selected Firebase assembly environment.
 
@@ -18,10 +18,15 @@ Edit the tracked inputs in `site/src/` and `site/scripts/`. The generated
 pages and assets; Firebase Hosting assembly builds the site before copying the
 output and adding the selected environment's public configuration.
 
-The Updates history lives in `site/updates.json`, with one concise entry per
+The `/development` page combines the project's educational and AI-development
+background with its merged PR history. The former `/updates` route forwards to
+`/development`, preserving bookmarked searches, filters, pages and anchors when
+JavaScript is enabled, and offering a direct link otherwise.
+
+The history lives in `site/updates.json`, with one concise entry per
 merged PR, its GitHub URL and merge timestamp, ordered newest first. Add merged
 work there and run `npm run updates:render --prefix site` to regenerate the
-static page. Dates use America/New_York. The page offers search, category filters
+static Development page. Dates use America/New_York. The page offers search, category filters
 and ten entries per page; the full history remains available without JavaScript.
 `npm run check --prefix site` checks that the generated page matches the entries.
 Run `npm run test:updates --prefix site` for the focused browser checks.

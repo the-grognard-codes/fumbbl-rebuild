@@ -3,37 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Moles Under the Pitch is an educational HTML5 client and game-service exploration.">
+  <meta name="description" content="Build Human or Orc teams, play BB2025 against coaches or computer opponents, and watch matches in your browser with Moles Under the Pitch.">
   <title>Moles Under the Pitch</title>
   <link rel="stylesheet" href="assets/site.css?v=20261008-6">
+  <link rel="stylesheet" href="/assets/home.css">
 </head>
 <body>
   <!-- site-header -->
-  <main>
-    <section class="intro" aria-labelledby="project-title">
+  <main class="home-page">
+    <section class="intro" aria-labelledby="game-title">
       <div>
-        <p class="kicker">Educational project</p>
-        <h1 id="project-title">A browser-based tabletop football client, built in the open.</h1>
-        <p>Moles Under the Pitch brings a focused HTML5 client and a future game-service boundary into this educational monorepo. The retained Java engine remains intact while the browser client evolves independently.</p>
-        <a class="button" href="/teambuilder">Build a BB2025 team</a>
+        <h1 id="game-title">Build a team. Take the pitch.</h1>
+        <p>Play BB2025 in your browser. Build a Human or Orc team, face another coach or a computer opponent, and make the calls on match day.</p>
+        <div class="home-actions">
+          <a class="button" href="/play">Play a match</a>
+          <a href="/teambuilder">Build your first team</a>
+        </div>
       </div>
       <img src="assets/match-screenshot.webp" width="1024" height="640" alt="Orcs 4 Hire face Bugman's Best on the Moles Under the Pitch football pitch">
     </section>
-    <section class="panel" aria-labelledby="status-title">
-      <p class="kicker">Project status</p>
-      <h2 id="status-title">Local browser-client work is available for learning and development.</h2>
-      <p>Sign-in is isolated by Firebase environment and is separate from existing FUMBBL accounts and game behavior.</p>
+    <section class="panel quick-start" aria-labelledby="start-title">
+      <h2 id="start-title">Your first match</h2>
+      <ol>
+        <li>
+          <h3>Sign in to MUTP</h3>
+          <p><a href="/login?returnTo=%2Fteambuilder">Sign in</a> with Google or an email link to save teams to your account.</p>
+        </li>
+        <li>
+          <h3>Save your team</h3>
+          <p>Open <a href="/teambuilder">Team Builder</a>, choose a Human or Orc roster, then validate and save your team.</p>
+        </li>
+        <li>
+          <h3>Choose your opponent</h3>
+          <p>In <a href="/play">Play</a>, create a game and share its invitation, or join with an invitation code. For a solo game, choose <strong>AI Opponent</strong> and select saved teams for both sides.</p>
+        </li>
+      </ol>
+      <p class="home-help">Want to watch first? <a href="/spectate">Sign in to browse matches</a>. For screen and input guidance, visit <a href="/support">Support</a>.</p>
     </section>
     <section class="notice" aria-labelledby="independence-title">
-      <h2 id="independence-title">Independent educational work</h2>
-      <p>Moles Under the Pitch is an independent educational project. It is not affiliated with, endorsed by, sponsored by, or a replacement for FUMBBL. FUMBBL names and services remain their respective owners’ responsibility.</p>
+      <h2 id="independence-title">An independent game</h2>
+      <p>Moles Under the Pitch is an independent browser game with its own accounts, separate from FUMBBL. It is not affiliated with, endorsed by, sponsored by, or a replacement for FUMBBL. FUMBBL names and services remain their respective owners’ responsibility.</p>
     </section>
   </main>
   <footer>
     <span>© 2026 Moles Under the Pitch</span>
     <a href="/privacy">Privacy</a>
     <a href="/support">Support</a>
-    <a href="/updates">Updates</a>
+    <a href="/development">Development</a>
   </footer>
   <script src="/firebase-web-config.js"></script>
   <script type="module" src="/assets/account-menu.js"></script>

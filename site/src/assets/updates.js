@@ -26,7 +26,7 @@ export function updatesHref(state) {
   if (state.query) params.set('q', state.query);
   if (state.category) params.set('category', state.category);
   if (state.page > 1) params.set('page', String(state.page));
-  return `/updates${params.size ? `?${params}` : ''}#updates-list`;
+  return `/development${params.size ? `?${params}` : ''}#updates-list`;
 }
 
 export function paginationPages(current, total) {

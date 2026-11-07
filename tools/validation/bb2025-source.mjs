@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 // Historical evidence and original art references are preserved deliberately.
 const history = /^(?:\.notes\/|archive\/|docs\/(?:specs|reviews|adr|verification)\/)|\/(?:archive|references)\//;
-const historyFiles = new Set(['CHANGELOG.md', 'ARCHIVE.md', 'TODO.md', 'issues.md', 'site/updates.json', 'site/src/updates/index.html']);
+const historyFiles = new Set(['CHANGELOG.md', 'ARCHIVE.md', 'TODO.md', 'issues.md', 'site/updates.json', 'site/src/development/index.html']);
 const textTypes = new Set(['.java', '.ts', '.tsx', '.js', '.mjs', '.json', '.xml', '.md', '.html', '.css', '.svg', '.yml', '.yaml', '.ps1', '.sh', '.properties', '.txt']);
 const unsupported = /bb(?:2016|2020)|\blrb\s*[1-6](?:\.\d+)?\b|\bc[r]p\b/ig;
 const paths = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
