@@ -9,7 +9,7 @@ Object.assign(window, {
   mountRendererTest() {
     dispose?.();
     dispose = mountPlay(document.getElementById('app')!, {
-      url: `${location.origin.replace('http', 'ws')}/browser/v2`, getToken: async () => 'renderer-test-token'
+      environment: "dev", url: `${location.origin.replace('http', 'ws')}/browser/v2`, getToken: async () => 'renderer-test-token'
     });
   },
   unmountRendererTest() { dispose?.(); dispose = null; }

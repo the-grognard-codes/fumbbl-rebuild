@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BrowserV2TransportPolicyTest {
 	@Test void devProxyProfileCannotSelectProdLocalOriginsOrNonLoopbackBinding() {
 		BrowserV2TransportPolicy policy = new BrowserV2TransportPolicy("http://127.0.0.1:22231", "dev");
+		assertTrue(policy.diagnosticsAllowed());
 		URI path = URI.create("/browser/v2");
 		assertEquals("127.0.0.1", policy.bindHost(null));
 		assertTrue(policy.permits(path, "game-dev.molesunderthepitch.org", "https://dev.molesunderthepitch.org"));
@@ -22,6 +23,7 @@ class BrowserV2TransportPolicyTest {
 	}
 	@Test void prodIsPinnedToItsOwnHostOriginAndFirebaseProject() {
 		BrowserV2TransportPolicy policy = new BrowserV2TransportPolicy("http://127.0.0.1:22231", "prod");
+		assertFalse(policy.diagnosticsAllowed());
 		assertEquals(BrowserV2TransportPolicy.PROD_PROJECT, policy.firebaseProject());
 		assertEquals("127.0.0.1", policy.bindHost("false"));
 		assertTrue(policy.permits(URI.create("/browser/v2"), "game.molesunderthepitch.org", "https://molesunderthepitch.org"));
@@ -34,6 +36,7 @@ class BrowserV2TransportPolicyTest {
 	}
 	@Test void exactLocalBoundaryRejectsNormalizationQueriesAndForeignAuthorities() {
 		BrowserV2TransportPolicy policy = new BrowserV2TransportPolicy("http://127.0.0.1:22231");
+		assertTrue(policy.diagnosticsAllowed());
 		assertEquals("127.0.0.1", policy.bindHost(null));
 		assertEquals("127.0.0.1", policy.bindHost("false"));
 		assertThrows(IllegalArgumentException.class, () -> policy.bindHost("TRUE"));

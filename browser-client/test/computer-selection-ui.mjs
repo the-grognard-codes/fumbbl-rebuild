@@ -16,7 +16,7 @@ try {
   for (const coach of ['coach-bogruk-weak', 'coach-bugman-random']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const errors = []; context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
-    await context.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><div id="app"></div><script type="module">import { mountPlay } from '/src/play-entry.tsx'; mountPlay(document.getElementById('app'), { url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });</script>` }));
+    await context.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><div id="app"></div><script type="module">import { mountPlay } from '/src/play-entry.tsx'; mountPlay(document.getElementById('app'), { environment: "dev", url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });</script>` }));
     await context.addInitScript(() => {
       const id = '12345678-1234-1234-1234-123456789abc';
       const member = role => ({ role, sourceTeamId: id, sourceDocumentVersion: 1, ruleset: 'BB2025', catalogVersion: 'catalog', rosterId: 'human', presetId: 'starter', presetVersion: '1', validation: { valid: true, total: 1, budget: 2, skillPoints: 0, messages: [] }, roster: { captainId: null, resources: { rerolls: 0 }, players: [] } });

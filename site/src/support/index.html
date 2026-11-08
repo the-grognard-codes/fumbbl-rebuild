@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Get help signing in to Moles Under the Pitch with Google, Microsoft or email, contact support, and find screen, scaling and input guidance.">
+  <meta name="description" content="Get help signing in, report performance problems with DEV diagnostic captures, contact MUTP support, and find screen, scaling and input guidance.">
   <title>Support · Moles Under the Pitch</title>
   <link rel="stylesheet" href="/assets/site.css?v=20261008-6">
   <link rel="stylesheet" href="/assets/support.css">
@@ -18,6 +18,7 @@
       <ul>
         <li><a href="#sign-in-help">Sign-in help</a></li>
         <li><a href="#contact">Contact support</a></li>
+        <li><a href="#performance-help">Stuttering &amp; delays</a></li>
         <li><a href="#viewing-heading">Screen sizes</a></li>
         <li><a href="#scaling-heading">Scaling &amp; zoom</a></li>
         <li><a href="#controls-heading">Mouse, keyboard &amp; touch</a></li>
@@ -63,6 +64,19 @@
       <p>For MUTP help, project or privacy questions, email <a href="mailto:support@molesunderthepitch.org">support@molesunderthepitch.org</a>.</p>
       <p>Tell us what you were trying to do, what happened, and which browser and device you used. For sign-in trouble, include the method you chose and any error wording.</p>
       <p>Please do not send game credentials, account details, or other sensitive information, including passwords, verification codes or sign-in links. This project cannot provide support for FUMBBL accounts or services.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="performance-help">
+      <h2 id="performance-help" tabindex="-1">Report stuttering or delays</h2>
+      <p>The <a href="https://dev.molesunderthepitch.org/play">DEV client</a> has a performance and network analyzer to help investigate frame stutters and delayed responses. Use a DEV match to capture the problem; DEV accounts and games are separate from the main site.</p>
+      <ol>
+        <li>In a DEV match, open <strong>Debug → Performance &amp; Network</strong> and choose <strong>Counters</strong> or <strong>Graph</strong>.</li>
+        <li>Choose a history window. Select <strong>60 seconds</strong> for the widest available window.</li>
+        <li>Reproduce the delay, then choose <strong>Pause</strong> promptly to hold the recent history. You can also <strong>Mark incident</strong> to highlight the moment for review.</li>
+        <li>Choose <strong>Export JSON</strong>, then attach the downloaded capture to an email to <a href="mailto:support@thegrognardcodes.org">support@thegrognardcodes.org</a> for review.</li>
+      </ol>
+      <p>Tell us what you were doing when the delay occurred, what you noticed, and which browser and device you used.</p>
+      <p>The analyzer keeps a sliding window of up to 60 seconds; busy captures may retain less. Export before reloading or leaving the page. No file is saved or sent automatically.</p>
     </section>
 
     <section class="panel" aria-labelledby="viewing-heading">

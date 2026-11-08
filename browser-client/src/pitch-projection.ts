@@ -235,17 +235,18 @@ export class PitchProjection {
   }
 
   /** Project a source rectangle on any affine world plane, including upright walls. */
-  surfaceImage(width: number, height: number, origin: WorldPoint, across: WorldPoint, down: WorldPoint) {
+  surfaceImage(width: number, height: number, origin: WorldPoint, across: WorldPoint, down: WorldPoint, clipToViewport = true) {
     if (![width,height].every(value => Number.isFinite(value) && value > 0)
       || ![origin,across,down].every(p => [p.x,p.y,p.z].every(Number.isFinite)))
       throw new RangeError('Scenery surface must have finite world coordinates and positive source dimensions');
     const h=this.surfaceProjection(origin,across,down);
     const value=(row:number,p:Point)=>h[row][0]*p.x+h[row][1]*p.y+h[row][2];
     let visible=[{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}];
-    // Clip source pixels against the lens and viewport before CSS projection.
-    const planes=[(p:Point)=>value(2,p)-(this.mode==='perspective'?NEAR:0),
-      (p:Point)=>value(0,p),(p:Point)=>this.width*value(2,p)-value(0,p),
-      (p:Point)=>value(1,p),(p:Point)=>this.height*value(2,p)-value(1,p)];
+    // Always clip against the lens. Retained planes can let their scene own
+    // viewport clipping, keeping a fixed source bitmap during camera travel.
+    const planes=[(p:Point)=>value(2,p)-(this.mode==='perspective'?NEAR:0)];
+    if (clipToViewport) planes.push((p:Point)=>value(0,p),(p:Point)=>this.width*value(2,p)-value(0,p),
+      (p:Point)=>value(1,p),(p:Point)=>this.height*value(2,p)-value(1,p));
     for(const distance of planes) visible=this.clip(visible,distance);
     return this.croppedSurface(h,visible);
   }

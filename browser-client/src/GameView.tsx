@@ -1,4 +1,5 @@
 import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
+import { DiagnosticsBoundary, PerformanceControls, PerformanceOverlay, useDiagnostics, useDiagnosticPresentation } from './PerformanceDiagnostics.tsx';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LivePitch } from './LivePitch.tsx';
 import { LiveDugouts } from './LiveDugouts.tsx';
@@ -96,7 +97,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const { opacity, changeOpacity } = useHudOpacity();
   const { preferences: threatPreferences } = useThreatPreferences();
   const [debugOpen, setDebugOpen] = useState(false);
-  const [selectedScreen, setSelectedScreen] = useState<{ x: number; width: number } | null>(null);
+  const debugAvailable = useDiagnostics()?.available ?? false;
   const [actionId, setActionId] = useState('');
   const [kickoffIds, setKickoffIds] = useState<string[]>([]);
   const previousKickoffMode = useRef(view.turnMode);
@@ -138,19 +139,20 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
   const commandBar = useRef<HTMLDivElement>(null);
   const [reactionBarHeight, setReactionBarHeight] = useState(0);
   const [targetFocus, setTargetFocus] = useState<'player' | 'square' | null>(null);
-  const [hoverPlayer, setHoverPlayer] = useState<{ id: string; anchor: DOMRect } | null>(null);
+  const [hoverPlayer, setHoverPlayer] = useState<{ id: string } | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusPlayer = (id: string, anchor: DOMRect) => {
+  const focusPlayer = (id: string) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     setHoverPlayer(null);
-    hoverTimer.current = setTimeout(() => setHoverPlayer({ id, anchor }), 350);
+    hoverTimer.current = setTimeout(() => setHoverPlayer({ id }), 350);
   };
   const blurPlayer = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setHoverPlayer(null); };
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
   const [x, setX] = useState(0); const [y, setY] = useState(0);
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional,
+  const { pitchView, presentationRevision, provisionalActive, playbackActive, diceMoment, diceSnapshot, synchronizing, movementDuration, beginProvisional,
     announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } =
     usePitchPlayback(view, logRecords, hosted && connected && !logUnavailable, 1, 'live', requestPending);
+  useDiagnosticPresentation(view.revision, pitchView.revision, playbackActive, synchronizing, !!announcement, !!requestPending, 'live', 1, view.matchId, presentationRevision, provisionalActive);
   const pending = requestPending || (playbackActive ? 'playback' : null);
   const displayedRevision = useRef(view.revision);
   useLayoutEffect(() => {
@@ -1143,8 +1145,8 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
         movementRange={displayedRange}
         threatPreferences={threatPreferences} allowThreats={connected && !requestPending && !suspended && !playbackActive
           && pitchView.revision === view.revision && !decision}
-        zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugOpen} onSelectionPosition={setSelectedScreen}
-        debugOpen={debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
+          zoom={pitchZoom} onZoomChange={setPitchZoom} showToolbar={debugAvailable && debugOpen}
+          debugOpen={debugAvailable && debugOpen} cameraControlsHost={debugCameraHost} cameraButtonsHost={cameraButtonsHost}
         routePreview={!playbackActive ? reviewedRoute : null} waypoints={!playbackActive && routeMode ? displayedWaypoints : []} diceMoment={visibleDiceMoment} diceSnapshot={diceSnapshot && !playbackActive}
         onRightClick={() => {
           confirmationGesture.reset();
@@ -1173,7 +1175,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
           messages={chatMessages} chatLoading={chatLoading} chatUnavailable={chatUnavailable}
           connected={connected} sending={chatSending} canSend={view.phase !== 'FULL_TIME'} onSend={sendChat}
           sendError={chatSendError} sent={chatSent}/>
-        <button type="button" className="match-debug-toggle" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button>
+          {debugAvailable && <button type="button" className="match-debug-toggle" aria-expanded={debugOpen} aria-controls="match-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button>}
         <div className="match-menu-triggers"><div ref={setCameraButtonsHost}/><GameMenu view={view} connected={connected} pending={!!pending} mutate={mutate} records={logRecords} logLoading={logLoading} logUnavailable={logUnavailable}
           skillUseControls={skillUseControls} interfaceControls={<>{matchControls && <div className="interface-window-controls">
             <button type="button" onClick={matchControls.toggleFullscreen}>{matchControls.fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
@@ -1187,10 +1189,12 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
             <p>Right-button drag travels along the field; the wheel zooms. Click pitch squares to add movement waypoints; Confirmed or Space commits. Right-click undoes a waypoint; Escape clears the route. Top-down preserves the camera position.</p></>}/></div>
       </aside></div></>}
       {hosted && hoverPlayer && (() => { const player = pitchView.players.find(item => item.id === hoverPlayer.id);
-        return player ? <PlayerHoverCard player={player} anchor={hoverPlayer.anchor} dock={selectedScreen && selectedScreen.x < selectedScreen.width / 2 - 1 ? 'right' : 'left'} teamName={matchTeamName(view, player.role)}/> : null; })()}
-      {hosted && debugOpen && <section id="match-debug" className="match-debug-panel match-debug-drawer" role="region" aria-label="Match debug">
+        return player ? <PlayerHoverCard player={player} teamName={matchTeamName(view, player.role)}/> : null; })()}
+      {hosted && debugAvailable && <PerformanceOverlay/>}
+      {hosted && debugAvailable && debugOpen && <section id="match-debug" className="match-debug-panel match-debug-drawer" role="region" aria-label="Match debug">
           <header><strong>Debug</strong><button type="button" aria-label="Close debug panel" onClick={() => setDebugOpen(false)}>×</button></header>
           <div ref={setDebugCameraHost}/>
+          <PerformanceControls/>
         {view.phase === 'SETUP' && view.callerRole !== 'spectator' && <section aria-label="Setup placement">
           <h3>Setup placement</h3>
             <label>Player <select aria-label="Setup player" value={playerId} onChange={event => setPlayerId(event.target.value)} disabled={!maySetup}>
@@ -1260,7 +1264,7 @@ function GameViewContent({ view, connected, pending: requestPending, mutate, acc
 }
 
 export function GameView(props: Parameters<typeof GameViewContent>[0]) {
-  return <TeamColorArtProvider home={props.view.homeTeamArt} away={props.view.awayTeamArt}><GameViewContent {...props}/></TeamColorArtProvider>;
+  return <DiagnosticsBoundary preview><TeamColorArtProvider home={props.view.homeTeamArt} away={props.view.awayTeamArt}><GameViewContent {...props}/></TeamColorArtProvider></DiagnosticsBoundary>;
 }
 
 function SavedFormationButtons({ formations, disabled, select }: { formations: SetupState['savedFormations']; disabled: boolean; select: (index: number) => void }) {

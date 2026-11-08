@@ -67,6 +67,7 @@ try {
   assert.doesNotMatch(await card.textContent(), /Human Blitzer/);
   await orc.click(); await human.hover();
   const ownCard = page.getByRole('tooltip', { name: 'Human Blitzer player card' }); await ownCard.waitFor();
+  assert.equal(await ownCard.getAttribute('class').then(value => value.includes('dock-left')), true, 'Home player cards stay on the home HUD side');
   assert.match(await ownCard.textContent(), /MA.*ST.*AG.*PA.*AV.*Block, Tackle/s);
   assert.deepEqual(await page.evaluate(() => window.hudIntents), []);
   await human.click();
@@ -201,5 +202,5 @@ try {
     if (evidence) await page.screenshot({ path: `${evidence}/history-maximized-${width}-${height}.png` });
   }
   assert.deepEqual(errors, []);
-  console.log('PASS: authoritative HUD resources/clocks/turns, one opposite-side inspector, reviewed End Turn, editable chat draft, three log sizes, Other dugout access and responsive full-window layout.');
+  console.log('PASS: authoritative HUD resources/clocks/turns, team-docked player cards, reviewed End Turn, editable chat draft, three log sizes, Other dugout access and responsive full-window layout.');
 } finally { if (errors.length) console.error(errors); await browser.close(); await server.close(); }

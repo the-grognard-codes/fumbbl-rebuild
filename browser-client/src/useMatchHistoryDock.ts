@@ -5,6 +5,8 @@ import { matchWindowHeight } from './match-window-size.ts';
 import type { MatchWindowSize } from './match-window-size.ts';
 
 const obstacles = '.live-resources, .live-resource-counts, .live-chess-clock, .clock-end-turn, .coach-score-center, .game-menu-trigger, .live-camera-controls, .match-menu-triggers, .match-debug-toggle, .drive-phase-tracker';
+const measuredContent = `.live-dugout, .match-history header, ${obstacles}`;
+const dockStructure = `.match-history, ${measuredContent}`;
 
 // Measure actual HUD bounds so font size, resource wrapping and browser zoom
 // reserve the same space as their rendered controls, on each side independently.
@@ -63,7 +65,15 @@ export function useMatchHistoryDock(ref: RefObject<HTMLDivElement | null>, enabl
       }
       schedule();
     };
-    const mutations = new MutationObserver(observe);
+    const mutations = new MutationObserver(records => {
+      // Camera travel can mount/crop pitch artwork. Those changes cannot alter
+      // fixed HUD docking, and reading all HUD bounds would force layout.
+      const affectsDock = records.some(record => record.target instanceof Element && (
+        record.target.closest(measuredContent)
+        || [...record.addedNodes, ...record.removedNodes].some(node => node instanceof Element
+          && (node.matches(dockStructure) || node.querySelector(dockStructure)))));
+      if (affectsDock) observe();
+    });
     mutations.observe(host, { childList: true, subtree: true });
     observe();
     measure();

@@ -25,7 +25,7 @@ try {
     const context = await browser.newContext({viewport:{width:touch ? 768 : 1440,height:900},hasTouch:touch,isMobile:touch});
     const page = await context.newPage(), errors=[];
     page.on('pageerror',error=>errors.push(error.message));
-    await page.route('**/play/match?**',route=>route.fulfill({contentType:'text/html',body:'<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx";mountPlay(document.getElementById("app"),{url:"ws://unused",getToken:async()=>"token"});</script>'}));
+    await page.route('**/play/match?**',route=>route.fulfill({contentType:'text/html',body:'<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx";mountPlay(document.getElementById("app"),{environment: "dev", url:"ws://unused",getToken:async()=>"token"});</script>'}));
     await page.addInitScript(({ready,actorId})=>{
       localStorage.setItem('ffb.match.threat.preferences',JSON.stringify({enabled:false,zoneColors:false,tackle:false,otherSkills:true,prehensileTail:true,divingTackle:true,tentacles:true,shadowing:true}));
       window.WebSocket=class {

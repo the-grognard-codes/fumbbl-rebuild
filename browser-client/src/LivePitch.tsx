@@ -1,6 +1,6 @@
 import { useTeamColorContext } from './TeamColorArtProvider.tsx';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import type { SetupAction, SetupPlayer, SetupState } from './setup-protocol.ts';
 import type { RoutePoint, RoutePreview, RouteStep } from './route-protocol.ts';
 import { isJumpStep } from './route-protocol.ts';
@@ -18,6 +18,7 @@ import { diceDirectionAngles } from './dice-direction-presentation.ts';
 import { CircularSkillPrompt } from './CircularSkillPrompt.tsx';
 import './ui-round-four.css';
 import { PitchScenery } from './PitchScenery.tsx';
+import { PitchGrid } from './PitchGrid.tsx';
 import { PitchProjection, type Point, type PitchDirection, type PitchProjectionMode, type PerspectiveElevation } from './pitch-projection.ts';
 import { resolvePlayerArt, resolvePlayerPortrait, playerArtPlacement, type PlayerFacing } from './player-art.ts';
 import { updatePlayerFacings } from './player-facing.ts';
@@ -153,7 +154,7 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
   onRightClick,
   onSelectPlayer, onFocusPlayer, onBlurPlayer, onSquare, draggableIds, draggingPlayerId = '', onStartDrag, onEndDrag,
   onDropPlayer, pushChoices = [], onPushChoice, readOnly = false, playback = false, allowEndChoice = false, interactionBlocked = false,
-  zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, cameraButtonsHost, decision = null, decisionDisabled = false, onDecisionAction, onSelectionPosition }: {
+  zoom: controlledZoom, onZoomChange, showToolbar = true, debugOpen = true, cameraControlsHost, cameraButtonsHost, decision = null, decisionDisabled = false, onDecisionAction }: {
   view: SetupState; selectedId: string; selectedIds?: string[]; actions: SetupAction[]; pinnedAction?: SetupAction;
   routePreview?: RoutePreview | null; waypoints?: RoutePoint[]; movementRange?: MovementRange | null; diceMoment?: DiceMoment | null;
   jumpOptions?: RouteStep[] | null;
@@ -170,7 +171,6 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
   pushChoices?: PushChoice[]; onPushChoice?: (actionId: string) => void;
   zoom?: number; onZoomChange?: (zoom: number) => void; showToolbar?: boolean; debugOpen?: boolean; cameraControlsHost?: HTMLElement | null;
   cameraButtonsHost?: HTMLElement | null;
-  onSelectionPosition?: (position: { x: number; width: number } | null) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null), scene = useRef<HTMLDivElement>(null);
   const colors = useTeamColorContext();
@@ -225,7 +225,14 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
     return player ? `${player.name} #${player.number ?? player.slot}` : id;
   };
   const changeCamera = (next: PitchProjection) => { setTravel({ focus: next.focus, transverseFocus: next.transverseFocus }); onBlurPlayer?.(); };
-  const drag = useRef<{ x: number; y: number; pointerId: number; camera: PitchProjection; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; pointerId: number; camera: PitchProjection; moved: boolean; latest?: PitchProjection } | null>(null);
+  const finishPan = () => {
+    const latest = drag.current?.latest;
+    // Only the end of a gesture is synchronous. Flush its latest target so a
+    // deferred camera render cannot visibly finish after the pointer releases.
+    if (latest) flushSync(() => changeCamera(latest));
+    drag.current = null;
+  };
   useEffect(() => {
     const element = viewport.current!;
     const observer = new ResizeObserver(([entry]) => {
@@ -267,10 +274,6 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
     return { square, projected: projectThreatSquare(square, camera, threatPreferences.zoneColors, sharesRush) };
   });
   const passing = view.passing;
-  useEffect(() => {
-    const p = selected?.x != null && selected.y != null ? camera.project(centerOf({ x: selected.x, y: selected.y })) : null;
-    onSelectionPosition?.(p ? { x: p.x, width: camera.width } : null);
-  }, [selected?.x, selected?.y, end, mode, perspectiveElevation, travel.focus, travel.transverseFocus, size.width, size.height, zoom, onSelectionPosition]);
   const reveal = (point: Point | null | undefined) => { if (point) changeCamera(cameraRef.current.reveal(point, 50)); };
   useEffect(() => {
     if (!decision || decision.pitchSelection) return;
@@ -389,15 +392,15 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
           return;
         } const dx = event.clientX - start.x, dy = event.clientY - start.y;
         if (Math.abs(dx) + Math.abs(dy) > 6) { start.moved = true; viewport.current!.setPointerCapture(event.pointerId); }
-        if (start.moved) changeCamera(start.camera.panPixels({ x: dx, y: dy })); }}
+        if (start.moved) { start.latest = start.camera.panPixels({ x: dx, y: dy }); changeCamera(start.latest); } }}
       onPointerUp={event => { const start = drag.current;
         if (start?.pointerId !== event.pointerId) return;
-        drag.current = null;
+        finishPan();
         if (!readOnly && event.button === 2 && !start.moved) onRightClick?.();
         if (viewport.current?.hasPointerCapture(event.pointerId)) viewport.current.releasePointerCapture(event.pointerId); }}
       onPointerLeave={() => setHover(null)}
-      onLostPointerCapture={event => { if (drag.current?.pointerId === event.pointerId) drag.current = null; }}
-      onPointerCancel={event => { if (drag.current?.pointerId === event.pointerId) drag.current = null; }}>
+      onLostPointerCapture={event => { if (drag.current?.pointerId === event.pointerId) finishPan(); }}
+      onPointerCancel={event => { if (drag.current?.pointerId === event.pointerId) finishPan(); }}>
       <div ref={scene} className="live-pitch-scene" data-projection={mode} data-elevation={camera.elevation} data-end={end} data-focus={camera.focus}
         data-transverse-focus={camera.transverseFocus} data-zoom={zoom} style={{ width: size.width, height: size.height }}
         onDragOver={event => { if (onDropPlayer) event.preventDefault(); }}
@@ -406,15 +409,9 @@ export function LivePitch({ view, selectedId, selectedIds = [], actions, pinnedA
         onClick={event => { if (!readOnly) { const square = point(event.clientX, event.clientY);
           if (square) chooseSquare(square.x, square.y, event.detail > 0 ? event.timeStamp : undefined); } }}>
         {!backgroundFailed && <PitchScenery camera={camera} onError={onBackgroundError}/>}
+        <PitchGrid camera={camera} passing={passing}/>
         <svg data-pitch-ground="true" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
           <defs><marker id={`${markerId}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 9 5 1 9Z" className="live-route-arrowhead"/></marker></defs>
-          {Array.from({ length: 390 }, (_, index) => ({ x: Math.floor(index / 15), y: index % 15 })).map(square => {
-            const guidance = passing && passingSquare(passing, square.x, square.y);
-            return <polygon key={`${square.x},${square.y}`}
-            data-cell-x={square.x} data-cell-y={square.y} points={points(camera.square(square, 0, true))}
-            data-pass-range={guidance?.code} fill={guidance?.color ?? (square.x === 0 ? '#37669166' : square.x === 25 ? '#874a2d66' : (square.x + square.y) % 2 ? '#18392222' : '#b1c46a0b')}
-            stroke="#21371e" strokeOpacity=".5">{guidance && <title>{guidance.description}</title>}</polygon>;
-          }) }
           {allowThreats && !readOnly && !playback && <g className="live-threats" data-threat-player={selectedId}>
             {threatMarkings.map(({ square, projected }) => {
               return <g key={`${square.x},${square.y}`} data-threat-square={`${square.x},${square.y}`} data-threat-count={square.count}

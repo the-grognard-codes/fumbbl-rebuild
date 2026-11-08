@@ -56,6 +56,7 @@ public final class BrowserV2Runtime {
 			setup, matches, new V2PreparationService(connections::open, teams, catalog, clock, computers),
 			new BrowserSavedTeamJson(teams, true), computers);
 		adapter.configureSkillUsePreferences(skillUsePreferences);
+		adapter.configureDiagnostics(policy.diagnosticsAllowed());
 		mountRoutes(context, server, adapter);
 	}
 

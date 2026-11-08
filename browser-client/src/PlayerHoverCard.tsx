@@ -1,30 +1,20 @@
 import { useTeamColorContext } from './TeamColorArtProvider.tsx';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { spriteUrl } from './LivePitch.tsx';
 import { resolvePlayerPortrait } from './player-art.ts';
 import { playerCardStatuses, playerCardSubtypes } from './player-card-details.ts';
 import type { SetupPlayer } from './setup-protocol.ts';
 import { useTooltipLayer } from './Tooltip.tsx';
 
-export function PlayerHoverCard({ player, anchor, teamName, dock }: { player: SetupPlayer; anchor: DOMRect; teamName: string; dock?: 'left' | 'right' }) {
+export function PlayerHoverCard({ player, teamName }: { player: SetupPlayer; teamName: string }) {
   const card = useRef<HTMLElement>(null);
   useTooltipLayer(card, true);
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const style = dock ? undefined : { left: Math.max(8, Math.min(anchor.right + 12, window.innerWidth - 326)),
-    top: Math.max(8, Math.min(anchor.top, window.innerHeight - 390)) };
-  useLayoutEffect(() => {
-    if (dock) return;
-    const element = card.current;
-    if (!element) return;
-    const { width, height } = element.getBoundingClientRect();
-    const beside = anchor.right + width + 20 <= window.innerWidth ? anchor.right + 12 : anchor.left - width - 12;
-    element.style.left = `${Math.max(8, Math.min(beside, window.innerWidth - width - 8))}px`;
-    element.style.top = `${Math.max(8, Math.min(anchor.top, window.innerHeight - height - 8))}px`;
-  }, [anchor, player, dock]);
+  const dock = player.role === 'home' ? 'left' : 'right';
   const subtypes = playerCardSubtypes(player);
   const colors = useTeamColorContext();
   const image = resolvePlayerPortrait(player, colors[player.role]) ?? spriteUrl(player);
-  return <aside ref={card} popover="manual" className={`live-player-hover tooltip-popover ${player.role}${dock ? ` dock-${dock}` : ''}`} role="tooltip" style={style} aria-label={`${player.name} player card`}>
+  return <aside ref={card} popover="manual" className={`live-player-hover tooltip-popover ${player.role} dock-${dock}`} role="tooltip" aria-label={`${player.name} player card`}>
     <header><div className="live-player-card-intro"><small>#{player.number ?? player.slot} · {teamName}</small><h3>{player.name}</h3>
       <span>{player.position ?? player.role}{subtypes && ` (${subtypes})`}</span></div>
       <div className="live-player-card-main">

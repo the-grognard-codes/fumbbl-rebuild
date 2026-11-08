@@ -11,7 +11,7 @@ const base = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext();
 try {
-  await context.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><div id="app"></div><script type="module">import { mountPlay } from '/src/play-entry.tsx'; mountPlay(document.getElementById('app'), { url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });</script>` }));
+  await context.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><div id="app"></div><script type="module">import { mountPlay } from '/src/play-entry.tsx'; mountPlay(document.getElementById('app'), { environment: "dev", url: 'ws://127.0.0.1/unused', getToken: async () => 'test-token' });</script>` }));
   await context.addInitScript(() => {
     window.__lobbyVisible = true;
     Object.defineProperty(window.document, 'visibilityState', { get: () => window.__lobbyVisible ? 'visible' : 'hidden' });

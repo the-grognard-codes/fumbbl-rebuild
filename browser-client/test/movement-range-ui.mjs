@@ -23,7 +23,7 @@ async function open(role, distant = false, hold = false) {
   page.setDefaultTimeout(10000);
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
-    '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused",getToken:async()=>"token"});</script>' }));
+    '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {environment: "dev", url:"ws://unused",getToken:async()=>"token"});</script>' }));
   await page.addInitScript(installInitialMovementPreview);
   await page.addInitScript(({ fixture, role, distant, hold }) => {
     const ready = distant ? fixture.distantMoveReadyState : fixture.readyState;
@@ -131,8 +131,8 @@ try {
         const warning = await page.locator('[data-rush-warning]').first().evaluate(element => {
           const triangle = element.querySelector('.live-range-warning-triangle'), mark = element.querySelector('.live-range-warning-mark');
           const [x, y] = element.dataset.rushWarning.split(',');
-          const cell = document.querySelector(`[data-cell-x="${x}"][data-cell-y="${y}"]`).getBBox();
-          const bounds = triangle.getBBox(), outline = getComputedStyle(triangle), text = getComputedStyle(mark);
+          const cell = document.querySelector(`[data-cell-x="${x}"][data-cell-y="${y}"]`).getBoundingClientRect();
+          const bounds = triangle.getBoundingClientRect(), outline = getComputedStyle(triangle), text = getComputedStyle(mark);
           return { fill: outline.fill, stroke: outline.stroke, mark: text.fill, strokeWidth: outline.strokeWidth,
             width: bounds.width / cell.width, height: bounds.height / cell.height };
         });
@@ -147,7 +147,11 @@ try {
         assert.ok(obstacle && obstacle.offPitch === 'pitch');
         const obstacleEdges = await page.evaluate(({ x, y }) => {
           const polygon = document.querySelector(`[data-cell-x="${x}"][data-cell-y="${y}"]`);
-          const corners = Array.from(polygon.points, point => ({ x: point.x, y: point.y }));
+          const matrix = new DOMMatrix(polygon.closest('.live-pitch-grid').style.transform);
+          const corners = Array.from(polygon.points, point => {
+            const projected = matrix.transformPoint(new DOMPoint(point.x, point.y));
+            return { x: projected.x / projected.w, y: projected.y / projected.w };
+          });
           const same = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < .001;
           return [...document.querySelectorAll('.live-range-normal, .live-range-full')].filter(path => {
             const from = path.getPointAtLength(0), to = path.getPointAtLength(path.getTotalLength());

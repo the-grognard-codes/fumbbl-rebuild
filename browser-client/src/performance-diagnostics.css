@@ -1,0 +1,53 @@
+.performance-controls { color: #d9e9f7; }
+.performance-controls fieldset { margin: 10px 0; padding: 6px; border: 1px solid #426c9b; }
+.performance-controls label { display: block; margin: 5px 0; }
+.performance-controls input[type=checkbox] { margin-right: 6px; }
+.performance-options-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.performance-options-grid input:not([type=checkbox]), .performance-options-grid select { box-sizing: border-box; width: 100%; min-width: 0; color: #edf5ff; background: #07111d; }
+.performance-overlay { position: fixed; z-index: 95; box-sizing: border-box; width: min(420px,calc(100vw - 24px)); max-height: min(72vh,780px); overflow: auto; padding: 8px 10px; color: #d9e9f7; border: 2px solid #426c9b; border-radius: 4px; font-family: MUTP,Inter,sans-serif; line-height: 1.35; font-variant-numeric: tabular-nums; pointer-events: none; scrollbar-color: #426c9b #091726; }
+.performance-overlay.expanded { width: min(620px,calc(100vw - 24px)); }
+.performance-overlay.bottom-right { bottom: 12px; right: 12px; }
+.performance-overlay.bottom-left { bottom: 12px; left: 12px; }
+.performance-overlay.top-right { top: 12px; right: 12px; }
+.performance-overlay.top-left { top: 12px; left: 12px; }
+.performance-overlay header { display: flex; justify-content: space-between; align-items: center; gap: 8px; position: sticky; top: -8px; z-index: 2; background: #091726; padding: 4px 0; }
+.performance-overlay header strong > span { color: #ffe17b; margin-left: 6px; }
+.performance-overlay p { margin: 6px 0; font: inherit; }
+.performance-overlay button, .performance-overlay summary, .performance-overlay input, .performance-interact { pointer-events: auto; }
+.performance-overlay button { min-height: 30px; padding: 3px 8px; border: 1px solid #426c9b; border-radius: 2px; color: #bdeaff; background: #172b3e; font: inherit; cursor: pointer; }
+.performance-overlay button:hover { color: #ffe17b; border-color: #ffe17b; }
+.performance-overlay :focus-visible, .performance-controls :focus-visible { outline: 2px solid #ffe17b; outline-offset: 2px; }
+.performance-overlay ::selection { color: #101823; background: #ffe17b; }
+.performance-readouts > p + p { padding-top: 5px; border-top: 1px solid #426c9b; }
+.performance-track { margin-top: 8px; }
+.performance-track > div { display: flex; justify-content: space-between; gap: 8px; }
+.performance-track > div > span { color: #bdeaff; text-align: right; }
+.performance-track svg { width: 100%; height: 44px; display: block; margin-top: 3px; background: #07111d; border-bottom: 1px solid #426c9b; }
+.performance-track.inspect svg { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.performance-bar { fill: #49e6ff; }
+.performance-spike, .performance-out { fill: #ffe17b; }
+.performance-threshold { stroke: #ffe17b; stroke-width: 1; stroke-dasharray: 5 4; }
+.performance-marker { stroke: #edf5ff; stroke-width: 1; stroke-dasharray: 2 3; }
+.performance-task { stroke: #ffe17b; stroke-width: 2; }
+.performance-cursor { stroke: #edf5ff; stroke-width: 2; }
+.performance-overlay details { margin: 8px 0; }
+.performance-overlay summary { cursor: pointer; color: #bdeaff; padding: 4px 0; }
+.performance-overlay dl { margin: 6px 0; }
+.performance-overlay dl > div { display: grid; grid-template-columns: minmax(100px,1fr) 2fr; gap: 8px; border-top: 1px solid #426c9b; padding: 3px 0; }
+.performance-overlay dd { margin: 0; }
+.performance-histogram { margin: 10px 0; }
+.performance-histogram > div { display: grid; grid-template-columns: 76px 1fr 40px; align-items: center; gap: 6px; }
+.performance-histogram meter { width: 100%; accent-color: #49e6ff; }
+.performance-overlay footer { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.performance-note, .performance-legend { color: #bdeaff; font-size: .9em !important; }
+.performance-overlay input[type=range] { width: 100%; accent-color: #ffe17b; }
+.play-runtime .performance-overlay input[type=checkbox], .play-runtime .performance-controls input[type=checkbox] { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0 5px 0 0; display: inline-block; vertical-align: middle; accent-color: #ffe17b; }
+.play-runtime .performance-overlay footer { padding: 6px 0 0; border: 0; margin: 0; background: none; box-shadow: none; }
+.play-runtime .performance-overlay button { box-shadow: none; margin: 0; }
+.replay-debug { position: fixed; top: 64px; z-index: 100; }
+@media (max-width: 700px), (max-height: 540px) {
+  .performance-overlay { max-height: 52vh; width: min(360px,calc(100vw - 16px)); padding: 6px; }
+  .performance-overlay button { min-height: 36px; }
+  .performance-track svg { height: 32px; }
+}
+@media (pointer: coarse) { .performance-overlay button, .performance-overlay summary { min-height: 44px; } }

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Pitch panning retains the grid in the camera's ground plane and avoids
+  unrelated HUD layout measurements. Player cards now use fixed team sides:
+  home on the left and away on the right, including replay.
+
+- Added offline review reports for performance captures, with grouped incidents
+  and selected timing evidence for support or chat review. Support now explains
+  how to capture DEV performance problems and email the exported JSON for review.
+
+- DEV and dev-local matches now offer opt-in frame pacing, network I/O, response
+  timing and presentation diagnostics, with configurable scrolling graphs,
+  inspection, bounded private capture exports and optional server timing/probes.
+  The Debug menu is hidden in PROD.
+
 - Sign-in now offers Google, Microsoft and email links with clearer loading,
   recovery and email guidance. Support includes Microsoft account sign-in help,
   and `/signin` opens the existing sign-in page. Provider buttons use official

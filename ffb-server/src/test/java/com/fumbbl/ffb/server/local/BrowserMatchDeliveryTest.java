@@ -12,6 +12,31 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test void optionalTelemetryYieldsToGameplayAndNeverClosesOnOverflow() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 24);
+		assertTrue(delivery.send("first"));
+		assertTrue(delivery.sendOptional("timing"));
+		assertFalse(delivery.sendOptional("another-timing"));
+		assertTrue(delivery.send("mandatory-response")); // Drops queued timing before checking mandatory capacity.
+		sink.completeNext();
+		assertEquals(List.of("first", "mandatory-response"), sink.messages);
+		assertFalse(delivery.sendOptional("far-too-large-for-remaining-queue-space"));
+		assertEquals(0, sink.closeCode);
+		assertEquals(0, metrics.toJson().getLong("outboundOverload", -1));
+	}
+
+	@Test void optionalTelemetryFollowsItsReplyWhenQueueIsQuiet() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 3, 100);
+		delivery.send("reply");
+		assertTrue(delivery.sendOptional("timing"));
+		sink.completeNext();
+		assertEquals(List.of("reply", "timing"), sink.messages);
+		sink.completeNext();
+		assertEquals(0, sink.closeCode);
+	}
 	@Test
 	public void productionQueueStillRejectsOneByteBeyondItsBudgetAndClearsQueuedState() {
 		DelayedSink sink = new DelayedSink();

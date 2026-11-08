@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('../dist/', import.meta.url));
 
 async function checkTopicNavigation(page, keyboard = false) {
   const links = await page.getByRole('navigation', { name: 'Support topics' }).getByRole('link').all();
-  assert.equal(links.length, 6, 'Every main help/reference topic has an opening shortcut');
+  assert.equal(links.length, 7, 'Every main help/reference topic has an opening shortcut');
   for (const link of links) {
     const fragment = await link.getAttribute('href');
     assert.ok(fragment.startsWith('#'));
@@ -55,6 +55,15 @@ test('support topics and sign-in help work without scripts while scaling preserv
     const sectionOrder = await page.locator('main > section > h2').evaluateAll(headings => headings.map(heading => heading.id));
     assert.ok(sectionOrder.indexOf('sign-in-help') < sectionOrder.indexOf('viewing-heading'));
     assert.ok(sectionOrder.indexOf('contact') < sectionOrder.indexOf('viewing-heading'));
+    assert.ok(sectionOrder.indexOf('performance-help') < sectionOrder.indexOf('viewing-heading'));
+    const performanceHelp = page.getByRole('region', { name: 'Report stuttering or delays' });
+    assert.equal(await performanceHelp.getByRole('link', { name: 'DEV client', exact: true }).getAttribute('href'), 'https://dev.molesunderthepitch.org/play');
+    assert.equal(await performanceHelp.getByRole('link', { name: 'support@thegrognardcodes.org', exact: true }).getAttribute('href'), 'mailto:support@thegrognardcodes.org');
+    assert.match(await performanceHelp.textContent(), /Debug → Performance & Network/);
+    assert.match(await performanceHelp.textContent(), /Pause/);
+    assert.match(await performanceHelp.textContent(), /Export JSON/);
+    assert.match(await performanceHelp.textContent(), /No file is saved or sent automatically/);
+    await performanceHelp.screenshot({ path: resolve(output, 'performance-help-desktop.png') });
     assert.deepEqual(await page.locator('.support-auth-help > summary').allTextContents(),
       ['Google sign-in', 'Microsoft sign-in', 'Email sign-in links']);
     const microsoftHelp = page.locator('.support-auth-help').filter({ has: page.locator('summary', { hasText: 'Microsoft sign-in' }) });
@@ -113,6 +122,7 @@ test('support topics and sign-in help work without scripts while scaling preserv
         return [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft];
       })) });
       if (width === 390) {
+        await performanceHelp.screenshot({ path: resolve(output, 'performance-help-mobile.png') });
         await page.screenshot({ path: resolve(output, 'mobile.png'), fullPage: true });
         for (const help of await page.locator('.support-auth-help').all()) await help.locator('summary').click();
         await page.evaluate(() => window.scrollTo(0, 0));
@@ -131,6 +141,9 @@ test('support topics and sign-in help work without scripts while scaling preserv
     await touchPage.getByRole('navigation', { name: 'Support topics' }).getByRole('link', { name: 'Contact support', exact: true }).tap();
     assert.equal(new URL(touchPage.url()).hash, '#contact');
     assert.equal(await touchPage.locator('#contact').evaluate(element => document.activeElement === element), true);
+    await touchPage.getByRole('navigation', { name: 'Support topics' }).getByRole('link', { name: 'Stuttering & delays', exact: true }).tap();
+    assert.equal(new URL(touchPage.url()).hash, '#performance-help');
+    assert.equal(await touchPage.locator('#performance-help').evaluate(element => document.activeElement === element), true);
     const touchSlider = touchPage.getByRole('slider');
     await touchSlider.scrollIntoViewIfNeeded();
     await touchPage.waitForFunction(() => !document.querySelector('#display-scale').disabled);
@@ -153,6 +166,8 @@ test('support topics and sign-in help work without scripts while scaling preserv
     assert.equal(await fallback.locator('noscript').isVisible(), true);
     assert.equal(await fallback.getByRole('heading', { name: 'Planning for animated matches' }).isVisible(), true);
     assert.equal(await fallback.getByRole('link', { name: 'support@molesunderthepitch.org', exact: true }).isVisible(), true);
+    assert.equal(await fallback.getByRole('link', { name: 'support@thegrognardcodes.org', exact: true }).isVisible(), true);
+    assert.equal(await fallback.getByRole('region', { name: 'Report stuttering or delays' }).getByRole('list').getByRole('listitem').count(), 4);
     assert.equal(await fallback.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const authGeometry = [];
     for (const route of ['/login', '/login/complete']) {

@@ -19,6 +19,7 @@ import java.util.Set;
 
 /** Live v2 match viewers and their best-effort, recipient-specific updates. Runs on the protocol worker. */
 final class ActiveMatchPublisher {
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
 	private final V2PreparationService preparation;
@@ -68,7 +69,8 @@ final class ActiveMatchPublisher {
 			&& response.get("state") != null && response.get("state").isObject()) {
 			String frame = transcript.frame(response.get("state").asObject());
 			if (frame != null) {
-				connection.sendWithOptionalPredecessor(frame, response.set("version", 2).toString());
+				String mandatory = response.set("version", 2).toString();
+				timing.reply(connection, response, () -> connection.sendWithOptionalPredecessor(frame, mandatory));
 				return;
 			}
 		}
@@ -102,7 +104,7 @@ final class ActiveMatchPublisher {
 	}
 
 	void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript) {
-		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.PUBLICATION)) {
 			for (BrowserConnection connection : new ArrayList<>(viewers.keySet())) {
 				Viewer viewer = viewers.get(connection);
 				if (viewer == null || connection == source || !matchId.equals(viewer.matchId)) continue;
@@ -144,7 +146,8 @@ final class ActiveMatchPublisher {
 	}
 
 	private void send(BrowserConnection connection, JsonObject response) {
-		connection.send(response.set("version", 2).toString());
+		String message = response.set("version", 2).toString();
+		timing.reply(connection, response, () -> connection.send(message));
 	}
 
 	private static final class Viewer {
