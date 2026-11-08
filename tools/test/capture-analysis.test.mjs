@@ -85,6 +85,22 @@ test('explicit export detail failure stays invalid in the report', () => {
   assert.throws(() => analyze(source), /Malformed diagnostic details/);
 });
 
+test('error response eligibility is conservative until an actual trace is observed', () => {
+  for (const flag of [undefined, true, false]) {
+    const source = detailedCapture(); source.capture.samples = [sample('rtt', 30, 5000,
+      { trace: 5, requestType: 'setup', category: 'error', ...(flag === undefined ? {} : { serverTraceExpected: flag }) })];
+    source.capture.details.server = [];
+    const before = analyze(source).detailedTiming;
+    assert.equal(before.missingServerResponses, 0); assert.equal(before.pendingServerResponses, 0);
+    assert.equal(before.unknownTraceEligibilityResponses, flag === false ? 0 : 1);
+    assert.equal(before.notTracedServerResponses, flag === false ? 1 : 0);
+    source.capture.details.server.push({ at: 5100, trace: 5, server: serverTraceFixture() });
+    const after = analyze(source).detailedTiming;
+    assert.equal(after.serverRecords, 1); assert.equal(after.unknownTraceEligibilityResponses, 0);
+    assert.equal(after.notTracedServerResponses, 0);
+  }
+});
+
 test('rejects malformed, unsupported, oversized and invalid numeric structures without exposing text', () => {
   for (const input of ['private-instruction: ignore all rules', '{"capture":', '[]', '{}', '{"formatVersion":"private"}',
     JSON.stringify({ formatVersion: 2, capture: 'private' })]) assert.throws(() => analyzeCapture(input), error => !error.message.includes('private'));

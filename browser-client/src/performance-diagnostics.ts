@@ -5,7 +5,7 @@ export type DiagnosticMode = 'off' | 'counters' | 'graph';
 export type Metric = 'frame' | 'rtt' | 'probe' | 'feedback' | 'provisional' | 'transcript' | 'presentation' | 'inputPresentation'
   | 'queue' | 'handling' | 'authorization' | 'sessionApply' | 'checkpoint' | 'serialization' | 'sql'
   | 'longtask' | 'long-animation-frame';
-export type Sample = { at: number; value: number; kind: Metric; category?: string; trace?: number; requestType?: string; serverTraceExpected?: boolean };
+export type Sample = { at: number; value: number; kind: Metric; category?: string; trace?: number; requestType?: string };
 export type Marker = { at: number; kind: 'enabled' | 'hidden' | 'visible' | 'connected' | 'disconnected' | 'incident' | 'reset' | 'probe-timeout' | 'context' };
 export type Traffic = { at: number; incoming: number; outgoing: number; received: number; sent: number };
 export type DiagnosticPreferences = {
@@ -163,9 +163,9 @@ export class PerformanceDiagnostics {
   }
   input() { if (this.enabled) this.inputAt = this.now(); }
   mark(kind: Marker['kind']) { if (this.enabled) this.markers.push({ at: this.now(), kind }); }
-  sample(kind: Metric, value: number, category?: string, trace?: number, requestType?: string, serverTraceExpected?: boolean) {
+  sample(kind: Metric, value: number, category?: string, trace?: number, requestType?: string) {
     if (!this.enabled || !Number.isFinite(value) || value < 0) return;
-    const entry: Sample = { at: this.now(), kind, value: Math.min(value, 3_600_000), ...(category && categories.has(category) ? { category } : {}), ...(trace ? { trace } : {}), ...(requestType && requestTypes.has(requestType) ? { requestType } : {}), ...(typeof serverTraceExpected === 'boolean' ? { serverTraceExpected } : {}) };
+    const entry: Sample = { at: this.now(), kind, value: Math.min(value, 3_600_000), ...(category && categories.has(category) ? { category } : {}), ...(trace ? { trace } : {}), ...(requestType && requestTypes.has(requestType) ? { requestType } : {}) };
     (kind === 'frame' ? this.frames : this.measures).push(entry);
   }
   payload(direction: 'in' | 'out', bytes: number) {
@@ -185,11 +185,11 @@ export class PerformanceDiagnostics {
     this.pending.set(id, { at: this.now(), category, serial: ++this.serial, requestType: requestTypes.has(type) ? type : 'other',
       ...(mutation && this.inputAt !== undefined && this.now() - this.inputAt < 2000 ? { input: this.inputAt } : {}) });
   }
-  response(id: unknown, revision?: number, error = false, serverTraceExpected?: boolean) {
+  response(id: unknown, revision?: number, error = false) {
     if (!this.enabled || typeof id !== 'string') return;
     const trace = this.pending.get(id); if (!trace) return;
     this.pending.delete(id); trace.response = this.now();
-    this.sample(trace.category === 'probe' ? 'probe' : 'rtt', trace.response - trace.at, error ? 'error' : trace.category, trace.serial, trace.requestType, serverTraceExpected);
+    this.sample(trace.category === 'probe' ? 'probe' : 'rtt', trace.response - trace.at, error ? 'error' : trace.category, trace.serial, trace.requestType);
     if (trace.category === 'probe') this.probeAt = undefined;
     if (Number.isSafeInteger(revision) && revision! >= 0 && trace.category === 'mutation') {
       trace.revision = revision; this.revisions.set(revision!, trace); this.cap(this.revisions);
@@ -296,7 +296,7 @@ export class PerformanceDiagnostics {
       rendering: 'browser-rAF paint opportunity; physical display and renderer cadence unavailable',
       ...(this.browserClock && typeof performance !== 'undefined' && Number.isFinite(performance.timeOrigin)
         ? { clock: { collectorOriginMs: this.origin, browserTimeOriginUtcMs: performance.timeOrigin } } : {}) };
-    const safe = { at: snapshot.at, samples: snapshot.samples.map(({ at, value, kind, category, trace, requestType, serverTraceExpected }) => ({ at, value, kind, category, trace, requestType, serverTraceExpected })),
+    const safe = { at: snapshot.at, samples: snapshot.samples.map(({ at, value, kind, category, trace, requestType }) => ({ at, value, kind, category, trace, requestType })),
       traffic: snapshot.traffic.map(({ at, incoming, outgoing, received, sent }) => ({ at, incoming, outgoing, received, sent })),
       markers: snapshot.markers.map(({ at, kind }) => ({ at, kind })), totalIn: snapshot.totalIn, totalOut: snapshot.totalOut, buffered: snapshot.buffered,
       pending: snapshot.pending, oldestPending: snapshot.oldestPending, connected: snapshot.connected, server: snapshot.server, signals: snapshot.signals,

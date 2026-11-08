@@ -12,6 +12,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test void inFlightDetailDoesNotBlockTheNextReplysBasicTiming() {
+		DelayedSink sink = new DelayedSink(); BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 1000);
+		assertTrue(delivery.sendTrace("trace-1")); assertTrue(delivery.send("reply-2"));
+		assertTrue(delivery.sendOptional("basic-2")); assertFalse(delivery.sendOptional("another-basic"));
+		assertEquals(3, metrics.toJson().getLong("deliveryQueueDepth", -1));
+		sink.completeNext(); sink.completeNext(); sink.completeNext();
+		assertEquals(List.of("trace-1", "reply-2", "basic-2"), sink.messages);
+		assertEquals(0, sink.closeCode); assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+	}
+	@Test void queuedDetailYieldsToBasicTimingWithoutChangingPhysicalBudgets() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 3, 1000);
+		delivery.send("reply"); assertTrue(delivery.sendTrace("detail")); assertTrue(delivery.sendOptional("basic"));
+		sink.completeNext(); sink.completeNext(); assertEquals(List.of("reply", "basic"), sink.messages);
+		for (BrowserMatchDelivery bounded : List.of(
+			new BrowserMatchDelivery(new DelayedSink(), new BrowserMatchTransportMetrics(), 2, 1000),
+			new BrowserMatchDelivery(new DelayedSink(), new BrowserMatchTransportMetrics(), 3, 12))) {
+			assertTrue(bounded.sendTrace("trace")); assertTrue(bounded.send("reply"));
+			assertFalse(bounded.sendOptional("basic"), "Actual queue count and bytes remain bounded");
+		}
+	}
 	@Test void writeCompletionQueuesDetailBehindTheBasicTimingAlreadySelectedForWrite() {
 		DelayedSink sink = new DelayedSink(); BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
 		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 1000);

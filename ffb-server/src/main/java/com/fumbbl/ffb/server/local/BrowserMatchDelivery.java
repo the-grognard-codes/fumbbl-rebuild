@@ -68,13 +68,19 @@ public class BrowserMatchDelivery {
 	private boolean sendOptional(String message, int budget, boolean trace) {
 		String next = null;
 		synchronized (this) {
-			// Once basic timing is in flight, allow one queued detail behind it. Neither can
-			// displace queued basic timing; the queued optional frame still yields to gameplay.
-			boolean followingBasic = trace && writing && queuedTiming != null
-				&& messages.peekFirst() == queuedTiming && !queuedTiming.trace;
-			if (closed || queuedTiming != null && !followingBasic || messages.size() > 1 || !sink.isOpen()) return false;
+			if (closed || !sink.isOpen()) return false;
+			if (!trace && queuedTiming != null && queuedTiming.trace && messages.peekFirst() != queuedTiming) {
+				messages.remove(queuedTiming); bytes -= queuedTiming.bytes;
+				metrics.deliveryCleared(1, queuedTiming.bytes); queuedTiming = null;
+			}
+			QueuedMessage head = messages.peekFirst();
+			// Basic timing has priority over detail, including [old trace, next reply].
+			// Discount the in-flight trace only for admission policy, never actual capacity.
+			int inFlightTrace = !trace && writing && head != null && head.trace ? 1 : 0;
+			boolean followingOtherKind = writing && queuedTiming == head && head != null && trace != head.trace;
+			if (queuedTiming != null && !followingOtherKind || messages.size() - inFlightTrace > 1) return false;
 			int messageBytes = message.getBytes(StandardCharsets.UTF_8).length;
-			if (messageBytes > Math.min(budget, maximumBytes - bytes) || messages.size() + 2 > maximumMessages) return false;
+			if (messageBytes > Math.min(budget, maximumBytes - bytes) || messages.size() + 2 - inFlightTrace > maximumMessages) return false;
 			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong(), null, trace);
 			messages.addLast(queuedTiming);
 			bytes += messageBytes;

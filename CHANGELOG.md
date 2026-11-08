@@ -7,7 +7,9 @@
   capture exports and offline reports show phase timing, history sizes and
   missing or truncated evidence for performance investigations. Detailed tracing
   preserves independent basic timing, outer-phase observations and server logs;
-  reports distinguish pending, ineligible and invalid detail evidence.
+  reports distinguish pending, ineligible and invalid detail evidence. Basic
+  timing takes priority over detail traffic; unobserved errors retain unknown
+  trace eligibility, and capped span collection uses a per-phase index.
 
 - Gameplay authorization refreshes local identity, account and scopes in one
   database query. DEV diagnostics refreshes no longer rerender gameplay solely

@@ -164,7 +164,7 @@ test('enabling details after lightweight collection or an Off cycle renegotiates
   service.setMode('counters'); assert.equal(socket.sent.at(-1)!.detailVersion, 1);
 });
 
-test('basic timings continue through detail renegotiation and auth failures declare trace ineligibility', async () => {
+test('basic timings continue through detail renegotiation and error eligibility stays unknown', async () => {
   const { service, client, socket } = await clientFixture(); service.setMode('counters');
   socket.reply({ type: 'diagnostics', requestId: socket.sent.at(-1)!.requestId, code: 'ACCEPTED', enabled: true });
   service.update({ ...service.preferences, details: true }); assert.equal(service.detailStatus, 'negotiating');
@@ -172,7 +172,12 @@ test('basic timings continue through detail renegotiation and auth failures decl
   socket.reply({ type: 'diagnosticsTiming', requestId: id, code: 'ACCEPTED', timing: serverTraceFixture().timing });
   assert.equal(service.snapshot().samples.filter(row => row.kind === 'handling').length, 1);
   const rejected = client.request('browse'); socket.reply({ type: 'error', requestId: rejected, code: 'AUTHORIZATION' });
-  assert.equal(service.snapshot().samples.filter(row => row.kind === 'rtt').at(-1)?.serverTraceExpected, false);
+  const error = service.snapshot().samples.filter(row => row.kind === 'rtt').at(-1)!;
+  assert.equal(error.category, 'error'); assert.equal(Object.hasOwn(error, 'serverTraceExpected'), false);
+  for (const code of ['MALFORMED_MESSAGE', 'UNSUPPORTED_VERSION', 'UNSUPPORTED_MESSAGE']) {
+    const request = client.request('browse'); socket.reply({ type: 'error', requestId: request, code });
+    assert.equal(Object.hasOwn(service.snapshot().samples.filter(row => row.kind === 'rtt').at(-1)!, 'serverTraceExpected'), false);
+  }
 });
 test('old-server unsupported negotiation and malformed optional telemetry never disrupt ordinary gameplay', async () => {
   const { service, client, socket, advance, events } = await clientFixture();

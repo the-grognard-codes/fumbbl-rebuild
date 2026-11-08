@@ -3,6 +3,9 @@
 Review: [independent comments](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501#issuecomment-6726596809), against `4d437d2ba`.
 Scope: evidence quality and collection overhead; no gameplay performance fix is claimed.
 
+This first-pass record is followed by the [second review corrections](#second-review-corrections)
+below. The second pass supersedes the first pass's client-inferred error eligibility.
+
 ## Changes by finding
 
 1. **Basic timing loss in detail mode:** reply-time `diagnosticsTiming` is now
@@ -72,3 +75,52 @@ transaction code were not changed in this review pass. Actual early/late match
 captures, profiler attribution and observer-overhead comparisons remain follow-up
 measurement work. Dev-local stays stopped. This handoff authorizes recommitting
 and updating the existing PR, not merging or deploying it.
+
+## Second review corrections
+
+Re-review: [comments against `f63b34758`](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501#issuecomment-6727033568).
+It accepted the seven earlier corrections and raised four additional findings.
+
+1. **An older writing trace blocked newer basic timing.** Basic timing now
+   discounts that in-flight detail for admission policy and can queue behind the
+   newer mandatory reply. A queued detail also yields directly to basic timing.
+   Actual queue count/byte limits, mandatory ordering, optional eviction and
+   best-effort failure behavior remain enforced. Regressions reproduce the exact
+   `[writing trace, next reply, basic timing]` case and cover insufficient physical
+   capacity without disconnecting gameplay.
+2. **Client eligibility inference missed server paths.** The client no longer
+   maintains an error-code exclusion list or emits inferred eligibility flags.
+   Unobserved error-category responses remain unknown. The analyzer accepts
+   legacy negative flags but does not trust an old positive flag for an error;
+   observing the actual correlated server trace resolves eligibility. This covers
+   malformed/unsupported input and expired principals without duplicating server
+   selection rules or exporting error codes.
+3. **The wider-interval rule was duplicated.** One `wider` predicate now defines
+   earlier start, then longer duration for ties, for collection and wire retention.
+   A dense tie-case regression verifies that both retain the same outer intervals.
+4. **Capped spans repeatedly scanned JSON and allocated maps.** A fixed per-phase
+   side index tracks the outer retained slot. Repeated capped phases now take O(1)
+   lookup/comparison and discarded intervals allocate no JSON. Only the first
+   appearance of a new phase after saturation performs a bounded 48-slot scan to
+   choose a duplicate for replacement; it does not build a map on the worker.
+   Over-budget wire trimming builds its own index once and selects removals in
+   two linear passes instead of rebuilding a map for every removed span.
+
+The new delivery and client/analyzer regressions failed against `f63b34758`
+before the corrections. Final validation:
+
+| Check | Result |
+|---|---|
+| Focused native delivery/timing/protocol/journal/WebSocket suite | 84 passed |
+| Final tested common/server Docker build | 19 common + 703 server cases: 713 passed, 9 existing gated skips, no failures/errors |
+| Browser unit suite / TypeScript production build | 530 passed; build passed |
+| Analyzer / affected CI tooling command | 20 analyzer cases included in 50 passing tooling tests |
+| Chrome diagnostics/export journey | Passed |
+| Diff / service state | `git diff --check` passed; managed containers stopped and all four managed loopback ports closed |
+
+Evidence logs: ignored `.tools/observability-rereview-*.log`. Final image ID:
+`sha256:40bb1b946f808ef556aae891f36095271449b3d4d5ebe6a5561829bc854e4bc2`.
+CI on `f63b34758` passed (the workflow's full-browser job was skipped); checks
+on this follow-up commit must run again. No live performance improvement,
+additional SQL integration run, physical-device acceptance, merge or deployment
+is claimed by this review pass.

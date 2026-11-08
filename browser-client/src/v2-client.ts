@@ -293,8 +293,7 @@ export class V2Client {
     }
     if (message.type === 'diagnostics') return; // Late optional response after timeout/off/reconnect.
     this.observe('validate', () => assertV2Projection(message));
-    diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error',
-      !['AUTHENTICATION_REQUIRED', 'AUTHORIZATION', 'AUTHENTICATION_FAILED'].includes(message.code));
+    diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error');
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
     if (message.type === 'authentication') {

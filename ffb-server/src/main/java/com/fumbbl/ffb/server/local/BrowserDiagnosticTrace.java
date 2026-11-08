@@ -4,9 +4,8 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -20,6 +19,8 @@ final class BrowserDiagnosticTrace implements BrowserMatchDelivery.WriteObserver
 	private final LongSupplier nanos;
 	private final Consumer<String> log;
 	private final JsonArray spans = new JsonArray();
+	private final int[] outerSpan = new int[BrowserRequestTiming.Phase.values().length];
+	private final BrowserRequestTiming.Phase[] spanPhases = new BrowserRequestTiming.Phase[MAX_SPANS];
 	private final JsonObject values = new JsonObject();
 	private final String requestId, requestType, operation;
 	private final double queueMs;
@@ -35,45 +36,35 @@ final class BrowserDiagnosticTrace implements BrowserMatchDelivery.WriteObserver
 		String requestType, String operation, long queueNanos) {
 		this.origin = origin; this.utc = utc; this.nanos = nanos; this.log = log;
 		this.requestId = requestId; this.requestType = requestType; this.operation = operation; queueMs = ms(queueNanos);
+		Arrays.fill(outerSpan, -1);
 	}
 	static double ms(long value) { return Math.max(0, Math.min(3_600_000, value / 1_000_000.0)); }
 	synchronized void span(BrowserRequestTiming.Phase phase, long start, long end) {
-		JsonObject next = new JsonObject().add("phase", phase.name()).add("startMs", ms(start - origin)).add("durationMs", ms(end - start));
+		double startMs = ms(start - origin), durationMs = ms(end - start);
+		int existing = outerSpan[phase.ordinal()], slot = spans.size();
+		boolean outermost = existing < 0 || wider(startMs, durationMs, spans.get(existing).asObject());
 		if (spans.size() == MAX_SPANS) {
 			dropped++;
-			int existing = -1;
-			for (int index = 0; index < spans.size(); index++) {
-				JsonObject retained = spans.get(index).asObject();
-				if (phase.name().equals(retained.getString("phase", null)) && (existing < 0
-					|| retained.getDouble("startMs", 0) < spans.get(existing).asObject().getDouble("startMs", 0))) existing = index;
-			}
 			if (existing >= 0) {
-				JsonObject retained = spans.get(existing).asObject();
-				// A same-phase outer span closes after its children. Keep its actual interval.
-				if (next.getDouble("startMs", 0) < retained.getDouble("startMs", 0)
-					|| next.getDouble("startMs", 0) == retained.getDouble("startMs", 0)
-					&& next.getDouble("durationMs", 0) > retained.getDouble("durationMs", 0)) spans.set(existing, next);
-				return;
+				if (!outermost) return; // O(1), with no JSON allocation for discarded repeated spans.
+				slot = existing;
+			} else {
+				// A first occurrence can evict a duplicate. This bounded scan occurs only once
+				// per new phase; subsequent capped occurrences use the side index directly.
+				slot = MAX_SPANS - 1;
+				for (int index = MAX_SPANS - 1; index >= 0; index--)
+					if (outerSpan[spanPhases[index].ordinal()] != index) { slot = index; break; }
+				if (outerSpan[spanPhases[slot].ordinal()] == slot) outerSpan[spanPhases[slot].ordinal()] = -1;
 			}
-			// Preserve one interval for each phase, including outer phases that close last.
-			spans.remove(removable(spans));
 		}
-		spans.add(next);
+		JsonObject next = new JsonObject().add("phase", phase.name()).add("startMs", startMs).add("durationMs", durationMs);
+		if (slot == spans.size()) spans.add(next); else spans.set(slot, next);
+		spanPhases[slot] = phase;
+		if (outermost) outerSpan[phase.ordinal()] = slot;
 	}
-	private int removable(JsonArray retained) {
-		Map<String, Integer> outer = new HashMap<>();
-		for (int index = 0; index < retained.size(); index++) {
-			JsonObject candidate = retained.get(index).asObject();
-			String phase = candidate.getString("phase", ""); Integer previous = outer.get(phase);
-			if (previous == null) { outer.put(phase, index); continue; }
-			JsonObject earlier = retained.get(previous).asObject();
-			if (candidate.getDouble("startMs", 0) < earlier.getDouble("startMs", 0)
-				|| candidate.getDouble("startMs", 0) == earlier.getDouble("startMs", 0)
-				&& candidate.getDouble("durationMs", 0) > earlier.getDouble("durationMs", 0)) outer.put(phase, index);
-		}
-		for (int index = retained.size() - 1; index >= 0; index--)
-			if (outer.get(retained.get(index).asObject().getString("phase", "")) != index) return index;
-		return retained.size() - 1;
+	private boolean wider(double start, double duration, JsonObject previous) {
+		double earlier = previous.getDouble("startMs", 0);
+		return start < earlier || start == earlier && duration > previous.getDouble("durationMs", 0);
 	}
 	synchronized void value(BrowserRequestTiming.Value key, long value) {
 		if (value >= 0 && value <= 9_007_199_254_740_991L) values.set(key.key, value);
@@ -133,18 +124,32 @@ final class BrowserDiagnosticTrace implements BrowserMatchDelivery.WriteObserver
 		String encoded = envelope.toString();
 		int bytes = encoded.getBytes(StandardCharsets.UTF_8).length;
 		if (bytes <= budget) return encoded;
-		List<Integer> sizes = new ArrayList<>();
-		retained.forEach(span -> sizes.add(span.toString().getBytes(StandardCharsets.UTF_8).length));
-		int omitted = trace.getInt("droppedSpans", 0);
-		// Measure each span once; trim a transport-only copy without reserializing the
-		// full envelope per removal. Keep unique phases ahead of repeated inner spans.
-		while (bytes > budget && !retained.isEmpty()) {
-			int index = removable(retained);
-			bytes -= sizes.remove(index) + (retained.size() > 1 ? 1 : 0);
-			bytes += Integer.toString(omitted + 1).length() - Integer.toString(omitted).length();
-			omitted++; retained.remove(index);
+		int[] sizes = new int[retained.size()];
+		Map<String, Integer> outer = new HashMap<>();
+		for (int index = 0; index < retained.size(); index++) {
+			JsonObject candidate = retained.get(index).asObject();
+			sizes[index] = candidate.toString().getBytes(StandardCharsets.UTF_8).length;
+			String phase = candidate.getString("phase", ""); Integer previous = outer.get(phase);
+			if (previous == null || wider(candidate.getDouble("startMs", 0), candidate.getDouble("durationMs", 0), retained.get(previous).asObject()))
+				outer.put(phase, index);
 		}
-		transport.set("droppedSpans", omitted);
+		int omitted = trace.getInt("droppedSpans", 0);
+		int remaining = retained.size(); boolean[] removed = new boolean[remaining];
+		// Two linear passes: discard repeated inner intervals first, unique/outer
+		// intervals only if necessary. Compute the index once, not once per removal.
+		for (int pass = 0; pass < 2; pass++) {
+			boolean protectedPhase = pass == 1;
+			for (int index = retained.size() - 1; index >= 0 && bytes > budget; index--) {
+				boolean protectedSpan = outer.get(retained.get(index).asObject().getString("phase", "")) == index;
+				if (protectedSpan != protectedPhase) continue;
+				bytes -= sizes[index] + (remaining > 1 ? 1 : 0);
+				bytes += Integer.toString(omitted + 1).length() - Integer.toString(omitted).length();
+				omitted++; remaining--; removed[index] = true;
+			}
+		}
+		JsonArray selected = new JsonArray();
+		for (int index = 0; index < retained.size(); index++) if (!removed[index]) selected.add(retained.get(index));
+		transport.set("spans", selected).set("droppedSpans", omitted);
 		return envelope.toString();
 	}
 }

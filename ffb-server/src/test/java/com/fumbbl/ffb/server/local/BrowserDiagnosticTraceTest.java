@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BrowserDiagnosticTraceTest {
 	@Test void producerPhaseAndContextVocabularyMatchesTheBrowserContract() throws Exception {
+		assertTrue(BrowserRequestTiming.Phase.values().length <= BrowserDiagnosticTrace.MAX_SPANS,
+			"The bounded collector must be able to reserve one interval per known phase");
 		java.nio.file.Path fixture = java.nio.file.Path.of("../browser-client/test/fixtures/diagnostic-contract.json");
 		if (!java.nio.file.Files.exists(fixture)) fixture = java.nio.file.Path.of("browser-client/test/fixtures/diagnostic-contract.json");
 		JsonObject contract = JsonObject.readFrom(java.nio.file.Files.readString(fixture));
@@ -137,6 +139,24 @@ class BrowserDiagnosticTraceTest {
 		JsonObject wire = JsonObject.readFrom(encoded).get("trace").asObject();
 		assertTrue(wire.getInt("droppedSpans", 0) > 0);
 		assertEquals("SESSION_APPLY", wire.get("spans").asArray().get(0).asObject().getString("phase", null));
+	}
+	@Test void denseCollectionAndWireTrimmingAgreeOnSameStartWiderIntervals() {
+		List<String> logs = new ArrayList<>();
+		BrowserDiagnosticTrace trace = new BrowserDiagnosticTrace(0, 0, nanos::get, logs::add, "request", "setup", "movement", 0);
+		trace.span(BrowserRequestTiming.Phase.DB_READ, 0, 10_000_000);
+		trace.span(BrowserRequestTiming.Phase.DB_READ, 0, 100_000_000);
+		for (int index = 1; index <= 60; index++) trace.span(BrowserRequestTiming.Phase.DB_READ, index * 1_000_000L, (index + 1) * 1_000_000L);
+		trace.span(BrowserRequestTiming.Phase.SESSION_APPLY, 0, 200_000_000);
+		trace.span(BrowserRequestTiming.Phase.DB_READ, 0, 50_000_000);
+		for (int index = 1; index <= 60; index++) trace.span(BrowserRequestTiming.Phase.DB_READ, index * 1_000_000L, (index + 1) * 1_000_000L);
+		trace.finish(new BrowserRequestTiming.Request(0, nanos::get, true)); trace.completed("completed", 0, 0, 100);
+		JsonObject logged = JsonObject.readFrom(logs.getFirst().substring("FFB_BROWSER_TRACE ".length())).get("trace").asObject();
+		assertEquals(48, logged.get("spans").asArray().size()); assertEquals(76, logged.getInt("droppedSpans", -1));
+		JsonObject wire = JsonObject.readFrom(trace.frame(logged, 1200)).get("trace").asObject();
+		for (JsonObject observed : List.of(logged, wire)) {
+			assertTrue(observed.get("spans").asArray().values().stream().anyMatch(span -> "DB_READ".equals(span.asObject().getString("phase", null)) && span.asObject().getDouble("durationMs", 0) == 100));
+			assertTrue(observed.get("spans").asArray().values().stream().anyMatch(span -> "SESSION_APPLY".equals(span.asObject().getString("phase", null))));
+		}
 	}
 	private static class Connection implements BrowserConnection {
 		final List<String> details = new ArrayList<>();

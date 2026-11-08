@@ -78,6 +78,10 @@ Basic timing remains usable while an already-enabled connection renegotiates
 details. Both optional frames can still be lost under pressure; neither delays
 mandatory gameplay admission. A detail can queue behind an in-flight basic frame,
 and any queued optional frame yields to the next mandatory response.
+Basic timing also takes priority over queued detail. An older in-flight detail
+does not prevent basic timing from queuing behind the next reply; only the
+admission policy discounts that detail. Actual queue count and byte limits still
+apply, including when the queue is too small to retain all three frames.
 
 ## History and storage context
 
@@ -136,10 +140,13 @@ Coverage counts concern eligible correlated responses in the retained window.
 Responses without detail during the last 2,000 ms are reported separately as
 pending at capture end. Older unobserved responses are counted by
 `missingServerResponses`; this is an observation after a grace period, not proof
-of loss. A trace can still arrive later. Authorization failures excluded from
-tracing carry `serverTraceExpected=false` without exporting their error code.
-Old error samples without that flag have unknown trace eligibility and are
-reported separately. Older successful samples remain eligible. Export failure
+of loss. A trace can still arrive later. Error-category responses without an
+actual matching server trace have unknown eligibility: request selection,
+principal expiry and server-side rejection can all prevent tracing. The client
+does not copy a server error-code exclusion list or infer a positive eligibility
+marker. Older captures' `serverTraceExpected=false` flags are still recognized;
+an old positive flag cannot establish error eligibility. An actual matching trace
+takes precedence over either legacy flag. Successful samples remain eligible. Export failure
 to validate a detail block sets `capture.detailsInvalid=true`, omits the unsafe
 block and produces analyzer status `invalid`, distinct from `unavailable`.
 Older-server fallback, optional-frame loss, window boundaries and correlation

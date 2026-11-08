@@ -15,15 +15,18 @@ export function analyzeDetails(raw, samples, window, invalid = false) {
   const responses = [...new Map(samples.filter(sample => sample.kind === 'rtt' && sample.trace !== null && traceRequests.includes(sample.requestType))
     .map(sample => [sample.trace, sample])).values()];
   const traceGraceMs = 2000;
-  const unknown = sample => sample.category === 'error' && sample.serverTraceExpected === undefined;
-  const eligible = responses.filter(sample => sample.serverTraceExpected !== false && !unknown(sample));
   const observed = new Set(server.map(row => row.trace));
+  const unobserved = responses.filter(sample => !observed.has(sample.trace));
+  // Older captures can carry a client-inferred flag. A positive flag cannot
+  // establish eligibility for errors; an actual server trace is authoritative.
+  const unknown = sample => sample.category === 'error' && sample.serverTraceExpected !== false;
+  const eligible = unobserved.filter(sample => sample.serverTraceExpected !== false && !unknown(sample));
   const selected = server.toSorted((a,b) => Math.max(b.server.handlingMs, b.server.write.completedMs) - Math.max(a.server.handlingMs, a.server.write.completedMs)).slice(0, 8);
   return { status: details.status, serverRecords: server.length, clientRecords: client.length,
-    missingServerResponses: details.status === 'enabled' ? eligible.filter(sample => !observed.has(sample.trace) && window.endMs - sample.at >= traceGraceMs).length : null,
-    pendingServerResponses: details.status === 'enabled' ? eligible.filter(sample => !observed.has(sample.trace) && window.endMs - sample.at < traceGraceMs).length : null,
-    notTracedServerResponses: responses.filter(sample => sample.serverTraceExpected === false).length, traceGraceMs,
-    unknownTraceEligibilityResponses: responses.filter(unknown).length,
+    missingServerResponses: details.status === 'enabled' ? eligible.filter(sample => window.endMs - sample.at >= traceGraceMs).length : null,
+    pendingServerResponses: details.status === 'enabled' ? eligible.filter(sample => window.endMs - sample.at < traceGraceMs).length : null,
+    notTracedServerResponses: unobserved.filter(sample => sample.serverTraceExpected === false).length, traceGraceMs,
+    unknownTraceEligibilityResponses: unobserved.filter(unknown).length,
     droppedServer: details.droppedServer, droppedClient: details.droppedClient,
     truncatedServerSpans: server.reduce((sum,row) => sum + row.server.droppedSpans, 0), omittedRecords: server.length - selected.length,
     clientPhases: Object.fromEntries(clientPhases.map(phase => [phase, stats(client.filter(row => row.phase === phase).map(row => row.durationMs))])),
