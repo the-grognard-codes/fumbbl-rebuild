@@ -71,6 +71,65 @@ class BrowserRequestTimingTest {
 		assertTrue(lines.isEmpty());
 	}
 
+	@Test void telemetryIsOptInAllowlistedClampedAndSnapshotsActiveNestedPhasesBeforePublication() {
+		System.clearProperty("ffb.browser.timing");
+		List<String> telemetry = new ArrayList<>();
+		BrowserConnection connection = new BrowserConnection() {
+			@Override public void send(String message) { }
+			@Override public void sendDiagnostics(String message) { telemetry.add(message); }
+		};
+		BrowserRequestTiming.Request queued = timing.queued(true);
+		nanos.addAndGet(2000000);
+		try (BrowserRequestTiming.Scope work = timing.handling(queued)) {
+			timing.selectRequest(action());
+			timing.enableReplies(connection);
+			try (BrowserRequestTiming.Scope outer = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY)) {
+				nanos.addAndGet(1000000);
+				try (BrowserRequestTiming.Scope inner = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY)) {
+					nanos.addAndGet(2000000);
+					timing.reply(connection, new JsonObject().add("requestId", "timed-action"), () -> nanos.addAndGet(100000000));
+				}
+			}
+			nanos.addAndGet(500000000); // Later publication is outside the acknowledged request boundary.
+			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), () -> { });
+		}
+		assertTrue(lines.isEmpty());
+		assertEquals(1, telemetry.size());
+		JsonObject durations = JsonObject.readFrom(telemetry.getFirst()).get("timing").asObject();
+		assertEquals(3.0, durations.get("handlingMs").asDouble());
+		assertEquals(2.0, durations.get("queueWaitMs").asDouble());
+		assertEquals(3.0, durations.get("sessionApplyMs").asDouble());
+		assertEquals(java.util.Set.of("queueWaitMs", "handlingMs", "authorizationMs", "sessionApplyMs", "checkpointMs", "recoverySerializeMs", "checkpointSqlMs"),
+			new java.util.HashSet<>(durations.names()));
+		telemetry.clear();
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+			timing.selectRequest(action()); timing.enableReplies(connection);
+			nanos.addAndGet(4000000000000L);
+			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), () -> { });
+		}
+		assertEquals(3600000, JsonObject.readFrom(telemetry.getFirst()).get("timing").asObject().getDouble("handlingMs", -1));
+		for (JsonObject.Member member : JsonObject.readFrom(telemetry.getFirst()).get("timing").asObject()) {
+			double value = member.getValue().asDouble();
+			assertTrue(Double.isFinite(value) && value >= 0 && value <= 3600000);
+		}
+	}
+
+	@Test void optionalTelemetryFailureCannotChangeMandatoryReplyOrLeakIntoNextRequest() {
+		System.clearProperty("ffb.browser.timing");
+		java.util.concurrent.atomic.AtomicInteger replies = new java.util.concurrent.atomic.AtomicInteger();
+		BrowserConnection connection = new BrowserConnection() {
+			@Override public void send(String message) { }
+			@Override public void sendDiagnostics(String message) { throw new IllegalStateException("diagnostics unavailable"); }
+		};
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+			timing.selectRequest(action()); timing.enableReplies(connection);
+			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), replies::incrementAndGet);
+		}
+		timing.reply(connection, new JsonObject().add("requestId", "timed-action"), replies::incrementAndGet);
+		assertEquals(2, replies.get());
+		assertTrue(lines.isEmpty());
+	}
+
 	@Test void readOnlyRequestsEmitOnlyBoundedCorrelationFields() {
 		for (String type : new String[] { "routePreview", "movementPreview", "movementRange", "matchTranscript", "watch", "currentMatches", "browse", "catalog", "setup" }) {
 			lines.clear();

@@ -58,4 +58,6 @@ public final class BrowserV2TransportPolicy {
 	public String firebaseProject() {
 		return "prod".equals(proxyProfile) ? PROD_PROJECT : PROJECT;
 	}
+
+	public boolean diagnosticsAllowed() { return !"prod".equals(proxyProfile); }
 }

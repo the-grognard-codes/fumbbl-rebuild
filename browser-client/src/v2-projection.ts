@@ -1,10 +1,12 @@
 import { decodeBrowseGames } from './browse-protocol.ts';
 import { decodeCurrentMatches } from './current-matches-protocol.ts';
 import { decodeSkillUsePreferences } from './skill-use-preferences.ts';
+import { decodeServerTiming } from './performance-diagnostics.ts';
 
 /** New response fields/families require a recipient projection test before rendering. */
 const fields: Record<string, string[]> = {
   authentication: ['code', 'accountId'], error: ['code'], browse: ['code', 'matches'],
+  diagnostics: ['code', 'enabled'], diagnosticsTiming: ['code', 'timing'],
   currentMatches: ['code', 'matches', 'next'],
   skillUsePreferences: ['code', 'preferences'],
   computer: ['code'], computerAuthentication: ['code'], computerJobs: ['code', 'matches'],
@@ -41,6 +43,8 @@ export function assertV2Projection(message: Record<string, unknown>) {
   if (message.requestId !== null && (typeof message.requestId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(message.requestId)))
     throw Error('Invalid response correlation');
   if (message.type === 'browse') decodeBrowseGames(message.matches);
+  if (message.type === 'diagnostics' && (message.code !== 'ACCEPTED' || typeof message.enabled !== 'boolean')) throw Error('Invalid diagnostic negotiation');
+  if (message.type === 'diagnosticsTiming' && (message.code !== 'ACCEPTED' || !decodeServerTiming(message.timing))) throw Error('Invalid diagnostic timing');
   if (message.type === 'skillUsePreferences') {
     if (message.code !== 'ACCEPTED') throw Error('Invalid preference response');
     decodeSkillUsePreferences(message.preferences);

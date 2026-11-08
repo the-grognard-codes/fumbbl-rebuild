@@ -214,11 +214,11 @@ try {
     assert.equal(await page.locator('.live-sidestep-choice, .live-target-square').count(), 0, 'Sidestep waits for local Yes without square boxes');
     assert.equal(await circle.locator('.skill-timeout-default').getAttribute('aria-label'), 'Decline');
     await assertClear(); await assertAnswersInsideRibbon();
-    const cameraSquare = await page.locator('[data-cell-x="12"][data-cell-y="7"]').getAttribute('points');
+    const cameraSquare = await page.locator('.live-pitch-grid').getAttribute('style');
     const seconds = Number(await circle.locator('.skill-ribbon-number').textContent());
     await circle.getByRole('button', { name: 'Use Sidestep', exact: true }).click();
     assert.deepEqual(await page.evaluate(() => window.hudIntents), [], 'Yes stages destination selection without committing native skill use');
-    assert.equal(await page.locator('[data-cell-x="12"][data-cell-y="7"]').getAttribute('points'), cameraSquare, 'Staging Sidestep does not pan or zoom the camera');
+    assert.equal(await page.locator('.live-pitch-grid').getAttribute('style'), cameraSquare, 'Staging Sidestep does not pan or zoom the camera');
     assert.equal(await page.locator('.live-sidestep-choice').count(), 3);
     assert.equal(await page.locator('.live-target-square, .skill-source-chooser').count(), 0);
     assert.ok(Number(await circle.locator('.skill-ribbon-number').textContent()) <= seconds);

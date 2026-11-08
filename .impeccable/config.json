@@ -98,6 +98,24 @@
         ],
         "createdAt": "2026-11-07T05:01:56.534Z",
         "reason": "Agent: this partial font-family match refers to the scoped Google Sans provider-button exception required by official Google sign-in branding; the general site type system is unchanged. https://developers.google.com/identity/branding-guidelines"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "match alegreya",
+        "files": [
+          "browser-client/src/live-pitch.css"
+        ],
+        "createdAt": "2026-11-08T00:47:13.550Z",
+        "reason": "Existing HEAD declarations retained under the approved idle-panning requirement to preserve MUTP styling; no font addition. Legacy typography cleanup is outside this performance fix."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "match barlow",
+        "files": [
+          "browser-client/src/live-pitch.css"
+        ],
+        "createdAt": "2026-11-08T00:47:13.613Z",
+        "reason": "Existing HEAD declarations retained under the approved idle-panning requirement to preserve MUTP styling; no font addition. Legacy typography cleanup is outside this performance fix."
       }
     ]
   }

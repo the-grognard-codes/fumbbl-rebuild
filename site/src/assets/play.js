@@ -43,7 +43,7 @@ export function startPlay({ auth, config }, status, host) {
       const { mountPlay, mountSpectate } = await import(moduleUrl);
       if (generation !== current) return;
       status.textContent = '';
-      dispose = (location.pathname === '/spectate' ? mountSpectate : mountPlay)(host, { url, getToken: () => user.getIdToken(true) });
+      dispose = (location.pathname === '/spectate' ? mountSpectate : mountPlay)(host, { url, environment: config.environment, getToken: () => user.getIdToken(true) });
     } catch { if (generation === current) status.textContent = 'The game connection is not configured. Please try again later.'; }
   });
   return () => { generation++; unsubscribe(); dispose?.(); host.replaceChildren(); };

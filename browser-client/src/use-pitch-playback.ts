@@ -38,6 +38,9 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
   const announcementTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announced = useRef(new Set<string>());
   const presented = useRef(view), received = useRef(view), latest = useRef(view);
+  // Observation only: the revision whose first beat is being committed can be
+  // newer than the fully presented board revision during an ordered route.
+  const presentationRevision = useRef(view.revision);
   const completed = useRef(view.revision), generation = useRef(0);
   const running = useRef(false), waiting = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,6 +107,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
       diceStream.current!.enqueue({ ...dice, revision: view.revision }, sequenceKey(view), pinnedDice.current, true, rate);
     };
     const snapshot = () => {
+      presentationRevision.current = view.revision;
       snapshotRevision.current = view.revision;
       multipleReveals.current.reset();
       multipleReveals.current.update(view);
@@ -268,6 +272,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
           }
           const nextIndex = index + 1;
           pendingAnnouncement.current = { id: beat.announcement.id, closing: false, advance: () => advance(nextIndex) };
+          presentationRevision.current = record.revision;
           setAnnouncement(beat.announcement);
           return;
         }
@@ -295,6 +300,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
         setMoveMillis(reduced || beat.kind === 'block' ? 0 : delay);
         const nextIndex = index + 1;
         pendingBeat.current = { view: next, delay, advance: () => advance(nextIndex) };
+        presentationRevision.current = record.revision;
         presented.current = next; setPitchView(next);
         return;
       }
@@ -353,7 +359,7 @@ export function usePitchPlayback(view: SetupState, records: TranscriptRecord[], 
     provisional.current = { base: latest.current, moves, shown: [] };
     setTick(value => value + 1);
   };
-  return { pitchView, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
+  return { pitchView, presentationRevision: active ? Math.max(pitchView.revision, presentationRevision.current, diceMoment?.revision ?? -1) : pitchView.revision, provisionalActive: !!provisional.current, playbackActive: active, diceMoment, synchronizing, movementDuration: moveMillis, beginProvisional,
     announcement, announcementExiting, announcementRate: playbackRate(speed, mode), dismissAnnouncement, ...announcementPreferences,
     diceSnapshot: pitchView.revision === snapshotRevision.current };
 }

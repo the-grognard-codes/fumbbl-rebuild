@@ -8,6 +8,21 @@ const close = (actual: number, expected: number, tolerance = 1e-7) =>
 const ends: PitchEnd[] = ['home', 'away'];
 const modes: PitchProjectionMode[] = ['perspective', 'top-down'];
 
+test('retained ground planes keep source dimensions while clipping only the lens when the scene owns viewport clipping', () => {
+  for (const end of ends) for (const perspectiveElevation of [30, 40, 50] as const) for (const focus of [0, 13, 26]) {
+    const camera = new PitchProjection({ width: 1280, height: 720, end, focus, perspectiveElevation });
+    const plane = camera.surfaceImage(720, 1248, { x: 0, y: 0, z: 0 }, { x: 0, y: 1 / 48, z: 0 }, { x: 1 / 48, y: 0, z: 0 }, false);
+    assert.ok(plane);
+    for (const point of plane.sourcePolygon) {
+      assert.ok(point.x >= -1e-7 && point.x <= 720 + 1e-7 && point.y >= -1e-7 && point.y <= 1248 + 1e-7);
+      const projected = camera.project({ x: point.y / 48, y: point.x / 48 });
+      assert.ok(projected && Number.isFinite(projected.x) && Number.isFinite(projected.y));
+    }
+    assert.equal(plane.width, 720);
+    if (perspectiveElevation !== 30) assert.equal(plane.height, 1248);
+  }
+});
+
 test('production camera matches the independently captured approved 40-degree geometry', () => {
   const camera = new PitchProjection({ width: 1672, height: 941 });
   close(camera.scale, 66.3911213608501);

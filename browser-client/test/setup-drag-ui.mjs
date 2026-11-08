@@ -27,7 +27,7 @@ async function open(initial, touch = false) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
-    '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused", getToken:async()=>"token"});</script>' }));
+    '<style>html,body{margin:0;background:#101c2b}</style><div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {environment: "dev", url:"ws://unused", getToken:async()=>"token"});</script>' }));
   await page.addInitScript(initial => {
     window.testSocket = null;
     window.WebSocket = class {

@@ -51,6 +51,9 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final BrowserTeamJson catalog = new BrowserTeamJson(new RosterCatalog());
 	private final Map<BrowserConnection, AuthenticatedPrincipal> principals = new LinkedHashMap<>();
 	private final Map<BrowserConnection, String> connectionPurposes = new LinkedHashMap<>();
+	private final Set<BrowserConnection> diagnostics = new HashSet<>();
+	private final Map<BrowserConnection, Long> diagnosticProbeAt = new LinkedHashMap<>();
+	private boolean diagnosticsAllowed;
 	private final Map<BrowserConnection, Long> preparationCompletedAt = new LinkedHashMap<>();
 	private final Map<BrowserConnection, String> preparationSubscriptions = new LinkedHashMap<>();
 	private final Set<BrowserConnection> retired = Collections.newSetFromMap(new WeakHashMap<BrowserConnection, Boolean>());
@@ -75,6 +78,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	public void configureSkillUsePreferences(SkillUsePreferenceService service) { skillUsePreferences = service; }
+	/** Called by the server-owned fixed transport policy, never by a browser field. */
+	void configureDiagnostics(boolean allowed) { diagnosticsAllowed = allowed; }
 
 	@Override public synchronized void expireDecisions() {
 		setup.expireReactiveDecisions().forEach((id, state) -> publisher.publish(id, null, state));
@@ -91,6 +96,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if (request.getInt("version", -1) != 2) { fail(connection, requestId, "UNSUPPORTED_VERSION"); return; }
 			String type = request.getString("type", "");
 			timing.selectRequest(request);
+			enableDiagnosticsReplies(connection);
 			if ("authenticateComputer".equals(type)) {
 				publisher.liveTranscript(connection, false);
 				fields(request, "version", "type", "requestId", "serviceToken");
@@ -141,6 +147,33 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
+			if ("diagnostics".equals(type)) {
+				String operation = request.getString("operation", "");
+				if ("configure".equals(operation)) fields(request, "version", "type", "requestId", "operation", "enabled");
+				else if ("probe".equals(operation)) fields(request, "version", "type", "requestId", "operation");
+				else throw new IllegalArgumentException();
+				if (principal == null) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
+				access.require(principal, principal.hasScope(ApplicationScope.PLAYER) ? ApplicationScope.PLAYER : ApplicationScope.SPECTATOR);
+				if ("configure".equals(operation)) {
+					boolean enabled = request.get("enabled").asBoolean();
+					if (enabled && !diagnosticsAllowed) { fail(connection, requestId, "UNSUPPORTED_MESSAGE"); return; }
+					if (enabled) diagnostics.add(connection);
+					else diagnostics.remove(connection);
+					connection.diagnosticsEnabled(enabled);
+					send(connection, new JsonObject().add("type", "diagnostics").add("requestId", requestId)
+						.add("code", "ACCEPTED").add("enabled", enabled));
+				} else {
+					if (!diagnosticsAllowed || !diagnostics.contains(connection)) { fail(connection, requestId, "DIAGNOSTICS_DISABLED"); return; }
+					long now = clock.millis(), previous = diagnosticProbeAt.getOrDefault(connection, Long.MIN_VALUE);
+					if (previous != Long.MIN_VALUE && (now < previous || now - previous < 1000)) {
+						fail(connection, requestId, "RATE_LIMITED"); return;
+					}
+					diagnosticProbeAt.put(connection, now);
+					send(connection, new JsonObject().add("type", "diagnostics").add("requestId", requestId)
+						.add("code", "ACCEPTED").add("enabled", true));
+				}
+				return;
+			}
 			if ("skillUsePreferences".equals(type)) {
 				principal = access.require(principal, ApplicationScope.PLAYER);
 				String operation = request.getString("operation", "");
@@ -475,11 +508,17 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	@Override public synchronized void disconnect(BrowserConnection connection) {
+		diagnostics.remove(connection);
+		diagnosticProbeAt.remove(connection);
+		connection.diagnosticsEnabled(false);
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
 		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.disconnect(connection); preparationSubscriptions.remove(connection);
 	}
 	private void retire(BrowserConnection connection) {
+		diagnostics.remove(connection);
+		diagnosticProbeAt.remove(connection);
+		connection.diagnosticsEnabled(false);
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
 		principals.remove(connection);
@@ -516,7 +555,16 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		connection.close(1000, "Match preparation retention ended");
 		return true;
 	}
-	private void send(BrowserConnection connection, JsonObject response) { connection.send(response.set("version", 2).toString()); }
+	private void send(BrowserConnection connection, JsonObject response) {
+		String message = response.set("version", 2).toString();
+		timing.reply(connection, response, () -> connection.send(message));
+	}
+	private void enableDiagnosticsReplies(BrowserConnection connection) {
+		try {
+			if (diagnosticsAllowed && diagnostics.contains(connection) && principals.containsKey(connection)
+				&& principals.get(connection).expiresAtMillis() > clock.millis()) timing.enableReplies(connection);
+		} catch (RuntimeException unavailable) { /* A diagnostic clock must not change gameplay. */ }
+	}
 	private void fail(BrowserConnection connection, String id, String code) {
 		send(connection, new JsonObject().add("type", "error").add("requestId", id == null ? JsonValue.NULL : JsonValue.valueOf(id)).add("code", code));
 	}

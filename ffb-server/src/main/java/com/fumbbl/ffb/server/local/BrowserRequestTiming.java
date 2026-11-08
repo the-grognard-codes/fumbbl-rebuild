@@ -26,7 +26,14 @@ public final class BrowserRequestTiming {
 	}
 
 	Request queued() {
-		try { return Boolean.getBoolean("ffb.browser.timing") ? new Request(nanos.getAsLong(), nanos) : null; }
+		return queued(false);
+	}
+
+	Request queued(boolean diagnostics) {
+		try {
+			boolean logging = Boolean.getBoolean("ffb.browser.timing");
+			return logging || diagnostics ? new Request(nanos.getAsLong(), nanos, logging) : null;
+		}
 		catch (RuntimeException unavailable) { return null; }
 	}
 
@@ -38,7 +45,7 @@ public final class BrowserRequestTiming {
 		CURRENT.set(request);
 		return () -> {
 			if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
-			if (request.requestId == null) return;
+			if (request.requestId == null || !request.logging) return;
 			try {
 				long finished = nanos.getAsLong(), finishedUtcMs = clock.millis();
 				JsonObject event = new JsonObject().add("version", 1).add("requestId", request.requestId)
@@ -77,6 +84,9 @@ public final class BrowserRequestTiming {
 			operation = operationValue.asString();
 			if (!Arrays.asList("load", "action", "choice", "place", "formation", "confirm", "route", "movement",
 				"concede", "saveRequest", "saveAccept", "saveReject", "saveCancel", "resumeRequest", "resumeAccept", "resumeReject", "resumeCancel").contains(operation)) return;
+		} else if ("diagnostics".equals(type)) {
+			if (operationValue == null || !operationValue.isString() || !"probe".equals(operationValue.asString())) return;
+			operation = "probe";
 		} else {
 			if (!Arrays.asList("routePreview", "movementPreview", "movementRange", "matchTranscript", "watch", "currentMatches", "browse", "catalog").contains(type)) return;
 			operation = "read";
@@ -85,6 +95,44 @@ public final class BrowserRequestTiming {
 		current.requestType = type;
 		current.operation = operation;
 	}
+
+	void enableReplies(BrowserConnection connection) {
+		Request current = CURRENT.get();
+		if (current != null) current.recipient = connection;
+	}
+
+	/** Boundary is the call to enqueue the serialized correlated reply, before later publication.
+	 * Active phase spans include only time up to this boundary. Nested phases overlap and are not additive. */
+	void reply(BrowserConnection connection, JsonObject response, Runnable enqueue) {
+		String telemetry = null;
+		Request current = CURRENT.get();
+		try {
+			if (current != null && current.recipient == connection && !current.replied && current.requestId != null
+				&& current.requestId.equals(response.getString("requestId", null))
+				&& !Arrays.asList("AUTHENTICATION_REQUIRED", "AUTHORIZATION", "AUTHENTICATION_FAILED").contains(response.getString("code", ""))) {
+				current.replied = true;
+				long now = current.nanos.getAsLong();
+				JsonObject durations = new JsonObject().add("queueWaitMs", boundedMillis(current.started - current.queued))
+					.add("handlingMs", boundedMillis(now - current.started));
+				Phase[] phases = { Phase.AUTHORIZATION, Phase.SESSION_APPLY, Phase.CHECKPOINT, Phase.RECOVERY_SERIALIZE, Phase.CHECKPOINT_SQL };
+				String[] keys = { "authorizationMs", "sessionApplyMs", "checkpointMs", "recoverySerializeMs", "checkpointSqlMs" };
+				for (int index = 0; index < phases.length; index++) {
+					int phase = phases[index].ordinal();
+					long elapsed = current.elapsed[phase] + (current.depth[phase] > 0 ? now - current.began[phase] : 0);
+					durations.add(keys[index], boundedMillis(elapsed));
+				}
+				telemetry = new JsonObject().add("version", 2).add("type", "diagnosticsTiming")
+					.add("requestId", current.requestId).add("code", "ACCEPTED").add("timing", durations).toString();
+			}
+		} catch (RuntimeException unavailable) { /* Optional diagnostics cannot interrupt a reply. */ }
+		enqueue.run();
+		if (telemetry != null) {
+			try { connection.sendDiagnostics(telemetry); }
+			catch (RuntimeException unavailable) { /* Best-effort, bounded delivery. */ }
+		}
+	}
+
+	private double boundedMillis(long elapsed) { return Math.max(0, Math.min(3600000, elapsed / 1000000.0)); }
 
 	/** Nested spans of the same phase count their union, including when a failure unwinds them. */
 	public Scope span(Phase phase) {
@@ -110,10 +158,13 @@ public final class BrowserRequestTiming {
 	static final class Request {
 		final long queued;
 		final LongSupplier nanos;
+		final boolean logging;
+		BrowserConnection recipient;
+		boolean replied;
 		long started, startedUtcMs;
 		String requestId, requestType, operation;
 		final long[] began = new long[Phase.values().length], elapsed = new long[Phase.values().length];
 		final int[] depth = new int[Phase.values().length], entries = new int[Phase.values().length];
-		Request(long queued, LongSupplier nanos) { this.queued = queued; this.nanos = nanos; }
+		Request(long queued, LongSupplier nanos, boolean logging) { this.queued = queued; this.nanos = nanos; this.logging = logging; }
 	}
 }

@@ -42,7 +42,7 @@ function render(options: Options = {}) {
     <LivePitch view={view} selectedId="" actions={[]} readOnly allowEndChoice onSelectPlayer={() => {}} onSquare={() => {}}/>
     </div>
     <LiveDugouts players={[reserve]} onSelect={() => {}}/>
-    <PlayerHoverCard player={reserve} anchor={new DOMRect(0, 0, 80, 80)} teamName="Review" dock="left"/>
+    <PlayerHoverCard player={reserve} teamName="Review"/>
     <RectangularDecisionPrompt decision={decision} players={players} disabled={false} onChoice={() => {}} onAction={() => {}}/>
     {options.kind && <MatchSplash announcement={{ id: 'review', kind: options.kind, team: 'home', turn: 1, half: 1, reason: null, teamName: 'Review', helmet: roster }} onDismiss={() => {}} hold={false} exiting={false} rate={1}/>}
     </div></div></main>

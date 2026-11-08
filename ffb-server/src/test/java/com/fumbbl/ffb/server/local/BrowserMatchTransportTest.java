@@ -18,6 +18,24 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class BrowserMatchTransportTest {
+	@Test public void diagnosticProbesUseAdvisoryCapacityAndYieldToGameplay() {
+		QueueFixture fixture = new QueueFixture();
+		List<String> handled = new ArrayList<>();
+		try {
+			String probe = "{\"version\":2,\"type\":\"diagnostics\",\"requestId\":\"probe\",\"operation\":\"probe\"}";
+			fixture.transport.submit(probe, () -> handled.add("probe"), () -> { });
+			fixture.transport.submit(() -> handled.add("action"), () -> { });
+			fixture.drain();
+			assertEquals(List.of("action", "probe"), handled);
+			for (int index = 0; index < BrowserMatchTransport.MAX_ADVISORY_WORK; index++) {
+				assertTrue(fixture.transport.submit(probe, () -> { }, () -> { }));
+			}
+			assertFalse(fixture.transport.submit(probe, () -> { }, () -> { }));
+			assertTrue(fixture.transport.submit(() -> { }, () -> { }));
+			fixture.drain();
+			assertEquals(0, fixture.depth());
+		} finally { fixture.transport.destroy(); }
+	}
 	@Test
 	public void advisoryBacklogReservesAdmissionForGameplayAndReleasesBothBudgets() {
 		QueueFixture fixture = new QueueFixture();

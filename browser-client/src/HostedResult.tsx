@@ -1,4 +1,5 @@
 import { TeamColorArtProvider } from './TeamColorArtProvider.tsx';
+import { PerformanceControls, PerformanceOverlay, useDiagnostics, useDiagnosticPresentation } from './PerformanceDiagnostics.tsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LivePitch } from './LivePitch.tsx';
@@ -23,6 +24,8 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   chatMessages: ChatMessage[]; chatLoading: boolean; chatUnavailable: boolean;
 }) {
   const ready = connected && !pending;
+  const debugAvailable = useDiagnostics()?.available ?? false;
+  const [debugOpen, setDebugOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [skipAnimations, setSkipAnimations] = useState(true);
@@ -59,6 +62,9 @@ export function HostedResult({ matchId, result, event, index, pending, connected
   const shownRevision = skipAnimations ? event?.revision ?? -1 : displayRevision ?? event?.revision ?? -1;
   const names = event?.state ?? logRecords[0]?.state ?? {};
   return <section aria-label="Authoritative result" className="hosted-result">
+    {debugAvailable && <><button type="button" aria-expanded={debugOpen} aria-controls="replay-debug" onClick={() => setDebugOpen(!debugOpen)}>Debug</button>
+      {debugOpen && <section id="replay-debug" className="match-debug-drawer replay-debug" aria-label="Replay debug"><header><strong>Debug</strong><button type="button" onClick={() => setDebugOpen(false)}>Close debug panel</button></header><PerformanceControls/></section>}
+      <PerformanceOverlay/></>}
     <p>Completed match {matchId}. Final score and recorded events are loaded from the game server.</p>
     <button type="button" onClick={onLoad} disabled={!ready}>Reload result</button>
     {pending && <p role="status">Loading saved match history…</p>}
@@ -110,11 +116,12 @@ function ReplayBoardContent({ event, records, skipAnimations, speed, snapshotKey
   interactionBlocked: boolean;
   onBusy: (busy: boolean) => void; onRevision: (revision: number) => void;
 }) {
-  const { pitchView, playbackActive, diceMoment, diceSnapshot, movementDuration,
+  const { pitchView, presentationRevision, playbackActive, diceMoment, diceSnapshot, movementDuration,
     announcement, announcementExiting, announcementRate, dismissAnnouncement, holdAnnouncements } = usePitchPlayback(event.state, records, !skipAnimations, speed, 'replay', null, snapshotKey);
-  const [hover, setHover] = useState<{ id: string; anchor: DOMRect } | null>(null);
+  useDiagnosticPresentation(event.state.revision, pitchView.revision, playbackActive, false, !!announcement, false, 'replay', speed, `${event.state.matchId}:${snapshotKey ?? ''}`, presentationRevision);
+  const [hover, setHover] = useState<{ id: string } | null>(null);
   const clearHover = useCallback(() => setHover(null), []);
-  const focusPlayer = useCallback((id: string, anchor: DOMRect) => setHover({ id, anchor }), []);
+  const focusPlayer = useCallback((id: string) => setHover({ id }), []);
   const hoveredPlayer = hover ? pitchView.players.find(player => player.id === hover.id) : null;
   useEffect(clearHover, [pitchView.revision, clearHover]);
   useEffect(() => { onBusy(playbackActive); onRevision(pitchView.revision); }, [playbackActive, pitchView.revision]);
@@ -134,7 +141,7 @@ function ReplayBoardContent({ event, records, skipAnimations, speed, snapshotKey
       onSelectPlayer={() => {}} onSquare={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/>
     <div className="replay-dugouts"><LiveDugouts players={pitchView.players} homeName={matchTeamName(pitchView, 'home')}
       awayName={matchTeamName(pitchView, 'away')} onSelect={() => {}} onFocusPlayer={focusPlayer} onBlurPlayer={clearHover}/></div>
-    {hover && hoveredPlayer && <PlayerHoverCard player={hoveredPlayer} anchor={hover.anchor} teamName={matchTeamName(pitchView, hoveredPlayer.role)}/>}</div>
+    {hover && hoveredPlayer && <PlayerHoverCard player={hoveredPlayer} teamName={matchTeamName(pitchView, hoveredPlayer.role)}/>}</div>
     {summaryMoments.length > 1 && <div className="replay-dice" aria-label="Dice at this event">{summaryMoments.map((moment, index) =>
       <div key={index}><span>{moment.label}</span>{moment.faces.map((face, faceIndex) => <DiceFace key={faceIndex} face={face} selected={moment.selected === faceIndex}/>)}</div>)}</div>}
   </>;

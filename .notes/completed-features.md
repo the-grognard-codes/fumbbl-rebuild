@@ -35,6 +35,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Limited-use action tags](#limited-use-action-tags)
   - [Negative-condition markers](#negative-condition-markers)
 - [Game interface and presentation](#game-interface-and-presentation)
+  - [Performance diagnostics and responsive pitch panning](#performance-diagnostics-and-responsive-pitch-panning)
   - [Smooth gameplay and predictable game speed](#smooth-gameplay-and-predictable-game-speed)
   - [Dice effects and visible duration](#dice-effects-and-visible-duration)
   - [Dice event icons and readable outcomes](#dice-event-icons-and-readable-outcomes)
@@ -275,6 +276,15 @@ Consolidated the duplicate "Roll back player range markings" and "Revise player 
 - Made markers visible to coaches and spectators, with a Game Settings visibility toggle.
 
 ## Game interface and presentation
+
+### Performance diagnostics and responsive pitch panning
+
+- Added a Debug performance and network analyzer in DEV and dev-local, hidden in PROD. Collection starts Off and offers FPS/frame pacing, network traffic, client/server timings, configurable scrolling graphs, markers and bounded sliding-window JSON exports.
+- Added an offline capture-analysis CLI that groups relevant incidents into concise Markdown/JSON review reports. Support guidance explains capture export and submission to support@thegrognardcodes.org; captures are not automatically uploaded or written to disk.
+- Reduced idle panning work by retaining the pitch grid, filtering unrelated HUD measurements and committing the final camera target when a gesture ends. Player cards now dock by team membership: home left, away right in live play and replay.
+- Controlled Windows runs improved p95 input-to-camera commit from roughly 27–29 ms to 17–19 ms. The user confirmed a noticeable improvement. Residual stuttering, an isolated unexplained post-release stall and the separate client/server latency investigations remain documented; this does not claim elimination of all latency.
+- Validated 518 browser unit tests, 69 interaction suites, 12 hosted suites, Java module builds/tests and dev-local startup. See issues [#483](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/483), [#488](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/488), [#494](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/494), and the [diagnostics](../docs/specs/debug-performance-netgraph-outcome.md), [capture-analysis](../docs/specs/diagnostic-capture-analysis-outcome.md) and [panning](../docs/specs/idle-panning-responsiveness-outcome.md) outcome reports. Follow-up investigations [#489–493](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489) remain open.
+
 
 ### Smooth gameplay and predictable game speed
 

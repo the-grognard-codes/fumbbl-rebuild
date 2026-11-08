@@ -170,9 +170,8 @@ try {
     assert.notEqual(await scene.locator('.pitch-stadium-plate').first().getAttribute('style'), before);
     const focus = await scene.getAttribute('data-focus');
     for (const angle of [30, 50, 40]) {
-      const reportsBefore = await page.evaluate(() => window.selectionReports.length);
       await setCameraAngle(page, String(angle));
-      await page.waitForFunction(before => window.selectionReports.length > before, reportsBefore, { timeout: 1500 });
+      await page.waitForFunction(angle => document.querySelector('.live-pitch-scene').dataset.elevation === angle, String(angle), { timeout: 1500 });
       assert.equal(await scene.getAttribute('data-elevation'), String(angle));
       assert.equal(await scene.locator('[data-shadow-player]').count(), players.length);
       assert.equal(await scene.locator('[data-player-id="human"]').getAttribute('data-anchor-mode'), 'feet');

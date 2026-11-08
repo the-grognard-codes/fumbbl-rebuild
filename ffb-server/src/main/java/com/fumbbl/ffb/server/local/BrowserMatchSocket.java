@@ -20,6 +20,7 @@ public class BrowserMatchSocket implements BrowserConnection {
 	private final AtomicBoolean active = new AtomicBoolean();
 	private volatile BrowserMatchDelivery delivery;
 	private volatile Session session;
+	private volatile boolean diagnosticsEnabled;
 
 	public BrowserMatchSocket(FantasyFootballServer server, BrowserProtocol adapter, BrowserMatchTransport transport) {
 		this.server = server;
@@ -60,7 +61,7 @@ public class BrowserMatchSocket implements BrowserConnection {
 				// Protocol failures never log request bodies or provider exception details.
 				retireFromEngineWorker(1011, "Browser protocol unavailable; reconnect for a full snapshot");
 			}
-		}, () -> retire(1013, "Local browser transport overloaded"));
+		}, () -> retire(1013, "Local browser transport overloaded"), diagnosticsEnabled);
 	}
 
 	@OnWebSocketClose
@@ -82,6 +83,15 @@ public class BrowserMatchSocket implements BrowserConnection {
 	public void onError(Throwable failure) {
 		// Jetty may report a failure before its close notification. Release once.
 		retire(1011, "Browser transport failed; reconnect for a full snapshot");
+	}
+
+	@Override
+	public void diagnosticsEnabled(boolean enabled) { diagnosticsEnabled = enabled; }
+
+	@Override
+	public void sendDiagnostics(String message) {
+		BrowserMatchDelivery activeDelivery = delivery;
+		if (active.get() && diagnosticsEnabled && activeDelivery != null) activeDelivery.sendOptional(message);
 	}
 
 	@Override

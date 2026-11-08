@@ -11,6 +11,8 @@ import { decodeChat } from './chat-protocol.ts';
 import { assertV2Projection } from './v2-projection.ts';
 import { decodeSkillUsePreferences } from './skill-use-preferences.ts';
 import type { SkillUseCase, SkillUseMode, SkillUsePreferences } from './skill-use-preferences.ts';
+import { decodeServerTiming } from './performance-diagnostics.ts';
+import type { PerformanceDiagnostics } from './performance-diagnostics.ts';
 
 export type V2Message = Record<string, any>;
 export type PendingIntent = { accountId: string; request: V2Message };
@@ -20,6 +22,7 @@ type ClientOptions = {
   initialMatch?: { matchId: string; watch: boolean };
   browseOnly?: boolean;
   purpose?: 'preparation' | 'play';
+  diagnostics?: PerformanceDiagnostics | null;
 };
 export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -36,6 +39,7 @@ export class V2Client {
   private authenticationOfferedLiveTranscript = false;
   private lastAutomaticRefresh = 0;
   private includeBrowseDetails = true;
+  private diagnosticRequests = new Map<string, { operation: string; at: number }>();
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
@@ -53,6 +57,10 @@ export class V2Client {
   private options: ClientOptions;
   constructor(options: ClientOptions) {
     this.options = options;
+    options.diagnostics?.attach({ configure: enabled => this.configureDiagnostics(enabled), probe: () => this.sendDiagnostic('probe'),
+      buffered: () => this.socket?.bufferedAmount ?? 0, pendingMutation: () => !!this.pending || this.requests.size > 0,
+      pendingCount: () => this.requests.size + this.diagnosticRequests.size,
+      maintain: () => this.expireDiagnosticRequests() });
     if (options.browseOnly) return;
     if (options.initialMatch) {
       if (!uuid.test(options.initialMatch.matchId)) throw Error('Enter a valid match ID.');
@@ -104,9 +112,9 @@ export class V2Client {
       if (this.socket !== socket) return;
       this.authenticationId = crypto.randomUUID();
       this.authenticationOfferedLiveTranscript = this.options.purpose === 'play' && this.offerLiveTranscript;
-      socket.send(JSON.stringify({ version: 2, type: 'authenticate', requestId: this.authenticationId, bearer,
+      this.sendMessage(socket, { version: 2, type: 'authenticate', requestId: this.authenticationId, bearer,
         ...(this.options.purpose === 'preparation' ? { purpose: 'preparation' } : {}),
-        ...(this.authenticationOfferedLiveTranscript ? { liveTranscript: true } : {}) }));
+        ...(this.authenticationOfferedLiveTranscript ? { liveTranscript: true } : {}) });
     } catch {
       if (this.socket === socket) {
         this.options.onChange({ type: 'error', code: 'AUTHENTICATION_TOKEN_UNAVAILABLE' });
@@ -116,6 +124,7 @@ export class V2Client {
   }
 
   disconnect() {
+    this.diagnosticRequests.clear(); this.options.diagnostics?.connection(false);
     if (this.skillUsePending) this.skillUseError = 'Preference outcome was not confirmed. Reconnect and reload your settings.';
     this.skillUsePending = null; this.skillUsePreferences = null; this.skillUseSaved = false;
     const socket = this.socket; this.socket = null; this.accountId = ''; this.state = null; this.requests.clear();
@@ -138,7 +147,7 @@ export class V2Client {
       this.options.storage.setItem(v2PendingKey, JSON.stringify(pending));
       this.pending = pending;
     }
-    this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
+    this.requests.set(request.requestId, request); this.sendMessage(this.socket, request, mutation);
     this.options.onChange({ type: 'pending', requestType: type, operation: fields.operation, mutation });
     return request.requestId;
   }
@@ -177,13 +186,76 @@ export class V2Client {
       throw Error('Reconnect with the account that submitted this request.');
     const request = this.pending.request;
     if (request.type === 'setup') this.selection = { matchId: request.matchId, watch: false };
-    this.requests.set(request.requestId, request); this.socket.send(JSON.stringify(request));
+    this.requests.set(request.requestId, request); this.sendMessage(this.socket, request, true);
     this.options.onChange({ type: 'pending', requestType: request.type, operation: request.operation, mutation: true });
   }
 
+  private sendMessage(socket: WebSocket, request: V2Message, mutation = false) {
+    const raw = JSON.stringify(request);
+    const diagnostics = this.options.diagnostics;
+    if (diagnostics?.enabled) {
+      diagnostics.payload('out', new TextEncoder().encode(raw).length);
+      diagnostics.sent(request.requestId, request.type, request.operation, mutation);
+    }
+    socket.send(raw);
+  }
+
+  private configureDiagnostics(enabled: boolean) {
+    if (!this.accountId || this.socket?.readyState !== 1) return;
+    const diagnostics = this.options.diagnostics;
+    if (diagnostics) diagnostics.server = enabled ? 'negotiating' : 'unavailable';
+    this.sendDiagnostic('configure', enabled);
+  }
+
+  private sendDiagnostic(operation: 'configure' | 'probe', enabled?: boolean) {
+    const diagnostics = this.options.diagnostics;
+    if (!diagnostics || !this.accountId || this.socket?.readyState !== 1) return;
+    this.expireDiagnosticRequests();
+    if (this.diagnosticRequests.size >= 2) {
+      if (operation === 'probe') return;
+      // Latest user setting always reaches the server, even during rapid toggles.
+      const oldest = this.diagnosticRequests.keys().next().value!;
+      this.diagnosticRequests.delete(oldest); diagnostics.discardDiagnostic(oldest);
+    }
+    const requestId = crypto.randomUUID();
+    this.diagnosticRequests.set(requestId, { operation, at: diagnostics.now() });
+    try { this.sendMessage(this.socket, { version: 2, type: 'diagnostics', requestId, operation, ...(operation === 'configure' ? { enabled } : {}) }); }
+    catch { this.diagnosticRequests.delete(requestId); diagnostics.server = 'unavailable'; }
+  }
+
+  private expireDiagnosticRequests() {
+    const diagnostics = this.options.diagnostics; if (!diagnostics) return;
+    for (const [id, request] of this.diagnosticRequests) if (diagnostics.now() - request.at >= 5000) {
+      this.diagnosticRequests.delete(id); diagnostics.discardDiagnostic(id);
+      if (request.operation === 'configure') diagnostics.server = 'unavailable';
+    }
+  }
+
   private receive(raw: string) {
-    const message = parseV2Response(raw) as V2Message;
+    const diagnostics = this.options.diagnostics;
+    const message = parseV2Response(raw, diagnostics?.enabled ? bytes => diagnostics.payload('in', bytes) : undefined) as V2Message;
+    // Optional telemetry is isolated from strict gameplay projection/correlation handling.
+    if (message.type === 'diagnosticsTiming') {
+      try { if (message.version !== 2) throw Error('Unsupported diagnostic version'); assertV2Projection(message); const timing = decodeServerTiming(message.timing);
+        if (timing && message.code === 'ACCEPTED' && typeof message.requestId === 'string') diagnostics?.timing(message.requestId, timing);
+      } catch { /* Malformed optional diagnostics never strands an accepted action. */ }
+      return;
+    }
+    const diagnosticRequest = this.diagnosticRequests.get(message.requestId);
+    if (diagnosticRequest && (message.type === 'diagnostics' || message.type === 'error')) {
+      this.diagnosticRequests.delete(message.requestId);
+      try {
+        if (message.version !== 2) throw Error('Unsupported diagnostic version');
+        assertV2Projection(message);
+        diagnostics?.response(message.requestId, undefined, message.type === 'error');
+        if (diagnostics && diagnosticRequest.operation === 'configure') diagnostics.server = diagnostics.enabled && message.type === 'diagnostics'
+          && message.code === 'ACCEPTED' && message.enabled === true ? 'enabled' : 'unavailable';
+      } catch { diagnostics?.discardDiagnostic(message.requestId); if (diagnostics) diagnostics.server = 'unavailable'; }
+      return;
+    }
+    if (message.type === 'diagnostics') return; // Late optional response after timeout/off/reconnect.
     assertV2Projection(message);
+    diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error');
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
     if (message.type === 'authentication') {
@@ -191,6 +263,7 @@ export class V2Client {
       if (message.liveTranscript && !this.authenticationOfferedLiveTranscript) throw Error('Unrequested live transcript');
       this.liveTranscript = message.liveTranscript === true;
       this.accountId = message.accountId; this.options.onChange(message);
+      diagnostics?.connection(true);
       this.request('browse');
       if (!this.options.browseOnly) { this.request('savedTeam', { operation: 'list' }); this.request('catalog'); }
       if (this.selection) this.open(this.selection.matchId, this.selection.watch);
@@ -276,6 +349,7 @@ export class V2Client {
           || this.selection && this.selection.matchId !== decoded.matchId || decoded.page.from !== request.from)
         throw Error('Foreign transcript');
       message.page = decoded.page;
+      for (const record of decoded.page.records) diagnostics?.transcript(record.revision);
     }
     if (message.type === 'routePreview') {
       const decoded = decodeRoutePreview(JSON.stringify(message));

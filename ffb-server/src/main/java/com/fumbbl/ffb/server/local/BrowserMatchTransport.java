@@ -124,7 +124,11 @@ public class BrowserMatchTransport {
 	}
 
 	boolean submit(String message, Runnable work, Runnable rejected) {
-		return submit(work, rejected, advisory(message), true);
+		return submit(message, work, rejected, false);
+	}
+
+	boolean submit(String message, Runnable work, Runnable rejected, boolean diagnostics) {
+		return submit(work, rejected, advisory(message), true, diagnostics);
 	}
 
 	/** Trusted, coalesced operator/deadline/disconnect work shares ordering, not browser admission. */
@@ -133,6 +137,10 @@ public class BrowserMatchTransport {
 	}
 
 	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress) {
+		return submit(work, rejected, advisory, trackedIngress, false);
+	}
+
+	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, boolean diagnostics) {
 		if (stopped.get() || trackedIngress && !ingress.tryAcquire()) {
 			if (trackedIngress) metrics.ingressOverload();
 			rejected.run();
@@ -144,7 +152,7 @@ public class BrowserMatchTransport {
 			rejected.run();
 			return false;
 		}
-		QueuedWork pending = new QueuedWork(work, advisory, trackedIngress, trackedIngress ? timing.queued() : null);
+		QueuedWork pending = new QueuedWork(work, advisory, trackedIngress, trackedIngress ? timing.queued(diagnostics) : null);
 		boolean queued;
 		synchronized (queueLock) {
 			Deque<QueuedWork> lane = advisory ? advisoryWork : foregroundWork;
@@ -202,7 +210,8 @@ public class BrowserMatchTransport {
 			int version = request.getInt("version", -1);
 			if (version != 2) return false;
 			String type = request.getString("type", "");
-			return "movementRange".equals(type) || "movementPreview".equals(type) || "routePreview".equals(type);
+			return "movementRange".equals(type) || "movementPreview".equals(type) || "routePreview".equals(type)
+				|| "diagnostics".equals(type) && "probe".equals(request.getString("operation", ""));
 		} catch (RuntimeException malformed) {
 			return false;
 		}

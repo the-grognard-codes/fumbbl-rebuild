@@ -16,7 +16,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
-    '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {url:"ws://unused", getToken:async()=>"token"});</script>' }));
+    '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {environment: "dev", url:"ws://unused", getToken:async()=>"token"});</script>' }));
   await page.addInitScript(states => {
     window.WebSocket = class {
       static OPEN = 1;

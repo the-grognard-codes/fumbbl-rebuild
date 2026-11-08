@@ -89,7 +89,7 @@ try {
       });
     });
     await page.route('**/play/match?*', route => route.fulfill({ contentType: 'text/html', body:
-      '<div id="app"></div><script type="module">import { mountPlay } from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), { url: "ws://127.0.0.1/unused", getToken: async () => "test-token" });</script>' }));
+      '<div id="app"></div><script type="module">import { mountPlay } from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), { environment: "dev", url: "ws://127.0.0.1/unused", getToken: async () => "test-token" });</script>' }));
     if (retained) await page.addInitScript(pending => sessionStorage.setItem('ffb.intent.v2', JSON.stringify(pending)), pending);
     await page.goto(`http://127.0.0.1:${address.port}/play/match?matchId=${matchId}`);
     await page.getByLabel('Live match pitch').waitFor();

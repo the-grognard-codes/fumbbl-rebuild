@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { GameView } from './GameView.tsx';
 import { BuilderPanel } from './BuilderPanel.tsx';
 import { V2Client } from './v2-client.ts';
+import { DiagnosticsBoundary, useDiagnostics } from './PerformanceDiagnostics.tsx';
 import type { V2Message } from './v2-client.ts';
 import type { SavedTeamSummary } from './saved-team-protocol.ts';
 import type { MatchResultMetadata, ReplayEvent } from './result-protocol.ts';
@@ -25,9 +26,9 @@ import type { ConcessionStatus } from './lobby-concession.ts';
 import './play-brand.css';
 import './play-lobby.css';
 
-export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string> }) {
+export function mountPlay(element: HTMLElement, options: { url: string; getToken: () => Promise<string>; environment?: string }) {
   const root = createRoot(element);
-  root.render(<Play options={options} />);
+  root.render(<DiagnosticsBoundary environment={options.environment}><Play options={options} /></DiagnosticsBoundary>);
   return () => root.unmount();
 }
 
@@ -44,6 +45,7 @@ export function mountSpectate(element: HTMLElement, options: { url: string; getT
 }
 
 function Play({ options }: { options: { url: string; getToken: () => Promise<string> } }) {
+  const diagnostics = useDiagnostics()?.service;
   const matchRoute = location.pathname === '/play/match';
   const resultRoute = location.pathname === '/play/result';
   const watchRoute = matchRoute && new URLSearchParams(location.search).get('watch') === '1';
@@ -143,7 +145,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       setLogRecords(logHistory.current.records);
       return true;
     };
-    const connection = new V2Client({ ...options, storage: sessionStorage, purpose: matchRoute || resultRoute ? 'play' : 'preparation',
+    const connection = new V2Client({ ...options, diagnostics, storage: sessionStorage, purpose: matchRoute || resultRoute ? 'play' : 'preparation',
       initialMatch: matchRoute && matchIdPattern.test(matchId) ? { matchId, watch: watchRoute } : undefined,
       onChange: message => {
       if (concessionRef.current?.receive(message)) requestCurrentMatches();

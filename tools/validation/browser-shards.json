@@ -39,7 +39,9 @@
     ],
     [
       "browser-client/test/projected-pitch-ui.mjs",
+      "browser-client/test/idle-panning-ui.mjs",
       "browser-client/test/renderer-diagnostics-ui.mjs",
+      "browser-client/test/performance-diagnostics-ui.mjs",
       "browser-client/test/cursor-square-ui.mjs",
       "browser-client/test/movement-checks-ui.mjs",
       "browser-client/test/coach-hud-ui.mjs",

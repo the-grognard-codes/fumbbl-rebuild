@@ -31,6 +31,7 @@ public class BrowserMatchDelivery {
 	private boolean writing;
 	private boolean closed;
 	private long writeStartedAt;
+	private QueuedMessage queuedTiming;
 
 	public BrowserMatchDelivery(Sink sink, BrowserMatchTransportMetrics metrics, int maximumMessages, int maximumBytes) {
 		this(sink, metrics, maximumMessages, maximumBytes, () -> TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
@@ -48,11 +49,40 @@ public class BrowserMatchDelivery {
 		return sendWithOptionalPredecessor(null, message);
 	}
 
+	/** Best effort telemetry: admit only behind the current write, leaving the rest of the queue for gameplay. */
+	boolean sendOptional(String message) {
+		String next = null;
+		synchronized (this) {
+			if (closed || queuedTiming != null || messages.size() > 1 || !sink.isOpen()) return false;
+			int messageBytes = message.getBytes(StandardCharsets.UTF_8).length;
+			if (messageBytes > Math.min(2048, maximumBytes - bytes) || messages.size() + 2 > maximumMessages) return false;
+			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong());
+			messages.addLast(queuedTiming);
+			bytes += messageBytes;
+			metrics.deliveryQueued(messageBytes);
+			if (!writing) {
+				writing = true;
+				writeStartedAt = clock.getAsLong();
+				metrics.deliveryQueueDelay(0);
+				next = message;
+			}
+		}
+		if (next != null) write(next);
+		return true;
+	}
+
 	/** Optional history is admitted only when the following mandatory state also fits the bounded queue. */
 	public boolean sendWithOptionalPredecessor(String optional, String mandatory) {
 		String next = null;
 		boolean close = false;
 		synchronized (this) {
+			// Queued optional timing yields immediately to the next mandatory response.
+			if (queuedTiming != null && !(writing && messages.peekFirst() == queuedTiming)) {
+				messages.remove(queuedTiming);
+				bytes -= queuedTiming.bytes;
+				metrics.deliveryCleared(1, queuedTiming.bytes);
+				queuedTiming = null;
+			}
 			int messageBytes = mandatory.getBytes(StandardCharsets.UTF_8).length;
 			if (closed || !sink.isOpen()) return false;
 			if (messages.size() >= maximumMessages || messageBytes > maximumBytes - bytes) {
@@ -62,6 +92,7 @@ public class BrowserMatchDelivery {
 				metrics.slowDisconnect();
 				metrics.deliveryCleared(messages.size(), bytes);
 				messages.clear();
+				queuedTiming = null;
 				bytes = 0;
 				close = true;
 			} else {
@@ -96,6 +127,7 @@ public class BrowserMatchDelivery {
 		closed = true;
 		metrics.deliveryCleared(messages.size(), bytes);
 		messages.clear();
+		queuedTiming = null;
 		bytes = 0;
 		writing = false;
 	}
@@ -108,6 +140,7 @@ public class BrowserMatchDelivery {
 				writing = false;
 				metrics.deliveryCleared(messages.size(), bytes);
 				messages.clear();
+				queuedTiming = null;
 				bytes = 0;
 				metrics.slowDisconnect();
 				close = true;
@@ -138,6 +171,7 @@ public class BrowserMatchDelivery {
 		synchronized (this) {
 			if (!writing) return;
 			QueuedMessage completed = messages.pollFirst();
+			if (completed == queuedTiming) queuedTiming = null;
 			if (completed != null) {
 				bytes -= completed.bytes;
 				metrics.deliveryCompleted(completed.bytes);
@@ -147,6 +181,7 @@ public class BrowserMatchDelivery {
 				closed = true;
 				metrics.deliveryCleared(messages.size(), bytes);
 				messages.clear();
+				queuedTiming = null;
 				bytes = 0;
 				metrics.slowDisconnect();
 				close = true;
