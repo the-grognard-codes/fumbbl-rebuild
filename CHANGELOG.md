@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Gameplay authorization refreshes local identity, account and scopes in one
+  database query. DEV diagnostics refreshes no longer rerender gameplay solely
+  to update counters and graphs, and pitch hover hit tests are coalesced across
+  response commits. Recovery protocol lookups avoid repeated enum-array
+  allocations. Server timing logs distinguish local permission
+  checks, provider reuse and checkpoint cursor/fingerprint preparation.
+
 - Pitch panning retains the grid in the camera's ground plane and avoids
   unrelated HUD layout measurements. Player cards now use fixed team sides:
   home on the left and away on the right, including replay.

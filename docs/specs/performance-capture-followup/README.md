@@ -2,6 +2,10 @@
 
 Created 2026-11-07 from the user's diagnostic review and request for separate investigation tickets. GitHub owns status and discussion; these files mirror the scoped requirements and evidence handoff.
 
+Parent feature: [#496 — reduce capture-observed gameplay delays with reproducible validation](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496), mirrored in [the standard-template feature specification](feature.md). Created 2026-11-07 at the user's request to cover all five issues. The five existing tickets are native sub-issues; their requirements and blocking edges remain in place. The parent is labelled `enhancement` and `ready-for-agent`.
+
+Implementation was subsequently authorized on branch `feature/496-capture-performance`. See the [post-implementation outcome](outcome.md), [runnable workloads](workloads.md) and [validation plan](validation-plan.md). The outcome records bounded corrections, matched measurements, the reproduced live checkpoint spike and remaining investigation/device limits. Issues remain open pending review; changes are uncommitted.
+
 ## Tickets and blocking edges
 
 | Issue | Deliverable | Blocked by |

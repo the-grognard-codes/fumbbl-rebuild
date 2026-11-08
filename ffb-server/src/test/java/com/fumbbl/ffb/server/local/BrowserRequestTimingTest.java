@@ -71,6 +71,23 @@ class BrowserRequestTimingTest {
 		assertTrue(lines.isEmpty());
 	}
 
+	@Test void serverLogSeparatesLocalAuthorizationReuseAndCheckpointPreparation() {
+		try (BrowserRequestTiming.Scope handling = timing.handling(timing.queued())) {
+			timing.selectRequest(action());
+			try (BrowserRequestTiming.Scope local = timing.span(BrowserRequestTiming.Phase.LOCAL_AUTHORIZATION)) { nanos.addAndGet(3000000); }
+			try (BrowserRequestTiming.Scope reuse = timing.span(BrowserRequestTiming.Phase.FIREBASE_REUSE)) { }
+			try (BrowserRequestTiming.Scope cursor = timing.span(BrowserRequestTiming.Phase.RECOVERY_CURSOR)) { nanos.addAndGet(5000000); }
+			try (BrowserRequestTiming.Scope hash = timing.span(BrowserRequestTiming.Phase.RECOVERY_FINGERPRINT)) { nanos.addAndGet(2000000); }
+		}
+		JsonObject event = JsonObject.readFrom(lines.get(0).substring("FFB_BROWSER_TIMING ".length()));
+		assertEquals(3, event.getDouble("localAuthorizationMs", -1));
+		assertEquals(1, event.getInt("localAuthorizationChecks", -1));
+		assertEquals(1, event.getInt("firebaseReuseHits", -1));
+		assertEquals(0, event.getInt("firebaseLookups", -1));
+		assertEquals(5, event.getDouble("recoveryCursorMs", -1));
+		assertEquals(2, event.getDouble("recoveryFingerprintMs", -1));
+	}
+
 	@Test void telemetryIsOptInAllowlistedClampedAndSnapshotsActiveNestedPhasesBeforePublication() {
 		System.clearProperty("ffb.browser.timing");
 		List<String> telemetry = new ArrayList<>();
@@ -168,7 +185,7 @@ class BrowserRequestTimingTest {
 		assertEquals(2000000000002L, event.get("serverStartUtcMs").asLong());
 		assertEquals(2000000000006L, event.get("serverEndUtcMs").asLong());
 		assertEquals(0.0, event.get("checkpointMs").asDouble());
-		assertEquals(21, event.size());
+		assertEquals(26, event.size());
 		assertFalse(lines.get(0).contains("private-"));
 		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 			try (BrowserRequestTiming.Scope span = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) { nanos.incrementAndGet(); }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { PerformanceDiagnostics, diagnosticsAvailable, distribution, histogram, loadDiagnosticPreferences } from './performance-diagnostics.ts';
 import type { DiagnosticSnapshot, DiagnosticPreferences, Metric } from './performance-diagnostics.ts';
@@ -58,8 +58,12 @@ function DiagnosticRuntime({ service }: { service: PerformanceDiagnostics | null
 }
 export function useDiagnosticPresentation(received: number, presented: number, active: boolean, synchronizing: boolean,
   announcement: boolean, pending: boolean, mode: 'live' | 'replay' = 'live', speed = 1, context?: string, opportunityRevision = presented, provisional = false) {
-  const { service } = useDiagnosticState();
-  const enabled = !!service?.enabled;
+  const service = useDiagnostics()?.service;
+  // Metric refreshes belong to the overlay. Gameplay only needs a new commit
+  // when collection switches on/off, not each 250 ms counters/graph refresh.
+  const enabled = useSyncExternalStore(
+    listener => service?.subscribe(listener) ?? (() => {}),
+    () => !!service?.enabled);
   useLayoutEffect(() => { service?.context(); }, [service, context]);
   useLayoutEffect(() => {
     service?.presented(received, presented, active, synchronizing, announcement, mode, speed, opportunityRevision, provisional);

@@ -64,6 +64,8 @@ Reuse existing native/profile browser harnesses and exported analyzer summaries.
 
 ## Completion Notes
 
+Implementation evidence: [consolidated outcome](outcome.md) and [workload commands](workloads.md). Removed diagnostic refreshes that caused eight unnecessary gameplay renders per eight notifications. A native CPU/timeline profile identified stationary-pointer hit testing during commits; ten synchronous LivePitch commits now produce zero synchronous hit tests and one frame-coalesced test. Red/green regressions preserve enable/disable, hover suppression, camera/overlay and input behavior. Three matched repetitions of Off/Counters/Graph pass declared gates. Broader live React/frame stalls remain explicitly unresolved; this result does not establish their elimination. Issue remains open pending review.
+
 Record the reproduced boundary or unresolved result, evidence-backed change, exact commands, repeated measurements and instrumentation limits.
 
 For code changes, complete self-review and the repository-required checks appropriate to the affected behavior. Record exact commands, failures, fixes and remaining limitations. Keep the GitHub issue and local mirror aligned; leave unrelated historical issues unchanged.

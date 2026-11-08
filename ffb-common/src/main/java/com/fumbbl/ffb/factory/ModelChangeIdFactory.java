@@ -14,8 +14,11 @@ import com.fumbbl.ffb.model.change.ModelChangeId;
 @RulesCollection(Rules.COMMON)
 public class ModelChangeIdFactory implements INamedObjectFactory {
 
+	// values() clones its array; recovery parsing performs this lookup per change.
+	private static final ModelChangeId[] CHANGE_IDS = ModelChangeId.values();
+
 	public ModelChangeId forName(String pName) {
-		for (ModelChangeId changeId : ModelChangeId.values()) {
+		for (ModelChangeId changeId : CHANGE_IDS) {
 			if (changeId.getName().equalsIgnoreCase(pName)) {
 				return changeId;
 			}

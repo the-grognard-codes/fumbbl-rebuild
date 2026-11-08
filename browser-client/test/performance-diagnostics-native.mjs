@@ -35,12 +35,29 @@ try {
   const overlay = page.getByLabel('Performance diagnostics', { exact: true });
   await overlay.getByText(/server timing enabled/).waitFor();
   await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
+  const profileSession = process.env.COACH_ACCEPTANCE_CPU_PROFILE === '1' ? await page.context().newCDPSession(page) : null;
+  const traceEvents = []; let traceTruncated = false;
+  if (profileSession) {
+    profileSession.on('Tracing.dataCollected', ({ value }) => {
+      if (traceEvents.length + value.length > 20000) traceTruncated = true;
+      traceEvents.push(...value.slice(0, Math.max(0, 20000 - traceEvents.length)));
+    });
+    await profileSession.send('Profiler.enable'); await profileSession.send('Profiler.start');
+    await profileSession.send('Tracing.start', { categories: 'devtools.timeline,blink.user_timing', transferMode: 'ReportEvents' });
+  }
   const before = client.state.revision;
   await page.getByRole('button', { name: 'End Turn', exact: true }).click();
   const confirmation = page.getByText('Unactivated players remain. Confirm to end this turn.', { exact: true });
   if (await confirmation.isVisible()) await page.getByRole('button', { name: 'Confirmed!', exact: true }).click();
   await overlay.locator('.performance-readouts p').filter({ hasText: 'Action RTT' }).filter({ hasNotText: 'No samples' }).waitFor();
   await page.waitForTimeout(2000);
+  if (profileSession) {
+    const { profile } = await profileSession.send('Profiler.stop');
+    const complete = new Promise(resolve => profileSession.once('Tracing.tracingComplete', resolve));
+    await profileSession.send('Tracing.end'); await complete;
+    await writeFile(resolve(output, 'native-response.cpuprofile'), JSON.stringify(profile));
+    await writeFile(resolve(output, 'native-response-trace.json'), JSON.stringify({ traceEvents, truncated: traceTruncated }));
+  }
   assert.ok(client.state.revision > before, 'An authorized UI action advanced the native revision');
   await overlay.getByRole('button', { name: 'Pause', exact: true }).click();
   const downloadWait = page.waitForEvent('download'); await overlay.getByRole('button', { name: 'Export JSON', exact: true }).click();

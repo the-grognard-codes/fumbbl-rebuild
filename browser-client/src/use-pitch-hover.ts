@@ -7,6 +7,7 @@ export function usePitchHover(scene: RefObject<HTMLDivElement | null>, camera: P
   const [square, setSquare] = useState<Point | null>(null);
   const clear = useCallback(() => { pointer.current = null; setSquare(null); }, []);
   const refresh = useRef(() => {});
+  const scheduleRefresh = useRef(() => {});
   refresh.current = () => {
     const element = scene.current, position = pointer.current;
     let next: Point | null = null;
@@ -25,7 +26,9 @@ export function usePitchHover(scene: RefObject<HTMLDivElement | null>, camera: P
   };
   // Reproject after camera, game mode or recovery changes without requiring
   // another mouse movement. Retain the physical location while suppressed.
-  useLayoutEffect(() => { refresh.current(); });
+  // Response commits and DOM mutations share one frame hit test. Reading here
+  // synchronously forces layout repeatedly before React can finish its commit.
+  useLayoutEffect(() => { scheduleRefresh.current(); });
   useEffect(() => {
     const document = scene.current!.ownerDocument, window = document.defaultView!;
     let frame = 0;
@@ -37,6 +40,7 @@ export function usePitchHover(scene: RefObject<HTMLDivElement | null>, camera: P
         if (animations.size) schedule();
       });
     };
+    scheduleRefresh.current = schedule;
     const animate = (event: Event) => {
       if (!(event.target instanceof Element)) return;
       for (const animation of event.target.getAnimations()) {
@@ -75,6 +79,7 @@ export function usePitchHover(scene: RefObject<HTMLDivElement | null>, camera: P
     observer.observe(document.body, { subtree: true, childList: true, attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'open'] });
     return () => {
+      scheduleRefresh.current = () => {};
       observer.disconnect(); window.cancelAnimationFrame(frame);
       document.removeEventListener('pointermove', move, true);
       document.removeEventListener('pointerup', move, true);
@@ -91,5 +96,5 @@ export function usePitchHover(scene: RefObject<HTMLDivElement | null>, camera: P
       window.removeEventListener('resize', schedule);
     };
   }, [scene, clear]);
-  return { square, clear };
+  return { square: enabled ? square : null, clear };
 }

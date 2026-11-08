@@ -10,7 +10,7 @@ import com.eclipsesource.json.JsonValue;
 
 /** Opt-in, bounded diagnostics for one ingress request; never retains request bodies or game state. */
 public final class BrowserRequestTiming {
-	public enum Phase { SESSION_APPLY, CHECKPOINT, AUTHORIZATION, FIREBASE_LOOKUP, RECOVERY_SERIALIZE, CHECKPOINT_STORE, STORAGE_ENCODE, CHECKPOINT_SQL, PUBLICATION, RECOVERY_RESTORE }
+	public enum Phase { SESSION_APPLY, CHECKPOINT, AUTHORIZATION, FIREBASE_LOOKUP, RECOVERY_SERIALIZE, CHECKPOINT_STORE, STORAGE_ENCODE, CHECKPOINT_SQL, PUBLICATION, RECOVERY_RESTORE, LOCAL_AUTHORIZATION, FIREBASE_REUSE, RECOVERY_CURSOR, RECOVERY_FINGERPRINT }
 	public interface Scope extends AutoCloseable { @Override void close(); }
 	private static final Scope EMPTY = () -> { };
 	// Services at the transport, protocol and application boundaries share only the current worker request.
@@ -56,8 +56,13 @@ public final class BrowserRequestTiming {
 					.add("checkpointMs", millis(request.elapsed[Phase.CHECKPOINT.ordinal()]))
 					.add("authorizationMs", millis(request.elapsed[Phase.AUTHORIZATION.ordinal()]))
 					.add("firebaseLookupMs", millis(request.elapsed[Phase.FIREBASE_LOOKUP.ordinal()]))
+					.add("localAuthorizationMs", millis(request.elapsed[Phase.LOCAL_AUTHORIZATION.ordinal()]))
+					.add("localAuthorizationChecks", request.entries[Phase.LOCAL_AUTHORIZATION.ordinal()])
+					.add("firebaseReuseHits", request.entries[Phase.FIREBASE_REUSE.ordinal()])
 					.add("recoverySerializeMs", millis(request.elapsed[Phase.RECOVERY_SERIALIZE.ordinal()]))
 					.add("recoveryRestoreMs", millis(request.elapsed[Phase.RECOVERY_RESTORE.ordinal()]))
+					.add("recoveryCursorMs", millis(request.elapsed[Phase.RECOVERY_CURSOR.ordinal()]))
+					.add("recoveryFingerprintMs", millis(request.elapsed[Phase.RECOVERY_FINGERPRINT.ordinal()]))
 					.add("checkpointStoreMs", millis(request.elapsed[Phase.CHECKPOINT_STORE.ordinal()]))
 					.add("storageEncodeMs", millis(request.elapsed[Phase.STORAGE_ENCODE.ordinal()]))
 					.add("checkpointSqlMs", millis(request.elapsed[Phase.CHECKPOINT_SQL.ordinal()]))

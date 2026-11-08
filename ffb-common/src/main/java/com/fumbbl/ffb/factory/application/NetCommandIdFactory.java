@@ -15,8 +15,11 @@ import com.fumbbl.ffb.net.NetCommandId;
 @RulesCollection(Rules.COMMON)
 public class NetCommandIdFactory implements INamedObjectFactory {
 
+	// Keep the private enum snapshot rather than allocating it per parsed command.
+	private static final NetCommandId[] COMMAND_IDS = NetCommandId.values();
+
 	public NetCommandId forName(String pName) {
-		for (NetCommandId commandId : NetCommandId.values()) {
+		for (NetCommandId commandId : COMMAND_IDS) {
 			if (commandId.getName().equalsIgnoreCase(pName)) {
 				return commandId;
 			}

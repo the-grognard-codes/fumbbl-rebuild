@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { LivePitch } from '../src/LivePitch.tsx';
 import { HostedResult } from '../src/HostedResult.tsx';
 import type { SetupState } from '../src/setup-protocol.ts';
@@ -12,11 +13,15 @@ declare global {
     cursorInput: Input;
     publishCursorInput: (input: Input) => void;
     cursorIntents: ({ player: string } | { x: number; y: number })[];
+    commitCursorInputs: () => void;
   }
 }
 function Harness() {
   const [input, setInput] = useState(window.cursorInput);
   window.publishCursorInput = setInput;
+  window.commitCursorInputs = () => {
+    for (let index = 0; index < 10; index++) flushSync(() => setInput(current => ({ ...current })));
+  };
   if (input.replayResult) return <HostedResult matchId={input.view.matchId}
     result={{ formatVersion: 3, engineVersion: 'ffb-3.4.0-bb2025-m3d.1', ruleset: 'BB2025',
       catalogVersion: 'bb2025-exhibition-2026-09-25.1', presetId: 'exhibition-1150', presetVersion: 'bb2025-exhibition-2026-09-25.1',
