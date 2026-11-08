@@ -5,7 +5,7 @@ export type DiagnosticMode = 'off' | 'counters' | 'graph';
 export type Metric = 'frame' | 'rtt' | 'probe' | 'feedback' | 'provisional' | 'transcript' | 'presentation' | 'inputPresentation'
   | 'queue' | 'handling' | 'authorization' | 'sessionApply' | 'checkpoint' | 'serialization' | 'sql'
   | 'longtask' | 'long-animation-frame';
-export type Sample = { at: number; value: number; kind: Metric; category?: string; trace?: number; requestType?: string };
+export type Sample = { at: number; value: number; kind: Metric; category?: string; trace?: number; requestType?: string; serverTraceExpected?: boolean };
 export type Marker = { at: number; kind: 'enabled' | 'hidden' | 'visible' | 'connected' | 'disconnected' | 'incident' | 'reset' | 'probe-timeout' | 'context' };
 export type Traffic = { at: number; incoming: number; outgoing: number; received: number; sent: number };
 export type DiagnosticPreferences = {
@@ -67,7 +67,7 @@ export function histogram(values: number[], limits = [8.34, 16.67, 33.34, 50, 10
   for (const value of values) if (Number.isFinite(value) && value >= 0) { const index = limits.findIndex(limit => value <= limit); counts[index < 0 ? limits.length : index]++; }
   return counts.map((count, index) => ({ count, from: index ? limits[index - 1] : 0, to: limits[index] ?? null }));
 }
-type Trace = { at: number; category: string; serial: number; requestType: string; input?: number; response?: number; revision?: number; presented?: boolean; feedback?: boolean; provisional?: boolean; transcript?: boolean; committed?: boolean };
+type Trace = { at: number; category: string; serial: number; requestType: string; input?: number; response?: number; revision?: number; presented?: boolean; feedback?: boolean; provisional?: boolean; transcript?: boolean; committed?: boolean; serverTimed?: boolean };
 export type DiagnosticSnapshot = {
   details?: DiagnosticDetails;
   at: number; samples: Sample[]; traffic: Traffic[]; markers: Marker[]; totalIn: number; totalOut: number; buffered: number;
@@ -163,9 +163,9 @@ export class PerformanceDiagnostics {
   }
   input() { if (this.enabled) this.inputAt = this.now(); }
   mark(kind: Marker['kind']) { if (this.enabled) this.markers.push({ at: this.now(), kind }); }
-  sample(kind: Metric, value: number, category?: string, trace?: number, requestType?: string) {
+  sample(kind: Metric, value: number, category?: string, trace?: number, requestType?: string, serverTraceExpected?: boolean) {
     if (!this.enabled || !Number.isFinite(value) || value < 0) return;
-    const entry: Sample = { at: this.now(), kind, value: Math.min(value, 3_600_000), ...(category && categories.has(category) ? { category } : {}), ...(trace ? { trace } : {}), ...(requestType && requestTypes.has(requestType) ? { requestType } : {}) };
+    const entry: Sample = { at: this.now(), kind, value: Math.min(value, 3_600_000), ...(category && categories.has(category) ? { category } : {}), ...(trace ? { trace } : {}), ...(requestType && requestTypes.has(requestType) ? { requestType } : {}), ...(typeof serverTraceExpected === 'boolean' ? { serverTraceExpected } : {}) };
     (kind === 'frame' ? this.frames : this.measures).push(entry);
   }
   payload(direction: 'in' | 'out', bytes: number) {
@@ -185,11 +185,11 @@ export class PerformanceDiagnostics {
     this.pending.set(id, { at: this.now(), category, serial: ++this.serial, requestType: requestTypes.has(type) ? type : 'other',
       ...(mutation && this.inputAt !== undefined && this.now() - this.inputAt < 2000 ? { input: this.inputAt } : {}) });
   }
-  response(id: unknown, revision?: number, error = false) {
+  response(id: unknown, revision?: number, error = false, serverTraceExpected?: boolean) {
     if (!this.enabled || typeof id !== 'string') return;
     const trace = this.pending.get(id); if (!trace) return;
     this.pending.delete(id); trace.response = this.now();
-    this.sample(trace.category === 'probe' ? 'probe' : 'rtt', trace.response - trace.at, error ? 'error' : trace.category, trace.serial, trace.requestType);
+    this.sample(trace.category === 'probe' ? 'probe' : 'rtt', trace.response - trace.at, error ? 'error' : trace.category, trace.serial, trace.requestType, serverTraceExpected);
     if (trace.category === 'probe') this.probeAt = undefined;
     if (Number.isSafeInteger(revision) && revision! >= 0 && trace.category === 'mutation') {
       trace.revision = revision; this.revisions.set(revision!, trace); this.cap(this.revisions);
@@ -216,7 +216,8 @@ export class PerformanceDiagnostics {
     }
   }
   timing(id: string, timing: ServerTiming) {
-    const trace = this.recent.get(id) ?? this.pending.get(id); if (!this.enabled || this.server !== 'enabled' || !trace) return;
+    const trace = this.recent.get(id) ?? this.pending.get(id); if (!this.enabled || this.server !== 'enabled' || !trace || trace.serverTimed) return;
+    trace.serverTimed = true;
     const names: Metric[] = ['queue', 'handling', 'authorization', 'sessionApply', 'checkpoint', 'serialization', 'sql'];
     timingKeys.forEach((key, index) => this.sample(names[index], timing[key], trace.category, trace.serial));
   }
@@ -287,6 +288,7 @@ export class PerformanceDiagnostics {
   }
   reset() { this.serverDetails.clear(); this.clientDetails.clear(); this.frames.clear(); this.measures.clear(); this.markers.clear(); this.traffic.clear(); this.pending.clear(); this.recent.clear(); this.revisions.clear(); this.transcripts.clear(); this.awaitingFeedback.clear(); this.awaitingProvisional = false; this.totalIn = this.totalOut = this.correlationDrops = 0; this.lastMessage = undefined; this.backlogAt = undefined; this.awaitingPresentation = undefined; this.inputAt = undefined; this.mark('reset'); }
   export(snapshot = this.snapshot(), environment: { build?: string; browser?: string; viewport?: number[]; pixelRatio?: number; reducedMotion?: boolean } = {}) {
+    const details = decodeDiagnosticDetails(snapshot.details);
     // Never serialize caller objects. Even environment fields pass through an explicit allowlist.
     const metadata = { build: environment.build?.slice(0, 80), browser: environment.browser?.replace(/[^a-zA-Z0-9 ._/-]/g, '').slice(0, 160),
       viewport: environment.viewport?.slice(0, 2).map(value => Math.max(0, Math.min(20_000, Number(value) || 0))),
@@ -294,21 +296,22 @@ export class PerformanceDiagnostics {
       rendering: 'browser-rAF paint opportunity; physical display and renderer cadence unavailable',
       ...(this.browserClock && typeof performance !== 'undefined' && Number.isFinite(performance.timeOrigin)
         ? { clock: { collectorOriginMs: this.origin, browserTimeOriginUtcMs: performance.timeOrigin } } : {}) };
-    const safe = { at: snapshot.at, samples: snapshot.samples.map(({ at, value, kind, category, trace, requestType }) => ({ at, value, kind, category, trace, requestType })),
+    const safe = { at: snapshot.at, samples: snapshot.samples.map(({ at, value, kind, category, trace, requestType, serverTraceExpected }) => ({ at, value, kind, category, trace, requestType, serverTraceExpected })),
       traffic: snapshot.traffic.map(({ at, incoming, outgoing, received, sent }) => ({ at, incoming, outgoing, received, sent })),
       markers: snapshot.markers.map(({ at, kind }) => ({ at, kind })), totalIn: snapshot.totalIn, totalOut: snapshot.totalOut, buffered: snapshot.buffered,
       pending: snapshot.pending, oldestPending: snapshot.oldestPending, connected: snapshot.connected, server: snapshot.server, signals: snapshot.signals,
       dropped: snapshot.dropped, playback: { received: snapshot.playback.received, presented: snapshot.playback.presented,
         backlog: snapshot.playback.backlog, oldestAge: snapshot.playback.oldestAge, active: snapshot.playback.active,
         synchronizing: snapshot.playback.synchronizing, announcement: snapshot.playback.announcement,
-        mode: snapshot.playback.mode, speed: snapshot.playback.speed }, details: decodeDiagnosticDetails(snapshot.details) ?? undefined };
+        mode: snapshot.playback.mode, speed: snapshot.playback.speed }, details: details ?? undefined,
+      ...(snapshot.details !== undefined && !details ? { detailsInvalid: true } : {}) };
     const json = JSON.stringify({ formatVersion: 2, metadata, preferences: this.preferences, semantics: {
       time: 'monotonic milliseconds since collector creation', frame: 'rAF callback intervals, not physical frames',
       rtt: 'application send to correlated response, including scheduling and server work', traffic: 'UTF-8 V2 application payload bytes; no wire overhead or HTTP assets',
       server: 'queue and partial handling at response enqueue; nested phases overlap; publication after reply excluded',
       presentation: 'matching revision at next rAF opportunity after commit, not physical display; transcript required',
       feedback: 'input to next rAF opportunity after pending-state commit; provisional movement feedback is separate from authoritative presentation',
-      details: 'Version 1 optional details: independent server/browser clocks; nested spans overlap; socket completion is not client receipt; responseToCommit includes React scheduling/render/commit, not isolated React CPU; missing/truncated details remain explicit.',
+      details: 'Version 1 optional details: independent server/browser clocks; nested spans overlap; socket completion is not client receipt; responseToCommit includes React scheduling/render/commit, not isolated React CPU; missing/truncated details remain explicit; detailsInvalid flags an omitted invalid detail block.',
       unavailable: 'Absent samples stay absent. Long Tasks/LoAF depend on browser support. Renderer cadence unavailable.',
       caps: '60 seconds; 8192 frames, 2048 measurements, 256 markers, 241 traffic buckets, 128 correlations per map; 64 server traces with at most 48 spans each, 512 client spans; export <=2 MiB',
     }, capture: safe });

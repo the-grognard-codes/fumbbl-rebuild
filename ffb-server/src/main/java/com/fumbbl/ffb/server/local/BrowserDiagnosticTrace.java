@@ -4,6 +4,10 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -34,8 +38,42 @@ final class BrowserDiagnosticTrace implements BrowserMatchDelivery.WriteObserver
 	}
 	static double ms(long value) { return Math.max(0, Math.min(3_600_000, value / 1_000_000.0)); }
 	synchronized void span(BrowserRequestTiming.Phase phase, long start, long end) {
-		if (spans.size() == MAX_SPANS) { dropped++; return; }
-		spans.add(new JsonObject().add("phase", phase.name()).add("startMs", ms(start - origin)).add("durationMs", ms(end - start)));
+		JsonObject next = new JsonObject().add("phase", phase.name()).add("startMs", ms(start - origin)).add("durationMs", ms(end - start));
+		if (spans.size() == MAX_SPANS) {
+			dropped++;
+			int existing = -1;
+			for (int index = 0; index < spans.size(); index++) {
+				JsonObject retained = spans.get(index).asObject();
+				if (phase.name().equals(retained.getString("phase", null)) && (existing < 0
+					|| retained.getDouble("startMs", 0) < spans.get(existing).asObject().getDouble("startMs", 0))) existing = index;
+			}
+			if (existing >= 0) {
+				JsonObject retained = spans.get(existing).asObject();
+				// A same-phase outer span closes after its children. Keep its actual interval.
+				if (next.getDouble("startMs", 0) < retained.getDouble("startMs", 0)
+					|| next.getDouble("startMs", 0) == retained.getDouble("startMs", 0)
+					&& next.getDouble("durationMs", 0) > retained.getDouble("durationMs", 0)) spans.set(existing, next);
+				return;
+			}
+			// Preserve one interval for each phase, including outer phases that close last.
+			spans.remove(removable(spans));
+		}
+		spans.add(next);
+	}
+	private int removable(JsonArray retained) {
+		Map<String, Integer> outer = new HashMap<>();
+		for (int index = 0; index < retained.size(); index++) {
+			JsonObject candidate = retained.get(index).asObject();
+			String phase = candidate.getString("phase", ""); Integer previous = outer.get(phase);
+			if (previous == null) { outer.put(phase, index); continue; }
+			JsonObject earlier = retained.get(previous).asObject();
+			if (candidate.getDouble("startMs", 0) < earlier.getDouble("startMs", 0)
+				|| candidate.getDouble("startMs", 0) == earlier.getDouble("startMs", 0)
+				&& candidate.getDouble("durationMs", 0) > earlier.getDouble("durationMs", 0)) outer.put(phase, index);
+		}
+		for (int index = retained.size() - 1; index >= 0; index--)
+			if (outer.get(retained.get(index).asObject().getString("phase", "")) != index) return index;
+		return retained.size() - 1;
 	}
 	synchronized void value(BrowserRequestTiming.Value key, long value) {
 		if (value >= 0 && value <= 9_007_199_254_740_991L) values.set(key.key, value);
@@ -80,17 +118,33 @@ final class BrowserDiagnosticTrace implements BrowserMatchDelivery.WriteObserver
 				.add("write", write).add("totals", totals).add("droppedSpans", dropped);
 			if (timing != null) trace.add("timing", timing);
 		}
-		JsonObject envelope = new JsonObject().add("version", 2).add("type", "diagnosticsTrace")
-			.add("requestId", requestId).add("code", "ACCEPTED").add("trace", trace);
-		String encoded = envelope.toString();
-		// Preserve phase totals/context even when long numeric spans exhaust the optional frame budget.
-		while (encoded.getBytes(StandardCharsets.UTF_8).length > BrowserMatchDelivery.TRACE_BYTES && !spans.isEmpty()) {
-			spans.remove(spans.size() - 1); trace.set("droppedSpans", ++dropped); encoded = envelope.toString();
-		}
 		try { log.accept("FFB_BROWSER_TRACE " + new JsonObject().add("requestId", requestId).add("requestType", requestType).add("operation", operation).add("trace", trace)); }
 		catch (RuntimeException ignored) { /* Optional logging cannot change delivery. */ }
 		if (connection != null && timing != null) try {
-			connection.sendDiagnosticTrace(encoded);
+			connection.sendDiagnosticTrace(frame(trace, BrowserMatchDelivery.TRACE_BYTES));
 		} catch (RuntimeException ignored) { /* Missing telemetry remains missing. */ }
+	}
+	String frame(JsonObject trace, int budget) {
+		JsonArray retained = new JsonArray();
+		trace.get("spans").asArray().forEach(retained::add);
+		JsonObject transport = new JsonObject(trace).set("spans", retained);
+		JsonObject envelope = new JsonObject().add("version", 2).add("type", "diagnosticsTrace")
+			.add("requestId", requestId).add("code", "ACCEPTED").add("trace", transport);
+		String encoded = envelope.toString();
+		int bytes = encoded.getBytes(StandardCharsets.UTF_8).length;
+		if (bytes <= budget) return encoded;
+		List<Integer> sizes = new ArrayList<>();
+		retained.forEach(span -> sizes.add(span.toString().getBytes(StandardCharsets.UTF_8).length));
+		int omitted = trace.getInt("droppedSpans", 0);
+		// Measure each span once; trim a transport-only copy without reserializing the
+		// full envelope per removal. Keep unique phases ahead of repeated inner spans.
+		while (bytes > budget && !retained.isEmpty()) {
+			int index = removable(retained);
+			bytes -= sizes.remove(index) + (retained.size() > 1 ? 1 : 0);
+			bytes += Integer.toString(omitted + 1).length() - Integer.toString(omitted).length();
+			omitted++; retained.remove(index);
+		}
+		transport.set("droppedSpans", omitted);
+		return envelope.toString();
 	}
 }

@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.local;
 
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 
 import java.time.Clock;
@@ -34,6 +35,34 @@ class BrowserDiagnosticTraceTest {
 	private void start() {
 		timing.selectRequest(new JsonObject().add("type", "setup").add("requestId", "safe-request").add("operation", "movement"));
 		timing.enableReplies(connection);
+	}
+	@Test void basicTimingIsAvailableBeforeTheDelayedDetailedTrace() {
+		BrowserMatchDelivery.WriteObserver[] observer = new BrowserMatchDelivery.WriteObserver[1];
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+			start(); nanos.addAndGet(5_000_000);
+			timing.reply(connection, response(), () -> observer[0] = timing.claimWriteObserver());
+			assertEquals(1, connection.timings.size(), "Basic evidence must not depend on publication or write completion");
+			assertTrue(connection.details.isEmpty());
+		}
+		assertTrue(connection.details.isEmpty());
+		observer[0].completed("completed", 0, 20, 100);
+		assertEquals(1, connection.details.size()); assertEquals(1, connection.timings.size());
+	}
+	@Test void denseRepeatedReadsRetainLateOuterAndPublicationPhases() {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+			start();
+			try (BrowserRequestTiming.Scope apply = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY);
+				BrowserRequestTiming.Scope outerRead = timing.span(BrowserRequestTiming.Phase.DB_READ)) {
+				for (int index = 0; index < 60; index++) try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ)) { nanos.addAndGet(1_000_000); }
+			}
+			try (BrowserRequestTiming.Scope publication = timing.span(BrowserRequestTiming.Phase.PUBLICATION)) { nanos.addAndGet(1_000_000); }
+			timing.reply(connection, response(), () -> timing.claimWriteObserver().completed("completed", 0, 0, 100));
+		}
+		JsonObject trace = JsonObject.readFrom(connection.details.getFirst()).get("trace").asObject();
+		List<String> phases = new ArrayList<>();
+		trace.get("spans").asArray().forEach(span -> phases.add(span.asObject().getString("phase", null)));
+		assertTrue(phases.contains("SESSION_APPLY")); assertTrue(phases.contains("PUBLICATION"));
+		assertTrue(trace.get("spans").asArray().values().stream().anyMatch(span -> "DB_READ".equals(span.asObject().getString("phase", null)) && span.asObject().getDouble("durationMs", -1) == 60));
 	}
 	@Test void joinsWorkerAndAsynchronousWriteWithoutDependingOnThreadLocalCallback() throws Exception {
 		BrowserMatchDelivery.WriteObserver[] observer = new BrowserMatchDelivery.WriteObserver[1];
@@ -90,9 +119,30 @@ class BrowserDiagnosticTraceTest {
 		assertEquals(BrowserRequestTiming.Phase.values().length, trace.get("totals").asObject().size());
 		assertTrue(trace.getInt("droppedSpans", -1) >= 21);
 	}
+	@Test void frameTrimmingPreservesTheOriginalLogAndPrefersOuterPhaseIntervals() {
+		List<String> logs = new ArrayList<>();
+		BrowserDiagnosticTrace trace = new BrowserDiagnosticTrace(0, 0, nanos::get, logs::add, "request", "setup", "movement", 0);
+		for (int index = 0; index < 48; index++) trace.span(BrowserRequestTiming.Phase.DB_READ, index * 1_000_000L, (index + 1) * 1_000_000L);
+		BrowserRequestTiming.Request request = new BrowserRequestTiming.Request(0, nanos::get, true);
+		trace.finish(request); trace.completed("completed", 0, 0, 100);
+		JsonObject logged = JsonObject.readFrom(logs.getFirst().substring("FFB_BROWSER_TRACE ".length())).get("trace").asObject();
+		String original = logged.toString();
+		JsonArray outer = logged.get("spans").asArray();
+		outer.set(0, new JsonObject().add("phase", "SESSION_APPLY").add("startMs", 0).add("durationMs", 100));
+		String beforeTrim = logged.toString();
+		String encoded = trace.frame(logged, 1200);
+		assertTrue(encoded.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 1200);
+		assertEquals(beforeTrim, logged.toString(), "Transport trimming must not mutate the log record");
+		assertEquals(48, JsonObject.readFrom(original).get("spans").asArray().size());
+		JsonObject wire = JsonObject.readFrom(encoded).get("trace").asObject();
+		assertTrue(wire.getInt("droppedSpans", 0) > 0);
+		assertEquals("SESSION_APPLY", wire.get("spans").asArray().get(0).asObject().getString("phase", null));
+	}
 	private static class Connection implements BrowserConnection {
 		final List<String> details = new ArrayList<>();
+		final List<String> timings = new ArrayList<>();
 		@Override public void send(String message) { }
+		@Override public void sendDiagnostics(String message) { timings.add(message); }
 		@Override public boolean diagnosticDetailsEnabled() { return true; }
 		@Override public void sendDiagnosticTrace(String message) { details.add(message); }
 	}

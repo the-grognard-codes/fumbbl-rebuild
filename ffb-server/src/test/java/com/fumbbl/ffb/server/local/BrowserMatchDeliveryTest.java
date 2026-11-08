@@ -12,6 +12,25 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test void writeCompletionQueuesDetailBehindTheBasicTimingAlreadySelectedForWrite() {
+		DelayedSink sink = new DelayedSink(); BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 1000);
+		delivery.sendWithOptionalPredecessor(null, "reply", (status, queue, write, bytes) -> assertTrue(delivery.sendTrace("detail")));
+		assertTrue(delivery.sendOptional("timing")); sink.completeNext();
+		assertEquals(List.of("reply", "timing"), sink.messages);
+		sink.completeNext(); assertEquals(List.of("reply", "timing", "detail"), sink.messages);
+		sink.completeNext(); assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+	}
+	@Test void detailedTraceCanFollowInFlightBasicTimingAndStillYieldToGameplay() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 3, 1000);
+		delivery.send("reply"); assertTrue(delivery.sendOptional("timing")); sink.completeNext();
+		assertTrue(delivery.sendTrace("detail"));
+		assertFalse(delivery.sendTrace("duplicate-detail"));
+		assertTrue(delivery.send("next-action")); sink.completeNext(); sink.completeNext();
+		assertEquals(List.of("reply", "timing", "next-action"), sink.messages);
+		assertEquals(0, sink.closeCode);
+	}
 	@Test void observedMandatoryWriteMeasuresQueueAndCompletionOutsideDeliveryLock() {
 		AtomicLong clock = new AtomicLong(); DelayedSink sink = new DelayedSink();
 		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 8, 1000, clock::get);

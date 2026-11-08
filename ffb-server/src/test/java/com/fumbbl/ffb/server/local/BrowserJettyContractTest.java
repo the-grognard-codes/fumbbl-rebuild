@@ -61,7 +61,11 @@ public class BrowserJettyContractTest {
 			socket.sendFrame(0x1, true, false, true, "{\"type\":\"setup\",\"operation\":\"movement\",\"requestId\":\"observed\"}".getBytes(StandardCharsets.UTF_8));
 			assertEquals("history", socket.readFrame().text());
 			String reply = socket.readFrame().text(); assertEquals("setupState", JsonObject.readFrom(reply).getString("type", null));
-			JsonObject frame = JsonObject.readFrom(socket.readFrame().text()); assertEquals("diagnosticsTrace", frame.getString("type", null));
+			JsonObject frame = JsonObject.readFrom(socket.readFrame().text());
+			if ("diagnosticsTiming".equals(frame.getString("type", null))) {
+				assertTrue(frame.get("timing").isObject()); frame = JsonObject.readFrom(socket.readFrame().text());
+			}
+			assertEquals("diagnosticsTrace", frame.getString("type", null));
 			JsonObject trace = frame.get("trace").asObject(); assertEquals("completed", trace.get("write").asObject().getString("status", null));
 			assertEquals(reply.getBytes(StandardCharsets.UTF_8).length, trace.get("values").asObject().getLong("responseBytes", -1));
 			assertEquals(7, trace.get("values").asObject().getLong("predecessorBytes", -1));

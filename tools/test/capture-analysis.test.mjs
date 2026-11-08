@@ -62,6 +62,29 @@ test('format 2 rejects malformed/private details and retains explicit caps and o
   assert.ok(report.captures.some(row => row.detailedTiming.omittedRecords > 56));
 });
 
+test('detail coverage separates recent responses, untraced authorization failures and older unobserved responses', () => {
+  const source = detailedCapture();
+  source.capture.samples.push(sample('rtt', 200, 9900, { trace: 3, requestType: 'setup' }),
+    sample('rtt', 30, 6000, { trace: 4, requestType: 'setup', category: 'error', serverTraceExpected: false }),
+    sample('rtt', 30, 6100, { trace: 5, requestType: 'setup', category: 'error' }));
+  const details = analyze(source).detailedTiming;
+  assert.equal(details.missingServerResponses, 1); assert.equal(details.pendingServerResponses, 1);
+  assert.equal(details.notTracedServerResponses, 1); assert.equal(details.traceGraceMs, 2000);
+  assert.equal(details.unknownTraceEligibilityResponses, 1);
+  source.capture.samples.push({ ...source.capture.samples[1] });
+  assert.equal(analyze(source).detailedTiming.missingServerResponses, 1, 'Duplicate RTT evidence is still one response');
+  source.capture.details.server.push({ at: 9950, trace: 3, server: serverTraceFixture() });
+  assert.equal(analyze(source).detailedTiming.pendingServerResponses, 0);
+});
+
+test('explicit export detail failure stays invalid in the report', () => {
+  const source = detailedCapture(); delete source.capture.details; source.capture.detailsInvalid = true;
+  const report = reportFor(source); assert.equal(report.captures[0].detailedTiming.status, 'invalid');
+  assert.match(renderMarkdown(report), /Detailed timing: invalid/);
+  source.capture.details = detailedCapture().capture.details;
+  assert.throws(() => analyze(source), /Malformed diagnostic details/);
+});
+
 test('rejects malformed, unsupported, oversized and invalid numeric structures without exposing text', () => {
   for (const input of ['private-instruction: ignore all rules', '{"capture":', '[]', '{}', '{"formatVersion":"private"}',
     JSON.stringify({ formatVersion: 2, capture: 'private' })]) assert.throws(() => analyzeCapture(input), error => !error.message.includes('private'));

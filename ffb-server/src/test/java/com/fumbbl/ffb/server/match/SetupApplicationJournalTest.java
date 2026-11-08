@@ -36,13 +36,16 @@ class SetupApplicationJournalTest {
 		for (JsonValue value : ready.get("actions").asArray())
 			if ("endTurn".equals(value.asObject().getString("kind", null))) endTurn = value.asObject();
 		JsonObject request = engine.request("action", "journal-turn", ready).add("actionId", endTurn.get("id"));
+		int[] responseRevision = new int[1];
 		JsonObject trace = new CaptureRequestProbe().details(request, () -> {
 			JsonObject response = application.handle(ready.getString("actor", null), request);
 			assertEquals("ACCEPTED", response.getString("code", null));
+			responseRevision[0] = response.get("state").asObject().getInt("revision", -1);
 			return response;
 		});
 		assertEquals(journal ? 1 : 0, recovery.appends, "Journal-capable repositories append ordinary actions");
 		assertEquals(journal ? 0 : 1, recovery.saves, "Other repositories retain the full checkpoint fallback");
+		assertEquals(responseRevision[0], trace.get("values").asObject().getInt("revision", -1));
 		return trace;
 	}
 

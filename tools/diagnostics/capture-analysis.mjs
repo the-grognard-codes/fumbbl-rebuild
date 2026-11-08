@@ -112,9 +112,11 @@ function normalize(bytes) {
     }
     if (item.requestType !== undefined && !REQUESTS.includes(item.requestType)) quality.unknownRequestTypes++;
     const trace = item.trace === undefined ? null : count(item.trace);
+    if (raw.formatVersion === 2 && item.serverTraceExpected !== undefined && typeof item.serverTraceExpected !== 'boolean') invalid();
     if (trace === 0) invalid();
     if (at < start) { quality.outsideWindow++; continue; }
-    samples.push({ at, value, kind: item.kind, category, trace, ...(raw.formatVersion === 2 && REQUESTS.includes(item.requestType) ? { requestType: item.requestType } : {}) });
+    samples.push({ at, value, kind: item.kind, category, trace, ...(raw.formatVersion === 2 && REQUESTS.includes(item.requestType) ? { requestType: item.requestType } : {}),
+      ...(raw.formatVersion === 2 && typeof item.serverTraceExpected === 'boolean' ? { serverTraceExpected: item.serverTraceExpected } : {}) });
   }
   const trafficTimes = new Set();
   for (const item of array(source.traffic, LIMITS.traffic)) {
@@ -149,7 +151,8 @@ function normalize(bytes) {
   samples.sort((a, b) => a.at - b.at || METRICS.indexOf(a.kind) - METRICS.indexOf(b.kind));
   traffic.sort((a, b) => a.at - b.at); markers.sort((a, b) => a.at - b.at || MARKERS.indexOf(a.kind) - MARKERS.indexOf(b.kind));
   let details;
-  try { details = analyzeDetails(raw.formatVersion === 2 ? source.details : undefined, samples, { startMs: start, endMs: end }); }
+  if (raw.formatVersion === 2 && source.detailsInvalid !== undefined && typeof source.detailsInvalid !== 'boolean') invalid();
+  try { details = analyzeDetails(raw.formatVersion === 2 ? source.details : undefined, samples, { startMs: start, endMs: end }, raw.formatVersion === 2 && source.detailsInvalid === true); }
   catch { throw new CaptureAnalysisError('Malformed diagnostic details.'); }
   return { bytes, samples, traffic, markers, snapshot, thresholds, quality, details, metadata: metadata(raw.metadata, quality), window: { startMs: rounded(start), endMs: rounded(end), selectedSeconds: seconds } };
 }
@@ -338,7 +341,7 @@ export function renderMarkdown(report) {
     const { counts, window, snapshot, traffic } = capture;
     const details = capture.detailedTiming;
     lines.push(`## ${capture.id}`, '',
-      `Detailed timing: ${details.status}; ${details.serverRecords ?? 0} server / ${details.clientRecords ?? 0} browser records; ${details.missingServerResponses ?? 'unavailable'} responses without a matching server detail; ${details.droppedServer ?? 0}/${details.droppedClient ?? 0} ring drops; ${details.truncatedServerSpans ?? 0} truncated server spans. Full traces use independent clock origins; socket completion is not browser receipt.`, '',
+      `Detailed timing: ${details.status}; ${details.serverRecords ?? 0} server / ${details.clientRecords ?? 0} browser records; ${details.missingServerResponses ?? 'unavailable'} responses unobserved beyond ${details.traceGraceMs ?? 'unavailable'} ms grace; ${details.pendingServerResponses ?? 'unavailable'} pending at capture end within grace; ${details.notTracedServerResponses ?? 'unavailable'} explicitly not traced; ${details.unknownTraceEligibilityResponses ?? 'unavailable'} with trace eligibility unknown. Unobserved does not prove loss. ${details.droppedServer ?? 0}/${details.droppedClient ?? 0} ring drops; ${details.truncatedServerSpans ?? 0} truncated server spans. Full traces use independent clock origins; socket completion is not browser receipt.`, '',
       `Window ${display(window.startMs)}..${display(window.endMs)} ms (${window.selectedSeconds} s selected); sample span ${display(window.sampleSpanMs)} ms. Samples ${counts.samples}: frames ${counts.frames}, measurements ${counts.measures}; traffic buckets ${counts.trafficBuckets}, markers ${counts.markers}.`,
       `Frame budget ${display(capture.thresholds.frameBudgetMs)} ms; over budget ${counts.framesOverBudget}; >=50 ms ${counts.frameGaps50Ms}, >=100 ms ${counts.frameGaps100Ms}; bursts ${counts.frameBursts}. RTT budget ${display(capture.thresholds.latencyBudgetMs)} ms.`,
       `Connection ${snapshot.connected === null ? 'Unavailable' : snapshot.connected ? 'connected' : 'disconnected'}; server ${snapshot.server}; pending ${display(snapshot.pending)}, oldest ${display(snapshot.oldestPendingMs)} ms; buffered ${display(snapshot.bufferedBytes)} bytes. Backlog ${display(snapshot.playback.backlog)}, oldest ${display(snapshot.playback.oldestAgeMs)} ms; playback ${snapshot.playback.mode ?? 'Unavailable'}, active ${snapshot.playback.active ?? 'Unavailable'}, synchronizing ${snapshot.playback.synchronizing ?? 'Unavailable'}, announcement ${snapshot.playback.announcement ?? 'Unavailable'}.`,

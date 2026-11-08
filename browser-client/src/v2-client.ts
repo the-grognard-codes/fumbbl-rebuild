@@ -209,7 +209,10 @@ export class V2Client {
   private configureDiagnostics(enabled: boolean) {
     if (!this.accountId || this.socket?.readyState !== 1) return;
     const diagnostics = this.options.diagnostics;
-    if (diagnostics) diagnostics.server = enabled ? 'negotiating' : 'unavailable';
+    if (diagnostics) {
+      if (!enabled) diagnostics.server = 'unavailable';
+      else if (diagnostics.server !== 'enabled') diagnostics.server = 'negotiating';
+    }
     this.sendDiagnostic('configure', enabled);
   }
 
@@ -290,7 +293,8 @@ export class V2Client {
     }
     if (message.type === 'diagnostics') return; // Late optional response after timeout/off/reconnect.
     this.observe('validate', () => assertV2Projection(message));
-    diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error');
+    diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error',
+      !['AUTHENTICATION_REQUIRED', 'AUTHORIZATION', 'AUTHENTICATION_FAILED'].includes(message.code));
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
     if (message.type === 'authentication') {

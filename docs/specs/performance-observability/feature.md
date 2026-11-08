@@ -47,6 +47,7 @@ The retained-history experiment under #489 reproduced 20–23x compaction growth
 - FR5: Measure browser parsing, strict validation and synchronous notification work separately. Record response-to-React-commit intervals without presenting them as isolated React CPU or physical paint. Preserve optional bounded CPU/timeline profiling for rendering attribution.
 - FR6: Include numeric revision/half/turn/history/journal/storage/response context where available, with bounded enums and explicit unavailable/truncated detail states.
 - FR7: Capture format 2 and the offline analyzer retain format-1 compatibility, reject malformed details, preserve individual trace evidence and report missing/truncated data. Collection remains Off by default and DEV/dev-local only; export remains at most 2 MiB.
+- FR7a: Detailed tracing supplements independent basic reply-time timing, without double-counting samples. Preserve outer-phase evidence and the bounded server log before transport-only truncation. Distinguish recent pending detail, ineligible/unknown responses, older unobserved detail and invalid detail exports.
 - FR8: Document repeatable real-storage, actual-browser-match and response-replay collection, including artifacts, action categories, append/compaction, provider reuse, bounded rolling windows, profiler overhead and independent clocks.
 
 ## Acceptance Criteria

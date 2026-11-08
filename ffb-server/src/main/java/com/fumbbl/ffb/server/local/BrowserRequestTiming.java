@@ -159,7 +159,7 @@ public final class BrowserRequestTiming {
 					durations.add(keys[index], boundedMillis(elapsed));
 				}
 				if (current.trace != null && connection.diagnosticDetailsEnabled()) current.trace.reply(connection, durations);
-				else telemetry = new JsonObject().add("version", 2).add("type", "diagnosticsTiming")
+				telemetry = new JsonObject().add("version", 2).add("type", "diagnosticsTiming")
 					.add("requestId", current.requestId).add("code", "ACCEPTED").add("timing", durations).toString();
 			}
 		} catch (RuntimeException unavailable) { /* Optional diagnostics cannot interrupt a reply. */ }

@@ -269,7 +269,7 @@ public final class SetupApplication {
 			timing.value(BrowserRequestTiming.Value.NATIVE_COMMANDS, counts[2]); timing.value(BrowserRequestTiming.Value.TRANSCRIPT_RECORDS, counts[3]);
 			JsonObject summary = session.browseSummary();
 			timing.value(BrowserRequestTiming.Value.HALF, summary.getInt("half", 0)); timing.value(BrowserRequestTiming.Value.TURN, summary.getInt("turn", 0));
-			timing.value(BrowserRequestTiming.Value.REVISION, counts[1] - 1);
+			timing.value(BrowserRequestTiming.Value.REVISION, session.revision());
 		} } catch (RuntimeException unavailable) { /* Diagnostic context must not affect checkpoint behavior. */ }
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
 			matches.load(owner, id); // Reauthorize before the durable mutation as well as before engine execution.

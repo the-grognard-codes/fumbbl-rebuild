@@ -5,7 +5,9 @@
 - DEV and dev-local diagnostics can collect optional correlated database,
   compression, response queue/write and browser processing traces. Versioned
   capture exports and offline reports show phase timing, history sizes and
-  missing or truncated evidence for performance investigations.
+  missing or truncated evidence for performance investigations. Detailed tracing
+  preserves independent basic timing, outer-phase observations and server logs;
+  reports distinguish pending, ineligible and invalid detail evidence.
 
 - Gameplay authorization refreshes local identity, account and scopes in one
   database query. DEV diagnostics refreshes no longer rerender gameplay solely

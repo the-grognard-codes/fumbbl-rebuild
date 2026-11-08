@@ -14,6 +14,8 @@ The implementation diff remains against that current branch head.
 
 ## Result
 
+Independent review follow-up: [review corrections and validation](review-followup.md).
+
 The requested database/commit, response-delivery and browser-processing
 instrumentation is implemented. It provides the missing application boundaries
 needed for a comprehensive investigation. Actual early/mid/late live-match

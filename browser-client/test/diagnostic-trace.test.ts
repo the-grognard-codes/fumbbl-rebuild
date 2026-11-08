@@ -45,3 +45,25 @@ test('collector details are opt-in, bounded, redacted and retain matching post-r
 test('malformed capture detail shapes fail closed', () => {
   assert.equal(decodeDiagnosticDetails({ version: 1, status: 'enabled', server: [], client: [{ at: 0, phase: 'parse', durationMs: 1, payload: 'secret' }], droppedServer: 0, droppedClient: 0 }), null);
 });
+
+test('basic timing survives lost details and embedded fallback never duplicates it', () => {
+  const service = new PerformanceDiagnostics(() => 0); service.setMode('counters');
+  service.update({ ...service.preferences, details: true }); service.server = 'enabled'; service.detailStatus = 'enabled';
+  service.sent('first', 'setup', 'movement', true); service.response('first', 1);
+  const timing = serverTraceFixture().timing;
+  service.timing('first', timing); service.serverTrace('first', serverTraceFixture()); service.timing('first', timing);
+  assert.equal(service.snapshot().samples.filter(row => row.kind === 'handling').length, 1);
+  service.sent('lost-detail', 'setup', 'movement', true); service.response('lost-detail', 2); service.detailStatus = 'negotiating';
+  service.timing('lost-detail', timing); service.serverTrace('lost-detail', serverTraceFixture());
+  assert.equal(service.snapshot().samples.filter(row => row.kind === 'handling').length, 2);
+  service.detailStatus = 'enabled'; service.sent('fallback', 'setup', 'movement', true); service.response('fallback', 3);
+  service.serverTrace('fallback', serverTraceFixture()); service.timing('fallback', timing);
+  assert.equal(service.snapshot().samples.filter(row => row.kind === 'handling').length, 3, 'Trace-first fallback is also counted once');
+});
+
+test('invalid detail snapshots export an explicit quality flag instead of silent absence', () => {
+  const service = new PerformanceDiagnostics(() => 0); service.setMode('counters');
+  const snapshot = service.snapshot(); snapshot.details!.droppedClient = -1;
+  const exported = JSON.parse(service.export(snapshot));
+  assert.equal(exported.capture.detailsInvalid, true); assert.equal(exported.capture.details, undefined);
+});

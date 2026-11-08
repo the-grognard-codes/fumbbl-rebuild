@@ -71,6 +71,14 @@ The bounded export is format 2, with `capture.details.version=1`. Format-1 captu
 remain readable by the offline analyzer. Detailed collection is separately opt-in;
 collection still starts Off on every page session. Preferences do not turn it on.
 
+Basic `diagnosticsTiming` is sent at reply time even when details are enabled.
+The later detail adds phase/context evidence; its embedded timing is a fallback
+if the basic frame was missed. The collector counts that timing once per request.
+Basic timing remains usable while an already-enabled connection renegotiates
+details. Both optional frames can still be lost under pressure; neither delays
+mandatory gameplay admission. A detail can queue behind an in-flight basic frame,
+and any queued optional frame yields to the next mandatory response.
+
 ## History and storage context
 
 Each eligible checkpoint records numeric revision, half, turn, retained request,
@@ -115,11 +123,25 @@ exports remain the source for other records. JSON/Markdown output caps are
 
 Collection caps: maximum 60-second window; 64 server traces, 512 browser spans,
 48 spans per server trace; existing lightweight caps remain unchanged. Dense
-server traces trim span tails to fit an 8 KiB optional frame, retaining phase
-totals and recording `droppedSpans`. The optional frame can still be dropped under
-delivery pressure; gameplay keeps priority. Missing-response counts concern
-eligible correlated responses in the retained window, not all requests or packet
-loss. Ring-drop counters are cumulative since reset, not window-only loss counts.
+traces preserve one outermost retained interval per phase ahead of repeated
+inner intervals, including phases that close late. Totals still cover all
+observed work. The server log retains that bounded collection; only a transport
+copy is trimmed to fit the 8 KiB optional frame, with additional `droppedSpans`.
+Trimming measures each span's encoded size once instead of serializing the full
+envelope for each removal. The optional frame can still be dropped under delivery
+pressure; gameplay keeps priority. Ring-drop counters are cumulative since reset,
+not window-only loss counts.
+
+Coverage counts concern eligible correlated responses in the retained window.
+Responses without detail during the last 2,000 ms are reported separately as
+pending at capture end. Older unobserved responses are counted by
+`missingServerResponses`; this is an observation after a grace period, not proof
+of loss. A trace can still arrive later. Authorization failures excluded from
+tracing carry `serverTraceExpected=false` without exporting their error code.
+Old error samples without that flag have unknown trace eligibility and are
+reported separately. Older successful samples remain eligible. Export failure
+to validate a detail block sets `capture.detailsInvalid=true`, omits the unsafe
+block and produces analyzer status `invalid`, distinct from `unavailable`.
 Older-server fallback, optional-frame loss, window boundaries and correlation
 eviction all leave unavailable evidence rather than zero-duration claims.
 

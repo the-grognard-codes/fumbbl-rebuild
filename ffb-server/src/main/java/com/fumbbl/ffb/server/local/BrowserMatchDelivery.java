@@ -62,16 +62,20 @@ public class BrowserMatchDelivery {
 
 	/** Best effort telemetry: admit only behind the current write, leaving the rest of the queue for gameplay. */
 	boolean sendOptional(String message) {
-		return sendOptional(message, 2048);
+		return sendOptional(message, 2048, false);
 	}
-	boolean sendTrace(String message) { return sendOptional(message, TRACE_BYTES); }
-	private boolean sendOptional(String message, int budget) {
+	boolean sendTrace(String message) { return sendOptional(message, TRACE_BYTES, true); }
+	private boolean sendOptional(String message, int budget, boolean trace) {
 		String next = null;
 		synchronized (this) {
-			if (closed || queuedTiming != null || messages.size() > 1 || !sink.isOpen()) return false;
+			// Once basic timing is in flight, allow one queued detail behind it. Neither can
+			// displace queued basic timing; the queued optional frame still yields to gameplay.
+			boolean followingBasic = trace && writing && queuedTiming != null
+				&& messages.peekFirst() == queuedTiming && !queuedTiming.trace;
+			if (closed || queuedTiming != null && !followingBasic || messages.size() > 1 || !sink.isOpen()) return false;
 			int messageBytes = message.getBytes(StandardCharsets.UTF_8).length;
 			if (messageBytes > Math.min(budget, maximumBytes - bytes) || messages.size() + 2 > maximumMessages) return false;
-			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong());
+			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong(), null, trace);
 			messages.addLast(queuedTiming);
 			bytes += messageBytes;
 			metrics.deliveryQueued(messageBytes);
@@ -251,14 +255,19 @@ public class BrowserMatchDelivery {
 		private final long queuedAt;
 		private final String text;
 		private final WriteObserver observer;
+		private final boolean trace;
 		private QueuedMessage(String text, int bytes, long queuedAt) {
 			this(text, bytes, queuedAt, null);
 		}
 		private QueuedMessage(String text, int bytes, long queuedAt, WriteObserver observer) {
+			this(text, bytes, queuedAt, observer, false);
+		}
+		private QueuedMessage(String text, int bytes, long queuedAt, WriteObserver observer, boolean trace) {
 			this.text = text;
 			this.bytes = bytes;
 			this.queuedAt = queuedAt;
 			this.observer = observer;
+			this.trace = trace;
 		}
 	}
 
