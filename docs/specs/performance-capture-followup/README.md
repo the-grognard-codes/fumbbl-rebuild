@@ -4,7 +4,7 @@ Created 2026-11-07 from the user's diagnostic review and request for separate in
 
 Parent feature: [#496 — reduce capture-observed gameplay delays with reproducible validation](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496), mirrored in [the standard-template feature specification](feature.md). Created 2026-11-07 at the user's request to cover all five issues. The five existing tickets are native sub-issues; their requirements and blocking edges remain in place. The parent is labelled `enhancement` and `ready-for-agent`.
 
-Implementation was subsequently authorized on branch `feature/496-capture-performance`. See the [post-implementation outcome](outcome.md), [runnable workloads](workloads.md) and [validation plan](validation-plan.md). The outcome records bounded corrections, matched measurements, the reproduced live checkpoint spike and remaining investigation/device limits. Issues remain open pending review; changes are uncommitted.
+Implementation was authorized on branch `feature/496-capture-performance` and delivered in [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497), merged on November 8, 2026 after validation CI passed. See the [post-implementation outcome](outcome.md), [runnable workloads](workloads.md) and [validation plan](validation-plan.md). The outcome records bounded corrections, matched measurements, the reproduced live checkpoint spike and remaining investigation/device limits. The parent is closed; child investigations retain their recorded follow-up scope. Dev-local was stopped at the owner's request, retaining database volumes.
 
 ## Tickets and blocking edges
 

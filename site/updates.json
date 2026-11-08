@@ -1,5 +1,13 @@
 [
   {
+    "number": 497,
+    "title": "Reduce gameplay overhead with capture-driven validation",
+    "summary": "Reduced work in gameplay permission checks, recovery parsing, diagnostics and pitch hover updates. Added repeatable performance workloads and matched artifact comparisons while preserving authorization freshness and durable acceptance. Intermittent checkpoint spikes and broader browser stalls remain under investigation.",
+    "category": "Gameplay",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497",
+    "mergedAt": "2026-11-08T15:40:57Z"
+  },
+  {
     "number": 463,
     "title": "Gameplay fixes for scoring, Pass targeting, dice and computer coaches",
     "summary": "Touchdown scores now update with the splash, followed by the next-drive tracker. Explicit Pass actions can switch between movement planning and square targeting. Failed Loner/Pro preserves original dice, and proposed block dice stay above prerequisite checks. Mandatory prompts keep concession accessible. Bogruk uses kickoff events, both computer coaches use the selected resources under their agreed policies, and the stray turn-counter outline is removed.",
