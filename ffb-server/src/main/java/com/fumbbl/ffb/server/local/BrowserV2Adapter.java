@@ -149,7 +149,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			AuthenticatedPrincipal principal = principals.get(connection);
 			if ("diagnostics".equals(type)) {
 				String operation = request.getString("operation", "");
-				if ("configure".equals(operation)) fields(request, "version", "type", "requestId", "operation", "enabled");
+				if ("configure".equals(operation)) {
+					if (request.get("detailVersion") != null) {
+						fields(request, "version", "type", "requestId", "operation", "enabled", "detailVersion");
+						if (request.getInt("detailVersion", -1) != 1) throw new IllegalArgumentException();
+					} else fields(request, "version", "type", "requestId", "operation", "enabled");
+				}
 				else if ("probe".equals(operation)) fields(request, "version", "type", "requestId", "operation");
 				else throw new IllegalArgumentException();
 				if (principal == null) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
@@ -160,8 +165,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					if (enabled) diagnostics.add(connection);
 					else diagnostics.remove(connection);
 					connection.diagnosticsEnabled(enabled);
-					send(connection, new JsonObject().add("type", "diagnostics").add("requestId", requestId)
-						.add("code", "ACCEPTED").add("enabled", enabled));
+					boolean details = enabled && request.get("detailVersion") != null;
+					connection.diagnosticDetailsEnabled(details);
+					JsonObject configured = new JsonObject().add("type", "diagnostics").add("requestId", requestId).add("code", "ACCEPTED").add("enabled", enabled);
+					if (request.get("detailVersion") != null) configured.add("detailVersion", 1);
+					send(connection, configured);
 				} else {
 					if (!diagnosticsAllowed || !diagnostics.contains(connection)) { fail(connection, requestId, "DIAGNOSTICS_DISABLED"); return; }
 					long now = clock.millis(), previous = diagnosticProbeAt.getOrDefault(connection, Long.MIN_VALUE);
@@ -556,7 +564,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		return true;
 	}
 	private void send(BrowserConnection connection, JsonObject response) {
-		String message = response.set("version", 2).toString();
+		String message;
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { message = response.set("version", 2).toString(); }
 		timing.reply(connection, response, () -> connection.send(message));
 	}
 	private void enableDiagnosticsReplies(BrowserConnection connection) {

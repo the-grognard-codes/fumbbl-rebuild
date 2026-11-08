@@ -10,6 +10,16 @@ import java.util.function.Supplier;
 /** Test-only bridge to the actual worker timing context, without enabling global production logs. */
 public final class CaptureRequestProbe {
 	public record Measurement(JsonObject response, JsonObject timing) { }
+	public JsonObject details(JsonObject request, Supplier<JsonObject> action) {
+		List<String> lines = new ArrayList<>();
+		BrowserRequestTiming timing = new BrowserRequestTiming(System::nanoTime, Clock.systemUTC(), lines::add);
+		try (BrowserRequestTiming.Scope handling = timing.handling(new BrowserRequestTiming.Request(System.nanoTime(), System::nanoTime, true))) {
+			timing.selectRequest(request);
+			timing.enableReplies(new BrowserConnection() { @Override public void send(String message) { } @Override public boolean diagnosticDetailsEnabled() { return true; } });
+			action.get();
+		}
+		return lines.stream().filter(line -> line.startsWith("FFB_BROWSER_TRACE ")).map(line -> JsonObject.readFrom(line.substring("FFB_BROWSER_TRACE ".length())).get("trace").asObject()).findFirst().orElseThrow();
+	}
 
 	public Measurement measure(JsonObject request, Supplier<JsonObject> action) {
 		List<String> lines = new ArrayList<>();
@@ -19,7 +29,8 @@ public final class CaptureRequestProbe {
 			new BrowserRequestTiming.Request(System.nanoTime(), System::nanoTime, true))) {
 			timing.selectRequest(request); response = action.get();
 		}
-		if (lines.size() != 1) throw new IllegalStateException("Expected one bounded request timing event");
-		return new Measurement(response, JsonObject.readFrom(lines.getFirst().substring("FFB_BROWSER_TIMING ".length())));
+		List<String> summaries = lines.stream().filter(line -> line.startsWith("FFB_BROWSER_TIMING ")).toList();
+		if (summaries.size() != 1) throw new IllegalStateException("Expected one bounded request timing summary");
+		return new Measurement(response, JsonObject.readFrom(summaries.getFirst().substring("FFB_BROWSER_TIMING ".length())));
 	}
 }

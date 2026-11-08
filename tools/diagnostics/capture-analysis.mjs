@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { analyzeDetails } from './detailed-capture-analysis.mjs';
 
 export const LIMITS = Object.freeze({ inputBytes: 2 * 1024 * 1024, inputs: 16, frames: 8192, measures: 2048,
   traffic: 241, markers: 256, markdownBytes: 32 * 1024, jsonBytes: 128 * 1024, incidents: 25 });
@@ -52,7 +53,7 @@ function limitOption(value = 10) {
   return value;
 }
 function metadata(input, quality) {
-  if (!object(input)) return { build: null, browser: null, viewport: null, pixelRatio: null };
+  if (!object(input)) return { build: null, browser: null, viewport: null, pixelRatio: null, clock: null };
   let build = null, browser = null, viewport = null, pixelRatio = null;
   if (input.build === 'working-tree' || typeof input.build === 'string' && input.build.length >= 7 && input.build.length <= 64 && !/[^a-fA-F0-9]/.test(input.build)) build = input.build.toLowerCase();
   else if (input.build !== undefined) quality.invalidMetadata++;
@@ -68,7 +69,12 @@ function metadata(input, quality) {
   else if (input.viewport !== undefined) quality.invalidMetadata++;
   if (typeof input.pixelRatio === 'number' && Number.isFinite(input.pixelRatio) && input.pixelRatio > 0 && input.pixelRatio <= 16) pixelRatio = rounded(input.pixelRatio);
   else if (input.pixelRatio !== undefined) quality.invalidMetadata++;
-  return { build, browser, viewport, pixelRatio };
+  let clock = null;
+  if (object(input.clock) && ['collectorOriginMs', 'browserTimeOriginUtcMs'].every(key =>
+    typeof input.clock[key] === 'number' && Number.isFinite(input.clock[key]) && input.clock[key] >= 0 && input.clock[key] <= Number.MAX_SAFE_INTEGER)) {
+    clock = { collectorOriginMs: input.clock.collectorOriginMs, browserTimeOriginUtcMs: input.clock.browserTimeOriginUtcMs };
+  } else if (input.clock !== undefined) quality.invalidMetadata++;
+  return { build, browser, viewport, pixelRatio, clock };
 }
 function normalize(bytes) {
   if (typeof bytes === 'string') bytes = Buffer.from(bytes);
@@ -77,7 +83,7 @@ function normalize(bytes) {
   let raw;
   try { raw = JSON.parse(Buffer.from(bytes).toString('utf8')); } catch { throw new CaptureAnalysisError('Capture is not valid JSON.'); }
   if (!object(raw)) invalid();
-  if (raw.formatVersion !== 1) throw new CaptureAnalysisError('Unsupported capture format version.');
+  if (![1, 2].includes(raw.formatVersion)) throw new CaptureAnalysisError('Unsupported capture format version.');
   if (!object(raw.capture)) invalid();
   const source = raw.capture, end = number(source.at);
   const preferences = object(raw.preferences) ? raw.preferences : {};
@@ -108,7 +114,7 @@ function normalize(bytes) {
     const trace = item.trace === undefined ? null : count(item.trace);
     if (trace === 0) invalid();
     if (at < start) { quality.outsideWindow++; continue; }
-    samples.push({ at, value, kind: item.kind, category, trace });
+    samples.push({ at, value, kind: item.kind, category, trace, ...(raw.formatVersion === 2 && REQUESTS.includes(item.requestType) ? { requestType: item.requestType } : {}) });
   }
   const trafficTimes = new Set();
   for (const item of array(source.traffic, LIMITS.traffic)) {
@@ -142,7 +148,10 @@ function normalize(bytes) {
       longAnimationFrame: signals.includes('long-animation-frame') ? 'supported' : 'unavailable' } };
   samples.sort((a, b) => a.at - b.at || METRICS.indexOf(a.kind) - METRICS.indexOf(b.kind));
   traffic.sort((a, b) => a.at - b.at); markers.sort((a, b) => a.at - b.at || MARKERS.indexOf(a.kind) - MARKERS.indexOf(b.kind));
-  return { bytes, samples, traffic, markers, snapshot, thresholds, quality, metadata: metadata(raw.metadata, quality), window: { startMs: rounded(start), endMs: rounded(end), selectedSeconds: seconds } };
+  let details;
+  try { details = analyzeDetails(raw.formatVersion === 2 ? source.details : undefined, samples, { startMs: start, endMs: end }); }
+  catch { throw new CaptureAnalysisError('Malformed diagnostic details.'); }
+  return { bytes, samples, traffic, markers, snapshot, thresholds, quality, details, metadata: metadata(raw.metadata, quality), window: { startMs: rounded(start), endMs: rounded(end), selectedSeconds: seconds } };
 }
 function finding(sample, thresholds) {
   let flag, threshold;
@@ -279,7 +288,7 @@ export function analyzeCapture(bytes, { ordinal = 1, maxIncidents = 10 } = {}) {
       markers: data.markers.length, framesOverBudget: frames.filter(sample => sample.value > data.thresholds.frameBudgetMs).length,
       frameGaps50Ms: frames.filter(sample => sample.value >= 50).length, frameGaps100Ms: frames.filter(sample => sample.value >= 100).length,
       frameBursts: incidents.frameBursts, incidentGroups: incidents.total },
-    thresholds: data.thresholds, snapshot: data.snapshot, quality: data.quality,
+    thresholds: data.thresholds, snapshot: data.snapshot, quality: data.quality, detailedTiming: data.details,
     traffic: { retainedInBytes: windowIn, retainedOutBytes: windowOut, receivedMessages: sum(data.traffic.map(bucket => bucket.received)),
       sentMessages: sum(data.traffic.map(bucket => bucket.sent)), representedBucketSeconds: rounded(rateSeconds),
       meanInBytesPerSecond: rateSeconds ? rounded(windowIn / rateSeconds) : null,
@@ -298,6 +307,8 @@ export function analyzeCaptures(inputs, options = {}) {
     limits: { markdownBytes: LIMITS.markdownBytes, jsonBytes: LIMITS.jsonBytes }, outputTruncated: false };
   while (Buffer.byteLength(JSON.stringify(report)) + 1 > LIMITS.jsonBytes) {
     report.outputTruncated = true;
+	const detailed = report.captures.toSorted((a, b) => b.detailedTiming.records.length - a.detailedTiming.records.length)[0].detailedTiming;
+	if (detailed.records.length) { detailed.records.pop(); detailed.omittedRecords++; continue; }
     const largest = report.captures.toSorted((a, b) => b.statistics.length - a.statistics.length)[0];
     if (largest.statistics.length) {
       const removed = Math.min(8, largest.statistics.length);
@@ -325,7 +336,9 @@ export function renderMarkdown(report) {
   // Emit every capture summary before spending the detail budget, so batches never hide a window.
   for (const capture of report.captures) {
     const { counts, window, snapshot, traffic } = capture;
+    const details = capture.detailedTiming;
     lines.push(`## ${capture.id}`, '',
+      `Detailed timing: ${details.status}; ${details.serverRecords ?? 0} server / ${details.clientRecords ?? 0} browser records; ${details.missingServerResponses ?? 'unavailable'} responses without a matching server detail; ${details.droppedServer ?? 0}/${details.droppedClient ?? 0} ring drops; ${details.truncatedServerSpans ?? 0} truncated server spans. Full traces use independent clock origins; socket completion is not browser receipt.`, '',
       `Window ${display(window.startMs)}..${display(window.endMs)} ms (${window.selectedSeconds} s selected); sample span ${display(window.sampleSpanMs)} ms. Samples ${counts.samples}: frames ${counts.frames}, measurements ${counts.measures}; traffic buckets ${counts.trafficBuckets}, markers ${counts.markers}.`,
       `Frame budget ${display(capture.thresholds.frameBudgetMs)} ms; over budget ${counts.framesOverBudget}; >=50 ms ${counts.frameGaps50Ms}, >=100 ms ${counts.frameGaps100Ms}; bursts ${counts.frameBursts}. RTT budget ${display(capture.thresholds.latencyBudgetMs)} ms.`,
       `Connection ${snapshot.connected === null ? 'Unavailable' : snapshot.connected ? 'connected' : 'disconnected'}; server ${snapshot.server}; pending ${display(snapshot.pending)}, oldest ${display(snapshot.oldestPendingMs)} ms; buffered ${display(snapshot.bufferedBytes)} bytes. Backlog ${display(snapshot.playback.backlog)}, oldest ${display(snapshot.playback.oldestAgeMs)} ms; playback ${snapshot.playback.mode ?? 'Unavailable'}, active ${snapshot.playback.active ?? 'Unavailable'}, synchronizing ${snapshot.playback.synchronizing ?? 'Unavailable'}, announcement ${snapshot.playback.announcement ?? 'Unavailable'}.`,
@@ -360,6 +373,16 @@ export function renderMarkdown(report) {
     append(`Metric/category | n | p50 ms | p95 ms | max ms\n---|---:|---:|---:|---:`, 'statistics');
     for (const row of capture.statistics) append(`${LABELS[row.metric]} / ${row.category} | ${row.count} | ${display(row.p50Ms)} | ${display(row.p95Ms)} | ${display(row.maxMs)}`, 'statistics');
     append(`Unavailable metrics: ${capture.unavailableMetrics.map(metric => LABELS[metric]).join(', ') || 'none'}.\n`, 'statistics');
+    append(`### ${capture.id}: detailed phases\n\nNested phase totals overlap. Browser responseToCommit includes scheduling, render and commit; it is not isolated React CPU.\n`, 'statistics');
+    append('Clock/phase | n | p50 ms | p95 ms | max ms\n---|---:|---:|---:|---:', 'statistics');
+    for (const [clock, phases] of [['server', capture.detailedTiming.serverPhases], ['browser', capture.detailedTiming.clientPhases]])
+      for (const [phase, row] of Object.entries(phases)) if (row.count)
+        append(`${clock} / ${phase} | ${row.count} | ${display(row.p50Ms)} | ${display(row.p95Ms)} | ${display(row.maxMs)}`, 'statistics');
+    for (const row of capture.detailedTiming.records) {
+      const trace = row.server;
+      append(`- Trace ${row.trace} (${trace.correlation}), ${trace.requestType}/${trace.operation}: worker ${display(trace.handlingMs)} ms, outbound ${trace.write.status}, queue ${display(trace.write.queueMs)} ms, write ${display(trace.write.durationMs)} ms; context ${Object.entries(trace.values).map(([key, value]) => `${key}=${value}`).join(', ') || 'unavailable'}. Matched browser spans ${row.client.length}; omitted ${row.omittedClientSpans}. Structured JSON retains the individual spans.\n`, 'statistics');
+    }
+    if (capture.detailedTiming.omittedRecords) append(`Detailed records omitted: ${capture.detailedTiming.omittedRecords}. Phase statistics include all retained records.\n`, 'statistics');
   }
   if (report.outputTruncated || omittedIncidents || omittedStatistics) lines.push('', `Output truncated to bounded report limits. Additional Markdown incident groups omitted: ${omittedIncidents}; statistics/detail rows omitted: ${omittedStatistics}. JSON omissions are recorded per capture.`);
   const result = `${lines.join('\n')}\n`;

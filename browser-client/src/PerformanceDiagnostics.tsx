@@ -66,6 +66,7 @@ export function useDiagnosticPresentation(received: number, presented: number, a
     () => !!service?.enabled);
   useLayoutEffect(() => { service?.context(); }, [service, context]);
   useLayoutEffect(() => {
+    service?.commit(received);
     service?.presented(received, presented, active, synchronizing, announcement, mode, speed, opportunityRevision, provisional);
     if (pending) service?.feedback();
   }, [service, enabled, received, presented, active, synchronizing, announcement, pending, mode, speed, opportunityRevision, provisional]);
@@ -90,6 +91,8 @@ export function PerformanceControls() {
       <option value="off">Off</option><option value="counters">Counters</option><option value="graph">Graph</option>
     </select></label>
     <p>Browser frame pacing, V2 payload traffic and application response time. Collection starts Off each page session.</p>
+    <label><input type="checkbox" checked={p.details} onChange={event => change({ details: event.target.checked })}/>Detailed phase traces</label>
+    <p>Optional browser processing and server storage/write traces. Compare with lightweight collection when measuring overhead.</p>
     <fieldset><legend>Tracks</legend>{(['frame', 'network', 'latency', 'presentation'] as const).map(key => <label key={key}>
       <input type="checkbox" checked={p.tracks[key]} onChange={event => change({ tracks: { ...p.tracks, [key]: event.target.checked } })}/>
       {{ frame: 'Frame rate / frame time', network: 'Network I/O', latency: 'Client / server latency', presentation: 'Presentation delay' }[key]}</label>)}</fieldset>
@@ -204,7 +207,7 @@ export function PerformanceOverlay() {
       {p.tracks.frame && <p><strong>{frames.length ? number(1000 * frames.length / frames.reduce((sum, sample) => sum + sample.value, 0), 0) : '—'} FPS</strong> rAF estimate · latest {number(frame.latest)} ms · p95 {number(frame.p95)} ms · max {number(frame.max)} ms<br/>Budget {number(p.frameBudget)} ms · over budget {frames.filter(sample => sample.value > p.frameBudget).length} · &gt;50 ms {frames.filter(sample => sample.value > 50).length} · &gt;100 ms {frames.filter(sample => sample.value > 100).length}</p>}
       {p.tracks.network && <p><strong>Payload</strong> ↓ {number(recent.reduce((sum, bucket) => sum + bucket.incoming, 0) / 1024)} / ↑ {number(recent.reduce((sum, bucket) => sum + bucket.outgoing, 0) / 1024)} KiB/s · {recent.reduce((sum, bucket) => sum + bucket.received, 0)} / {recent.reduce((sum, bucket) => sum + bucket.sent, 0)} msg/s<br/>
         Total ↓ {number(snapshot.totalIn / 1024)} / ↑ {number(snapshot.totalOut / 1024)} KiB · buffered {snapshot.buffered} B · {snapshot.connected ? 'Connected' : 'Disconnected'} · last message {number(snapshot.lastMessageAge)} ms ago</p>}
-      {p.tracks.latency && <p><strong>Action RTT</strong> {summary(snapshot, 'rtt', 'mutation')}<br/>Pending {snapshot.pending} · oldest {number(snapshot.oldestPending)} ms · server timing {snapshot.server}</p>}
+      {p.tracks.latency && <p><strong>Action RTT</strong> {summary(snapshot, 'rtt', 'mutation')}<br/>Pending {snapshot.pending} · oldest {number(snapshot.oldestPending)} ms · server timing {snapshot.server}<br/>Detailed phases {snapshot.details?.status ?? 'unavailable'} · {snapshot.details?.server.length ?? 0} server / {snapshot.details?.client.length ?? 0} browser records</p>}
       {p.tracks.presentation && <p><strong>Presentation</strong> {summary(snapshot, 'presentation')}<br/>Revision {snapshot.playback.presented ?? '—'} / received {snapshot.playback.received ?? '—'} · backlog {snapshot.playback.backlog} · age {number(snapshot.playback.oldestAge)} ms · {snapshot.playback.synchronizing ? 'Waiting for transcript' : snapshot.playback.announcement ? 'Announcement wait' : snapshot.playback.active ? 'Animation active' : 'Idle'} · {snapshot.playback.mode} {snapshot.playback.speed}×</p>}
     </div>
     {service.mode === 'graph' && <div className="performance-graphs">

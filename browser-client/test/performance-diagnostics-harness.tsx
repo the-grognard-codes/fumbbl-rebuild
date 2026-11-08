@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { Profiler, useLayoutEffect } from 'react';
+import { Profiler, useLayoutEffect, useState } from 'react';
 import { DiagnosticsBoundary, useDiagnostics, useDiagnosticPresentation } from '../src/PerformanceDiagnostics.tsx';
 import { GameView } from '../src/GameView.tsx';
 import { HostedResult } from '../src/HostedResult.tsx';
@@ -7,9 +7,11 @@ import initial from './fixtures/m5a-blitz-projections.json';
 import '../../site/src/assets/site.css';
 if (!import.meta.env.DEV) throw Error('Test harness only');
 function PresentationProbe() {
+  const [revision, setRevision] = useState(0);
+  useLayoutEffect(() => { Object.assign(window, { diagnosticCommit: () => setRevision(value => value + 1) }); }, []);
   const probe = window as unknown as { diagnosticProbeRenders?: number };
   probe.diagnosticProbeRenders = (probe.diagnosticProbeRenders ?? 0) + 1;
-  useDiagnosticPresentation(0, 0, false, false, false, false);
+  useDiagnosticPresentation(revision, revision, false, false, false, false);
   return null;
 }
 function Board() {

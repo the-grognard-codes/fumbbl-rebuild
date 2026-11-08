@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PerformanceDiagnostics, diagnosticsAvailable, decodeServerTiming, distribution, histogram, loadDiagnosticPreferences } from '../src/performance-diagnostics.ts';
+import { serverTraceFixture } from './diagnostic-trace-fixture.ts';
 import { V2Client } from '../src/v2-client.ts';
 import { assertV2Projection } from '../src/v2-projection.ts';
 
@@ -103,19 +104,74 @@ class Socket {
   close() { this.closed = true; }
   reply(message: Record<string, unknown>) { this.onmessage?.({ data: JSON.stringify({ version: 2, ...message }) }); }
 }
-async function clientFixture() {
+async function clientFixture(notificationDuration = 0) {
   const { service, advance } = fixture(); const sockets: Socket[] = []; const events: Record<string, any>[] = [];
   const client = new V2Client({ url: 'ws://test', getToken: async () => 'never-export-bearer', diagnostics: service,
-    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: event => events.push(event) });
+    makeSocket: () => { const socket = new Socket(); sockets.push(socket); return socket as unknown as WebSocket; }, onChange: event => {
+      events.push(event); if (event.type === 'browse') advance(notificationDuration);
+    } });
   client.connect(); const socket = sockets.at(-1)!; socket.onopen?.(); await Promise.resolve();
   socket.reply({ type: 'authentication', requestId: socket.sent[0].requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
   return { client, service, advance, socket, events };
 }
+test('detailed negotiation preserves legacy timing and isolates optional trace failures', async () => {
+  const { service, client, socket, advance } = await clientFixture();
+  service.update({ ...service.preferences, details: true }); service.setMode('counters');
+  const configure = socket.sent.at(-1)!; assert.equal(configure.detailVersion, 1);
+  socket.reply({ type: 'diagnostics', requestId: configure.requestId, code: 'ACCEPTED', enabled: true, detailVersion: 1 });
+  assert.equal(service.detailStatus, 'enabled');
+  const id = client.request('browse'); advance(20); socket.reply({ type: 'browse', requestId: id, code: 'ACCEPTED', matches: [] });
+  const trace = { ...serverTraceFixture(), requestType: 'browse', operation: 'read' };
+  socket.reply({ type: 'diagnosticsTrace', requestId: id, code: 'ACCEPTED', trace });
+  socket.reply({ type: 'diagnosticsTrace', requestId: id, code: 'ACCEPTED', trace });
+  assert.equal(service.snapshot().details?.server.length, 1, 'Duplicate optional observations do not skew the report');
+  assert.ok(service.snapshot().details?.client.some(span => span.phase === 'parse'));
+  assert.ok(service.snapshot().details?.client.some(span => span.phase === 'validate'));
+  assert.ok(service.snapshot().details?.client.some(span => span.phase === 'notify'));
+  assert.ok(service.snapshot().samples.some(sample => sample.kind === 'handling' && sample.value === 18));
+  socket.reply({ type: 'diagnosticsTrace', requestId: id, code: 'ACCEPTED', trace: { ...trace, privateGame: true } });
+  assert.equal(socket.closed, false); assert.equal(service.snapshot().details?.server.length, 1);
+  service.update({ ...service.preferences, details: false });
+  assert.equal(socket.sent.at(-1)?.detailVersion, undefined);
+});
+test('old servers can accept lightweight fallback without stranding a pending gameplay request', async () => {
+  const { service, client, socket } = await clientFixture(); service.update({ ...service.preferences, details: true }); service.setMode('counters');
+  socket.reply({ type: 'error', requestId: socket.sent.at(-1)!.requestId, code: 'MALFORMED_MESSAGE' });
+  const fallback = socket.sent.at(-1)!; assert.equal(fallback.detailVersion, undefined);
+  socket.reply({ type: 'diagnostics', requestId: fallback.requestId, code: 'ACCEPTED', enabled: true });
+  assert.equal(service.server, 'enabled'); assert.equal(service.detailStatus, 'unavailable');
+  const request = client.request('browse'); socket.reply({ type: 'browse', requestId: request, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.closed, false);
+});
+
+test('browser processing measures actual synchronous notification duration and enclosing receive', async () => {
+  const { service, client, socket } = await clientFixture(7);
+  service.update({ ...service.preferences, details: true }); service.setMode('counters');
+  socket.reply({ type: 'diagnostics', requestId: socket.sent.at(-1)!.requestId, code: 'ACCEPTED', enabled: true, detailVersion: 1 });
+  const id = client.request('browse'); socket.reply({ type: 'browse', requestId: id, code: 'ACCEPTED', matches: [] });
+  const spans = service.snapshot().details!.client.filter(row => row.trace !== undefined);
+  assert.equal(spans.find(row => row.phase === 'notify')?.durationMs, 7);
+  assert.equal(spans.find(row => row.phase === 'receive')?.durationMs, 7);
+  assert.equal(spans.find(row => row.phase === 'parse')?.durationMs, 0);
+  assert.equal(spans.find(row => row.phase === 'validate')?.durationMs, 0);
+});
+test('enabling details after lightweight collection or an Off cycle renegotiates the capability', async () => {
+  const { service, socket } = await clientFixture(); service.setMode('counters');
+  socket.reply({ type: 'diagnostics', requestId: socket.sent.at(-1)!.requestId, code: 'ACCEPTED', enabled: true });
+  service.update({ ...service.preferences, details: true }); assert.equal(socket.sent.at(-1)!.detailVersion, 1);
+  socket.reply({ type: 'diagnostics', requestId: socket.sent.at(-1)!.requestId, code: 'ACCEPTED', enabled: true, detailVersion: 1 });
+  service.setMode('off'); socket.reply({ type: 'diagnostics', requestId: socket.sent.at(-1)!.requestId, code: 'ACCEPTED', enabled: false });
+  service.setMode('counters'); assert.equal(socket.sent.at(-1)!.detailVersion, 1);
+});
 test('old-server unsupported negotiation and malformed optional telemetry never disrupt ordinary gameplay', async () => {
   const { service, client, socket, advance, events } = await clientFixture();
+  service.update({ ...service.preferences, details: true });
   assert.equal(socket.sent.some(message => message.type === 'diagnostics'), false);
   service.setMode('graph'); const configure = socket.sent.at(-1)!; assert.equal(configure.type, 'diagnostics');
   socket.reply({ type: 'error', requestId: configure.requestId, code: 'UNSUPPORTED_MESSAGE' });
+  const legacyConfigure = socket.sent.at(-1)!;
+  assert.equal(legacyConfigure.detailVersion, undefined);
+  socket.reply({ type: 'error', requestId: legacyConfigure.requestId, code: 'UNSUPPORTED_MESSAGE' });
   assert.equal(service.server, 'unavailable'); assert.equal(socket.closed, false); assert.equal(events.some(event => event.code === 'UNSUPPORTED_MESSAGE'), false);
   const read = client.request('browse'); advance(100); socket.reply({ type: 'browse', requestId: read, code: 'ACCEPTED', matches: [] });
   assert.equal(socket.closed, false); assert.ok(service.snapshot().samples.some(sample => sample.kind === 'rtt' && sample.value === 100));

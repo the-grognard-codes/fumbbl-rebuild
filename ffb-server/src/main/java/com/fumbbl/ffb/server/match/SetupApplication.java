@@ -263,17 +263,28 @@ public final class SetupApplication {
 
 	private void checkpoint(String owner, String id, SetupSession session) throws SQLException {
 		if (recovery == null) return;
+		try { if (timing.detailed()) {
+			int[] counts = session.recoveryJournalCounts();
+			timing.value(BrowserRequestTiming.Value.HISTORY_REQUESTS, counts[0]); timing.value(BrowserRequestTiming.Value.EVENTS, counts[1]);
+			timing.value(BrowserRequestTiming.Value.NATIVE_COMMANDS, counts[2]); timing.value(BrowserRequestTiming.Value.TRANSCRIPT_RECORDS, counts[3]);
+			JsonObject summary = session.browseSummary();
+			timing.value(BrowserRequestTiming.Value.HALF, summary.getInt("half", 0)); timing.value(BrowserRequestTiming.Value.TURN, summary.getInt("turn", 0));
+			timing.value(BrowserRequestTiming.Value.REVISION, counts[1] - 1);
+		} } catch (RuntimeException unavailable) { /* Diagnostic context must not affect checkpoint behavior. */ }
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT)) {
 			matches.load(owner, id); // Reauthorize before the durable mutation as well as before engine execution.
 			RecoveryJournal.Cursor cursor = journalCursors.get(id);
+			if (cursor != null) { timing.value(BrowserRequestTiming.Value.JOURNAL_ENTRIES, cursor.entries); timing.value(BrowserRequestTiming.Value.JOURNAL_BYTES, cursor.journalBytes); }
 			long generation = generations.get(id);
+			boolean compacting = false;
 			if (cursor != null && !session.isFailed() && !session.isComplete()) {
 				RecoveryJournal.Change change;
 				try (BrowserRequestTiming.Scope encode = timing.span(BrowserRequestTiming.Phase.RECOVERY_SERIALIZE)) {
 					change = journal.change(session, cursor, generation);
 				}
-				if (change == null) { pendingRestoreCheckpoints.remove(id); return; }
+				if (change == null) { timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 0); pendingRestoreCheckpoints.remove(id); return; }
 				if (!change.compact) {
+					timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 1);
 					try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
 						if (!recovery.append(new RecoveryRepository.Record(id, generation + 1, change.json), generation))
 							throw new MatchService.Failure("RECOVERY_CONFLICT");
@@ -282,15 +293,20 @@ public final class SetupApplication {
 					pendingRestoreCheckpoints.remove(id);
 					return;
 				}
+				compacting = true;
 			}
 			String after = recoveryArtifact(session);
+			timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, compacting ? 2 : 3);
 			byte[] previous = committedFingerprints.get(id);
 			if (previous == null) throw new MatchService.Failure("RECOVERY_CORRUPT");
 			byte[] fingerprint;
 			try (BrowserRequestTiming.Scope hash = timing.span(BrowserRequestTiming.Phase.RECOVERY_FINGERPRINT)) {
 				fingerprint = fingerprints.of(after);
 			}
-			if (Arrays.equals(fingerprint, previous) && (cursor == null || cursor.entries == 0)) { pendingRestoreCheckpoints.remove(id); return; }
+			if (Arrays.equals(fingerprint, previous) && (cursor == null || cursor.entries == 0)) {
+				timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, 0);
+				pendingRestoreCheckpoints.remove(id); return;
+			}
 			try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
 				if (!recovery.save(new RecoveryRepository.Record(id, generation + 1, after), generation))
 					throw new MatchService.Failure("RECOVERY_CONFLICT");

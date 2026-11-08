@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- DEV and dev-local diagnostics can collect optional correlated database,
+  compression, response queue/write and browser processing traces. Versioned
+  capture exports and offline reports show phase timing, history sizes and
+  missing or truncated evidence for performance investigations.
+
 - Gameplay authorization refreshes local identity, account and scopes in one
   database query. DEV diagnostics refreshes no longer rerender gameplay solely
   to update counters and graphs, and pitch hover hit tests are coalesced across

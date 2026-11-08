@@ -21,6 +21,8 @@ public class BrowserMatchSocket implements BrowserConnection {
 	private volatile BrowserMatchDelivery delivery;
 	private volatile Session session;
 	private volatile boolean diagnosticsEnabled;
+	private volatile boolean detailsEnabled;
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 
 	public BrowserMatchSocket(FantasyFootballServer server, BrowserProtocol adapter, BrowserMatchTransport transport) {
 		this.server = server;
@@ -87,6 +89,12 @@ public class BrowserMatchSocket implements BrowserConnection {
 
 	@Override
 	public void diagnosticsEnabled(boolean enabled) { diagnosticsEnabled = enabled; }
+	@Override public void diagnosticDetailsEnabled(boolean enabled) { detailsEnabled = enabled; }
+	@Override public boolean diagnosticDetailsEnabled() { return diagnosticsEnabled && detailsEnabled; }
+	@Override public void sendDiagnosticTrace(String message) {
+		BrowserMatchDelivery activeDelivery = delivery;
+		if (active.get() && diagnosticDetailsEnabled() && activeDelivery != null) activeDelivery.sendTrace(message);
+	}
 
 	@Override
 	public void sendDiagnostics(String message) {
@@ -96,16 +104,23 @@ public class BrowserMatchSocket implements BrowserConnection {
 
 	@Override
 	public void send(String message) {
-		if (!active.get()) return;
+		BrowserMatchDelivery.WriteObserver observer = timing.claimWriteObserver();
+		if (!active.get()) { unobserved(observer, "closed"); return; }
 		BrowserMatchDelivery activeDelivery = delivery;
-		if (activeDelivery != null) activeDelivery.send(message);
+		if (activeDelivery != null) activeDelivery.sendWithOptionalPredecessor(null, message, observer);
+		else unobserved(observer, "unavailable");
 	}
 
 	@Override
 	public void sendWithOptionalPredecessor(String optional, String mandatory) {
-		if (!active.get()) return;
+		BrowserMatchDelivery.WriteObserver observer = timing.claimWriteObserver();
+		if (!active.get()) { unobserved(observer, "closed"); return; }
 		BrowserMatchDelivery activeDelivery = delivery;
-		if (activeDelivery != null) activeDelivery.sendWithOptionalPredecessor(optional, mandatory);
+		if (activeDelivery != null) activeDelivery.sendWithOptionalPredecessor(optional, mandatory, observer);
+		else unobserved(observer, "unavailable");
+	}
+	private void unobserved(BrowserMatchDelivery.WriteObserver observer, String status) {
+		if (observer != null) try { observer.completed(status, -1, -1, -1); } catch (RuntimeException ignored) { }
 	}
 
 	@Override

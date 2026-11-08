@@ -2,6 +2,7 @@ package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.net.ServerCommunication;
+import com.eclipsesource.json.JsonObject;
 
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
@@ -43,6 +44,31 @@ import static org.mockito.Mockito.when;
 
 /** Exercises the EE8 Jetty endpoint over a loopback WebSocket, not mocked frames. */
 public class BrowserJettyContractTest {
+	@Test void correlatedDetailsFollowActualMandatorySocketWriteAndOptionalHistory() throws Exception {
+		BrowserRequestTiming timing = new BrowserRequestTiming();
+		doAnswer(invocation -> {
+			BrowserConnection connection = invocation.getArgument(0); String raw = invocation.getArgument(1);
+			if ("init".equals(raw)) { connection.diagnosticsEnabled(true); connection.diagnosticDetailsEnabled(true); connection.send("ready"); return null; }
+			JsonObject request = JsonObject.readFrom(raw); timing.selectRequest(request); timing.enableReplies(connection);
+			JsonObject reply = new JsonObject().add("version", 2).add("type", "setupState").add("requestId", "observed").add("code", "ACCEPTED");
+			String encoded;
+			try (BrowserRequestTiming.Scope scope = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { encoded = reply.toString(); }
+			timing.reply(connection, reply, () -> connection.sendWithOptionalPredecessor("history", encoded));
+			return null;
+		}).when(adapter).receive(any(BrowserConnection.class), anyString());
+		try (RawWebSocket socket = open("http://localhost:5173")) {
+			socket.sendFrame(0x1, true, false, true, "init".getBytes(StandardCharsets.UTF_8)); assertEquals("ready", socket.readFrame().text());
+			socket.sendFrame(0x1, true, false, true, "{\"type\":\"setup\",\"operation\":\"movement\",\"requestId\":\"observed\"}".getBytes(StandardCharsets.UTF_8));
+			assertEquals("history", socket.readFrame().text());
+			String reply = socket.readFrame().text(); assertEquals("setupState", JsonObject.readFrom(reply).getString("type", null));
+			JsonObject frame = JsonObject.readFrom(socket.readFrame().text()); assertEquals("diagnosticsTrace", frame.getString("type", null));
+			JsonObject trace = frame.get("trace").asObject(); assertEquals("completed", trace.get("write").asObject().getString("status", null));
+			assertEquals(reply.getBytes(StandardCharsets.UTF_8).length, trace.get("values").asObject().getLong("responseBytes", -1));
+			assertEquals(7, trace.get("values").asObject().getLong("predecessorBytes", -1));
+			assertEquals(0, trace.get("values").asObject().getLong("predecessorDropped", -1));
+			assertNotNull(trace.get("totals").asObject().get("RESPONSE_SERIALIZE"));
+		}
+	}
 	private BrowserV2Adapter adapter;
 	private ExecutorService communicationExecutor;
 	private Server jetty;

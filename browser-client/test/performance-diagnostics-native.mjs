@@ -32,8 +32,11 @@ try {
   await page.bringToFront();
   await page.getByRole('button', { name: 'Debug', exact: true }).click();
   await page.getByLabel('Diagnostics display').selectOption('graph');
+  const detailed = process.env.COACH_ACCEPTANCE_DETAILS === '1';
+  if (detailed) await page.getByLabel('Detailed phase traces', { exact: true }).check();
   const overlay = page.getByLabel('Performance diagnostics', { exact: true });
   await overlay.getByText(/server timing enabled/).waitFor();
+  if (detailed) await overlay.getByText(/Detailed phases enabled/).waitFor();
   await page.getByRole('button', { name: 'Close debug panel', exact: true }).click();
   const profileSession = process.env.COACH_ACCEPTANCE_CPU_PROFILE === '1' ? await page.context().newCDPSession(page) : null;
   const traceEvents = []; let traceTruncated = false;
@@ -65,12 +68,18 @@ try {
   assert.ok(capture.capture.samples.some(sample => sample.kind === 'rtt' && sample.category === 'mutation'));
   assert.ok(capture.capture.samples.some(sample => sample.kind === 'handling'));
   assert.equal(capture.capture.server, 'enabled'); assert.deepEqual(errors, []);
+  if (detailed) {
+    assert.equal(capture.formatVersion, 2); assert.equal(capture.capture.details.status, 'enabled');
+    assert.ok(capture.capture.details.server.some(row => row.server.requestType === 'setup' && row.server.values.revision > before && row.server.write.status === 'completed'));
+    for (const phase of ['parse','validate','notify','responseToCommit']) assert.ok(capture.capture.details.client.some(row => row.phase === phase), phase);
+  }
   for (const privateValue of [retained.matchId, tokens.home.uid, tokens.away.uid, tokens.home.token, tokens.away.token]) assert.equal(JSON.stringify(capture).includes(privateValue), false);
   await writeFile(resolve(output, 'diagnostics-capture.json'), JSON.stringify(capture, null, 2));
   await page.screenshot({ path: resolve(output, 'diagnostics-overlay.png') });
   await overlay.getByRole('button', { name: 'Off', exact: true }).click(); await overlay.waitFor({ state: 'detached' });
   await writeFile(resolve(output, 'result.json'), JSON.stringify({ passed: true, nativeEngine: true, mutation: 'endTurn',
     metrics: [...new Set(capture.capture.samples.map(sample => sample.kind))], capability: capture.capture.server,
+    detailed, detailStatus: capture.capture.details?.status ?? 'unavailable',
     privacy: 'passed', off: 'passed', scope: 'two coaches, one native UI action; not spectator or full-match acceptance' }, null, 2));
   console.log('Native diagnostics passed: authenticated negotiation, UI action RTT, server durations, private export and Off teardown.');
 } finally { await browser.close(); }

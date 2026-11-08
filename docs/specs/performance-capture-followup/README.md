@@ -8,6 +8,8 @@ Implementation was authorized on branch `feature/496-capture-performance` and de
 
 ## Tickets and blocking edges
 
+Follow-up experiment (November 8, 2026): [retained-history scaling results](history-scaling-outcome.md). Matched native movement/pass actions over five history lengths confirmed strong compaction growth, with cursor preparation a major measured cost. This is controlled server-side evidence; broader live/browser causes remain separate.
+
 | Issue | Deliverable | Blocked by |
 | --- | --- | --- |
 | [#489](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489) | [isolate residual checkpoint and recovery serialization spikes](01-checkpoint-spikes.md) | None |

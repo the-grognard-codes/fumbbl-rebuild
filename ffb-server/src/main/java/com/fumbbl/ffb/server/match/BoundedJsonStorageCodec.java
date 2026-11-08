@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
+
 import com.eclipsesource.json.JsonObject;
 
 import java.io.ByteArrayOutputStream;
@@ -18,6 +20,7 @@ import java.util.zip.Inflater;
 
 /** Bounded, versioned at-rest compression for logical JSON records. */
 final class BoundedJsonStorageCodec {
+	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	static final int PREPARED_ENCODED_LIMIT = 16 * 1024 * 1024 + 64 * 1024;
 	static final int PREPARED_DECODED_LIMIT = 64 * 1024 * 1024 + 64 * 1024;
 	static final int RECOVERY_ENCODED_LIMIT = 32 * 1024 * 1024;
@@ -36,13 +39,16 @@ final class BoundedJsonStorageCodec {
 	String encode(String json) {
 		if (json != null && json.length() > decodedLimit) throw new IllegalArgumentException("Stored JSON decoded limit");
 		byte[] raw = utf8(json);
+		timing.add(BrowserRequestTiming.Value.STORAGE_INPUT_BYTES, raw.length);
 		if (raw.length > decodedLimit) throw new IllegalArgumentException("Stored JSON decoded limit");
-		byte[] compressed = gzip(raw);
+		byte[] compressed;
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_COMPRESSION)) { compressed = gzip(raw); }
 		String skeleton = new JsonObject().add("$codec", MARKER).add("version", VERSION)
 			.add("decodedBytes", raw.length).add("payload", "").toString();
 		long envelopeBytes = skeleton.length() + 4L * ((compressed.length + 2L) / 3L);
 		if (envelopeBytes >= raw.length) {
 			if (raw.length > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
+			timing.add(BrowserRequestTiming.Value.STORAGE_OUTPUT_BYTES, raw.length);
 			return json;
 		}
 		String envelope = new JsonObject().add("$codec", MARKER).add("version", VERSION)
@@ -50,15 +56,21 @@ final class BoundedJsonStorageCodec {
 		byte[] packed = utf8(envelope);
 		String selected = packed.length < raw.length ? envelope : json;
 		if (utf8(selected).length > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
+		timing.add(BrowserRequestTiming.Value.STORAGE_OUTPUT_BYTES, selected == json ? raw.length : packed.length);
 		return selected;
 	}
 
 	String decode(String stored) {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_DECODE)) { return decodeMeasured(stored); }
+	}
+	private String decodeMeasured(String stored) {
 		if (stored != null && stored.length() > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
 		byte[] input = utf8(stored);
+		timing.add(BrowserRequestTiming.Value.STORAGE_READ_BYTES, input.length);
 		if (input.length > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
 		if (hasCodecHeader(stored)) return decodeEnvelope(stored);
 		if (input.length > decodedLimit) throw new IllegalArgumentException("Stored JSON decoded limit");
+		timing.add(BrowserRequestTiming.Value.STORAGE_DECODED_BYTES, input.length);
 		return stored;
 	}
 
@@ -74,8 +86,10 @@ final class BoundedJsonStorageCodec {
 			String encoded = object.getString("payload", null);
 			byte[] gzip = Base64.getDecoder().decode(encoded);
 			if (!Base64.getEncoder().encodeToString(gzip).equals(encoded)) throw new IllegalArgumentException("Invalid storage payload");
-			byte[] decoded = inflate(gzip, expected);
+			byte[] decoded;
+			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_DECOMPRESSION)) { decoded = inflate(gzip, expected); }
 			if (decoded.length != expected) throw new IllegalArgumentException("Storage length mismatch");
+			timing.add(BrowserRequestTiming.Value.STORAGE_DECODED_BYTES, decoded.length);
 			return strictUtf8(decoded);
 		} catch (IllegalArgumentException failure) { throw failure;
 		} catch (RuntimeException failure) { throw new IllegalArgumentException("Invalid stored JSON envelope"); }

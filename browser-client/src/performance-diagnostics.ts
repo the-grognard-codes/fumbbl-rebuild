@@ -1,4 +1,6 @@
 /** Numeric-only, opt-in diagnostics. Never retains a wire payload or a game document. */
+import { decodeDiagnosticDetails, decodeServerTrace } from './diagnostic-trace.ts';
+import type { ClientPhase, ClientSpan, DiagnosticDetails, ServerObservation } from './diagnostic-trace.ts';
 export type DiagnosticMode = 'off' | 'counters' | 'graph';
 export type Metric = 'frame' | 'rtt' | 'probe' | 'feedback' | 'provisional' | 'transcript' | 'presentation' | 'inputPresentation'
   | 'queue' | 'handling' | 'authorization' | 'sessionApply' | 'checkpoint' | 'serialization' | 'sql'
@@ -9,12 +11,12 @@ export type Traffic = { at: number; incoming: number; outgoing: number; received
 export type DiagnosticPreferences = {
   window: 10 | 30 | 60; tracks: { frame: boolean; network: boolean; latency: boolean; presentation: boolean };
   frameBudget: number; latencyBudget: number; scale: 'auto' | 'fixed'; corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  size: 'compact' | 'expanded'; textScale: number; opacity: number; warningsOnly: boolean; freezeOnThreshold: boolean; probes: boolean; manual: boolean;
+  size: 'compact' | 'expanded'; textScale: number; opacity: number; warningsOnly: boolean; freezeOnThreshold: boolean; probes: boolean; manual: boolean; details: boolean;
 };
 export const defaultDiagnosticPreferences: DiagnosticPreferences = {
   window: 30, tracks: { frame: true, network: true, latency: true, presentation: true }, frameBudget: 1000 / 60,
   latencyBudget: 250, scale: 'auto', corner: 'bottom-right', size: 'compact', textScale: 1, opacity: .94,
-  warningsOnly: false, freezeOnThreshold: false, probes: false, manual: false,
+  warningsOnly: false, freezeOnThreshold: false, probes: false, manual: false, details: false,
 };
 const categories = new Set(['mutation', 'advisory', 'read', 'authentication', 'probe', 'error']);
 const requestTypes = new Set(['authenticate', 'setup', 'watch', 'browse', 'catalog', 'savedTeam', 'preparedMatch', 'matchTranscript', 'matchResult', 'movementRange', 'movementPreview', 'routePreview', 'matchChat', 'currentMatches', 'skillUsePreferences', 'computer', 'diagnostics']);
@@ -32,7 +34,7 @@ export function loadDiagnosticPreferences(storage?: Pick<Storage, 'getItem'>): D
   try {
     const value = JSON.parse(storage?.getItem('moles.diagnostics.preferences') ?? 'null');
     if (!value || typeof value !== 'object') return defaults;
-    for (const key of ['warningsOnly', 'freezeOnThreshold', 'probes', 'manual'] as const) if (typeof value[key] === 'boolean') defaults[key] = value[key];
+    for (const key of ['warningsOnly', 'freezeOnThreshold', 'probes', 'manual', 'details'] as const) if (typeof value[key] === 'boolean') defaults[key] = value[key];
     for (const key of ['frame', 'network', 'latency', 'presentation'] as const) if (typeof value.tracks?.[key] === 'boolean') defaults.tracks[key] = value.tracks[key];
     if ([10, 30, 60].includes(value.window)) defaults.window = value.window;
     if (['auto', 'fixed'].includes(value.scale)) defaults.scale = value.scale;
@@ -65,8 +67,9 @@ export function histogram(values: number[], limits = [8.34, 16.67, 33.34, 50, 10
   for (const value of values) if (Number.isFinite(value) && value >= 0) { const index = limits.findIndex(limit => value <= limit); counts[index < 0 ? limits.length : index]++; }
   return counts.map((count, index) => ({ count, from: index ? limits[index - 1] : 0, to: limits[index] ?? null }));
 }
-type Trace = { at: number; category: string; serial: number; requestType: string; input?: number; response?: number; revision?: number; presented?: boolean; feedback?: boolean; provisional?: boolean; transcript?: boolean };
+type Trace = { at: number; category: string; serial: number; requestType: string; input?: number; response?: number; revision?: number; presented?: boolean; feedback?: boolean; provisional?: boolean; transcript?: boolean; committed?: boolean };
 export type DiagnosticSnapshot = {
+  details?: DiagnosticDetails;
   at: number; samples: Sample[]; traffic: Traffic[]; markers: Marker[]; totalIn: number; totalOut: number; buffered: number;
   pending: number; oldestPending: number | null; lastMessageAge: number | null; connected: boolean;
   server: 'unavailable' | 'negotiating' | 'enabled'; signals: string[]; dropped: number;
@@ -79,6 +82,7 @@ export class PerformanceDiagnostics {
   connected = false;
   signals: string[] = [];
   private clock: () => number;
+  private browserClock: boolean;
   private origin: number;
   private frames = new Ring<Sample>(8192);
   private measures = new Ring<Sample>(2048);
@@ -100,14 +104,38 @@ export class PerformanceDiagnostics {
   private awaitingFeedback = new Set<Trace>();
   private awaitingProvisional = false;
   private listeners = new Set<() => void>();
+  detailStatus: DiagnosticDetails['status'] = 'unavailable';
+  private serverDetails = new Ring<ServerObservation>(64);
+  private clientDetails = new Ring<ClientSpan>(512);
   private transport: { configure: (enabled: boolean) => void; probe: () => void; buffered: () => number; pendingMutation: () => boolean; pendingCount?: () => number; maintain?: () => void } | null = null;
   private lastProbe = -Infinity;
   private probeAt: number | undefined;
-  constructor(clock: () => number = () => performance.now(), preferences = loadDiagnosticPreferences()) {
-    this.clock = clock; this.origin = clock(); this.preferences = preferences;
+  constructor(clock: (() => number) | undefined = undefined, preferences = loadDiagnosticPreferences()) {
+    this.browserClock = clock === undefined;
+    this.clock = clock ?? (() => performance.now()); this.origin = this.clock(); this.preferences = preferences;
   }
   now() { return this.clock() - this.origin; }
+  processing(id: unknown, phase: ClientPhase, at: number, durationMs: number, revision?: number) {
+    if (!this.detailsEnabled || !Number.isFinite(at) || at < 0 || !Number.isFinite(durationMs) || durationMs < 0) return;
+    const trace = typeof id === 'string' ? this.pending.get(id) ?? this.recent.get(id) : undefined;
+    this.clientDetails.push({ at, phase, durationMs: Math.min(3_600_000, durationMs), ...(trace ? { trace: trace.serial } : {}),
+      ...(Number.isSafeInteger(revision) && revision! >= 0 ? { revision } : {}) });
+  }
+  serverTrace(id: unknown, value: unknown) {
+    if (!this.detailsEnabled || this.detailStatus !== 'enabled' || typeof id !== 'string') return;
+    const server = decodeServerTrace(value), trace = this.pending.get(id) ?? this.recent.get(id);
+    if (!server || !trace || server.requestType !== trace.requestType || this.serverDetails.values().some(entry => entry.trace === trace.serial && entry.server.correlation === server.correlation)) return;
+    this.serverDetails.push({ at: this.now(), trace: trace.serial, server });
+    if (server.timing) this.timing(id, server.timing as ServerTiming);
+  }
+  commit(revision: number) {
+    const trace = this.revisions.get(revision);
+    if (!this.detailsEnabled || !trace || trace.committed || trace.response === undefined) return;
+    trace.committed = true;
+    this.clientDetails.push({ phase: 'responseToCommit', at: trace.response, durationMs: Math.min(3_600_000, Math.max(0, this.now() - trace.response)), trace: trace.serial, revision });
+  }
   get enabled() { return this.mode !== 'off'; }
+  get detailsEnabled() { return this.enabled && this.preferences.details; }
   subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   notify() { for (const listener of this.listeners) listener(); }
   setMode(mode: DiagnosticMode) {
@@ -120,12 +148,14 @@ export class PerformanceDiagnostics {
       if (this.enabled) this.mark('enabled');
       this.transport?.configure(this.enabled);
       if (!this.enabled) this.server = 'unavailable';
+      if (!this.enabled) this.detailStatus = 'unavailable';
     }
     this.notify();
   }
-  update(preferences: DiagnosticPreferences) { this.preferences = preferences; this.notify(); }
+  update(preferences: DiagnosticPreferences) { const changed = preferences.details !== this.preferences.details; this.preferences = preferences; if (changed && this.enabled) this.transport?.configure(true); this.notify(); }
   attach(transport: NonNullable<PerformanceDiagnostics['transport']>) { this.transport = transport; return () => { if (this.transport === transport) this.transport = null; }; }
   connection(connected: boolean) {
+    this.detailStatus = 'unavailable';
     this.awaitingFeedback.clear(); this.awaitingProvisional = false;
     this.connected = connected; this.server = 'unavailable'; this.pending.clear(); this.recent.clear(); this.revisions.clear(); this.transcripts.clear(); this.probeAt = undefined;
     this.mark(connected ? 'connected' : 'disconnected');
@@ -245,6 +275,9 @@ export class PerformanceDiagnostics {
     const pending = [...this.pending.values()];
     const pendingCount = this.transport?.pendingCount?.() ?? pending.length;
     return { at, samples: [...this.frames.values(), ...this.measures.values()].filter(sample => sample.at >= since),
+      details: { version: 1, status: this.detailStatus, server: this.serverDetails.values().filter(detail => detail.at >= since),
+        client: this.clientDetails.values().filter(detail => detail.at <= at && detail.at + detail.durationMs >= since),
+        droppedServer: this.serverDetails.dropped, droppedClient: this.clientDetails.dropped },
       traffic: [...this.traffic.values()].filter(bucket => bucket.at >= since).map(bucket => ({ ...bucket })), markers: this.markers.values().filter(marker => marker.at >= since),
       totalIn: this.totalIn, totalOut: this.totalOut, buffered: this.connected ? this.transport?.buffered() ?? 0 : 0,
       pending: pendingCount, oldestPending: pending.length && pendingCount <= pending.length ? Math.max(...pending.map(trace => at - trace.at)) : null,
@@ -252,26 +285,32 @@ export class PerformanceDiagnostics {
       signals: [...this.signals], dropped: this.frames.dropped + this.measures.dropped + this.markers.dropped + this.correlationDrops,
       playback: { ...this.playback, oldestAge: this.backlogAt === undefined ? null : at - this.backlogAt } };
   }
-  reset() { this.frames.clear(); this.measures.clear(); this.markers.clear(); this.traffic.clear(); this.pending.clear(); this.recent.clear(); this.revisions.clear(); this.transcripts.clear(); this.awaitingFeedback.clear(); this.awaitingProvisional = false; this.totalIn = this.totalOut = this.correlationDrops = 0; this.lastMessage = undefined; this.backlogAt = undefined; this.awaitingPresentation = undefined; this.inputAt = undefined; this.mark('reset'); }
+  reset() { this.serverDetails.clear(); this.clientDetails.clear(); this.frames.clear(); this.measures.clear(); this.markers.clear(); this.traffic.clear(); this.pending.clear(); this.recent.clear(); this.revisions.clear(); this.transcripts.clear(); this.awaitingFeedback.clear(); this.awaitingProvisional = false; this.totalIn = this.totalOut = this.correlationDrops = 0; this.lastMessage = undefined; this.backlogAt = undefined; this.awaitingPresentation = undefined; this.inputAt = undefined; this.mark('reset'); }
   export(snapshot = this.snapshot(), environment: { build?: string; browser?: string; viewport?: number[]; pixelRatio?: number; reducedMotion?: boolean } = {}) {
     // Never serialize caller objects. Even environment fields pass through an explicit allowlist.
     const metadata = { build: environment.build?.slice(0, 80), browser: environment.browser?.replace(/[^a-zA-Z0-9 ._/-]/g, '').slice(0, 160),
       viewport: environment.viewport?.slice(0, 2).map(value => Math.max(0, Math.min(20_000, Number(value) || 0))),
       pixelRatio: Number.isFinite(environment.pixelRatio) ? environment.pixelRatio : undefined, reducedMotion: environment.reducedMotion === true,
-      rendering: 'browser-rAF paint opportunity; physical display and renderer cadence unavailable' };
+      rendering: 'browser-rAF paint opportunity; physical display and renderer cadence unavailable',
+      ...(this.browserClock && typeof performance !== 'undefined' && Number.isFinite(performance.timeOrigin)
+        ? { clock: { collectorOriginMs: this.origin, browserTimeOriginUtcMs: performance.timeOrigin } } : {}) };
     const safe = { at: snapshot.at, samples: snapshot.samples.map(({ at, value, kind, category, trace, requestType }) => ({ at, value, kind, category, trace, requestType })),
       traffic: snapshot.traffic.map(({ at, incoming, outgoing, received, sent }) => ({ at, incoming, outgoing, received, sent })),
       markers: snapshot.markers.map(({ at, kind }) => ({ at, kind })), totalIn: snapshot.totalIn, totalOut: snapshot.totalOut, buffered: snapshot.buffered,
       pending: snapshot.pending, oldestPending: snapshot.oldestPending, connected: snapshot.connected, server: snapshot.server, signals: snapshot.signals,
-      dropped: snapshot.dropped, playback: { ...snapshot.playback } };
-    const json = JSON.stringify({ formatVersion: 1, metadata, preferences: this.preferences, semantics: {
+      dropped: snapshot.dropped, playback: { received: snapshot.playback.received, presented: snapshot.playback.presented,
+        backlog: snapshot.playback.backlog, oldestAge: snapshot.playback.oldestAge, active: snapshot.playback.active,
+        synchronizing: snapshot.playback.synchronizing, announcement: snapshot.playback.announcement,
+        mode: snapshot.playback.mode, speed: snapshot.playback.speed }, details: decodeDiagnosticDetails(snapshot.details) ?? undefined };
+    const json = JSON.stringify({ formatVersion: 2, metadata, preferences: this.preferences, semantics: {
       time: 'monotonic milliseconds since collector creation', frame: 'rAF callback intervals, not physical frames',
       rtt: 'application send to correlated response, including scheduling and server work', traffic: 'UTF-8 V2 application payload bytes; no wire overhead or HTTP assets',
       server: 'queue and partial handling at response enqueue; nested phases overlap; publication after reply excluded',
       presentation: 'matching revision at next rAF opportunity after commit, not physical display; transcript required',
       feedback: 'input to next rAF opportunity after pending-state commit; provisional movement feedback is separate from authoritative presentation',
+      details: 'Version 1 optional details: independent server/browser clocks; nested spans overlap; socket completion is not client receipt; responseToCommit includes React scheduling/render/commit, not isolated React CPU; missing/truncated details remain explicit.',
       unavailable: 'Absent samples stay absent. Long Tasks/LoAF depend on browser support. Renderer cadence unavailable.',
-      caps: '60 seconds; 8192 frames, 2048 measurements, 256 markers, 241 traffic buckets, 128 correlations per map; export <=2 MiB',
+      caps: '60 seconds; 8192 frames, 2048 measurements, 256 markers, 241 traffic buckets, 128 correlations per map; 64 server traces with at most 48 spans each, 512 client spans; export <=2 MiB',
     }, capture: safe });
     if (new TextEncoder().encode(json).length > 2 * 1024 * 1024) throw Error('Capture exceeds the 2 MiB export limit. Clear or choose a shorter window.');
     return json;

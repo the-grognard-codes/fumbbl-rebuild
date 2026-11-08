@@ -18,6 +18,7 @@
 !browser-client/test/
 !browser-client/test/fixtures/
 !browser-client/test/fixtures/catalog-v1.json
+!browser-client/test/fixtures/diagnostic-contract.json
 !computer-player/
 !computer-player/src/
 !computer-player/src/**

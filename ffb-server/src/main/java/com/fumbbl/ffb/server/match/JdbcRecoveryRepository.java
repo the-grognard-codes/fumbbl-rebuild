@@ -45,25 +45,25 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	@Override
 	public Record find(String matchId) throws SQLException {
 		if (journalEnabled) return findJournal(matchId);
-		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+		try (Connection connection = openConnection(); PreparedStatement query = connection.prepareStatement(
 			"SELECT matchid,generation,artifact_json FROM ffb_match_recovery WHERE matchid=?")) {
 			query.setString(1, matchId);
-			try (ResultSet rows = query.executeQuery()) {
+			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
 				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decode(rows.getString(3))) : null;
 			}
 		}
 	}
 
 	private Record findJournal(String id) throws SQLException {
-		try (Connection connection = connections.open()) {
+		try (Connection connection = openConnection()) {
 			connection.setAutoCommit(false);
 			long generation = 0, checkpointGeneration; String checkpoint;
 			try {
 				try (PreparedStatement query = connection.prepareStatement(
 					"SELECT generation,checkpoint_generation,artifact_json FROM ffb_match_recovery WHERE matchid=? FOR UPDATE")) {
 					query.setString(1, id);
-					try (ResultSet rows = query.executeQuery()) {
-						if (!rows.next()) { connection.commit(); return null; }
+					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+						if (!rows.next()) { commit(connection); return null; }
 						generation = rows.getLong(1); checkpointGeneration = rows.getLong(2); checkpoint = codec.decode(rows.getString(3));
 					}
 				}
@@ -72,17 +72,17 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				try (PreparedStatement query = connection.prepareStatement(
 					"SELECT generation,record_json FROM ffb_match_recovery_journal WHERE matchid=? ORDER BY generation")) {
 					query.setString(1, id);
-					try (ResultSet rows = query.executeQuery()) {
+					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
 						while (rows.next()) {
 							if (entries.size() >= RecoveryJournal.MAX_ENTRIES) throw new MatchService.Failure("RECOVERY_CORRUPT");
 							entries.add(new Record(id, rows.getLong(1), journalCodec.decode(rows.getString(2))));
 						}
 					}
 				}
-				connection.commit();
+				commit(connection);
 				return new RecoveryJournal().restore(id, generation, checkpointGeneration, checkpoint, entries);
 			} catch (SQLException | RuntimeException failure) {
-				try { connection.rollback(); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
+				try { rollback(connection); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
 				if (generation > 0 && failure instanceof IllegalArgumentException
 					&& (!(failure instanceof MatchService.Failure) || "RECOVERY_CORRUPT".equals(((MatchService.Failure) failure).code)))
 					throw new CorruptRecord(id, generation);
@@ -93,10 +93,10 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 
 	@Override
 	public Long generation(String matchId) throws SQLException {
-		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+		try (Connection connection = openConnection(); PreparedStatement query = connection.prepareStatement(
 			"SELECT generation FROM ffb_match_recovery WHERE matchid=?")) {
 			query.setString(1, matchId);
-			try (ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : null; }
+			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) { return rows.next() ? rows.getLong(1) : null; }
 		}
 	}
 
@@ -110,7 +110,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		}
 		boolean commitAttempted = false;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_SQL);
-			Connection connection = connections.open()) {
+			Connection connection = openConnection()) {
 			connection.setAutoCommit(false);
 			try {
 				int count;
@@ -121,7 +121,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 							: "INSERT INTO ffb_match_recovery(matchid,generation,artifact_json) VALUES (?,?,?)")) {
 						statement.setString(1, record.matchId); statement.setLong(2, 1); statement.setString(3, storedJson);
 						if (journalEnabled) statement.setLong(4, 1);
-						count = statement.executeUpdate();
+						count = executeWrite(statement);
 					}
 				} else {
 					try (PreparedStatement statement = connection.prepareStatement(
@@ -131,20 +131,20 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 						if (journalEnabled) {
 							statement.setLong(3, record.generation); statement.setString(4, record.matchId); statement.setLong(5, expectedGeneration);
 						} else { statement.setString(3, record.matchId); statement.setLong(4, expectedGeneration); }
-						count = statement.executeUpdate();
+						count = executeWrite(statement);
 					}
 				}
-				if (count == 0) { connection.rollback(); return false; }
+				if (count == 0) { rollback(connection); return false; }
 				if (count != 1) throw new SQLException("Unexpected recovery write count");
 				if (journalEnabled) try (PreparedStatement clear = connection.prepareStatement(
 					"DELETE FROM ffb_match_recovery_journal WHERE matchid=?")) {
-					clear.setString(1, record.matchId); clear.executeUpdate();
+					clear.setString(1, record.matchId); executeWrite(clear);
 				}
 				commitAttempted = true;
-				connection.commit();
+				commit(connection);
 				return true;
 			} catch (SQLException failure) {
-				try { connection.rollback(); } catch (SQLException rollbackFailure) { failure.addSuppressed(rollbackFailure); }
+				try { rollback(connection); } catch (SQLException rollbackFailure) { failure.addSuppressed(rollbackFailure); }
 				if (expectedGeneration == 0 && duplicateKey(failure)) return false;
 				throw failure;
 			}
@@ -164,31 +164,31 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		}
 		boolean commitAttempted = false;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_SQL);
-			Connection connection = connections.open()) {
+			Connection connection = openConnection()) {
 			connection.setAutoCommit(false);
 			try {
 				try (PreparedStatement update = connection.prepareStatement(
 					"UPDATE ffb_match_recovery SET generation=? WHERE matchid=? AND generation=? AND generation-checkpoint_generation<32")) {
 					update.setLong(1, record.generation); update.setString(2, record.matchId); update.setLong(3, expectedGeneration);
-					int count = update.executeUpdate();
-					if (count == 0) { connection.rollback(); return false; }
+					int count = executeWrite(update);
+					if (count == 0) { rollback(connection); return false; }
 					if (count != 1) throw new SQLException("Unexpected recovery journal write count");
 				}
 				try (PreparedStatement budget = connection.prepareStatement(
 					"SELECT COALESCE(SUM(decoded_bytes),0) FROM ffb_match_recovery_journal WHERE matchid=?")) {
 					budget.setString(1, record.matchId);
-					try (ResultSet rows = budget.executeQuery()) {
+					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = budget.executeQuery()) {
 						if (!rows.next() || rows.getLong(1) + bytes > RecoveryJournal.COMPACT_BYTES) throw new SQLException("Recovery journal byte limit");
 					}
 				}
 				try (PreparedStatement insert = connection.prepareStatement(
 					"INSERT INTO ffb_match_recovery_journal(matchid,generation,record_json,decoded_bytes) VALUES (?,?,?,?)")) {
 					insert.setString(1, record.matchId); insert.setLong(2, record.generation); insert.setString(3, stored); insert.setInt(4, bytes);
-					if (insert.executeUpdate() != 1) throw new SQLException("Unexpected recovery journal insert count");
+					if (executeWrite(insert) != 1) throw new SQLException("Unexpected recovery journal insert count");
 				}
-				commitAttempted = true; connection.commit(); return true;
+				commitAttempted = true; commit(connection); return true;
 			} catch (SQLException | RuntimeException failure) {
-				try { connection.rollback(); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
+				try { rollback(connection); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
 				throw failure;
 			}
 		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
@@ -198,7 +198,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		// Serialize only new-record admission, including across JVMs. Existing checkpoints
 		// must remain writable even when all retained slots are occupied.
 		try (PreparedStatement lock = connection.prepareStatement("SELECT version FROM ffb_local_schema FOR UPDATE");
-			ResultSet rows = lock.executeQuery()) {
+			BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = lock.executeQuery()) {
 			if (!rows.next()) throw new SQLException("Recovery schema unavailable");
 			int version = rows.getInt(1);
 			if (version < 5 || version > 9 || journalEnabled && version != 9) throw new SQLException("Recovery schema unavailable");
@@ -206,12 +206,25 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		try (PreparedStatement count = connection.prepareStatement(
 			"SELECT COUNT(*),COUNT(CASE WHEN matchid=? THEN 1 END) FROM ffb_match_recovery")) {
 			count.setString(1, matchId);
-			try (ResultSet rows = count.executeQuery()) {
+			try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = count.executeQuery()) {
 				if (!rows.next()) throw new SQLException("Recovery retention count unavailable");
 				// An existing ID still takes the ordinary duplicate/CAS path at capacity.
 				if (rows.getLong(1) >= retainedLimit && rows.getLong(2) == 0) throw new RecoveryRepository.RetentionLimit();
 			}
 		}
+	}
+
+	private Connection openConnection() throws SQLException {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.DB_CONNECT)) { return connections.open(); }
+	}
+	private int executeWrite(PreparedStatement statement) throws SQLException {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.DB_WRITE)) { return statement.executeUpdate(); }
+	}
+	private void commit(Connection connection) throws SQLException {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.DB_COMMIT)) { connection.commit(); }
+	}
+	private void rollback(Connection connection) throws SQLException {
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.DB_ROLLBACK)) { connection.rollback(); }
 	}
 
 	private boolean duplicateKey(SQLException failure) {

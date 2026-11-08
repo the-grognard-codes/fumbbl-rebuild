@@ -12,6 +12,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test void observedMandatoryWriteMeasuresQueueAndCompletionOutsideDeliveryLock() {
+		AtomicLong clock = new AtomicLong(); DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 8, 1000, clock::get);
+		List<String> observations = new ArrayList<>();
+		delivery.send("first"); clock.set(5);
+		delivery.sendWithOptionalPredecessor("history", "state", (status, queue, write, bytes) -> {
+			assertFalse(Thread.holdsLock(delivery)); observations.add(status + ":" + queue + ":" + write + ":" + bytes);
+		});
+		clock.set(10); sink.completeNext(); clock.set(20); sink.completeNext(); clock.set(25); sink.completeNext();
+		assertEquals(List.of("completed:15:5:5"), observations);
+		assertEquals(List.of("first", "history", "state"), sink.messages);
+	}
+	@Test void observedCloseAndTimeoutCompleteOnceWithoutChangingQueuePolicy() {
+		for (boolean timeout : new boolean[] { true, false }) {
+			AtomicLong clock = new AtomicLong(); DelayedSink sink = new DelayedSink();
+			BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 4, 1000, clock::get);
+			List<String> statuses = new ArrayList<>();
+			delivery.sendWithOptionalPredecessor(null, "state", (status, queue, write, bytes) -> statuses.add(status));
+			if (timeout) delivery.expireIfStalled(20, 10); else delivery.close();
+			sink.completeNext(); assertEquals(List.of(timeout ? "timeout" : "closed"), statuses);
+		}
+	}
 	@Test void optionalTelemetryYieldsToGameplayAndNeverClosesOnOverflow() {
 		DelayedSink sink = new DelayedSink();
 		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();

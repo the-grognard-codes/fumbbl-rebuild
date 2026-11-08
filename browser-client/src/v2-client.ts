@@ -13,6 +13,7 @@ import { decodeSkillUsePreferences } from './skill-use-preferences.ts';
 import type { SkillUseCase, SkillUseMode, SkillUsePreferences } from './skill-use-preferences.ts';
 import { decodeServerTiming } from './performance-diagnostics.ts';
 import type { PerformanceDiagnostics } from './performance-diagnostics.ts';
+import type { ClientPhase } from './diagnostic-trace.ts';
 
 export type V2Message = Record<string, any>;
 export type PendingIntent = { accountId: string; request: V2Message };
@@ -39,7 +40,7 @@ export class V2Client {
   private authenticationOfferedLiveTranscript = false;
   private lastAutomaticRefresh = 0;
   private includeBrowseDetails = true;
-  private diagnosticRequests = new Map<string, { operation: string; at: number }>();
+  private diagnosticRequests = new Map<string, { operation: string; at: number; details?: boolean }>();
   accountId = '';
   state: SetupState | null = null;
   pending: PendingIntent | null = null;
@@ -54,9 +55,13 @@ export class V2Client {
     return this.pending !== null && !this.requests.has(this.pending.request.requestId);
   }
 
+  private detailSupported: boolean | undefined;
+  private processingId: unknown;
+  private processingOptional = false;
   private options: ClientOptions;
   constructor(options: ClientOptions) {
-    this.options = options;
+    this.options = { ...options, onChange: message => this.observe(message.type === 'matchTranscript' ? 'transcript' : 'notify',
+      () => options.onChange(message), message.state?.revision ?? message.page?.records?.at(-1)?.revision) };
     options.diagnostics?.attach({ configure: enabled => this.configureDiagnostics(enabled), probe: () => this.sendDiagnostic('probe'),
       buffered: () => this.socket?.bufferedAmount ?? 0, pendingMutation: () => !!this.pending || this.requests.size > 0,
       pendingCount: () => this.requests.size + this.diagnosticRequests.size,
@@ -88,6 +93,7 @@ export class V2Client {
 
   private connectSocket() {
     this.disconnect();
+    this.detailSupported = undefined;
     const socket = (this.options.makeSocket ?? (url => new WebSocket(url)))(this.options.url);
     this.socket = socket;
     this.options.onChange({ type: 'status', code: 'CONNECTING' });
@@ -218,25 +224,47 @@ export class V2Client {
       this.diagnosticRequests.delete(oldest); diagnostics.discardDiagnostic(oldest);
     }
     const requestId = crypto.randomUUID();
-    this.diagnosticRequests.set(requestId, { operation, at: diagnostics.now() });
-    try { this.sendMessage(this.socket, { version: 2, type: 'diagnostics', requestId, operation, ...(operation === 'configure' ? { enabled } : {}) }); }
-    catch { this.diagnosticRequests.delete(requestId); diagnostics.server = 'unavailable'; }
+    const details = operation === 'configure' && enabled === true && diagnostics.preferences.details && this.detailSupported !== false;
+    this.diagnosticRequests.set(requestId, { operation, at: diagnostics.now(), details });
+    if (operation === 'configure') diagnostics.detailStatus = enabled && details ? 'negotiating' : 'unavailable';
+    try { this.sendMessage(this.socket, { version: 2, type: 'diagnostics', requestId, operation, ...(operation === 'configure' ? { enabled, ...(details ? { detailVersion: 1 } : {}) } : {}) }); }
+    catch { this.diagnosticRequests.delete(requestId); diagnostics.server = 'unavailable'; diagnostics.detailStatus = 'unavailable'; }
   }
 
   private expireDiagnosticRequests() {
     const diagnostics = this.options.diagnostics; if (!diagnostics) return;
     for (const [id, request] of this.diagnosticRequests) if (diagnostics.now() - request.at >= 5000) {
       this.diagnosticRequests.delete(id); diagnostics.discardDiagnostic(id);
-      if (request.operation === 'configure') diagnostics.server = 'unavailable';
+      if (request.operation === 'configure') { diagnostics.server = 'unavailable'; diagnostics.detailStatus = 'unavailable'; }
     }
   }
 
+  private observe<T>(phase: ClientPhase, action: () => T, revision?: number): T {
+    const diagnostics = this.options.diagnostics;
+    if (!diagnostics?.detailsEnabled || this.processingOptional) return action();
+    const at = diagnostics.now();
+    try { return action(); }
+    finally { diagnostics.processing(this.processingId, phase, at, diagnostics.now() - at, revision); }
+  }
   private receive(raw: string) {
     const diagnostics = this.options.diagnostics;
+    const at = diagnostics?.detailsEnabled ? diagnostics.now() : undefined;
     const message = parseV2Response(raw, diagnostics?.enabled ? bytes => diagnostics.payload('in', bytes) : undefined) as V2Message;
+    const previous = this.processingId, optional = this.processingOptional; this.processingId = message.requestId;
+    this.processingOptional = ['diagnosticsTrace','diagnosticsTiming','diagnostics'].includes(message.type) || this.diagnosticRequests.has(message.requestId);
+    if (at !== undefined && !this.processingOptional) diagnostics?.processing(message.requestId, 'parse', at, diagnostics.now() - at);
+    try { this.observe('receive', () => this.receiveDecoded(raw, message), message.state?.revision); }
+    finally { this.processingId = previous; this.processingOptional = optional; }
+  }
+  private receiveDecoded(raw: string, message: V2Message) {
+    const diagnostics = this.options.diagnostics;
+    if (message.type === 'diagnosticsTrace') {
+      try { if (message.version !== 2) return; this.observe('validate', () => assertV2Projection(message)); diagnostics?.serverTrace(message.requestId, message.trace); } catch { /* Optional trace isolation. */ }
+      return;
+    }
     // Optional telemetry is isolated from strict gameplay projection/correlation handling.
     if (message.type === 'diagnosticsTiming') {
-      try { if (message.version !== 2) throw Error('Unsupported diagnostic version'); assertV2Projection(message); const timing = decodeServerTiming(message.timing);
+      try { if (message.version !== 2) throw Error('Unsupported diagnostic version'); this.observe('validate', () => assertV2Projection(message)); const timing = decodeServerTiming(message.timing);
         if (timing && message.code === 'ACCEPTED' && typeof message.requestId === 'string') diagnostics?.timing(message.requestId, timing);
       } catch { /* Malformed optional diagnostics never strands an accepted action. */ }
       return;
@@ -244,17 +272,24 @@ export class V2Client {
     const diagnosticRequest = this.diagnosticRequests.get(message.requestId);
     if (diagnosticRequest && (message.type === 'diagnostics' || message.type === 'error')) {
       this.diagnosticRequests.delete(message.requestId);
+      if (diagnosticRequest.details && message.type === 'error' && ['MALFORMED_MESSAGE','UNSUPPORTED_MESSAGE'].includes(message.code) && diagnostics?.enabled) {
+        diagnostics.discardDiagnostic(message.requestId); this.detailSupported = false; this.sendDiagnostic('configure', true); return;
+      }
       try {
         if (message.version !== 2) throw Error('Unsupported diagnostic version');
-        assertV2Projection(message);
+        this.observe('validate', () => assertV2Projection(message));
         diagnostics?.response(message.requestId, undefined, message.type === 'error');
         if (diagnostics && diagnosticRequest.operation === 'configure') diagnostics.server = diagnostics.enabled && message.type === 'diagnostics'
           && message.code === 'ACCEPTED' && message.enabled === true ? 'enabled' : 'unavailable';
-      } catch { diagnostics?.discardDiagnostic(message.requestId); if (diagnostics) diagnostics.server = 'unavailable'; }
+        if (diagnostics && diagnosticRequest.operation === 'configure') {
+          if (diagnosticRequest.details) this.detailSupported = message.detailVersion === 1;
+          diagnostics.detailStatus = diagnostics.enabled && diagnostics.server === 'enabled' && diagnosticRequest.details && message.detailVersion === 1 ? 'enabled' : 'unavailable';
+        }
+      } catch { diagnostics?.discardDiagnostic(message.requestId); if (diagnostics) { diagnostics.server = 'unavailable'; diagnostics.detailStatus = 'unavailable'; } }
       return;
     }
     if (message.type === 'diagnostics') return; // Late optional response after timeout/off/reconnect.
-    assertV2Projection(message);
+    this.observe('validate', () => assertV2Projection(message));
     diagnostics?.response(message.requestId, message.state?.revision, message.type === 'error');
     if (message.version !== 2 || typeof message.type !== 'string'
       || (!['catalog', 'teamValidation'].includes(message.type) && typeof message.code !== 'string')) throw Error('Invalid envelope');
@@ -337,12 +372,12 @@ export class V2Client {
         || message.next !== null && message.next <= after) throw Error('Invalid current match page correlation');
     }
     if (message.type === 'matchResult') {
-      const decoded = decodeMatchResult(JSON.stringify({ ...message, version: 1 }));
+      const decoded = this.observe('validate', () => decodeMatchResult(JSON.stringify({ ...message, version: 1 })));
       if (!request || request.type !== 'matchResult' || (decoded.result && decoded.result.matchId !== request.matchId)) throw Error('Foreign result');
       message.result = decoded.result; message.event = decoded.event;
     }
     if (message.type === 'matchTranscript') {
-      const decoded = decodeTranscript(raw, this.liveTranscript);
+      const decoded = this.observe('validate', () => decodeTranscript(raw, this.liveTranscript));
       const live = decoded.requestId === null;
       if (live ? !this.liveTranscript || !this.selection || this.selection.matchId !== decoded.matchId
         : !request || request.type !== 'matchTranscript' || decoded.matchId !== request.matchId
@@ -352,7 +387,7 @@ export class V2Client {
       for (const record of decoded.page.records) diagnostics?.transcript(record.revision);
     }
     if (message.type === 'routePreview') {
-      const decoded = decodeRoutePreview(JSON.stringify(message));
+      const decoded = this.observe('validate', () => decodeRoutePreview(JSON.stringify(message)));
       if (!request || request.type !== 'routePreview' || decoded.matchId !== request.matchId
         || this.selection?.watch || this.selection?.matchId !== decoded.matchId
         || decoded.route.revision !== request.expectedRevision || decoded.route.actor !== this.state?.callerRole
@@ -364,7 +399,7 @@ export class V2Client {
       message.route = decoded.route;
     }
     if (message.type === 'movementRange' || message.type === 'movementPreview') {
-      const decoded = message.type === 'movementRange' ? decodeMovementRange(raw) : decodeMovementPreview(raw);
+      const decoded = message.type === 'movementRange' ? this.observe('validate', () => decodeMovementRange(raw)) : this.observe('validate', () => decodeMovementPreview(raw));
       const route = 'range' in decoded ? decoded.range : decoded.plan.route;
       if (!request || request.type !== decoded.type || decoded.matchId !== request.matchId
         || this.selection?.watch || this.selection?.matchId !== decoded.matchId
@@ -396,7 +431,7 @@ export class V2Client {
       } else message.range = decoded.range;
     }
     if (message.type === 'matchChat') {
-      const decoded = decodeChat(JSON.stringify(message));
+      const decoded = this.observe('validate', () => decodeChat(JSON.stringify(message)));
       if (this.selection && decoded.matchId !== this.selection.matchId
         || !this.selection && !request
         || request && (request.type !== 'matchChat' || decoded.matchId !== request.matchId
@@ -415,7 +450,7 @@ export class V2Client {
     }
     if (message.type === 'setupState' && message.code === 'ACCEPTED' && !message.state) throw Error('Missing state');
     if (message.type === 'setupState' && message.state) {
-      const state = decodeSetupStateValue(message.state, true);
+      const state = this.observe('validate', () => decodeSetupStateValue(message.state, true));
       if (!this.selection || state.matchId !== this.selection.matchId || (request?.matchId && request.matchId !== state.matchId)) throw Error('Foreign match');
       if (this.selection.watch !== (state.callerRole === 'spectator')) throw Error('Wrong recipient role');
       if (!this.state || state.revision >= this.state.revision) this.state = state;
