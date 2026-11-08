@@ -64,6 +64,8 @@ Start with a small native reproduction and one falsifiable hypothesis at a time.
 
 ## Completion Notes
 
+Delivery: [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497) merged on November 8, 2026 after validation CI passed. The owner approved the implementation; this child investigation remains open for its documented follow-up/review. See the [delivery outcome](outcome.md#delivery).
+
 Implementation evidence: [consolidated outcome](outcome.md#native-checkpoint-and-live-evidence) and [workload commands](workloads.md). A live end-turn reproduced a 1,078.789 ms checkpoint (713.427 ms serialization). Three retained-start, 36-action native runs cover append/compaction and restore parity; real MariaDB tests cover durable transaction failures separately. Bounded JFR identified repeated protocol enum-array allocations; the regression fell from 20,160,000 bytes to zero for 40,000 lookups after private enum snapshots. This is a bounded allocation correction, not proof that the intermittent spike is fixed. The outcome defines the remaining history-matched JFR/JSON/GC attribution scope. Keep this issue open.
 
 Publish the verified cause or explicit unresolved result, bounded fix if applicable, exact commands, baseline/post-change evidence and remaining limits. This result feeds the matched capture comparison ticket.

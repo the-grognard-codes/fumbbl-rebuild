@@ -64,6 +64,8 @@ Reuse the current authorization and request-timing boundaries. Check existing pr
 
 ## Completion Notes
 
+Delivery: [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497) merged on November 8, 2026 after validation CI passed. The owner approved the implementation; this child investigation remains open for its documented follow-up/review. See the [delivery outcome](outcome.md#delivery).
+
 Implementation evidence: [consolidated outcome](outcome.md#real-mariadb-local-authorization-comparison) and [workload commands](workloads.md). Local reauthorization now executes one joined query instead of four, preserving fresh identity ownership, lifecycle and scopes on every operation. Three real MariaDB cohorts measured approximately 25–29% lower median directory cost; tails did not improve uniformly. Real native warm/expired requests distinguish local checks from provider lookup/reuse without extending the five-second window. Security, failure and SQL regressions passed. Full Firebase/transport cost remains distinct from directory timings; issue remains open pending review.
 
 Record the measured expensive boundary, reproduction command, correction or follow-up, security review, exact checks and comparison evidence.

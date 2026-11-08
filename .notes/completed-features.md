@@ -35,6 +35,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Limited-use action tags](#limited-use-action-tags)
   - [Negative-condition markers](#negative-condition-markers)
 - [Game interface and presentation](#game-interface-and-presentation)
+  - [Capture-driven gameplay performance](#capture-driven-gameplay-performance)
   - [Performance diagnostics and responsive pitch panning](#performance-diagnostics-and-responsive-pitch-panning)
   - [Smooth gameplay and predictable game speed](#smooth-gameplay-and-predictable-game-speed)
   - [Dice effects and visible duration](#dice-effects-and-visible-duration)
@@ -276,6 +277,15 @@ Consolidated the duplicate "Roll back player range markings" and "Revise player 
 - Made markers visible to coaches and spectators, with a Game Settings visibility toggle.
 
 ## Game interface and presentation
+
+### Capture-driven gameplay performance
+
+- Reduced local gameplay authorization from four SQL queries to one joined refresh while preserving current ownership, lifecycle, scopes and the existing provider-verification window.
+- Removed repeated recovery protocol enum-array allocations, diagnostic-only gameplay rerenders and synchronous hover hit tests on every response commit. Wire names, replay/recovery data and durable acceptance remain compatible.
+- Added retained-start native checkpoint/compaction workloads, real MariaDB authorization/durability checks and matched production-browser comparisons with exact artifact identities and independent timing clocks. Controlled checkpoint append medians improved about 32–44%; directory medians improved about 25–29%. These are workload results, not general live-game tail guarantees.
+- All nine reference browser cohorts passed the declared feedback/response gates. A live one-second checkpoint spike and broader browser stalls remain under investigation; physical Android acceptance remains under #330.
+- Delivered in [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497), merged on November 8, 2026 after validation CI, including all four native state-test shards and the aggregate gate, passed. Local verification included 518 browser units, 70 interaction/12 hosted startup suites and final authenticated native play. Dev-local was stopped at the owner's request with database volumes retained.
+- Scope, measurements and remaining limits: [feature #496](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496), [implementation outcome](../docs/specs/performance-capture-followup/outcome.md) and [runnable workloads](../docs/specs/performance-capture-followup/workloads.md). Child investigations #489–#493 retain their recorded follow-up scope.
 
 ### Performance diagnostics and responsive pitch panning
 

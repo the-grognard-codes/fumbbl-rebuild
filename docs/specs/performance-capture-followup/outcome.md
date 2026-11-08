@@ -3,9 +3,15 @@
 Parent: [#496](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496).
 Working branch: `feature/496-capture-performance`.
 Base: `601fbec14288adc718acceec8f0616036986ef3d`.
-Implementation authorized on 2026-11-07. Changes remain uncommitted for review.
+Implementation authorized on 2026-11-07; publication and merge authorized on 2026-11-08. Delivered in [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497), merged into `main` as `c3775cfad4a7e9057a6eb0e400e6ab672b61cdfd` on November 8, 2026 at 10:40 a.m. America/New_York (`2026-11-08T15:40:57Z`).
 
-Results are recorded on GitHub: [parent #496](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496#issuecomment-6717362769), [#489](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489#issuecomment-6717362117), [#490](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/490#issuecomment-6717362237), [#491](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/491#issuecomment-6717362384), [#492](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/492#issuecomment-6717362532) and [#493](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/493#issuecomment-6717362664). All remain open.
+Results are recorded on GitHub: [parent #496](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/496#issuecomment-6717362769), [#489](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489#issuecomment-6717362117), [#490](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/490#issuecomment-6717362237), [#491](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/491#issuecomment-6717362384), [#492](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/492#issuecomment-6717362532) and [#493](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/493#issuecomment-6717362664). The parent closed with the merge; child investigations remain open for their recorded follow-up/review.
+
+## Delivery
+
+Committed all 48 changed files as `e02733b35bb863833281a04de71eb2c6c16c5dbf`, including the tracked validation screenshots explicitly requested by the owner. All PR validation checks passed before merge: four native state-test shards and their aggregate gate, static assets/unit/Hosting checks, local lifecycle/computer-player checks, game-session service, CodeQL, Actions lint and secret scan. The opt-in full-browser CI job was skipped as configured; full local browser evidence is recorded below. [Validation run](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/42495310119).
+
+The completed feature is recorded in [the internal archive](../../../.notes/completed-features.md#capture-driven-gameplay-performance) and the public merged-PR history in `site/updates.json`, using the actual PR number and merge timestamp. No remote deployment was performed.
 
 ## Delivered behavior
 
@@ -143,7 +149,7 @@ The final rebuilt-server native UI smoke passed authenticated negotiation, a rea
 - After the hover correction, the cursor suite and ten affected suites passed: pending recovery, reconnect, camera perspective, movement flow, provisional movement, playback, playback motion, setup drag, performance diagnostics and diagnostics presentation. Logs: `.tools/performance-followup/hover-hit-test-green.log` and `final-*-ui.log`. The local client was rebuilt with the standard local-dev assembler; unchanged Java/server validation remains applicable.
 - Final tested Docker server build passed 19 common tests and 682 reported server tests (676 passed, six environment-gated cases skipped), with no failures/errors. Log: `.tools/performance-followup/server-build-final.log`. The final retained-start workload and changed authorization/journal SQL integrations passed three tests separately against real MariaDB without skips. Four other opt-in schema integration cases did not run as standalone fixtures.
 
-The complete `ffb-statetest` reactor/shards were not run in this session; verification used the focused native suite and full common/server build above. Physical Android performance acceptance was not performed. These remain distinct from the passing local evidence.
+The complete `ffb-statetest` reactor/shards were not run locally during implementation; all four native state-test shards and the aggregate gate subsequently passed in PR validation CI. Physical Android performance acceptance was not performed and remains separate from the passing local/CI evidence.
 
 Self-review checked the SQL join against the actual schema, per-operation lifecycle/ownership/scope freshness (including an alternate account that has its own scope), unchanged provider reuse/expiry/failure semantics, private enum snapshot initialization/encapsulation and unchanged wire lookups, disabled diagnostics behavior, enable/disable presentation updates, hover lifecycle/cleanup and unchanged timing-reply/capture contracts. It also corrected a too-shallow initial checkpoint harness, input-clock/display metadata, browser test inventory registration, nested Mockito fixture stubbing, the timing-log field-count assertion and the missing explicitly selected starting-artifact guard.
 
@@ -151,15 +157,15 @@ The first startup preflight stopped when a newly added interaction test invalida
 
 The 768 MiB measurement's first invocation stopped at the tool version probe because Windows PowerShell 5 treated Java's `JAVA_TOOL_OPTIONS` notice as an error. The same pinned tools passed under installed PowerShell 7; the workload runner exposes `CAPTURE_POWERSHELL` for that case. The failed source-display attempt was a test locator mismatch for the Position control, corrected before retaining complete matched cohorts. These were harness/tooling failures, not silently accepted performance results.
 
-## Manual validation handoff
+## Manual validation and shutdown
 
-Dev-local is running at **http://localhost:5000/play**. The local-dev environment, play/builder/spectate routes, exact served JS/CSS hashes, server/database health, current checkout ownership, Firebase credentials, real proxy authentication/reconnect and computer-player readiness passed. The healthy Java server remains running while the final browser artifact is served by local Hosting.
+Dev-local was started and left ready at **http://localhost:5000/play** for manual validation. The local-dev environment, play/builder/spectate routes, exact served JS/CSS hashes, server/database health, checkout ownership, Firebase credentials, real proxy authentication/reconnect and computer-player readiness passed. After the owner approved the feature, `node tools/dev-local.mjs --stop` stopped the local Hosting/proxy/computer-player processes and server/database containers, retaining database volumes.
 
-Server image: `sha256:4c0f0f969cd2569f96030f57154b5a27af31015f6fbc423cc63fd898b987f6cb`. Server JAR SHA256: `8de3e48acceee9ed172fbd0d61f55b876c321d21702f7eaf79171a549ffcfc8d`. Current readiness evidence: `.tools/performance-followup/ready.json`; full startup log: `dev-local-single-worker.log`; final server refresh: `server-final-start.log`. Normal JVM flags were restored and the current Hosting, proxy and computer-player processes are alive.
+Validated server image: `sha256:4c0f0f969cd2569f96030f57154b5a27af31015f6fbc423cc63fd898b987f6cb`. Server JAR SHA256: `8de3e48acceee9ed172fbd0d61f55b876c321d21702f7eaf79171a549ffcfc8d`. Retained readiness evidence: `.tools/performance-followup/ready.json`; full startup log: `dev-local-single-worker.log`; final server refresh: `server-final-start.log`; shutdown log: `dev-local-stop.log`. Normal JVM flags and Hosting/proxy/computer-player readiness were verified before shutdown.
 
-Open or reload the manual URL to use the final client. Play a normal movement/decision sequence and inspect **Debug → Performance & Network** if a delay recurs. The original checkpoint spike and broader React/native stalls remain explicitly unresolved; use a fresh bounded capture plus the new server phase/count diagnostics for follow-up. Keep physical Android acceptance under #330 separate.
+The original checkpoint spike and broader React/native stalls remain explicitly unresolved. For further investigation, restart dev-local and retain a fresh bounded capture with the new server phase/count diagnostics. Keep physical Android acceptance under #330 separate.
 
-Changes remain on the working branch for review. No commit, push, PR, merge, remote deployment or issue closure was performed.
+The feature is merged into `main`; the public site was not remotely deployed. Working-branch removal was authorized by the owner after merge.
 
 ## Tooling retrospective
 

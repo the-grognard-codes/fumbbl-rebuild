@@ -64,6 +64,8 @@ Use the current pending-state and presentation seams before adding a scheduling 
 
 ## Completion Notes
 
+Delivery: [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497) merged on November 8, 2026 after validation CI passed. The owner approved the implementation; this child investigation remains open for its documented follow-up/review. See the [delivery outcome](outcome.md#delivery).
+
 Implementation evidence: [consolidated outcome](outcome.md#final-source-display-and-pointerdown-comparison) and [workload commands](workloads.md). All 108 actions in each paired production artifact showed pending DOM before a held authoritative reply. Three repetitions of Off/Counters/Graph at 1267×682/DPR 2 passed the existing 100 ms pointerdown-feedback p95 gate. The source capture's original feedback delay did not reproduce in this reference workload; no speculative pending-state rewrite was made. Existing pending/rejection/disconnect/reconnect journeys passed, and a real slow native reply still showed pending feedback in 13.8 ms. Physical Android acceptance remains under #330; issue remains open pending review.
 
 Record the reproduced local wait, change and regression, visibility evidence, before/after feedback timings and any outstanding device acceptance.

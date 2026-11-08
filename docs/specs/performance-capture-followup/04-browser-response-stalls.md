@@ -64,6 +64,8 @@ Reuse existing native/profile browser harnesses and exported analyzer summaries.
 
 ## Completion Notes
 
+Delivery: [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497) merged on November 8, 2026 after validation CI passed. The owner approved the implementation; this child investigation remains open for its documented follow-up/review. See the [delivery outcome](outcome.md#delivery).
+
 Implementation evidence: [consolidated outcome](outcome.md) and [workload commands](workloads.md). Removed diagnostic refreshes that caused eight unnecessary gameplay renders per eight notifications. A native CPU/timeline profile identified stationary-pointer hit testing during commits; ten synchronous LivePitch commits now produce zero synchronous hit tests and one frame-coalesced test. Red/green regressions preserve enable/disable, hover suppression, camera/overlay and input behavior. Three matched repetitions of Off/Counters/Graph pass declared gates. Broader live React/frame stalls remain explicitly unresolved; this result does not establish their elimination. Issue remains open pending review.
 
 Record the reproduced boundary or unresolved result, evidence-backed change, exact commands, repeated measurements and instrumentation limits.
