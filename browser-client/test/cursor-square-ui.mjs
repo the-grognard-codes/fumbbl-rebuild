@@ -68,6 +68,18 @@ try {
   await publish();
   await setCameraMode(page, 'top-down');
   const position = await hover(11, 8); await expectSquare('11,8');
+  const hitTests = await page.evaluate(async () => {
+    const original = document.elementFromPoint.bind(document); let calls = 0;
+    document.elementFromPoint = (...args) => { calls++; return original(...args); };
+    try {
+      window.commitCursorInputs(); const synchronous = calls;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return { synchronous, total: calls };
+    } finally { document.elementFromPoint = original; }
+  });
+  console.log('Hover hit tests across ten commits:', JSON.stringify(hitTests));
+  assert.equal(hitTests.synchronous, 0, 'Response commits must not force synchronous hover hit tests');
+  assert.ok(hitTests.total <= 2, 'Commit and DOM-observer refreshes must share a bounded frame hit test');
   await page.mouse.click(position.x, position.y);
   assert.deepEqual(await page.evaluate(() => window.cursorIntents.at(-1)), { x: 11, y: 8 }, 'Hover matches the click square');
   const occupied = await hover(13, 7); await expectSquare('13,7');

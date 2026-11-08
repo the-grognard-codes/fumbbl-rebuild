@@ -111,6 +111,9 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 				|| principal.expiresAtMillis() <= clock.millis()) throw new Rejected();
 			long started = verification.begin();
 			boolean cached = verification.verified(principal);
+			if (cached) {
+				try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.FIREBASE_REUSE)) { /* Bounded count only. */ }
+			}
 			if (!cached) {
 				UserRecord user;
 				try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.FIREBASE_LOOKUP)) {
@@ -119,7 +122,10 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 				if (user == null || user.isDisabled() || user.getTokensValidAfterTimestamp() > principal.authenticationTimeMillis()) throw new Rejected();
 			}
 			// Local account/identity lifecycle and scopes are still refreshed on every authorization call.
-			AuthenticatedPrincipal current = principals.reauthorize(principal);
+			AuthenticatedPrincipal current;
+			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.LOCAL_AUTHORIZATION)) {
+				current = principals.reauthorize(principal);
+			}
 			if (current == null || principal.expiresAtMillis() <= clock.millis()) throw new Rejected();
 			if (!cached) verification.remember(principal, started);
 			return current;

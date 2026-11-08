@@ -61,6 +61,8 @@ This ticket is the final combined comparison, not a prerequisite for starting th
 
 ## Completion Notes
 
+Implementation evidence: [consolidated outcome](outcome.md), [declared validation plan](validation-plan.md) and [runnable workloads](workloads.md). Retained exact baseline/final bundle and fixture hashes, three repetitions per Off/Counters/Graph scenario, 12 measured actions per cohort and separate pointerdown/click/response clocks. All nine production cohorts pass the declared gates; the comparator rejects missing/mismatched/duplicate evidence and excludes arbitrary raw input. Real SQL and native checkpoint cohorts supplement browser measurements. Remaining checkpoint-spike attribution, broader native stalls, small-sample tails and physical Android acceptance are explicit. Issue remains open pending review.
+
 Publish a concise evidence report linking each issue, baseline and corrected artifact, commands, comparison results, unresolved findings and remaining acceptance gates.
 
 For code changes, complete self-review and the repository-required checks appropriate to the affected behavior. Record exact commands, failures, fixes and remaining limitations. Keep the GitHub issue and local mirror aligned; leave unrelated historical issues unchanged.

@@ -33,9 +33,24 @@ public final class JdbcV2PrincipalDirectory implements V2PrincipalDirectory {
 		requireUnexpired(principal.expiresAtMillis());
 		VerifiedIdentity identity = new VerifiedIdentity(principal.issuer(), principal.subject(), principal.expiresAtMillis(), principal.authenticationTimeMillis());
 		try (Connection connection = connections.open()) {
-			String account = account(connection, identity);
-			if (!principal.accountId().equals(account)) throw new V2PrincipalAuthenticator.Rejected();
-			return authorize(connection, identity, account);
+			// One current database snapshot per operation, with no permission cache. The join
+			// checks identity ownership and both lifecycle states before returning any scope.
+			String sql = "SELECT s.scope FROM ffb_v2_identity i"
+				+ " JOIN ffb_v2_account a ON a.account_id=i.account_id"
+				+ " JOIN ffb_v2_account_scope s ON s.account_id=a.account_id"
+				+ " WHERE i.issuer=? AND i.subject=? AND i.account_id=?"
+				+ " AND i.state='ACTIVE' AND a.state='ACTIVE'";
+			EnumSet<ApplicationScope> scopes = EnumSet.noneOf(ApplicationScope.class);
+			try (PreparedStatement query = connection.prepareStatement(sql)) {
+				query.setString(1, identity.issuer); query.setString(2, identity.subject); query.setString(3, principal.accountId());
+				try (ResultSet rows = query.executeQuery()) {
+					while (rows.next()) try { scopes.add(ApplicationScope.valueOf(rows.getString(1))); }
+					catch (IllegalArgumentException ignored) { /* Unknown scopes never grant authority. */ }
+				}
+			}
+			if (scopes.isEmpty()) throw new V2PrincipalAuthenticator.Rejected();
+			return new AuthenticatedPrincipal(principal.accountId(), scopes, identity.expiresAtMillis,
+				identity.issuer, identity.subject, identity.authenticationTimeMillis);
 		}
 	}
 

@@ -64,6 +64,8 @@ Use the current pending-state and presentation seams before adding a scheduling 
 
 ## Completion Notes
 
+Implementation evidence: [consolidated outcome](outcome.md#final-source-display-and-pointerdown-comparison) and [workload commands](workloads.md). All 108 actions in each paired production artifact showed pending DOM before a held authoritative reply. Three repetitions of Off/Counters/Graph at 1267×682/DPR 2 passed the existing 100 ms pointerdown-feedback p95 gate. The source capture's original feedback delay did not reproduce in this reference workload; no speculative pending-state rewrite was made. Existing pending/rejection/disconnect/reconnect journeys passed, and a real slow native reply still showed pending feedback in 13.8 ms. Physical Android acceptance remains under #330; issue remains open pending review.
+
 Record the reproduced local wait, change and regression, visibility evidence, before/after feedback timings and any outstanding device acceptance.
 
 For code changes, complete self-review and the repository-required checks appropriate to the affected behavior. Record exact commands, failures, fixes and remaining limitations. Keep the GitHub issue and local mirror aligned; leave unrelated historical issues unchanged.

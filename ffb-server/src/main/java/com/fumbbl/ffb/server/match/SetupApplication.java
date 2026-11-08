@@ -286,7 +286,10 @@ public final class SetupApplication {
 			String after = recoveryArtifact(session);
 			byte[] previous = committedFingerprints.get(id);
 			if (previous == null) throw new MatchService.Failure("RECOVERY_CORRUPT");
-			byte[] fingerprint = fingerprints.of(after);
+			byte[] fingerprint;
+			try (BrowserRequestTiming.Scope hash = timing.span(BrowserRequestTiming.Phase.RECOVERY_FINGERPRINT)) {
+				fingerprint = fingerprints.of(after);
+			}
 			if (Arrays.equals(fingerprint, previous) && (cursor == null || cursor.entries == 0)) { pendingRestoreCheckpoints.remove(id); return; }
 			try (BrowserRequestTiming.Scope store = timing.span(BrowserRequestTiming.Phase.CHECKPOINT_STORE)) {
 				if (!recovery.save(new RecoveryRepository.Record(id, generation + 1, after), generation))
@@ -294,7 +297,11 @@ public final class SetupApplication {
 			}
 			generations.put(id, generation + 1);
 			committedFingerprints.put(id, fingerprint);
-			if (recovery.supportsJournal()) journalCursors.put(id, journal.cursor(new RecoveryRepository.Record(id, generation + 1, after), session));
+			if (recovery.supportsJournal()) {
+				try (BrowserRequestTiming.Scope prepare = timing.span(BrowserRequestTiming.Phase.RECOVERY_CURSOR)) {
+					journalCursors.put(id, journal.cursor(new RecoveryRepository.Record(id, generation + 1, after), session));
+				}
+			}
 			pendingRestoreCheckpoints.remove(id);
 			if (session.isFailed()) { release(id); failedReleases++; }
 		} catch (SQLException | RuntimeException failure) {
