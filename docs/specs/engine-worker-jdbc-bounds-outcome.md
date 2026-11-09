@@ -123,6 +123,9 @@ Pooled maximum healthy action is 129.39 ms; one of 200 exceeds 100 ms, while
 nearest-rank p99 remains 79.74 ms. Warmup action maximum is 98.56 ms and
 initial/warmup load maximum 50.21 ms. Every task remains below 2,000 ms. These
 are finite local measurements, not a production-provider SLO claim.
+Measurement environment: Windows 11, pinned Temurin 21.0.11 and Maven 3.9.9,
+2 GB test heap, with MariaDB in the isolated Docker container. The dev-local
+runtime uses its existing 768 MB heap; startup is validated separately below.
 
 [Numeric evidence](../reviews/2026-11-09-jdbc-bounds-measurements.json) retains
 all execution samples, counts, connection totals, provider/delivery counts and
@@ -133,11 +136,26 @@ serialized deliveries without client decoding and use 200 actions for p99.
 The corrected unpooled measurements still independently require the RB1 fallback.
 Configured caps remain 500/1,500 ms; no artificial cap reductions were used.
 
+A later fresh-fixture run observed 104.31 ms action p99 (three early samples
+above 100 ms), so the original matched result was not treated as universal.
+Pinned driver inspection showed repeated unchanged timeout settings still call
+the native socket API. Commit `cdf5b5c81` recomputes every allowance while skipping
+that redundant setter when the driver's current integer value already matches;
+every actual I/O call still gets a fresh physical deadline. The subsequent fresh
+200-action run measured p99 86.95 ms, maximum 102.11 ms, with one physical
+connection per action. Supplemental samples from both runs are retained alongside
+the matched evidence. No startup samples or failures were silently removed.
+The clean-build repeat with another 200 fresh-fixture actions measures p99
+92.22 ms (resident-load p99 22.33 ms). It is retained as a third supplemental
+capture; the two post-correction fresh-fixture runs both meet the local target.
+
 [#506](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/506) now records
 the evidence and replaces its old whole-#505 dependency. Sequence: validated A
 → bounded connection/session controls → #506 pool → final B acceptance. The
 pool preserves the same budget, bounded acquisition, clean transactions and
-session policy. It adds no dependency. Final B validation remains pending below.
+session policy. It adds no dependency. **B and the #506 fallback are independently
+accepted on November 9, 2026**, with the validation and remaining integration
+boundary recorded below.
 
 ### Pool and deadline policy
 
@@ -204,3 +222,118 @@ and DNS work from bypassing the owned socket deadline.
 Primary driver evidence: [configuration parsing and URL precedence](https://github.com/mariadb-corporation/mariadb-connector-j/blob/3.5.8/src/main/java/org/mariadb/jdbc/Configuration.java),
 [socket setup](https://github.com/mariadb-corporation/mariadb-connector-j/blob/3.5.8/src/main/java/org/mariadb/jdbc/client/impl/ConnectionHelper.java),
 [network timeout](https://github.com/mariadb-corporation/mariadb-connector-j/blob/3.5.8/src/main/java/org/mariadb/jdbc/Connection.java).
+
+## Durable failure and retry boundaries
+
+Match, recovery and saved-team repositories retain their typed uncertain-outcome
+contracts, including failures after a successful commit while closing resources.
+`CommitNotStarted` proves refusal before COMMIT, so it remains a definite failure;
+an attempted COMMIT or lost cleanup acknowledgement does not prove rollback.
+Preparation retains its existing CommitUnknown handling and exact response codes.
+Match/preparation return MATCH_OUTCOME_UNKNOWN; saved-team writes/deletes retain
+SAVE_OUTCOME_UNKNOWN / DELETE_OUTCOME_UNKNOWN. No SQL detail enters those responses.
+
+Membership insert confirms the exact durable role after acknowledgement loss or
+an identical duplicate retry; it never overwrites a conflicting membership.
+Preference upsert confirms only the requested durable mode and otherwise reports
+its typed unknown boundary for bounded retry. Principal creation reads back the
+identity binding and active account/scopes on a fresh bounded connection; a missing
+or unconfirmed binding remains fail-closed. No uncertain identity grant is invented.
+Both autocommit acknowledgements and explicit transaction commits are covered.
+
+The actual MariaDB wire-fault tests forward or withhold COMMIT/write packets,
+then drop the acknowledgement. Committed actions restore and exact-retry without
+another native execution or journal append. Uncommitted actions restore the old
+checkpoint and admit at most one eventual accepted mutation, followed by a valid
+later mutation. The transcript/checkpoint/result transaction and CAS ownership
+boundaries remain unchanged. Admission consults the breaker before native mutation.
+
+## Final review
+
+Final clean `tools/target-build.ps1 verify` passed on runtime commit `cdf5b5c81`
+in 19:04. Reports: common 19 / 0 skips; server 736 / 8 skips; native 292 / 7 skips.
+Total **1,047 tests, 1,032 passed, 15 existing opt-in skips, zero failures/errors**.
+Every new JDBC test ran; the existing real authorization-directory test also ran
+against its separately provisioned empty synthetic schema. This includes native
+queue, transcript, recovery and exact-response regressions. Evidence:
+`.tools/b-verify-accepted.log`. The earlier B clean run was intentionally stopped
+for the final runtime correction and is excluded from passing evidence.
+
+Focused pool/configuration/measurement checks passed 14 tests; final startup
+configuration checks passed 3; corrected outcome/authorization checks passed 35.
+One new delete-response test initially used the legacy adapter, which rejects
+account-only deletion; the corrected account adapter test passes both committed
+and uncommitted outcomes. The final clean run includes that correction.
+
+Post-B browser unit tests passed **530/530**, without skips, and the production
+TypeScript/Vite build passed. Evidence: `.tools/b-browser-unit.log` and
+`.tools/b-browser-build.log`. The dev-local start runs the full repository browser
+interaction/hosting preflight with `FFB_BROWSER_TEST_WORKERS=1` before startup.
+
+All **82 browser suites** passed: 70 interaction suites across four groups and
+12 hosted-page suites. This includes reconnect, exact retry, diagnostics export,
+native movement/decisions, rendering, mobile and replay. The repository validated
+all five coverage reports against runtime commit `cdf5b5c81`; elapsed 1,007 seconds.
+Reports are in `.tools/validation/local-browser-HlsSEl/`; full output is retained
+in `.tools/b-dev-local.log`.
+
+The ordinary `node tools/dev-local.mjs --start` completed the container build and
+reported ready at `http://localhost:5000/play`. MariaDB and Java health passed,
+Firebase ADC was verified, the real proxy/auth-gate initial/reconnect smoke passed,
+and the computer player registered. The startup audit found an expired cached
+Firebase CLI login in Hosting, separate from the working server ADC. Hosting now
+receives the already-verified ADC path and an isolated ignored CLI configuration
+through its child environment; inherited FIREBASE_TOKEN is removed only there.
+The fix does not copy ADC/token contents, the isolated configuration contains no
+credential fields, and global login state is unchanged. A read-only Hosting API probe and the repaired Hosting process
+both passed, with HTTP 200 and no authentication errors. Nineteen existing local
+tooling/auth/proxy tests passed after this fix. Its startup-only change and the
+test-only fixture correction below follow the clean Java runtime verification;
+they do not change the server/browser runtime that was verified.
+
+Application and computer stderr contain no unexplained errors. Remaining startup
+notices are the existing SLF4J no-op binding, no Emulator UI for Hosting-only mode,
+and an explicitly expected unavailable optional SQL Connect VSCode notification
+endpoint. The original expired-login log is retained; the corrected Hosting log is
+`.tools/dev-local-hosting-adc.log` (empty `.err.log`).
+
+Five opt-in checks skipped by the clean run were then provisioned safely on
+additional synthetic schemas: browser-only bootstrap, marker verification,
+preference migration, recovery-journal migration/CAS/compaction and preparation.
+The preparation fixture still created format-1 drafts for UUID accounts and
+correctly received MIGRATION_REQUIRED; its helper now supplies the current draft
+format with names/jerseys, preserving every existing assertion. The final group
+passed eight tests plus the earlier one-test bootstrap; the preparation unit/DB
+selector also passed 13 tests. Logs: `.tools/b-extra-bootstrap.log`,
+`.tools/b-extra-jdbc-final.log`, `.tools/b-preparation-final.log` and
+`.tools/b-local-tooling-final.log`. These cover five previously skipped cases;
+the remaining ten require separately provisioned history-scaling, historical R4/R5
+or retained cross-process/runtime fixtures. They are not claimed as validated.
+
+### Standards
+
+APPROVE, no remaining actionable findings. Earlier abort/session-baseline and SQL
+identifier findings are fixed by physical eviction and conservative classification.
+Stale-loan guards, slot accounting, deadlines and shutdown follow the single-worker
+lifecycle. No unrelated source or site updates are included.
+The final startup-environment and current-format fixture corrections also received
+an independent APPROVE, with no remaining findings.
+
+### Spec
+
+APPROVE, no remaining actionable findings. Earlier full-task logging timing,
+callable setter, initialization policy, client-info and updatable-result findings
+have regressions and fixes. The pool was brought forward under the approved RB1
+fallback, with evidence and tracker ordering corrected. Each axis independently
+reviewed the runtime diff; validation results are recorded separately.
+The final startup-environment and fixture corrections were separately approved.
+
+## Outstanding integrated provider validation
+
+Independent JDBC acceptance uses the declared bounded provider double. Production
+Firebase enforcement is still owned by [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504)
+and is not made compliant by the shared context or pool. Real-provider integrated
+cold/healthy/outage captures must consume this same budget after #504, and the
+remaining worker fixes/final #39 run retain their documented sequence. This slice
+does not claim whole-runtime two-second compliance or production-provider p99.
+Browser startup/reconnect success is also not that integrated provider validation.
