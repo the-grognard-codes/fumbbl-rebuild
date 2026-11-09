@@ -1,5 +1,13 @@
 [
   {
+    "number": 515,
+    "title": "Generate Riotous Rookies names locally",
+    "summary": "Riotous Rookies now receive local RiotousRookie #n names without remote name lookups. Removed obsolete FUMBBL service configuration and roster-download tooling. Native rolls, player identities, reports, replay and recovery are preserved.",
+    "category": "Gameplay",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/515",
+    "mergedAt": "2026-11-09T19:18:40Z"
+  },
+  {
     "number": 501,
     "title": "Trace storage, delivery and browser performance",
     "summary": "Added opt-in detailed performance captures for game-history storage, database commits, response delivery and browser processing. Basic response timing remains independent, with bounded exports and clearer data-quality reports. Includes repeatable history tests and a collection guide; resolving late-game slowness remains follow-up work.",
