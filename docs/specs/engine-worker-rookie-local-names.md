@@ -1,9 +1,12 @@
 # Feature: Remove remote name generation from Riotous Rookies mutation
 
-Tracking: new GitHub issue and assignment required before implementation.
+Tracking: [#514](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/514),
+assigned to `the-grognard-codes` before implementation; endpoint cleanup reuses
+[#513](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513).
 Source: [#509](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/509)
 and [accepted ADR 0006](../adr/0006-single-engine-worker.md).
-Status: formal fix request; implementation pending.
+Status: implemented in slice 1; validation and review evidence in the
+[outcome report](engine-worker-rookie-local-names-outcome.md).
 
 ## Abstract
 
@@ -117,8 +120,10 @@ saved artifacts' read compatibility.
 
 ## Completion Notes
 
-Request only; implementation and runtime evidence are pending. The maintainer's
-ADR approval is recorded in the [acceptance record](single-engine-worker-adr.md#maintainer-acceptance).
-Record the future issue URL, implementation and validation in this request and
-its outcome report. Investigate failures until resolved or a concrete blocker
-is documented; do not claim the gap closed from removing a source call alone.
+The maintainer's ADR approval is recorded in the
+[acceptance record](single-engine-worker-adr.md#maintainer-acceptance).
+The 2026-11-09 slice 1 handoff additionally authorizes completing #513 after the
+local-name change on the same branch. This extends the original local-name-only
+scope above without including slice 2. See the
+[outcome report](engine-worker-rookie-local-names-outcome.md) for implementation,
+verification, startup evidence and limitations.
