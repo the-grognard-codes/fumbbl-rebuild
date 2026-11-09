@@ -103,20 +103,75 @@ double returns immediately on healthy/cache-hit checks and consumes 1,000 ms
 for one cold operation. Delivery doubles serialize/accept every publication;
 all measured requests succeeded. This does not validate production Firebase.
 
-Thirty action samples opened **24 fresh JDBC connections per task**. Median
-189.0009 ms, p95 213.2418 ms, p99 216.3159 ms; mean acquisition alone 90.1391 ms
-of mean 188.3054 ms execution. Cold-provider samples completed in approximately
-1,241–1,246 ms. Thus deadline enforcement succeeds while connection/setup
-overhead prevents the healthy 100 ms p99 target. Keep the 500/1,500 ms configured
-caps; bring pooling forward under RB1 instead of reducing them artificially.
+The final matched capture uses **200 successful actions and 800 resident loads**
+per mode, cycling the same three synthetic native checkpoints. It records another
+10 warmup actions, 103 initial/warmup loads and 21 cold-provider actions separately.
+All 1,134 tasks per mode return ACCEPTED; every mutation delivers to all 15 peers.
+The complete worker body includes local authorization, dispatch, native execution,
+checkpointing, synchronous server logging, requester serialization and publication.
+Queue admission/scheduling and actual browser/wire processing are covered by the
+transport/browser checks, not simulated as extra JSON decoding inside the worker.
+
+| Path | Unpooled median / p95 / p99 (ms) | Pooled median / p95 / p99 (ms) | Physical connections per task |
+| --- | --- | --- | --- |
+| Healthy action + publication | 158.54 / 192.20 / 207.12 | 57.40 / 75.16 / 79.74 | 24 → 1 (24 logical loans) |
+| Healthy resident load | 44.25 / 57.91 / 64.97 | 14.54 / 22.37 / 26.15 | 7 → 0 (7 logical loans) |
+| Cold 1,000 ms provider operation + action | 1201.48 / 1229.54 / 1236.86 | 1103.20 / 1118.64 / 1130.84 | 24 → 1 |
+
+Mean physical acquisition time per healthy action falls from 89.32 to 4.18 ms.
+Pooled maximum healthy action is 129.39 ms; one of 200 exceeds 100 ms, while
+nearest-rank p99 remains 79.74 ms. Warmup action maximum is 98.56 ms and
+initial/warmup load maximum 50.21 ms. Every task remains below 2,000 ms. These
+are finite local measurements, not a production-provider SLO claim.
+
+[Numeric evidence](../reviews/2026-11-09-jdbc-bounds-measurements.json) retains
+all execution samples, counts, connection totals, provider/delivery counts and
+the three shared SHA-256 fixture identities. The early exploratory 30-sample
+captures were superseded: their delivery double also decoded full JSON on the
+worker, which production queues asynchronously. Final matched captures count
+serialized deliveries without client decoding and use 200 actions for p99.
+The corrected unpooled measurements still independently require the RB1 fallback.
+Configured caps remain 500/1,500 ms; no artificial cap reductions were used.
 
 [#506](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/506) now records
 the evidence and replaces its old whole-#505 dependency. Sequence: validated A
 → bounded connection/session controls → #506 pool → final B acceptance. The
-pool must preserve the same budget, bounded acquisition, clean transactions and
-session policy. Matched before/after captures reuse synthetic native checkpoint
-fixtures with SHA-256 identities. #506 closes only if the pool is completed and
-validated in this slice. B final acceptance remains pending.
+pool preserves the same budget, bounded acquisition, clean transactions and
+session policy. It adds no dependency. Final B validation remains pending below.
+
+### Pool and deadline policy
+
+The one-worker pool holds at most two physical sessions and refuses exhaustion
+immediately. Idle sessions older than one second receive a bounded SELECT 1
+validation; its driver calls use the connect cap and the current request budget.
+Every loan receives a fresh wrapper and breaker lease; closed connection,
+statement and result handles cannot affect a later borrower.
+
+Only unchanged, side-effect-free autocommit read sessions are recycled. Writes,
+transactions, session setters, metadata, updatable-result mutations, abort and
+unknown SQL cause physical eviction. This preserves the complete configured
+baseline without a partial vendor reset. Active statements close before return;
+defensive client-info copies prevent a mutable object escaping into another loan.
+Tests cover quoted, qualified, dollar-containing and digit-leading stored-function
+names, isolation/catalog/SQL-mode changes, rollback, exhaustion and stale handles.
+
+Every actual JDBC I/O call receives min(per-call cap, remaining request time minus
+reserve). Work uses a 150 ms reserve (100 ms native/CPU plus 50 ms cleanup), COMMIT
+50 ms, cleanup zero with a 50 ms cap. Sub-millisecond usable allowances refuse
+before I/O; they never become driver zero/unlimited. The required caps need not
+sum below 2,000 ms. A boundary-owned physical socket timer caps connect/handshake,
+reads, writes and cleanup even when a driver read trickles or a write blocks.
+Only proven local pinned-driver parameter/buffer accessors omit redundant socket
+updates; callable setters retain protection for their hidden metadata queries.
+
+The shared breaker opens after three consecutive availability failures for five
+monotonic seconds, admits one recovery probe, and resets on a clean successful
+lease. Stale successes cannot close a newer open circuit. Local budget refusal,
+lock wait 1205, deadlock 1213 and ordinary SQL validation/concurrency failures do
+not count as outages. A 32-request outage test makes only three physical attempts
+and proves expiry, disconnect, unrelated control and permit cleanup still progress.
+Uncertain writes reconcile through a fresh bounded durable read; an open breaker
+can defer confirmation, but never fabricates acceptance or rollback.
 
 ### Supported JDBC configuration
 
@@ -125,6 +180,11 @@ and `sessionVariables=innodb_lock_wait_timeout=1` in seconds. Query keys/values
 support UTF-8 percent encoding; split raw ampersands before decoding. Names,
 case variants and pinned-driver aliases are normalized before duplicate checks.
 Other supported options/session variables survive in fresh per-call Properties.
+Session values accept numeric/bare literals or quoted strings with doubled
+quotes; expressions, subqueries and backslash-dependent quoting are rejected.
+Arbitrary `initSql` is rejected because Connector/J executes it after the required
+session variables and it could override the lock limit or open a transaction.
+No corrective per-connection configuration query is introduced.
 URL timeout values override Properties in pinned Connector/J 3.5.8, so the
 driver receives an option-free URL plus the normalized effective Properties.
 Validation errors never retain a URL, credential value or raw driver cause.

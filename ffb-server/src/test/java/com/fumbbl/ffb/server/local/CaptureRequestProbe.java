@@ -18,7 +18,9 @@ public final class CaptureRequestProbe {
 		java.util.concurrent.atomic.AtomicInteger accepted = new java.util.concurrent.atomic.AtomicInteger();
 		for (int index = 0; index < peers; index++) publisher.watch(new BrowserConnection() {
 			@Override public void send(String message) {
-				if (!"ACCEPTED".equals(JsonObject.readFrom(message).getString("code", ""))) throw new AssertionError("Healthy publication was rejected");
+				// Production queues the serialized string; JSON decoding belongs to the browser.
+				int code = message.indexOf("\"code\":\"ACCEPTED\""), state = message.indexOf("\"state\":");
+				if (code < 0 || state < code) throw new AssertionError("Healthy publication was rejected");
 				accepted.incrementAndGet();
 			}
 		}, principal, matchId, "synthetic-watch");

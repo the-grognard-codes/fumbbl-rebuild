@@ -42,7 +42,10 @@ class JdbcRequestConfigurationTest {
 			CAPS + "&CONNECTTIMEOUT=100", CAPS + "&sessionVariables=innodb_lock_wait_timeout=1",
 			CAPS.replace("innodb_lock_wait_timeout=1", "innodb_lock_wait_timeout=1,INNODB_LOCK_WAIT_TIMEOUT=1"),
 			CAPS.replace("innodb_lock_wait_timeout=1", "innodb_lock_wait_timeout=0"), CAPS.replace("innodb_lock_wait_timeout=1", "sql_mode='x'"),
+			CAPS + ",sql_mode=policy_function()", CAPS + ",sql_mode=(SELECT%201)", CAPS + ",sql_mode='safe'%20COLLATE%20utf8mb4_bin",
+			CAPS + ",sql_mode='safe%5Cvalue'",
 			CAPS + "&pool=true", CAPS + "&transactionReplay=true", CAPS + "&socketFactory=private-factory", CAPS + "&permitRedirect=true",
+			CAPS + "&initSql=SET%20innodb_lock_wait_timeout%3D2", CAPS + "&INITSQL=START%20TRANSACTION", CAPS + "&initSql=CALL%20private_policy()",
 			CAPS + "&localSocketAddress=private-host", CAPS + "&restrictedAuth=auth_gssapi_client", CAPS + "&allowLocalInfile=true",
 			CAPS + "&clientCertificateKeyStoreUrl=http%3A%2F%2Fprivate-host%2Fkeys", CAPS + "&trustCertificateKeyStoreUrl=private-store",
 			CAPS + "&fallbackToSystemTrustStore=true", CAPS + "&fallbackToSystemKeyStore=true", CAPS + "&sslMode=verify-full" }) {

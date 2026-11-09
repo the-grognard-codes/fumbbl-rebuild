@@ -73,6 +73,10 @@ public final class JdbcRequestConfiguration {
 			Configuration parsed = Configuration.parse(url, copy());
 			if (parsed == null || parsed.haMode() != HaMode.NONE || parsed.addresses().size() != 1
 				|| parsed.pool() || parsed.transactionReplay() || Boolean.TRUE.equals(parsed.permitRedirect())) throw invalid();
+			// Connector/J runs initSql after sessionVariables; arbitrary SQL could override the
+			// required lock policy (directly or through a procedure). Literal sessionVariables
+			// remains the supported connection-initialization mechanism for this profile.
+			if (parsed.initSql() != null || names.contains("initsql")) throw invalid();
 			if (parsed.keyStore() != null || parsed.trustStore() != null || parsed.serverSslCert() != null) throw invalid();
 			// Current approved database profiles use loopback TCP. Verified TLS requires a
 			// separately supported startup cache for certificate material, not per-call file reads.
@@ -132,13 +136,32 @@ public final class JdbcRequestConfiguration {
 			String name = assignment.substring(0, equal).trim().toLowerCase(Locale.ROOT)
 				.replace("`", "").replaceFirst("^@@(?:session\\.)?", "");
 			if (!name.matches("[a-z_][a-z_0-9]*") || !assignments.add(name)) throw invalid();
+			String value = assignment.substring(equal + 1).trim();
+			if (!literal(value)) throw invalid();
 			if ("innodb_lock_wait_timeout".equals(name)) {
-				if (positive(assignment.substring(equal + 1).trim()) != 1) throw invalid();
+				if (positive(value) != 1) throw invalid();
 				lock = true;
 			}
 			start = index + 1;
 		}
 		if (quote != 0 || !lock) throw invalid();
+	}
+	/** Session setup is declarative: expressions/procedures must not change other policy. */
+	private boolean literal(String value) {
+		// Backslash quoting depends on sql_mode; doubled quotes have one unambiguous form.
+		if (value.indexOf('\\') >= 0) return false;
+		if (value.matches("-?[0-9]+(?:\\.[0-9]+)?|[A-Za-z_][A-Za-z_0-9]*")) return true;
+		if (value.length() < 2 || value.charAt(0) != '\'' && value.charAt(0) != '"') return false;
+		char quote = value.charAt(0);
+		for (int index = 1; index < value.length(); index++) {
+			char next = value.charAt(index);
+			if (next == quote) {
+				if (index == value.length() - 1) return true;
+				if (value.charAt(index + 1) != quote) return false;
+				index++;
+			}
+		}
+		return false;
 	}
 	private IllegalArgumentException invalid() {
 		return new IllegalArgumentException("Invalid db.url: require one TCP endpoint, positive integral connectTimeout/socketTimeout (ms), and one sessionVariables innodb_lock_wait_timeout=1 (s); unsupported transport/retry options are forbidden");

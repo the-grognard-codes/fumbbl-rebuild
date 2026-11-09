@@ -108,6 +108,6 @@ class JdbcRecoveryBudgetMariaDbTest {
 	}
 	private int journalCount() throws Exception { try (Connection connection = direct(); Statement sql = connection.createStatement(); var row = sql.executeQuery("SELECT COUNT(*) FROM ffb_match_recovery_journal")) { row.next(); return row.getInt(1); } }
 	private Connection direct() throws Exception { return DriverManager.getConnection(base + "?connectTimeout=500&socketTimeout=1500", "root", password); }
-	private JdbcRequestConnections bounded(int targetPort) { return new JdbcRequestConnections("jdbc:mariadb://127.0.0.1:" + targetPort + "/ffb_jdbc_bounds_test?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1", "root", password); }
+	private JdbcRequestConnections bounded(int targetPort) { return new JdbcRequestConnections("jdbc:mariadb://127.0.0.1:" + targetPort + "/ffb_jdbc_bounds_test?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1", "root", password, Boolean.parseBoolean(System.getenv("JDBC_BOUNDS_POOL"))); }
 	private void resource(Statement sql, String name) throws Exception { try (InputStream input = getClass().getResourceAsStream(name)) { for (String statement : new String(input.readAllBytes(), StandardCharsets.UTF_8).replaceAll("(?m)--[^\\r\\n]*", "").split(";")) if (!statement.isBlank()) sql.execute(statement); } }
 }

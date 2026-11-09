@@ -61,7 +61,7 @@ public class FantasyFootballServer implements IFactorySource {
 
 	public void run() throws Exception {
 		jdbcConnections = new JdbcRequestConnections(getProperty(IServerProperty.DB_URL),
-			getProperty(IServerProperty.DB_USER), getProperty(IServerProperty.DB_PASSWORD));
+			getProperty(IServerProperty.DB_USER), getProperty(IServerProperty.DB_PASSWORD), true);
 		File logFolder = new File(properties.getProperty(IServerProperty.SERVER_LOG_FOLDER, "logs"));
 		if ((!logFolder.isDirectory() && !logFolder.mkdirs()) || !logFolder.canWrite())
 			throw new IllegalArgumentException("Cannot write server log folder");

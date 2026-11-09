@@ -193,7 +193,7 @@ class JdbcBoundsMariaDbTest {
 		return bounded(targetPort, true);
 	}
 	private JdbcRequestConnections bounded(int targetPort, boolean autoCommit) {
-		return new JdbcRequestConnections("jdbc:mariadb://127.0.0.1:" + targetPort + "/ffb_jdbc_bounds_test?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1&autocommit=" + autoCommit, "root", password);
+		return new JdbcRequestConnections("jdbc:mariadb://127.0.0.1:" + targetPort + "/ffb_jdbc_bounds_test?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1&autocommit=" + autoCommit, "root", password, Boolean.parseBoolean(System.getenv("JDBC_BOUNDS_POOL")));
 	}
 	private void resource(Statement sql, String name) throws Exception {
 		try (InputStream input = getClass().getResourceAsStream(name)) {
