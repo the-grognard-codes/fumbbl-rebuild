@@ -5,7 +5,8 @@ assigned to `the-grognard-codes` before implementation; endpoint cleanup reuses
 [#513](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513).
 Source: [#509](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/509)
 and [accepted ADR 0006](../adr/0006-single-engine-worker.md).
-Status: implemented in slice 1; validation and review evidence in the
+Status: delivered in [PR #515](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/515),
+merged on 2026-11-09; both tracking issues are closed. Validation, review and delivery evidence in the
 [outcome report](engine-worker-rookie-local-names-outcome.md).
 
 ## Abstract

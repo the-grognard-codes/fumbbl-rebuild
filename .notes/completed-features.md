@@ -19,6 +19,8 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Compact team-builder workbench](#compact-team-builder-workbench)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
   - [Saved deployment formations](#saved-deployment-formations)
+- [Native engine](#native-engine)
+  - [Local Riotous Rookies names and standalone service cleanup](#local-riotous-rookies-names-and-standalone-service-cleanup)
 - [Movement and action planning](#movement-and-action-planning)
   - [Movement-range rollback](#movement-range-rollback)
   - [Replacement movement-range markings](#replacement-movement-range-markings)
@@ -184,6 +186,16 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Setup controls align with chat/log bottoms on desktop and landscape, with phone controls stacked below history. Templates enforce eleven unique assignments, at least three on the LoS, and at most two per wide zone.
 - Manual acceptance completed on 2026-11-06. Validation included 961 passing Java tests (12 existing opt-in skips), 500 browser unit tests, all 77 browser suites, and migration rollback/idempotence checks.
 - Scope and evidence: issues [#465](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/465), [#466](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/466), and [#467](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/467), [approved design](deployment-formations.md), and [implementation outcome](deployment-formations-outcome.md).
+
+## Native engine
+
+### Local Riotous Rookies names and standalone service cleanup
+
+- Riotous Rookies receive local `RiotousRookie #n` names without a remote name lookup. Preserved the native count/gender rolls, per-team indices, player identity and jersey numbers, position/skills/status, reports and checkpoint ordering. Restores and exact retries preserve accepted names and do not create duplicate players.
+- Removed obsolete FUMBBL endpoint properties and HTTP/URL helpers, the remote roster-download tool and its private helpers/dependencies, and an unused legacy signing keystore. Retained roster XML/JSON metadata for saved-format compatibility while removing unused name-generator getters.
+- Validated fixed native outcomes across both teams and repeated inducement applications, an inert configured stalled endpoint, checkpoint/restore/exact retry, a clean pinned Java verify, 82 local browser suites and healthy dev-local startup. Native-fixture live/replay smoke checked both teams' rookie names and player cards. The controlled endpoint test is not a universal outbound-network interceptor; broader ADR 0006 worker-budget fixes remain separate work.
+- Delivered in [PR #515](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/515), merged at `2026-11-09T19:18:40Z` as `ccc98707c9307df17e5d2bf60b38fbc5abbbf1de` after independent review and successful final CI, including all four native shards, aggregate gates and four CodeQL analyses. Dev-local was stopped with database volumes retained; the local and remote implementation branches were removed. No task worktree was created.
+- Scope and evidence: closed issues [#514](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/514) and [#513](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513), [accepted request](../docs/specs/engine-worker-rookie-local-names.md) and [implementation/review/delivery outcome](../docs/specs/engine-worker-rookie-local-names-outcome.md).
 
 ## Movement and action planning
 

@@ -1,6 +1,7 @@
 # Slice 1 outcome: local rookie names and endpoint removal
 
-Date: 2026-11-09. Branch: `fix/local-riotous-rookies-endpoints`.
+Date: 2026-11-09. Implementation branch: `fix/local-riotous-rookies-endpoints`
+(removed after merge).
 Base: current `origin/main` at `9b0d2a9ff` (including documentation commit
 `ce6ed2ba4`, satisfying RB2). The initial working tree was clean; no isolated
 worktree was needed.
@@ -189,8 +190,6 @@ No startup error remains unexplained.
   the current implementation for a naming-service path. A JVM `ProxySelector`
   does not intercept all socket/client implementations, and changing global
   socket/proxy factories would need process isolation to avoid interference.
-- Follow-up review and merge remain subsequent steps. The implementation
-  handoff authorizes a pushed branch and PR, not merge or remote deployment.
 
 ## Execution notes
 
@@ -301,13 +300,25 @@ Thus the resolved transport moves from HttpClient 4.5.2 / HttpCore 4.4.4 to
 initial clean build and real dev-local ADC/access check ran with this after
 graph; retaining the dead MIME dependency solely to override it is unwarranted.
 
-## Delivery preparation
+## Delivery
 
-The owner approved merging and branch cleanup after review. The review revision's
+The owner approved merging and branch cleanup after review. [PR #515](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/515)
+merged into `main` at `2026-11-09T19:18:40Z` (November 9, 2026 at 2:18:40 p.m.
+America/New_York) as `ccc98707c9307df17e5d2bf60b38fbc5abbbf1de`. Issues #514
+and #513 closed automatically. The local checkout fast-forwarded to the merge;
+the implementation branch was deleted both locally and remotely. No task
+worktree was created; the two pre-existing unrelated worktrees were preserved.
+Dev-local is stopped with its database volumes retained, as verified above.
+The completion is recorded in the [internal archive](../../.notes/completed-features.md#local-riotous-rookies-names-and-standalone-service-cleanup)
+and public merged-PR history in `site/updates.json`.
+
+The review revision's
 first GitHub Checks run had abandoned upstream jobs; its aggregate gates
 correctly failed closed. A complete rerun restored the static validation jobs.
 The incomplete default-setup CodeQL run could not be retried through GitHub's
-rerun API. This shutdown/evidence update triggers fresh validation through the
+rerun API. The shutdown/evidence update triggered fresh validation through the
 normal PR synchronization event; no validation gate or branch protection was
-relaxed. Actual merge details and completed-feature records follow successful
-validation and merge.
+relaxed. Final revision `1a6fb8526` passed all required checks, including all four
+native shards, the aggregate target/static gates, service checks and all four
+CodeQL language analyses. Evidence: [successful Checks run](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/42680472518)
+and [successful CodeQL run](https://github.com/the-grognard-codes/fumbbl-rebuild/actions/runs/42680465629).
