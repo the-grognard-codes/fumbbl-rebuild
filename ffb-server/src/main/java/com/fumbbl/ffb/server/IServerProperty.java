@@ -17,8 +17,6 @@ public interface IServerProperty {
 
 	String SERVER_TEST = "server.test";
 
-	String FUMBBL_BASE = "fumbbl.base";
-	String FUMBBL_PORT = "fumbbl.port";
 
 
 	String DB_DRIVER = "db.driver";
