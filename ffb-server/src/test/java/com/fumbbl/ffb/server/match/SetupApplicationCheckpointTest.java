@@ -36,6 +36,16 @@ import static org.mockito.Mockito.when;
 
 /** Application-level durability contracts; native checkpoint encoding/round trips have their own integration tests. */
 class SetupApplicationCheckpointTest {
+	@Test void openStorageAdmissionRejectsBeforeNativeMutationAndAllowsLaterRetry() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.configureStorageAdmission(() -> { throw new SQLException("database breaker open"); });
+			assertEquals("PERSISTENCE_FAILED", fixture.application.handle("home", request("action")).getString("code", null));
+			assertEquals(0, fixture.executed.get());
+			fixture.application.configureStorageAdmission(() -> { });
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("action")).getString("code", null));
+			assertEquals(1, fixture.executed.get());
+		}
+	}
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final long NOW = 2000000000000L;
 

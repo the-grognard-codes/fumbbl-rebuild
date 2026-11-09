@@ -6,6 +6,11 @@
   of diagnostics. Operational counters include full ingress, decision expiry and
   disconnect cleanup execution, queue wait and budget overruns.
 
+- JDBC work uses deadline-capped connection and network limits, one-second
+  session lock waits and a shared outage breaker. Durable retries reconcile lost
+  membership, account-creation and skill-preference acknowledgements; refused
+  commits remain distinct from unknown commit outcomes.
+
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
   along with the legacy remote roster-download tool and unused signing keystore;

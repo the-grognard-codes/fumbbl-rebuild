@@ -1,5 +1,8 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcRequestConnections.NotStarted;
+import com.fumbbl.ffb.server.db.JdbcRequestConnections.CleanupNotStarted;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,7 +12,10 @@ import java.util.List;
 
 /** Short JDBC operations over the v2 copied-storage membership table. */
 public final class JdbcMatchMembershipRepository implements MatchMembershipRepository {
-	public interface Connections { Connection open() throws SQLException; }
+	public interface Connections {
+		Connection open() throws SQLException;
+		default void requireAvailable() throws SQLException { }
+	}
 	private final Connections connections;
 
 	public JdbcMatchMembershipRepository(Connections connections) { this.connections = connections; }
@@ -73,10 +79,33 @@ public final class JdbcMatchMembershipRepository implements MatchMembershipRepos
 	}
 
 	@Override public void insert(MatchMembership membership) throws SQLException {
-		try (Connection connection = connections.open(); PreparedStatement statement = connection.prepareStatement(
-			"INSERT INTO ffb_v2_match_members(matchid,account_id,role) VALUES (?,?,?)")) {
-			statement.setString(1, membership.matchId); statement.setString(2, membership.accountId); statement.setString(3, membership.role);
-			if (statement.executeUpdate() != 1) throw new SQLException("Unexpected membership write count");
+		boolean uncertain = false;
+		try (Connection connection = connections.open()) {
+			boolean autoCommit = connection.getAutoCommit();
+			try {
+				try (PreparedStatement statement = connection.prepareStatement("INSERT INTO ffb_v2_match_members(matchid,account_id,role) VALUES (?,?,?)")) {
+					statement.setString(1, membership.matchId); statement.setString(2, membership.accountId); statement.setString(3, membership.role);
+					uncertain = autoCommit;
+					if (statement.executeUpdate() != 1) throw new SQLException("Unexpected membership write count");
+				}
+				if (!autoCommit) { uncertain = true; connection.commit(); }
+			} catch (SQLException failure) {
+				if (!autoCommit) try { connection.rollback(); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
+				throw failure;
+			}
+		} catch (SQLException failure) {
+			if (failure instanceof NotStarted && !(failure instanceof CleanupNotStarted)) throw failure;
+			if (failure.getErrorCode() == 1205 || "40001".equals(failure.getSQLState())) throw failure;
+			boolean duplicate = "23000".equals(failure.getSQLState()) && failure.getErrorCode() == 1062;
+			if (!duplicate && failure.getSQLState() != null && failure.getSQLState().startsWith("23")) throw failure;
+			if (!uncertain && !duplicate) throw failure;
+			// One bounded readback; no write is blindly repeated inside this request.
+			try {
+				MatchMembership durable = find(membership.matchId, membership.accountId);
+				if (durable != null && membership.role.equals(durable.role)) return;
+			} catch (SQLException readback) { failure.addSuppressed(readback); }
+			if (duplicate) throw failure;
+			throw new OutcomeUnknown(failure);
 		}
 	}
 }

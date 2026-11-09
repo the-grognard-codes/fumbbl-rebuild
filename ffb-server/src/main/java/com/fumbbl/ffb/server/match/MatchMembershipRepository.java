@@ -4,6 +4,9 @@ import java.sql.SQLException;
 
 /** Marker-6 membership store. Existing marker-5 fixture memberships are never inferred or rewritten. */
 public interface MatchMembershipRepository {
+	final class OutcomeUnknown extends SQLException {
+		public OutcomeUnknown(SQLException cause) { super("Membership write outcome unknown; retry the same membership", cause); }
+	}
 	MatchMembership find(String matchId, String accountId) throws SQLException;
 	boolean hasMatch(String matchId) throws SQLException;
 	void insert(MatchMembership membership) throws SQLException;

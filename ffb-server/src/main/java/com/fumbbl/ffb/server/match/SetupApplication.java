@@ -27,12 +27,16 @@ public final class SetupApplication {
 	private final boolean saveResume;
 	private final Clock clock;
 	private SkillUsePreferenceService skillUsePreferences;
+	public interface StorageAdmission { void requireAvailable() throws SQLException; }
+	private StorageAdmission storageAdmission = () -> { };
+	public void configureStorageAdmission(StorageAdmission admission) { storageAdmission = java.util.Objects.requireNonNull(admission); }
 
 	public void configureSkillUsePreferences(SkillUsePreferenceService service) {
 		this.skillUsePreferences = java.util.Objects.requireNonNull(service);
 	}
 
 	private void refreshSkillUsePreferences(String id, SetupSession session) throws SQLException {
+		storageAdmission.requireAvailable();
 		if (skillUsePreferences != null) session.configureSkillUsePreferences(
 			skillUsePreferences.loadForMatch(id, "home"), skillUsePreferences.loadForMatch(id, "away"));
 	}
@@ -171,6 +175,7 @@ public final class SetupApplication {
 
 	private JsonObject activateRecoverable(String owner, String text, JsonObject request, String id) {
 		try {
+			storageAdmission.requireAvailable();
 			MatchDocument document = matches.load(owner, id).document;
 			releaseIdle();
 			if (document.lifecycle == MatchDocument.Lifecycle.AWAITING_SETUP
