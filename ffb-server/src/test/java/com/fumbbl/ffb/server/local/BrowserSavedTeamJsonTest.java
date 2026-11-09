@@ -336,9 +336,29 @@ class BrowserSavedTeamJsonTest {
 		assertEquals(attempted, send(request("load").add("teamId", attempted.get("teamId"))).get("document"));
 		assertEquals(1, repository.rows.size());
 	}
+	@Test
+	void unknownDeleteRetainsItsExactCodeForCommittedAndUncommittedOutcomes() {
+		BrowserSavedTeamJson accounts = new BrowserSavedTeamJson(new SavedTeamService(repository, catalog), true);
+		String owner = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		for (boolean committed : new boolean[] {true, false}) {
+			repository.unknown = false;
+			JsonObject creation = accounts.handle(owner, request("create").add("draft", namedDraft()).toString());
+			assertEquals("OK", creation.getString("code", ""));
+			JsonObject document = creation.get("document").asObject();
+			repository.unknown = true; repository.uncommitted = !committed;
+			JsonObject deletion = request("delete").add("teamId", document.get("teamId")).add("expectedDocumentVersion", 1);
+			JsonObject response = accounts.handle(owner, deletion.toString());
+			assertEquals("DELETE_OUTCOME_UNKNOWN", response.getString("code", ""));
+			assertTrue(response.get("document").isNull());
+			assertEquals(committed ? "NOT_FOUND" : "OK", accounts.handle(owner, request("load").add("teamId", document.get("teamId")).toString()).getString("code", ""));
+			repository.unknown = false;
+			assertEquals(committed ? "NOT_FOUND" : "OK", accounts.handle(owner, deletion.toString()).getString("code", ""));
+			assertTrue(repository.rows.isEmpty());
+		}
+	}
 	private static final class MemoryRepository implements SavedTeamRepository {
 		private final Map<String, Record> rows = new LinkedHashMap<>();
-		private boolean fail, conflict, unknown;
+		private boolean fail, conflict, unknown, uncommitted;
 		public Record find(String owner, String teamId) { Record record = rows.get(teamId); return record != null && record.owner.equals(owner) ? record : null; }
 		public List<Record> list(String owner) { List<Record> result = new ArrayList<>(); for (Record record : rows.values()) if (record.owner.equals(owner)) result.add(record); return result; }
 		public void insert(Record record) throws SQLException { if (fail) throw new SQLException("private DB details"); rows.put(record.teamId, record); if (unknown) throw new OutcomeUnknown(record, new SQLException("private details")); }
@@ -347,10 +367,12 @@ class BrowserSavedTeamJsonTest {
 			if (conflict || rows.get(record.teamId).documentVersion != expected) return false;
 			rows.put(record.teamId, record); return true;
 		}
-		public boolean delete(String owner, String teamId, int expected) {
+		public boolean delete(String owner, String teamId, int expected) throws SQLException {
 			Record record = find(owner, teamId);
 			if (record == null || record.documentVersion != expected) return false;
-			rows.remove(teamId); return true;
+			if (!unknown || !uncommitted) rows.remove(teamId);
+			if (unknown) throw new OutcomeUnknown(record, new SQLException("private details"));
+			return true;
 		}
 	}
 }

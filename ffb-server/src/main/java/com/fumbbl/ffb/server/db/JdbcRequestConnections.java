@@ -109,10 +109,11 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				try { raw = DriverManager.getConnection(configuration.url(), configuration.properties(connect, network)); }
 				finally { acquisitionNanos.addAndGet(System.nanoTime() - began); }
 				if (open.socket == null) throw new SQLException("Driver bypassed bounded socket factory", "08001");
-				open.socket.disarm();
+				if (open.socket.disarm() || open.socket.isClosed() || raw.isClosed())
+					throw new SQLTimeoutException("JDBC acquisition exceeded its deadline", "08001");
 				sockets.add(open.socket);
 				Bounded connection = new Bounded(new Entry(raw, open.socket, System.nanoTime()), budget, lease);
-				raw.setNetworkTimeout(Runnable::run, allowance(budget, configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false));
+				connection.networkTimeout(allowance(budget, configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false));
 				return connection.proxy;
 			} catch (SQLException | RuntimeException failure) {
 				if (failure instanceof NotStarted) lease.abandon();
@@ -236,7 +237,7 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 					if (requested <= 0) throw new SQLException("Unlimited JDBC network timeout forbidden");
 					millis = Math.min(millis, requested);
 				}
-				raw.setNetworkTimeout(Runnable::run, millis);
+				networkTimeout(millis);
 				socket.arm(millis);
 				Object result;
 				boolean expired;
@@ -254,6 +255,11 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				throw failure;
 			}
 		}
+		private void networkTimeout(int millis) throws SQLException {
+			// In pinned Connector/J this getter reads the client's current integer field.
+			// Recompute every allowance, but avoid repeating the same native socket option.
+			if (raw.getNetworkTimeout() != millis) raw.setNetworkTimeout(Runnable::run, millis);
+		}
 		private synchronized void close() throws SQLException {
 			if (closed) return;
 			closed = true;
@@ -261,7 +267,7 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 			try {
 				if (broken || stopped) { lease.abandon(); return; }
 				int millis = allowance(budget, CLEANUP_CAP_MILLIS, 0, false);
-				if (!raw.isClosed()) raw.setNetworkTimeout(Runnable::run, millis);
+				if (!raw.isClosed()) networkTimeout(millis);
 				socket.arm(millis);
 				boolean expired;
 				try {

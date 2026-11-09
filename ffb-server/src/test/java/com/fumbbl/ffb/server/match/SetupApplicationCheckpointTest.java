@@ -145,6 +145,21 @@ class SetupApplicationCheckpointTest {
 			assertEquals(1, fixture.executed.get()); assertEquals(2, fixture.construction.constructed().size());
 		}
 	}
+	@Test void uncommittedUnknownActionRestoresBeforeOneEventualAcceptanceAndLaterMutation() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.failure = "MATCH_OUTCOME_UNKNOWN"; fixture.unknownCommitted = false;
+			SetupApplication.HandleOutcome uncertain = fixture.application.handleWithOutcome("home", request("action"));
+			assertEquals("MATCH_OUTCOME_UNKNOWN", uncertain.response().getString("code", null)); assertFalse(uncertain.publish());
+			assertEquals("before", fixture.durable.get().json); assertEquals(4, fixture.durable.get().generation);
+			fixture.failure = null;
+			JsonObject accepted = fixture.application.handle("home", request("action"));
+			assertEquals("ACCEPTED", accepted.getString("code", null)); assertFalse(accepted.getBoolean("duplicate", true));
+			assertTrue(fixture.application.handle("home", request("action")).getBoolean("duplicate", false));
+			assertEquals(2, fixture.executed.get()); assertEquals(5, fixture.durable.get().generation);
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("later")).getString("code", null));
+			assertEquals(3, fixture.executed.get()); assertEquals(6, fixture.durable.get().generation);
+		}
+	}
 
 	@Test void residentReadOnlyLoadsRefreshTransientPreferencesWithoutSerializingHistory() throws Exception {
 		try (Fixture fixture = new Fixture()) {
@@ -256,6 +271,7 @@ class SetupApplicationCheckpointTest {
 		final MockedConstruction<SetupSession> construction;
 		final SetupApplication application;
 		String failure;
+		boolean unknownCommitted = true;
 		Fixture() throws Exception {
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
@@ -266,6 +282,7 @@ class SetupApplicationCheckpointTest {
 				assertEquals(durable.get().generation, ((Long) call.getArgument(1)).longValue());
 				if ("RECOVERY_CONFLICT".equals(failure)) return false;
 				if ("PERSISTENCE_FAILED".equals(failure)) throw new SQLException("unavailable");
+				if ("MATCH_OUTCOME_UNKNOWN".equals(failure) && !unknownCommitted) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				durable.set(record);
 				if ("MATCH_OUTCOME_UNKNOWN".equals(failure)) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				return true;
