@@ -35,6 +35,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Limited-use action tags](#limited-use-action-tags)
   - [Negative-condition markers](#negative-condition-markers)
 - [Game interface and presentation](#game-interface-and-presentation)
+  - [Correlated gameplay performance evidence](#correlated-gameplay-performance-evidence)
   - [Capture-driven gameplay performance](#capture-driven-gameplay-performance)
   - [Performance diagnostics and responsive pitch panning](#performance-diagnostics-and-responsive-pitch-panning)
   - [Smooth gameplay and predictable game speed](#smooth-gameplay-and-predictable-game-speed)
@@ -277,6 +278,14 @@ Consolidated the duplicate "Roll back player range markings" and "Revise player 
 - Made markers visible to coaches and spectators, with a Game Settings visibility toggle.
 
 ## Game interface and presentation
+
+### Correlated gameplay performance evidence
+
+- Extended opt-in DEV/dev-local diagnostics with fine recovery database, commit/rollback, compression, response serialization, outbound queue/write and browser processing observations. Basic reply timing remains independent of detailed traces, takes priority over detail traffic and is counted once per request.
+- Added actual session revision and safe history/byte context, bounded outer-phase retention with a per-phase index, transport-only trimming and preserved server logs. Versioned exports and offline reports distinguish pending, unknown, unobserved and invalid evidence without combining independent clocks or treating socket completion/React commit as physical presentation.
+- Published the retained-history experiment and repeatable collection/profiling guide. The synthetic histories demonstrate compaction growth; they are not literal turn-7 matches or a complete SQL/network/browser explanation. Resolving live late-game slowness remains follow-up work under #489–#493.
+- Delivered in [PR #501](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501), merged at `2026-11-09T04:09:24Z` after independent review and successful validation checks, including all four native state-test shards and the aggregate gate. The workflow's full-browser job was skipped; local verification included 530 browser tests, 713 native test passes with nine gated skips, 50 tooling tests, the production build and diagnostics UI checks.
+- Scope and evidence: [feature #499](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/499), [implementation outcome](../docs/specs/performance-observability/outcome.md), [review corrections](../docs/specs/performance-observability/review-followup.md), [collection guide](../docs/specs/performance-observability/collection.md) and [history experiment](../docs/specs/performance-capture-followup/history-scaling-outcome.md). Dev-local was stopped with database volumes retained.
 
 ### Capture-driven gameplay performance
 

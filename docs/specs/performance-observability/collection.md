@@ -30,7 +30,7 @@ uncorrelated. Optional diagnostic frames do not measure their own receive proces
 
 ## Live capture procedure
 
-1. Start the normal dev-local instance through `node tools/dev-local.mjs start`
+1. Start the normal dev-local instance through `node tools/dev-local.mjs --start`
    when ready to collect. DEV remote capture requires a separately authorized
    deployment of the instrumented artifact. Do not collect from an older bundle
    and assume it has these additions.
@@ -59,7 +59,7 @@ uncorrelated. Optional diagnostic frames do not measure their own receive proces
 7. Compare Off, lightweight Counters, detailed Counters and Graph cohorts without
    other builds/tests running. Use profilers in a separate attribution run.
    Quantify collection overhead before using the detailed timings as acceptance
-   thresholds. Stop the dev-local instance afterwards with `node tools/dev-local.mjs stop`.
+   thresholds. Stop the dev-local instance afterwards with `node tools/dev-local.mjs --stop`.
 
 Server-side fine logging without browser negotiation is also available through
 the JVM property `-Dffb.browser.trace=true`. It is intentionally explicit and must

@@ -3,6 +3,18 @@
 Issue: [#499](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/499).
 Branch: `feature/performance-observability`.
 Base: `46d896256758f1deb0417566e556b56228d90d21`.
+
+Final delivery: [PR #501](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501)
+merged at `2026-11-09T04:09:24Z` as `81710dce29d8676faea9b5e86843a4af5e865566`.
+The final reviewed head was `3428d5be89cc5c9756e5e683b53abeed7825fa40`;
+validation CI passed, including all four native state-test shards and the aggregate
+gate. The workflow's full-browser job was skipped; executed local browser checks
+remain recorded below and in the review follow-up. Issue #499 is closed.
+The owner authorized merge, working-branch cleanup, completed-feature tracking
+and shutdown. Dev-local was stopped normally with database volumes retained;
+no feature worktree was created. Existing unrelated worktrees were preserved.
+No remote deployment was requested or performed.
+
 Implemented and self-reviewed November 8, 2026. The subsequent user handoff
 authorizes staging all changes, committing, pushing and opening a PR for
 independent review; merge and deployment remain outside this handoff.
