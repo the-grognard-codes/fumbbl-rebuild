@@ -100,6 +100,7 @@ public class RosterPosition implements Position {
 	private String fUrlIconSet;
 	private int fNrOfIcons;
 	private int fCurrentIconSetIndex;
+	// Legacy XML/JSON metadata retained for saved-format compatibility; no name-service lookup.
 	private String nameGenerator;
 	private String replacesPosition;
 	private final List<Keyword> keywords;
@@ -377,13 +378,6 @@ public class RosterPosition implements Position {
 	@Override
 	public String getTeamWithPositionId() {
 		return fTeamWithPositionId;
-	}
-
-	public String getNameGenerator() {
-		if (StringTool.isProvided(nameGenerator)) {
-			return nameGenerator;
-		}
-		return getRoster().getNameGenerator();
 	}
 
 	public String getReplacesPosition() {

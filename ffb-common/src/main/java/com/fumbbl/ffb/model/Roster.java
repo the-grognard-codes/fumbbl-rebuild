@@ -56,6 +56,7 @@ public class Roster implements IXmlSerializable, IJsonSerializable {
 	private boolean fNecromancer;
 	private boolean fUndead;
 	private String riotousPositionId;
+	// Legacy XML/JSON metadata retained for saved-format compatibility; no name-service lookup.
 	private String nameGenerator;
 	private int maxBigGuys;
 	private final List<Keyword> keywords;
@@ -182,13 +183,6 @@ public class Roster implements IXmlSerializable, IJsonSerializable {
 
 	public RosterPosition getRiotousPosition() {
 		return fRosterPositionById.get(riotousPositionId);
-	}
-
-	public String getNameGenerator() {
-		if (StringTool.isProvided(nameGenerator)) {
-			return nameGenerator;
-		}
-		return "default";
 	}
 
 	public int getMaxBigGuys() {

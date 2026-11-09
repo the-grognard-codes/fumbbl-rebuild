@@ -223,10 +223,11 @@ acquisition, deadline-aware I/O and clean transaction/session reset, and cannot
 repair an unproven underlying timeout mechanism by itself.
 #507 owns fan-out counts and authorization semantics; #508 owns browse
 query/input/rate bounds. Its example browse interval remains a ticket decision.
-The [rookie-name fix request](../specs/engine-worker-rookie-local-names.md) records
-the new gap; tracker assignment remains required before implementation. Removal
-of the remote call is also compliant. Implementation evidence is required before
-claiming any of these paths meet the policy.
+The [rookie-name fix request](../specs/engine-worker-rookie-local-names.md) is
+implemented under #514, assigned before implementation. Slice 1 removes the
+remote call and records its [evidence](../specs/engine-worker-rookie-local-names-outcome.md).
+Implementation evidence remains required before claiming the other paths meet
+the policy.
 
 ### Fail fast during sustained dependency outages
 
@@ -306,15 +307,15 @@ runtime wiring, native Steps, or I/O call sites change.
 | --- | --- | --- |
 | [FirebaseV2PrincipalAuthenticator](../../ffb-server/src/main/java/com/fumbbl/ffb/server/match/FirebaseV2PrincipalAuthenticator.java) | `verifyIdToken(bearer, true)` and cache-miss `getUser` run synchronously; builder sets no explicit HTTP timeouts | #504 must include all transitive provider/credential/key calls and retries |
 | [BrowserV2Runtime](../../ffb-server/src/main/java/com/fumbbl/ffb/server/local/BrowserV2Runtime.java) repository wiring | Match, membership, recovery, principal directory, saved-team, preparation, and skill-preference operations use injected JDBC connections on request paths | #505 covers every injected runtime repository, transaction and cleanup; #508 bounds repeated browse loads |
-| [StepRiotousRookies](../../ffb-server/src/main/java/com/fumbbl/ffb/server/step/phase/inducement/StepRiotousRookies.java) → [UtilServerHttpClient.fetchPage](../../ffb-server/src/main/java/com/fumbbl/ffb/server/util/UtilServerHttpClient.java) | One sequential HTTP GET per rookie in nested inducement/rookie loops during native mutation. Builder sets only 10,000 ms connect timeout; no explicit socket/read or connection-request limit. Empty result/`IOException` selects a fallback name, but a stalled read never reaches it | [Local-name fix request](../specs/engine-worker-rookie-local-names.md); tracker assignment pending before implementation. Remove remote generation and prove native ordering and checkpoint behavior |
+| [StepRiotousRookies](../../ffb-server/src/main/java/com/fumbbl/ffb/server/step/phase/inducement/StepRiotousRookies.java) | Resolved in slice 1: names are assigned locally as `RiotousRookie #n`; the Step makes no name-generator request. The former `UtilServerHttpClient` and FUMBBL endpoint configuration/tools are removed | [#514](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/514), [#513](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513); [native, no-network and recovery evidence](../specs/engine-worker-rookie-local-names-outcome.md). This resolves this dependency only, not the aggregate request budget |
 | [StepExecutor](../../ffb-server/src/main/java/com/fumbbl/ffb/server/StepExecutor.java) / worker error handler → [DebugLog.logInternal](../../ffb-server/src/main/java/com/fumbbl/ffb/server/DebugLog.java) | Synchronous file open/write/flush/close under a monitor. Auth diagnostics and exception reporting can write to stderr. No explicit worker occupancy bound | Permitted by the local-logging allowance at the configured level; local-disk/stderr stalls are residual risks, not a ticket or acceptance gate |
 | [BrowserMatchSocket](../../ffb-server/src/main/java/com/fumbbl/ffb/server/local/BrowserMatchSocket.java) / [BrowserMatchDelivery](../../ffb-server/src/main/java/com/fumbbl/ffb/server/local/BrowserMatchDelivery.java) | Callback-based `sendString`, bounded per-connection message/byte admission, and watchdog expiry; close/retire can originate outside the worker and queue adapter cleanup | Preserve asynchronous delivery and bounded callbacks; do not wait for recipients or claim transport expiry releases queued engine cleanup immediately |
 | Initialization and resources | Configuration files, schema verification, `Fortuna` construction (including network reachability checks), and initial classpath scan are startup work. `FactoryManager`/`RawScanner` also run during factory construction; class loading/resource initialization can occur on first use | Startup I/O is not request I/O merely because it exists in the same module. Verify preload or explicitly budget newly introduced lazy worker-side loads; do not assume classpath scanning is an in-memory operation |
 | Compression, JSON and hashing | `UtilJson`, `BoundedJsonStorageCodec`, `CompletedMatch` and `JsonDigest` use in-memory streams/writers on these paths | CPU/heap and input-size budgets still apply; stream APIs alone do not establish filesystem/network I/O |
 
-The sweep also found standalone schema/acceptance/token/cleanup tools and
-`UtilServerHttpClient` methods with no worker caller found beyond `fetchPage`.
-They are not asserted to be live request paths. `DebugLog` log archival exists,
+The sweep also found standalone schema/acceptance/token/cleanup tools. The former
+`UtilServerHttpClient` methods had no other callers and were removed in slice 1.
+The standalone tools are not asserted to be live request paths. `DebugLog` log archival exists,
 but no call to `FantasyFootballServer.closeResources` was found in the inspected
 worker paths; revisit archival reachability when lifecycle wiring changes.
 Startup initialization does not excuse lazy I/O introduced later. The original
@@ -351,7 +352,7 @@ deferred until a move to parallel execution.
 | JDBC stall or unknown commit outcome | [JDBC request / #505](../specs/engine-worker-jdbc-bounds.md): A owns the prerequisite budget/control-timing seam; B adds connection/socket/session bounds, breaker and existing unknown-outcome contracts |
 | Publication/chat/preparation fan-out multiplies provider latency | [Publication request / #507](../specs/engine-worker-publication-authorization.md): zero provider calls during fan-out, preserved local revocation, and accepted passive-recipient freshness amendment |
 | Browse/current-match queries and checkpoint parsing starve gameplay | [Lobby-read request / #508](../specs/engine-worker-lobby-read-bounds.md): rate-limit behavior, bounded query/input work and lane decision |
-| Name-generator stall occurs between native work and checkpoint | [Rookie-name request](../specs/engine-worker-rookie-local-names.md): tracker assignment pending; remove remote generation and prove native/durable ordering |
+| Name-generator stall occurs between native work and checkpoint | Resolved by [#514](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/514) local names and [#513](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513) endpoint removal; [evidence and limitations](../specs/engine-worker-rookie-local-names-outcome.md) |
 | Shared worker/process remains a single failure domain | [Concurrent-match envelope / #39](../specs/engine-worker-concurrent-match-envelope.md): declared mixed-load envelope, queue wait, p95/p99 latency, resources, failures and cleanup; no authorization for parallel mutation |
 
 The maintainer accepted this ADR on 2026-11-09; approval evidence is linked above.
@@ -373,8 +374,8 @@ those tracker writes remain pending explicit authorization.
 
 | Order | Work | Prerequisites / ownership |
 | --- | --- | --- |
-| Any time | Rookie local names | Independent; its tracking issue/assignment is required before implementation |
-| After rookie change lands | [#513: remove FUMBBL endpoint code](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513) | Separate backlog; rookie Step removes the runtime caller first |
+| Any time | [#514: rookie local names](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/514) | Independent; created and assigned before slice 1 implementation |
+| After rookie change | [#513: remove FUMBBL endpoint code](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/513) | Authorized on the same slice 1 branch, after the rookie Step removes the runtime caller |
 | Any time | #39 baseline and harness | Independent; mark missing control timing on pre-A baselines |
 | First | #505 A: request-budget seam and control-task timing | Owned by #505; extends existing worker context; independently accepted prerequisite |
 | Before #504 fix | #504 pinned-SDK spike | Can be investigated independently; must prove supported deadlines/retry and credential controls |
