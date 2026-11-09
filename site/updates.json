@@ -1,5 +1,13 @@
 [
   {
+    "number": 501,
+    "title": "Trace storage, delivery and browser performance",
+    "summary": "Added opt-in detailed performance captures for game-history storage, database commits, response delivery and browser processing. Basic response timing remains independent, with bounded exports and clearer data-quality reports. Includes repeatable history tests and a collection guide; resolving late-game slowness remains follow-up work.",
+    "category": "Platform",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501",
+    "mergedAt": "2026-11-09T04:09:24Z"
+  },
+  {
     "number": 497,
     "title": "Reduce gameplay overhead with capture-driven validation",
     "summary": "Reduced work in gameplay permission checks, recovery parsing, diagnostics and pitch hover updates. Added repeatable performance workloads and matched artifact comparisons while preserving authorization freshness and durable acceptance. Intermittent checkpoint spikes and broader browser stalls remain under investigation.",

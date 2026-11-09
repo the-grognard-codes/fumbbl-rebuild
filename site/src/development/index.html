@@ -27,16 +27,20 @@
     <section class="development-history" id="history" aria-labelledby="history-title">
     <h2 id="history-title">Merged changes</h2>
     <p>One entry per merged pull request. Follow its GitHub link for the implementation and review details.</p>
-    <p class="updates-coverage">192 merged pull requests · Latest merge November 8, 2026 · Newest first</p>
+    <p class="updates-coverage">193 merged pull requests · Latest merge November 8, 2026 · Newest first</p>
     <form id="updates-search" class="updates-tools" action="/development" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">192 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">193 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-501" data-pr="501" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-09T04:09:24Z">November 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501" target="_blank" rel="noreferrer">PR #501<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Trace storage, delivery and browser performance</h3><p>Added opt-in detailed performance captures for game-history storage, database commits, response delivery and browser processing. Basic response timing remains independent, with bounded exports and clearer data-quality reports. Includes repeatable history tests and a collection guide; resolving late-game slowness remains follow-up work.</p>
+    </article>
     <article class="panel update-entry" id="pr-497" data-pr="497" data-category="Gameplay">
       <div class="update-meta"><span class="update-category">Gameplay</span><time datetime="2026-11-08T15:40:57Z">November 8, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497" target="_blank" rel="noreferrer">PR #497<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h3>Reduce gameplay overhead with capture-driven validation</h3><p>Reduced work in gameplay permission checks, recovery parsing, diagnostics and pitch hover updates. Added repeatable performance workloads and matched artifact comparisons while preserving authorization freshness and durable acceptance. Intermittent checkpoint spikes and broader browser stalls remain under investigation.</p>

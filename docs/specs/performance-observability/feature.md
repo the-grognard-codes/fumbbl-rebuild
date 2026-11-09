@@ -6,10 +6,15 @@ The shared checkout subsequently fast-forwarded to documentation-only PR #500
 (`11a5d3c51`); see the outcome for final source context.
 Collection: [runbook](collection.md). Delivery evidence: [outcome](outcome.md).
 
+Delivered: [PR #501](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/501),
+merged at `2026-11-09T04:09:24Z` after review and validation; issue #499 is closed.
+
 This backfilled request records the agreed scope and delivered behavior for
 independent review. The user authorized staging all current changes, committing,
 pushing the working branch and opening a PR on November 8, 2026. Independent
-review is pending; merge and deployment are outside this authorization.
+review and validation were subsequently completed, and the user separately
+authorized merge, cleanup, completed-feature tracking and dev-local shutdown.
+Remote deployment remains outside this authorization.
 
 ## Abstract
 
@@ -61,7 +66,7 @@ The retained-history experiment under #489 reproduced 20–23x compaction growth
 
 ## Constraints
 
-Preserve BB2025-only behavior, native/replay/recovery formats, commit-before-ack, mandatory decision/event ordering, authorization and queue limits. Preserve MUTP themes and Android/Windows/Linux behavior. Preserve existing working-tree content and follow repository conventions. Use the existing feature branch. The current handoff authorizes staging all changes, committing, pushing and opening a PR; merge and remote deployment require separate authorization.
+Preserve BB2025-only behavior, native/replay/recovery formats, commit-before-ack, mandatory decision/event ordering, authorization and queue limits. Preserve MUTP themes and Android/Windows/Linux behavior. Preserve existing working-tree content and follow repository conventions. The implementation publication handoff authorized staging all changes, committing, pushing and opening a PR. The later delivery handoff authorized merge and cleanup; remote deployment remains separately authorized.
 
 ## Implementation Guidance
 
@@ -75,4 +80,4 @@ Run focused clock/transport/JDBC/codec and browser protocol/collector tests firs
 
 Implementation was authorized by the user on November 8, 2026 and completed before this publication handoff. Detail schema version 1 is negotiated separately from capture format 2. The [outcome](outcome.md) records self-review fixes, 527 passing browser unit tests, the tested common/server build (705 passed, 9 gated skips), real MariaDB and WebSocket checks, browser journeys and remaining collection gaps. The [runbook](collection.md) defines repeatable collection and profiling.
 
-The retained-history [experiment report](../performance-capture-followup/history-scaling-outcome.md), results and drivers accompany this feature. The reference mockup under `.notes/art-preview/` is included under the user's instruction to stage all changes; it does not change gameplay or diagnostic behavior. The PR is prepared for independent review. No performance fix, actual early/late whole-match comparison, merge or deployment is claimed.
+The retained-history [experiment report](../performance-capture-followup/history-scaling-outcome.md), results and drivers accompany this feature. The reference mockup under `.notes/art-preview/` is included under the user's instruction to stage all changes; it does not change gameplay or diagnostic behavior. The feature was merged through PR #501 after independent review and validation. No performance fix, actual early/late whole-match comparison or remote deployment is claimed.
