@@ -164,7 +164,10 @@ The supported proxy live test reached the real Java `AUTHENTICATION_REQUIRED`
 gate on both the initial WebSocket connection and reconnect through port 22232
 without submitting credentials (1 test passed, zero skips/failures). The error
 count above scans this startup's game-service log for `ERROR`, `Exception` and
-`SEVERE`. Local services remain running for review.
+`SEVERE`. At the owner's subsequent delivery request, the documented
+`node tools/dev-local.mjs --stop` completed successfully: both managed containers
+stopped, all four managed ports (5000, 22232, 22234, 23317) had no listener, and
+database volumes were retained.
 
 Startup initially detected expired ADC and used the existing gcloud browser
 renewal flow successfully. gcloud warned that its standard ADC file had no quota
@@ -297,3 +300,14 @@ Thus the resolved transport moves from HttpClient 4.5.2 / HttpCore 4.4.4 to
 4.5.14 / 4.4.16, already requested by the unchanged provider dependencies. The
 initial clean build and real dev-local ADC/access check ran with this after
 graph; retaining the dead MIME dependency solely to override it is unwarranted.
+
+## Delivery preparation
+
+The owner approved merging and branch cleanup after review. The review revision's
+first GitHub Checks run had abandoned upstream jobs; its aggregate gates
+correctly failed closed. A complete rerun restored the static validation jobs.
+The incomplete default-setup CodeQL run could not be retried through GitHub's
+rerun API. This shutdown/evidence update triggers fresh validation through the
+normal PR synchronization event; no validation gate or branch protection was
+relaxed. Actual merge details and completed-feature records follow successful
+validation and merge.
