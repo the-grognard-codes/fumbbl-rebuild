@@ -9,6 +9,10 @@
 !/archive/
 /archive/*
 
+# Per-machine network cold-storage link and everything beneath it.
+/cold-storage
+/cold-storage/
+
 # Browser-client build output
 /node_modules/
 browser-client/node_modules/

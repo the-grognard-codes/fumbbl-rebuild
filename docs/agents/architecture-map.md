@@ -42,6 +42,9 @@ canonical art synced into the browser by `npm run assets:sync`.
 - **Server is authoritative.** Browser input selects among server-offered
   decisions. Presentation and projection code observes state and never decides
   or changes native rules (see the `GameState` observer comments).
+- **One engine worker, bounded dependencies.** Preserve worker ownership, the
+  2,000 ms whole-request ceiling, and the narrow local-logging allowance
+  ([ADR 0006](../adr/0006-single-engine-worker.md)); implementation gaps remain tracked there.
 - **One durable boundary per action.** A successful checkpoint commits an action
   and its outcomes together; exact retries read the checkpoint and append
   nothing; storage admission rejects an action before native execution when it
@@ -57,8 +60,9 @@ canonical art synced into the browser by `npm run assets:sync`.
 - **BB2025 only.** Rules code sits in `bb2025` packages, shared infrastructure
   in `common`; unsupported ruleset input is rejected explicitly.
 - **Identity and scope are server-owned.** Every operation checks token expiry
-  and refreshes local account, identity and scopes; only successful Firebase
-  provider checks may be reused, for at most five seconds
+  and refreshes local account, identity and scopes. Incoming requests reuse
+  successful Firebase provider checks for at most five seconds; passive pushes
+  use local checks and existing token expiry under the accepted option A amendment
   ([ADR 0005](../adr/0005-bounded-provider-revalidation.md)).
 - **Accepted ADRs stand.** Flag a conflict with any file in `docs/adr/` rather
   than letting the change override it silently.
