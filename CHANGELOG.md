@@ -4,7 +4,8 @@
 
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
-  along with the legacy remote roster-download tool; MUTP uses its local rosters.
+  along with the legacy remote roster-download tool and unused signing keystore;
+  MUTP uses its bundled roster data.
 
 - DEV and dev-local diagnostics can collect optional correlated database,
   compression, response queue/write and browser processing traces. Versioned

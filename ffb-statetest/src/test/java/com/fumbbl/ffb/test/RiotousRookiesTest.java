@@ -43,7 +43,7 @@ import java.util.function.IntUnaryOperator;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RiotousRookiesTest {
@@ -87,7 +87,7 @@ class RiotousRookiesTest {
 		}
 	}
 
-	@Test void configuredStallingNameGeneratorReceivesNoRequests() throws Exception {
+	@Test void removedNameGeneratorConfigurationDoesNotCauseRequests() throws Exception {
 		try (StalledEndpoint endpoint = new StalledEndpoint()) {
 			Fixture fixture = new Fixture();
 			endpoint.configure(fixture.server);
@@ -97,7 +97,7 @@ class RiotousRookiesTest {
 			rolls.batch(1, 1, 1, 2, 3);
 			rolls.batch(1, 1, 4, 3, 2);
 			state.getDiceRoller().setRecoveryRoll(rolls);
-			assertTimeoutPreemptively(Duration.ofSeconds(2), () -> new StepRiotousRookies(state).start());
+			assertTimeout(Duration.ofSeconds(2), () -> new StepRiotousRookies(state).start());
 			assertEquals(0, endpoint.requests.get());
 			assertEquals(rolls.values.size(), rolls.cursor);
 			assertPlayers(state, state.getGame().getTeamHome(), 1, 2, 3);
@@ -118,7 +118,7 @@ class RiotousRookiesTest {
 				.add("expectedRevision", before.get("revision")).add("promptId", before.get("prompt").asObject().get("id"))
 				.add("optionId", "heads");
 			String actor = before.getString("actor", null);
-			assertTimeoutPreemptively(Duration.ofSeconds(2), () ->
+			assertTimeout(Duration.ofSeconds(2), () ->
 				assertEquals("ACCEPTED", fixture.session.apply(actor, request).getString("code", null)));
 			assertEquals(StepId.RECEIVE_CHOICE, state.getCurrentStep().getId());
 			assertTrue(Arrays.stream(state.getGame().getTeamHome().getPlayers())
@@ -135,11 +135,18 @@ class RiotousRookiesTest {
 			assertEquals(2, transcript.getInt("total", -1));
 			assertTrue(transcript.toString().contains("\"reportId\":\"riotousRookies\""));
 			assertTrue(view(restored).toString().contains("RiotousRookie #0"));
-			Files.createDirectories(Path.of("target"));
-			Files.writeString(Path.of("target", "riotous-rookies-smoke.json"),
-				new JsonObject().add("state", view(restored)).add("transcript", transcript).toString());
+			exportSmokeFixtureIfRequested(new JsonObject().add("state", view(restored)).add("transcript", transcript));
 			assertEquals(0, endpoint.requests.get());
 		}
+	}
+
+	/** Explicit opt-in export; ordinary unit/shard runs do not write smoke artifacts. */
+	private void exportSmokeFixtureIfRequested(JsonObject fixture) throws Exception {
+		String destination = System.getenv("FFB_ROOKIES_SMOKE_FILE");
+		if (destination == null) return;
+		Path output = Path.of(destination);
+		if (!output.isAbsolute()) throw new IllegalArgumentException("FFB_ROOKIES_SMOKE_FILE must be an absolute file path");
+		Files.writeString(output, fixture.toString());
 	}
 
 	@Test void restorePreservesAnExistingRookiesStoredName() throws Exception {
@@ -245,7 +252,8 @@ class RiotousRookiesTest {
 		}
 
 		void configure(TestServer server) {
-			// Deliberately retain the removed configuration keys in this regression only.
+			// Proves the removed lookup path stays inert, not a sandbox for arbitrary future networking.
+			// The source/caller gate separately checks that production has no naming service path.
 			server.getServer().getProperties().setProperty("fumbbl.base", "http://127.0.0.1");
 			server.getServer().getProperties().setProperty("fumbbl.port", Integer.toString(http.getAddress().getPort()));
 			server.getServer().getProperties().setProperty("fumbbl.namegenerator.base", "/names");

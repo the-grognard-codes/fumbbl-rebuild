@@ -43,17 +43,20 @@ with the rookie change first, independently of slice 2.
 
 ## Keystore decision
 
-Retained `ffb-common/keystore.jks`. Read-only `keytool -list -v` without a password
+Deleted the unused `ffb-common/keystore.jks` after PR review. Read-only
+`keytool -list -v` without a password during the original investigation
 shows one legacy private-key entry (`kalimar`) whose self-signed certificate has
 `CN=Kalimar, O=fumbbl.com`, valid January–July 2014. This is certificate identity
 metadata, not a URL, hostname connection target or service configuration.
 Inspection did not verify keystore integrity or access private-key material.
 Tracked-source/configuration/build searches found no use or packaging reference.
 The separate game-service TLS configuration uses an operator-supplied PKCS12
-file and does not reference this artifact. Retaining this unused certificate
-artifact avoids conflating certificate metadata with endpoint removal.
+file and does not reference this artifact. The original distinction between
+certificate metadata and endpoints remains correct; deleting unused key material
+is a separate cleanup decision. Keeping it offers no runtime or compatibility
+benefit. Deletion does not remove its historical copies from Git history.
 
-## Validation
+## Initial implementation validation
 
 Environment: Windows 11, Node `v26.8.1`, pinned Temurin `21.0.11+10-LTS` and Maven
 `3.9.9`. Logs are retained locally under `.tools/rookie-local-validation/`.
@@ -121,8 +124,19 @@ The rookie smoke uses an actual native
 BB2025 fixture, since the exhibition preset deliberately excludes inducement
 purchases; no live match or production data is rewritten to inject rookies.
 
-The successful native regression writes
-`ffb-statetest/target/riotous-rookies-smoke.json`. The local one-off
+Normal native regression runs no longer export smoke files. For an explicit
+export, select the self-contained accepted-creation test and set an absolute
+destination (run from the repository root after building):
+
+```powershell
+$env:FFB_ROOKIES_SMOKE_FILE = Join-Path (Resolve-Path ffb-statetest/target).Path 'riotous-rookies-smoke.json'
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 test -Module ffb-statetest -Test 'RiotousRookiesTest#acceptedNativeCreationRestoresAndRetriesWithoutRenamingDuplicatingOrRolling'
+Remove-Item Env:FFB_ROOKIES_SMOKE_FILE
+```
+
+The explicit export writes `ffb-statetest/target/riotous-rookies-smoke.json`.
+No prior test needs to run, and the test rejects a relative output path.
+The local one-off
 `.tools/rookie-local-validation/browser-smoke.mjs` feeds its restored live view
 and saved transcript snapshot into the existing production component harnesses.
 It checked all 18 names/numbers in both teams' live and replay dugouts and focused
@@ -166,9 +180,13 @@ No startup error remains unexplained.
 - Existing native position selection (including its shuffle behavior) is
   unchanged. The fixed regression uses the human roster's single eligible
   lineman position, so its expected native dice vector is unambiguous.
-- Keystore integrity/private-key validity was not assessed; the artifact is
-  unused and contains no runtime endpoint configuration.
-- Independent PR review and merge remain subsequent steps. The implementation
+- The loopback regression proves the old configured name-generator path stays
+  inert; it does not intercept arbitrary future hard-coded or differently
+  configured outbound connections. The caller/source gate independently checks
+  the current implementation for a naming-service path. A JVM `ProxySelector`
+  does not intercept all socket/client implementations, and changing global
+  socket/proxy factories would need process isolation to avoid interference.
+- Follow-up review and merge remain subsequent steps. The implementation
   handoff authorizes a pushed branch and PR, not merge or remote deployment.
 
 ## Execution notes
@@ -189,3 +207,93 @@ cause; the failed run did not capture event timestamps, so this is an inference.
 The documented two-worker override was selected for the complete fresh retry;
 the final result is recorded above. No unrelated browser behavior was changed
 to work around the failure.
+
+## PR #515 review follow-up
+
+The seven review findings were checked against callers, serialization and the
+actual Maven graph before changing the branch:
+
+| Finding | Decision |
+| --- | --- |
+| Unused keystore | Delete it. Certificate metadata was not an endpoint, but an unused key artifact has no retention benefit here. No used TLS key/configuration changes. |
+| Preemptive timeout thread | Use `assertTimeout` so native mutation stays on the invoking test thread and is never abandoned at the timeout boundary. The normal passing test had exclusive access even before this change; the reliability concern is valid without treating every test-thread handoff as production parallel mutation. The assertion checks elapsed time after return; the controlled endpoint independently closes stalled requests after 3 seconds. |
+| Automatic smoke-file write | Make export opt-in through `FFB_ROOKIES_SMOKE_FILE`, require an absolute destination, and document selecting the self-contained generator test. Ordinary tests have no smoke-file I/O, so they need no `@TempDir`. Previously only the shard containing this class wrote the file, not every native shard. |
+| Scope of no-network regression | Accept the coverage limitation and state it explicitly in the test name/comments and this report. Do not claim that a global `ProxySelector`/`SocketFactory` alone can guard every possible client or raw connection. A comprehensive guard needs a separate, isolated network-policy/instrumentation design. The existing controlled-endpoint regression meets the request's specified old-configuration scenario. |
+| HTTP dependency mediation | Confirmed the version change; record both actual trees below. Keep removal of the unused direct dependency rather than pinning the accidental old override. |
+| Unused getters | Remove both `getNameGenerator()` methods/fallbacks after a repository caller search. Preserve the private fields and all XML/JSON readers/writers, with comments explaining compatibility-only metadata. |
+| Blank lines | Remove the leftover empty lines in `IServerProperty`. |
+
+Follow-up validation:
+
+- `tools/target-build.ps1 test -Test 'RiotousRookiesTest,RecoveryNativeJsonTest,RecoverySessionTest,RulesTest'`:
+  BUILD SUCCESS, 17 tests passed, zero failures/errors/skips. All affected modules
+  compiled, and the existing default smoke file's timestamp stayed unchanged.
+- Explicit export to an absolute `.tools/rookie-local-validation/review-smoke.json`
+  using the single accepted-creation test: BUILD SUCCESS, 1 test passed, zero
+  skips; output contained 16 rookies and 2 transcript records. It requires no
+  other test to have executed first.
+- Endpoint/dead-reference search: no matches; both unused getter callers are
+  gone. `git diff --check` passed.
+- Initial PR head `bb3285342` passed all required GitHub checks, including all
+  four native shards. The earlier complete build/browser/startup evidence is
+  recorded separately above; the review changes target test ownership/export,
+  unused model API and the unused artifact. No provider dependency version was
+  changed by this follow-up.
+
+### Measured HTTP dependency trees
+
+Both commands used pinned Maven 3.9.9/JDK 21, the same project settings/cache,
+and `dependency:tree -Dincludes=org.apache.httpcomponents:* -Dverbose`
+(dependency plugin 3.7.0). The before POM and its parent were copied from
+`f2f27e798`, immediately before endpoint/dependency removal, into an ignored
+directory; the after command used the current `ffb-server/pom.xml`. Both
+commands returned BUILD SUCCESS. Full local logs and the invocation script are
+under `.tools/rookie-local-validation/dependency-comparison/` and
+`.tools/rookie-local-validation/review-dependencies.ps1`.
+
+Before (verbatim filtered tree):
+
+```text
+com.fumbbl.ffb:ffb-server:jar:3.4.0
++- org.apache.httpcomponents:httpmime:jar:4.5.2:compile
+|  \- org.apache.httpcomponents:httpclient:jar:4.5.2:compile
+|     \- org.apache.httpcomponents:httpcore:jar:4.4.4:compile
+\- com.google.firebase:firebase-admin:jar:9.4.3:compile
+   +- com.google.api-client:google-api-client:jar:2.7.1:compile
+   |  +- com.google.http-client:google-http-client-apache-v2:jar:1.45.2:compile
+   |  |  +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for conflict with 4.5.2)
+   |  |  \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for conflict with 4.4.4)
+   |  +- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for conflict with 4.4.4)
+   |  \- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for conflict with 4.5.2)
+   +- com.google.http-client:google-http-client:jar:1.45.3:compile
+   |  +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for conflict with 4.5.2)
+   |  \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for conflict with 4.4.4)
+   \- com.google.cloud:google-cloud-firestore:jar:3.30.2:compile
+      +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for conflict with 4.5.2)
+      \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for conflict with 4.4.4)
+```
+
+After (verbatim filtered tree):
+
+```text
+com.fumbbl.ffb:ffb-server:jar:3.4.0
+\- com.google.firebase:firebase-admin:jar:9.4.3:compile
+   +- com.google.api-client:google-api-client:jar:2.7.1:compile
+   |  +- com.google.http-client:google-http-client-apache-v2:jar:1.45.2:compile
+   |  |  +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for duplicate)
+   |  |  \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for duplicate)
+   |  +- org.apache.httpcomponents:httpcore:jar:4.4.16:compile
+   |  \- org.apache.httpcomponents:httpclient:jar:4.5.14:compile
+   |     \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for duplicate)
+   +- com.google.http-client:google-http-client:jar:1.45.3:compile
+   |  +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for duplicate)
+   |  \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for duplicate)
+   \- com.google.cloud:google-cloud-firestore:jar:3.30.2:compile
+      +- (org.apache.httpcomponents:httpclient:jar:4.5.14:compile - omitted for duplicate)
+      \- (org.apache.httpcomponents:httpcore:jar:4.4.16:compile - omitted for duplicate)
+```
+
+Thus the resolved transport moves from HttpClient 4.5.2 / HttpCore 4.4.4 to
+4.5.14 / 4.4.16, already requested by the unchanged provider dependencies. The
+initial clean build and real dev-local ADC/access check ran with this after
+graph; retaining the dead MIME dependency solely to override it is unwarranted.
