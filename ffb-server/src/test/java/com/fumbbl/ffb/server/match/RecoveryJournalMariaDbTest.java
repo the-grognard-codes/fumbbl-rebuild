@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.local.CaptureRequestProbe;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
@@ -54,7 +55,19 @@ class RecoveryJournalMariaDbTest {
 		RecoveryJournal journal = new RecoveryJournal();
 		RecoveryJournal.Cursor cursor = journal.cursor(repository.find(id));
 		RecoveryRepository.Record first = next(engine, journal, cursor, 1, "first");
-		assertTrue(repository.append(first, 1));
+		JsonObject diagnosticRequest = new JsonObject().add("type", "setup").add("operation", "movement").add("requestId", "real-sql");
+		JsonObject writeTrace = new CaptureRequestProbe().details(diagnosticRequest, () -> {
+			try { assertTrue(repository.append(first, 1)); } catch (SQLException failure) { throw new AssertionError(failure); }
+			return new JsonObject();
+		});
+		for (String phase : new String[] { "DB_CONNECT", "DB_READ", "DB_WRITE", "DB_COMMIT", "STORAGE_COMPRESSION" })
+			assertTrue(writeTrace.get("totals").asObject().get(phase).isObject(), phase);
+		JsonObject readTrace = new CaptureRequestProbe().details(diagnosticRequest, () -> {
+			try { assertNative(engine, repository.find(id)); } catch (SQLException failure) { throw new AssertionError(failure); }
+			return new JsonObject();
+		});
+		for (String phase : new String[] { "DB_CONNECT", "DB_READ", "DB_COMMIT", "STORAGE_DECODE", "STORAGE_DECOMPRESSION" })
+			assertTrue(readTrace.get("totals").asObject().get(phase).isObject(), phase);
 		assertFalse(repository.append(first, 1), "An exact CAS retry does not append twice");
 		assertEquals("1", scalar(connections, "SELECT COUNT(*) FROM ffb_match_recovery_journal"));
 		assertEquals(originalStored, scalar(connections, "SELECT artifact_json FROM ffb_match_recovery"), "Append does not rewrite the full artifact");

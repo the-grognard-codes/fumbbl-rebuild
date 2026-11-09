@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.local.CaptureRequestProbe;
+import com.eclipsesource.json.JsonObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,21 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JdbcRecoveryRepositoryTest {
+	@Test void detailedWritesExposeConnectionCompressionStatementCommitAndByteCounts() throws Exception {
+		when(statement.executeUpdate()).thenReturn(1);
+		String payload = "{\"padding\":\"" + "a".repeat(8000) + "\"}";
+		JsonObject trace = new CaptureRequestProbe().details(new JsonObject().add("type", "setup").add("operation", "movement").add("requestId", "measurement"), () -> {
+			try { assertTrue(repository.save(new RecoveryRepository.Record("match", 2, payload), 1)); }
+			catch (SQLException failure) { throw new AssertionError(failure); }
+			return new JsonObject();
+		});
+		JsonObject totals = trace.get("totals").asObject();
+		for (String phase : new String[] { "DB_CONNECT", "DB_WRITE", "DB_COMMIT", "STORAGE_ENCODE", "STORAGE_COMPRESSION" }) assertTrue(totals.get(phase).isObject(), phase);
+		assertEquals(1, totals.get("DB_COMMIT").asObject().getInt("count", -1));
+		JsonObject values = trace.get("values").asObject();
+		assertTrue(values.getLong("storageInputBytes", 0) > values.getLong("storageOutputBytes", Long.MAX_VALUE));
+		assertFalse(trace.toString().contains("padding"));
+	}
 	private Connection connection;
 	private PreparedStatement statement;
 	private JdbcRecoveryRepository repository;

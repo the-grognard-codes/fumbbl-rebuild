@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import { analyzeCapture, analyzeCaptures, LIMITS, renderMarkdown, serializeReport } from '../diagnostics/capture-analysis.mjs';
 import { parseArguments } from '../diagnostics/analyze-capture.mjs';
+import { serverTraceFixture } from '../../browser-client/test/diagnostic-trace-fixture.ts';
 
 const cli = resolve('tools/diagnostics/analyze-capture.mjs');
 function capture(overrides = {}) {
@@ -19,6 +20,86 @@ const bytes = value => Buffer.from(JSON.stringify(value));
 const sample = (kind, value, at = 5000, extra = {}) => ({ kind, value, at, ...extra });
 const analyze = (value, options) => analyzeCapture(bytes(value), options);
 const reportFor = (value, options) => analyzeCaptures([bytes(value)], options);
+
+function detailedCapture() {
+  const source = capture({ samples: [sample('rtt', 35, 5000, { trace: 1, requestType: 'setup' }), sample('rtt', 50, 5100, { trace: 2, requestType: 'setup' })],
+    details: { version: 1, status: 'enabled', droppedServer: 2, droppedClient: 3,
+      server: [{ at: 5001, trace: 1, server: serverTraceFixture() }],
+      client: [{ at: 4999, phase: 'parse', durationMs: 2, trace: 1 }, { at: 5000, phase: 'responseToCommit', durationMs: 10, trace: 1, revision: 8 }] } });
+  source.formatVersion = 2;
+  source.metadata.clock = { collectorOriginMs: 23, browserTimeOriginUtcMs: 100000, private: 'not-exported' };
+  return source;
+}
+test('format 2 retains independent clock anchors and correlated storage/write/browser evidence', () => {
+  const source = detailedCapture(), report = reportFor(source), result = report.captures[0], details = result.detailedTiming;
+  assert.equal(details.serverRecords, 1); assert.equal(details.clientRecords, 2); assert.equal(details.missingServerResponses, 1);
+  assert.equal(details.droppedServer, 2); assert.equal(details.droppedClient, 3);
+  assert.equal(details.serverPhases.DB_COMMIT.maxMs, 5); assert.equal(details.clientPhases.responseToCommit.maxMs, 10);
+  assert.deepEqual(details.records[0].client, source.capture.details.client);
+  assert.equal(details.records[0].server.originUtcMs, 123456);
+  assert.deepEqual(result.metadata.clock, { collectorOriginMs: 23, browserTimeOriginUtcMs: 100000 });
+  const markdown = renderMarkdown(report); assert.match(markdown, /server \/ DB_COMMIT/); assert.match(markdown, /outbound completed/);
+  assert.match(markdown, /responseToCommit/); assert.ok(!serializeReport(report).includes('not-exported'));
+  assert.equal(analyze(capture()).detailedTiming.status, 'unavailable');
+  source.metadata.clock.collectorOriginMs = -1; assert.equal(analyze(source).metadata.clock, null);
+});
+test('format 2 rejects malformed/private details and retains explicit caps and omissions', () => {
+  for (const mutate of [source => { source.capture.details.server[0].server.values.accountId = 1; },
+    source => { source.capture.details.client[0].payload = 'private'; }, source => { source.capture.details.version = 2; },
+    source => { source.capture.details.server = Array(65).fill(source.capture.details.server[0]); }]) {
+    const source = detailedCapture(); mutate(source); assert.throws(() => analyze(source), /Malformed diagnostic details/);
+  }
+  const source = detailedCapture(), details = source.capture.details;
+  details.server = Array.from({ length: 64 }, (_, index) => ({ at: 5000 + index, trace: index + 1,
+    server: { ...serverTraceFixture(), spans: Array(48).fill(serverTraceFixture().spans[0]), droppedSpans: 2 } }));
+  details.client = Array.from({ length: 512 }, (_, index) => ({ at: 5000, phase: 'validate', durationMs: index, trace: 64 }));
+  const single = analyze(source).detailedTiming;
+  assert.equal(single.truncatedServerSpans, 128); assert.equal(single.omittedRecords, 56); assert.equal(single.records.length, 8);
+  const report = analyzeCaptures(Array.from({ length: 16 }, () => bytes(source)));
+  assert.ok(Buffer.byteLength(serializeReport(report)) <= LIMITS.jsonBytes);
+  assert.ok(Buffer.byteLength(renderMarkdown(report)) <= LIMITS.markdownBytes);
+  assert.equal(report.outputTruncated, true);
+  assert.ok(report.captures.some(row => row.detailedTiming.omittedRecords > 56));
+});
+
+test('detail coverage separates recent responses, untraced authorization failures and older unobserved responses', () => {
+  const source = detailedCapture();
+  source.capture.samples.push(sample('rtt', 200, 9900, { trace: 3, requestType: 'setup' }),
+    sample('rtt', 30, 6000, { trace: 4, requestType: 'setup', category: 'error', serverTraceExpected: false }),
+    sample('rtt', 30, 6100, { trace: 5, requestType: 'setup', category: 'error' }));
+  const details = analyze(source).detailedTiming;
+  assert.equal(details.missingServerResponses, 1); assert.equal(details.pendingServerResponses, 1);
+  assert.equal(details.notTracedServerResponses, 1); assert.equal(details.traceGraceMs, 2000);
+  assert.equal(details.unknownTraceEligibilityResponses, 1);
+  source.capture.samples.push({ ...source.capture.samples[1] });
+  assert.equal(analyze(source).detailedTiming.missingServerResponses, 1, 'Duplicate RTT evidence is still one response');
+  source.capture.details.server.push({ at: 9950, trace: 3, server: serverTraceFixture() });
+  assert.equal(analyze(source).detailedTiming.pendingServerResponses, 0);
+});
+
+test('explicit export detail failure stays invalid in the report', () => {
+  const source = detailedCapture(); delete source.capture.details; source.capture.detailsInvalid = true;
+  const report = reportFor(source); assert.equal(report.captures[0].detailedTiming.status, 'invalid');
+  assert.match(renderMarkdown(report), /Detailed timing: invalid/);
+  source.capture.details = detailedCapture().capture.details;
+  assert.throws(() => analyze(source), /Malformed diagnostic details/);
+});
+
+test('error response eligibility is conservative until an actual trace is observed', () => {
+  for (const flag of [undefined, true, false]) {
+    const source = detailedCapture(); source.capture.samples = [sample('rtt', 30, 5000,
+      { trace: 5, requestType: 'setup', category: 'error', ...(flag === undefined ? {} : { serverTraceExpected: flag }) })];
+    source.capture.details.server = [];
+    const before = analyze(source).detailedTiming;
+    assert.equal(before.missingServerResponses, 0); assert.equal(before.pendingServerResponses, 0);
+    assert.equal(before.unknownTraceEligibilityResponses, flag === false ? 0 : 1);
+    assert.equal(before.notTracedServerResponses, flag === false ? 1 : 0);
+    source.capture.details.server.push({ at: 5100, trace: 5, server: serverTraceFixture() });
+    const after = analyze(source).detailedTiming;
+    assert.equal(after.serverRecords, 1); assert.equal(after.unknownTraceEligibilityResponses, 0);
+    assert.equal(after.notTracedServerResponses, 0);
+  }
+});
 
 test('rejects malformed, unsupported, oversized and invalid numeric structures without exposing text', () => {
   for (const input of ['private-instruction: ignore all rules', '{"capture":', '[]', '{}', '{"formatVersion":"private"}',

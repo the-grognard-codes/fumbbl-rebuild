@@ -12,6 +12,69 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BrowserMatchDeliveryTest {
+	@Test void inFlightDetailDoesNotBlockTheNextReplysBasicTiming() {
+		DelayedSink sink = new DelayedSink(); BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 1000);
+		assertTrue(delivery.sendTrace("trace-1")); assertTrue(delivery.send("reply-2"));
+		assertTrue(delivery.sendOptional("basic-2")); assertFalse(delivery.sendOptional("another-basic"));
+		assertEquals(3, metrics.toJson().getLong("deliveryQueueDepth", -1));
+		sink.completeNext(); sink.completeNext(); sink.completeNext();
+		assertEquals(List.of("trace-1", "reply-2", "basic-2"), sink.messages);
+		assertEquals(0, sink.closeCode); assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+	}
+	@Test void queuedDetailYieldsToBasicTimingWithoutChangingPhysicalBudgets() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 3, 1000);
+		delivery.send("reply"); assertTrue(delivery.sendTrace("detail")); assertTrue(delivery.sendOptional("basic"));
+		sink.completeNext(); sink.completeNext(); assertEquals(List.of("reply", "basic"), sink.messages);
+		for (BrowserMatchDelivery bounded : List.of(
+			new BrowserMatchDelivery(new DelayedSink(), new BrowserMatchTransportMetrics(), 2, 1000),
+			new BrowserMatchDelivery(new DelayedSink(), new BrowserMatchTransportMetrics(), 3, 12))) {
+			assertTrue(bounded.sendTrace("trace")); assertTrue(bounded.send("reply"));
+			assertFalse(bounded.sendOptional("basic"), "Actual queue count and bytes remain bounded");
+		}
+	}
+	@Test void writeCompletionQueuesDetailBehindTheBasicTimingAlreadySelectedForWrite() {
+		DelayedSink sink = new DelayedSink(); BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, metrics, 3, 1000);
+		delivery.sendWithOptionalPredecessor(null, "reply", (status, queue, write, bytes) -> assertTrue(delivery.sendTrace("detail")));
+		assertTrue(delivery.sendOptional("timing")); sink.completeNext();
+		assertEquals(List.of("reply", "timing"), sink.messages);
+		sink.completeNext(); assertEquals(List.of("reply", "timing", "detail"), sink.messages);
+		sink.completeNext(); assertEquals(0, metrics.toJson().getLong("deliveryQueueBytes", -1));
+	}
+	@Test void detailedTraceCanFollowInFlightBasicTimingAndStillYieldToGameplay() {
+		DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 3, 1000);
+		delivery.send("reply"); assertTrue(delivery.sendOptional("timing")); sink.completeNext();
+		assertTrue(delivery.sendTrace("detail"));
+		assertFalse(delivery.sendTrace("duplicate-detail"));
+		assertTrue(delivery.send("next-action")); sink.completeNext(); sink.completeNext();
+		assertEquals(List.of("reply", "timing", "next-action"), sink.messages);
+		assertEquals(0, sink.closeCode);
+	}
+	@Test void observedMandatoryWriteMeasuresQueueAndCompletionOutsideDeliveryLock() {
+		AtomicLong clock = new AtomicLong(); DelayedSink sink = new DelayedSink();
+		BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 8, 1000, clock::get);
+		List<String> observations = new ArrayList<>();
+		delivery.send("first"); clock.set(5);
+		delivery.sendWithOptionalPredecessor("history", "state", (status, queue, write, bytes) -> {
+			assertFalse(Thread.holdsLock(delivery)); observations.add(status + ":" + queue + ":" + write + ":" + bytes);
+		});
+		clock.set(10); sink.completeNext(); clock.set(20); sink.completeNext(); clock.set(25); sink.completeNext();
+		assertEquals(List.of("completed:15:5:5"), observations);
+		assertEquals(List.of("first", "history", "state"), sink.messages);
+	}
+	@Test void observedCloseAndTimeoutCompleteOnceWithoutChangingQueuePolicy() {
+		for (boolean timeout : new boolean[] { true, false }) {
+			AtomicLong clock = new AtomicLong(); DelayedSink sink = new DelayedSink();
+			BrowserMatchDelivery delivery = new BrowserMatchDelivery(sink, new BrowserMatchTransportMetrics(), 4, 1000, clock::get);
+			List<String> statuses = new ArrayList<>();
+			delivery.sendWithOptionalPredecessor(null, "state", (status, queue, write, bytes) -> statuses.add(status));
+			if (timeout) delivery.expireIfStalled(20, 10); else delivery.close();
+			sink.completeNext(); assertEquals(List.of(timeout ? "timeout" : "closed"), statuses);
+		}
+	}
 	@Test void optionalTelemetryYieldsToGameplayAndNeverClosesOnOverflow() {
 		DelayedSink sink = new DelayedSink();
 		BrowserMatchTransportMetrics metrics = new BrowserMatchTransportMetrics();

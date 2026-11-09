@@ -1,0 +1,1295 @@
+{
+  "version": 1,
+  "provenance": {
+    "startedAtUtc": "2026-11-08T16:23:40.604Z",
+    "sourceCommit": "46d896256758f1deb0417566e556b56228d90d21",
+    "harnessSha256": "bbe3be6571e3a66f6044c3e5a689ed09f946d2208bf1475881f9db83b2e64e5c",
+    "runnerSha256": "ad8230d3e53556ef650428bbd180cf1b9eac58612ac4dc68505888b192670e8e",
+    "cpu": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+    "platform": "win32",
+    "levels": "0,32,128,512,1024",
+    "samplesPerCohort": 4,
+    "measurementHeapMiB": 768,
+    "preparationVerificationHeapMiB": 2048,
+    "warmup": "One excluded native action per history/action/storage cohort; a fresh JVM per repetition",
+    "limitations": [
+      "Legal out-and-back setup placements create synthetic long histories, not a complete competitive match",
+      "Identical current two-player pitch and forced successful pass/catch dice; 22-player match roster remains",
+      "Real SetupApplication action/checkpoint/reply with in-memory repository; SQL, transport and browser excluded",
+      "Cold load and recovery verification are outside measured action handling",
+      "Compaction cohorts set the resident journal cursor to its 31-entry boundary immediately before the action; payload and current pitch are unchanged"
+    ]
+  },
+  "javaVersion": "21.0.11",
+  "verificationHeapBytes": 2147483648,
+  "startingFixtures": [
+    {
+      "addedDecisions": 0,
+      "revision": 7,
+      "artifactBytes": 456502,
+      "sha256": "1afbb993aafe6ed23bb5f2f112dca1ab6e517c874c0056bf7bf744249280f18a",
+      "nativeCommands": 42,
+      "transcriptRecords": 8
+    },
+    {
+      "addedDecisions": 32,
+      "revision": 39,
+      "artifactBytes": 1247531,
+      "sha256": "64a21ef623ce4e70ec14d9f011b1dc4446eecb92dd8ccd26756470bd902c9984",
+      "nativeCommands": 74,
+      "transcriptRecords": 40
+    },
+    {
+      "addedDecisions": 128,
+      "revision": 135,
+      "artifactBytes": 3620815,
+      "sha256": "316cd99d60d4cb76c5ce8ef87914af7222c83fc943544f90b0c7f39270050eb7",
+      "nativeCommands": 170,
+      "transcriptRecords": 136
+    },
+    {
+      "addedDecisions": 512,
+      "revision": 519,
+      "artifactBytes": 13115215,
+      "sha256": "e8c1d361519bd7a95c8deb2a4d695ae558a76659b5f53836b4436cd862b4d708",
+      "nativeCommands": 554,
+      "transcriptRecords": 520
+    },
+    {
+      "addedDecisions": 1024,
+      "revision": 1031,
+      "artifactBytes": 25775170,
+      "sha256": "33590cd782d9a9c74e2b88a9f8881dc5336ea45461f3ce0090e48dfa37d65e8e",
+      "nativeCommands": 1066,
+      "transcriptRecords": 1032
+    }
+  ],
+  "reproductionGate": "History-dependent slowdown signal: longest-history handling median exceeds fresh by both 2x and 50 ms; this is an experimental discriminator, not a product SLA",
+  "comparisons": [
+    {
+      "action": "move",
+      "storagePath": "journal",
+      "freshMedianMs": 12.34075,
+      "longMedianMs": 19.466749999999998,
+      "ratio": 1.5774365415392093,
+      "growthSignal": false
+    },
+    {
+      "action": "move",
+      "storagePath": "compaction",
+      "freshMedianMs": 26.6343,
+      "longMedianMs": 538.5202999999999,
+      "ratio": 20.21905212451613,
+      "growthSignal": true
+    },
+    {
+      "action": "pass",
+      "storagePath": "journal",
+      "freshMedianMs": 16.7744,
+      "longMedianMs": 30.137050000000002,
+      "ratio": 1.7966097148035103,
+      "growthSignal": false
+    },
+    {
+      "action": "pass",
+      "storagePath": "compaction",
+      "freshMedianMs": 23.54015,
+      "longMedianMs": 547.1599,
+      "ratio": 23.243687911929193,
+      "growthSignal": true
+    }
+  ],
+  "rows": [
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "journal",
+      "artifactBytes": 456502,
+      "handlingMs": {
+        "count": 12,
+        "median": 12.34075,
+        "p95": 35.8533,
+        "max": 35.8533
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 6.994300000000001,
+        "p95": 24.3127,
+        "max": 24.3127
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 5.56465,
+        "p95": 15.6987,
+        "max": 15.6987
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 5.489050000000001,
+        "p95": 15.569,
+        "max": 15.569
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 18702032,
+        "p95": 19084656,
+        "max": 19084656
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 27.936700000000002,
+        "p95": 48.6956,
+        "max": 48.6956
+      },
+      "cohortHandlingMedians": [
+        31.2468,
+        11.51315,
+        12.022549999999999
+      ]
+    },
+    {
+      "addedDecisions": 0,
+      "action": "move",
+      "storagePath": "compaction",
+      "artifactBytes": 456502,
+      "handlingMs": {
+        "count": 12,
+        "median": 26.6343,
+        "p95": 31.4902,
+        "max": 31.4902
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 6.5434,
+        "p95": 11.6996,
+        "max": 11.6996
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 18.5683,
+        "p95": 22.5412,
+        "max": 22.5412
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 11.346499999999999,
+        "p95": 13.8103,
+        "max": 13.8103
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 5.9167000000000005,
+        "p95": 10.5354,
+        "max": 10.5354
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0.2616,
+        "p95": 0.429,
+        "max": 0.429
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 32345476,
+        "p95": 32502672,
+        "max": 32502672
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 27.22475,
+        "p95": 38.9201,
+        "max": 38.9201
+      },
+      "cohortHandlingMedians": [
+        31.3795,
+        21.76615,
+        23.490499999999997
+      ]
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "journal",
+      "artifactBytes": 456502,
+      "handlingMs": {
+        "count": 12,
+        "median": 16.7744,
+        "p95": 20.0039,
+        "max": 20.0039
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 13.03565,
+        "p95": 14.879,
+        "max": 14.879
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 3.83205,
+        "p95": 5.7888,
+        "max": 5.7888
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 3.7368,
+        "p95": 5.6536,
+        "max": 5.6536
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 13992380,
+        "p95": 14068848,
+        "max": 14068848
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 28.51585,
+        "p95": 51.1811,
+        "max": 51.1811
+      },
+      "cohortHandlingMedians": [
+        19.1766,
+        15.9141,
+        15.249749999999999
+      ]
+    },
+    {
+      "addedDecisions": 0,
+      "action": "pass",
+      "storagePath": "compaction",
+      "artifactBytes": 456502,
+      "handlingMs": {
+        "count": 12,
+        "median": 23.54015,
+        "p95": 33.7928,
+        "max": 33.7928
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 9.960799999999999,
+        "p95": 16.7645,
+        "max": 16.7645
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 13.1164,
+        "p95": 17.5074,
+        "max": 17.5074
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 7.31965,
+        "p95": 10.8501,
+        "max": 10.8501
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 5.1775,
+        "p95": 8.9937,
+        "max": 8.9937
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0.2316,
+        "p95": 0.3678,
+        "max": 0.3678
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 24740360,
+        "p95": 24806648,
+        "max": 24806648
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 26.14125,
+        "p95": 33.6869,
+        "max": 33.6869
+      },
+      "cohortHandlingMedians": [
+        29.3766,
+        21.8637,
+        21.6439
+      ]
+    },
+    {
+      "addedDecisions": 32,
+      "action": "move",
+      "storagePath": "journal",
+      "artifactBytes": 1247531,
+      "handlingMs": {
+        "count": 12,
+        "median": 12.557400000000001,
+        "p95": 20.9883,
+        "max": 20.9883
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 6.75025,
+        "p95": 14.701,
+        "max": 14.701
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 5.5727,
+        "p95": 11.4504,
+        "max": 11.4504
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 5.48895,
+        "p95": 11.3676,
+        "max": 11.3676
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 18696288,
+        "p95": 18706008,
+        "max": 18706008
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 49.17415,
+        "p95": 56.0373,
+        "max": 56.0373
+      },
+      "cohortHandlingMedians": [
+        12.2179,
+        11.8576,
+        19.4137
+      ]
+    },
+    {
+      "addedDecisions": 32,
+      "action": "move",
+      "storagePath": "compaction",
+      "artifactBytes": 1247531,
+      "handlingMs": {
+        "count": 12,
+        "median": 34.34715,
+        "p95": 40.9308,
+        "max": 40.9308
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 6.209,
+        "p95": 7.2987,
+        "max": 7.2987
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 27.649,
+        "p95": 34.3077,
+        "max": 34.3077
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 12.89505,
+        "p95": 18.2437,
+        "max": 18.2437
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 13.54825,
+        "p95": 20.7796,
+        "max": 20.7796
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0.6852,
+        "p95": 0.9018,
+        "max": 0.9018
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 52512428,
+        "p95": 52722552,
+        "max": 52722552
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 47.8341,
+        "p95": 57.9662,
+        "max": 57.9662
+      },
+      "cohortHandlingMedians": [
+        40.718,
+        33.348150000000004,
+        32.6608
+      ]
+    },
+    {
+      "addedDecisions": 32,
+      "action": "pass",
+      "storagePath": "journal",
+      "artifactBytes": 1247531,
+      "handlingMs": {
+        "count": 12,
+        "median": 13.517199999999999,
+        "p95": 24.3122,
+        "max": 24.3122
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 10.313099999999999,
+        "p95": 15.929,
+        "max": 15.929
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 3.2357,
+        "p95": 9.7963,
+        "max": 9.7963
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 3.1915500000000003,
+        "p95": 9.6855,
+        "max": 9.6855
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 14437632,
+        "p95": 14450520,
+        "max": 14450520
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 47.724050000000005,
+        "p95": 57.7744,
+        "max": 57.7744
+      },
+      "cohortHandlingMedians": [
+        13.87635,
+        13.517199999999999,
+        13.8837
+      ]
+    },
+    {
+      "addedDecisions": 32,
+      "action": "pass",
+      "storagePath": "compaction",
+      "artifactBytes": 1247531,
+      "handlingMs": {
+        "count": 12,
+        "median": 37.267700000000005,
+        "p95": 67.5251,
+        "max": 67.5251
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 10.92185,
+        "p95": 42.8641,
+        "max": 42.8641
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 24.83625,
+        "p95": 36.9577,
+        "max": 36.9577
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 11.0557,
+        "p95": 19.0694,
+        "max": 19.0694
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 12.97715,
+        "p95": 17.7102,
+        "max": 17.7102
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0.6007,
+        "p95": 0.8658,
+        "max": 0.8658
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 45557936,
+        "p95": 53745872,
+        "max": 53745872
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 48.11875,
+        "p95": 58.2031,
+        "max": 58.2031
+      },
+      "cohortHandlingMedians": [
+        37.4764,
+        42.27275,
+        34.13655
+      ]
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "journal",
+      "artifactBytes": 3620815,
+      "handlingMs": {
+        "count": 12,
+        "median": 12.36065,
+        "p95": 23.2359,
+        "max": 23.2359
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 6.85535,
+        "p95": 16.2408,
+        "max": 16.2408
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 5.32835,
+        "p95": 8.1758,
+        "max": 8.1758
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 5.2810500000000005,
+        "p95": 8.0992,
+        "max": 8.0992
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 18681192,
+        "p95": 18714296,
+        "max": 18714296
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 127.59985,
+        "p95": 137.239,
+        "max": 137.239
+      },
+      "cohortHandlingMedians": [
+        17.4148,
+        11.839749999999999,
+        12.08
+      ]
+    },
+    {
+      "addedDecisions": 128,
+      "action": "move",
+      "storagePath": "compaction",
+      "artifactBytes": 3620815,
+      "handlingMs": {
+        "count": 12,
+        "median": 84.6779,
+        "p95": 88.6119,
+        "max": 88.6119
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 5.9846,
+        "p95": 12.3635,
+        "max": 12.3635
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 76.69839999999999,
+        "p95": 82.478,
+        "max": 82.478
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 28.201050000000002,
+        "p95": 39.1424,
+        "max": 39.1424
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 44.4977,
+        "p95": 52.885,
+        "max": 52.885
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 1.7530000000000001,
+        "p95": 1.7903,
+        "max": 1.7903
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 109487276,
+        "p95": 109997864,
+        "max": 109997864
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 117.07485,
+        "p95": 123.4981,
+        "max": 123.4981
+      },
+      "cohortHandlingMedians": [
+        85.9872,
+        81.80635000000001,
+        80.9624
+      ]
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "journal",
+      "artifactBytes": 3620815,
+      "handlingMs": {
+        "count": 12,
+        "median": 15.628599999999999,
+        "p95": 26.6418,
+        "max": 26.6418
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 11.881250000000001,
+        "p95": 22.6211,
+        "max": 22.6211
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 3.2658,
+        "p95": 8.5808,
+        "max": 8.5808
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 3.1948,
+        "p95": 8.5199,
+        "max": 8.5199
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 15749412,
+        "p95": 15794816,
+        "max": 15794816
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 124.13675,
+        "p95": 136.3657,
+        "max": 136.3657
+      },
+      "cohortHandlingMedians": [
+        15.09775,
+        17.4284,
+        15.894549999999999
+      ]
+    },
+    {
+      "addedDecisions": 128,
+      "action": "pass",
+      "storagePath": "compaction",
+      "artifactBytes": 3620815,
+      "handlingMs": {
+        "count": 12,
+        "median": 83.46369999999999,
+        "p95": 91.339,
+        "max": 91.339
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 11.3111,
+        "p95": 12.9904,
+        "max": 12.9904
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 71.4023,
+        "p95": 80.0209,
+        "max": 80.0209
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 28.3517,
+        "p95": 38.3771,
+        "max": 38.3771
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 40.37255,
+        "p95": 51.6424,
+        "max": 51.6424
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 1.7213500000000002,
+        "p95": 1.8508,
+        "max": 1.8508
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 104030876,
+        "p95": 104541232,
+        "max": 104541232
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 117.0716,
+        "p95": 122.7089,
+        "max": 122.7089
+      },
+      "cohortHandlingMedians": [
+        81.52175,
+        84.0047,
+        85.80735
+      ]
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "journal",
+      "artifactBytes": 13115215,
+      "handlingMs": {
+        "count": 12,
+        "median": 14.5908,
+        "p95": 43.288,
+        "max": 43.288
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 8.09755,
+        "p95": 24.9907,
+        "max": 24.9907
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 6.3137,
+        "p95": 17.9296,
+        "max": 17.9296
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 6.199199999999999,
+        "p95": 17.754,
+        "max": 17.754
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 18677748,
+        "p95": 18988104,
+        "max": 18988104
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 441.08145,
+        "p95": 499.227,
+        "max": 499.227
+      },
+      "cohortHandlingMedians": [
+        13.1279,
+        14.5908,
+        22.71195
+      ]
+    },
+    {
+      "addedDecisions": 512,
+      "action": "move",
+      "storagePath": "compaction",
+      "artifactBytes": 13115215,
+      "handlingMs": {
+        "count": 12,
+        "median": 264.77185,
+        "p95": 273.3228,
+        "max": 273.3228
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 7.5741,
+        "p95": 10.8562,
+        "max": 10.8562
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 257.84114999999997,
+        "p95": 264.1086,
+        "max": 264.1086
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 96.69829999999999,
+        "p95": 120.6289,
+        "max": 120.6289
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 152.684,
+        "p95": 162.1001,
+        "max": 162.1001
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 6.9715,
+        "p95": 17.8364,
+        "max": 17.8364
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 346190232,
+        "p95": 348020472,
+        "max": 348020472
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 411.30145,
+        "p95": 450.6517,
+        "max": 450.6517
+      },
+      "cohortHandlingMedians": [
+        266.8533,
+        264.87035000000003,
+        263.28324999999995
+      ]
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "journal",
+      "artifactBytes": 13115215,
+      "handlingMs": {
+        "count": 12,
+        "median": 21.7937,
+        "p95": 24.3703,
+        "max": 24.3703
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 17.6693,
+        "p95": 20.3811,
+        "max": 20.3811
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 3.53885,
+        "p95": 7.9117,
+        "max": 7.9117
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 3.48065,
+        "p95": 7.8664,
+        "max": 7.8664
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 21015536,
+        "p95": 21217688,
+        "max": 21217688
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 420.99559999999997,
+        "p95": 459.6291,
+        "max": 459.6291
+      },
+      "cohortHandlingMedians": [
+        22.30035,
+        24.048650000000002,
+        20.81745
+      ]
+    },
+    {
+      "addedDecisions": 512,
+      "action": "pass",
+      "storagePath": "compaction",
+      "artifactBytes": 13115215,
+      "handlingMs": {
+        "count": 12,
+        "median": 271.07175,
+        "p95": 296.097,
+        "max": 296.097
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 16.867800000000003,
+        "p95": 42.1839,
+        "max": 42.1839
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 253.24984999999998,
+        "p95": 274.5623,
+        "max": 274.5623
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 93.92465,
+        "p95": 107.5233,
+        "max": 107.5233
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 155.38275,
+        "p95": 163.7053,
+        "max": 163.7053
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 6.9877,
+        "p95": 8.0333,
+        "max": 8.0333
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 347183424,
+        "p95": 349005784,
+        "max": 349005784
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 416.2165,
+        "p95": 467.754,
+        "max": 467.754
+      },
+      "cohortHandlingMedians": [
+        272.17814999999996,
+        268.5253,
+        280.4732
+      ]
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "journal",
+      "artifactBytes": 25775170,
+      "handlingMs": {
+        "count": 12,
+        "median": 19.466749999999998,
+        "p95": 44.8224,
+        "max": 44.8224
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 9.2745,
+        "p95": 27.8843,
+        "max": 27.8843
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 9.98445,
+        "p95": 17.254,
+        "max": 17.254
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 9.902899999999999,
+        "p95": 17.133,
+        "max": 17.133
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 18700292,
+        "p95": 18783128,
+        "max": 18783128
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 866.83825,
+        "p95": 1051.2535,
+        "max": 1051.2535
+      },
+      "cohortHandlingMedians": [
+        13.4346,
+        38.7801,
+        18.602249999999998
+      ]
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "move",
+      "storagePath": "compaction",
+      "artifactBytes": 25775170,
+      "handlingMs": {
+        "count": 12,
+        "median": 538.5202999999999,
+        "p95": 579.6282,
+        "max": 579.6282
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 7.8433,
+        "p95": 11.8242,
+        "max": 11.8242
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 529.598,
+        "p95": 567.5263,
+        "max": 567.5263
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 202.02429999999998,
+        "p95": 225.1657,
+        "max": 225.1657
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 309.4679,
+        "p95": 347.5001,
+        "max": 347.5001
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 14.18,
+        "p95": 16.8136,
+        "max": 16.8136
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 662329788,
+        "p95": 665552736,
+        "max": 665552736
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 846.5586000000001,
+        "p95": 884.1826,
+        "max": 884.1826
+      },
+      "cohortHandlingMedians": [
+        526.0311,
+        538.5202999999999,
+        544.08295
+      ]
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "journal",
+      "artifactBytes": 25775170,
+      "handlingMs": {
+        "count": 12,
+        "median": 30.137050000000002,
+        "p95": 40.2545,
+        "max": 40.2545
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 25.896,
+        "p95": 30.6935,
+        "max": 30.6935
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 4.0131,
+        "p95": 9.352,
+        "max": 9.352
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 3.9355,
+        "p95": 9.2873,
+        "max": 9.2873
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 28170548,
+        "p95": 28329624,
+        "max": 28329624
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 840.2056,
+        "p95": 889.2663,
+        "max": 889.2663
+      },
+      "cohortHandlingMedians": [
+        29.879550000000002,
+        29.33625,
+        32.254149999999996
+      ]
+    },
+    {
+      "addedDecisions": 1024,
+      "action": "pass",
+      "storagePath": "compaction",
+      "artifactBytes": 25775170,
+      "handlingMs": {
+        "count": 12,
+        "median": 547.1599,
+        "p95": 649.9659,
+        "max": 649.9659
+      },
+      "applyMs": {
+        "count": 12,
+        "median": 27.19055,
+        "p95": 77.6836,
+        "max": 77.6836
+      },
+      "checkpointMs": {
+        "count": 12,
+        "median": 517.6269,
+        "p95": 612.8495,
+        "max": 612.8495
+      },
+      "serializationMs": {
+        "count": 12,
+        "median": 199.52929999999998,
+        "p95": 203.7514,
+        "max": 203.7514
+      },
+      "cursorMs": {
+        "count": 12,
+        "median": 304.43455,
+        "p95": 403.9612,
+        "max": 403.9612
+      },
+      "fingerprintMs": {
+        "count": 12,
+        "median": 14.99295,
+        "p95": 18.3488,
+        "max": 18.3488
+      },
+      "allocatedBytes": {
+        "count": 12,
+        "median": 668772504,
+        "p95": 680332792,
+        "max": 680332792
+      },
+      "loadMs": {
+        "count": 12,
+        "median": 844.0061000000001,
+        "p95": 895.0205,
+        "max": 895.0205
+      },
+      "cohortHandlingMedians": [
+        536.46795,
+        542.7380499999999,
+        553.13885
+      ]
+    }
+  ],
+  "limitations": [
+    "Legal out-and-back setup placements create synthetic long histories, not a complete competitive match",
+    "Identical current two-player pitch and forced successful pass/catch dice; 22-player match roster remains",
+    "Real SetupApplication action/checkpoint/reply with in-memory repository; SQL, transport and browser excluded",
+    "Cold load and recovery verification are outside measured action handling",
+    "Compaction cohorts set the resident journal cursor to its 31-entry boundary immediately before the action; payload and current pitch are unchanged",
+    "Reported medians/p95/max use equal-count duration samples from three independent JVMs; absolute clocks are never aligned",
+    "Twelve samples per cohort are too few for stable long-term tail estimates; per-run medians are retained",
+    "Initial recovery verification uses a separate 2 GiB process to avoid duplicating live state in the measurement JVM",
+    "This isolates history-length sensitivity, not elapsed turn number or live end-to-end latency"
+  ]
+}

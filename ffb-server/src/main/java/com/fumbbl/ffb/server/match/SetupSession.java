@@ -405,6 +405,7 @@ public final class SetupSession {
 	int[] recoveryJournalCounts() {
 		return new int[] {history.size(), events.size(), state.getGameLog().size(), transcriptV2 ? transcript.size() : 0};
 	}
+	int revision() { return revision; }
 	long recoveryNativeEpoch() { return state.getGameLog().recoveryEpoch(); }
 
 	private JsonObject recoveryPayload(int[] from) {

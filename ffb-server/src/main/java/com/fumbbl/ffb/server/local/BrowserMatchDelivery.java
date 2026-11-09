@@ -3,12 +3,23 @@ package com.fumbbl.ffb.server.local;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Bounded, ordered asynchronous delivery for one browser connection. */
 public class BrowserMatchDelivery {
+	static final int TRACE_BYTES = 8192;
+	public interface WriteObserver {
+		void completed(String status, long queueMillis, long writeMillis, int bytes);
+		default void admitted(int optionalBytes, boolean optionalDropped) { }
+	}
+	private static void observe(QueuedMessage message, String status, long queueMillis, long writeMillis) {
+		if (message != null && message.observer != null) try { message.observer.completed(status, queueMillis, writeMillis, message.bytes); }
+		catch (RuntimeException ignored) { /* Instrumentation cannot interfere with transport. */ }
+	}
 	public interface Completion {
 		void failed(Throwable failure);
 		void succeeded();
@@ -51,12 +62,26 @@ public class BrowserMatchDelivery {
 
 	/** Best effort telemetry: admit only behind the current write, leaving the rest of the queue for gameplay. */
 	boolean sendOptional(String message) {
+		return sendOptional(message, 2048, false);
+	}
+	boolean sendTrace(String message) { return sendOptional(message, TRACE_BYTES, true); }
+	private boolean sendOptional(String message, int budget, boolean trace) {
 		String next = null;
 		synchronized (this) {
-			if (closed || queuedTiming != null || messages.size() > 1 || !sink.isOpen()) return false;
+			if (closed || !sink.isOpen()) return false;
+			if (!trace && queuedTiming != null && queuedTiming.trace && messages.peekFirst() != queuedTiming) {
+				messages.remove(queuedTiming); bytes -= queuedTiming.bytes;
+				metrics.deliveryCleared(1, queuedTiming.bytes); queuedTiming = null;
+			}
+			QueuedMessage head = messages.peekFirst();
+			// Basic timing has priority over detail, including [old trace, next reply].
+			// Discount the in-flight trace only for admission policy, never actual capacity.
+			int inFlightTrace = !trace && writing && head != null && head.trace ? 1 : 0;
+			boolean followingOtherKind = writing && queuedTiming == head && head != null && trace != head.trace;
+			if (queuedTiming != null && !followingOtherKind || messages.size() - inFlightTrace > 1) return false;
 			int messageBytes = message.getBytes(StandardCharsets.UTF_8).length;
-			if (messageBytes > Math.min(2048, maximumBytes - bytes) || messages.size() + 2 > maximumMessages) return false;
-			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong());
+			if (messageBytes > Math.min(budget, maximumBytes - bytes) || messages.size() + 2 - inFlightTrace > maximumMessages) return false;
+			queuedTiming = new QueuedMessage(message, messageBytes, clock.getAsLong(), null, trace);
 			messages.addLast(queuedTiming);
 			bytes += messageBytes;
 			metrics.deliveryQueued(messageBytes);
@@ -73,8 +98,14 @@ public class BrowserMatchDelivery {
 
 	/** Optional history is admitted only when the following mandatory state also fits the bounded queue. */
 	public boolean sendWithOptionalPredecessor(String optional, String mandatory) {
+		return sendWithOptionalPredecessor(optional, mandatory, null);
+	}
+	boolean sendWithOptionalPredecessor(String optional, String mandatory, WriteObserver observer) {
 		String next = null;
 		boolean close = false;
+		boolean accepted = false;
+		int admittedOptionalBytes = 0;
+		List<QueuedMessage> discarded = List.of();
 		synchronized (this) {
 			// Queued optional timing yields immediately to the next mandatory response.
 			if (queuedTiming != null && !(writing && messages.peekFirst() == queuedTiming)) {
@@ -84,14 +115,14 @@ public class BrowserMatchDelivery {
 				queuedTiming = null;
 			}
 			int messageBytes = mandatory.getBytes(StandardCharsets.UTF_8).length;
-			if (closed || !sink.isOpen()) return false;
-			if (messages.size() >= maximumMessages || messageBytes > maximumBytes - bytes) {
+			if (closed || !sink.isOpen()) { /* Reject outside the lock below. */ }
+			else if (messages.size() >= maximumMessages || messageBytes > maximumBytes - bytes) {
 				closed = true;
 				writing = false;
 				metrics.outboundOverload();
 				metrics.slowDisconnect();
 				metrics.deliveryCleared(messages.size(), bytes);
-				messages.clear();
+				discarded = new ArrayList<>(messages); messages.clear();
 				queuedTiming = null;
 				bytes = 0;
 				close = true;
@@ -99,12 +130,14 @@ public class BrowserMatchDelivery {
 				if (optional != null && messages.size() + 2 <= maximumMessages) {
 					int optionalBytes = optional.getBytes(StandardCharsets.UTF_8).length;
 					if (optionalBytes <= maximumBytes - bytes - messageBytes) {
+						admittedOptionalBytes = optionalBytes;
 						messages.addLast(new QueuedMessage(optional, optionalBytes, clock.getAsLong()));
 						bytes += optionalBytes;
 						metrics.deliveryQueued(optionalBytes);
 					}
 				}
-				messages.addLast(new QueuedMessage(mandatory, messageBytes, clock.getAsLong()));
+				messages.addLast(new QueuedMessage(mandatory, messageBytes, clock.getAsLong(), observer));
+				accepted = true;
 				bytes += messageBytes;
 				metrics.deliveryQueued(messageBytes);
 				if (!writing) {
@@ -115,27 +148,38 @@ public class BrowserMatchDelivery {
 				}
 			}
 		}
+		for (QueuedMessage message : discarded) observe(message, "closed", -1, -1);
+		if (accepted && observer != null) try { observer.admitted(admittedOptionalBytes, optional != null && admittedOptionalBytes == 0); } catch (RuntimeException ignored) { }
+		if (!accepted && observer != null) try { observer.completed("rejected", -1, -1, -1); } catch (RuntimeException ignored) { }
 		if (close) {
 			closeSlowConsumer();
 			return false;
 		}
+		if (!accepted) return false;
 		if (next != null) write(next);
 		return true;
 	}
 
-	public synchronized void close() {
-		closed = true;
-		metrics.deliveryCleared(messages.size(), bytes);
-		messages.clear();
-		queuedTiming = null;
-		bytes = 0;
-		writing = false;
+	public void close() {
+		List<QueuedMessage> discarded;
+		synchronized (this) {
+			discarded = new ArrayList<>(messages);
+			closed = true;
+			metrics.deliveryCleared(messages.size(), bytes);
+			messages.clear();
+			queuedTiming = null;
+			bytes = 0;
+			writing = false;
+		}
+		for (QueuedMessage message : discarded) observe(message, "closed", -1, -1);
 	}
 
 	boolean expireIfStalled(long now, long timeoutMillis) {
 		boolean close = false;
+		List<QueuedMessage> discarded = List.of();
 		synchronized (this) {
 			if (!closed && writing && now - writeStartedAt >= timeoutMillis) {
+				discarded = new ArrayList<>(messages);
 				closed = true;
 				writing = false;
 				metrics.deliveryCleared(messages.size(), bytes);
@@ -146,6 +190,7 @@ public class BrowserMatchDelivery {
 				close = true;
 			}
 		}
+		for (int index = 0; index < discarded.size(); index++) observe(discarded.get(index), index == 0 ? "timeout" : "closed", -1, -1);
 		if (close) closeSlowConsumer();
 		return close;
 	}
@@ -168,9 +213,17 @@ public class BrowserMatchDelivery {
 	private void complete(boolean succeeded) {
 		String next = null;
 		boolean close = false;
+		QueuedMessage observed = null;
+		long queueMillis = -1, writeMillis = -1;
+		List<QueuedMessage> discarded = List.of();
 		synchronized (this) {
 			if (!writing) return;
 			QueuedMessage completed = messages.pollFirst();
+			observed = completed;
+			if (completed != null && completed.observer != null) {
+				queueMillis = Math.max(0, writeStartedAt - completed.queuedAt);
+				writeMillis = Math.max(0, clock.getAsLong() - writeStartedAt);
+			}
 			if (completed == queuedTiming) queuedTiming = null;
 			if (completed != null) {
 				bytes -= completed.bytes;
@@ -178,6 +231,7 @@ public class BrowserMatchDelivery {
 			}
 			writing = false;
 			if (!succeeded || closed || !sink.isOpen()) {
+				discarded = new ArrayList<>(messages);
 				closed = true;
 				metrics.deliveryCleared(messages.size(), bytes);
 				messages.clear();
@@ -193,6 +247,8 @@ public class BrowserMatchDelivery {
 				metrics.deliveryQueueDelay(writeStartedAt - queued.queuedAt);
 			}
 		}
+		observe(observed, succeeded ? "completed" : "failed", queueMillis, writeMillis);
+		for (QueuedMessage message : discarded) observe(message, "closed", -1, -1);
 		if (close) {
 			closeSlowConsumer();
 			return;
@@ -204,10 +260,20 @@ public class BrowserMatchDelivery {
 		private final int bytes;
 		private final long queuedAt;
 		private final String text;
+		private final WriteObserver observer;
+		private final boolean trace;
 		private QueuedMessage(String text, int bytes, long queuedAt) {
+			this(text, bytes, queuedAt, null);
+		}
+		private QueuedMessage(String text, int bytes, long queuedAt, WriteObserver observer) {
+			this(text, bytes, queuedAt, observer, false);
+		}
+		private QueuedMessage(String text, int bytes, long queuedAt, WriteObserver observer, boolean trace) {
 			this.text = text;
 			this.bytes = bytes;
 			this.queuedAt = queuedAt;
+			this.observer = observer;
+			this.trace = trace;
 		}
 	}
 

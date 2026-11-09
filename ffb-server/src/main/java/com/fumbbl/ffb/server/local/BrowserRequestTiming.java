@@ -1,16 +1,22 @@
 package com.fumbbl.ffb.server.local;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-
 /** Opt-in, bounded diagnostics for one ingress request; never retains request bodies or game state. */
 public final class BrowserRequestTiming {
-	public enum Phase { SESSION_APPLY, CHECKPOINT, AUTHORIZATION, FIREBASE_LOOKUP, RECOVERY_SERIALIZE, CHECKPOINT_STORE, STORAGE_ENCODE, CHECKPOINT_SQL, PUBLICATION, RECOVERY_RESTORE, LOCAL_AUTHORIZATION, FIREBASE_REUSE, RECOVERY_CURSOR, RECOVERY_FINGERPRINT }
+	public enum Phase { SESSION_APPLY, CHECKPOINT, AUTHORIZATION, FIREBASE_LOOKUP, RECOVERY_SERIALIZE, CHECKPOINT_STORE, STORAGE_ENCODE, CHECKPOINT_SQL, PUBLICATION, RECOVERY_RESTORE, LOCAL_AUTHORIZATION, FIREBASE_REUSE, RECOVERY_CURSOR, RECOVERY_FINGERPRINT,
+		DB_CONNECT, DB_READ, DB_WRITE, DB_COMMIT, DB_ROLLBACK, STORAGE_DECODE, STORAGE_COMPRESSION, STORAGE_DECOMPRESSION, RESPONSE_SERIALIZE }
+	public enum Value {
+		REVISION("revision"), HALF("half"), TURN("turn"), HISTORY_REQUESTS("historyRequests"), EVENTS("events"), NATIVE_COMMANDS("nativeCommands"), TRANSCRIPT_RECORDS("transcriptRecords"), JOURNAL_ENTRIES("journalEntries"), JOURNAL_BYTES("journalBytes"), CHECKPOINT_PATH("checkpointPath"), STORAGE_INPUT_BYTES("storageInputBytes"), STORAGE_OUTPUT_BYTES("storageOutputBytes"), STORAGE_READ_BYTES("storageReadBytes"), STORAGE_DECODED_BYTES("storageDecodedBytes"), RESPONSE_BYTES("responseBytes"),
+		PREDECESSOR_BYTES("predecessorBytes"), PREDECESSOR_DROPPED("predecessorDropped"), ACTION_KIND("actionKind"), RESPONSE_ACCEPTED("responseAccepted"), DUPLICATE("duplicate");
+		final String key; Value(String key) { this.key = key; }
+	}
 	public interface Scope extends AutoCloseable { @Override void close(); }
 	private static final Scope EMPTY = () -> { };
 	// Services at the transport, protocol and application boundaries share only the current worker request.
@@ -32,7 +38,7 @@ public final class BrowserRequestTiming {
 	Request queued(boolean diagnostics) {
 		try {
 			boolean logging = Boolean.getBoolean("ffb.browser.timing");
-			return logging || diagnostics ? new Request(nanos.getAsLong(), nanos, logging) : null;
+			return logging || diagnostics || Boolean.getBoolean("ffb.browser.trace") ? new Request(nanos.getAsLong(), nanos, logging) : null;
 		}
 		catch (RuntimeException unavailable) { return null; }
 	}
@@ -45,6 +51,10 @@ public final class BrowserRequestTiming {
 		CURRENT.set(request);
 		return () -> {
 			if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
+			try { if (request.trace != null) {
+				if (!request.observed) request.trace.completed("unavailable", -1, -1, -1);
+				request.trace.finish(request);
+			} } catch (RuntimeException ignored) { /* Optional detail clock/log failure. */ }
 			if (request.requestId == null || !request.logging) return;
 			try {
 				long finished = nanos.getAsLong(), finishedUtcMs = clock.millis();
@@ -99,11 +109,33 @@ public final class BrowserRequestTiming {
 		current.requestId = id;
 		current.requestType = type;
 		current.operation = operation;
+		JsonValue kind = request.get("kind"), action = request.get("actionId");
+		String classification = kind != null && kind.isString() ? kind.asString() : "";
+		if (classification.isEmpty() && action != null && action.isString() && action.asString().length() <= 200) {
+			String idPart = action.asString(); int separator = idPart.indexOf(':'); if (separator >= 0) idPart = idPart.substring(separator + 1);
+			int suffix = idPart.indexOf('-'); classification = suffix < 0 ? idPart : idPart.substring(0, suffix);
+		}
+		current.actionKind = switch (classification) { case "move", "select" -> 1; case "pass", "declarePass" -> 2; case "blitz", "blitzTarget" -> 3; case "foul", "declareFoul" -> 4; case "handOff", "declareHandOff" -> 5; case "block", "selectBlock" -> 6; case "endTurn" -> 7; default -> 0; };
+		if (Boolean.getBoolean("ffb.browser.trace")) detail(current);
+	}
+	private void detail(Request request) {
+		try { if (request.trace == null && request.requestId != null) request.trace = new BrowserDiagnosticTrace(request.started, request.startedUtcMs,
+			request.nanos, request.logging || Boolean.getBoolean("ffb.browser.trace") ? output : ignored -> {}, request.requestId, request.requestType, request.operation, request.started - request.queued);
+			if (request.trace != null) request.trace.value(Value.ACTION_KIND, request.actionKind);
+		} catch (RuntimeException ignored) { /* Optional details cannot reject a request. */ }
+	}
+	public boolean detailed() { Request request = CURRENT.get(); return request != null && request.trace != null; }
+	public void value(Value key, long value) { Request request = CURRENT.get(); if (request != null && request.trace != null) request.trace.value(key, value); }
+	public void add(Value key, long value) { Request request = CURRENT.get(); if (request != null && request.trace != null) request.trace.add(key, value); }
+	BrowserMatchDelivery.WriteObserver claimWriteObserver() {
+		Request request = CURRENT.get();
+		if (request == null || !request.observerReady) return null;
+		request.observerReady = false; request.observed = true; return request.trace;
 	}
 
 	void enableReplies(BrowserConnection connection) {
 		Request current = CURRENT.get();
-		if (current != null) current.recipient = connection;
+		if (current != null) { current.recipient = connection; if (connection.diagnosticDetailsEnabled()) detail(current); }
 	}
 
 	/** Boundary is the call to enqueue the serialized correlated reply, before later publication.
@@ -126,11 +158,19 @@ public final class BrowserRequestTiming {
 					long elapsed = current.elapsed[phase] + (current.depth[phase] > 0 ? now - current.began[phase] : 0);
 					durations.add(keys[index], boundedMillis(elapsed));
 				}
+				if (current.trace != null && connection.diagnosticDetailsEnabled()) current.trace.reply(connection, durations);
 				telemetry = new JsonObject().add("version", 2).add("type", "diagnosticsTiming")
 					.add("requestId", current.requestId).add("code", "ACCEPTED").add("timing", durations).toString();
 			}
 		} catch (RuntimeException unavailable) { /* Optional diagnostics cannot interrupt a reply. */ }
-		enqueue.run();
+		if (current != null && current.trace != null && !current.writeAssigned && current.requestId.equals(response.getString("requestId", null))) {
+			current.writeAssigned = true; current.observerReady = true;
+			JsonValue code = response.get("code"), duplicate = response.get("duplicate");
+			if (code != null && code.isString()) current.trace.value(Value.RESPONSE_ACCEPTED, "ACCEPTED".equals(code.asString()) ? 1 : 0);
+			if (duplicate != null && duplicate.isBoolean()) current.trace.value(Value.DUPLICATE, duplicate.asBoolean() ? 1 : 0);
+		}
+		try { enqueue.run(); }
+		finally { if (current != null && current.observerReady) { current.observerReady = false; try { current.trace.completed("unavailable", -1, -1, -1); } catch (RuntimeException ignored) { } } }
 		if (telemetry != null) {
 			try { connection.sendDiagnostics(telemetry); }
 			catch (RuntimeException unavailable) { /* Best-effort, bounded delivery. */ }
@@ -144,7 +184,10 @@ public final class BrowserRequestTiming {
 		Request request = CURRENT.get();
 		if (request == null || request.requestId == null) return EMPTY;
 		int index = phase.ordinal();
+		long detailStarted;
+		boolean tracing = request.trace != null;
 		try {
+			detailStarted = tracing ? request.nanos.getAsLong() : 0;
 			if (request.depth[index] == 0) {
 				request.began[index] = request.nanos.getAsLong();
 				request.entries[index]++;
@@ -153,7 +196,9 @@ public final class BrowserRequestTiming {
 		} catch (RuntimeException unavailable) { return EMPTY; }
 		return () -> {
 			try {
-				if (--request.depth[index] == 0) request.elapsed[index] += request.nanos.getAsLong() - request.began[index];
+				long ended = request.nanos.getAsLong();
+				if (--request.depth[index] == 0) request.elapsed[index] += ended - request.began[index];
+				if (tracing) request.trace.span(phase, detailStarted, ended);
 			} catch (RuntimeException unavailable) { /* Diagnostics must not change the request outcome. */ }
 		};
 	}
@@ -166,6 +211,9 @@ public final class BrowserRequestTiming {
 		final boolean logging;
 		BrowserConnection recipient;
 		boolean replied;
+		boolean observerReady, observed, writeAssigned;
+		int actionKind;
+		BrowserDiagnosticTrace trace;
 		long started, startedUtcMs;
 		String requestId, requestType, operation;
 		final long[] began = new long[Phase.values().length], elapsed = new long[Phase.values().length];

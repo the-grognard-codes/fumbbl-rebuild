@@ -67,9 +67,11 @@ final class ActiveMatchPublisher {
 	void sendState(BrowserConnection connection, JsonObject response, LiveMatchTranscript transcript) {
 		if (liveTranscriptConnections.contains(connection) && "ACCEPTED".equals(response.getString("code", ""))
 			&& response.get("state") != null && response.get("state").isObject()) {
-			String frame = transcript.frame(response.get("state").asObject());
+			String frame;
+			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { frame = transcript.frame(response.get("state").asObject()); }
 			if (frame != null) {
-				String mandatory = response.set("version", 2).toString();
+				String mandatory;
+				try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { mandatory = response.set("version", 2).toString(); }
 				timing.reply(connection, response, () -> connection.sendWithOptionalPredecessor(frame, mandatory));
 				return;
 			}
@@ -146,7 +148,8 @@ final class ActiveMatchPublisher {
 	}
 
 	private void send(BrowserConnection connection, JsonObject response) {
-		String message = response.set("version", 2).toString();
+		String message;
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { message = response.set("version", 2).toString(); }
 		timing.reply(connection, response, () -> connection.send(message));
 	}
 

@@ -31,6 +31,18 @@ try {
   await page.getByRole('button', { name: 'Debug', exact: true }).click();
   assert.equal(await page.getByLabel('Diagnostics display').inputValue(), 'off');
   await page.getByLabel('Diagnostics display').selectOption('graph');
+  await page.getByLabel('Detailed phase traces', { exact: true }).check();
+  await page.evaluate(() => {
+    const service = window.diagnosticService;
+    service.sent('private-commit-id', 'setup', 'movement', true); service.response('private-commit-id', 1);
+    window.diagnosticCommit();
+  });
+  await page.waitForFunction(() => window.diagnosticService.snapshot().details.client.some(row => row.phase === 'responseToCommit' && row.revision === 1));
+  const commitCapture = await page.evaluate(() => JSON.parse(window.diagnosticService.export()));
+  assert.equal(commitCapture.formatVersion, 2);
+  assert.ok(commitCapture.metadata.clock.browserTimeOriginUtcMs > 0);
+  assert.ok(commitCapture.capture.details.client.find(row => row.phase === 'responseToCommit').durationMs >= 0);
+  assert.equal(JSON.stringify(commitCapture).includes('private-commit-id'), false);
   const overlay = page.getByLabel('Performance diagnostics', { exact: true }); await overlay.waitFor();
   await page.bringToFront();
   await page.waitForFunction(() => window.diagnosticService.snapshot().samples.some(sample => sample.kind === 'frame'));
@@ -58,7 +70,7 @@ try {
   await overlay.getByText('Distributions & timing details', { exact: true }).click();
   const downloadWait = page.waitForEvent('download'); await overlay.getByRole('button', { name: 'Export JSON' }).click();
   const download = await downloadWait; const capture = JSON.parse(await readFile(await download.path(), 'utf8'));
-  assert.equal(capture.formatVersion, 1); assert.ok(capture.capture.samples.some(sample => sample.kind === 'frame' && sample.value === 120));
+  assert.equal(capture.formatVersion, 2); assert.ok(capture.capture.samples.some(sample => sample.kind === 'frame' && sample.value === 120));
   assert.equal(JSON.stringify(capture).includes('private-request-id'), false);
   await overlay.getByText('Distributions & timing details', { exact: true }).click();
   await overlay.evaluate(element => { element.scrollTop = 0; });
