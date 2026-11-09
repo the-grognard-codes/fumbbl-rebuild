@@ -12,6 +12,9 @@
   commits remain distinct from unknown commit outcomes. A small bounded pool
   reuses clean read sessions and discards changed sessions before another request.
 
+- Dev-local Hosting uses the stack's verified credentials in an isolated CLI
+  configuration, avoiding startup authentication errors from an expired CLI login.
+
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
   along with the legacy remote roster-download tool and unused signing keystore;
