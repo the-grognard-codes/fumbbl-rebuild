@@ -23,6 +23,7 @@
       "com.fumbbl.ffb.test.BallPresentationTest",
       "com.fumbbl.ffb.test.kickoff.SwarmingEndTurnTest",
       "com.fumbbl.ffb.test.RecoverySessionTest",
+      "com.fumbbl.ffb.test.RiotousRookiesTest",
       "com.fumbbl.ffb.test.RerollAccountingTest",
       "com.fumbbl.ffb.test.RerollChoicesTest",
       "com.fumbbl.ffb.test.RouteForecastTest",

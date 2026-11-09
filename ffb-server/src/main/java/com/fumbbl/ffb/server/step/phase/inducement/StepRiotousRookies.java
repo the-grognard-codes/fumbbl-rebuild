@@ -17,15 +17,10 @@ import com.fumbbl.ffb.model.Team;
 import com.fumbbl.ffb.model.TurnData;
 import com.fumbbl.ffb.report.ReportRiotousRookies;
 import com.fumbbl.ffb.server.GameState;
-import com.fumbbl.ffb.server.ServerUrlProperty;
 import com.fumbbl.ffb.server.step.AbstractStep;
 import com.fumbbl.ffb.server.step.StepAction;
 import com.fumbbl.ffb.server.step.StepId;
-import com.fumbbl.ffb.server.util.UtilServerHttpClient;
-import com.fumbbl.ffb.util.StringTool;
 import com.fumbbl.ffb.util.UtilBox;
-
-import java.io.IOException;
 
 @RulesCollection(RulesCollection.Rules.COMMON)
 public class StepRiotousRookies extends AbstractStep {
@@ -72,11 +67,10 @@ public class StepRiotousRookies extends AbstractStep {
 		SkillFactory factory = game.getFactory(FactoryType.Factory.SKILL);
 		int genderOrdinal = getGameState().getDiceRoller().rollGender();
 		PlayerGender gender = PlayerGender.fromOrdinal(genderOrdinal);
-		String name = rookieName(position.getNameGenerator(), gender, "RiotousRookie #" + index);
 		RosterPlayer riotousPlayer = new RosterPlayer();
 		riotousPlayer.setId(team.getId() + "Riotous" + index);
 		riotousPlayer.updatePosition(position, game.getRules(), game.getId());
-		riotousPlayer.setName(name);
+		riotousPlayer.setName("RiotousRookie #" + index);
 		riotousPlayer.setNr(team.getMaxPlayerNr() + 1);
 		riotousPlayer.setGender(gender);
 		riotousPlayer.setType(PlayerType.RIOTOUS_ROOKIE);
@@ -89,30 +83,4 @@ public class StepRiotousRookies extends AbstractStep {
 			game.getFieldModel().getPlayerState(riotousPlayer), game.getGameResult().getPlayerResult(riotousPlayer));
 	}
 
-	private String rookieName(String generator, PlayerGender gender, String fallback) {
-		StringBuilder url = new StringBuilder(
-			ServerUrlProperty.FUMBBL_NAMEGENERATOR_BASE.url(getGameState().getServer().getProperties()));
-
-		if (!url.toString().endsWith("/")) {
-			url.append("/");
-		}
-		url.append(generator).append("/").append(gender.getName());
-
-		try {
-			String name = unquote(UtilServerHttpClient.fetchPage(url.toString()));
-			if (StringTool.isProvided(name)) {
-				return name;
-			}
-		} catch (IOException e) {
-			getGameState().getServer().getDebugLog().log(getGameState().getGame().getId(), e);
-		}
-		return fallback;
-	}
-
-	private String unquote(String quotedString) {
-		if (StringTool.isProvided(quotedString)) {
-			return quotedString.replace("\"", "");
-		}
-		return quotedString;
-	}
 }
