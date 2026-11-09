@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Browser worker tasks share a monotonic two-second request budget independently
+  of diagnostics. Operational counters include full ingress, decision expiry and
+  disconnect cleanup execution, queue wait and budget overruns.
+
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
   along with the legacy remote roster-download tool and unused signing keystore;

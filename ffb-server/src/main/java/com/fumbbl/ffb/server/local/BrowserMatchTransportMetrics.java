@@ -1,12 +1,32 @@
 package com.fumbbl.ffb.server.local;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonArray;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.LongSupplier;
 
 /** Thread-safe operational counters for the local browser transport. */
 public class BrowserMatchTransportMetrics {
+	private static final int TASK_SAMPLE_LIMIT = 256;
+	private final BrowserRequestTiming.TaskMeasurement[] taskSamples = new BrowserRequestTiming.TaskMeasurement[TASK_SAMPLE_LIMIT];
+	private long taskSequence;
+	private final AtomicLongArray taskCounts = new AtomicLongArray(BrowserRequestTiming.TaskKind.values().length);
+	private final AtomicLongArray taskQueueNanos = new AtomicLongArray(BrowserRequestTiming.TaskKind.values().length);
+	private final AtomicLongArray taskExecutionNanos = new AtomicLongArray(BrowserRequestTiming.TaskKind.values().length);
+	private final AtomicLongArray taskMaxExecutionNanos = new AtomicLongArray(BrowserRequestTiming.TaskKind.values().length);
+	private final AtomicLongArray taskOverruns = new AtomicLongArray(BrowserRequestTiming.TaskKind.values().length);
+
+	synchronized void taskFinished(BrowserRequestTiming.TaskMeasurement measurement) {
+		int kind = measurement.kind();
+		taskCounts.incrementAndGet(kind);
+		taskQueueNanos.addAndGet(kind, measurement.queueNanos());
+		taskExecutionNanos.addAndGet(kind, measurement.executionNanos());
+		taskMaxExecutionNanos.accumulateAndGet(kind, measurement.executionNanos(), Math::max);
+		if (measurement.overrun()) taskOverruns.incrementAndGet(kind);
+		taskSamples[(int) (taskSequence++ % TASK_SAMPLE_LIMIT)] = measurement;
+	}
 	private final AtomicLong admissionRejected = new AtomicLong();
 	private final AtomicLong activeConnections = new AtomicLong();
 	private final AtomicLong activeConnectionsHighWater = new AtomicLong();
@@ -61,7 +81,14 @@ public class BrowserMatchTransportMetrics {
 	}
 
 	public JsonObject toJson() {
+		JsonArray tasks = new JsonArray();
+		for (int kind = 0; kind < taskCounts.length(); kind++) tasks.add(new JsonObject().add("kind", kind)
+			.add("count", taskCounts.get(kind)).add("queueNanos", taskQueueNanos.get(kind))
+			.add("executionNanos", taskExecutionNanos.get(kind)).add("maxExecutionNanos", taskMaxExecutionNanos.get(kind))
+			.add("overruns", taskOverruns.get(kind)));
 		return new JsonObject().add("activeConnections", activeConnectionSupplier.getAsLong()).add("activeConnectionsHighWater", activeConnectionsHighWater.get())
+			.add("workerTasks", tasks)
+			.add("workerTaskSamples", taskSamples())
 			.add("admissionRejected", admissionRejected.get())
 			.add("ingressQueueDepth", ingressQueueDepth.get()).add("ingressQueueHighWater", ingressQueueHighWater.get())
 			.add("ingressDelayMillis", ingressDelayMillis.get()).add("ingressOverload", ingressOverload.get())
@@ -69,5 +96,17 @@ public class BrowserMatchTransportMetrics {
 			.add("deliveryQueueBytes", deliveryQueueBytes.get()).add("deliveryQueueBytesHighWater", deliveryQueueBytesHighWater.get())
 			.add("deliveryQueueDelayMillis", deliveryQueueDelayMillis.get()).add("deliveryQueueDelayHighWaterMillis", deliveryQueueDelayHighWaterMillis.get())
 			.add("outboundOverload", outboundOverload.get()).add("slowDisconnects", slowDisconnects.get());
+	}
+
+	/** Bounded numeric samples let load captures measure percentiles and detect sampling gaps. */
+	private synchronized JsonArray taskSamples() {
+		JsonArray samples = new JsonArray();
+		for (long sequence = Math.max(0, taskSequence - TASK_SAMPLE_LIMIT); sequence < taskSequence; sequence++) {
+			BrowserRequestTiming.TaskMeasurement sample = taskSamples[(int) (sequence % TASK_SAMPLE_LIMIT)];
+			samples.add(new JsonObject().add("sequence", sequence).add("kind", sample.kind())
+				.add("queueNanos", sample.queueNanos()).add("executionNanos", sample.executionNanos())
+				.add("overrun", sample.overrun() ? 1 : 0));
+		}
+		return samples;
 	}
 }

@@ -8,8 +8,25 @@ import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
-/** Opt-in, bounded diagnostics for one ingress request; never retains request bodies or game state. */
+/** Shared worker deadline and optional bounded diagnostics; never retains bodies or game state. */
 public final class BrowserRequestTiming {
+	public static final long REQUEST_BUDGET_NANOS = 2_000_000_000L;
+	/** Stable numeric operational categories, independent of request correlation and diagnostics. */
+	public enum TaskKind { INGRESS, CONTROL, DECISION_EXPIRY, DISCONNECT }
+	public record TaskMeasurement(int kind, long queueNanos, long executionNanos, boolean overrun) { }
+	public static final class Budget {
+		private final LongSupplier nanos;
+		private final long started;
+		private Budget(LongSupplier nanos, long started) { this.nanos = nanos; this.started = started; }
+		public long remainingNanos() { return Math.max(0, REQUEST_BUDGET_NANOS - (nanos.getAsLong() - started)); }
+		/** Floors to milliseconds; zero means reject, never an unlimited driver timeout. */
+		public int allowanceMillis(int capMillis, int reserveMillis) {
+			if (capMillis <= 0 || reserveMillis < 0) throw new IllegalArgumentException("Invalid budget cap/reserve");
+			return (int) Math.max(0, Math.min(capMillis, remainingNanos() / 1_000_000 - reserveMillis));
+		}
+	}
+	/** Null outside a worker task. Nested helpers share the identical absolute budget. */
+	public Budget budget() { Request current = CURRENT.get(); return current == null ? null : current.budget; }
 	public enum Phase { SESSION_APPLY, CHECKPOINT, AUTHORIZATION, FIREBASE_LOOKUP, RECOVERY_SERIALIZE, CHECKPOINT_STORE, STORAGE_ENCODE, CHECKPOINT_SQL, PUBLICATION, RECOVERY_RESTORE, LOCAL_AUTHORIZATION, FIREBASE_REUSE, RECOVERY_CURSOR, RECOVERY_FINGERPRINT,
 		DB_CONNECT, DB_READ, DB_WRITE, DB_COMMIT, DB_ROLLBACK, STORAGE_DECODE, STORAGE_COMPRESSION, STORAGE_DECOMPRESSION, RESPONSE_SERIALIZE }
 	public enum Value {
@@ -36,28 +53,34 @@ public final class BrowserRequestTiming {
 	}
 
 	Request queued(boolean diagnostics) {
-		try {
-			boolean logging = Boolean.getBoolean("ffb.browser.timing");
-			return logging || diagnostics || Boolean.getBoolean("ffb.browser.trace") ? new Request(nanos.getAsLong(), nanos, logging) : null;
-		}
-		catch (RuntimeException unavailable) { return null; }
+		return queued(TaskKind.INGRESS);
+	}
+
+	Request queued(TaskKind kind) {
+		return new Request(nanos.getAsLong(), nanos, Boolean.getBoolean("ffb.browser.timing"), kind);
 	}
 
 	Scope handling(Request request) {
-		if (request == null) return EMPTY;
+		return handling(request, ignored -> { });
+	}
+
+	Scope handling(Request request, Consumer<TaskMeasurement> completed) {
 		Request previous = CURRENT.get();
-		try { request.started = nanos.getAsLong(); request.startedUtcMs = clock.millis(); }
-		catch (RuntimeException unavailable) { return EMPTY; }
+		request.started = nanos.getAsLong();
+		request.budget = previous == null ? new Budget(nanos, request.started) : previous.budget;
+		try { request.startedUtcMs = clock.millis(); }
+		catch (RuntimeException unavailable) { request.logging = false; }
 		CURRENT.set(request);
 		return () -> {
-			if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
+			try {
+			long finished = nanos.getAsLong();
 			try { if (request.trace != null) {
 				if (!request.observed) request.trace.completed("unavailable", -1, -1, -1);
 				request.trace.finish(request);
 			} } catch (RuntimeException ignored) { /* Optional detail clock/log failure. */ }
 			if (request.requestId == null || !request.logging) return;
 			try {
-				long finished = nanos.getAsLong(), finishedUtcMs = clock.millis();
+				long finishedUtcMs = clock.millis();
 				JsonObject event = new JsonObject().add("version", 1).add("requestId", request.requestId)
 					.add("requestType", request.requestType).add("operation", request.operation)
 					.add("serverStartUtcMs", request.startedUtcMs).add("serverEndUtcMs", finishedUtcMs)
@@ -83,6 +106,12 @@ public final class BrowserRequestTiming {
 				output.accept("FFB_BROWSER_TIMING " + event);
 			}
 			catch (RuntimeException unavailable) { /* Diagnostics must not change the request outcome. */ }
+			} finally {
+				if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
+				long ended = nanos.getAsLong();
+				completed.accept(new TaskMeasurement(request.kind.ordinal(), Math.max(0, request.started - request.queued),
+					Math.max(0, ended - request.started), ended - request.budget.started > REQUEST_BUDGET_NANOS));
+			}
 		};
 	}
 
@@ -208,7 +237,9 @@ public final class BrowserRequestTiming {
 	static final class Request {
 		final long queued;
 		final LongSupplier nanos;
-		final boolean logging;
+		boolean logging;
+		final TaskKind kind;
+		Budget budget;
 		BrowserConnection recipient;
 		boolean replied;
 		boolean observerReady, observed, writeAssigned;
@@ -218,6 +249,7 @@ public final class BrowserRequestTiming {
 		String requestId, requestType, operation;
 		final long[] began = new long[Phase.values().length], elapsed = new long[Phase.values().length];
 		final int[] depth = new int[Phase.values().length], entries = new int[Phase.values().length];
-		Request(long queued, LongSupplier nanos, boolean logging) { this.queued = queued; this.nanos = nanos; this.logging = logging; }
+		Request(long queued, LongSupplier nanos, boolean logging) { this(queued, nanos, logging, TaskKind.INGRESS); }
+		Request(long queued, LongSupplier nanos, boolean logging, TaskKind kind) { this.queued = queued; this.nanos = nanos; this.logging = logging; this.kind = kind; }
 	}
 }

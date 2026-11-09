@@ -121,6 +121,9 @@ public class BrowserMatchTransportTest {
 			assertEquals(java.util.Arrays.asList("deadline", "disconnect", "action", "range"), handled);
 			assertEquals(0, fixture.depth());
 			assertEquals(0, fixture.transport.getMetrics().toJson().getLong("activeConnections", -1));
+			var tasks = fixture.transport.getMetrics().toJson().get("workerTasks").asArray();
+			assertEquals(1, tasks.get(BrowserRequestTiming.TaskKind.DISCONNECT.ordinal()).asObject().getLong("count", -1));
+			assertEquals(1, tasks.get(BrowserRequestTiming.TaskKind.DECISION_EXPIRY.ordinal()).asObject().getLong("count", -1));
 			fixture.transport.queueDecisionCheck(adapter);
 			fixture.drain();
 			assertEquals("deadline", handled.get(handled.size() - 1));
@@ -168,6 +171,8 @@ public class BrowserMatchTransportTest {
 			fixture.accept();
 			assertTrue(fixture.transport.submit(advisory("movementRange"), () -> { throw new IllegalStateException("Work failed"); }, rejected::incrementAndGet));
 			assertThrows(IllegalStateException.class, () -> fixture.queued.remove(0).run());
+			assertEquals(null, new BrowserRequestTiming().budget());
+			assertEquals(1, fixture.transport.getMetrics().toJson().get("workerTasks").asArray().get(0).asObject().getLong("count", -1));
 			assertEquals(0, fixture.depth());
 			assertEquals(2, rejected.get());
 			for (int index = 0; index < BrowserMatchTransport.MAX_ADVISORY_WORK; index++) {

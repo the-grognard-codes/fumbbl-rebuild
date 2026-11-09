@@ -1,7 +1,8 @@
 # Feature: Bound engine-worker JDBC work and preserve durable retries
 
 Tracking: [#505](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/505).
-Status: formal fix request; implementation pending.
+Status: deliverable A independently validated; deliverable B implementation pending.
+Evidence: [slice 2 outcome report](engine-worker-jdbc-bounds-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C1-C5 and J1-J3](engine-worker-requests-review.md).
 Budget correction: [RB1 supersedes the round-one static-sum model](engine-worker-requests-review.md#rb1-high-blocks-505-b-and-the-integrated-budget-claims-of-504-the-static-sum-rule-cannot-be-satisfied).
