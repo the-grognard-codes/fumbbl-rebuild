@@ -2,6 +2,9 @@
 
 Tracking: [#505](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/505).
 Status: deliverables A and B independently accepted; the RB1 #506 pooling fallback is complete.
+Independent PR review corrections preserve this JDBC boundary; repeated local
+whole-worker healthy p99 remains variable (including misses above 100 ms), as
+recorded in the outcome report's review performance evidence.
 Real-provider integrated validation remains owned by #504 and the final #39 run.
 Evidence: [slice 2 outcome report](engine-worker-jdbc-bounds-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).

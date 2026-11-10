@@ -161,7 +161,9 @@ boundary recorded below.
 
 The one-worker pool holds at most two physical sessions and refuses exhaustion
 immediately. Idle sessions older than one second receive a bounded SELECT 1
-validation; its driver calls use the connect cap and the current request budget.
+validation. Validation and one fresh fallback share an absolute acquisition
+allowance capped by the network cap and current request budget; TCP connection
+also obeys its connect cap. A stale idle session alone does not trip the breaker.
 Every loan receives a fresh wrapper and breaker lease; closed connection,
 statement and result handles cannot affect a later borrower.
 
@@ -183,8 +185,9 @@ Only proven local pinned-driver parameter/buffer accessors omit redundant socket
 updates; callable setters retain protection for their hidden metadata queries.
 
 The shared breaker opens after three consecutive availability failures for five
-monotonic seconds, admits one recovery probe, and resets on a clean successful
-lease. Stale successes cannot close a newer open circuit. Local budget refusal,
+monotonic seconds and admits one recovery task with its nested leases. It resets
+after that task's admitted leases finish with a clean successful lease and no
+availability failure. Stale successes cannot close a newer open circuit. Local budget refusal,
 lock wait 1205, deadlock 1213 and ordinary SQL validation/concurrency failures do
 not count as outages. A 32-request outage test makes only three physical attempts
 and proves expiry, disconnect, unrelated control and permit cleanup still progress.
@@ -327,6 +330,102 @@ have regressions and fixes. The pool was brought forward under the approved RB1
 fallback, with evidence and tracker ordering corrected. Each axis independently
 reviewed the runtime diff; validation results are recorded separately.
 The final startup-environment and fixture corrections were separately approved.
+
+## Independent PR review follow-up
+
+The eight inline findings on [PR #517](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517)
+were assessed against published head `41c1e52c6`. A's API cleanup is isolated in
+`1fa36e266`; B's corrections and regressions are in `b27c1a5cd`. Native integration
+test callers use the shared interface in the separate follow-up `6e35f24e6`.
+
+| Review comment | Result and regression evidence |
+| --- | --- |
+| [Stale pooled sessions](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157093) | Closed/failed idle sessions are evicted and get one fresh connection attempt within the original acquisition allowance, retaining one slot and breaker lease. Validation failure alone does not count as a database outage. Real MariaDB tests kill idle sessions and verify successful replacement, counts and later genuine availability failure behavior. |
+| [Late request deadlines](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157235) | `DeadlineExpired` distinguishes request-limited I/O expiry from a database cap timeout. It evicts the session without advancing the outage breaker, while retaining uncertain-write handling. Four successive late locked operations followed by healthy work prove no false opening. Known server concurrency/validation errors retain their definite classification. |
+| [Preparation admission](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157383) | Refused work/open and breaker admission return `PERSISTENCE_FAILED`. Cleanup refusal remains uncertain. Create, join, reissue, revoke and abandoned release have response regressions. Attempted COMMIT and cleanup retain existing unknown-outcome responses. |
+| [Nested recovery probe](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157491) | The half-open probe belongs to the current request budget and admits its nested leases; another task remains excluded until all probe leases finish. A nested failure reopens the circuit and old leases cannot heal it. A real preparation create with nested saved-team reads succeeds after cooldown, followed by exact retry. |
+| [Membership duplicate contract](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157647) | Retained and documented idempotent ensure behavior: an identical ordinary duplicate or exact retry succeeds; a conflicting role still fails with 1062. Production caller audit found no `MatchMembershipRepository.insert` caller relying on duplicate rejection; preparation uses its existing transactional SQL. MariaDB covers ordinary duplicates and conflicting roles separately from lost acknowledgements. |
+| [Result traversal cost](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157745) | Exact pinned-driver `CompleteResult` buffered traversal/object/date getters check the budget without scheduling a redundant socket timer. Streaming/subclass traversal retains physical timers. A 1,000-row buffered result succeeds, while an actual stalled streamed packet expires within a late request budget. |
+| [Shared JDBC contract](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519157876) | `JdbcConnections` owns connection admission and definite/unknown markers. The boundary no longer implements a membership-specific interface, and repositories no longer depend on concrete pooling markers. |
+| [Obsolete diagnostics arguments](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517#discussion_r4519158027) | Removed the ignored diagnostics constructor/queued overload chain. Callers use the always-present budget directly; optional output behavior remains independently controlled. |
+
+The absolute acquisition deadline also covers time between allowance calculation
+and socket creation; an expired factory refuses before connecting instead of
+passing zero to a driver timeout. Late COMMIT packet tests cover both actual
+committed and uncommitted states, returning unknown first and reconciling/retrying
+correctly under a fresh request budget.
+
+Focused validation passed **143 tests with zero failures, errors or skips**
+(`.tools/r517-final-focused.log`). An earlier probe integration fixture omitted
+its required schema-version marker; that fixture was corrected, and the final
+probe/pool/breaker group passed 18 tests without skips
+(`.tools/r517-probe-final.log`). The failed fixture run is retained and is not
+counted as acceptance evidence.
+
+Standards review: **APPROVE**, no actionable findings in the review corrections.
+Spec review: **APPROVE**, no actionable findings in the review corrections.
+These independent reviews cover the delta from `41c1e52c6`; execution validation
+is recorded separately below.
+
+The first full verify passed common/server tests but found three references to
+the removed membership-specific connection interface during native test
+compilation. The callers were updated, and the real MariaDB native integration
+selector passed two tests without skips (`.tools/r517-native-contract.log`).
+The failed full run (`.tools/r517-verify-final.log`) is retained and excluded from
+passing full-build evidence.
+
+The corrected full `tools/target-build.ps1 verify` passed on `6e35f24e6` in
+**24:10** with fresh test-class JVMs. Common: 19 / 0 skips; server: 745 / 4 skips;
+native: 292 / 5 skips. Total **1,056 tests, 1,047 passed, nine existing opt-in
+skips, zero failures/errors**. Every new JDBC regression ran, as did existing
+real MariaDB authorization, preferences, journal, preparation, schema-marker
+and native runtime integration tests. Remaining skips require an empty bootstrap
+schema, history-scaling fixtures or historical retained recovery artifacts.
+The previously validated synthetic bootstrap schema was retained for audit
+rather than erased to eliminate an opt-in skip. Evidence:
+`.tools/r517-verify-accepted.log`. Post-review browser unit checks also passed
+**530/530**, without skips (`.tools/r517-browser-unit.log`).
+The production TypeScript/Vite build passed (`.tools/r517-browser-build.log`).
+The ordinary dev-local restart reran all **82 browser suites** (70 interaction,
+12 hosted) with one worker and validated all five coverage reports against
+`6e35f24e6` in **1,028.1 seconds**. This includes reconnect, exact retry, diagnostics,
+preferences, native decisions, rendering, mobile and replay. Evidence:
+`.tools/r517-dev-local.log` and `.tools/validation/local-browser-WXNC5M/`.
+The same restart rebuilt the container and reported ready at
+`http://localhost:5000/play`. Both containers are healthy; verified Firebase ADC,
+the real proxy's initial/reconnect auth-gate smoke, and computer registration
+passed. Hosting returned HTTP 200, and Hosting/computer stderr are empty.
+The startup audit found no unexplained errors: the remaining notices are the
+existing SLF4J no-op provider, Hosting-only Emulator UI absence, and the explicitly
+expected optional SQL Connect VSCode notification endpoint. The task-owned
+synthetic database is stopped after validation with its audit data retained;
+the working dev-local stack remains running.
+
+### Review performance evidence
+
+The first fresh capture during review measured action p99 **194.20 ms**. It is
+retained rather than discarded. A sequential comparison with the published head
+on the same machine, database, fixture source and workload measured **123.25 ms**
+before and **96.69 ms** after the corrections (resident loads **34.47 → 25.46 ms**).
+The corrected comparison used one physical connection and 24 logical loans per
+healthy action, with all 1,134 tasks accepted, including cold and warmup cases.
+These finite captures show substantial run-to-run variability; the comparison
+meets the local 100 ms p99 target but does not establish a production SLO or
+explain the first slower run. All samples and fixture identities are retained in
+the numeric evidence. The additional capture inside the first clean-build attempt
+measured action p99 **85.55 ms**, resident-load p99 **29.43 ms**, and cold-provider
+maximum **1,128.60 ms**. Every measured task succeeded below 2,000 ms; healthy
+actions still used one physical connection and 24 logical loans.
+The repeated clean run measured action p99 **167.95 ms**, resident-load p99
+**49.29 ms**, and cold maximum **1,285.39 ms**, again with every task accepted
+below 2,000 ms and unchanged connection counts. Mean physical acquisition was
+4.93 ms per action; mean handling/publication were 51.79/26.71 ms, compared with
+37.42/20.66 ms in the sequential corrected comparison. A read-only process/CPU
+snapshot did not establish a cause. Thus the local 100 ms healthy target is
+**not consistently reproduced**: the two slower captures remain explicit misses,
+and successful finite captures do not erase them. JDBC functional acceptance
+and the measured connection reduction stand; repeatable whole-worker healthy
+latency remains an open performance qualification for the final envelope run.
 
 ## Outstanding integrated provider validation
 
