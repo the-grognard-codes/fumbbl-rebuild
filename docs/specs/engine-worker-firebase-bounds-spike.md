@@ -1,5 +1,9 @@
 # Slice 3: Firebase transport feasibility gate
 
+Historical initial candidate result. The maintainer authorized continuation on
+2026-11-10; see the [owned DNS/TCP follow-up](engine-worker-firebase-bounds-spike-2.md)
+for current feasibility and validation status. The evidence below is retained.
+
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504),
 followed by [#507 option A](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
 Base: current `main`, `031495c720549f8a68f548fa41ea477000c11dbc`.
