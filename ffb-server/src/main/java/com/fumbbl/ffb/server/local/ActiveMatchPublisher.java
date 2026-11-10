@@ -1,6 +1,5 @@
 package com.fumbbl.ffb.server.local;
 
-import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
@@ -23,12 +22,18 @@ final class ActiveMatchPublisher {
 	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
+	private final PublicationDelivery delivery;
 	private final Map<BrowserConnection, Viewer> viewers = new LinkedHashMap<>();
 	private final Set<BrowserConnection> liveTranscriptConnections = new HashSet<>();
 
 	ActiveMatchPublisher(V2MatchAccess access, SetupApplication setup) {
+		this(access, setup, new PublicationDelivery(access));
+	}
+
+	ActiveMatchPublisher(V2MatchAccess access, SetupApplication setup, PublicationDelivery delivery) {
 		this.access = access;
 		this.setup = setup;
+		this.delivery = delivery;
 	}
 
 	JsonObject watch(BrowserConnection connection, AuthenticatedPrincipal principal,
@@ -48,6 +53,9 @@ final class ActiveMatchPublisher {
 	}
 	private void enroll(BrowserConnection connection, Viewer viewer) {
 		if (!viewers.containsKey(connection) && viewers.size() >= V2PublicationAuthorization.MAX_TARGETS) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		Viewer previous = viewers.get(connection);
+		if (previous != null && previous.principal == viewer.principal && previous.spectator == viewer.spectator && previous.matchId.equals(viewer.matchId))
+			viewer = new Viewer(viewer.principal, viewer.matchId, viewer.spectator, previous.enrollment);
 		viewers.put(connection, viewer);
 	}
 
@@ -91,21 +99,24 @@ final class ActiveMatchPublisher {
 		return count;
 	}
 
+	void retryPublications() { delivery.retry(); }
+
 	void publishChat(String matchId, BrowserConnection source, JsonObject page) {
-		List<Recipient> recipients = recipients(matchId, source, true);
-		V2PublicationAuthorization.Snapshot authorization = authorization(matchId, V2PublicationAuthorization.Family.CHAT, recipients);
-		if (authorization == null) return;
-		for (int slot = 0; slot < recipients.size(); slot++) {
-			int targetSlot = slot;
-			Recipient recipient = recipients.get(slot); BrowserConnection connection = recipient.connection;
-			try {
-				access.publicationRole(authorization, recipient.target, slot);
-				send(connection, new JsonObject().add("type", "matchChat").add("requestId", JsonValue.NULL)
-					.add("code", "ACCEPTED").add("matchId", matchId).add("duplicate", false).add("page", page),
-					() -> access.publicationRole(authorization, recipient.target, targetSlot));
-			} catch (V2MatchAccess.PublicationDeferred exhausted) { return;
-			} catch (RuntimeException denied) { unavailable(recipient); }
-		}
+		String retainedPage = page.toString();
+		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
+		for (Recipient recipient : recipients(matchId, source, true)) targets.add(new DeliveryRecipient(recipient) {
+			@Override public boolean enrolled() {
+				Viewer current = viewers.get(recipient.connection);
+				return current != null && current.enrollment == recipient.viewer.enrollment;
+			}
+			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) {
+				access.publicationRole(authorization, target(), slot);
+				ActiveMatchPublisher.this.send(recipient.connection, new JsonObject().add("type", "matchChat").add("requestId", JsonValue.NULL)
+					.add("code", "ACCEPTED").add("matchId", matchId).add("duplicate", false).add("page", JsonObject.readFrom(retainedPage)),
+					() -> access.publicationRole(authorization, target(), slot));
+			}
+		});
+		delivery.publish(matchId, V2PublicationAuthorization.Family.CHAT, targets, retainedPage.length());
 	}
 
 	void publish(String matchId, BrowserConnection source, JsonObject publicState) {
@@ -113,37 +124,38 @@ final class ActiveMatchPublisher {
 	}
 
 	void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript) {
-		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.PUBLICATION)) {
-			List<Recipient> recipients = recipients(matchId, source, false);
-			V2PublicationAuthorization.Snapshot authorization = authorization(matchId, V2PublicationAuthorization.Family.STATE, recipients);
-			if (authorization == null) return;
-			for (int slot = 0; slot < recipients.size(); slot++) {
-				int targetSlot = slot;
-				Recipient recipient = recipients.get(slot); BrowserConnection connection = recipient.connection; Viewer viewer = recipient.viewer;
-				try {
-					String role = access.publicationRole(authorization, recipient.target, slot);
-					if (viewer.spectator) {
-						// A previously admitted viewer may receive the final frame after the match leaves the active index.
-						JsonObject spectatorState = JsonObject.readFrom(publicState.toString()).set("callerRole", "spectator");
-						spectatorState.remove("computer");
-						spectatorState.remove("threats"); // Acting-coach guidance is invalid in a spectator projection.
-						spectatorState.remove("savedFormations"); // Stored formation controls belong only to the acting coach.
-						spectatorState.remove("blockPreview");
-						sendState(connection, state(null, spectatorState), transcript, () -> access.publicationRole(authorization, recipient.target, targetSlot));
-						if ("FULL_TIME".equals(publicState.getString("phase", ""))) viewers.remove(connection);
-					} else {
-						JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
-							.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
-						JsonObject response = setup.publishedState(matchId, role, viewer.principal == null);
-						if (response == null) response = viewer.principal == null
-							? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
-						response.set("requestId", JsonValue.NULL);
-						sendState(connection, response, transcript, () -> access.publicationRole(authorization, recipient.target, targetSlot));
-					}
-				} catch (V2MatchAccess.PublicationDeferred | JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired exhausted) { return;
-				} catch (SQLException | RuntimeException denied) { unavailable(recipient); }
+		String retainedState = publicState.toString();
+		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
+		for (Recipient recipient : recipients(matchId, source, false)) targets.add(new DeliveryRecipient(recipient) {
+			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
+				String role = access.publicationRole(authorization, target(), slot);
+				JsonObject state = JsonObject.readFrom(retainedState);
+				if (recipient.viewer.spectator) {
+					state.set("callerRole", "spectator");
+					state.remove("computer"); state.remove("threats");
+					state.remove("savedFormations"); state.remove("blockPreview");
+					sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot));
+					if ("FULL_TIME".equals(state.getString("phase", ""))) viewers.remove(recipient.connection);
+				} else {
+					JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
+						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
+					JsonObject response = setup.publishedState(matchId, role, recipient.viewer.principal == null);
+					if (response == null) response = recipient.viewer.principal == null
+						? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
+					response.set("requestId", JsonValue.NULL);
+					sendState(recipient.connection, response, transcript, () -> access.publicationRole(authorization, target(), slot));
+				}
 			}
-		}
+		});
+		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedState.length() + BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES);
+	}
+
+	private abstract class DeliveryRecipient implements PublicationDelivery.Recipient {
+		private final Recipient recipient;
+		DeliveryRecipient(Recipient recipient) { this.recipient = recipient; }
+		@Override public boolean enrolled() { return viewers.get(recipient.connection) == recipient.viewer; }
+		@Override public V2PublicationAuthorization.Target target() { return recipient.target; }
+		@Override public void unavailable() { ActiveMatchPublisher.this.unavailable(recipient); }
 	}
 
 	private record Recipient(BrowserConnection connection, Viewer viewer, V2PublicationAuthorization.Target target) { }
@@ -157,14 +169,6 @@ final class ActiveMatchPublisher {
 			recipients.add(new Recipient(entry.getKey(), viewer, new V2PublicationAuthorization.Target(viewer.principal, audience)));
 		}
 		return recipients;
-	}
-	private V2PublicationAuthorization.Snapshot authorization(String matchId, V2PublicationAuthorization.Family family, List<Recipient> recipients) {
-		if (recipients.isEmpty()) return new V2PublicationAuthorization.Snapshot(Map.of());
-		try {
-			if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) throw new MatchService.Failure("VIEW_UNAVAILABLE");
-			return access.publication(matchId, family, recipients.stream().map(Recipient::target).toList());
-		} catch (V2MatchAccess.PublicationDeferred exhausted) { return null;
-		} catch (SQLException | RuntimeException denied) { recipients.forEach(this::unavailable); return null; }
 	}
 	private void unavailable(Recipient recipient) {
 		viewers.remove(recipient.connection);
@@ -191,7 +195,12 @@ final class ActiveMatchPublisher {
 		final AuthenticatedPrincipal principal;
 		final String matchId;
 		final boolean spectator;
+		final Object enrollment;
 		Viewer(AuthenticatedPrincipal principal, String matchId, boolean spectator) {
+			this(principal, matchId, spectator, new Object());
+		}
+		Viewer(AuthenticatedPrincipal principal, String matchId, boolean spectator, Object enrollment) {
+			this.enrollment = enrollment;
 			this.principal = principal;
 			this.matchId = matchId;
 			this.spectator = spectator;

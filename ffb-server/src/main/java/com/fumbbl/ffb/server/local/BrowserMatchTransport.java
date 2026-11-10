@@ -40,6 +40,7 @@ public class BrowserMatchTransport {
 	private final FantasyFootballServer server;
 	private final AtomicBoolean stopped = new AtomicBoolean();
 	private final AtomicBoolean deadlineCheckQueued = new AtomicBoolean();
+	private final AtomicBoolean publicationRetryQueued = new AtomicBoolean();
 	private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor(work -> {
 		Thread thread = new Thread(work, "browser-match-write-watchdog");
 		thread.setDaemon(true);
@@ -69,6 +70,18 @@ public class BrowserMatchTransport {
 	/** Wall-clock scheduling only; native decisions and publication stay on the engine worker. */
 	void startDecisionChecks(BrowserProtocol adapter) {
 		watchdog.scheduleWithFixedDelay(() -> queueDecisionCheck(adapter), 1, 1, TimeUnit.SECONDS);
+		watchdog.scheduleWithFixedDelay(() -> queuePublicationRetry(adapter), 1, 1, TimeUnit.SECONDS);
+	}
+
+	void queuePublicationRetry(BrowserProtocol adapter) {
+		if (stopped.get() || !publicationRetryQueued.compareAndSet(false, true)) return;
+		try {
+			boolean queued = submitControl(BrowserRequestTiming.TaskKind.CONTROL, () -> {
+				try { if (!stopped.get()) adapter.retryPublications(); }
+				finally { publicationRetryQueued.set(false); }
+			}, () -> publicationRetryQueued.set(false));
+			if (!queued) publicationRetryQueued.set(false);
+		} catch (RuntimeException unavailable) { publicationRetryQueued.set(false); }
 	}
 
 	void queueDecisionCheck(BrowserProtocol adapter) {

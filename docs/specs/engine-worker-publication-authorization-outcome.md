@@ -1,5 +1,7 @@
 # #507 option A outcome
 
+Follow-up: [automatic publication catch-up and the eight inline review dispositions](../reviews/2026-11-10-pr518-catch-up-review.md) supersede the earlier skip-until-next-publication behavior.
+
 Tracking: [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
 Prerequisite: [validated #504 provider controls](engine-worker-firebase-bounds-outcome.md),
 committed separately at `c72a1b5f4` / `1ca75927a` after the accepted spike series.

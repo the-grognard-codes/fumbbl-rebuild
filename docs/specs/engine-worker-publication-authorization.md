@@ -83,8 +83,20 @@ request-path cost; that request's authorization semantics stay unchanged.
   closed and invalidate successful-check cache entries under ADR 0005.
 - Exhaustion of the originating request's budget skips that best-effort push
   without retiring otherwise valid subscriptions. This includes typed JDBC
-  request-allowance/deadline refusals. No stale grant, background retry or new
-  deadline authorizes delivery; a later publication requires a new local batch.
+  request-allowance/deadline refusals. Undelivered recipients enter a bounded
+  FIFO catch-up queue (64 publications, 4 Mi UTF-16 code units of retained
+  payload including reserved transcript space). The existing watchdog schedules
+  a separate coalesced worker control task every second. Each attempt receives
+  its own measured 2,000 ms task budget and requires one new local batch for
+  still-enrolled recipients; neither the original deadline nor an old grant is
+  extended. Already delivered recipients are not resent, subsequent publications
+  cannot overtake pending ones, and no mutation is rerun. Token expiry and
+  enrollment are rechecked, including immediately before payload enqueue.
+  Full-time spectators retire after final delivery. Queue overflow explicitly
+  fails unavailable and retires affected subscriptions rather than silently
+  dropping content. Scheduling is best effort behind other worker tasks, not
+  a one-second delivery guarantee. This catch-up corrects the stall/lost-chat
+  findings in PR #518; it performs no provider work or token refresh.
   Actual local authorization/database failures and token expiry retain the
   existing unavailable/removal behavior.
 - JDBC-backed local refresh remains subject to the

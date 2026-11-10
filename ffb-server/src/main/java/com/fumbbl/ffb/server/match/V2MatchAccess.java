@@ -1,6 +1,5 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
 import java.sql.SQLException;
@@ -23,8 +22,9 @@ public final class V2MatchAccess {
 		this.memberships = memberships; this.directory = directory; this.clock = clock;
 	}
 
+	/** @throws PublicationDeferred when the task budget is exhausted; retain enrollment and retry with fresh authorization. */
 	public V2PublicationAuthorization.Snapshot publication(String matchId, V2PublicationAuthorization.Family family,
-		List<V2PublicationAuthorization.Target> targets) throws SQLException {
+		List<V2PublicationAuthorization.Target> targets) throws SQLException, PublicationDeferred {
 		if (targets.size() > V2PublicationAuthorization.MAX_TARGETS) throw new MatchService.Failure("VIEW_UNAVAILABLE");
 		if (targets.isEmpty()) return new V2PublicationAuthorization.Snapshot(Map.of());
 		requirePublicationBudget();
@@ -32,14 +32,14 @@ public final class V2MatchAccess {
 			V2PublicationAuthorization.Snapshot snapshot = directory.authorizePublication(matchId, family, List.copyOf(targets));
 			if (snapshot == null) throw new SQLException("Local publication authorization is unavailable");
 			return snapshot;
-		} catch (JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired exhausted) {
-			// These typed failures identify the originating request allowance, not a database outage.
-			throw new PublicationDeferred();
 		}
 	}
 
-	/** Recheck expiry immediately before enqueueing; a batch read never extends the original token. */
-	public String publicationRole(V2PublicationAuthorization.Snapshot snapshot, V2PublicationAuthorization.Target target, int slot) {
+	/** Recheck expiry immediately before enqueueing; a batch read never extends the original token.
+	 * @throws PublicationDeferred when the task budget is exhausted, without evidence of recipient denial.
+	 * @throws MatchService.Failure when local authorization or token expiry denies delivery.
+	 */
+	public String publicationRole(V2PublicationAuthorization.Snapshot snapshot, V2PublicationAuthorization.Target target, int slot) throws PublicationDeferred {
 		if (snapshot == null || target.principal() != null && target.principal().expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("VIEW_UNAVAILABLE");
 		String role = snapshot.role(slot);
 		boolean allowed = switch (target.audience()) {

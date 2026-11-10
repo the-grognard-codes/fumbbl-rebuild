@@ -1,5 +1,7 @@
 # PR #518: independent review dispositions
 
+Follow-up: [automatic publication catch-up and the eight inline review dispositions](2026-11-10-pr518-catch-up-review.md) supersede the earlier skip-until-next-publication behavior.
+
 Review: [complete independent notes](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518#issuecomment-6768578581),
 against `c2e3a4f8b`. This response covers every recommendation; optional refactors
 are distinguished from incorrect recommendations and confirmed defects.

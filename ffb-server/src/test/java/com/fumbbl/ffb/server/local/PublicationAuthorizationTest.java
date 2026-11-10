@@ -77,7 +77,7 @@ class PublicationAuthorizationTest {
 			fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publish(family); });
 			assertEquals(0, fixture.directory.batches);
 			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
-			fixture.withBudget(() -> fixture.publish(family));
+			fixture.withBudget(() -> fixture.retry(family));
 			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
@@ -97,7 +97,7 @@ class PublicationAuthorizationTest {
 			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
 			assertEquals(0, fixture.connections.getFirst().predecessors);
 			fixture.directory.afterBatch = () -> { }; when(fixture.clock.millis()).thenAnswer(call -> fixture.millis.get());
-			fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			fixture.reset(); fixture.withBudget(() -> fixture.retry(family));
 			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
@@ -108,7 +108,7 @@ class PublicationAuthorizationTest {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset(); fixture.directory.requestRefusal = refusal;
 			fixture.withBudget(() -> fixture.publish(family));
 			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
-			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.retry(family));
 			assertEquals(1, fixture.directory.batches);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
@@ -120,7 +120,7 @@ class PublicationAuthorizationTest {
 			fixture.withBudget(() -> fixture.publish(V2PublicationAuthorization.Family.STATE));
 			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
 			doAnswer(call -> state(call.getArgument(1))).when(fixture.setup).publishedState(anyString(), anyString(), anyBoolean());
-			fixture.reset(); fixture.withBudget(() -> fixture.publish(V2PublicationAuthorization.Family.STATE));
+			fixture.reset(); fixture.withBudget(() -> fixture.retry(V2PublicationAuthorization.Family.STATE));
 			assertEquals(1, fixture.directory.batches);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
@@ -154,10 +154,103 @@ class PublicationAuthorizationTest {
 		}
 	}
 
+	@Test void deferredTurnHandoffArrivesWithoutAnotherActionAndFinalFrameRetiresSpectator() throws Exception {
+		for (String phase : new String[] {"PLAY", "FULL_TIME"}) {
+			Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 2); fixture.reset();
+			JsonObject handoff = new JsonObject().add("revision", 2).add("phase", phase).add("activeTeam", "away");
+			when(fixture.setup.publishedState(anyString(), anyString(), anyBoolean())).thenReturn(state("away").set("state", handoff));
+			fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publisher.publish(MATCH, null, handoff); });
+			assertEquals(1, fixture.publisher.spectatorCount(MATCH));
+			fixture.withBudget(fixture.publisher::retryPublications);
+			for (Connection connection : fixture.connections) {
+				assertEquals(1, connection.messages.size());
+				assertEquals("away", connection.last().get("state").asObject().getString("activeTeam", ""));
+				assertEquals(phase, connection.last().get("state").asObject().getString("phase", ""));
+			}
+			assertEquals("FULL_TIME".equals(phase) ? 0 : 1, fixture.publisher.spectatorCount(MATCH));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+		}
+	}
+	@Test void partialChatCatchesUpInOrderWithoutRepeatingDeliveredRecipients() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 3); fixture.reset();
+		fixture.connections.getFirst().afterSend = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+		fixture.withBudget(() -> fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "first")));
+		fixture.connections.getFirst().afterSend = () -> { };
+		fixture.withBudget(() -> fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "second")));
+		assertEquals(1, fixture.connections.getFirst().messages.size());
+		fixture.withBudget(fixture.publisher::retryPublications);
+		for (Connection connection : fixture.connections) {
+			assertEquals(2, connection.messages.size());
+			assertEquals("first", connection.messages.get(0).get("page").asObject().getString("message", ""));
+			assertEquals("second", connection.messages.get(1).get("page").asObject().getString("message", ""));
+		}
+		assertEquals(3, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+	}
+	@Test void ordinaryGameplayEnrollmentRefreshDoesNotDiscardDeferredChat() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 1); fixture.reset();
+		fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "retained")); });
+		fixture.publisher.enrollPlayer(fixture.connections.getFirst(), fixture.principals.getFirst(), MATCH);
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals("retained", fixture.connections.getFirst().last().get("page").asObject().getString("message", ""));
+		assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+	}
+
+	@Test void leavingAndReturningToSameMatchDoesNotReviveOldChatEnrollment() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 1); fixture.reset();
+		fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "old")); });
+		fixture.publisher.remove(fixture.connections.getFirst());
+		fixture.publisher.enrollPlayer(fixture.connections.getFirst(), fixture.principals.getFirst(), MATCH);
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertTrue(fixture.connections.getFirst().messages.isEmpty()); assertEquals(0, fixture.directory.batches);
+	}
+
+	@Test void deferredPushRechecksRevocationExpiryAndEnrollmentBeforeAnyPayload() throws Exception {
+		for (String change : new String[] {"revoked", "expired", "replaced", "disconnected"}) {
+			Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 2); fixture.reset();
+			fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publish(V2PublicationAuthorization.Family.STATE); });
+			if ("revoked".equals(change)) fixture.directory.denied.addAll(fixture.principals.stream().map(AuthenticatedPrincipal::accountId).toList());
+			if ("expired".equals(change)) fixture.millis.set(10_000);
+			if ("replaced".equals(change)) for (int index = 0; index < 2; index++) fixture.publisher.enrollPlayer(fixture.connections.get(index), fixture.principals.get(index), MATCH);
+			if ("disconnected".equals(change)) fixture.connections.forEach(fixture.publisher::disconnect);
+			fixture.withBudget(fixture.publisher::retryPublications);
+			for (Connection connection : fixture.connections) assertTrue(connection.messages.stream().allMatch(message -> "VIEW_UNAVAILABLE".equals(message.getString("code", ""))));
+			assertEquals(0, fixture.directory.providerCalls);
+		}
+	}
+	@Test void transientDatabaseUnavailableStillFailsClosedRatherThanRetryingUnverifiedRecipients() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset(); fixture.directory.requestRefusal = new JdbcConnections.Unavailable();
+			fixture.publish(family);
+			for (Connection connection : fixture.connections) assertEquals("VIEW_UNAVAILABLE", connection.last().getString("code", ""));
+			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.retry(family));
+			assertEquals(0, fixture.directory.batches);
+		}
+	}
+
+	@Test void pendingQueueIsBoundedAndOverflowIsExplicitlyUnavailable() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 1); fixture.reset();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			for (int index = 0; index <= PublicationDelivery.MAX_PENDING; index++) fixture.publisher.publishChat(MATCH, null, new JsonObject().add("index", index));
+		});
+		assertEquals("VIEW_UNAVAILABLE", fixture.connections.getFirst().last().getString("code", ""));
+		fixture.reset(); fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals(0, fixture.directory.batches); assertTrue(fixture.connections.getFirst().messages.isEmpty());
+	}
+	@Test void oversizedDeferredPayloadDoesNotEnterTheQueue() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 1); fixture.reset();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.publisher.publishChat(MATCH, null, new JsonObject().add("large", "x".repeat(PublicationDelivery.MAX_RETAINED_CHARACTERS)));
+		});
+		assertEquals("VIEW_UNAVAILABLE", fixture.connections.getFirst().last().getString("code", ""));
+		fixture.reset(); fixture.withBudget(fixture.publisher::retryPublications); assertEquals(0, fixture.directory.batches);
+	}
+
 	private static JsonObject state(String role) { return new JsonObject().add("type", "setupState").add("code", "ACCEPTED").add("state", new JsonObject().add("revision", 1).add("phase", "PLAY").add("callerRole", role)); }
 	private static final class Connection implements BrowserConnection {
-		final List<JsonObject> messages = new ArrayList<>(); int predecessors;
-		@Override public void send(String message) { messages.add(JsonObject.readFrom(message)); }
+		final List<JsonObject> messages = new ArrayList<>(); int predecessors; Runnable afterSend = () -> { };
+		@Override public void send(String message) { messages.add(JsonObject.readFrom(message)); afterSend.run(); }
 		@Override public void sendWithOptionalPredecessor(String predecessor, String mandatory) { predecessors++; send(mandatory); }
 		JsonObject last() { return messages.getLast(); }
 	}
@@ -226,6 +319,9 @@ class PublicationAuthorizationTest {
 		void withBudget(Runnable action) {
 			BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, clock, ignored -> { });
 			try (BrowserRequestTiming.Scope ignored = timing.handling(new BrowserRequestTiming.Request(nanos.get(), nanos::get, false))) { action.run(); }
+		}
+		void retry(V2PublicationAuthorization.Family family) {
+			if (family == V2PublicationAuthorization.Family.PREPARATION) adapter.retryPublications(); else publisher.retryPublications();
 		}
 		void publish(V2PublicationAuthorization.Family family) {
 			switch (family) {

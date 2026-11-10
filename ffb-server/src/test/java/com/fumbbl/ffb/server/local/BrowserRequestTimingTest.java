@@ -278,6 +278,33 @@ class BrowserRequestTimingTest {
 		assertNull(timing.budget());
 	}
 
+	@Test void publicationCatchUpGetsAFreshMeasuredControlBudgetAfterAnOverrun() {
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		List<Runnable> queue = new ArrayList<>();
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { queue.add(call.getArgument(0)); return true; });
+		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
+		try {
+			BrowserProtocol protocol = mock(BrowserProtocol.class);
+			org.mockito.Mockito.doAnswer(call -> {
+				assertEquals(BrowserRequestTiming.REQUEST_BUDGET_NANOS, timing.budget().remainingNanos());
+				nanos.addAndGet(5_000_000); return null;
+			}).when(protocol).retryPublications();
+			transport.submit(() -> {
+				nanos.addAndGet(2_100_000_000L);
+				transport.queuePublicationRetry(protocol); transport.queuePublicationRetry(protocol);
+				assertEquals(0, timing.budget().remainingNanos());
+			}, () -> { });
+			queue.removeFirst().run();
+			assertEquals(1, queue.size()); queue.removeFirst().run();
+			JsonArray tasks = transport.getMetrics().toJson().get("workerTasks").asArray();
+			assertEquals(1, tasks.get(0).asObject().getLong("overruns", -1));
+			assertEquals(1, tasks.get(1).asObject().getLong("count", -1));
+			assertEquals(5_000_000, tasks.get(1).asObject().getLong("executionNanos", -1));
+		} finally { transport.destroy(); }
+	}
+
 	@Test void controlAndIngressMetricsIncludeFullTaskAndCleanupWithoutCorrelation() {
 		System.clearProperty("ffb.browser.timing");
 		FantasyFootballServer server = mock(FantasyFootballServer.class);

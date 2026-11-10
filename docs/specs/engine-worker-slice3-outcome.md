@@ -1,5 +1,7 @@
 # Slice 3: provider bounds and publication authorization
 
+Follow-up: [automatic publication catch-up and the eight inline review dispositions](../reviews/2026-11-10-pr518-catch-up-review.md) supersede the earlier skip-until-next-publication behavior.
+
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504),
 [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
 Independent security-review PR: [#518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518).
