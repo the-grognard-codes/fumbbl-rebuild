@@ -516,6 +516,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		if (recipients.isEmpty()) return;
 		V2PublicationAuthorization.Snapshot authorization;
 		try { authorization = access.publication(matchId, V2PublicationAuthorization.Family.PREPARATION, targets); }
+		catch (V2MatchAccess.PublicationDeferred exhausted) { return; }
 		catch (SQLException | RuntimeException denied) {
 			for (BrowserConnection connection : recipients) { preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE"); }
 			return;
@@ -528,6 +529,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				access.publicationRole(authorization, targets.get(slot), slot);
 				send(connection, new JsonObject().add("type", "preparationChanged").add("requestId", JsonValue.NULL)
 					.add("code", "ACCEPTED").add("matchId", matchId), () -> access.publicationRole(authorization, targets.get(targetSlot), targetSlot));
+			} catch (V2MatchAccess.PublicationDeferred exhausted) { return;
 			} catch (RuntimeException denied) {
 				preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE");
 			}

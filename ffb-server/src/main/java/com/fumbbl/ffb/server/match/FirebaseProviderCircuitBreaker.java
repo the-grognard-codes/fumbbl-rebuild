@@ -33,14 +33,14 @@ final class FirebaseProviderCircuitBreaker {
 			if (admittedGeneration != generation) return;
 			if (probe || ++failures >= bounds.failureThreshold()) { open = true; probing = false; openedAt = nanos.getAsLong(); generation++; }
 		} }
-		void denied(boolean providerAttempted) { synchronized (FirebaseProviderCircuitBreaker.this) {
+		@Override public void close() { synchronized (FirebaseProviderCircuitBreaker.this) {
 			if (finished) return;
 			finished = true;
 			if (probe && admittedGeneration == generation) {
 				probing = false; generation++;
-				if (providerAttempted) openedAt = nanos.getAsLong();
+				// Neither heal nor postpone recovery for an identity denial or an unstarted operation.
+				// The elapsed cooldown remains elapsed; the next identity may take the sole probe slot.
 			}
 		} }
-		@Override public void close() { denied(false); }
 	}
 }

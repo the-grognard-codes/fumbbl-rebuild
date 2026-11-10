@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- Added reproducible Firebase deadline/credential feasibility experiments. An
-  owned DNS/TCP follow-up passed the mechanism gate after the initial resolver
-  candidate failed.
-
 - Firebase authentication now bounds key retrieval, credential refresh and
   revocation checks within one admitted operation. Provider outages fail closed
   and trip a shared circuit breaker so queued requests can continue; existing
@@ -14,8 +10,10 @@
 - Passive state, chat and preparation updates refresh local authorization in one
   batch and stop at the original token expiry. Provider-only revocation can leave
   passive viewing available until that expiry; incoming provider checks remain
-  unchanged, and observed rejection removes subscriptions. Spectator broadcasts
-  exclude actor-only formation controls and block previews.
+  unchanged, and observed rejection removes subscriptions. Exhausting the actor's
+  request budget skips that best-effort push while preserving valid subscriptions.
+
+- Spectator broadcasts exclude actor-only formation controls and block previews.
 
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and

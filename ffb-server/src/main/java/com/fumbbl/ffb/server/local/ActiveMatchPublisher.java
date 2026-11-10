@@ -102,6 +102,7 @@ final class ActiveMatchPublisher {
 				send(connection, new JsonObject().add("type", "matchChat").add("requestId", JsonValue.NULL)
 					.add("code", "ACCEPTED").add("matchId", matchId).add("duplicate", false).add("page", page),
 					() -> access.publicationRole(authorization, recipient.target, targetSlot));
+			} catch (V2MatchAccess.PublicationDeferred exhausted) { return;
 			} catch (RuntimeException denied) { unavailable(recipient); }
 		}
 	}
@@ -138,6 +139,7 @@ final class ActiveMatchPublisher {
 						response.set("requestId", JsonValue.NULL);
 						sendState(connection, response, transcript, () -> access.publicationRole(authorization, recipient.target, targetSlot));
 					}
+				} catch (V2MatchAccess.PublicationDeferred exhausted) { return;
 				} catch (SQLException | RuntimeException denied) { unavailable(recipient); }
 			}
 		}
@@ -160,6 +162,7 @@ final class ActiveMatchPublisher {
 		try {
 			if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) throw new MatchService.Failure("VIEW_UNAVAILABLE");
 			return access.publication(matchId, family, recipients.stream().map(Recipient::target).toList());
+		} catch (V2MatchAccess.PublicationDeferred exhausted) { return null;
 		} catch (SQLException | RuntimeException denied) { recipients.forEach(this::unavailable); return null; }
 	}
 	private void unavailable(Recipient recipient) {

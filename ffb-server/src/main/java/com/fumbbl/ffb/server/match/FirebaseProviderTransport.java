@@ -58,7 +58,8 @@ public class FirebaseProviderTransport extends HttpTransport implements AutoClos
 		catch (Exception failure) { try { client.stop(); } catch (Exception cleanup) { failure.addSuppressed(cleanup); } throw failure; }
 	}
 	/** Package-only seam for pre-existing SDK doubles; production always constructs the network transport. */
-	FirebaseProviderTransport(FirebaseProviderBounds bounds, boolean noNetwork) {
+	static FirebaseProviderTransport withoutNetworkForTests(FirebaseProviderBounds bounds) { return new FirebaseProviderTransport(bounds, true); }
+	private FirebaseProviderTransport(FirebaseProviderBounds bounds, boolean noNetwork) {
 		if (!noNetwork) throw new IllegalArgumentException("Use the production constructor for network transport");
 		this.bounds = bounds; this.client = null; this.dns = null; this.restrictedEndpoints = true;
 	}
@@ -152,7 +153,7 @@ public class FirebaseProviderTransport extends HttpTransport implements AutoClos
 				throw new FirebaseProviderFailure(FirebaseProviderFailure.Kind.AVAILABILITY);
 		}
 		public int attempts() { return attempts; }
-		public int startedWrites() { return headers.get(); }
+		public int requestsWithHeaders() { return headers.get(); }
 		public int completedWrites() { return writes.get(); }
 		public List<Integer> statuses() { return List.copyOf(statuses); }
 		long remainingIo() throws SocketTimeoutException { check(); return Math.max(1, ioDeadline - System.nanoTime()); }

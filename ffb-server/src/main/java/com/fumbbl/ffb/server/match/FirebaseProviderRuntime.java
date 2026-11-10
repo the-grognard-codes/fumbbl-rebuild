@@ -38,7 +38,7 @@ final class FirebaseProviderRuntime implements AutoCloseable {
 		}
 	}
 	FirebaseProviderRuntime(FirebaseAuth auth, LongSupplier nanos) {
-		this(auth, new FirebaseProviderTransport(new FirebaseProviderBounds(), true), new FirebaseProviderBounds(), null, nanos);
+		this(auth, FirebaseProviderTransport.withoutNetworkForTests(new FirebaseProviderBounds()), new FirebaseProviderBounds(), null, nanos);
 	}
 	FirebaseProviderRuntime(FirebaseAuth auth, FirebaseProviderTransport transport, FirebaseProviderBounds bounds,
 		FirebaseProviderCredentials credentials, LongSupplier nanos) {

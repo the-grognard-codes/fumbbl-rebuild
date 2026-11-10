@@ -13,6 +13,7 @@ import com.fumbbl.ffb.server.match.VerifiedIdentity;
 import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.ProviderSessionRejection;
 import com.fumbbl.ffb.server.match.MatchMembership;
+import com.fumbbl.ffb.server.db.JdbcConnections;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -68,6 +70,48 @@ class PublicationAuthorizationTest {
 		assertEquals(0, fixture.connections.getFirst().predecessors);
 		assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
 	}
+	@Test void exhaustedActorBudgetSkipsEveryFamilyWithoutQueryingOrRetiringViewers() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
+			fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publish(family); });
+			assertEquals(0, fixture.directory.batches);
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
+		}
+	}
+	@Test void budgetExpiryAfterBatchAndDuringFinalAdmissionPreservesEverySubscription() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (boolean finalAdmission : new boolean[] {false, true}) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
+			if (family == V2PublicationAuthorization.Family.STATE) fixture.publisher.liveTranscript(fixture.connections.getFirst(), true);
+			if (finalAdmission) {
+				AtomicInteger checks = new AtomicInteger();
+				when(fixture.clock.millis()).thenAnswer(call -> {
+					if (checks.incrementAndGet() == 2) fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+					return fixture.millis.get();
+				});
+			} else fixture.directory.afterBatch = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.withBudget(() -> fixture.publish(family));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			assertEquals(0, fixture.connections.getFirst().predecessors);
+			fixture.directory.afterBatch = () -> { }; when(fixture.clock.millis()).thenAnswer(call -> fixture.millis.get());
+			fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
+		}
+	}
+	@Test void jdbcRequestDeadlineRefusalSkipsThePushButDatabaseFailuresStillRetire() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (SQLException refusal : new SQLException[] {
+			new JdbcConnections.NotStarted(), new JdbcConnections.DeadlineExpired(new SQLException("synthetic deadline")) }) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset(); fixture.directory.requestRefusal = refusal;
+			fixture.withBudget(() -> fixture.publish(family));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(1, fixture.directory.batches);
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
+		}
+	}
 	@Test void expiryAtTheOriginalTokenDeadlineStopsEveryFamilyAndNeverRefreshesProviderState() throws Exception {
 		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 1); fixture.reset(); fixture.millis.set(10_000); fixture.publish(family);
@@ -106,6 +150,7 @@ class PublicationAuthorizationTest {
 	}
 	private static final class Directory implements V2PrincipalDirectory {
 		int providerCalls, batches; boolean outage, sqlFailure;
+		Runnable afterBatch = () -> { }; SQLException requestRefusal;
 		final Set<String> denied = new HashSet<>();
 		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) { throw new UnsupportedOperationException(); }
 		@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws V2PrincipalAuthenticator.Rejected {
@@ -113,14 +158,16 @@ class PublicationAuthorizationTest {
 		}
 		@Override public Snapshot authorizePublication(String matchId, Family family, List<Target> targets) throws SQLException {
 			batches++; if (sqlFailure) throw new SQLException("synthetic local failure");
+			if (requestRefusal != null) throw requestRefusal;
 			Map<Integer, String> roles = new HashMap<>();
 			for (int slot = 0; slot < targets.size(); slot++) if (!denied.contains(targets.get(slot).principal().accountId()))
 				roles.put(slot, targets.get(slot).audience() == Audience.SPECTATOR ? "spectator" : "home");
-			return new Snapshot(roles);
+			afterBatch.run(); return new Snapshot(roles);
 		}
 	}
 	private static final class Fixture {
 		final AtomicLong millis = new AtomicLong(1_000); final Clock clock = mock(Clock.class);
+		final AtomicLong nanos = new AtomicLong();
 		final Directory directory = new Directory(); final SetupApplication setup = mock(SetupApplication.class);
 		final V2MatchAccess access; final ActiveMatchPublisher publisher; final BrowserV2Adapter adapter;
 		final List<Connection> connections = new ArrayList<>(); final List<AuthenticatedPrincipal> principals = new ArrayList<>();
@@ -163,6 +210,10 @@ class PublicationAuthorizationTest {
 			}
 		}
 		void reset() { directory.batches = 0; directory.providerCalls = 0; connections.forEach(connection -> connection.messages.clear()); }
+		void withBudget(Runnable action) {
+			BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, clock, ignored -> { });
+			try (BrowserRequestTiming.Scope ignored = timing.handling(new BrowserRequestTiming.Request(nanos.get(), nanos::get, false))) { action.run(); }
+		}
 		void publish(V2PublicationAuthorization.Family family) {
 			switch (family) {
 				case STATE -> publisher.publish(MATCH, null, new JsonObject().add("revision", 1).add("phase", "PLAY"));

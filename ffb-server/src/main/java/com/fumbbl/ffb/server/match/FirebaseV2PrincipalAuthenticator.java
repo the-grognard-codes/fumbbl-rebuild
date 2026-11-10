@@ -9,6 +9,8 @@ import com.google.firebase.auth.UserRecord;
 
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
@@ -25,7 +27,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	private final String projectId;
 	private final V2PrincipalDirectory principals;
 	private final FirebaseProviderRuntime provider;
-	private java.util.function.Consumer<ProviderSessionRejection> rejectionObserver = ignored -> { };
+	private Consumer<ProviderSessionRejection> rejectionObserver = ignored -> { };
 
 	public FirebaseV2PrincipalAuthenticator(String projectId, V2PrincipalDirectory principals) {
 		if (projectId == null || projectId.isEmpty() || principals == null) throw new IllegalArgumentException("project and principal directory are required");
@@ -65,7 +67,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 				token = auth.verifyIdToken(bearer, true);
 			} catch (Exception failure) {
 				provider.failedCredential(failure);
-				if (provider.errors.availability(failure)) lease.unavailable();
+				if (provider.errors.isAvailabilityFailure(failure)) lease.unavailable();
 				throw failure;
 			}
 			try { operation.requireCompleted(); } catch (FirebaseProviderFailure failure) { lease.unavailable(); throw failure; }
@@ -91,7 +93,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 			throw new Rejected();
 		} finally {
 			if (operation != null) operation.close();
-			if (lease != null) lease.denied(operation != null && operation.attempts() > 0);
+			if (lease != null) lease.close();
 		}
 	}
 
@@ -163,7 +165,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 					user = auth.getUser(principal.subject());
 				} catch (Exception failure) {
 					provider.failedCredential(failure);
-					if (provider.errors.availability(failure)) lease.unavailable();
+					if (provider.errors.isAvailabilityFailure(failure)) lease.unavailable();
 					observe(new VerifiedIdentity(principal.issuer(), principal.subject(), principal.expiresAtMillis(), principal.authenticationTimeMillis()), provider.errors.identityRejection(failure));
 					throw failure;
 				}
@@ -187,12 +189,12 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 		} catch (Exception failure) { verification.forget(principal); throw new Rejected();
 		} finally {
 			if (operation != null) operation.close();
-			if (lease != null) lease.denied(operation != null && operation.attempts() > 0);
+			if (lease != null) lease.close();
 		}
 	}
 
 	@Override public void close() throws Exception { provider.close(); }
-	@Override public void observeProviderRejection(java.util.function.Consumer<ProviderSessionRejection> observer) {
+	@Override public void observeProviderRejection(Consumer<ProviderSessionRejection> observer) {
 		if (observer == null) throw new IllegalArgumentException("Provider rejection observer required");
 		rejectionObserver = observer;
 	}
@@ -206,11 +208,11 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	/** Supplies a directory whose refresh checks Firebase lifecycle before local lifecycle and scope state. */
 	public V2PrincipalDirectory liveDirectory() {
 		return new V2PrincipalDirectory() {
-			@Override public Snapshot authorizePublication(String matchId, Family family, java.util.List<Target> targets) throws SQLException {
+			@Override public Snapshot authorizePublication(String matchId, Family family, List<Target> targets) throws SQLException {
 				return principals.authorizePublication(matchId, family, targets);
 			}
-			@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws java.sql.SQLException, Rejected { return principals.authenticate(identity); }
-			@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws java.sql.SQLException, Rejected {
+			@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws SQLException, Rejected { return principals.authenticate(identity); }
+			@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws SQLException, Rejected {
 				return FirebaseV2PrincipalAuthenticator.this.reauthorize(principal);
 			}
 		};

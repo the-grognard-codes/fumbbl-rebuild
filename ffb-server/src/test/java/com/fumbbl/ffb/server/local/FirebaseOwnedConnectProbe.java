@@ -30,7 +30,7 @@ public final class FirebaseOwnedConnectProbe {
 						if (cause instanceof java.net.SocketTimeoutException || cause instanceof java.util.concurrent.TimeoutException) timeout = true;
 				}
 				long elapsed = operation.elapsedMillis();
-				if (!failed || !timeout || elapsed < 180 || elapsed >= 1_000 || operation.startedWrites() != 0 || operation.openChannels() != 0)
+				if (!failed || !timeout || elapsed < 180 || elapsed >= 1_000 || operation.requestsWithHeaders() != 0 || operation.openChannels() != 0)
 					throw new AssertionError("Pending connect did not satisfy the deadline/physical cancellation proof");
 				String remote = "%02X%02X%02X%02X:AD9C".formatted(bytes[3] & 255, bytes[2] & 255, bytes[1] & 255, bytes[0] & 255);
 				if (Files.readString(Path.of("/proc/net/tcp")).contains(remote)) throw new AssertionError("Kernel still holds the pending connection");

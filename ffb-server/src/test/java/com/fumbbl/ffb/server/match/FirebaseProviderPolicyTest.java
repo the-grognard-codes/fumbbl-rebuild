@@ -51,14 +51,31 @@ class FirebaseProviderPolicyTest {
 	@Test void ordinaryDenialsNeverOpenOrHealAndOnlyOneRecoveryProbeIsAdmitted() throws Exception {
 		AtomicLong nanos = new AtomicLong(); FirebaseProviderBounds bounds = new FirebaseProviderBounds();
 		FirebaseProviderCircuitBreaker breaker = new FirebaseProviderCircuitBreaker(bounds, nanos::get);
-		breaker.acquire().unavailable(); breaker.acquire().denied(true); breaker.acquire().unavailable();
-		breaker.acquire().denied(false); breaker.acquire().unavailable();
+		breaker.acquire().unavailable(); breaker.acquire().close(); breaker.acquire().unavailable();
+		breaker.acquire().close(); breaker.acquire().unavailable();
 		assertThrows(FirebaseProviderFailure.class, breaker::acquire);
 		nanos.set(5_000_000_000L); FirebaseProviderCircuitBreaker.Lease probe = breaker.acquire();
 		assertThrows(FirebaseProviderFailure.class, breaker::acquire);
-		probe.denied(true); assertThrows(FirebaseProviderFailure.class, breaker::acquire);
+		probe.close();
+		FirebaseProviderCircuitBreaker.Lease nextProbe = breaker.acquire();
+		assertThrows(FirebaseProviderFailure.class, breaker::acquire); // Denial did not heal the open breaker.
+		nextProbe.unavailable(); assertThrows(FirebaseProviderFailure.class, breaker::acquire);
 		nanos.addAndGet(5_000_000_000L); breaker.acquire().success();
 		try (FirebaseProviderCircuitBreaker.Lease recovered = breaker.acquire()) { recovered.success(); }
+	}
+	@Test void revokedProbeDoesNotDelayTheNextValidIdentityOrCacheTheDeniedIdentity() throws Exception {
+		AtomicLong nanos = new AtomicLong(); FirebaseAuth auth = mock(FirebaseAuth.class);
+		when(auth.getUser(anyString())).thenThrow(new IllegalStateException(new ConnectException("synthetic")));
+		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(auth, "project", directory(), Clock.systemUTC(), nanos::get);
+		for (int index = 0; index < 3; index++) assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.reauthorize(principal("outage")));
+		nanos.addAndGet(5_000_000_000L);
+		UserRecord disabled = mock(UserRecord.class); when(disabled.isDisabled()).thenReturn(true);
+		doReturn(disabled).when(auth).getUser("disabled");
+		doReturn(mock(UserRecord.class)).when(auth).getUser("valid");
+		assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.reauthorize(principal("disabled")));
+		verifier.reauthorize(principal("valid")); // Same monotonic instant, without another cooldown.
+		assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.reauthorize(principal("disabled")));
+		verify(auth, times(2)).getUser("disabled"); verify(auth).getUser("valid");
 	}
 
 	@Test void successfulProviderCheckResetsOutageStreakEvenWhenTheLocalDatabaseRejects() throws Exception {
@@ -93,15 +110,15 @@ class FirebaseProviderPolicyTest {
 
 	@Test void typedHttpFailuresTakePrecedenceOverSdkWrappingAndIdentityErrorsAreNotOutages() {
 		FirebaseProviderErrors errors = new FirebaseProviderErrors();
-		for (int status : new int[] {408, 429, 500, 503}) assertTrue(errors.availability(new IOException(FirebaseProviderFailure.response(status, new byte[0]))));
-		for (int status : new int[] {301, 400, 401, 403, 404}) assertFalse(errors.availability(new IOException(FirebaseProviderFailure.response(status, new byte[0]))));
+		for (int status : new int[] {408, 429, 500, 503}) assertTrue(errors.isAvailabilityFailure(new IOException(FirebaseProviderFailure.response(status, new byte[0], false))));
+		for (int status : new int[] {301, 400, 401, 403, 404}) assertFalse(errors.isAvailabilityFailure(new IOException(FirebaseProviderFailure.response(status, new byte[0], false))));
 		for (AuthErrorCode code : new AuthErrorCode[] {AuthErrorCode.INVALID_ID_TOKEN, AuthErrorCode.EXPIRED_ID_TOKEN, AuthErrorCode.REVOKED_ID_TOKEN, AuthErrorCode.USER_DISABLED, AuthErrorCode.USER_NOT_FOUND}) {
 			FirebaseAuthException failure = mock(FirebaseAuthException.class); when(failure.getAuthErrorCode()).thenReturn(code);
-			when(failure.getErrorCode()).thenReturn(ErrorCode.UNAVAILABLE); assertFalse(errors.availability(failure));
+			when(failure.getErrorCode()).thenReturn(ErrorCode.UNAVAILABLE); assertFalse(errors.isAvailabilityFailure(failure));
 		}
-		assertTrue(errors.availability(new ConnectException()));
-		assertFalse(errors.availability(new FirebaseProviderFailure(FirebaseProviderFailure.Kind.ADMISSION)));
-		assertFalse(errors.availability(new FirebaseProviderFailure(FirebaseProviderFailure.Kind.CIRCUIT_OPEN)));
+		assertTrue(errors.isAvailabilityFailure(new ConnectException()));
+		assertFalse(errors.isAvailabilityFailure(new FirebaseProviderFailure(FirebaseProviderFailure.Kind.ADMISSION)));
+		assertFalse(errors.isAvailabilityFailure(new FirebaseProviderFailure(FirebaseProviderFailure.Kind.CIRCUIT_OPEN)));
 	}
 
 	@Test void unsafeBoundsAndEndpointsFailBeforeNetworkWork() {
@@ -115,14 +132,14 @@ class FirebaseProviderPolicyTest {
 
 	@Test void unsupportedCredentialTypesAreRejectedRatherThanUsingAnIndependentTransport() {
 		FirebaseProviderBounds bounds = new FirebaseProviderBounds();
-		FirebaseProviderCredentials binder = new FirebaseProviderCredentials(bounds, new FirebaseProviderTransport(bounds, true));
+		FirebaseProviderCredentials binder = new FirebaseProviderCredentials(bounds, FirebaseProviderTransport.withoutNetworkForTests(bounds));
 		assertThrows(IllegalArgumentException.class, () -> binder.bind(com.google.auth.oauth2.GoogleCredentials.create(null)));
 		assertThrows(IllegalArgumentException.class, () -> binder.bind(null));
 	}
 
 	@Test void adcAndResolverDiscoveryCannotBeIntroducedOnTheWorker() throws Exception {
 		FirebaseProviderBounds bounds = new FirebaseProviderBounds();
-		FirebaseProviderCredentials binder = new FirebaseProviderCredentials(bounds, new FirebaseProviderTransport(bounds, true));
+		FirebaseProviderCredentials binder = new FirebaseProviderCredentials(bounds, FirebaseProviderTransport.withoutNetworkForTests(bounds));
 		new com.fumbbl.ffb.server.local.CaptureRequestProbe().within(() -> {
 			assertThrows(IllegalStateException.class, binder::applicationDefault);
 			assertThrows(IllegalStateException.class, FirebaseDnsResolver::new);

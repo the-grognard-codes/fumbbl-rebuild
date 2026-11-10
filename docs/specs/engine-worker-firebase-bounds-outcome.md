@@ -57,7 +57,32 @@ Typed transport classification takes precedence over SDK IOException wrapping.
 Invalid, expired, disabled, revoked or missing identities and local denials do
 not count as outages. A validated provider success resets availability state
 before local SQL, while an ordinary denied identity does not heal it. Exactly
-one monotonic recovery probe is admitted; a failed probe renews cooldown.
+one monotonic recovery probe is admitted; an availability-failed probe renews
+cooldown. A denied or unstarted probe only releases its slot, leaving the breaker
+open and the original cooldown elapsed so the next identity may probe immediately.
+An ordinary denial still neither clears the failure streak nor caches authority.
+
+### Operator policy and retained verification fixtures
+
+Provider HTTPS is restricted to `www.googleapis.com`,
+`identitytoolkit.googleapis.com`, `oauth2.googleapis.com` and `accounts.google.com`
+on standard HTTPS ports. HTTP is permitted only to the supported compute metadata
+hosts/addresses on port 80. URI length is limited to 4,096 characters; user-info,
+fragments and redirects are rejected. Outbound headers are limited to 64 names,
+256 characters per name and 8,192 per value; each body is limited to 256 KiB.
+Requests preserve SDK content encoding. Responses must be unencoded or `identity`;
+unexpected response compression is refused rather than decompressed unboundedly.
+Unexpected endpoints/encodings fail closed as policy failures through existing
+authentication responses. They never silently broaden the host list or fall back
+to another transport. SDK/credential upgrades that require new endpoints need a
+reviewed policy update and rerun of the pinned transport/credential evidence.
+
+The DNS/transport candidate adapters, loopback TLS tests, `.p12` test fixtures and
+Linux physical-connect probe are intentionally retained as regression evidence.
+They exercise the promoted production mechanism, including physical cancellation
+and SDK retry suppression. Test trust material is confined to loopback test
+clients; production constructs its normal trusted TLS context. Maven test sources
+and test resources do not become runtime classes/resources in the server JAR.
 
 Initial authentication still uses `verifyIdToken(bearer, true)`. Five-second
 positive reuse stays fixed from lookup start, with token expiry and current

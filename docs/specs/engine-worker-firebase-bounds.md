@@ -117,7 +117,9 @@ proof of whole-operation control.
   signatures, revoked/disabled users or local permission denials as an outage.
   Record exact SDK error classification; successful dependency checks reset the
   consecutive availability-failure streak, ordinary denied identities do not
-  masquerade as provider recovery. Test at least refusal/DNS or fast 5xx in
+  masquerade as provider recovery. A denied recovery probe releases its slot
+  without renewing cooldown; the next identity may probe immediately, while the
+  breaker remains open until validated success. Test at least refusal/DNS or fast 5xx in
   addition to stalled I/O.
 - Initial authentication still verifies revocation. An expired/missing provider
   success cannot authorize while the breaker is open. Existing unexpired positive

@@ -42,6 +42,15 @@ one disconnected recipient cannot undo another delivery or an already durable
 action. Public history/mandatory acknowledgement ordering and recovery paths are
 unchanged.
 
+PR review corrected budget-only exhaustion: it now skips this best-effort push
+without retiring subscriptions. Admission refuses work before the batch when the
+task is exhausted; typed JDBC request-allowance/deadline refusals also skip the
+push. Expiry after a batch, projection or serialization prevents enqueue and
+preserves valid recipients for the next publication. That next publication must
+obtain a fresh local batch; no old snapshot or background retry grants delivery.
+Actual local denials/database failures and original token expiry still remove
+subscriptions. Existing task accounting records the overrun without new timers.
+
 Accepted option A deliberately permits passive viewing after Firebase-only
 revocation until the **existing** token expires—potentially roughly its remaining
 hour. Publication neither refreshes that token nor extends its expiry or the
@@ -49,6 +58,15 @@ five-second provider-success window. An unavailable provider or expired/missing
 provider-success entry alone does not prevent an otherwise locally authorized
 push. Every incoming action/read/chat/edit and reconnect retains ordinary
 provider checks and ADR 0005's fixed five-second reuse.
+
+Retirement after SDK `TOKEN_REVOKED` during initial authentication is intentionally
+limited to matching sessions whose authentication time is at or before the
+rejected token's. The SDK rejection supplies no revocation timestamp. Later
+sessions, including any that might also be revoked, retain option A's existing
+token-expiry bound until their own incoming check observes rejection. When
+`getUser` supplies `tokensValidAfterTimestamp`, retirement uses that actual cutoff;
+disablement/not-found retires all matching identity subscriptions. Guessing a
+broader cutoff could remove valid sessions authenticated after revocation.
 
 Explicit incoming provider disablement/not-found/revocation emits a transient
 trusted observation that removes matching live/chat and preparation subscriptions.

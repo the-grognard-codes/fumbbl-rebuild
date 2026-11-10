@@ -308,10 +308,10 @@ class FirebaseOwnedTransportCandidateTest {
 			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
 			try (operation) {
 				assertThrows(IOException.class, () -> transport.createRequestFactory().buildGetRequest(new GenericUrl("http://www.googleapis.com/connect")).execute());
-				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(0, operation.startedWrites());
+				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(0, operation.requestsWithHeaders());
 				assertEquals(0, operation.openChannels());
 				assertReleased(operation, transport);
-				System.out.println("FIREBASE_OWNED_SPIKE connectFailure elapsedMs=" + operation.elapsedMillis() + " startedWrites=0 channels=0");
+				System.out.println("FIREBASE_OWNED_SPIKE connectFailure elapsedMs=" + operation.elapsedMillis() + " requestsWithHeaders=0 channels=0");
 			}
 		} finally { for (Socket socket : fillers) socket.close(); }
 	}
@@ -333,7 +333,7 @@ class FirebaseOwnedTransportCandidateTest {
 			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
 			try (operation) {
 				assertThrows(IOException.class, () -> transport.createRequestFactory().buildPostRequest(new GenericUrl("http://www.googleapis.com/upload"), new ByteArrayContent("application/octet-stream", new byte[262_144])).execute());
-				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(1, operation.startedWrites()); assertEquals(0, operation.completedWrites());
+				assertTrue(operation.elapsedMillis() < 1_000); assertEquals(1, operation.requestsWithHeaders()); assertEquals(0, operation.completedWrites());
 				assertEquals(0, operation.openChannels()); assertReleased(operation, transport);
 				long returnedMillis = operation.elapsedMillis(); release.countDown();
 				assertTrue(closed.get(2, TimeUnit.SECONDS));

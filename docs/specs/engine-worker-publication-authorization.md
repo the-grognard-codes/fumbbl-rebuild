@@ -81,6 +81,12 @@ request-path cost; that request's authorization semantics stay unchanged.
   expiry alone does not stop eligible passive pushes, but a local authorization/
   database failure or expired token does. Incoming provider failures still fail
   closed and invalidate successful-check cache entries under ADR 0005.
+- Exhaustion of the originating request's budget skips that best-effort push
+  without retiring otherwise valid subscriptions. This includes typed JDBC
+  request-allowance/deadline refusals. No stale grant, background retry or new
+  deadline authorizes delivery; a later publication requires a new local batch.
+  Actual local authorization/database failures and token expiry retain the
+  existing unavailable/removal behavior.
 - JDBC-backed local refresh remains subject to the
   [JDBC controls](engine-worker-jdbc-bounds.md) and the originating request budget.
   Require one batched local-authorization SQL query per nonempty publication,

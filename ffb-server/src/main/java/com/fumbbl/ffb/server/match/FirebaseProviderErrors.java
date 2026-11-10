@@ -13,7 +13,7 @@ final class FirebaseProviderErrors {
 			if (failure instanceof FirebaseProviderFailure known) return known;
 		return null;
 	}
-	boolean availability(Throwable failure) {
+	boolean isAvailabilityFailure(Throwable failure) {
 		FirebaseProviderFailure transport = transportFailure(failure);
 		if (transport != null) return transport.kind() == FirebaseProviderFailure.Kind.AVAILABILITY;
 		if (failure instanceof FirebaseAuthException auth) {
