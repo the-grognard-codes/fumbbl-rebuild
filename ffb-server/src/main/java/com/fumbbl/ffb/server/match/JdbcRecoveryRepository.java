@@ -88,7 +88,8 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 					try (PreparedStatement query = connection.prepareStatement(
 						"SELECT matchid,generation,CASE WHEN OCTET_LENGTH(record_json)<=" + LobbyReadBudget.RECORD_BYTES
 						+ " AND SUM(OCTET_LENGTH(record_json)) OVER ()<=" + budget.remainingEncodedBytes()
-						+ " THEN record_json ELSE NULL END FROM ffb_match_recovery_journal WHERE matchid IN (" + slots + ") ORDER BY matchid,generation")) {
+						+ " THEN record_json ELSE NULL END FROM ffb_match_recovery_journal WHERE matchid IN (" + slots + ") ORDER BY matchid,generation LIMIT "
+						+ (ids.size() * RecoveryJournal.MAX_ENTRIES + 1))) {
 						for (int index = 0; index < ids.size(); index++) query.setString(index + 1, ids.get(index));
 						try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
 							int count = 0;

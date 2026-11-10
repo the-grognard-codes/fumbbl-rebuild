@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -49,8 +50,21 @@ class LobbyBatchReadTest {
 			JdbcRecoveryRepository repository = new JdbcRecoveryRepository(() -> { opens.incrementAndGet(); return connection; }, journal);
 			assertEquals(count, repository.findAll(ids(count), new LobbyReadBudget()).size());
 			assertEquals(1, opens.get()); verify(connection, times(journal ? 2 : 1)).prepareStatement(anyString());
+			if (journal) verify(connection).prepareStatement(endsWith("LIMIT " + (count * 32 + 1)));
 			verify(connection).commit(); verify(connection).close();
 		}
+	}
+	@Test void excessJournalRowsRemainCorruptionInsteadOfPartialSuccess() throws Exception {
+		Connection connection = mock(Connection.class);
+		PreparedStatement checkpoint = mock(PreparedStatement.class), tail = mock(PreparedStatement.class);
+		when(connection.prepareStatement(anyString())).thenReturn(checkpoint, tail);
+		String artifact = new RecoveryArtifactJson().encode(new JsonObject().add("matchId", "test"), 10000);
+		ResultSet checkpointRows = rows(1, artifact); when(checkpoint.executeQuery()).thenReturn(checkpointRows);
+		ResultSet excess = rows(33, "{}"); when(excess.getString(1)).thenReturn("id-0");
+		when(tail.executeQuery()).thenReturn(excess);
+		JdbcRecoveryRepository repository = new JdbcRecoveryRepository(() -> connection, true);
+		assertEquals("RECOVERY_CORRUPT", assertThrows(MatchService.Failure.class, () -> repository.findAll(ids(1), new LobbyReadBudget())).code);
+		verify(connection).rollback(); verify(connection).close();
 	}
 
 	@Test void limitsFailTheWholeReadAndStorageErrorsKeepTheirType() throws Exception {

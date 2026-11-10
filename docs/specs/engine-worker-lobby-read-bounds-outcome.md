@@ -45,3 +45,5 @@ Dev-local startup: successful using `node tools/dev-local.mjs --restart --quick`
 The first real-driver fixture run rejected schema version 7 for journal mode; the fixture now starts at version 8 and applies migration 009 to reach 9. The capture passes and its owned `ffb_lobby_read_test` schema is removed in `finally`.
 
 Final pinned clean verify passed on 2026-11-10 at 17:27:18 -05:00 (14m47s), using Temurin 21.0.11+10-LTS and Maven 3.9.9. The capture was taken from this slice working tree based on the revision above; the implementation commit preserves that source. Subsequent #39 harness and report changes are separately committed. No integrated-envelope claim is made by this validation boundary.
+
+Follow-up self-review bounds the journal SQL result to `page entries * 32 + 1` rows before driver materialization. The sentinel row retains explicit `RECOVERY_CORRUPT` failure for excess history; it never produces a truncated success. Focused regression covers both one- and 100-entry SQL bounds and excess-row rollback. This correction precedes the exact integrated capture and supersedes the earlier #508 source boundary for final validation.
