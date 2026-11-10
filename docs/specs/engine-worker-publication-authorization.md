@@ -107,8 +107,10 @@ request-path cost; that request's authorization semantics stay unchanged.
   dropping content. Scheduling is best effort behind other worker tasks, not
   a one-second delivery guarantee. After three deferrals from attempts that began
   with at least 500 ms remaining (including its initial attempt when applicable),
-  release the retained payload and send a `publicationDelayed` notice with code
-  `PUBLICATION_DELAYED`, match ID and family. Preserve enrollment. Shorter attempts
+  stop payload delivery and mark the bounded entry as notice-due. Authorize and
+  send `publicationDelayed` with code `PUBLICATION_DELAYED`, match ID and family
+  in a later watchdog control task, never inline in the failed payload task or
+  another ingress task. Preserve enrollment. Shorter attempts
   may deliver but do not consume the allowance; coalesced replacement states
   inherit only counted deferrals. This prevents another match or the actor's work
   from spending the retry allowance with a nearly exhausted budget.
@@ -121,8 +123,16 @@ request-path cost; that request's authorization semantics stay unchanged.
   recipients and enforce its roles plus original-token expiry again immediately
   before enqueue. This is one batch per nonempty notification publication, never
   per recipient, and performs no provider work. If its grant is denied, expired
-  or unavailable within the remaining deadline, send no activity metadata and
-  retire the recipient with the generic unavailable response. No budget is reset.
+  or fails with a generic SQL error, send no activity metadata and retire the
+  recipient with the generic unavailable response. Typed `PublicationDeferred`,
+  `NotStarted` and `DeadlineExpired` instead leave the notice pending for another
+  control task; this also applies to final per-recipient enqueue admission. Keep
+  only undelivered recipients and repeat local authorization with fresh slot
+  assignments. State coalescing preserves the notice phase and never resumes
+  expensive payload projection after its retry limit. Retention stays charged
+  within the same 64-entry / 4-Mi-character bounds until notice completion or
+  retirement. Notice retries do not spend additional payload attempts. No budget
+  is reset within a task; each existing control task gets its usual shared deadline.
   Delivery exhaustion alone is not proof of lost access; a recovery notice still
   cannot bypass required authorization. Follow-up client recovery work and the
   two deferred cleanup items are tracked in [#519](engine-worker-publication-recovery-follow-ups.md).

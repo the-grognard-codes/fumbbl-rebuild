@@ -37,6 +37,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -131,6 +133,8 @@ class PublicationAuthorizationTest {
 			fixture.directory.requestRefusal = new JdbcConnections.NotStarted(); fixture.directory.refusalsRemaining = 3;
 			fixture.withBudget(() -> fixture.publish(family));
 			fixture.withBudget(() -> fixture.retry(family)); fixture.withBudget(() -> fixture.retry(family));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			fixture.withBudget(() -> fixture.retry(family));
 			for (Connection connection : fixture.connections) {
 				JsonObject notice = connection.last();
 				assertEquals("publicationDelayed", notice.getString("type", ""));
@@ -144,20 +148,72 @@ class PublicationAuthorizationTest {
 		}
 	}
 
+	@Test void exhaustedPayloadBudgetLeavesTheNoticePendingForAFreshControlTask() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
+			fixture.directory.requestRefusal = new JdbcConnections.NotStarted(); fixture.directory.refusalsRemaining = 3;
+			fixture.directory.beforeRefusal = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.withBudget(() -> fixture.publish(family));
+			fixture.withBudget(() -> fixture.retry(family)); fixture.withBudget(() -> fixture.retry(family));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()), "Exhaustion is not an access denial");
+			assertEquals(3, fixture.directory.batches, "Do not try notice authorization in the exhausted payload task");
+			fixture.reset(); fixture.withBudget(() -> fixture.retry(family));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			for (Connection connection : fixture.connections) assertEquals("PUBLICATION_DELAYED", connection.last().getString("code", ""));
+			fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", ""));
+		}
+	}
+
+	@Test void noticeJdbcRefusalsRemainPendingUntilAFreshGrantWithoutRetryingThePayload() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (SQLException refusal : new SQLException[] {
+			new JdbcConnections.NotStarted(), new JdbcConnections.DeadlineExpired(new SQLException("synthetic notice deadline")) }) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.queueNotice(family);
+			fixture.directory.requestRefusal = refusal; fixture.directory.refusalsRemaining = Integer.MAX_VALUE;
+			fixture.directory.beforeRefusal = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			for (int tick = 0; tick < 4; tick++) fixture.withBudget(() -> fixture.retry(family));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			assertEquals(4, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			fixture.reset(); fixture.directory.requestRefusal = null; fixture.withBudget(() -> fixture.retry(family));
+			assertEquals(1, fixture.directory.batches);
+			for (Connection connection : fixture.connections) assertEquals("PUBLICATION_DELAYED", connection.last().getString("code", ""));
+			verify(fixture.setup, never()).publishedState(anyString(), anyString(), anyBoolean());
+		}
+	}
+
+	@Test void noticeEnqueueBudgetDeferralKeepsOnlyTheUndeliveredRecipientsAndReauthorizesTheirSlots() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.queueNotice(family);
+			fixture.directory.requestRefusal = null;
+			fixture.connections.getFirst().afterSend = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.withBudget(() -> fixture.retry(family));
+			assertEquals("PUBLICATION_DELAYED", fixture.connections.getFirst().last().getString("code", ""));
+			assertTrue(fixture.connections.get(1).messages.isEmpty(), "The second notice waits, rather than denying access");
+			fixture.reset(); fixture.withBudget(() -> fixture.retry(family));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			assertTrue(fixture.connections.getFirst().messages.isEmpty(), "A delivered notice is not resent");
+			assertEquals("PUBLICATION_DELAYED", fixture.connections.get(1).last().getString("code", ""));
+			fixture.connections.getFirst().afterSend = () -> { }; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", ""));
+		}
+	}
+
 	@Test void delayedNoticesRequireCurrentLocalAuthorityAndOriginalTokenExpiryForEveryFamily() throws Exception {
-		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (String denial : List.of("expiry", "local", "enqueue", "unavailable")) {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (String denial : List.of("expiry", "local", "enqueue", "database")) {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
 			fixture.directory.requestRefusal = new JdbcConnections.NotStarted();
-			fixture.directory.refusalsRemaining = "unavailable".equals(denial) ? Integer.MAX_VALUE : 3;
+			fixture.directory.refusalsRemaining = 3;
 			fixture.withBudget(() -> fixture.publish(family)); fixture.withBudget(() -> fixture.retry(family));
+			fixture.withBudget(() -> fixture.retry(family));
 			fixture.reset();
 			switch (denial) {
+				case "database" -> fixture.directory.sqlFailure = true;
 				case "expiry" -> fixture.millis.set(10_000);
 				case "local" -> fixture.principals.forEach(principal -> fixture.directory.denied.add(principal.accountId()));
 				case "enqueue" -> when(fixture.clock.millis()).thenReturn(1_000L, 10_000L);
 			}
 			fixture.withBudget(() -> fixture.retry(family));
-			assertEquals(2, fixture.directory.batches, "Failed payload authorization and a distinct notification batch");
+			assertEquals(1, fixture.directory.batches, "A separate control task authorizes only the notice");
 			assertEquals(0, fixture.directory.providerCalls);
 			for (Connection connection : fixture.connections) {
 				assertEquals(1, connection.messages.size());
@@ -392,7 +448,7 @@ class PublicationAuthorizationTest {
 	private static final class Directory implements V2PrincipalDirectory {
 		boolean freshPrincipal;
 		int providerCalls, batches; boolean outage, sqlFailure;
-		Runnable afterBatch = () -> { }; SQLException requestRefusal; int refusalsRemaining = Integer.MAX_VALUE;
+		Runnable afterBatch = () -> { }, beforeRefusal = () -> { }; SQLException requestRefusal; int refusalsRemaining = Integer.MAX_VALUE;
 		final Set<String> denied = new HashSet<>();
 		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) { throw new UnsupportedOperationException(); }
 		@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws V2PrincipalAuthenticator.Rejected {
@@ -401,7 +457,7 @@ class PublicationAuthorizationTest {
 		}
 		@Override public Snapshot authorizePublication(String matchId, Family family, List<Target> targets) throws SQLException {
 			batches++; if (sqlFailure) throw new SQLException("synthetic local failure");
-			if (requestRefusal != null && refusalsRemaining-- > 0) throw requestRefusal;
+			if (requestRefusal != null && refusalsRemaining-- > 0) { beforeRefusal.run(); throw requestRefusal; }
 			Map<Integer, String> roles = new HashMap<>();
 			for (int slot = 0; slot < targets.size(); slot++) if (!denied.contains(targets.get(slot).principal().accountId()))
 				roles.put(slot, targets.get(slot).audience() == Audience.SPECTATOR ? "spectator" : "home");
@@ -452,6 +508,12 @@ class PublicationAuthorizationTest {
 				adapter.receive(connection, new JsonObject().add("version", 2).add("type", "setup").add("requestId", "load-" + index).add("operation", "load").add("matchId", MATCH).toString());
 			}
 		}
+		void queueNotice(V2PublicationAuthorization.Family family) {
+			reset(); directory.requestRefusal = new JdbcConnections.NotStarted(); directory.refusalsRemaining = 3;
+			withBudget(() -> publish(family)); withBudget(() -> retry(family)); withBudget(() -> retry(family));
+			assertTrue(connections.stream().allMatch(connection -> connection.messages.isEmpty())); reset();
+		}
+
 		void reset() { directory.batches = 0; directory.providerCalls = 0; connections.forEach(connection -> connection.messages.clear()); }
 		void withBudget(Runnable action) {
 			BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, clock, ignored -> { });

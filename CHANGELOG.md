@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Retry authorized recovery notices on a later worker budget when delivery or notice admission times out, preserving the board and retrying only undelivered recipients.
+
 - Authorize delayed-publication notices against current local permissions and the original token expiry before revealing match activity.
 
 - Deliver queued updates when the next publication has budget. After three attempts with at least 500 ms available, release delayed payloads and automatically refresh the authorized view while preserving the board. Coalesced live history recovers through paged transcript reads.
