@@ -91,8 +91,8 @@ request-path cost; that request's authorization semantics stay unchanged.
   deliver immediately when their own queue is empty; deferred matches rotate
   behind peers on retry. The existing watchdog checks a volatile pending hint
   every second and schedules a coalesced control task only when work is pending.
-  Each control task shares one deadline across all matches and receives
-  its own measured 2,000 ms task budget and requires one new local batch for
+  Each control task receives one measured 2,000 ms deadline shared across all
+  matches. Each nonempty publication attempt requires one new local batch for
   still-enrolled recipients; neither the original deadline nor an old grant is
   extended. Already delivered chat recipients are not resent; retained publications
   cannot overtake earlier retained publications for the same match, and no
