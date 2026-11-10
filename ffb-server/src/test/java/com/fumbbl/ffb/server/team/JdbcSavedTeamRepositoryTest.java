@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 class JdbcSavedTeamRepositoryTest {
 	@Test void refusedCommitIsNotReportedAsAnUnknownSave() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
-		doThrow(new com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted()).when(connection).commit();
-		assertThrows(com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted.class, () -> repository.replace(record, 1));
+		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();
+		assertThrows(com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted.class, () -> repository.replace(record, 1));
 	}
 	private Connection connection;
 	private PreparedStatement statement;

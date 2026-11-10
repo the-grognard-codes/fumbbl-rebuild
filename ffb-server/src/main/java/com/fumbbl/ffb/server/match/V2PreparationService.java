@@ -1,6 +1,9 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.NotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.Unavailable;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
@@ -58,7 +61,8 @@ public final class V2PreparationService {
 			if ("reissue".equals(operation)) return reissue(accountId, request);
 			if ("revoke".equals(operation)) return revoke(accountId, request);
 			throw new Failure("INVALID_REQUEST");
-		} catch (CommitNotStarted failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
+		} catch (NotStarted failure) { return refused(requestId, failure); }
+		catch (Unavailable failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
 		catch (CommitUnknown failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
 		catch (Failure failure) { return response(requestId, failure.code, false, null, null, null); }
 		catch (SavedTeamService.Failure failure) { return response(requestId, failure.code, false, null, null, null); }
@@ -101,10 +105,14 @@ public final class V2PreparationService {
 	/** A disconnect tracker must grant this permission; clients cannot express it through {@link #handle}. */
 	public JsonObject releaseAbandoned(String creatorAccountId, String matchId, String requestId, boolean disconnectConfirmed) {
 		try { return release(creatorAccountId, matchId, requestId, disconnectConfirmed); }
-		catch (CommitNotStarted failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
+		catch (NotStarted failure) { return refused(requestId, failure); }
+		catch (Unavailable failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
 		catch (CommitUnknown failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
 		catch (Failure failure) { return response(requestId, failure.code, false, null, null, null); }
 		catch (SQLException failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
+	}
+	private JsonObject refused(String requestId, NotStarted failure) {
+		return response(requestId, failure instanceof CleanupNotStarted ? "MATCH_OUTCOME_UNKNOWN" : "PERSISTENCE_FAILED", false, null, null, null);
 	}
 	private JsonObject release(String creatorAccountId, String matchId, String requestId, boolean disconnectConfirmed) throws SQLException {
 		account(creatorAccountId); uuid(matchId); requestId(requestId);

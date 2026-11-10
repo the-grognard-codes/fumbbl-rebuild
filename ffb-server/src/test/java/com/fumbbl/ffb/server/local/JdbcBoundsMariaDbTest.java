@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.db.JdbcFaultProxy;
 import com.fumbbl.ffb.server.db.JdbcRequestConnections;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
@@ -85,20 +86,47 @@ class JdbcBoundsMariaDbTest {
 	@Test void lateProviderDoubleLeavesLessThanOneSecondForActualLockWaitAndWorkerReturns() throws Exception {
 		try (JdbcRequestConnections connections = bounded(port); Connection blocker = direct(); Statement lock = blocker.createStatement()) {
 			blocker.setAutoCommit(false); lock.executeUpdate("UPDATE budget_lock SET value=value+1 WHERE id=1");
-			long started = System.nanoTime();
-			requests.within(() -> {
-				Thread.sleep(1100); // Declared bounded cold-provider double, not production Firebase enforcement.
-				try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
-					assertTrue(connection.getNetworkTimeout() < 850);
-					long waited = System.nanoTime();
-					assertThrows(SQLException.class, () -> sql.executeUpdate("UPDATE budget_lock SET value=value+1 WHERE id=1"));
-					assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - waited) < 1000);
-				} catch (SQLException cleanup) { /* Timed-out transport cleanup retains the primary failure. */ }
-				return null;
-			});
-			assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 2000);
+			for (int repeat = 0; repeat < 4; repeat++) {
+				long started = System.nanoTime();
+				assertThrows(JdbcConnections.DeadlineExpired.class, () -> requests.within(() -> {
+					Thread.sleep(1100); // Declared bounded cold-provider double, not production Firebase enforcement.
+					try (Connection connection = connections.open(); Statement sql = connection.createStatement()) {
+						assertTrue(connection.getNetworkTimeout() < 850);
+						sql.executeUpdate("UPDATE budget_lock SET value=value+1 WHERE id=1");
+					}
+					return null;
+				}));
+				assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 2000);
+			}
 			blocker.rollback();
 			requests.within(() -> { try (Connection connection = connections.open(); Statement sql = connection.createStatement(); var row = sql.executeQuery("SELECT 1")) { assertTrue(row.next()); } return null; });
+		}
+	}
+	@Test void ordinaryIdenticalMembershipInsertIsIdempotentAndConflictingRolesStillFail() throws Exception {
+		try (JdbcRequestConnections source = bounded(port)) {
+			JdbcMatchMembershipRepository repository = new JdbcMatchMembershipRepository(source);
+			MatchMembership member = new MatchMembership(UUID.randomUUID().toString(), ACCOUNT, "home");
+			requests.within(() -> { repository.insert(member); return null; });
+			requests.within(() -> { repository.insert(member); return null; });
+			SQLException conflict = assertThrows(SQLException.class, () -> requests.within(() -> {
+				repository.insert(new MatchMembership(member.matchId, ACCOUNT, "away")); return null;
+			}));
+			assertEquals(1062, conflict.getErrorCode()); assertEquals("home", repository.find(member.matchId, ACCOUNT).role);
+		}
+	}
+	@Test void lateCommitDeadlineRetainsUnknownForBothActualOutcomesUntilANewRequestReconciles() throws Exception {
+		for (JdbcFaultProxy.Fault fault : new JdbcFaultProxy.Fault[] {JdbcFaultProxy.Fault.COMMIT_COMMITTED, JdbcFaultProxy.Fault.COMMIT_UNCOMMITTED}) {
+			try (JdbcFaultProxy relay = new JdbcFaultProxy(port, fault); JdbcRequestConnections source = bounded(relay.port(), false)) {
+				JdbcMatchMembershipRepository repository = new JdbcMatchMembershipRepository(source);
+				MatchMembership member = new MatchMembership(UUID.randomUUID().toString(), ACCOUNT, "home");
+				assertThrows(MatchMembershipRepository.OutcomeUnknown.class, () -> requests.within(() -> {
+					Thread.sleep(1100); repository.insert(member); return null;
+				}));
+				assertTrue(relay.injected());
+				assertEquals(fault == JdbcFaultProxy.Fault.COMMIT_COMMITTED, requests.within(() -> repository.find(member.matchId, ACCOUNT)) != null);
+				requests.within(() -> { repository.insert(member); return null; });
+				assertEquals("home", repository.find(member.matchId, ACCOUNT).role);
+			}
 		}
 	}
 	@Test void membershipAutocommitAcknowledgementLossReconcilesOrRetriesWithoutConflictingOverwrite() throws Exception {
@@ -174,7 +202,7 @@ class JdbcBoundsMariaDbTest {
 			}
 		}
 	}
-	private JdbcMatchMembershipRepository.Connections firstCloseFails(JdbcRequestConnections source) {
+	private JdbcConnections firstCloseFails(JdbcRequestConnections source) {
 		AtomicBoolean first = new AtomicBoolean(true);
 		return () -> {
 			Connection raw = source.open();

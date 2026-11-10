@@ -1,8 +1,8 @@
 package com.fumbbl.ffb.server.skilluse;
 
-import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.NotStarted;
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections;
+import com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.NotStarted;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,8 +11,8 @@ import java.sql.SQLException;
 
 /** One row per account/use case prevents concurrent devices overwriting unrelated settings. */
 public final class JdbcSkillUsePreferenceRepository implements SkillUsePreferenceRepository {
-	private final JdbcMatchMembershipRepository.Connections connections;
-	public JdbcSkillUsePreferenceRepository(JdbcMatchMembershipRepository.Connections connections) { this.connections = connections; }
+	private final JdbcConnections connections;
+	public JdbcSkillUsePreferenceRepository(JdbcConnections connections) { this.connections = connections; }
 	@Override public SkillUsePreferences load(String accountId) throws SQLException {
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
 			"SELECT use_case,mode FROM ffb_v2_skill_use_preferences WHERE account_id=?")) {

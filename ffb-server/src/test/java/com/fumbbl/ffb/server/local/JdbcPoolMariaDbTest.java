@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
+import com.fumbbl.ffb.server.db.JdbcFaultProxy;
 import com.fumbbl.ffb.server.db.JdbcRequestConnections;
 
 import org.junit.jupiter.api.AfterAll;
@@ -8,6 +10,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -36,6 +39,61 @@ class JdbcPoolMariaDbTest {
 		}
 	}
 	@AfterAll void clean() throws Exception { if (initialized) try (Connection connection = DriverManager.getConnection(url, "root", password); Statement sql = connection.createStatement()) { sql.execute("DROP TABLE pool_synthetic"); } }
+	@Test void bufferedRowsDecodeLocallyButStreamingNextStillHasAnActualDeadline() throws Exception {
+		try (JdbcRequestConnections pool = pool()) {
+			requests.within(() -> {
+				try (Connection connection = pool.open(); Statement sql = connection.createStatement(); var rows = sql.executeQuery("SELECT seq FROM seq_1_to_1000")) {
+					long sum = 0;
+					while (rows.next()) sum += ((Number) rows.getObject(1)).longValue();
+					assertEquals(500500, sum);
+				}
+				return null;
+			});
+		}
+		int port = URI.create(url.substring(5)).getPort();
+		try (JdbcFaultProxy relay = new JdbcFaultProxy(port, JdbcFaultProxy.Fault.STREAM_ROW_STALLED);
+			JdbcRequestConnections source = new JdbcRequestConnections(url.replace(":" + port + "/", ":" + relay.port() + "/"), "root", password, true)) {
+			long started = System.nanoTime();
+			assertThrows(JdbcConnections.DeadlineExpired.class, () -> requests.within(() -> {
+				try (Connection connection = source.open(); Statement sql = connection.createStatement()) {
+					sql.setFetchSize(1);
+					try (var rows = sql.executeQuery("SELECT 101 AS synthetic_stream UNION ALL SELECT 202")) {
+						assertTrue(rows.next()); assertEquals(101, rows.getInt(1));
+						Thread.sleep(1100); rows.next();
+					}
+				}
+				return null;
+			}));
+			assertTrue(relay.injected());
+			assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 2000);
+		}
+	}
+	@Test void deadIdleSessionsReconnectBeforeApplicationWorkWithoutPoisoningTheBreakerOrLeakingSlots() throws Exception {
+		try (JdbcRequestConnections pool = pool()) {
+			try (Connection first = pool.open(); Connection second = pool.open()) { assertTrue(!first.isClosed()); assertTrue(!second.isClosed()); }
+			try (Connection administrator = DriverManager.getConnection(url, "root", password); Statement sql = administrator.createStatement()) {
+				java.util.List<Long> ids = new java.util.ArrayList<>();
+				try (var rows = sql.executeQuery("SELECT ID FROM information_schema.PROCESSLIST WHERE DB='ffb_jdbc_bounds_test' AND COMMAND='Sleep' AND ID<>CONNECTION_ID()")) {
+					while (rows.next()) ids.add(rows.getLong(1));
+				}
+				assertEquals(2, ids.size());
+				for (long id : ids) sql.execute("KILL CONNECTION " + id);
+			}
+			Thread.sleep(1100); // Exercise the pool's configured idle validation interval.
+			for (int repeat = 0; repeat < 2; repeat++) requests.within(() -> {
+				try (Connection connection = pool.open(); Statement sql = connection.createStatement(); var row = sql.executeQuery("SELECT 1")) { assertTrue(row.next()); }
+				return null;
+			});
+			assertEquals(4, pool.connectionAttempts());
+			// If either stale validation had counted, this genuine cap timeout would trip the circuit.
+			assertThrows(SQLException.class, () -> requests.within(() -> {
+				try (Connection connection = pool.open(); Statement sql = connection.createStatement()) { sql.executeQuery("SELECT SLEEP(3)"); }
+				return null;
+			}));
+			requests.within(() -> { try (Connection connection = pool.open(); Statement sql = connection.createStatement(); var row = sql.executeQuery("SELECT 1")) { assertTrue(row.next()); } return null; });
+			try (Connection first = pool.open(); Connection second = pool.open()) { assertTrue(!first.isClosed()); assertTrue(!second.isClosed()); }
+		}
+	}
 	@Test void capacityIsTwoExhaustionIsImmediateAndClosedHandlesCannotTouchTheNextLease() throws Exception {
 		try (JdbcRequestConnections pool = pool(); Connection first = pool.open(); Connection second = pool.open()) {
 			Statement old = first.createStatement();

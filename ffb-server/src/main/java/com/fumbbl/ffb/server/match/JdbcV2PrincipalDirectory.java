@@ -1,6 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

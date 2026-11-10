@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
+
 import com.fumbbl.ffb.server.db.JdbcRequestConnections;
 import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.net.ServerCommunication;
@@ -63,7 +65,7 @@ class JdbcRequestDeadlineTest {
 			for (int index = 0; index < 4; index++) {
 				try (BrowserRequestTiming.Scope scope = timing.handling(timing.queued())) {
 					nanos.addAndGet(1_849_500_001L);
-					assertThrows(JdbcRequestConnections.NotStarted.class, connections::open);
+					assertThrows(JdbcConnections.NotStarted.class, connections::open);
 				}
 			}
 			assertEquals(0, connections.connectionAttempts());

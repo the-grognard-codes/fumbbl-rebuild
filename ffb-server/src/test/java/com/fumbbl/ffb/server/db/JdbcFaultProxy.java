@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Test-only MySQL packet relay: lose one real acknowledgement, with either actual write outcome. */
 public final class JdbcFaultProxy implements AutoCloseable {
-	public enum Fault { COMMIT_COMMITTED, COMMIT_UNCOMMITTED, WRITE_COMMITTED, WRITE_UNCOMMITTED }
+	public enum Fault { COMMIT_COMMITTED, COMMIT_UNCOMMITTED, WRITE_COMMITTED, WRITE_UNCOMMITTED, STREAM_ROW_STALLED }
 	private final ServerSocket listener;
 	private final ExecutorService workers = Executors.newFixedThreadPool(9, work -> {
 		Thread thread = new Thread(work, "synthetic-jdbc-fault-relay"); thread.setDaemon(true); return thread;
@@ -45,6 +45,10 @@ public final class JdbcFaultProxy implements AutoCloseable {
 			while (!closed) {
 				byte[] packet = packet(source.getInputStream());
 				boolean skip = false;
+				// The streaming regression forwards row 101, then withholds row 202 and EOF.
+				if (!clientSide && fault == Fault.STREAM_ROW_STALLED && packet.length == 8
+					&& packet[4] == 3 && packet[5] == '2' && packet[6] == '0' && packet[7] == '2'
+					&& injected.compareAndSet(false, true)) suppress.set(true);
 				if (clientSide && packet.length > 5 && packet[4] == 3) {
 					String sql = new String(packet, 5, packet.length - 5, StandardCharsets.UTF_8).trim();
 					boolean commit = sql.equalsIgnoreCase("COMMIT");

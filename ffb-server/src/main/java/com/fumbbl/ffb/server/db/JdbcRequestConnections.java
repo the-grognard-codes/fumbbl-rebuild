@@ -1,7 +1,12 @@
 package com.fumbbl.ffb.server.db;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.DeadlineExpired;
+import com.fumbbl.ffb.server.db.JdbcConnections.NotStarted;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
-import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
+
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -29,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 /** The sole runtime JDBC boundary: fresh properties, one request deadline and cancellable driver I/O. */
-public final class JdbcRequestConnections implements JdbcMatchMembershipRepository.Connections, AutoCloseable {
+public final class JdbcRequestConnections implements JdbcConnections, AutoCloseable {
 	static final int WORK_RESERVE_MILLIS = 150; // 100 ms native/CPU plus 50 ms transaction/cleanup reserve.
 	static final int COMMIT_RESERVE_MILLIS = 50;
 	static final int CLEANUP_CAP_MILLIS = 50;
@@ -52,6 +57,7 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 	private static final Pattern SQL_FUNCTION = Pattern.compile("([A-Z_0-9]+)\\s*\\(");
 	private static final Set<String> PURE_SQL_FUNCTIONS = Set.of("COUNT", "SUM", "COALESCE", "IN", "EXISTS", "IFNULL", "MAX", "MIN", "AVG", "CAST", "CONVERT", "LENGTH", "OCTET_LENGTH", "ROUND");
 	private static final Set<String> BUFFER_ACCESSORS = Set.of("getString", "getInt", "getLong", "getBoolean", "getDouble", "getFloat", "getShort", "getByte", "getBytes", "wasNull", "findColumn");
+	private static final Set<String> COMPLETE_RESULT_ACCESSORS = Set.of("next", "getObject", "getTimestamp", "getDate", "getTime");
 	private static final Set<String> PARAMETER_SETTERS = Set.of("setString", "setInt", "setLong", "setBoolean", "setDouble", "setFloat", "setShort", "setByte", "setBytes", "setNull");
 	private static final Set<String> LOCAL_CONNECTION_ACCESSORS = Set.of("getAutoCommit", "isClosed", "getNetworkTimeout", "getClientInfo");
 	private record Entry(Connection raw, JdbcDeadlineSocketFactory.TimedSocket socket, long returnedAt) { }
@@ -65,7 +71,7 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 	JdbcRequestConnections(JdbcRequestConfiguration configuration, JdbcAvailabilityBreaker breaker) {
 		this(configuration, breaker, false);
 	}
-	private JdbcRequestConnections(JdbcRequestConfiguration configuration, JdbcAvailabilityBreaker breaker, boolean pooled) {
+	JdbcRequestConnections(JdbcRequestConfiguration configuration, JdbcAvailabilityBreaker breaker, boolean pooled) {
 		this.configuration = configuration; this.breaker = breaker;
 		this.pooled = pooled;
 		timer.setRemoveOnCancelPolicy(true);
@@ -75,35 +81,49 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 	public long connectionAcquisitions() { return acquisitions.get(); }
 	@Override public void requireAvailable() throws SQLException {
 		allowance(timing.budget(), configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false);
-		breaker.requireAvailable();
+		breaker.requireAvailable(timing.budget());
 	}
 	@Override public Connection open() throws SQLException {
 		if (stopped) throw new SQLException("JDBC connection boundary is closed");
 		BrowserRequestTiming.Budget budget = timing.budget();
 		int connect = allowance(budget, configuration.connectCapMillis(), WORK_RESERVE_MILLIS, false);
 		int network = allowance(budget, configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false);
-		JdbcAvailabilityBreaker.Lease lease = breaker.acquire();
+		JdbcAvailabilityBreaker.Lease lease = breaker.acquire(budget);
 		Entry borrowed = null;
 		boolean reserved = false;
 		Connection raw = null;
-		try (JdbcDeadlineSocketFactory.Open open = new JdbcDeadlineSocketFactory.Open(configuration, timer, connect, network)) {
+		try (JdbcDeadlineSocketFactory.Open open = new JdbcDeadlineSocketFactory.Open(configuration, timer, connect, network,
+			budget != null && network < configuration.networkCapMillis())) {
 			try {
 				if (pooled) { borrowed = borrow(); reserved = true; }
 				acquisitions.incrementAndGet();
 				if (borrowed != null) {
 					raw = borrowed.raw();
-					Bounded connection = new Bounded(borrowed, budget, lease);
-					if (raw.isClosed() || borrowed.socket().isClosed()) throw new SQLException("Pooled database transport is closed", "08000");
-					if (System.nanoTime() - borrowed.returnedAt() >= VALIDATE_IDLE_NANOS) {
-						connection.phaseCapMillis = configuration.connectCapMillis();
-						try {
+					Bounded connection = null;
+					try {
+						if (raw.isClosed() || borrowed.socket().isClosed()) throw new SQLException("Pooled database transport is closed", "08000");
+						connection = new Bounded(borrowed, budget, lease);
+						connection.validation = open;
+						if (System.nanoTime() - borrowed.returnedAt() >= VALIDATE_IDLE_NANOS) {
 							try (Statement query = connection.proxy.createStatement(); ResultSet row = query.executeQuery("SELECT 1")) {
 								if (!row.next()) throw new SQLException("Database validation failed", "08000");
 							}
-						} finally { connection.phaseCapMillis = configuration.networkCapMillis(); }
+						}
+						connection.validation = null;
+						return connection.proxy;
+					} catch (SQLException stale) {
+						// No application work has used this loan. Keep its reserved slot and
+						// breaker lease for one fresh connection within this acquisition deadline.
+						if (connection != null) connection.closed = true;
+						discardPhysical(borrowed);
+						borrowed = null; raw = null;
+						if (stale instanceof NotStarted) throw stale;
 					}
-					return connection.proxy;
 				}
+				int remaining = open.remainingMillis();
+				if (remaining <= 0) throw new NotStarted();
+				connect = Math.min(remaining, allowance(budget, configuration.connectCapMillis(), WORK_RESERVE_MILLIS, false));
+				network = Math.min(remaining, allowance(budget, configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false));
 				attempts.incrementAndGet();
 				long began = System.nanoTime();
 				try { raw = DriverManager.getConnection(configuration.url(), configuration.properties(connect, network)); }
@@ -115,7 +135,15 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				Bounded connection = new Bounded(new Entry(raw, open.socket, System.nanoTime()), budget, lease);
 				connection.networkTimeout(allowance(budget, configuration.networkCapMillis(), WORK_RESERVE_MILLIS, false));
 				return connection.proxy;
-			} catch (SQLException | RuntimeException failure) {
+			} catch (SQLException | RuntimeException problem) {
+				Exception failure = problem;
+				if (failure instanceof SQLException && open.socket == null && open.remainingMillis() <= 0) {
+					failure = new NotStarted(); failure.initCause(problem);
+				}
+				if (failure instanceof SQLException sql && !(failure instanceof NotStarted)
+					&& requestExpiry(open.requestDeadlineLimited, open.socket != null && open.socket.disarm(), sql, budget, WORK_RESERVE_MILLIS))
+					failure = new DeadlineExpired(sql);
+				if (failure instanceof DeadlineExpired) lease.abandon();
 				if (failure instanceof NotStarted) lease.abandon();
 				else if (failure instanceof SQLException sql) lease.failure(sql);
 				lease.abandon();
@@ -123,9 +151,26 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				if (borrowed != null) { hardClose(borrowed.socket()); sockets.remove(borrowed.socket()); }
 				if (raw != null) try { raw.close(); } catch (SQLException close) { failure.addSuppressed(close); }
 				if (reserved) discardSlot();
-				throw failure;
+				if (failure instanceof SQLException sql) throw sql;
+				throw (RuntimeException) failure;
 			}
 		}
+	}
+	private void discardPhysical(Entry entry) {
+		hardClose(entry.socket()); sockets.remove(entry.socket());
+		try { entry.raw().close(); } catch (SQLException ignored) { /* Stale transport is already closed. */ }
+	}
+	private boolean requestExpiry(boolean limited, boolean expired, SQLException failure, BrowserRequestTiming.Budget budget, int reserve) {
+		if (!limited) return false;
+		// An actual server rejection remains definite even if cancellation races its reply.
+		String state = failure.getSQLState();
+		if (failure.getErrorCode() == 1205 || failure.getErrorCode() == 1213
+			|| state != null && (state.startsWith("23") || state.startsWith("40"))) return false;
+		if (expired) return true;
+		if (budget == null || budget.allowanceMillis(Integer.MAX_VALUE, reserve) > 0) return false;
+		for (Throwable cause = failure; cause != null; cause = cause.getCause())
+			if (cause instanceof java.net.SocketTimeoutException) return true;
+		return false;
 	}
 	/** Waiting for this worker to return its own leases would deadlock; exhaustion fails immediately. */
 	private synchronized Entry borrow() throws SQLException {
@@ -141,21 +186,12 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 		idle.addLast(new Entry(entry.raw(), entry.socket(), System.nanoTime())); return true;
 	}
 	private int allowance(BrowserRequestTiming.Budget budget, int cap, int reserve, boolean commit) throws NotStarted {
-		int usable = budget == null ? cap : budget.allowanceMillis(cap, reserve);
+		int usable = cap <= 0 ? 0 : budget == null ? cap : budget.allowanceMillis(cap, reserve);
 		if (usable <= 0) { if (commit) throw new CommitNotStarted(); else throw new NotStarted(); }
 		return usable;
 	}
-	/** This failure proves the operation was refused before contacting the database. */
-	public static class NotStarted extends SQLTimeoutException {
-		public NotStarted() { super("Request budget exhausted before JDBC operation", "HYT00"); }
-	}
-	/** Transaction repositories must not classify a refused COMMIT as an attempted commit. */
-	public static final class CommitNotStarted extends NotStarted { public CommitNotStarted() { } }
-	/** Cleanup refusal does not establish the outcome of preceding writes. */
-	public static final class CleanupNotStarted extends NotStarted { public CleanupNotStarted() { } }
-
 	private final class Bounded {
-		private int phaseCapMillis = configuration.networkCapMillis();
+		private JdbcDeadlineSocketFactory.Open validation;
 		private final Connection raw;
 		private final JdbcDeadlineSocketFactory.TimedSocket socket;
 		private final BrowserRequestTiming.Budget budget;
@@ -218,13 +254,19 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 			if (target == raw && (name.startsWith("set") && !"setNetworkTimeout".equals(name) || commit || "rollback".equals(name))) reusable = false;
 			if ((name.startsWith("prepare") || name.startsWith("execute") || "addBatch".equals(name))
 				&& arguments != null && arguments.length > 0 && arguments[0] instanceof String sql && !pureRead(sql)) reusable = false;
-			int cap = cleanup ? CLEANUP_CAP_MILLIS : Math.min(configuration.networkCapMillis(), phaseCapMillis);
+			int cap = cleanup ? CLEANUP_CAP_MILLIS : validation == null ? configuration.networkCapMillis()
+				: Math.min(configuration.connectCapMillis(), validation.remainingMillis());
 			int reserve = cleanup ? 0 : commit ? COMMIT_RESERVE_MILLIS : WORK_RESERVE_MILLIS;
+			boolean deadlineLimited = false, expired = false;
 			try {
 				int millis = allowance(budget, cap, reserve, commit);
+				deadlineLimited = budget != null && millis < cap
+					|| validation != null && validation.requestDeadlineLimited && cap < configuration.connectCapMillis();
 				// These pinned-driver operations only touch bound parameters or an already-read row.
-				// next()/execute/prepare/commit/cleanup remain actual I/O boundaries with fresh limits.
+				// Only the exact pinned fully buffered result can advance without network I/O;
+				// streaming/updatable next(), execute, prepare, commit and cleanup retain timers.
 				if (target instanceof ResultSet && BUFFER_ACCESSORS.contains(name)
+					|| target.getClass() == CompleteResult.class && COMPLETE_RESULT_ACCESSORS.contains(name)
 					|| target instanceof PreparedStatement && !(target instanceof CallableStatement)
 						&& PARAMETER_SETTERS.contains(name) && arguments != null && arguments[0] instanceof Integer
 					|| target == raw && LOCAL_CONNECTION_ACCESSORS.contains(name)) {
@@ -240,16 +282,18 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				networkTimeout(millis);
 				socket.arm(millis);
 				Object result;
-				boolean expired;
 				try {
 					result = "setNetworkTimeout".equals(name) ? null : invoke(target, method, arguments);
 				} finally { expired = socket.disarm(); }
-				if (cleanup && expired) throw new SQLTimeoutException("JDBC cleanup exceeded its deadline", "08000");
+				if (expired) throw new SQLTimeoutException("JDBC I/O exceeded its allowance", "08000");
 				if ("close".equals(name) && target instanceof Statement sql) statements.remove(sql);
 				return wrap(result, statement);
 			} catch (SQLException failure) {
-				if (breaker.availabilityFailure(failure) || failure instanceof NotStarted) broken = true;
-				if (failure instanceof NotStarted) lease.abandon(); else lease.failure(failure);
+				if (requestExpiry(deadlineLimited, expired, failure, budget, reserve)) failure = new DeadlineExpired(failure);
+				if (breaker.availabilityFailure(failure) || failure instanceof NotStarted || failure instanceof DeadlineExpired) broken = true;
+				if (validation == null) {
+					if (failure instanceof NotStarted || failure instanceof DeadlineExpired) lease.abandon(); else lease.failure(failure);
+				}
 				if (cleanup) hardClose(socket);
 				if (cleanup && failure instanceof NotStarted) throw new CleanupNotStarted();
 				throw failure;
@@ -264,12 +308,13 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 			if (closed) return;
 			closed = true;
 			boolean recycled = false;
+			boolean deadlineLimited = false, expired = false;
 			try {
 				if (broken || stopped) { lease.abandon(); return; }
 				int millis = allowance(budget, CLEANUP_CAP_MILLIS, 0, false);
+				deadlineLimited = budget != null && millis < CLEANUP_CAP_MILLIS;
 				if (!raw.isClosed()) networkTimeout(millis);
 				socket.arm(millis);
-				boolean expired;
 				try {
 					for (Statement statement : statements) statement.close();
 					statements.clear();
@@ -280,7 +325,8 @@ public final class JdbcRequestConnections implements JdbcMatchMembershipReposito
 				lease.success();
 				if (pooled && reusable) recycled = recycle(entry);
 			} catch (SQLException failure) {
-				if (failure instanceof NotStarted) lease.abandon(); else lease.failure(failure);
+				if (requestExpiry(deadlineLimited, expired, failure, budget, 0)) failure = new DeadlineExpired(failure);
+				if (failure instanceof NotStarted || failure instanceof DeadlineExpired) lease.abandon(); else lease.failure(failure);
 				if (failure instanceof NotStarted) throw new CleanupNotStarted();
 				throw failure;
 			} finally {

@@ -11,6 +11,9 @@
   membership, account-creation and skill-preference acknowledgements; refused
   commits remain distinct from unknown commit outcomes. A small bounded pool
   reuses clean read sessions and discards changed sessions before another request.
+  Stale idle sessions reconnect before application work; nested recovery loans
+  share one probe, and request-deadline expiry preserves write uncertainty without
+  opening the database outage breaker.
 
 - Dev-local Hosting uses the stack's verified credentials in an isolated CLI
   configuration, avoiding startup authentication errors from an expired CLI login.

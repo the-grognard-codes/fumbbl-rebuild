@@ -23,10 +23,10 @@ import static org.mockito.ArgumentMatchers.eq;
 class JdbcMatchRepositoryTest {
 	@Test void refusedCommitRemainsDefiniteEvenWhenRollbackAndCloseHaveNoBudget() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
-		doThrow(new com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted()).when(connection).commit();
-		doThrow(new com.fumbbl.ffb.server.db.JdbcRequestConnections.CleanupNotStarted()).when(connection).rollback();
-		doThrow(new com.fumbbl.ffb.server.db.JdbcRequestConnections.CleanupNotStarted()).when(connection).close();
-		assertThrows(com.fumbbl.ffb.server.db.JdbcRequestConnections.CommitNotStarted.class, () -> repository.insert(record));
+		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();
+		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted()).when(connection).rollback();
+		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted()).when(connection).close();
+		assertThrows(com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted.class, () -> repository.insert(record));
 	}
 	private Connection connection;
 	private PreparedStatement statement;

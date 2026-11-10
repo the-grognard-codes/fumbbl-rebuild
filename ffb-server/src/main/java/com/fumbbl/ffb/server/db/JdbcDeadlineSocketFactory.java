@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -17,11 +18,19 @@ public final class JdbcDeadlineSocketFactory extends SocketFactory {
 		private final JdbcRequestConfiguration configuration;
 		private final ScheduledThreadPoolExecutor timer;
 		private final int connectMillis, ioMillis;
+		private final long deadlineNanos;
+		final boolean requestDeadlineLimited;
 		TimedSocket socket;
 		Open(JdbcRequestConfiguration configuration, ScheduledThreadPoolExecutor timer, int connectMillis, int ioMillis) {
+			this(configuration, timer, connectMillis, ioMillis, false);
+		}
+		Open(JdbcRequestConfiguration configuration, ScheduledThreadPoolExecutor timer, int connectMillis, int ioMillis, boolean requestDeadlineLimited) {
 			this.configuration = configuration; this.timer = timer; this.connectMillis = connectMillis; this.ioMillis = ioMillis;
+			this.deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(ioMillis);
+			this.requestDeadlineLimited = requestDeadlineLimited;
 			OPEN.set(this);
 		}
+		int remainingMillis() { return (int) Math.max(0, Math.min(ioMillis, TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime()))); }
 		@Override public void close() { if (previous == null) OPEN.remove(); else OPEN.set(previous); }
 	}
 	static final class TimedSocket extends Socket {
@@ -51,11 +60,13 @@ public final class JdbcDeadlineSocketFactory extends SocketFactory {
 	@Override public Socket createSocket() throws IOException {
 		Open open = OPEN.get();
 		if (open == null || open.socket != null) throw new IOException("JDBC socket requires one bounded acquisition");
+		int remaining = open.remainingMillis();
+		if (remaining <= 0) throw new SocketTimeoutException("JDBC acquisition allowance exhausted before socket creation");
 		TimedSocket socket = new TimedSocket(open.timer);
 		open.socket = socket;
-		socket.arm(open.ioMillis);
+		socket.arm(remaining);
 		try {
-			socket.connect(new InetSocketAddress(open.configuration.address(), open.configuration.port()), open.connectMillis);
+			socket.connect(new InetSocketAddress(open.configuration.address(), open.configuration.port()), Math.min(open.connectMillis, remaining));
 			return socket;
 		} catch (IOException failure) { socket.close(); throw failure; }
 	}

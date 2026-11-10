@@ -1,7 +1,8 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.NotStarted;
-import com.fumbbl.ffb.server.db.JdbcRequestConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections;
+import com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.NotStarted;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,13 +13,9 @@ import java.util.List;
 
 /** Short JDBC operations over the v2 copied-storage membership table. */
 public final class JdbcMatchMembershipRepository implements MatchMembershipRepository {
-	public interface Connections {
-		Connection open() throws SQLException;
-		default void requireAvailable() throws SQLException { }
-	}
-	private final Connections connections;
+	private final JdbcConnections connections;
 
-	public JdbcMatchMembershipRepository(Connections connections) { this.connections = connections; }
+	public JdbcMatchMembershipRepository(JdbcConnections connections) { this.connections = connections; }
 
 	@Override public MatchMembership find(String matchId, String accountId) throws SQLException {
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
@@ -78,6 +75,11 @@ public final class JdbcMatchMembershipRepository implements MatchMembershipRepos
 		}
 	}
 
+	/**
+	 * Ensures this exact durable membership, including an ordinary identical duplicate.
+	 * This permits exact retries across requests after an acknowledgement is lost;
+	 * conflicting roles retain the duplicate-key failure and are never overwritten.
+	 */
 	@Override public void insert(MatchMembership membership) throws SQLException {
 		boolean uncertain = false;
 		try (Connection connection = connections.open()) {

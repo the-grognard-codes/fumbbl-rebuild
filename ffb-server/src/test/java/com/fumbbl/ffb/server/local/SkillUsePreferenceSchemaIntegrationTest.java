@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
+
 import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
 import com.fumbbl.ffb.server.match.JdbcRecoveryRepository;
 import com.fumbbl.ffb.server.match.RecoveryRepository;
@@ -71,7 +73,7 @@ class SkillUsePreferenceSchemaIntegrationTest {
 				assertEquals("TEAM_NAME_TAKEN", assertThrows(SavedTeamService.Failure.class,
 					() -> teams.create(first, "duplicate_name", draft("AFTER MIGRATION"))).code);
 				statement.execute("INSERT INTO ffb_v2_match_members VALUES ('11111111-1111-1111-1111-111111111111','" + first + "','home'),('22222222-2222-2222-2222-222222222222','" + first + "','away')");
-				JdbcMatchMembershipRepository.Connections connections = () -> {
+				JdbcConnections connections = () -> {
 					Connection opened = DriverManager.getConnection(url, "root", password); opened.setAutoCommit(false); return opened;
 				};
 				JdbcSkillUsePreferenceRepository deviceOne = new JdbcSkillUsePreferenceRepository(connections);
