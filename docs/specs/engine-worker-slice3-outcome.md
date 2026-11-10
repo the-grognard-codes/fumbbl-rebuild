@@ -106,3 +106,30 @@ decisions and zero invalid projections. The detailed response retains the initia
 loopback timeout and UI connection wait, their successful reruns, and the known
 recovered cold-computer-load diagnostic limitation. No credential validation
 remains blocked. No merge or deployment is authorized by these revisions.
+
+
+Latest PR #518 revision: [bounded retry and transcript recovery report](../reviews/2026-11-10-pr518-bounded-retry-review.md).
+Runtime `72b8802cf` limits unsuccessful budget-bearing attempts to three,
+inherits retry counts across state coalescing, drains earlier work inline within
+the caller deadline, captures optional transcript reservation and centralizes
+retention accounting. Mounted browser coverage proves paged recovery of
+coalesced transcript gaps. All five comments have explicit dispositions; the
+mid-socket capability-enable scenario is rejected against the current protocol,
+while its defensive reservation guard is implemented. Both review axes approved.
+
+This revision passed 76 focused tests, 108 real provider/JDBC tests without skips,
+530 browser units, all 83 browser suites and full dev-local startup. Real query
+counts remain 0/1/1 for 0/1/16 targets per family, with zero provider fan-out calls.
+Diagnostic and canonical three-party smokes each completed seven decisions with
+zero invalid projections. Clean pinned verification passed 1,108 tests with zero
+failures/errors and twenty expected opt-in skips in 14m30s. A separate test-only
+commit `a98e165da` isolates activation-trait assertions from random kickoff
+markers; runtime sources remain identical to the browser/real-boundary build.
+
+Current matched native latency evidence remains incomplete: both profiles failed
+closed during fixture authentication before publication. The report retains
+those failures, the initial strict loopback timeout, an unexplained canonical UI
+connection wait, the random kickoff fixture failure and incremental compilation
+failure alongside subsequent passing checks. No timeout policy was relaxed; no
+new matched p99 comparison or merge-readiness claim is made. Dev-local remains
+running. No merge or remote deployment occurred.
