@@ -133,3 +133,18 @@ connection wait, the random kickoff fixture failure and incremental compilation
 failure alongside subsequent passing checks. No timeout policy was relaxed; no
 new matched p99 comparison or merge-readiness claim is made. Dev-local remains
 running. No merge or remote deployment occurred.
+
+
+Subsequent PR #518 corrections are recorded in [fair retry and delivery recovery](../reviews/2026-11-10-pr518-fair-recovery-review.md).
+Only attempts starting with at least 500 ms consume the three-deferral allowance.
+Reaching it now releases retained payloads and asks the selected client to perform
+a fresh authorized read while preserving enrollment and the current board.
+Chat pages missing durable messages; computer players also refresh their view.
+Actual denial, expiry, database failure and overflow retain fail-closed behavior.
+This supersedes the preceding unavailable-at-retry-limit policy. Current validation
+passed 96 focused tests, 534 browser units, nine computer transport tests, all
+83 browser suites, 111 actual Firebase/JDBC/socket tests without skips and clean
+pinned verification with 1,111 tests (zero failures/errors, twenty expected skips).
+The mounted browser retained the board during a held recovery read and recovered
+delayed chat. Startup/gameplay smokes remain the previous runtime's evidence;
+the report distinguishes them from this round's fresh checks.
