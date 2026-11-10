@@ -16,7 +16,20 @@ const serverName = 'ffb-match-review-server-1';
 const databaseName = 'ffb-match-review-database-1';
 const project = 'dev-moles-under-the-pitch-org';
 const invokedDirectly = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-const mode = process.argv[2];
+const usage = 'Usage: node tools/dev-local.mjs --start|--restart [--quick] | --stop';
+
+export function parseDevLocalArguments(args) {
+  const modes = args.filter(arg => ['--start', '--stop', '--restart'].includes(arg));
+  const quick = args.includes('--quick');
+  if (modes.length !== 1 || args.length !== (quick ? 2 : 1)
+    || args.some(arg => !['--start', '--stop', '--restart', '--quick'].includes(arg))
+    || (quick && modes[0] === '--stop')) throw Error(usage);
+  return { mode: modes[0], quick };
+}
+
+export function composeBuildEnvironment(quick, secrets, source = process.env) {
+  return { ...source, ...secrets, DEV_LOCAL_MAVEN_FLAGS: quick ? '-DskipTests' : '' };
+}
 
 function run(file, args, options = {}) {
   return execFileSync(file, args, { cwd: root, encoding: 'utf8', windowsHide: true, maxBuffer: 1024 * 1024,
@@ -221,8 +234,10 @@ export async function prepareLocalStart(restart, { validate = validateLocalBrows
   else await stopProcesses();
 }
 
-async function start(tokenFile, restart = false) {
-  await prepareLocalStart(restart);
+export async function start(tokenFile, restart = false, { quick = false, validate = validateLocalBrowser,
+  stopStack = stop, stopProcesses = stopLocalProcesses } = {}) {
+  if (quick) console.log('Starting dev-local (quick mode: browser validation and server tests skipped).');
+  await prepareLocalStart(restart, { validate: quick ? async () => {} : validate, stopStack, stopProcesses });
   const server = inspect(serverName, 'server');
   const database = inspect(databaseName, 'database');
   const secrets = composeEnvironment(server, database);
@@ -232,7 +247,7 @@ async function start(tokenFile, restart = false) {
   run(process.execPath, [join(root, 'deployment', 'firebase', 'scripts', 'assemble.mjs'), '--environment', 'local-dev'], { stdio: 'inherit' });
   console.log('Building and starting the isolated review game server...');
   const compose = ['compose', '-f', join(root, 'containers', 'local', 'compose.match-review.yaml')];
-  const environment = { ...process.env, ...secrets };
+  const environment = composeBuildEnvironment(quick, secrets);
   run('docker', [...compose, 'config', '--quiet'], { env: environment, stdio: 'inherit' });
   run('docker', [...compose, 'up', '-d', '--build', 'server'], { env: environment, stdio: 'inherit' });
   await waitForReviewServer();
@@ -274,21 +289,27 @@ async function start(tokenFile, restart = false) {
   computer.unref();
   saveState({ ...state, computerPlayer: { pid: computer.pid, script: computerScript } });
   await waitForComputerPlayer(computer, computerLog);
-  console.log('Dev-local ready: http://localhost:5000/play');
+  console.log(`Dev-local ready${quick ? ' (quick mode: browser validation and server tests skipped)' : ''}: http://localhost:5000/play`);
 }
 
-if (invokedDirectly && (!['--start', '--stop', '--restart'].includes(mode) || process.argv.length !== 3)) {
-  console.error('Usage: node tools/dev-local.mjs --start|--stop|--restart');
-  process.exitCode = 2;
-} else if (invokedDirectly) {
-  try {
-    const tokenFile = resolve(process.env.FFB_COMPUTER_SERVICE_TOKEN_FILE || 'C:\\secure\\coach-bugman-token.key');
-    if (mode !== '--stop') validateComputerStartup(tokenFile);
-    if (mode === '--stop') await stop();
-    if (mode === '--start' || mode === '--restart') await start(tokenFile, mode === '--restart');
-  } catch (failure) {
-    const safe = /^[A-Z][A-Z_]+$/.test(failure.message) ? failure.message : 'DEV_LOCAL_COMMAND_FAILED';
-    console.error(`Dev-local: ${safe}`);
-    process.exitCode = 1;
+if (invokedDirectly) {
+  let options;
+  try { options = parseDevLocalArguments(process.argv.slice(2)); }
+  catch {
+    console.error(usage);
+    process.exitCode = 2;
+  }
+  if (options) {
+    try {
+      const { mode, quick } = options;
+      const tokenFile = resolve(process.env.FFB_COMPUTER_SERVICE_TOKEN_FILE || 'C:\\secure\\coach-bugman-token.key');
+      if (mode !== '--stop') validateComputerStartup(tokenFile);
+      if (mode === '--stop') await stop();
+      if (mode === '--start' || mode === '--restart') await start(tokenFile, mode === '--restart', { quick });
+    } catch (failure) {
+      const safe = /^[A-Z][A-Z_]+$/.test(failure.message) ? failure.message : 'DEV_LOCAL_COMMAND_FAILED';
+      console.error(`Dev-local: ${safe}`);
+      process.exitCode = 1;
+    }
   }
 }

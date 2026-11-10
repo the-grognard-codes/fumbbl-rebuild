@@ -11,7 +11,8 @@ ENV PATH="/opt/node-v26.12.0-linux-x64/bin:/opt/apache-maven-3.9.9/bin:${PATH}"
 WORKDIR /source
 COPY . .
 # Recovery tests include complete match histories and need a predictable test heap.
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -DargLine=-Xmx3g -pl ffb-server -am clean package
+ARG MAVEN_FLAGS=""
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -DargLine=-Xmx3g ${MAVEN_FLAGS} -pl ffb-server -am clean package
 WORKDIR /out
 RUN jar xf /source/ffb-server/target/ffb-server.zip && rm server.ini
 

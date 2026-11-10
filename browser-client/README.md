@@ -12,6 +12,9 @@ From the repository root:
 node tools/dev-local.mjs --start
 # Rebuild and restart a managed stack:
 node tools/dev-local.mjs --restart
+# Manual testing only: skip browser validation and server test execution.
+node tools/dev-local.mjs --start --quick
+node tools/dev-local.mjs --restart --quick
 ```
 
 Open <http://localhost:5000/play>. See [deployment usage](../deployment/README.md)
@@ -27,8 +30,12 @@ npm run build --prefix browser-client
 npm run test:interaction --prefix browser-client
 ```
 
-The build produces the V2 product bundle. The supported dev-local command runs
-mandatory browser validation before starting services. Real authenticated
+The build produces the V2 product bundle. By default, dev-local runs full browser
+validation before stopping or starting services and runs server tests during
+the image build. `--quick` is for manual testing only and is never accepted as
+delivery handoff validation evidence; `deploy.mjs` never uses it. Quick starts
+keep the token and Node preflight, current builds, health waits, proxy probe,
+and computer player. Real authenticated
 play/result/replay validation uses `test/real-server-match.mjs` and the isolated
 V2 acceptance profile documented in [local runtimes](../containers/local/README.md).
 

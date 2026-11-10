@@ -23,6 +23,8 @@ services:
     build:
       context: ../..
       dockerfile: containers/local/Dockerfile
+      args:
+        MAVEN_FLAGS: "${DEV_LOCAL_MAVEN_FLAGS:-}"
     depends_on:
       database:
         condition: service_healthy

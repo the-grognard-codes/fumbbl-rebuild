@@ -26,7 +26,8 @@ test('local restart failure stops command and production cannot dispatch without
     calls.push([file, args]);
     throw Error('browser preflight failed');
   } }), /browser preflight failed/);
-  assert.deepEqual(calls.map(call => call[1].at(-1)), ['--restart']);
+  assert.deepEqual(calls, [[process.execPath, [join(root, 'tools', 'dev-local.mjs'), '--restart']]],
+    'dev-local deployment must use full validation and never pass --quick');
   await assert.rejects(deploy({ environment: 'prod' }, { root, run() { throw Error('must not dispatch'); } }), /release-tag/);
   await deploy({ environment: 'prod', releaseTag: 'moles-v1.2.3' }, { root, run(file, args) {
     calls.push([file, args]);

@@ -7,7 +7,61 @@ import { join, parse } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { composeEnvironment, prepareLocalStart, readManagedState, validateComputerPlayer, validateComputerStartup, waitForComputerPlayer } from '../dev-local.mjs';
+import { composeBuildEnvironment, composeEnvironment, parseDevLocalArguments, prepareLocalStart, readManagedState, start, validateComputerPlayer, validateComputerStartup, waitForComputerPlayer } from '../dev-local.mjs';
+
+test('accepts exactly one mode and an optional quick flag for start or restart', () => {
+  for (const mode of ['--start', '--restart', '--stop']) {
+    assert.deepEqual(parseDevLocalArguments([mode]), { mode, quick: false });
+    if (mode !== '--stop') {
+      assert.deepEqual(parseDevLocalArguments([mode, '--quick']), { mode, quick: true });
+      assert.deepEqual(parseDevLocalArguments(['--quick', mode]), { mode, quick: true });
+    }
+  }
+});
+
+test('invalid arguments exit with usage before any preflight, stop or build operation', () => {
+  for (const args of [[], ['--quick'], ['--stop', '--quick'], ['--quick', '--stop'],
+    ['--unknown'], ['--start', '--unknown'], ['--restart', '--quick', '--unknown'],
+    ['--stop', '--unknown'], ['--start', '--restart'], ['--start', '--start'],
+    ['--start', '--quick', '--quick']]) {
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../dev-local.mjs', import.meta.url)), ...args], {
+      encoding: 'utf8', windowsHide: true,
+      env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN_FILE: 'missing-invalid-arguments-test-token' },
+    });
+    assert.equal(result.status, 2, JSON.stringify(args));
+    assert.match(result.stderr, /^Usage: node tools\/dev-local\.mjs .*\[--quick\].*\r?\n$/);
+    assert.equal(result.stdout, '', 'invalid arguments must precede stop and build operations');
+  }
+});
+
+test('quick starts skip validation and preserve the start and restart stop order', async () => {
+  for (const quick of [false, true]) {
+    for (const restart of [false, true]) {
+      const calls = [];
+      const stopped = Error('stop boundary reached');
+      await assert.rejects(start('unused-test-token', restart, {
+        quick,
+        validate: async () => { calls.push('browser'); },
+        stopStack: async () => { calls.push('stack stop'); throw stopped; },
+        stopProcesses: async () => { calls.push('process stop'); throw stopped; },
+      }), error => error === stopped);
+      assert.deepEqual(calls, [...(quick ? [] : ['browser']), restart ? 'stack stop' : 'process stop']);
+    }
+  }
+});
+
+test('only quick Compose builds skip Maven test execution and overrides stay local', () => {
+  const source = { PATH: 'test-path', DEV_LOCAL_MAVEN_FLAGS: '-DskipTests' };
+  const secrets = { M6_ADC_FILE: 'test-adc-path' };
+  assert.deepEqual(composeBuildEnvironment(true, secrets, source), {
+    ...source, ...secrets, DEV_LOCAL_MAVEN_FLAGS: '-DskipTests',
+  });
+  assert.deepEqual(composeBuildEnvironment(false, secrets, source), {
+    ...source, ...secrets, DEV_LOCAL_MAVEN_FLAGS: '',
+  });
+  assert.equal(source.DEV_LOCAL_MAVEN_FLAGS, '-DskipTests');
+  assert.equal(secrets.DEV_LOCAL_MAVEN_FLAGS, undefined);
+});
 
 test('browser failure prevents both start and restart from stopping local services', async () => {
   for (const restart of [false, true]) {
@@ -25,13 +79,17 @@ test('rejects unavailable computer prerequisites before restart can stop the run
   const directory = mkdtempSync(join(tmpdir(), 'dev-local-preflight-test-'));
   const tokenFile = join(directory, 'service.key');
   try {
-    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../dev-local.mjs', import.meta.url)), '--restart'], {
-      encoding: 'utf8', windowsHide: true,
-      env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN_FILE: tokenFile },
-    });
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /COMPUTER_TOKEN_FILE_UNAVAILABLE/);
-    assert.equal(result.stdout, '', 'preflight must precede stop and build operations');
+    for (const mode of ['--start', '--restart']) {
+      for (const flags of [[], ['--quick']]) {
+        const result = spawnSync(process.execPath, [fileURLToPath(new URL('../dev-local.mjs', import.meta.url)), mode, ...flags], {
+          encoding: 'utf8', windowsHide: true,
+          env: { ...process.env, FFB_COMPUTER_SERVICE_TOKEN_FILE: tokenFile },
+        });
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /COMPUTER_TOKEN_FILE_UNAVAILABLE/);
+        assert.equal(result.stdout, '', 'preflight must precede stop and build operations');
+      }
+    }
     writeFileSync(tokenFile, ' ');
     assert.throws(() => validateComputerStartup(tokenFile, '26.7.0'), /COMPUTER_TOKEN_FILE_INVALID/);
     writeFileSync(tokenFile, 'synthetic-test-token');

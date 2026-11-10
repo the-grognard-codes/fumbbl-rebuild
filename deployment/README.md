@@ -29,6 +29,23 @@ The existing `node tools/dev-local.mjs --restart` command remains supported and
 runs the same mandatory preflight. Use that script's `--start` to build and start
 the stack, or `--stop` to stop it. It does not accept `--rebuild`.
 
+For manual testing only, add `--quick` to `--start` or `--restart`:
+
+```powershell
+node tools/dev-local.mjs --start --quick
+node tools/dev-local.mjs --restart --quick
+```
+
+Quick mode skips browser validation and Maven server test execution (test sources
+still compile). It keeps the computer-token and Node preflight, builds the current
+Hosting artifact and server image, waits for health, runs the live proxy probe,
+and starts the computer player. Quick starts are never accepted as delivery
+handoff validation evidence. `deploy.mjs` never passes `--quick`; deployment and
+default starts retain full validation. `--quick` alone or with `--stop` is invalid.
+Switching between quick and full builds rebuilds the Maven Docker layer because
+the build argument changes. Plain Compose builds with `DEV_LOCAL_MAVEN_FLAGS`
+unset still run the tests.
+
 ## DEV remote
 
 Validate committed remote `main` locally, then request its Hosting deployment:
