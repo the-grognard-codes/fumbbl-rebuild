@@ -40,7 +40,7 @@ class BrowserDiagnosticTraceTest {
 	}
 	@Test void basicTimingIsAvailableBeforeTheDelayedDetailedTrace() {
 		BrowserMatchDelivery.WriteObserver[] observer = new BrowserMatchDelivery.WriteObserver[1];
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) {
 			start(); nanos.addAndGet(5_000_000);
 			timing.reply(connection, response(), () -> observer[0] = timing.claimWriteObserver());
 			assertEquals(1, connection.timings.size(), "Basic evidence must not depend on publication or write completion");
@@ -51,7 +51,7 @@ class BrowserDiagnosticTraceTest {
 		assertEquals(1, connection.details.size()); assertEquals(1, connection.timings.size());
 	}
 	@Test void denseRepeatedReadsRetainLateOuterAndPublicationPhases() {
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) {
 			start();
 			try (BrowserRequestTiming.Scope apply = timing.span(BrowserRequestTiming.Phase.SESSION_APPLY);
 				BrowserRequestTiming.Scope outerRead = timing.span(BrowserRequestTiming.Phase.DB_READ)) {
@@ -68,7 +68,7 @@ class BrowserDiagnosticTraceTest {
 	}
 	@Test void joinsWorkerAndAsynchronousWriteWithoutDependingOnThreadLocalCallback() throws Exception {
 		BrowserMatchDelivery.WriteObserver[] observer = new BrowserMatchDelivery.WriteObserver[1];
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) {
 			start();
 			timing.value(BrowserRequestTiming.Value.HISTORY_REQUESTS, 128);
 			try (BrowserRequestTiming.Scope sql = timing.span(BrowserRequestTiming.Phase.DB_COMMIT)) { nanos.addAndGet(5_000_000); }
@@ -90,7 +90,7 @@ class BrowserDiagnosticTraceTest {
 		assertFalse(connection.details.getFirst().contains("matchId"));
 	}
 	@Test void synchronousCompletionWaitsForWorkerAndExplicitCapsRetainTotals() {
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) {
 			start();
 			for (int index = 0; index < 60; index++) try (BrowserRequestTiming.Scope sql = timing.span(BrowserRequestTiming.Phase.DB_READ)) { nanos.addAndGet(1_000_000); }
 			timing.reply(connection, response(), () -> timing.claimWriteObserver().completed("completed", 0, 0, 100));
@@ -103,12 +103,12 @@ class BrowserDiagnosticTraceTest {
 		assertTrue(connection.details.getFirst().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 8192);
 	}
 	@Test void nonObservingTransportsReportUnavailableInsteadOfInventingWriteTimes() {
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) { start(); timing.reply(connection, response(), () -> {}); }
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) { start(); timing.reply(connection, response(), () -> {}); }
 		JsonObject write = JsonObject.readFrom(connection.details.getFirst()).get("trace").asObject().get("write").asObject();
 		assertEquals("unavailable", write.getString("status", null)); assertFalse(write.names().contains("durationMs"));
 	}
 	@Test void denseTracesFitTheOptionalFrameBudgetWithoutLosingPhaseTotals() {
-		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope worker = timing.handling(timing.queued())) {
 			start();
 			for (BrowserRequestTiming.Value value : BrowserRequestTiming.Value.values()) timing.value(value, 9_007_199_254_740_991L);
 			for (int repeat = 0; repeat < 3; repeat++) for (BrowserRequestTiming.Phase phase : BrowserRequestTiming.Phase.values())

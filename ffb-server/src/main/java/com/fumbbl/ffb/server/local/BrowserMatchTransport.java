@@ -124,11 +124,7 @@ public class BrowserMatchTransport {
 	}
 
 	boolean submit(String message, Runnable work, Runnable rejected) {
-		return submit(message, work, rejected, false);
-	}
-
-	boolean submit(String message, Runnable work, Runnable rejected, boolean diagnostics) {
-		return submit(work, rejected, advisory(message), true, diagnostics);
+		return submit(work, rejected, advisory(message), true);
 	}
 
 	/** Trusted, coalesced operator/deadline/disconnect work shares ordering, not browser admission. */
@@ -137,18 +133,14 @@ public class BrowserMatchTransport {
 	}
 
 	private boolean submitControl(BrowserRequestTiming.TaskKind kind, Runnable work, Runnable rejected) {
-		return submit(work, rejected, false, false, false, kind);
+		return submit(work, rejected, false, false, kind);
 	}
 
 	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress) {
-		return submit(work, rejected, advisory, trackedIngress, false);
+		return submit(work, rejected, advisory, trackedIngress, BrowserRequestTiming.TaskKind.INGRESS);
 	}
 
-	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, boolean diagnostics) {
-		return submit(work, rejected, advisory, trackedIngress, diagnostics, BrowserRequestTiming.TaskKind.INGRESS);
-	}
-
-	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, boolean diagnostics, BrowserRequestTiming.TaskKind kind) {
+	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, BrowserRequestTiming.TaskKind kind) {
 		if (stopped.get() || trackedIngress && !ingress.tryAcquire()) {
 			if (trackedIngress) metrics.ingressOverload();
 			rejected.run();

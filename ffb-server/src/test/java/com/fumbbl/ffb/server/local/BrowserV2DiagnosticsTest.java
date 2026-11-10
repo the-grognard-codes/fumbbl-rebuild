@@ -137,7 +137,7 @@ class BrowserV2DiagnosticsTest {
 	}
 
 	private void timedProbe(Connection connection, String id) {
-		try (BrowserRequestTiming.Scope ignored = timing.handling(timing.queued(true))) { probe(connection, id); }
+		try (BrowserRequestTiming.Scope ignored = timing.handling(timing.queued())) { probe(connection, id); }
 	}
 	private void probe(Connection connection, String id) {
 		adapter.receive(connection, request("diagnostics", id).add("operation", "probe").toString());

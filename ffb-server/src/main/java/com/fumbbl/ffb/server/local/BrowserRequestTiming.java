@@ -49,10 +49,6 @@ public final class BrowserRequestTiming {
 	}
 
 	Request queued() {
-		return queued(false);
-	}
-
-	Request queued(boolean diagnostics) {
 		return queued(TaskKind.INGRESS);
 	}
 

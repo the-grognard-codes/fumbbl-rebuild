@@ -63,7 +63,7 @@ public class BrowserMatchSocket implements BrowserConnection {
 				// Protocol failures never log request bodies or provider exception details.
 				retireFromEngineWorker(1011, "Browser protocol unavailable; reconnect for a full snapshot");
 			}
-		}, () -> retire(1013, "Local browser transport overloaded"), diagnosticsEnabled);
+		}, () -> retire(1013, "Local browser transport overloaded"));
 	}
 
 	@OnWebSocketClose

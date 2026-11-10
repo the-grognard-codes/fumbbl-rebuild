@@ -97,7 +97,7 @@ class BrowserRequestTimingTest {
 			@Override public void send(String message) { }
 			@Override public void sendDiagnostics(String message) { telemetry.add(message); }
 		};
-		BrowserRequestTiming.Request queued = timing.queued(true);
+		BrowserRequestTiming.Request queued = timing.queued();
 		nanos.addAndGet(2000000);
 		try (BrowserRequestTiming.Scope work = timing.handling(queued)) {
 			timing.selectRequest(action());
@@ -121,7 +121,7 @@ class BrowserRequestTimingTest {
 		assertEquals(java.util.Set.of("queueWaitMs", "handlingMs", "authorizationMs", "sessionApplyMs", "checkpointMs", "recoverySerializeMs", "checkpointSqlMs"),
 			new java.util.HashSet<>(durations.names()));
 		telemetry.clear();
-		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 			timing.selectRequest(action()); timing.enableReplies(connection);
 			nanos.addAndGet(4000000000000L);
 			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), () -> { });
@@ -140,7 +140,7 @@ class BrowserRequestTimingTest {
 			@Override public void send(String message) { }
 			@Override public void sendDiagnostics(String message) { throw new IllegalStateException("diagnostics unavailable"); }
 		};
-		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 			timing.selectRequest(action()); timing.enableReplies(connection);
 			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), replies::incrementAndGet);
 		}
