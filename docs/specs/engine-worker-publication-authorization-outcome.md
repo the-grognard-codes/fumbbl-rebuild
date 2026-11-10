@@ -3,8 +3,8 @@
 Tracking: [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
 Prerequisite: [validated #504 provider controls](engine-worker-firebase-bounds-outcome.md),
 committed separately at `c72a1b5f4` / `1ca75927a` after the accepted spike series.
-Status: implementation, independent review and focused/matched integration passed;
-final clean verification and rebuilt dev-local smoke in progress.
+Status: implemented and validated; ready for independent PR review. The historical
+non-reproducing startup rejection and its diagnostic limits are recorded below.
 
 ## Behavior and security review
 
@@ -97,7 +97,8 @@ no tokens, provider identities or private game state are included.
   fan-out adds no checks. The native profiles below use actual Firebase instead.
 - Matched actual DEV Firebase + MariaDB + native-engine profiles each include
   800 reads, 200 accepted actions and 21 forced provider misses, with identical
-  persisted fixture digests and separate warmup. The in-process single owner
+  persisted fixture digests and separate warmup. Both enable the existing bounded
+  JDBC session pool (`JDBC_BOUNDS_POOL=true`). The in-process single owner
   uses the real request-budget context and a counting delivery sink; the socket
   test separately exercises actual asynchronous network delivery.
 
@@ -126,6 +127,64 @@ ordering. Evidence: `.tools/slice3-publication-real-jdbc-final-r2.log`.
 Matched native runs: `.tools/slice3-real-native-{zero,fifteen-r2}.log`; raw numeric
 data remain in the corresponding ignored JSON files.
 
-Final clean `tools/target-build.ps1 verify`, browser unit/build, the complete
-dev-local browser/container rebuild and successful three-party UI smoke remain
-in progress. This report will record their observed results before publication.
+Clean `tools/target-build.ps1 verify` passed in 15:30 at `488412390`: **19 common,
+770 server and 292 native tests (1,081 total)**, zero failures/errors and twenty
+expected opt-in skips. The genuine provider/JDBC tests above ran separately.
+The first clean attempt exposed an old native test fixture that still supplied
+only per-recipient incoming authorization stubs. Its explicit batch-authority
+double was corrected in a test-only commit; its five regressions and the entire
+clean rerun passed. Evidence: `.tools/slice3-publication-verify-r2.log`.
+
+Browser unit tests passed **530/530** and the TypeScript/Vite build passed in
+`.tools/slice3-publication-browser-{unit,build}.log`.
+The first complete 82-suite browser run passed its assertions but correctly
+failed the final provenance gate: a test-fixture commit changed HEAD between
+groups. During the affected-group rerun, the unchanged coach-HUD test exposed a
+race between its immediate DOM assertion and the acknowledgement-driven React
+effect. An isolated run reproduced it; a targeted probe verified one send and
+eventual composer removal. The test now waits for actual DOM detachment while
+retaining its original assertion. No frontend product behavior changed. The
+isolated corrected suite passed. A fresh complete gate then passed **all 82
+interaction/hosted suites at frozen commit `604a884c8`**, in **636.6 seconds with
+two workers**. Reports: `.tools/validation/local-browser-w2h7QP`; full log:
+`.tools/slice3-publication-dev-local-r3.log`. The formerly load-sensitive idle
+panning test recorded zero HUD rectangle reads. Failed evidence is retained in
+`.tools/slice3-publication-dev-local{,-r2}.log` and
+`.tools/slice3-publication-coach-hud-{rerun,probe,fixed}.log`.
+Full, non-quick dev-local startup passed after that gate: the Linux image build
+ran all 770 server tests (zero failures/errors, thirteen expected opt-in skips),
+the schema/ADC checks passed, and Hosting/proxy/computer services started at
+`http://localhost:5000/play`. Initial-connection and reconnect authentication
+gates both returned the expected rejection without submitted credentials.
+
+The first startup emitted one generic `PERSISTENCE_FAILED` while loading a
+retained computer match; its existing daemon retry recovered both retained
+matches. The application log did not record the underlying exception, so the
+original cause is **not established**. Two subsequent cold JVM restarts of the
+same validated image, with existing timing diagnostics enabled, produced no
+additional load rejection. Their slowest retained loads took 1,693.94 and
+1,527.19 ms, including 1,529.44 and 1,446.10 ms of native recovery. Subsequent
+loads took about 20–25 ms. Queue wait was recorded separately. These observations
+do not prove the earlier failure's cause or eliminate ADR 0006's cold native/CPU
+residual risk. No production code, stored data or timeout was changed to obtain
+the successful restarts. Private evidence: `.tools/slice3-cold-start-timing{,-r2}.log`
+and `.tools/dev-local-computer{,.err}.log`. The final local instance retains
+timing diagnostics for inspection; the next normal startup uses its usual default.
+
+The first rebuilt three-party UI smoke passed real DEV authentication, saved-team
+validation, coach/spectator convergence, escaped durable chat, reconnect,
+wrong-coach/spectator/stale/fabricated-request rejection, save/agree/resume and a
+confirmed native route. Seven measured play decisions included a block and
+movement; strict live projection validation reported zero invalid projections.
+This is a bounded gameplay smoke, not full-match UI acceptance. Evidence:
+`.tools/slice3-final-ui-smoke.log` and its private evidence directory. The repeat
+against the final diagnostic-started instance also passed with seven play
+decisions and zero invalid projections:
+`.tools/slice3-final-ui-smoke-r2.log` / `.tools/slice3-final-ui-smoke-r2`.
+A snapshot of 170 instrumented requests from that final instance had maximum
+handling time 1,527.19 ms and zero executions over 2,000 ms; this includes the
+retained cold loads, and is not a claim about the earlier uninstrumented failure
+or uninstrumented request types. The final server is healthy, both retained
+computer matches load successfully, and the rejection count remains one from
+the first startup. Isolated synthetic database validation services were stopped;
+the ready dev-local stack and its data remain available.

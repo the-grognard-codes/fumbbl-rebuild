@@ -2,8 +2,8 @@
 
 Tracking: [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
 Status: option A implemented after [validated #504 controls](engine-worker-firebase-bounds-outcome.md);
-[focused and matched integration passed](engine-worker-publication-authorization-outcome.md),
-final clean verification and rebuilt dev-local smoke in progress.
+[focused/matched integration, clean verification, complete browser gate and rebuilt dev-local smoke passed](engine-worker-publication-authorization-outcome.md).
+The outcome records the historical startup diagnostic limitation.
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Security policy: [accepted ADR 0005 amendment](../adr/0005-bounded-provider-revalidation.md#accepted-amendment-local-authorization-for-passive-pushes).
 Review: [combined findings C3/C5 and P1/P2](engine-worker-requests-review.md).

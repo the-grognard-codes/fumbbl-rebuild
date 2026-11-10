@@ -10,6 +10,7 @@
     "actualFirebase": true,
     "actualMariaDb": true,
     "actualNativeEngine": true,
+    "boundedJdbcSessionPoolEnabled": true,
     "note": "Single-owner in-process workload in actual request-budget context; provider freshness clock advanced explicitly for misses; warmup separate; phase diagnostics enabled. Actual queue/network covered separately.",
     "matchedFixtureDigests": [
       "4987eb1f4e15fa77de26ffc8747fd5dc862bb8fd001472f04eed6a44192582f2",
