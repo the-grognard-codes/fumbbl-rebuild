@@ -1,5 +1,12 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
+import com.fumbbl.ffb.server.match.FirebaseProviderBounds;
+import com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.net.ServerCommunication;
+
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.auth.oauth2.ComputeEngineCredentials;
@@ -48,9 +55,93 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class FirebaseOwnedTransportCandidateTest {
 	private static final String PROJECT = "owned-transport-spike";
+
+	@Test void measuredProductionDefaultAlsoBoundsStalledIoIncludingCleanup() throws Exception {
+		FirebaseProviderBounds bounds = new FirebaseProviderBounds();
+		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, true, 0)); FirebaseDnsCandidateTest.DnsServer server = dns();
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), uri -> provider.port(), bounds)) {
+			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
+			try (operation) { assertThrows(IOException.class, () -> transport.createRequestFactory().buildGetRequest(new GenericUrl("https://www.googleapis.com/key")).execute()); }
+			operation.requireCompleted(); assertEquals(0, operation.openChannels()); assertEquals(0, transport.destinations());
+			assertTrue(operation.elapsedMillis() < bounds.operationMillis());
+			System.out.println("FIREBASE_PROVIDER_DEFAULT allocationMs=" + bounds.operationMillis() + " stalledMs=" + operation.elapsedMillis());
+		}
+	}
+
+	@Test void stalledCredentialRefreshReleasesTheActualWorkerForQueuedRequestExpiryAndDisconnect() throws Exception {
+		try (TlsProvider provider = new TlsProvider(new Behavior("/token", 200, true, 0)); FirebaseDnsCandidateTest.DnsServer server = dns();
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
+			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport, new FirebaseProviderBounds(1_000, 200, 250, 1, 5_000));
+			GoogleCredentials credentials = probe.bind(UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build());
+			FirebaseApp app = app(transport, credentials);
+			FantasyFootballServer host = mock(FantasyFootballServer.class);
+			ServerCommunication queue = new ServerCommunication(host); when(host.getCommunication()).thenReturn(queue);
+			BrowserMatchTransport ingress = new BrowserMatchTransport(host);
+			Thread worker = new Thread(queue, "bounded-provider-test-worker");
+			try {
+				FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
+				String token = provider.token(); List<String> order = new CopyOnWriteArrayList<>();
+				CompletableFuture<Void> completed = new CompletableFuture<>();
+				ingress.submit(() -> {
+					try {
+						assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
+						order.add("rejection");
+					} catch (Throwable failure) { completed.completeExceptionally(failure); }
+				}, () -> completed.completeExceptionally(new AssertionError("Ingress rejected")));
+				BrowserMatchSocket socket = mock(BrowserMatchSocket.class);
+				assertTrue(ingress.admitConnection()); assertTrue(ingress.connected(socket));
+				ingress.queueDecisionCheck(new BrowserProtocol() {
+					@Override public void receive(BrowserConnection connection, String text) { }
+					@Override public void disconnect(BrowserConnection connection) { }
+					@Override public void expireDecisions() { order.add("expiry"); }
+				});
+				ingress.disconnect(socket, () -> order.add("disconnect"));
+				ingress.submit(() -> { assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token)); order.add("next-request"); }, () -> completed.completeExceptionally(new AssertionError("Ingress rejected")));
+				queue.execute(() -> completed.complete(null));
+				long started = System.nanoTime(); worker.start(); completed.get(2, TimeUnit.SECONDS);
+				assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 2_000);
+				assertEquals(List.of("rejection", "expiry", "disconnect", "next-request"), order);
+				JsonObject metrics = ingress.getMetrics().toJson();
+				assertEquals(0, metrics.getLong("activeConnections", -1));
+				assertEquals(0, metrics.getInt("ingressQueueDepth", -1));
+				assertEquals(0, transport.destinations()); assertEquals(2, provider.paths.size());
+			} finally { ingress.destroy(); queue.shutdown(); worker.join(2_000); assertFalse(worker.isAlive()); app.delete(); }
+		}
+	}
+
+	@Test void productionCredentialRebindingAndAuthenticatorShareOneColdOperationAndFailClosedWithoutRetries() throws Exception {
+		for (boolean service : new boolean[] {false, true}) for (boolean unavailable : new boolean[] {false, true}) {
+			try (TlsProvider provider = new TlsProvider(new Behavior("/token", unavailable ? 503 : 200, false, 0)); FirebaseDnsCandidateTest.DnsServer server = dns();
+				FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
+				FirebaseProviderProbe probe = new FirebaseProviderProbe(transport);
+				// Deliberately omit the factory: the production binder must replace the source's default transport.
+				GoogleCredentials original = service ? ServiceAccountCredentials.newBuilder().setClientEmail("synthetic@example.invalid")
+					.setPrivateKey(provider.privateKey()).setScopes(List.of("https://www.googleapis.com/auth/cloud-platform")).build()
+					: UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build();
+				FirebaseApp app = app(transport, probe.bind(original));
+				try {
+					FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
+					String token = provider.token(); long started = System.nanoTime();
+					if (unavailable) {
+						assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
+						assertEquals(2, provider.paths.size());
+					} else {
+						var principal = verifier.authenticate(token); verifier.reauthorize(principal);
+						assertEquals(3, provider.paths.size());
+					}
+					long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+					assertTrue(elapsed < 1_000, "Bound authenticator returned in " + elapsed);
+					assertEquals(0, transport.destinations());
+					System.out.println("FIREBASE_PROVIDER_BOUND service=" + service + " unavailable=" + unavailable + " elapsedMs=" + elapsed + " httpCalls=" + provider.paths.size());
+				} finally { app.delete(); }
+			}
+		}
+	}
 
 	@Test void coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation() throws Exception {
 		for (boolean service : new boolean[] {false, true}) {
@@ -91,7 +182,7 @@ class FirebaseOwnedTransportCandidateTest {
 		try (TlsProvider provider = new TlsProvider(); FirebaseDnsCandidateTest.DnsServer server = dns();
 			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(),
 				uri -> "https".equals(uri.getScheme()) ? provider.port() : metadata.getAddress().getPort())) {
-			ComputeEngineCredentials credentials = ComputeEngineCredentials.newBuilder().setHttpTransportFactory(() -> transport).build();
+			GoogleCredentials credentials = new FirebaseProviderProbe(transport).bind(ComputeEngineCredentials.newBuilder().build());
 			String token = provider.token(); FirebaseApp app = app(transport, credentials);
 			FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
 			try (operation) {

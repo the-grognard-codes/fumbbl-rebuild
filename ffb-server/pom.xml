@@ -122,7 +122,6 @@
             <groupId>dnsjava</groupId>
             <artifactId>dnsjava</artifactId>
             <version>3.7.1</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

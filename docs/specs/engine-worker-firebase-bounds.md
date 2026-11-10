@@ -2,7 +2,8 @@
 
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504).
 Status: [continued feasibility gate passed](engine-worker-firebase-bounds-spike-2.md);
-production implementation pending.
+[production controls and clean verification passed](engine-worker-firebase-bounds-outcome.md),
+dev-local startup validation in progress.
 Historical evidence: [initial candidate outcome](engine-worker-firebase-bounds-spike.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C1-C5 and F1-F3](engine-worker-requests-review.md).
@@ -199,6 +200,8 @@ with `tools/target-build.ps1 verify` (clean build), plus relevant V2 smoke check
 The revised scope was linked from [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504#issuecomment-6758906276)
 before the spike. The [initial spike](engine-worker-firebase-bounds-spike.md)
 records the first candidate's failed gate; the [owned DNS/TCP continuation](engine-worker-firebase-bounds-spike-2.md)
-passed the mechanism and validation gate. No production runtime fix is claimed yet.
-Record implementation, settings, timing evidence and validation in a local outcome
-report. Investigate failures until resolved or a concrete blocker is recorded.
+passed the mechanism and validation gate. The [production outcome](engine-worker-firebase-bounds-outcome.md)
+records the implemented transport/credential controls, measured 1,200 ms default,
+shared-deadline admission, breaker/cache security review, real Firebase/JDBC
+evidence and passing clean verification. Dev-local startup/smoke work remains in
+progress; #507 stays a separate following deliverable.

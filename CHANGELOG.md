@@ -4,7 +4,12 @@
 
 - Added reproducible Firebase deadline/credential feasibility experiments. An
   owned DNS/TCP follow-up passed the mechanism gate after the initial resolver
-  candidate failed; production authentication/publication changes remain pending.
+  candidate failed.
+
+- Firebase authentication now bounds key retrieval, credential refresh and
+  revocation checks within one admitted operation. Provider outages fail closed
+  and trip a shared circuit breaker so queued requests can continue; existing
+  incoming-request freshness and immediate local permission checks are preserved.
 
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and

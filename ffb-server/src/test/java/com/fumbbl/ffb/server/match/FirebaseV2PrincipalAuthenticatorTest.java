@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,19 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		verifier.reauthorize(principal()); verifier.reauthorize(principal());
 		verify(auth, times(1)).getUser("firebase-subject");
 		assertEquals(2, directory.reauthorizeCalls);
+	}
+
+	@Test void failedInitialVerificationForAnAlreadyKnownIdentityInvalidatesOtherPositiveSessions() throws Exception {
+		FirebaseAuth auth = mock(FirebaseAuth.class); FirebaseToken token = token("firebase-subject", 1900000000L);
+		when(auth.verifyIdToken("bearer", true)).thenReturn(token);
+		when(auth.verifyIdToken("bearer", false)).thenReturn(token);
+		when(auth.getUser("firebase-subject")).thenReturn(mock(UserRecord.class));
+		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(auth, PROJECT, new Directory());
+		AuthenticatedPrincipal principal = verifier.authenticate("bearer");
+		doThrow(mock(FirebaseAuthException.class)).when(auth).verifyIdToken("bearer", true);
+		assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate("bearer"));
+		verifier.reauthorize(principal);
+		verify(auth).getUser("firebase-subject");
 	}
 
 	@Test void initialRevocationVerificationSeedsWindowButEachNewBearerStillVerifiesRevocation() throws Exception {

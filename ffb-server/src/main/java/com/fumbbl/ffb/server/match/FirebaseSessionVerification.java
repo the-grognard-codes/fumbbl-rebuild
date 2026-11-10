@@ -38,10 +38,16 @@ final class FirebaseSessionVerification {
 	/** An observed rejection invalidates every cached session for this provider identity. */
 	synchronized void forget(AuthenticatedPrincipal principal) {
 		if (principal == null) return;
+		forget(principal.issuer(), principal.subject());
+	}
+
+	synchronized void forget(VerifiedIdentity identity) { if (identity != null) forget(identity.issuer, identity.subject); }
+
+	private void forget(String issuer, String subject) {
 		Iterator<Key> entries = checked.keySet().iterator();
 		while (entries.hasNext()) {
 			Key key = entries.next();
-			if (Objects.equals(key.issuer, principal.issuer()) && Objects.equals(key.subject, principal.subject())) entries.remove();
+			if (Objects.equals(key.issuer, issuer) && Objects.equals(key.subject, subject)) entries.remove();
 		}
 	}
 
