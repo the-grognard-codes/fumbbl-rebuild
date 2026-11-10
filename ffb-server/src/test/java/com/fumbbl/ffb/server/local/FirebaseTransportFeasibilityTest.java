@@ -51,7 +51,7 @@ class FirebaseTransportFeasibilityTest {
 	@TempDir Path temporary;
 
 	@Test void pinnedFirebaseDefault503HandlerRetriesAndSleepsOutsideLowLevelTransport() throws Exception {
-		ScriptedTransport transport = new ScriptedTransport(false, true);
+		ScriptedTransport transport = new ScriptedTransport(true);
 		FirebaseApp app = app(transport, GoogleCredentials.create(new com.google.auth.oauth2.AccessToken("synthetic", new Date(Long.MAX_VALUE))));
 		try {
 			long start = System.nanoTime();
@@ -64,22 +64,46 @@ class FirebaseTransportFeasibilityTest {
 	}
 
 	@Test void terminalTransportFailuresBypassFirebaseResponseBackoffAndIOExceptionIsNotRetried() throws Exception {
-		for (boolean response : new boolean[] {true, false}) {
-			ScriptedTransport transport = new ScriptedTransport(true, response);
+		ScriptedTransport transport = new ScriptedTransport(false);
+		FirebaseApp app = app(transport, GoogleCredentials.create(new com.google.auth.oauth2.AccessToken("synthetic", new Date(Long.MAX_VALUE))));
+		try {
+			long start = System.nanoTime();
+			assertThrows(FirebaseAuthException.class, () -> FirebaseAuth.getInstance(app).getUser("synthetic"));
+			assertEquals(1, transport.attempts.get());
+			long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+			assertTrue(elapsed < 500, "Unexpected Firebase backoff: " + elapsed);
+			System.out.println("FIREBASE_SPIKE terminalIOException attempts=1 elapsedMs=" + elapsed);
+		} finally { app.delete(); }
+	}
+
+	@Test void actual503ConversionPreventsFirebaseBackoff() throws Exception {
+		try (ServerSocket server = new ServerSocket(0); Candidate transport = new Candidate()) {
+			CompletableFuture<Void> peer = CompletableFuture.runAsync(() -> {
+				try (Socket socket = server.accept()) {
+					socket.setSoTimeout(2_000);
+					readHeaders(socket);
+					socket.getOutputStream().write("HTTP/1.1 503 Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".getBytes(StandardCharsets.US_ASCII));
+					socket.getOutputStream().flush();
+				} catch (IOException failure) { throw new IllegalStateException(failure); }
+			});
+			transport.route = "http://127.0.0.1:" + server.getLocalPort();
 			FirebaseApp app = app(transport, GoogleCredentials.create(new com.google.auth.oauth2.AccessToken("synthetic", new Date(Long.MAX_VALUE))));
 			try {
+				transport.begin(1_000);
 				long start = System.nanoTime();
 				assertThrows(FirebaseAuthException.class, () -> FirebaseAuth.getInstance(app).getUser("synthetic"));
-				assertEquals(1, transport.attempts.get());
 				long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-				assertTrue(elapsed < 500, "Unexpected Firebase backoff: " + elapsed);
-				System.out.println("FIREBASE_SPIKE terminal response=" + response + " attempts=1 elapsedMs=" + elapsed);
+				assertEquals(1, transport.allowances.size());
+				assertEquals(List.of(503), transport.statuses);
+				assertTrue(elapsed < 1_000, "Actual 503 conversion returned in " + elapsed);
+				peer.get(2, TimeUnit.SECONDS);
+				System.out.println("FIREBASE_SPIKE actual503 attempts=1 elapsedMs=" + elapsed);
 			} finally { app.delete(); }
 		}
 	}
 
 	@Test void serviceAccountFactoryAloneDoesNotDisableOAuthIOExceptionBackoffButPublicRetryCloneDoes() throws Exception {
-		ScriptedTransport transport = new ScriptedTransport(true, false);
+		ScriptedTransport transport = new ScriptedTransport(false);
 		ServiceAccountCredentials credential = ServiceAccountCredentials.newBuilder()
 			.setClientEmail("synthetic@example.invalid").setPrivateKey(privateKey())
 			.setScopes(List.of("https://www.googleapis.com/auth/cloud-platform"))
@@ -132,8 +156,7 @@ class FirebaseTransportFeasibilityTest {
 				try (Socket peer = server.accept()) {
 					peer.setSoTimeout(2_000);
 					// Consume request headers, then announce a body which never arrives.
-					int tail = 0;
-					while (tail != 0x0d0a0d0a) { int next = peer.getInputStream().read(); if (next < 0) return false; tail = (tail << 8) | next; }
+					readHeaders(peer);
 					peer.getOutputStream().write("HTTP/1.1 200 OK\r\nContent-Length: 10000\r\n\r\n".getBytes(StandardCharsets.US_ASCII));
 					peer.getOutputStream().flush();
 					return peer.getInputStream().read() == -1;
@@ -164,7 +187,18 @@ class FirebaseTransportFeasibilityTest {
 			assertEquals(0, child.exitValue(), output);
 			assertTrue(output.contains("resolverStillRunning=true"), output);
 			System.out.print(output);
-		} finally { child.destroyForcibly(); }
+		} finally {
+			child.destroyForcibly();
+			assertTrue(child.waitFor(5, TimeUnit.SECONDS), "DNS child remained alive after forced termination");
+		}
+	}
+	private void readHeaders(Socket socket) throws IOException {
+		int tail = 0;
+		while (tail != 0x0d0a0d0a) {
+			int next = socket.getInputStream().read();
+			if (next < 0) throw new IOException("Peer closed before complete headers");
+			tail = (tail << 8) | next;
+		}
 	}
 
 	private UserCredentials user(HttpTransport transport) {
@@ -194,14 +228,14 @@ class FirebaseTransportFeasibilityTest {
 
 	private static final class ScriptedTransport extends HttpTransport {
 		final AtomicInteger attempts = new AtomicInteger();
-		final boolean terminal, response;
-		ScriptedTransport(boolean terminal, boolean response) { this.terminal = terminal; this.response = response; }
+		final boolean response;
+		ScriptedTransport(boolean response) { this.response = response; }
 		@Override protected LowLevelHttpRequest buildRequest(String method, String url) {
 			return new LowLevelHttpRequest() {
 				@Override public void addHeader(String name, String value) { }
 				@Override public LowLevelHttpResponse execute() throws IOException {
 					attempts.incrementAndGet();
-					if (terminal || !response) throw new IOException("Synthetic terminal provider failure");
+					if (!response) throw new IOException("Synthetic terminal provider failure");
 					return new MockLowLevelHttpResponse().setStatusCode(503).setContentType("application/json").setContent("{\"error\":{\"message\":\"UNAVAILABLE\"}}");
 				}
 			};
@@ -213,6 +247,7 @@ class FirebaseTransportFeasibilityTest {
 		final HttpClient client = new HttpClient();
 		final List<String> operations = new ArrayList<>();
 		final List<Long> allowances = new ArrayList<>();
+		final List<Integer> statuses = new ArrayList<>();
 		long deadline;
 		String route;
 		Candidate() throws Exception { client.setFollowRedirects(false); client.setAddressResolutionTimeout(200); client.start(); }
@@ -235,6 +270,7 @@ class FirebaseTransportFeasibilityTest {
 						try {
 							if (getStreamingContent() != null) { ByteArrayOutputStream body = new ByteArrayOutputStream(); getStreamingContent().writeTo(body); request.body(new BytesRequestContent(body.toByteArray())); }
 							ContentResponse response = request.send();
+							statuses.add(response.getStatus());
 							if (response.getStatus() >= 300) throw new IOException("Terminal HTTP failure: " + response.getStatus());
 							return new MockLowLevelHttpResponse().setStatusCode(response.getStatus()).setContent(response.getContent());
 						} catch (Exception failure) { throw new IOException("Candidate transport failed", failure); }
