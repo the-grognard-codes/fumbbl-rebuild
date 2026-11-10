@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,10 +40,26 @@ class JdbcHealthyWorkerMariaDbTest {
 	@TempDir Path logs;
 	private static final String HOME = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", AWAY = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 	@Test void successfulHealthyAndColdProviderPathsMeasureFreshConnectionsAndFullWorkerOccupancy() throws Exception {
+		exercise(false);
+	}
+	@Test void actualFirebaseAndJdbcMeasureNativeCheckpointAndMatchedPublicationWithinOneWorkerBudget() throws Exception {
+		Assumptions.assumeTrue(System.getenv("FIREBASE_BOUNDS_TOKEN_FILE") != null, "Explicit real DEV acceptance tokens required");
+		exercise(true);
+	}
+	private void exercise(boolean realProvider) throws Exception {
 		String base = System.getenv("JDBC_BOUNDS_TEST_URL"), password = System.getenv("JDBC_BOUNDS_TEST_PASSWORD");
 		Assumptions.assumeTrue(base != null && password != null, "Explicit synthetic JDBC bounds database required");
 		if (!base.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/ffb_jdbc_bounds_test")) throw new IllegalArgumentException("Only synthetic JDBC bounds schema allowed");
 		String url = base + "?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1";
+		JsonObject tokens = null;
+		if (realProvider) {
+			Path file = Path.of(System.getenv("FIREBASE_BOUNDS_TOKEN_FILE")); if (!file.isAbsolute()) throw new IllegalArgumentException("Absolute ignored token file required");
+			tokens = JsonObject.readFrom(Files.readString(file));
+			for (String role : new String[] {"home", "away"}) if (!tokens.get(role).asObject().getString("uid", "").matches("acceptance-" + role + "-[0-9a-f-]{36}")
+				|| tokens.get(role).asObject().getString("idToken", "").isEmpty()) throw new IllegalArgumentException("Synthetic DEV Firebase ID tokens required");
+		}
+		int publicationPeers = System.getenv("JDBC_BOUNDS_PUBLICATION_PEERS") == null ? 15 : Integer.parseInt(System.getenv("JDBC_BOUNDS_PUBLICATION_PEERS"));
+		if (publicationPeers < 0 || publicationPeers > 15) throw new IllegalArgumentException("Publication peers must fit sixteen total sockets");
 		try (Connection connection = DriverManager.getConnection(url, "root", password); Statement sql = connection.createStatement()) {
 			try (var rows = sql.executeQuery("SHOW TABLES")) { assertFalse(rows.next()); }
 		}
@@ -55,7 +72,11 @@ class JdbcHealthyWorkerMariaDbTest {
 			sql.execute("CREATE TABLE ffb_local_schema(version INT PRIMARY KEY)"); sql.execute("INSERT INTO ffb_local_schema VALUES (7)");
 			for (String name : new String[] {"003-prepared-matches", "005-match-recovery", "006-v2-membership", "008-skill-use-preferences", "009-recovery-journal"}) resource(sql, name);
 			sql.executeUpdate("INSERT INTO ffb_v2_account VALUES ('" + HOME + "','ACTIVE'),('" + AWAY + "','ACTIVE')");
-			sql.executeUpdate("INSERT INTO ffb_v2_identity VALUES ('synthetic','home','" + HOME + "','ACTIVE'),('synthetic','away','" + AWAY + "','ACTIVE')");
+			try (java.sql.PreparedStatement identities = connection.prepareStatement("INSERT INTO ffb_v2_identity VALUES (?,?,?,'ACTIVE'),(?,?,?,'ACTIVE')")) {
+				String issuer = realProvider ? "https://securetoken.google.com/dev-moles-under-the-pitch-org" : "synthetic";
+				identities.setString(1, issuer); identities.setString(2, realProvider ? tokens.get("home").asObject().getString("uid", null) : "home"); identities.setString(3, HOME);
+				identities.setString(4, issuer); identities.setString(5, realProvider ? tokens.get("away").asObject().getString("uid", null) : "away"); identities.setString(6, AWAY); identities.executeUpdate();
+			}
 			sql.executeUpdate("INSERT INTO ffb_v2_account_scope VALUES ('" + HOME + "','PLAYER'),('" + HOME + "','SPECTATOR'),('" + AWAY + "','PLAYER'),('" + AWAY + "','SPECTATOR')");
 		}
 		// Record a separate complete native warmup; do not disguise JVM/class warmup as steady-state p99.
@@ -89,6 +110,9 @@ class JdbcHealthyWorkerMariaDbTest {
 				AtomicInteger providerCalls = new AtomicInteger(), nextProviderDelay = new AtomicInteger();
 				JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, Clock.systemUTC());
 				V2PrincipalDirectory boundedProviderDouble = new V2PrincipalDirectory() {
+					@Override public Snapshot authorizePublication(String matchId, Family family, java.util.List<Target> targets) throws java.sql.SQLException {
+						return directory.authorizePublication(matchId, family, targets);
+					}
 					public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws java.sql.SQLException, V2PrincipalAuthenticator.Rejected { return directory.authenticate(identity); }
 					public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws java.sql.SQLException, V2PrincipalAuthenticator.Rejected {
 						providerCalls.incrementAndGet();
@@ -97,38 +121,46 @@ class JdbcHealthyWorkerMariaDbTest {
 						return directory.reauthorize(principal);
 					}
 				};
-				V2MatchAccess access = new V2MatchAccess(membership, boundedProviderDouble, Clock.systemUTC());
+				AtomicLong providerNanos = new AtomicLong();
+				try (FirebaseV2PrincipalAuthenticator verifier = realProvider ? new FirebaseV2PrincipalAuthenticator(new FirebaseProviderRuntime("dev-moles-under-the-pitch-org"),
+					"dev-moles-under-the-pitch-org", directory, Clock.systemUTC(), providerNanos::get) : null) {
+				V2MatchAccess access = new V2MatchAccess(membership, realProvider ? verifier.liveDirectory() : boundedProviderDouble, Clock.systemUTC());
 				long expires = System.currentTimeMillis() + 3_600_000;
-				AuthenticatedPrincipal home = new AuthenticatedPrincipal(HOME, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), expires, "synthetic", "home");
-				AuthenticatedPrincipal away = new AuthenticatedPrincipal(AWAY, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), expires, "synthetic", "away");
 				CaptureRequestProbe requestScope = new CaptureRequestProbe();
-				CaptureRequestProbe.Publication publication = requestScope.publication(access, application, home, engine.document.matchId, 15);
+				String homeBearer = realProvider ? tokens.get("home").asObject().getString("idToken", null) : null, awayBearer = realProvider ? tokens.get("away").asObject().getString("idToken", null) : null;
+				AuthenticatedPrincipal home = realProvider ? requestScope.within(() -> verifier.authenticate(homeBearer)) : new AuthenticatedPrincipal(HOME, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), expires, "synthetic", "home");
+				AuthenticatedPrincipal away = realProvider ? requestScope.within(() -> verifier.authenticate(awayBearer)) : new AuthenticatedPrincipal(AWAY, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), expires, "synthetic", "away");
+				assertEquals(HOME, home.accountId()); assertEquals(AWAY, away.accountId());
+				CaptureRequestProbe.Publication publication = requestScope.publication(access, application, home, engine.document.matchId, publicationPeers);
 				JsonObject[] current = {engine.session.reply("load", "ACCEPTED", false, "home").get("state").asObject()};
 				for (int index = 0; index < 43; index++) {
 					JsonObject request = load(engine.document.matchId, "healthy-load-" + index);
-					JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, home, request, current);
+					JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, home, request, current, realProvider);
 					if (index >= 3 && repeat >= 0) loads.add(sample);
 					else warmupLoads.add(sample);
 				}
 				for (int index = 0; index < 10; index++) {
 					JsonObject request = action(engine.document.matchId, "healthy-action-" + index, current[0]);
 					AuthenticatedPrincipal principal = "home".equals(current[0].getString("actor", null)) ? home : away;
-					JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, principal, request, current);
-					assertEquals(15, sample.getInt("deliveries", -1));
+					JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, principal, request, current, realProvider);
+					assertEquals(publicationPeers, sample.getInt("deliveries", -1));
 					if (repeat < 0) warmup.add(sample); else actions.add(sample);
 				}
-				nextProviderDelay.set(1000);
+				if (realProvider) providerNanos.addAndGet(FirebaseSessionVerification.VALIDITY_NANOS); else nextProviderDelay.set(1000);
 				JsonObject request = action(engine.document.matchId, "cold-provider-action", current[0]);
 				AuthenticatedPrincipal principal = "home".equals(current[0].getString("actor", null)) ? home : away;
-				JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, principal, request, current);
+				JsonObject sample = measure(connections, providerCalls, publication, requestScope, access, application, principal, request, current, realProvider);
+				if (realProvider) assertEquals(1, sample.getInt("providerCalls", -1));
 				assertTrue(sample.getDouble("executionMs", 0) < 2000); cold.add(sample);
+				}
 			}
 			try (Connection connection = DriverManager.getConnection(url, "root", password); Statement sql = connection.createStatement()) {
 				for (String table : new String[] {"ffb_match_recovery", "ffb_prepared_matches", "ffb_v2_match_members"}) sql.executeUpdate("DELETE FROM " + table);
 			}
 		}
-		JsonObject report = new JsonObject().add("providerDouble", "zero-ms healthy/cache-hit; one 1000-ms cold operation; no production Firebase controls")
-			.add("recipients", 16).add("loads", loads).add("actions", actions).add("cold", cold)
+		JsonObject report = new JsonObject().add("providerMode", realProvider ? "actual DEV Firebase Admin through production bounded transport; explicit cache misses" : "bounded provider double")
+			.add("providerDouble", realProvider ? JsonValue.NULL : JsonValue.valueOf("zero-ms healthy/cache-hit; one 1000-ms cold operation; no production Firebase controls"))
+			.add("recipients", publicationPeers + 1).add("publicationTargets", publicationPeers).add("loads", loads).add("actions", actions).add("cold", cold)
 			.add("fixtureDigests", fixtureDigests)
 			.add("warmupActions", warmup)
 			.add("warmupLoads", warmupLoads)
@@ -144,11 +176,11 @@ class JdbcHealthyWorkerMariaDbTest {
 		}
 	}
 	private JsonObject measure(JdbcRequestConnections connections, AtomicInteger providerCalls, CaptureRequestProbe.Publication publication,
-		CaptureRequestProbe scope, V2MatchAccess access, SetupApplication application, AuthenticatedPrincipal principal, JsonObject request, JsonObject[] current) throws Exception {
+		CaptureRequestProbe scope, V2MatchAccess access, SetupApplication application, AuthenticatedPrincipal principal, JsonObject request, JsonObject[] current, boolean realProvider) throws Exception {
 		long opened = connections.connectionAttempts(), leases = connections.connectionAcquisitions(), acquisition = connections.acquisitionNanos(), started = System.nanoTime();
 		long[] phases = new long[4];
 		int calls = providerCalls.get(), deliveries = publication.accepted().getAsInt();
-		scope.within(() -> {
+		java.util.concurrent.Callable<JsonObject> workload = () -> {
 			String role = access.playerRole(principal, request.getString("matchId", null));
 			phases[0] = System.nanoTime();
 			SetupApplication.HandleOutcome outcome = application.handleWithOutcome(role, request);
@@ -159,8 +191,10 @@ class JdbcHealthyWorkerMariaDbTest {
 			current[0] = outcome.response().get("state").asObject();
 			if (outcome.publish()) publication.publish().accept(current[0]);
 			phases[3] = System.nanoTime();
-			return null;
-		});
+			return outcome.response();
+		};
+		CaptureRequestProbe.Measurement measurement = realProvider ? scope.measureChecked(request, workload) : null;
+		if (!realProvider) scope.within(workload);
 		double elapsed = (System.nanoTime() - started) / 1_000_000.0;
 		assertTrue(elapsed < 2000, "Actual worker execution exceeded its ceiling: " + elapsed);
 		return new JsonObject().add("executionMs", elapsed)
@@ -168,7 +202,10 @@ class JdbcHealthyWorkerMariaDbTest {
 			.add("serializeMs", (phases[2] - phases[1]) / 1_000_000.0).add("publicationMs", (phases[3] - phases[2]) / 1_000_000.0)
 			.add("connections", connections.connectionAttempts() - opened).add("acquisitionMs", (connections.acquisitionNanos() - acquisition) / 1_000_000.0)
 			.add("leases", connections.connectionAcquisitions() - leases)
-			.add("providerCalls", providerCalls.get() - calls).add("deliveries", publication.accepted().getAsInt() - deliveries);
+			.add("providerCalls", realProvider ? measurement.timing().getInt("firebaseLookups", -1) : providerCalls.get() - calls)
+			.add("providerReuseHits", realProvider ? measurement.timing().getInt("firebaseReuseHits", -1) : 0)
+			.add("localAuthorizationGroups", realProvider ? measurement.timing().getInt("localAuthorizationChecks", -1) : 0)
+			.add("deliveries", publication.accepted().getAsInt() - deliveries);
 	}
 	private double p99(JsonArray samples) { double[] values = new double[samples.size()]; for (int index = 0; index < values.length; index++) values[index] = samples.get(index).asObject().getDouble("executionMs", 0); Arrays.sort(values); return values[(int) Math.ceil(values.length * .99) - 1]; }
 	private JsonObject load(String id, String requestId) { return new JsonObject().add("version", 1).add("type", "setup").add("operation", "load").add("requestId", requestId).add("matchId", id); }

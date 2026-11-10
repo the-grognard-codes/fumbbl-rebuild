@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.local.BrowserV2Adapter;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
+import com.fumbbl.ffb.server.match.V2PublicationAuthorization;
 import com.fumbbl.ffb.server.match.MatchRepository;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
@@ -28,6 +29,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -340,6 +343,18 @@ class BrowserPreparedMatchAdapterTest {
         V2MatchAccess access = mock(V2MatchAccess.class);
         when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
         when(access.playerRole(home, id)).thenReturn("home"); when(access.playerRole(away, id)).thenReturn("away");
+        when(access.publication(eq(id), any(V2PublicationAuthorization.Family.class), anyList())).thenAnswer(call -> {
+            List<V2PublicationAuthorization.Target> targets = call.getArgument(2);
+            Map<Integer, String> roles = new LinkedHashMap<>();
+            for (int slot = 0; slot < targets.size(); slot++) {
+                AuthenticatedPrincipal principal = targets.get(slot).principal();
+                if (principal == home) roles.put(slot, "home");
+                if (principal == away) roles.put(slot, "away");
+            }
+            return new V2PublicationAuthorization.Snapshot(roles);
+        });
+        when(access.publicationRole(any(V2PublicationAuthorization.Snapshot.class), any(V2PublicationAuthorization.Target.class), anyInt()))
+            .thenAnswer(call -> call.<V2PublicationAuthorization.Snapshot>getArgument(0).role(call.getArgument(2)));
         return new BrowserV2Adapter(bearer -> "home".equals(bearer) ? home : away, access, app, service, null, null);
     }
 

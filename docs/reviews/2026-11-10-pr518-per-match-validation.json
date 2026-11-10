@@ -1,0 +1,79 @@
+{
+  "sourceCommit": "1c1cf05342762b52ec1636c23e20dac73eed4fa7",
+  "date": "2026-11-10",
+  "focusedTests": 70,
+  "cleanVerify": {
+    "tests": 1102,
+    "failures": 0,
+    "errors": 0,
+    "expectedSkips": 20,
+    "elapsedSeconds": 930
+  },
+  "browserUnitTests": 530,
+  "browserSuites": 82,
+  "browserGateSeconds": 667.2,
+  "realProviderJdbc": {
+    "tests": 102,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "coldMs": 726,
+    "refreshMs": 222,
+    "lateLockMs": 1862,
+    "jdbcAllowanceMs": 699,
+    "publicationTargets": [
+      0,
+      1,
+      16
+    ],
+    "queriesPerFamily": [
+      0,
+      1,
+      1
+    ],
+    "providerFanoutCalls": 0
+  },
+  "canonicalSmoke": {
+    "decisions": 9,
+    "invalidProjections": 0,
+    "fullMatchAcceptance": false,
+    "initialConnectionWaitReproduced": true,
+    "causeEstablished": false
+  },
+  "matchedNativeTimingComplete": false,
+  "nativeAttempts": [
+    {
+      "log": "pr518-round3-native-0.log",
+      "sha256": "22959a624a3c02a0d6d1f14ef180474361b8ae774466d59ce1fd97f8e98a162f",
+      "publicationTargets": 0,
+      "completed": false,
+      "stage": "native fixture authentication before publication",
+      "elapsedMs": 1110,
+      "httpCalls": 1,
+      "httpResponses": 0,
+      "outcome": "fail-closed provider TimeoutException"
+    },
+    {
+      "log": "pr518-round3-native-0-r2.log",
+      "sha256": "1676c292adc52b2ea27daed9401f7f68728acf4631dfaf6a0d48d0ca606202f3",
+      "publicationTargets": 0,
+      "completed": false,
+      "stage": "native fixture authentication before publication",
+      "elapsedMs": 1110,
+      "httpCalls": 1,
+      "httpResponses": 0,
+      "outcome": "fail-closed provider TimeoutException"
+    },
+    {
+      "log": "pr518-round3-native-15-r2.log",
+      "sha256": "4a33019520e2d977bd27314a95f3b353e39c7b988edb019cbee8a1bc2fb0c9f4",
+      "publicationTargets": 15,
+      "completed": false,
+      "stage": "native fixture authentication before publication",
+      "elapsedMs": 1115,
+      "httpCalls": 3,
+      "httpResponses": 2,
+      "outcome": "fail-closed provider TimeoutException"
+    }
+  ]
+}

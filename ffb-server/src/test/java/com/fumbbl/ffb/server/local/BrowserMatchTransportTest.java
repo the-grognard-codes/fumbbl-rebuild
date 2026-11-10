@@ -235,6 +235,38 @@ public class BrowserMatchTransportTest {
 	}
 
 	@Test
+	public void publicationRetriesQueueAtMostOnceAndRetryAfterEnqueueFailures() {
+		java.util.concurrent.atomic.AtomicBoolean pending = new java.util.concurrent.atomic.AtomicBoolean();
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		List<Runnable> queued = new ArrayList<>();
+		AtomicInteger attempts = new AtomicInteger(), expired = new AtomicInteger();
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(invocation -> {
+			int attempt = attempts.incrementAndGet();
+			if (attempt == 1) throw new IllegalStateException("Queue temporarily unavailable");
+			if (attempt == 2) return false;
+			queued.add(invocation.getArgument(0)); return true;
+		});
+		BrowserProtocol adapter = new BrowserProtocol() {
+			public void receive(BrowserConnection connection, String text) { }
+			public void disconnect(BrowserConnection connection) { }
+			public boolean hasPendingPublications() { return pending.get(); }
+			public void retryPublications() { expired.incrementAndGet(); }
+		};
+		BrowserMatchTransport transport = new BrowserMatchTransport(server);
+		transport.queuePublicationRetry(adapter); assertEquals(0, attempts.get());
+		pending.set(true);
+		transport.queuePublicationRetry(adapter); transport.queuePublicationRetry(adapter);
+		transport.queuePublicationRetry(adapter); transport.queuePublicationRetry(adapter);
+		assertEquals(3, attempts.get()); assertEquals(1, queued.size()); assertEquals(0, expired.get());
+		queued.get(0).run(); assertEquals(1, expired.get());
+		transport.queuePublicationRetry(adapter); assertEquals(2, queued.size());
+		transport.destroy(); queued.get(1).run(); transport.queuePublicationRetry(adapter);
+		assertEquals(1, expired.get()); assertEquals(4, attempts.get());
+	}
+
+	@Test
 	public void ingressCapRejectsBrowserWorkWhileCommunicationWorkerIsBlockedAndRecoversWhenItDrains() {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);

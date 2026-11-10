@@ -1,7 +1,9 @@
 # Feature: Remove provider calls from engine-worker publication fan-out
 
 Tracking: [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
-Status: formal request; option A approved on 2026-11-09; implementation pending.
+Status: option A implemented after [validated #504 controls](engine-worker-firebase-bounds-outcome.md);
+[focused/matched integration, clean verification, complete browser gate and rebuilt dev-local smoke passed](engine-worker-publication-authorization-outcome.md).
+The outcome records the historical startup diagnostic limitation.
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Security policy: [accepted ADR 0005 amendment](../adr/0005-bounded-provider-revalidation.md#accepted-amendment-local-authorization-for-passive-pushes).
 Review: [combined findings C3/C5 and P1/P2](engine-worker-requests-review.md).
@@ -79,6 +81,66 @@ request-path cost; that request's authorization semantics stay unchanged.
   expiry alone does not stop eligible passive pushes, but a local authorization/
   database failure or expired token does. Incoming provider failures still fail
   closed and invalidate successful-check cache entries under ADR 0005.
+- Exhaustion of the originating request's budget skips that best-effort push
+  without retiring otherwise valid subscriptions. This includes typed JDBC
+  request-allowance/deadline refusals. Undelivered recipients enter a bounded
+  catch-up queue ordered per match (64 publications total, 4 Mi UTF-16 code units
+  of retained payload). A new full state supersedes older queued states for that
+  match; chat remains ordered and is not coalesced. Reserve transcript capacity
+  only for live-transcript recipients or an already loaded frame. Each deferred
+  recipient captures permission to load its optional frame at reservation time;
+  later capability changes cannot cause an unreserved load. Healthy matches
+  deliver immediately when their own queue is empty; deferred matches rotate
+  behind peers on retry. A new publication first drains older retained work for
+  its own match within the caller's remaining deadline, then attempts its own
+  delivery. There is no new inline budget. The existing watchdog checks a volatile pending hint
+  every second and schedules a coalesced control task only when work is pending.
+  Each control task receives one measured 2,000 ms deadline shared across all
+  matches. Each nonempty publication attempt requires one new local batch for
+  still-enrolled recipients; neither the original deadline nor an old grant is
+  extended. Already delivered chat recipients are not resent; retained publications
+  cannot overtake earlier retained publications for the same match, and no
+  mutation is rerun. Coalesced state is appended after preceding retained chat. Token expiry and
+  enrollment are rechecked, including immediately before payload enqueue.
+  Full-time spectators retire after final delivery. Queue overflow explicitly
+  fails unavailable and retires affected subscriptions rather than silently
+  dropping content. Scheduling is best effort behind other worker tasks, not
+  a one-second delivery guarantee. After three deferrals from attempts that began
+  with at least 500 ms remaining (including its initial attempt when applicable),
+  stop payload delivery and mark the bounded entry as notice-due. Authorize and
+  send `publicationDelayed` with code `PUBLICATION_DELAYED`, match ID and family
+  in a later watchdog control task, never inline in the failed payload task or
+  another ingress task. Preserve enrollment. Shorter attempts
+  may deliver but do not consume the allowance; coalesced replacement states
+  inherit only counted deferrals. This prevents another match or the actor's work
+  from spending the retry allowance with a nearly exhausted budget.
+  The browser keeps its current board and coalesces fresh setup-load/watch or
+  preparation reads; delayed chat loads the next missing page. The computer
+  client likewise requests a fresh setup read. These are ordinary incoming
+  requests with existing provider/local checks, never mutation replay. The notice
+  contains no state or authorization grant, but still reveals match activity.
+  Before emitting it, obtain a separate fresh local batch for the remaining
+  recipients and enforce its roles plus original-token expiry again immediately
+  before enqueue. This is one batch per nonempty notification publication, never
+  per recipient, and performs no provider work. If its grant is denied, expired
+  or fails with a generic SQL error, send no activity metadata and retire the
+  recipient with the generic unavailable response. Typed `PublicationDeferred`,
+  `NotStarted` and `DeadlineExpired` instead leave the notice pending for another
+  control task; this also applies to final per-recipient enqueue admission. Keep
+  only undelivered recipients and repeat local authorization with fresh slot
+  assignments. State coalescing preserves the notice phase and never resumes
+  expensive payload projection after its retry limit. Retention stays charged
+  within the same 64-entry / 4-Mi-character bounds until notice completion or
+  retirement. Notice retries do not spend additional payload attempts. No budget
+  is reset within a task; each existing control task gets its usual shared deadline.
+  Delivery exhaustion alone is not proof of lost access; a recovery notice still
+  cannot bypass required authorization. Follow-up client recovery work and the
+  two deferred cleanup items are tracked in [#519](engine-worker-publication-recovery-follow-ups.md).
+  Browser gap recovery pages missing public history after coalescing or omitted
+  optional frames. This catch-up corrects the stall/lost-chat
+  findings in PR #518; it performs no provider work or token refresh.
+  Actual local authorization/database failures and token expiry retain the
+  existing unavailable/removal behavior.
 - JDBC-backed local refresh remains subject to the
   [JDBC controls](engine-worker-jdbc-bounds.md) and the originating request budget.
   Require one batched local-authorization SQL query per nonempty publication,
@@ -156,10 +218,14 @@ unit tests/build, relevant multiplayer/chat/reconnect smoke checks and
 
 ## Completion Notes
 
-Request only; security selection and the ADR amendment are approved, while
-implementation remains pending.
-Before implementation, link this revised scope from #507 or update its body
-when tracker writes are authorized. Record
+Option A is implemented. The [outcome report](engine-worker-publication-authorization-outcome.md)
+records local batch authorization, expiry/rejection retirement, privacy corrections,
+real SQL/socket/native/provider evidence and validation status.
+The revised scope was linked from [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507#issuecomment-6758906523)
+before the slice 3 spike. The [initial #504 outcome](engine-worker-firebase-bounds-spike.md)
+records the first failed candidate. Its [successful continuation](engine-worker-firebase-bounds-spike-2.md)
+preserves the original #504 → #507 order; no dependency exception was applied.
+Record
 approval, changed freshness guarantee and matched evidence in an outcome report;
 diagnose failures until resolved or a concrete blocker is recorded.
 

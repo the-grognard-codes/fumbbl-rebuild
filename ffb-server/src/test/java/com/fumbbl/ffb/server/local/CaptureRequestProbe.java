@@ -14,7 +14,7 @@ public final class CaptureRequestProbe {
 	public Publication publication(com.fumbbl.ffb.server.match.V2MatchAccess access,
 		com.fumbbl.ffb.server.match.SetupApplication setup, com.fumbbl.ffb.server.match.AuthenticatedPrincipal principal,
 		String matchId, int peers) throws java.sql.SQLException {
-		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, null);
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
 		java.util.concurrent.atomic.AtomicInteger accepted = new java.util.concurrent.atomic.AtomicInteger();
 		for (int index = 0; index < peers; index++) publisher.watch(new BrowserConnection() {
 			@Override public void send(String message) {
@@ -34,6 +34,17 @@ public final class CaptureRequestProbe {
 		}
 	}
 	public record Measurement(JsonObject response, JsonObject timing) { }
+	/** Checked-exception variant for the real provider/JDBC/native acceptance workload. */
+	public Measurement measureChecked(JsonObject request, java.util.concurrent.Callable<JsonObject> action) throws Exception {
+		List<String> lines = new ArrayList<>();
+		BrowserRequestTiming timing = new BrowserRequestTiming(System::nanoTime, Clock.systemUTC(), lines::add);
+		JsonObject response;
+		try (BrowserRequestTiming.Scope handling = timing.handling(new BrowserRequestTiming.Request(System.nanoTime(), System::nanoTime, true))) {
+			timing.selectRequest(request); response = action.call();
+		}
+		String summary = lines.stream().filter(line -> line.startsWith("FFB_BROWSER_TIMING ")).findFirst().orElseThrow();
+		return new Measurement(response, JsonObject.readFrom(summary.substring("FFB_BROWSER_TIMING ".length())));
+	}
 	public JsonObject details(JsonObject request, Supplier<JsonObject> action) {
 		List<String> lines = new ArrayList<>();
 		BrowserRequestTiming timing = new BrowserRequestTiming(System::nanoTime, Clock.systemUTC(), lines::add);

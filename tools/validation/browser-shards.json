@@ -15,6 +15,7 @@
       "browser-client/test/chat-speaker-ui.mjs",
       "browser-client/test/match-log-ui.mjs",
       "browser-client/test/native-check-log-ui.mjs",
+      "browser-client/test/live-transcript-catchup-ui.mjs",
       "browser-client/test/block-log-ui.mjs",
       "browser-client/test/block-visibility-ui.mjs",
       "browser-client/test/multiple-block-dice-ui.mjs",

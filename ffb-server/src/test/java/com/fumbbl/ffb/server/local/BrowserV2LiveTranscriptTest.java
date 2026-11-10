@@ -36,6 +36,7 @@ class BrowserV2LiveTranscriptTest {
 
 	@Test void negotiatedMutationDeliversPublicHistoryBeforeSourcePeerAndSpectatorState() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		batchGrants(access);
 		SetupApplication setup = mock(SetupApplication.class);
 		AuthenticatedPrincipal home = principal("home", ApplicationScope.PLAYER);
 		AuthenticatedPrincipal away = principal("away", ApplicationScope.PLAYER);
@@ -156,6 +157,7 @@ class BrowserV2LiveTranscriptTest {
 		fixture.load(peer); fixture.watch(viewer);
 		source.messages.clear(); peer.messages.clear(); viewer.messages.clear();
 		when(fixture.access.playerRole(fixture.away, MATCH)).thenThrow(new MatchService.Failure("AUTHENTICATION_REQUIRED"));
+		new PublicationTestGrants().allow(fixture.access, target -> null);
 		doThrow(new MatchService.Failure("AUTHORIZATION")).when(fixture.access).require(fixture.spectator, ApplicationScope.SPECTATOR);
 
 		fixture.mutate(source);
@@ -166,7 +168,7 @@ class BrowserV2LiveTranscriptTest {
 			assertEquals("VIEW_UNAVAILABLE", recipient.messages.get(0).getString("code", ""));
 			assertNull(recipient.messages.get(0).get("matchId"));
 		}
-		verify(fixture.access, times(2)).playerRole(fixture.away, MATCH);
+		verify(fixture.access, times(1)).playerRole(fixture.away, MATCH);
 	}
 
 	@Test void duplicateAndReconnectLoadsSendOnlyCurrentRevisionAndPreservePagedGapRecovery() throws Exception {
@@ -241,6 +243,7 @@ class BrowserV2LiveTranscriptTest {
 
 	@Test void computerMutationAcknowledgementIsUnchangedWhileNegotiatedHumanGetsHistory() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		batchGrants(access);
 		SetupApplication setup = mock(SetupApplication.class);
 		V2PreparationService preparation = mock(V2PreparationService.class);
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
@@ -375,6 +378,11 @@ class BrowserV2LiveTranscriptTest {
 		return new AuthenticatedPrincipal(java.util.UUID.nameUUIDFromBytes(
 			account.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(), EnumSet.of(scope), Long.MAX_VALUE);
 	}
+	private static void batchGrants(V2MatchAccess access) throws Exception {
+		String home = principal("home", ApplicationScope.PLAYER).accountId();
+		new PublicationTestGrants().allow(access, target -> target.audience() == com.fumbbl.ffb.server.match.V2PublicationAuthorization.Audience.SPECTATOR
+			? "spectator" : target.principal() != null && home.equals(target.principal().accountId()) ? "home" : "away");
+	}
 
 	private static void authenticate(BrowserV2Adapter adapter, BrowserConnection connection, String bearer, boolean live) {
 		JsonObject request = request("authenticate", "auth").add("bearer", bearer);
@@ -424,6 +432,7 @@ class BrowserV2LiveTranscriptTest {
 		final BrowserV2Adapter adapter;
 
 		Fixture() throws Exception {
+			batchGrants(access);
 			when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
 			when(access.playerRole(home, MATCH)).thenReturn("home");
 			when(access.playerRole(away, MATCH)).thenReturn("away");

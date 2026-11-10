@@ -1,0 +1,90 @@
+{
+  "sourceCommit": "72b8802cf2914550cabf6b6ec0059dfbbfe0e2ab",
+  "date": "2026-11-10",
+  "focusedTests": 76,
+  "browserUnitTests": 530,
+  "browserSuites": 83,
+  "browserGateSeconds": 664.2,
+  "linuxImage": {
+    "tests": 797,
+    "errors": 0,
+    "failures": 0,
+    "expectedSkips": 13
+  },
+  "realProviderJdbc": {
+    "tests": 108,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "coldMs": 672,
+    "refreshMs": 235,
+    "lateLockMs": 1853,
+    "jdbcAllowanceMs": 699,
+    "targets": [
+      0,
+      1,
+      16
+    ],
+    "queriesPerFamily": [
+      0,
+      1,
+      1
+    ],
+    "providerFanoutCalls": 0
+  },
+  "canonicalSmoke": {
+    "decisions": 7,
+    "invalidProjections": 0,
+    "fullMatchAcceptance": false,
+    "initialWaitCauseEstablished": false
+  },
+  "cleanVerify": {
+    "tests": 1108,
+    "failures": 0,
+    "errors": 0,
+    "expectedSkips": 20,
+    "seconds": 870,
+    "log": "pr518-round4-verify-r2.log",
+    "sha256": "8fc9d16b0c4595c6be290a5d05889f051c33a4367a1f63b00206ee99e08317ba"
+  },
+  "matchedNativeTimingComplete": false,
+  "retainedFailedAttempts": [
+    {
+      "log": "pr518-round4-real-provider-jdbc.log",
+      "sha256": "f3661b8e7ac822911b5148e9986615d6200558d73c35bc77a7dddd9006dd31ec",
+      "phase": "strict loopback cold fixture"
+    },
+    {
+      "log": "pr518-round4-ui-smoke.log",
+      "sha256": "c1f3b12641db24a49fc602326d2abbb3cb40637df1853685f49086d93e9f281c",
+      "phase": "initial Connected wait"
+    },
+    {
+      "log": "pr518-round4-native-0.log",
+      "sha256": "51a90fc1d98339690670f0e3a0f6eccd95b081152feda0752b8e84c2316a2f6b",
+      "phase": "zero-recipient fixture authentication",
+      "elapsedMs": 1111,
+      "httpCalls": 3,
+      "httpResponses": 2
+    },
+    {
+      "log": "pr518-round4-native-15.log",
+      "sha256": "cfc2340d6789f514e6bb17fbd1619685e3df458162e682d2b6731328ffd5ca62",
+      "phase": "fifteen-recipient fixture authentication",
+      "elapsedMs": 1105,
+      "httpCalls": 1,
+      "httpResponses": 0
+    },
+    {
+      "log": "pr518-round4-verify.log",
+      "sha256": "8ccb028e105c5de7a0988b8dc89292b807e1f4c3670414ff16730c81b340a6b2",
+      "phase": "random kickoff effect in activation-trait fixture"
+    },
+    {
+      "log": "pr518-round4-fixture-fix.log",
+      "sha256": "134d76a85d6842f12ae50c21e105154aac54a7e26afb53ba5990848a080ce61b",
+      "phase": "incremental test compilation missing class files"
+    }
+  ],
+  "testFixtureCommit": "a98e165da1df615e76020ebd06674cfc0755e436"
+}

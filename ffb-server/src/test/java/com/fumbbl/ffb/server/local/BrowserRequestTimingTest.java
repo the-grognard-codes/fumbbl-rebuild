@@ -199,9 +199,10 @@ class BrowserRequestTimingTest {
 		for (boolean failSend : new boolean[] { false, true }) {
 			lines.clear();
 			V2MatchAccess access = mock(V2MatchAccess.class);
+			new PublicationTestGrants().allow(access, target -> "spectator");
 			SetupApplication setup = mock(SetupApplication.class);
 			when(setup.spectatorView(MATCH)).thenReturn(new JsonObject());
-			ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, null);
+			ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup);
 			BrowserConnection viewer = mock(BrowserConnection.class, call -> {
 				if ("send".equals(call.getMethod().getName())) {
 					nanos.addAndGet(3000000);
@@ -209,15 +210,14 @@ class BrowserRequestTimingTest {
 				}
 				return Answers.RETURNS_DEFAULTS.answer(call);
 			});
-			publisher.watch(viewer, null, MATCH, "watch-request");
+			publisher.watch(viewer, mock(com.fumbbl.ffb.server.match.AuthenticatedPrincipal.class), MATCH, "watch-request");
 			try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 				timing.selectRequest(action());
 				nanos.addAndGet(2000000);
-				if (failSend) assertThrows(IllegalStateException.class, () -> publisher.publish(MATCH, null, new JsonObject()));
-				else publisher.publish(MATCH, null, new JsonObject());
+				publisher.publish(MATCH, null, new JsonObject());
 			}
-			assertEquals(3.0, event().get("publicationMs").asDouble());
-			assertEquals(5.0, event().get("handlingMs").asDouble());
+			assertEquals(failSend ? 6.0 : 3.0, event().get("publicationMs").asDouble());
+			assertEquals(failSend ? 8.0 : 5.0, event().get("handlingMs").asDouble());
 		}
 	}
 
@@ -278,6 +278,34 @@ class BrowserRequestTimingTest {
 		assertNull(timing.budget());
 	}
 
+	@Test void publicationCatchUpGetsAFreshMeasuredControlBudgetAfterAnOverrun() {
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		List<Runnable> queue = new ArrayList<>();
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { queue.add(call.getArgument(0)); return true; });
+		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
+		try {
+			BrowserProtocol protocol = mock(BrowserProtocol.class);
+			when(protocol.hasPendingPublications()).thenReturn(true);
+			org.mockito.Mockito.doAnswer(call -> {
+				assertEquals(BrowserRequestTiming.REQUEST_BUDGET_NANOS, timing.budget().remainingNanos());
+				nanos.addAndGet(5_000_000); return null;
+			}).when(protocol).retryPublications();
+			transport.submit(() -> {
+				nanos.addAndGet(2_100_000_000L);
+				transport.queuePublicationRetry(protocol); transport.queuePublicationRetry(protocol);
+				assertEquals(0, timing.budget().remainingNanos());
+			}, () -> { });
+			queue.removeFirst().run();
+			assertEquals(1, queue.size()); queue.removeFirst().run();
+			JsonArray tasks = transport.getMetrics().toJson().get("workerTasks").asArray();
+			assertEquals(1, tasks.get(0).asObject().getLong("overruns", -1));
+			assertEquals(1, tasks.get(1).asObject().getLong("count", -1));
+			assertEquals(5_000_000, tasks.get(1).asObject().getLong("executionNanos", -1));
+		} finally { transport.destroy(); }
+	}
+
 	@Test void controlAndIngressMetricsIncludeFullTaskAndCleanupWithoutCorrelation() {
 		System.clearProperty("ffb.browser.timing");
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
@@ -315,7 +343,7 @@ class BrowserRequestTimingTest {
 	@Test void adapterSelectsReadOnlyRequestsAfterEnvelopeVersionCheckAndPreservesReply() throws SQLException {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(any(), any())).thenThrow(new MatchService.Failure("NOT_FOUND"));
-		BrowserV2Adapter adapter = new BrowserV2Adapter(null, access, null, null, null, null);
+		BrowserV2Adapter adapter = new BrowserV2Adapter(mock(com.fumbbl.ffb.server.match.V2PrincipalAuthenticator.class), access, null, null, null, null);
 		BrowserConnection connection = mock(BrowserConnection.class);
 		JsonObject request = new JsonObject().add("version", 1).add("type", "routePreview")
 			.add("requestId", "timed-preview").add("matchId", MATCH).add("expectedRevision", 3)
@@ -339,7 +367,7 @@ class BrowserRequestTimingTest {
 		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { queued.add(call.getArgument(0)); return true; });
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.require(any(), any())).thenThrow(new MatchService.Failure("NOT_FOUND"));
-		BrowserV2Adapter adapter = new BrowserV2Adapter(null, access, null, null, null, null);
+		BrowserV2Adapter adapter = new BrowserV2Adapter(mock(com.fumbbl.ffb.server.match.V2PrincipalAuthenticator.class), access, null, null, null, null);
 		BrowserConnection connection = mock(BrowserConnection.class);
 		try {
 			BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);

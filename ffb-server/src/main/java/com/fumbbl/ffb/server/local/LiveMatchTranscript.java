@@ -23,6 +23,8 @@ final class LiveMatchTranscript {
 		this.revision = state.getInt("revision", -1);
 	}
 
+	int retainedCharacters() { return frame == null ? 0 : frame.length(); }
+
 	String frame(JsonObject state) {
 		if (revision < 0 || revision > 8192 || state.getInt("revision", -1) != revision) return null;
 		if (!loaded) {

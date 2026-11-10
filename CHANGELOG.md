@@ -2,7 +2,28 @@
 
 ## Unreleased
 
-<<<<<<< Updated upstream
+- Retry authorized recovery notices on a later worker budget when delivery or notice admission times out, preserving the board and retrying only undelivered recipients.
+
+- Authorize delayed-publication notices against current local permissions and the original token expiry before revealing match activity.
+
+- Deliver queued updates when the next publication has budget. After three attempts with at least 500 ms available, switch to authorized recovery notices that preserve the board and request a fresh view. Coalesced live history recovers through paged transcript reads.
+
+- Keep delayed publication recovery independent per match and send only the latest queued state, preserving chat order without disconnecting viewers for obsolete snapshots.
+
+- Catch up missed match, chat and preparation pushes after an action exhausts its budget, so turn handoffs and final results do not wait for another action or reconnect.
+- Firebase authentication now bounds key retrieval, credential refresh and
+  revocation checks within one admitted operation. Provider outages fail closed
+  and trip a shared circuit breaker so queued requests can continue; existing
+  incoming-request freshness and immediate local permission checks are preserved.
+
+- Passive state, chat and preparation updates refresh local authorization in one
+  batch and stop at the original token expiry. Provider-only revocation can leave
+  passive viewing available until that expiry; incoming provider checks remain
+  unchanged, and observed rejection removes subscriptions. Exhausting the actor's
+  request budget skips that best-effort push while preserving valid subscriptions.
+
+- Spectator broadcasts exclude actor-only formation controls and block previews.
+
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and
   disconnect cleanup execution, queue wait and budget overruns.
@@ -18,11 +39,10 @@
 
 - Dev-local Hosting uses the stack's verified credentials in an isolated CLI
   configuration, avoiding startup authentication errors from an expired CLI login.
-=======
+
 - Added `dev-local --start|--restart --quick` for manual testing with browser
   validation and server test execution skipped. Default starts and deployments
   keep full validation; quick starts do not count as handoff evidence.
->>>>>>> Stashed changes
 
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,

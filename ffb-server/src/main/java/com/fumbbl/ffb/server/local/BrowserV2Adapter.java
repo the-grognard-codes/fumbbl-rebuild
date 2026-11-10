@@ -10,10 +10,12 @@ import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
+import com.fumbbl.ffb.server.match.ProviderSessionRejection;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.match.V2PublicationAuthorization;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
@@ -24,6 +26,7 @@ import com.eclipsesource.json.JsonValue;
 
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,6 +43,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final V2MatchAccess access;
 	private final SetupApplication setup;
 	private final ActiveMatchPublisher publisher;
+	private final PublicationDelivery delivery;
 	private final MatchService matches;
 	private final V2PreparationService preparation;
 	private final BrowserSavedTeamJson teams;
@@ -74,12 +78,17 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		this.matches = matches; this.preparation = preparation; this.teams = teams;
 		this.computers = computers;
 		this.clock = clock;
-		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
+		this.delivery = new PublicationDelivery(access);
+		this.publisher = new ActiveMatchPublisher(access, setup, delivery);
+		authenticator.observeProviderRejection(this::providerRejected);
 	}
 
 	public void configureSkillUsePreferences(SkillUsePreferenceService service) { skillUsePreferences = service; }
 	/** Called by the server-owned fixed transport policy, never by a browser field. */
 	void configureDiagnostics(boolean allowed) { diagnosticsAllowed = allowed; }
+
+	@Override public boolean hasPendingPublications() { return delivery.hasPending(); }
+	@Override public synchronized void retryPublications() { delivery.retry(); }
 
 	@Override public synchronized void expireDecisions() {
 		setup.expireReactiveDecisions().forEach((id, state) -> publisher.publish(id, null, state));
@@ -378,7 +387,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(role, request);
 				response = outcome.response();
 				if ("ACCEPTED".equals(response.getString("code", ""))) {
-					publisher.enrollPlayer(connection, principal, id);
+					// Retain the socket's original credential identity; publication refreshes scopes locally.
+					publisher.enrollPlayer(connection, principals.get(connection), id);
 					preparationSubscriptions.remove(connection);
 				}
 				JsonValue state = response.get("state");
@@ -501,18 +511,30 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			? ComputerOpponentService.LEGACY_BUGMAN_NAME : computers.coachName(coach.opponentId);
 	}
 
-	private void preparationChanged(String matchId, BrowserConnection source) {
-		for (BrowserConnection connection : new java.util.ArrayList<>(preparationSubscriptions.keySet())) {
+	void preparationChanged(String matchId, BrowserConnection source) {
+		List<PublicationDelivery.Recipient> recipients = new ArrayList<>();
+		for (BrowserConnection connection : preparationSubscriptions.keySet()) {
 			if (connection == source || !matchId.equals(preparationSubscriptions.get(connection))) continue;
-			try {
-				// Even invalidations disclose membership: reauthorize before sending, including on exact retry.
-				access.playerRole(principals.get(connection), matchId);
-				send(connection, new JsonObject().add("type", "preparationChanged").add("requestId", JsonValue.NULL)
-					.add("code", "ACCEPTED").add("matchId", matchId));
-			} catch (SQLException | MatchService.Failure denied) {
-				preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE");
-			}
+			AuthenticatedPrincipal principal = principals.get(connection);
+			if (principal == null) continue;
+			recipients.add(new PublicationDelivery.Recipient() {
+				@Override public boolean enrolled() { return principals.get(connection) == principal && matchId.equals(preparationSubscriptions.get(connection)); }
+				@Override public V2PublicationAuthorization.Target target() { return new V2PublicationAuthorization.Target(principal, V2PublicationAuthorization.Audience.PLAYER); }
+				@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) {
+					access.publicationRole(authorization, target(), slot);
+					BrowserV2Adapter.this.send(connection, new JsonObject().add("type", "preparationChanged").add("requestId", JsonValue.NULL)
+						.add("code", "ACCEPTED").add("matchId", matchId), () -> access.publicationRole(authorization, target(), slot));
+				}
+				@Override public void unavailable() { preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE"); }
+				@Override public void delayed(V2PublicationAuthorization.Snapshot authorization, int slot, V2PublicationAuthorization.Family family) {
+					access.publicationRole(authorization, target(), slot);
+					BrowserV2Adapter.this.send(connection, new JsonObject().add("type", "publicationDelayed").add("requestId", JsonValue.NULL)
+						.add("code", "PUBLICATION_DELAYED").add("matchId", matchId).add("family", family.name()),
+						() -> access.publicationRole(authorization, target(), slot));
+				}
+			});
 		}
+		delivery.publish(matchId, V2PublicationAuthorization.Family.PREPARATION, recipients, matchId.length());
 	}
 
 	@Override public synchronized void disconnect(BrowserConnection connection) {
@@ -522,6 +544,14 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
 		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.disconnect(connection); preparationSubscriptions.remove(connection);
+	}
+	private synchronized void providerRejected(ProviderSessionRejection observation) {
+		for (Map.Entry<BrowserConnection, AuthenticatedPrincipal> entry : principals.entrySet()) {
+			if (!observation.rejects(entry.getValue())) continue;
+			BrowserConnection connection = entry.getKey();
+			publisher.remove(connection); preparationSubscriptions.remove(connection);
+			try { fail(connection, null, "VIEW_UNAVAILABLE"); } catch (RuntimeException disconnected) { /* Continue retiring matching subscriptions. */ }
+		}
 	}
 	private void retire(BrowserConnection connection) {
 		diagnostics.remove(connection);
@@ -564,9 +594,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		return true;
 	}
 	private void send(BrowserConnection connection, JsonObject response) {
+		send(connection, response, () -> { });
+	}
+	private void send(BrowserConnection connection, JsonObject response, Runnable admission) {
 		String message;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { message = response.set("version", 2).toString(); }
-		timing.reply(connection, response, () -> connection.send(message));
+		timing.reply(connection, response, () -> { admission.run(); connection.send(message); });
 	}
 	private void enableDiagnosticsReplies(BrowserConnection connection) {
 		try {

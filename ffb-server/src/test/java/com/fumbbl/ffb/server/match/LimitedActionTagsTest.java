@@ -7,6 +7,8 @@ import com.fumbbl.ffb.PlayerAction;
 import com.fumbbl.ffb.PlayerState;
 import com.fumbbl.ffb.TurnMode;
 import com.fumbbl.ffb.factory.SkillFactory;
+import com.fumbbl.ffb.inducement.bb2025.Prayer;
+import com.fumbbl.ffb.kickoff.bb2025.KickoffResult;
 import com.fumbbl.ffb.model.Game;
 import com.fumbbl.ffb.model.Player;
 import com.fumbbl.ffb.model.RosterPlayer;
@@ -142,6 +144,9 @@ class LimitedActionTagsTest {
             GameState state = nativeState(fixture.session);
             Game game = state.getGame();
             Player<?> player = game.getActingTeam().getPlayers()[0];
+            // Random kickoff effects are unrelated to the activation trait asserted below.
+            game.getFieldModel().removeSkillEnhancements(player, KickoffResult.DODGY_SNACK.getName());
+            game.getFieldModel().removeSkillEnhancements(player, Prayer.GREASY_CLEATS.getName());
             UtilBox.putAllPlayersIntoBox(game);
             place(game, player, 5, 5, PlayerState.STANDING);
             place(game, game.getActingTeam().getPlayers()[1], 10, 10, PlayerState.STANDING);

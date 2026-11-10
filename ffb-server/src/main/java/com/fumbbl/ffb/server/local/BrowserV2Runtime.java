@@ -27,6 +27,8 @@ import java.time.Clock;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 
 /** The v2 host serves only one authenticated game endpoint. */
 public final class BrowserV2Runtime {
@@ -49,6 +51,11 @@ public final class BrowserV2Runtime {
 		setup.configureSkillUsePreferences(skillUsePreferences);
 		JdbcV2PrincipalDirectory directory = new JdbcV2PrincipalDirectory(connections::open, clock);
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(project, directory);
+		context.addEventListener(new ServletContextListener() {
+			@Override public void contextDestroyed(ServletContextEvent event) {
+				try { verifier.close(); } catch (Exception failure) { throw new IllegalStateException("Firebase transport cleanup failed", failure); }
+			}
+		});
 		V2MatchAccess access = new V2MatchAccess(new JdbcMatchMembershipRepository(connections::open), verifier.liveDirectory(), clock);
 		String computerTokenHash = server.getProperty("local.browser.v2.computer.token.sha256");
 		if (computerTokenHash == null || computerTokenHash.isEmpty())

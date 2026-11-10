@@ -117,6 +117,10 @@ function receive(raw) {
     if (pending) send(pending); else requestLoad();
     return;
   }
+  if (message.type === 'publicationDelayed') {
+    if (message.requestId !== null || message.code !== 'PUBLICATION_DELAYED' || message.matchId !== matchId || message.family !== 'STATE') throw Error('Invalid publication notification');
+    requestLoad(); return;
+  }
   if (message.type === 'error') {
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {
       throw Error(`Access unavailable: ${message.code}`);

@@ -1,7 +1,9 @@
 # Feature: Bound engine-worker Firebase calls and fail fast during outages
 
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504).
-Status: formal fix request; implementation pending.
+Status: [continued feasibility gate passed](engine-worker-firebase-bounds-spike-2.md);
+[production controls, clean verification and dev-local startup passed](engine-worker-firebase-bounds-outcome.md).
+Historical evidence: [initial candidate outcome](engine-worker-firebase-bounds-spike.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C1-C5 and F1-F3](engine-worker-requests-review.md).
 Budget correction: [RB1 replaces the static-sum requirement](engine-worker-requests-review.md#rb1-high-blocks-505-b-and-the-integrated-budget-claims-of-504-the-static-sum-rule-cannot-be-satisfied).
@@ -115,7 +117,9 @@ proof of whole-operation control.
   signatures, revoked/disabled users or local permission denials as an outage.
   Record exact SDK error classification; successful dependency checks reset the
   consecutive availability-failure streak, ordinary denied identities do not
-  masquerade as provider recovery. Test at least refusal/DNS or fast 5xx in
+  masquerade as provider recovery. A denied recovery probe releases its slot
+  without renewing cooldown; the next identity may probe immediately, while the
+  breaker remains open until validated success. Test at least refusal/DNS or fast 5xx in
   addition to stalled I/O.
 - Initial authentication still verifies revocation. An expired/missing provider
   success cannot authorize while the breaker is open. Existing unexpired positive
@@ -194,8 +198,12 @@ with `tools/target-build.ps1 verify` (clean build), plus relevant V2 smoke check
 
 ## Completion Notes
 
-Request only: no runtime fix, spike or test result is claimed. Before implementation,
-link this revised scope from #504 or update its body when tracker writes are
-authorized.
-Record implementation, settings, timing evidence and validation in a local outcome
-report. Investigate failures until resolved or a concrete blocker is recorded.
+The revised scope was linked from [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504#issuecomment-6758906276)
+before the spike. The [initial spike](engine-worker-firebase-bounds-spike.md)
+records the first candidate's failed gate; the [owned DNS/TCP continuation](engine-worker-firebase-bounds-spike-2.md)
+passed the mechanism and validation gate. The [production outcome](engine-worker-firebase-bounds-outcome.md)
+records the implemented transport/credential controls, measured 1,200 ms default,
+shared-deadline admission, breaker/cache security review, real Firebase/JDBC
+evidence, passing clean verification and successful dev-local startup. The initial
+real UI smoke exposed an inherited spectator projection issue covered by the
+following #507 deliverable; the final rebuilt smoke is recorded there.
