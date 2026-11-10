@@ -15,6 +15,7 @@ import java.util.Map;
 /** Worker-owned, bounded catch-up ordered within each match. Only enrolled recipients are retried. */
 final class PublicationDelivery {
 	static final int MAX_PENDING = 64;
+	static final int MAX_DEFERRALS = 3;
 	static final int MAX_RETAINED_CHARACTERS = 4 * 1024 * 1024;
 	interface Recipient {
 		boolean enrolled();
@@ -22,8 +23,17 @@ final class PublicationDelivery {
 		void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException;
 		void unavailable();
 	}
-	private record Pending(String matchId, V2PublicationAuthorization.Family family,
-		List<Recipient> recipients, int characters) { }
+	private static final class Pending {
+		final String matchId;
+		final V2PublicationAuthorization.Family family;
+		final List<Recipient> recipients;
+		final int characters;
+		int deferrals;
+		Pending(String matchId, V2PublicationAuthorization.Family family, List<Recipient> recipients, int characters, int deferrals) {
+			this.matchId = matchId; this.family = family; this.recipients = new ArrayList<>(recipients);
+			this.characters = characters; this.deferrals = deferrals;
+		}
+	}
 	private final V2MatchAccess access;
 	private final Map<String, Deque<Pending>> pending = new LinkedHashMap<>();
 	private int retainedCharacters;
@@ -36,57 +46,74 @@ final class PublicationDelivery {
 
 	void publish(String matchId, V2PublicationAuthorization.Family family, List<Recipient> recipients, int characters) {
 		Deque<Pending> lane = pending.get(matchId);
-		// Every state publication covers current viewers (except the directly acknowledged source).
-		// Keep the newest snapshot after preceding chat, without replaying obsolete projections.
+		int deferrals = 0;
+		// Current full state covers all viewers except its directly acknowledged source.
+		// Supersession must not reset the failed delivery chain's retry allowance.
 		if (family == V2PublicationAuthorization.Family.STATE && lane != null) {
-			lane.removeIf(previous -> {
-				if (previous.family != V2PublicationAuthorization.Family.STATE) return false;
-				removed(previous); return true;
-			});
-			if (lane.isEmpty()) { pending.remove(matchId); lane = null; }
-		}
-		try {
-			if (recipients.isEmpty()) return;
-			Pending publication = new Pending(matchId, family, new ArrayList<>(recipients), characters);
-			if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) { retire(publication); return; }
-			if (lane == null && attempt(publication)) return;
-			if (pendingCount >= MAX_PENDING || characters < 0 || characters > MAX_RETAINED_CHARACTERS - retainedCharacters) {
-				retire(publication); // Explicit unavailable is preferable to silent loss or unbounded retention.
-				return;
+			for (Pending previous : new ArrayList<>(lane)) if (previous.family == family) {
+				deferrals = Math.max(deferrals, previous.deferrals); removed(previous);
 			}
-			pending.computeIfAbsent(matchId, ignored -> new ArrayDeque<>()).addLast(publication);
-			pendingCount++; retainedCharacters += characters;
-		} finally { hasPending = pendingCount != 0; }
+		}
+		if (recipients.isEmpty()) return;
+		Pending publication = new Pending(matchId, family, recipients, characters, deferrals);
+		if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) { retire(publication); return; }
+		// Use only the caller's remaining deadline; do not wait for the watchdog when work can proceed.
+		drain(matchId);
+		if (!pending.containsKey(matchId) && attempt(publication)) return;
+		if (pendingCount >= MAX_PENDING || characters < 0 || characters > MAX_RETAINED_CHARACTERS - retainedCharacters) {
+			retire(publication); return;
+		}
+		enqueue(publication);
 	}
 
 	/** Each match gets one turn per control task; deferred matches rotate behind their peers. */
 	void retry() {
-		try {
-			for (String matchId : new ArrayList<>(pending.keySet())) {
-				BrowserRequestTiming.Budget budget = new BrowserRequestTiming().budget();
-				if (budget != null && budget.remainingNanos() == 0) break;
-				Deque<Pending> lane = pending.remove(matchId);
-				while (!lane.isEmpty()) {
-					Pending publication = lane.getFirst();
-					if (!attempt(publication)) break;
-					lane.removeFirst(); removed(publication);
-					if (budget != null && budget.remainingNanos() == 0) break;
-				}
-				if (!lane.isEmpty()) pending.put(matchId, lane);
-			}
-		} finally { hasPending = pendingCount != 0; }
-	}
-
-	private void removed(Pending publication) { pendingCount--; retainedCharacters -= publication.characters; }
-
-	private boolean attempt(Pending publication) {
-		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
-			return deliver(publication);
+		for (String matchId : new ArrayList<>(pending.keySet())) {
+			if (!hasBudget()) break;
+			drain(matchId);
+			Deque<Pending> lane = pending.remove(matchId);
+			if (lane != null) pending.put(matchId, lane);
 		}
 	}
-	private boolean deliver(Pending publication) {
+
+	private void drain(String matchId) {
+		Deque<Pending> lane = pending.get(matchId);
+		while (lane != null && !lane.isEmpty()) {
+			Pending publication = lane.getFirst();
+			if (!attempt(publication)) return;
+			removed(publication);
+		}
+	}
+
+	private void enqueue(Pending publication) {
+		pending.computeIfAbsent(publication.matchId, ignored -> new ArrayDeque<>()).addLast(publication);
+		pendingCount++; retainedCharacters += publication.characters; hasPending = true;
+	}
+
+	private void removed(Pending publication) {
+		Deque<Pending> lane = pending.get(publication.matchId);
+		lane.remove(publication);
+		if (lane.isEmpty()) pending.remove(publication.matchId);
+		pendingCount--; retainedCharacters -= publication.characters; hasPending = pendingCount != 0;
+	}
+
+	private boolean hasBudget() {
+		BrowserRequestTiming.Budget budget = new BrowserRequestTiming().budget();
+		return budget == null || budget.remainingNanos() > 0;
+	}
+
+	private boolean attempt(Pending publication) {
 		publication.recipients.removeIf(recipient -> !recipient.enrolled());
 		if (publication.recipients.isEmpty()) return true;
+		if (!hasBudget()) return false; // An already exhausted caller does not spend a retry.
+		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
+			if (deliver(publication)) return true;
+			if (++publication.deferrals < MAX_DEFERRALS) return false;
+			retire(publication); return true;
+		}
+	}
+
+	private boolean deliver(Pending publication) {
 		V2PublicationAuthorization.Snapshot authorization;
 		try {
 			authorization = access.publication(publication.matchId, publication.family,

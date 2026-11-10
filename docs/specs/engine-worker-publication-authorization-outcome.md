@@ -50,7 +50,13 @@ PR review corrected budget-only exhaustion and the resulting lost handoff/chat:
 exhausted attempts retain undelivered recipients in bounded per-match queues.
 Only the latest pending full state is retained for each match; chat stays ordered.
 Healthy matches deliver immediately independently of another match's backlog.
-Deferred matches rotate behind peers. The watchdog checks a volatile pending
+Deferred matches rotate behind peers. New publications drain their own match's
+earlier work inline using only the caller's remaining deadline. Three deferrals
+from attempts starting with remaining budget retire an entry explicitly
+unavailable; already exhausted calls do not consume retries, and coalescing
+does not reset the count. Captured transcript permission prevents unreserved
+optional loading. The mounted-browser regression verifies paged gap recovery
+with and without the latest optional frame. The watchdog checks a volatile pending
 hint once per second and schedules work only for a nonempty backlog;
 each retry requires a fresh local batch and final expiry/budget guards. Already
 delivered chat recipients are not resent, retained publications cannot overtake

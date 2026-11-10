@@ -87,9 +87,13 @@ request-path cost; that request's authorization semantics stay unchanged.
   catch-up queue ordered per match (64 publications total, 4 Mi UTF-16 code units
   of retained payload). A new full state supersedes older queued states for that
   match; chat remains ordered and is not coalesced. Reserve transcript capacity
-  only for live-transcript recipients or an already loaded frame. Healthy matches
+  only for live-transcript recipients or an already loaded frame. Each deferred
+  recipient captures permission to load its optional frame at reservation time;
+  later capability changes cannot cause an unreserved load. Healthy matches
   deliver immediately when their own queue is empty; deferred matches rotate
-  behind peers on retry. The existing watchdog checks a volatile pending hint
+  behind peers on retry. A new publication first drains older retained work for
+  its own match within the caller's remaining deadline, then attempts its own
+  delivery. There is no new inline budget. The existing watchdog checks a volatile pending hint
   every second and schedules a coalesced control task only when work is pending.
   Each control task receives one measured 2,000 ms deadline shared across all
   matches. Each nonempty publication attempt requires one new local batch for
@@ -101,7 +105,13 @@ request-path cost; that request's authorization semantics stay unchanged.
   Full-time spectators retire after final delivery. Queue overflow explicitly
   fails unavailable and retires affected subscriptions rather than silently
   dropping content. Scheduling is best effort behind other worker tasks, not
-  a one-second delivery guarantee. This catch-up corrects the stall/lost-chat
+  a one-second delivery guarantee. An entry retires explicitly unavailable after
+  three deferrals from attempts that began with remaining budget (including its
+  initial attempt when applicable). Calls starting with no budget do not consume
+  that allowance; coalesced replacement states inherit it. This bounds repeated
+  unsuccessful work without treating delivery exhaustion as proof of revocation.
+  Browser gap recovery pages missing public history after coalescing or omitted
+  optional frames. This catch-up corrects the stall/lost-chat
   findings in PR #518; it performs no provider work or token refresh.
   Actual local authorization/database failures and token expiry retain the
   existing unavailable/removal behavior.

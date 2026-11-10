@@ -177,7 +177,7 @@ class PublicationAuthorizationTest {
 		fixture.withBudget(() -> fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "first")));
 		fixture.connections.getFirst().afterSend = () -> { };
 		fixture.withBudget(() -> fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "second")));
-		assertEquals(1, fixture.connections.getFirst().messages.size());
+		assertEquals(2, fixture.connections.getFirst().messages.size());
 		fixture.withBudget(fixture.publisher::retryPublications);
 		for (Connection connection : fixture.connections) {
 			assertEquals(2, connection.messages.size());
@@ -199,6 +199,37 @@ class PublicationAuthorizationTest {
 		assertEquals(100, fixture.connections.get(1).last().get("state").asObject().getInt("revision", -1));
 		for (Connection connection : fixture.connections) assertEquals(1, connection.messages.size());
 		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.times(1)).publishedState(MATCH, "home", false);
+	}
+
+	@Test void deferredStateCannotLoadTranscriptEnabledAfterReservation() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 1); fixture.reset();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.publish(V2PublicationAuthorization.Family.STATE);
+		});
+		fixture.publisher.liveTranscript(fixture.connections.getFirst(), true);
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals(1, fixture.connections.getFirst().messages.size());
+		assertEquals(0, fixture.connections.getFirst().predecessors);
+		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.never()).liveTranscriptPage(anyString(), org.mockito.ArgumentMatchers.anyInt());
+		fixture.withBudget(() -> fixture.publish(V2PublicationAuthorization.Family.STATE));
+		assertEquals(1, fixture.connections.getFirst().predecessors);
+	}
+
+	@Test void supersededLiveStatesLoadOnlyLatestOptionalFrame() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 2); fixture.reset();
+		Connection spectator = fixture.connections.get(1); fixture.publisher.liveTranscript(spectator, true);
+		when(fixture.setup.liveTranscriptPage(MATCH, 3)).thenReturn(new JsonObject().add("formatVersion", 2).add("from", 3).add("next", 4).add("total", 4)
+			.add("records", new JsonArray().add(new JsonObject().add("index", 3).add("revision", 3).add("state", new JsonObject().add("revision", 3)))));
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			for (int revision = 1; revision <= 3; revision++) fixture.publisher.publish(MATCH, null, new JsonObject().add("revision", revision).add("phase", "PLAY"));
+		});
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals(1, spectator.predecessors); assertEquals(3, spectator.last().get("state").asObject().getInt("revision", -1));
+		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.times(1)).liveTranscriptPage(MATCH, 3);
+		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.never()).liveTranscriptPage(MATCH, 1);
+		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.never()).liveTranscriptPage(MATCH, 2);
 	}
 
 	@Test void sixteenMatchesWithoutLiveTranscriptDoNotReserveSixteenMaximumFrames() throws Exception {

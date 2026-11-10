@@ -76,10 +76,10 @@ final class ActiveMatchPublisher {
 	}
 
 	void sendState(BrowserConnection connection, JsonObject response, LiveMatchTranscript transcript) {
-		sendState(connection, response, transcript, () -> { });
+		sendState(connection, response, transcript, () -> { }, true);
 	}
-	private void sendState(BrowserConnection connection, JsonObject response, LiveMatchTranscript transcript, Runnable admission) {
-		if (liveTranscriptConnections.contains(connection) && "ACCEPTED".equals(response.getString("code", ""))
+	private void sendState(BrowserConnection connection, JsonObject response, LiveMatchTranscript transcript, Runnable admission, boolean transcriptReserved) {
+		if (transcriptReserved && liveTranscriptConnections.contains(connection) && "ACCEPTED".equals(response.getString("code", ""))
 			&& response.get("state") != null && response.get("state").isObject()) {
 			String frame;
 			try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { frame = transcript.frame(response.get("state").asObject()); }
@@ -129,27 +129,30 @@ final class ActiveMatchPublisher {
 		boolean liveTranscript = recipients.stream()
 			.anyMatch(recipient -> liveTranscriptConnections.contains(recipient.connection));
 		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
-		for (Recipient recipient : recipients) targets.add(new DeliveryRecipient(recipient) {
-			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
-				String role = access.publicationRole(authorization, target(), slot);
-				if (recipient.viewer.spectator) {
-					JsonObject state = JsonObject.readFrom(retainedState);
-					state.set("callerRole", "spectator");
-					state.remove("computer"); state.remove("threats");
-					state.remove("savedFormations"); state.remove("blockPreview");
-					sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot));
-					if ("FULL_TIME".equals(state.getString("phase", ""))) viewers.remove(recipient.connection);
-				} else {
-					JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
-						.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
-					JsonObject response = setup.publishedState(matchId, role, recipient.viewer.principal == null);
-					if (response == null) response = recipient.viewer.principal == null
-						? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
-					response.set("requestId", JsonValue.NULL);
-					sendState(recipient.connection, response, transcript, () -> access.publicationRole(authorization, target(), slot));
+		for (Recipient recipient : recipients) {
+			boolean transcriptReserved = liveTranscriptConnections.contains(recipient.connection);
+			targets.add(new DeliveryRecipient(recipient) {
+				@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
+					String role = access.publicationRole(authorization, target(), slot);
+					if (recipient.viewer.spectator) {
+						JsonObject state = JsonObject.readFrom(retainedState);
+						state.set("callerRole", "spectator");
+						state.remove("computer"); state.remove("threats");
+						state.remove("savedFormations"); state.remove("blockPreview");
+						sendState(recipient.connection, state(null, state), transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);
+						if ("FULL_TIME".equals(state.getString("phase", ""))) viewers.remove(recipient.connection);
+					} else {
+						JsonObject load = new JsonObject().add("version", 1).add("type", "setup")
+							.add("operation", "load").add("requestId", "broadcast").add("matchId", matchId);
+						JsonObject response = setup.publishedState(matchId, role, recipient.viewer.principal == null);
+						if (response == null) response = recipient.viewer.principal == null
+							? setup.handleComputerWithOutcome(load).response() : setup.handle(role, load);
+						response.set("requestId", JsonValue.NULL);
+						sendState(recipient.connection, response, transcript, () -> access.publicationRole(authorization, target(), slot), transcriptReserved);
+					}
 				}
-			}
-		});
+			});
+		}
 		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedState.length() + Math.max(transcript.retainedCharacters(),
 			liveTranscript ? BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES : 0));
 	}

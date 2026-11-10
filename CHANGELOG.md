@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Deliver queued updates when the next publication has budget, and stop repeatedly failing catch-up with an explicit unavailable response after three attempts. Coalesced live history recovers through paged transcript reads.
+
 - Keep delayed publication recovery independent per match and send only the latest queued state, preserving chat order without disconnecting viewers for obsolete snapshots.
 
 - Catch up missed match, chat and preparation pushes after an action exhausts its budget, so turn handoffs and final results do not wait for another action or reconnect.
