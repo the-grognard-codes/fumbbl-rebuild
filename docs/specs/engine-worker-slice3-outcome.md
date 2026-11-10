@@ -161,3 +161,18 @@ By maintainer direction, [#519](https://github.com/the-grognard-codes/fumbbl-reb
 tracks review #1 (retrying failed recovery reads), #3 (irrelevant computer notices)
 and #4 (one budget observation). They remain follow-up work and are not claimed
 implemented or merge-blocking by this correction. No merge is performed.
+
+
+The subsequent blocking correction [keeps budget-deferred notices pending](../reviews/2026-11-10-pr518-pending-notice-review.md).
+The previous fail-closed argument was incorrect for typed request-allowance
+refusals: they supply no evidence of denied authority. After the payload's retry
+limit, a pending notice waits for a later control task, repeats local authorization
+and original-expiry checks, and retains only undelivered recipients through typed
+batch/enqueue deferrals. Actual denial and generic SQL failures still retire.
+State coalescing preserves the phase and the existing retention charges/caps.
+Client recovery-read retries and the two cleanups in #519 remain deferred.
+Both scoped independent review axes approved. Validation passed 101 focused
+tests, 116 actual Firebase/JDBC/socket tests without skips, and clean pinned
+verification with 1,116 tests, zero failures/errors and twenty expected opt-in
+skips. The linked report retains the original failing regression and its passing
+result after this correction. No merge is performed.
