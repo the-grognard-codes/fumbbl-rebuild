@@ -172,8 +172,10 @@ class OperatingEnvelopeTest {
 				beginPhase(probe, "reconnect"); String id = ids.get(3); JsonObject state = accepted(home, setup(id, "load")).get("state").asObject();
 				JsonObject durable = action(id, state); boolean homeActor = "home".equals(state.getString("actor", ""));
 				Client actor = homeActor ? home : away; JsonObject committed = accepted(actor, durable);
+				long reconnectStarted = System.nanoTime();
 				actor.close(); probe.control(() -> null); if (homeActor) home = connect("home"); else away = connect("away");
 				JsonObject duplicate = accepted(homeActor ? home : away, durable);
+				report.add("reconnectEndToEndMs", (System.nanoTime() - reconnectStarted) / 1e6);
 				report.add("reconnectDuplicate", duplicate.getBoolean("duplicate", false)).add("reconnectRevisionUnchanged",
 					committed.get("state").asObject().getInt("revision", -1) == duplicate.get("state").asObject().getInt("revision", -2));
 				SetupApplication restored = new SetupApplication(nativeServer, matches, recovery, true, true);

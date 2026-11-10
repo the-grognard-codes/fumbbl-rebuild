@@ -31,7 +31,8 @@ export function summarize(data) {
   return { allTasks: tasks(samples), kinds: Object.fromEntries([0, 1, 2, 3].map(kind => [kind, tasks(samples.filter(s => s.kind === kind))])),
     missingSamples: data.finalTransport.missingSamples, expectedTasks: expected, capturedTasks: samples.length,
     completeTaskCoverage: expected === samples.length && data.finalTransport.missingSamples === 0,
-    byPhase, taskPhases, heapBytes: distribution(data.resources.map(s => s.heapBytes)),
+    byPhase, taskPhases, reconnectMs: distribution(data.reconnectEndToEndMs === undefined ? [] : [data.reconnectEndToEndMs]),
+    heapBytes: distribution(data.resources.map(s => s.heapBytes)),
     processCpuSeconds: data.resources.length > 1 ? (data.resources.at(-1).processCpuNanos - data.resources[0].processCpuNanos) / 1e9 : null };
 }
 
