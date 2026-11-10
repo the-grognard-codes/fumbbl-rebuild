@@ -9,7 +9,13 @@ Branch: `fix/firebase-bounds-publication-authorization`, from current main
 `031495c72` after RB2 and slice 2 merged.
 Status: review revisions implemented, independently approved and validated,
 including renewed live Firebase/JDBC and credentialed UI smoke. See the
-[complete review dispositions and current validation](../reviews/2026-11-10-pr518-review-responses.md).
+[first review dispositions](../reviews/2026-11-10-pr518-review-responses.md) and
+[latest catch-up revisions and validation](../reviews/2026-11-10-pr518-catch-up-review.md).
+The latest runtime revision `f612e634e` passed 1,096-test clean verification,
+84 real provider/JDBC boundary tests, 530 browser unit tests, all 82 browser
+suites, full dev-local startup and a ten-decision real three-party smoke.
+The latest report preserves cold-start rejections and the initial UI wait;
+its matched steady-state profiles explicitly document SDK warm-up.
 The original delivery evidence below predates these review revisions.
 No merge or deployment performed.
 

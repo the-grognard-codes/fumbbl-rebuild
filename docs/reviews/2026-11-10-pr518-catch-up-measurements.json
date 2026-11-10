@@ -1,0 +1,115 @@
+{
+  "sourceCommit": "f612e634e51e7c575100a8df84805ac0b53bf0c8",
+  "date": "2026-11-10",
+  "actualFirebase": true,
+  "actualMariaDb": true,
+  "actualNativeEngine": true,
+  "poolEnabled": true,
+  "requestBudgetMs": 2000,
+  "providerAllocationMs": 1200,
+  "semantics": "Single-owner in-process steady-state profiles with counting delivery sinks; real 16-socket delivery is verified separately. Both processes first run FirebaseOwnedTransportCandidateTest and FirebaseJdbcBudgetMariaDbTest. Cold-process availability is not included in these healthy latency claims. Same matched native fixtures and separate native warmup.",
+  "matchedFixtureDigests": [
+    "4987eb1f4e15fa77de26ffc8747fd5dc862bb8fd001472f04eed6a44192582f2",
+    "cb06a5c4c598d7626313ec9596e6b3f85d4ce078d63e19f5d1506ec749eccd1b",
+    "611572f6ee71de6b8b2180ebc28231c879d6a0d6c84beb7631f1cbd83471892f"
+  ],
+  "profiles": [
+    {
+      "publicationTargets": 0,
+      "sourceSha256": "0e003498153bfc1e1f34d1de2f6f2242935378af30842892f27d8f3e81829abb",
+      "healthyReadsMs": {
+        "count": 800,
+        "p50": 14.7053,
+        "p95": 24.4861,
+        "p99": 30.157,
+        "max": 34.8029
+      },
+      "healthyActionsMs": {
+        "count": 200,
+        "p50": 42.6532,
+        "p95": 59.4731,
+        "p99": 64.5281,
+        "max": 68.7531
+      },
+      "forcedProviderMissMs": {
+        "count": 21,
+        "p50": 282.6288,
+        "p95": 341.9004,
+        "p99": 512.6223,
+        "max": 512.6223
+      },
+      "publicationMs": {
+        "count": 200,
+        "p50": 0.091,
+        "p95": 0.1335,
+        "p99": 0.1709,
+        "max": 0.1806
+      },
+      "localAuthorizationGroupsPerAction": [
+        1
+      ],
+      "healthyProviderCalls": 0,
+      "lookupsPerForcedMiss": 1,
+      "allTasksBelow2000ms": true
+    },
+    {
+      "publicationTargets": 15,
+      "sourceSha256": "a2fec51dee90ef8471a6234e935072a3195c0e8215cd4e73240476fe71e2f022",
+      "healthyReadsMs": {
+        "count": 800,
+        "p50": 14.4162,
+        "p95": 24.1818,
+        "p99": 26.9703,
+        "max": 38.8851
+      },
+      "healthyActionsMs": {
+        "count": 200,
+        "p50": 50.2822,
+        "p95": 70.2338,
+        "p99": 74.409,
+        "max": 77.7836
+      },
+      "forcedProviderMissMs": {
+        "count": 21,
+        "p50": 288.3483,
+        "p95": 320.1011,
+        "p99": 356.1139,
+        "max": 356.1139
+      },
+      "publicationMs": {
+        "count": 200,
+        "p50": 8.4318,
+        "p95": 11.6329,
+        "p99": 14.4292,
+        "max": 16.7085
+      },
+      "localAuthorizationGroupsPerAction": [
+        2
+      ],
+      "healthyProviderCalls": 0,
+      "lookupsPerForcedMiss": 1,
+      "allTasksBelow2000ms": true
+    }
+  ],
+  "retainedColdStartFailures": [
+    {
+      "kind": "standalone native bootstrap",
+      "elapsedMs": 1115,
+      "httpCalls": 3,
+      "responses": 2
+    },
+    {
+      "kind": "standalone native bootstrap",
+      "elapsedMs": 1117,
+      "httpCalls": 3,
+      "responses": 2
+    },
+    {
+      "kind": "first provider/JDBC operation in diagnostic JVM",
+      "elapsedMs": 1122,
+      "httpCalls": 2,
+      "responses": 1
+    }
+  ],
+  "coldStartConclusion": "All three failed closed at the unchanged I/O allocation. Subsequent same-JVM native measurement passed. First-use SDK overhead is a contributor hypothesis, not an established root cause; successful warmed profiles do not resolve cold-process availability."
+}

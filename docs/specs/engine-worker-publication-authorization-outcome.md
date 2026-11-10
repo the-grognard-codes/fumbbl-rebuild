@@ -32,8 +32,10 @@ close their physical session after use.
 The publisher bounds enrollment to sixteen and rejects oversized target lists.
 Zero targets cause zero queries. The actual transport continues admitting only
 sixteen total sockets, including the origin; the publisher bound does not admit
-a seventeenth socket. All database and publication work uses the originating
-absolute two-second request budget. No recipient obtains a new timer/allocation.
+a seventeenth socket. Synchronous publication shares the originating absolute
+two-second request budget; there is no per-recipient allocation. Undelivered
+recipients are retried by a separate measured worker control task as described
+below, without extending that originating deadline.
 
 Original token expiry is checked while building the batch and again after
 recipient projection and response/optional-transcript serialization, immediately
@@ -44,14 +46,19 @@ one disconnected recipient cannot undo another delivery or an already durable
 action. Public history/mandatory acknowledgement ordering and recovery paths are
 unchanged.
 
-PR review corrected budget-only exhaustion: it now skips this best-effort push
-without retiring subscriptions. Admission refuses work before the batch when the
-task is exhausted; typed JDBC request-allowance/deadline refusals also skip the
-push. Expiry after a batch, projection or serialization prevents enqueue and
-preserves valid recipients for the next publication. That next publication must
-obtain a fresh local batch; no old snapshot or background retry grants delivery.
-Actual local denials/database failures and original token expiry still remove
-subscriptions. Existing task accounting records the overrun without new timers.
+PR review corrected budget-only exhaustion and the resulting lost handoff/chat:
+exhausted attempts retain undelivered recipients in a bounded FIFO. The existing
+watchdog schedules one coalesced control task per second on the same worker;
+each retry requires a fresh local batch and final expiry/budget guards. Already
+delivered recipients are not resent, subsequent publications cannot overtake
+pending ones, and full-time spectators retire after receiving the final frame.
+Same-session enrollment refreshes preserve chat continuity; newer direct state
+loads supersede pending state snapshots. Disconnects, removal and switches
+invalidate the old enrollment. The queue caps 64 publications and 4 Mi retained
+UTF-16 code units including reserved transcript space; overflow fails explicitly
+unavailable. Task timing records both the original overrun and separate retry
+work. Actual local denials/database failures and original token expiry still
+remove subscriptions. No provider work or mutation is replayed.
 
 Accepted option A deliberately permits passive viewing after Firebase-only
 revocation until the **existing** token expires—potentially roughly its remaining
