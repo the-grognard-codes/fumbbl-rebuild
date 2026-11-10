@@ -148,3 +148,16 @@ pinned verification with 1,111 tests (zero failures/errors, twenty expected skip
 The mounted browser retained the board during a held recovery read and recovered
 delayed chat. Startup/gameplay smokes remain the previous runtime's evidence;
 the report distinguishes them from this round's fresh checks.
+
+
+The latest security correction, [recovery-notice authorization](../reviews/2026-11-10-pr518-notice-authorization-review.md),
+requires one fresh local batch per activity notice plus role/original-expiry checks
+before serialization and final enqueue. Unavailable or denied notice grants fail
+closed without match/family metadata. Both independent review axes approved;
+current validation passed 97 focused tests, 112 actual Firebase/JDBC/socket tests
+without skips and clean pinned verification with 1,112 tests, zero failures/errors
+and twenty expected opt-in skips. Evidence is recorded in that report.
+By maintainer direction, [#519](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/519)
+tracks review #1 (retrying failed recovery reads), #3 (irrelevant computer notices)
+and #4 (one budget observation). They remain follow-up work and are not claimed
+implemented or merge-blocking by this correction. No merge is performed.
