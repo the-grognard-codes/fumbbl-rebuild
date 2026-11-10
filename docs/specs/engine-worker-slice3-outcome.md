@@ -2,6 +2,7 @@
 
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504),
 [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
+Independent security-review PR: [#518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518).
 Branch: `fix/firebase-bounds-publication-authorization`, from current main
 `031495c72` after RB2 and slice 2 merged.
 Status: implemented, independently reviewed and validated; ready for PR review.
@@ -68,5 +69,6 @@ the earlier uninstrumented failure and ADR 0006's native/CPU residual risk.
 
 No required implementation or validation remains pending. The historical
 non-reproducing startup rejection remains an explicitly recorded diagnostic
-limitation for review. The security-focused PR will close both issues on merge;
+limitation for review. [PR #518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518)
+will close both issues on merge;
 neither issue is closed independently while review remains outstanding.
