@@ -95,7 +95,7 @@ final class BoundedJsonStorageCodec {
 		} catch (RuntimeException failure) { throw new IllegalArgumentException("Invalid stored JSON envelope"); }
 	}
 
-	private boolean hasCodecHeader(String value) {
+	boolean hasCodecHeader(String value) {
 		int index = 0;
 		while (index < value.length() && value.charAt(index) <= 0x20) index++;
 		if (index >= value.length() || value.charAt(index++) != '{') return false;

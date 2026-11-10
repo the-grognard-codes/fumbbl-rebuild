@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bound lobby reads with a shared two-request burst, batched storage reads and page budgets. Busy refreshes preserve existing games and selection and wait before sending further reads.
+
 - Retry authorized recovery notices on a later worker budget when delivery or notice admission times out, preserving the board and retrying only undelivered recipients.
 
 - Authorize delayed-publication notices against current local permissions and the original token expiry before revealing match activity.

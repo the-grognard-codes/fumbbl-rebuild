@@ -597,12 +597,38 @@ public final class SetupApplication {
 		return session.decorateSaveResumeState(session.spectatorView());
 	}
 
+	public Map<String, MatchDocument> browseDocuments(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+		return matches.browseDocuments(ids, budget);
+	}
+
 	/** Durable frozen facts for an already authorized browse entry. */
 	public MatchDocument browseDocument(String matchId) throws SQLException {
 		return matches.load("home", matchId).document;
 	}
 
-	/** Scalar public state for an already authorized browse entry; never restores an engine. */
+	/** Scalar public states for an authorized page; never restores or touches a native engine. */
+	public Map<String, JsonObject> browseStates(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+		budget.entries(ids.size());
+		Map<String, JsonObject> result = new LinkedHashMap<>();
+		java.util.List<String> missing = new java.util.ArrayList<>();
+		for (String id : ids) {
+			budget.check();
+			SetupSession resident = sessions.get(id);
+			if (resident != null && !resident.isFailed()) result.put(id, resident.browseSummary());
+			else missing.add(id);
+		}
+		if (recovery != null) for (RecoveryRepository.Record record : recovery.findAll(missing, budget).values()) {
+			budget.check();
+			JsonObject payload = JsonObject.readFrom(record.json).get("payload").asObject();
+			if (!record.matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", false)) continue;
+			JsonObject view = payload.get("homeView").asObject();
+			if (!record.matchId.equals(view.getString("matchId", null)) || !"home".equals(view.getString("callerRole", null))) continue;
+			result.put(record.matchId, browseScalars(view));
+		}
+		return result;
+	}
+
+	/** Retained for individual internal readers. Lobby pages use browseStates. */
 	public JsonObject browseState(String matchId) throws SQLException {
 		SetupSession resident = sessions.get(matchId);
 		if (resident != null && !resident.isFailed()) return resident.browseSummary();

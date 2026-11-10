@@ -22,6 +22,18 @@ public final class MatchService {
 		this.matches = matches; this.teams = teams; this.catalog = catalog; validation = new TeamValidation(catalog);
 	}
 
+	/** Visibility/membership was checked by the adapter before this batch. */
+	public Map<String, MatchDocument> browseDocuments(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+		Map<String, MatchDocument> result = new LinkedHashMap<>();
+		for (MatchRepository.Record record : matches.findAll(ids, budget).values()) {
+			budget.check();
+			MatchDocument document = json.decodeAuthorized("home", record.json, record.documentVersion);
+			if (!ids.contains(record.matchId) || !record.matchId.equals(document.matchId)) throw new Failure("SNAPSHOT_UNSUPPORTED");
+			result.put(record.matchId, document);
+		}
+		return result;
+	}
+
 	public Result create(String owner, String requestId, String teamId, int expectedTeamVersion, String intendedOpponent) throws SQLException {
 		identity(owner); selection(teamId, expectedTeamVersion); requestId(requestId);
 		if (!opponent(owner, intendedOpponent)) throw new Failure("INVITATION_REQUIRED");

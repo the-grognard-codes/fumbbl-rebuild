@@ -4,6 +4,13 @@ import java.sql.SQLException;
 
 public interface RecoveryRepository {
 	Record find(String matchId) throws SQLException;
+	/** In-memory implementations may use find; JDBC overrides with a fixed query bound. */
+	default java.util.Map<String, Record> findAll(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+		budget.entries(ids.size());
+		java.util.Map<String, Record> result = new java.util.LinkedHashMap<>();
+		for (String id : ids) { budget.check(); Record record = find(id); if (record != null) { budget.admit(record.json); result.put(id, record); } }
+		return result;
+	}
 	/** Current durable generation, or null when absent. Every legitimate replacement advances generation via CAS. */
 	default Long generation(String matchId) throws SQLException {
 		Record record = find(matchId);

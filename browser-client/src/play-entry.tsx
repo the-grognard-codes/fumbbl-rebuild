@@ -181,8 +181,8 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         && message.requestId === currentMatchesRequestRef.current;
       if (currentMatchesFailure) {
         currentMatchesRequestRef.current = null; setCurrentMatchesLoading(false);
-        setCurrentMatchesError('Your current games could not be refreshed. Try again after reconnecting.');
-        if (currentMatchesRefreshRef.current) { currentMatchesRefreshRef.current = false; requestCurrentMatches(); }
+        setCurrentMatchesError(message.code === 'RATE_LIMITED' ? 'Game refresh is busy. Your games are kept; the next refresh will wait briefly.' : 'Your current games could not be refreshed. Try refreshing again.');
+        if (currentMatchesRefreshRef.current) { currentMatchesRefreshRef.current = false; if (message.code !== 'RATE_LIMITED') requestCurrentMatches(); }
       }
       if (message.type === 'computer' && ['READY', 'UNAVAILABLE'].includes(message.code)) {
         setComputerAvailable(message.code === 'READY');
@@ -481,7 +481,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
         setCurrentMatchesLoading(true); setCurrentMatchesError('');
       })}>Refresh games</button></div>
       {currentMatchesLoading && <p role="status">Loading your games…</p>}
-      {currentMatchesError && <p role="alert">{currentMatchesError}</p>}
+      {currentMatchesError && <p role="status">{currentMatchesError}</p>}
       {concessionStatus.text && <p role="status">{concessionStatus.text}</p>}
       {connected && !currentMatchesLoading && !currentMatchesError && currentMatches.length === 0 && <p>You have no unfinished games.</p>}
       <ul className="spectate-games">{currentMatches.map(game => <li key={game.matchId}>

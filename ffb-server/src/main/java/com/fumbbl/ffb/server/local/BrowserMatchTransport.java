@@ -222,7 +222,7 @@ public class BrowserMatchTransport {
 			int version = request.getInt("version", -1);
 			if (version != 2) return false;
 			String type = request.getString("type", "");
-			return "movementRange".equals(type) || "movementPreview".equals(type) || "routePreview".equals(type)
+			return "browse".equals(type) || "currentMatches".equals(type) || "movementRange".equals(type) || "movementPreview".equals(type) || "routePreview".equals(type)
 				|| "diagnostics".equals(type) && "probe".equals(request.getString("operation", ""));
 		} catch (RuntimeException malformed) {
 			return false;

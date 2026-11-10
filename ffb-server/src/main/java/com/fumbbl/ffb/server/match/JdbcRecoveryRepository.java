@@ -56,6 +56,73 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 		}
 	}
 
+	@Override
+	public java.util.Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
+		budget.entries(ids.size());
+		java.util.Map<String, Record> result = new java.util.LinkedHashMap<>();
+		if (ids.isEmpty()) return result;
+		String slots = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
+		try (Connection connection = openConnection()) {
+			// One repeatable-read snapshot for checkpoints plus journals, without locking or engine activation.
+			connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+			connection.setAutoCommit(false);
+			try {
+				java.util.Map<String, Long> checkpointGenerations = new java.util.LinkedHashMap<>();
+				try (PreparedStatement query = connection.prepareStatement(
+					"SELECT matchid,generation,CASE WHEN OCTET_LENGTH(artifact_json)<=" + LobbyReadBudget.RECORD_BYTES
+					+ " AND SUM(OCTET_LENGTH(artifact_json)) OVER ()<=" + budget.remainingEncodedBytes()
+					+ " THEN artifact_json ELSE NULL END" + (journalEnabled ? ",checkpoint_generation" : "")
+					+ " FROM ffb_match_recovery WHERE matchid IN (" + slots + ")")) {
+					for (int index = 0; index < ids.size(); index++) query.setString(index + 1, ids.get(index));
+					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+						while (rows.next()) {
+							if (result.size() >= ids.size()) throw new SQLException("Unexpected lobby recovery row count");
+							String id = rows.getString(1);
+							result.put(id, new Record(id, rows.getLong(2), budget.read(rows, 3, codec)));
+							if (journalEnabled) checkpointGenerations.put(id, rows.getLong(4));
+						}
+					}
+				}
+				if (journalEnabled) {
+					java.util.Map<String, List<Record>> journals = new java.util.LinkedHashMap<>();
+					try (PreparedStatement query = connection.prepareStatement(
+						"SELECT matchid,generation,CASE WHEN OCTET_LENGTH(record_json)<=" + LobbyReadBudget.RECORD_BYTES
+						+ " AND SUM(OCTET_LENGTH(record_json)) OVER ()<=" + budget.remainingEncodedBytes()
+						+ " THEN record_json ELSE NULL END FROM ffb_match_recovery_journal WHERE matchid IN (" + slots + ") ORDER BY matchid,generation")) {
+						for (int index = 0; index < ids.size(); index++) query.setString(index + 1, ids.get(index));
+						try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+							int count = 0;
+							while (rows.next()) {
+								if (++count > ids.size() * RecoveryJournal.MAX_ENTRIES) throw new MatchService.Failure("RECOVERY_CORRUPT");
+								String id = rows.getString(1);
+								List<Record> entries = journals.computeIfAbsent(id, ignored -> new ArrayList<>());
+								if (entries.size() >= RecoveryJournal.MAX_ENTRIES) throw new MatchService.Failure("RECOVERY_CORRUPT");
+								entries.add(new Record(id, rows.getLong(2), budget.read(rows, 3, codec)));
+							}
+						}
+					}
+					for (String id : new ArrayList<>(result.keySet())) {
+						budget.check();
+						Record base = result.get(id);
+						List<Record> entries = journals.getOrDefault(id, List.of());
+						// Reassembly can copy the growing artifact once per journal entry.
+						long work = base.json.length();
+						for (Record entry : entries) work += entry.json.length();
+						budget.work(work * (entries.size() + 1));
+						Record restored = new RecoveryJournal().restore(id, base.generation, checkpointGenerations.get(id), base.json, entries);
+						budget.admit(restored.json);
+						result.put(id, restored);
+					}
+				}
+				commit(connection);
+			} catch (SQLException | RuntimeException failure) {
+				try { rollback(connection); } catch (SQLException cleanup) { failure.addSuppressed(cleanup); }
+				throw failure;
+			}
+		}
+		return result;
+	}
+
 	private Record findJournal(String id) throws SQLException {
 		try (Connection connection = openConnection()) {
 			connection.setAutoCommit(false);

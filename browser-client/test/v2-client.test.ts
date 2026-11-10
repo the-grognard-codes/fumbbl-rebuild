@@ -668,3 +668,30 @@ test('publication recovery rejects malformed or private notification fields', as
     assert.equal(JSON.stringify(events).includes('sentinel'), false);
   }
 });
+
+
+test('lobby throttling keeps selection and intent, coalesces refreshes and spaces both read types', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'browse', requestId: browse.requestId, code: 'ACCEPTED', matches: [] });
+  const watch = client.open(match, true);
+  socket.reply({ type: 'setupState', requestId: watch, code: 'ACCEPTED', duplicate: false, state });
+  const retained = client.state;
+  const mutation = client.request('preparedMatch', { operation: 'create' }, true);
+  const read = client.request('currentMatches', { after: null });
+  socket.reply({ type: 'error', requestId: read, code: 'RATE_LIMITED' });
+  assert.equal(socket.closed, false); assert.equal(client.pending?.request.requestId, mutation);
+  assert.equal(events.at(-1).code, 'RATE_LIMITED'); assert.equal(client.state, retained, 'Throttling preserves the selected board');
+  const sent = socket.sent.length;
+  const queued = client.request('currentMatches', { after: null });
+  for (let repeat = 0; repeat < 50; repeat++) assert.equal(client.request('currentMatches', { after: null }), queued);
+  client.request('browse'); assert.equal(socket.sent.length, sent);
+  now = 1999; t.mock.timers.tick(1999); assert.equal(socket.sent.length, sent);
+  now = 2000; t.mock.timers.tick(1); assert.equal(socket.sent.length, sent + 1);
+  now = 4000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, sent + 2);
+  client.disconnect(); now = 6000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, sent + 2);
+  const reconnect = await connect();
+  assert.equal(reconnect.sent.some(request => request.type === 'browse'), true, 'Reconnect starts with a fresh burst');
+});

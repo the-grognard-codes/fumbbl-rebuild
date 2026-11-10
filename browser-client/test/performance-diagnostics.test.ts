@@ -112,6 +112,9 @@ async function clientFixture(notificationDuration = 0) {
     } });
   client.connect(); const socket = sockets.at(-1)!; socket.onopen?.(); await Promise.resolve();
   socket.reply({ type: 'authentication', requestId: socket.sent[0].requestId, code: 'ACCEPTED', accountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+  // Complete the initial lobby read before measuring a subsequent refresh. Pending reads now coalesce.
+  const initialBrowse = socket.sent.find(request => request.type === 'browse')!;
+  socket.reply({ type: 'browse', requestId: initialBrowse.requestId, code: 'ACCEPTED', matches: [] });
   return { client, service, advance, socket, events };
 }
 test('detailed negotiation preserves legacy timing and isolates optional trace failures', async () => {
@@ -216,7 +219,7 @@ test('rapid toggles always deliver the final Off request and lost negotiation be
   for (const request of requests) socket.reply({ type: 'diagnostics', requestId: request.requestId, code: 'ACCEPTED', enabled: request.enabled });
   assert.equal(socket.closed, false); assert.equal(service.enabled, false);
   service.setMode('graph'); assert.equal(service.server, 'negotiating'); advance(5001); service.poll();
-  assert.equal(service.server, 'unavailable'); assert.equal(service.snapshot().pending, 3, 'The three pre-capture startup reads remain pending');
+  assert.equal(service.server, 'unavailable'); assert.equal(service.snapshot().pending, 2, 'The saved-team and catalog startup reads remain pending');
   assert.equal(service.snapshot().oldestPending, null, 'An unobserved pre-capture send time remains unavailable');
 });
 test('optional diagnostic envelopes enforce V2 without breaking the ordinary connection', async () => {
