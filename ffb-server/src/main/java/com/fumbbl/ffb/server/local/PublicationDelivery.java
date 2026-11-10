@@ -8,9 +8,11 @@ import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-/** Worker-owned, bounded FIFO catch-up. Only undelivered, still-enrolled recipients are retried. */
+/** Worker-owned, bounded catch-up ordered within each match. Only enrolled recipients are retried. */
 final class PublicationDelivery {
 	static final int MAX_PENDING = 64;
 	static final int MAX_RETAINED_CHARACTERS = 4 * 1024 * 1024;
@@ -23,30 +25,59 @@ final class PublicationDelivery {
 	private record Pending(String matchId, V2PublicationAuthorization.Family family,
 		List<Recipient> recipients, int characters) { }
 	private final V2MatchAccess access;
-	private final Deque<Pending> pending = new ArrayDeque<>();
+	private final Map<String, Deque<Pending>> pending = new LinkedHashMap<>();
 	private int retainedCharacters;
+	private int pendingCount;
+	private volatile boolean hasPending;
 	PublicationDelivery(V2MatchAccess access) { this.access = access; }
 
+	/** A scheduling hint only; the watchdog never reads worker-owned collections. */
+	boolean hasPending() { return hasPending; }
+
 	void publish(String matchId, V2PublicationAuthorization.Family family, List<Recipient> recipients, int characters) {
-		if (recipients.isEmpty()) return;
-		Pending publication = new Pending(matchId, family, new ArrayList<>(recipients), characters);
-		if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) { retire(publication); return; }
-		if (pending.isEmpty() && attempt(publication)) return;
-		if (pending.size() >= MAX_PENDING || characters < 0 || characters > MAX_RETAINED_CHARACTERS - retainedCharacters) {
-			retire(publication); // Explicit unavailable is preferable to silent loss or unbounded retention.
-			return;
+		Deque<Pending> lane = pending.get(matchId);
+		// Every state publication covers current viewers (except the directly acknowledged source).
+		// Keep the newest snapshot after preceding chat, without replaying obsolete projections.
+		if (family == V2PublicationAuthorization.Family.STATE && lane != null) {
+			lane.removeIf(previous -> {
+				if (previous.family != V2PublicationAuthorization.Family.STATE) return false;
+				removed(previous); return true;
+			});
+			if (lane.isEmpty()) { pending.remove(matchId); lane = null; }
 		}
-		pending.addLast(publication); retainedCharacters += characters;
+		try {
+			if (recipients.isEmpty()) return;
+			Pending publication = new Pending(matchId, family, new ArrayList<>(recipients), characters);
+			if (recipients.size() > V2PublicationAuthorization.MAX_TARGETS) { retire(publication); return; }
+			if (lane == null && attempt(publication)) return;
+			if (pendingCount >= MAX_PENDING || characters < 0 || characters > MAX_RETAINED_CHARACTERS - retainedCharacters) {
+				retire(publication); // Explicit unavailable is preferable to silent loss or unbounded retention.
+				return;
+			}
+			pending.computeIfAbsent(matchId, ignored -> new ArrayDeque<>()).addLast(publication);
+			pendingCount++; retainedCharacters += characters;
+		} finally { hasPending = pendingCount != 0; }
 	}
 
-	/** Called only by a separately timed worker control task, never recursively from the originating request. */
+	/** Each match gets one turn per control task; deferred matches rotate behind their peers. */
 	void retry() {
-		while (!pending.isEmpty()) {
-			Pending publication = pending.getFirst();
-			if (!attempt(publication)) return;
-			pending.removeFirst(); retainedCharacters -= publication.characters;
-		}
+		try {
+			for (String matchId : new ArrayList<>(pending.keySet())) {
+				BrowserRequestTiming.Budget budget = new BrowserRequestTiming().budget();
+				if (budget != null && budget.remainingNanos() == 0) break;
+				Deque<Pending> lane = pending.remove(matchId);
+				while (!lane.isEmpty()) {
+					Pending publication = lane.getFirst();
+					if (!attempt(publication)) break;
+					lane.removeFirst(); removed(publication);
+					if (budget != null && budget.remainingNanos() == 0) break;
+				}
+				if (!lane.isEmpty()) pending.put(matchId, lane);
+			}
+		} finally { hasPending = pendingCount != 0; }
 	}
+
+	private void removed(Pending publication) { pendingCount--; retainedCharacters -= publication.characters; }
 
 	private boolean attempt(Pending publication) {
 		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {

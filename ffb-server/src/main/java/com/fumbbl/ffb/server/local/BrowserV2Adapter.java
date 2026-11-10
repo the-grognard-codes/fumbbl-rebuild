@@ -87,6 +87,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	/** Called by the server-owned fixed transport policy, never by a browser field. */
 	void configureDiagnostics(boolean allowed) { diagnosticsAllowed = allowed; }
 
+	@Override public boolean hasPendingPublications() { return delivery.hasPending(); }
 	@Override public synchronized void retryPublications() { delivery.retry(); }
 
 	@Override public synchronized void expireDecisions() {

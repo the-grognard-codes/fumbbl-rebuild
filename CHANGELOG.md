@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep delayed publication recovery independent per match and send only the latest queued state, preserving chat order without disconnecting viewers for obsolete snapshots.
+
 - Catch up missed match, chat and preparation pushes after an action exhausts its budget, so turn handoffs and final results do not wait for another action or reconnect.
 - Firebase authentication now bounds key retrieval, credential refresh and
   revocation checks within one admitted operation. Provider outages fail closed

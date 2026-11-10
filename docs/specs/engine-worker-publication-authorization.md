@@ -84,13 +84,19 @@ request-path cost; that request's authorization semantics stay unchanged.
 - Exhaustion of the originating request's budget skips that best-effort push
   without retiring otherwise valid subscriptions. This includes typed JDBC
   request-allowance/deadline refusals. Undelivered recipients enter a bounded
-  FIFO catch-up queue (64 publications, 4 Mi UTF-16 code units of retained
-  payload including reserved transcript space). The existing watchdog schedules
-  a separate coalesced worker control task every second. Each attempt receives
+  catch-up queue ordered per match (64 publications total, 4 Mi UTF-16 code units
+  of retained payload). A new full state supersedes older queued states for that
+  match; chat remains ordered and is not coalesced. Reserve transcript capacity
+  only for live-transcript recipients or an already loaded frame. Healthy matches
+  deliver immediately when their own queue is empty; deferred matches rotate
+  behind peers on retry. The existing watchdog checks a volatile pending hint
+  every second and schedules a coalesced control task only when work is pending.
+  Each control task shares one deadline across all matches and receives
   its own measured 2,000 ms task budget and requires one new local batch for
   still-enrolled recipients; neither the original deadline nor an old grant is
-  extended. Already delivered recipients are not resent, subsequent publications
-  cannot overtake pending ones, and no mutation is rerun. Token expiry and
+  extended. Already delivered chat recipients are not resent; retained publications
+  cannot overtake earlier retained publications for the same match, and no
+  mutation is rerun. Coalesced state is appended after preceding retained chat. Token expiry and
   enrollment are rechecked, including immediately before payload enqueue.
   Full-time spectators retire after final delivery. Queue overflow explicitly
   fails unavailable and retires affected subscriptions rather than silently

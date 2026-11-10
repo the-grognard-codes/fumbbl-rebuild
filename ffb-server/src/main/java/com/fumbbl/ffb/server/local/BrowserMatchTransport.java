@@ -74,7 +74,7 @@ public class BrowserMatchTransport {
 	}
 
 	void queuePublicationRetry(BrowserProtocol adapter) {
-		if (stopped.get() || !publicationRetryQueued.compareAndSet(false, true)) return;
+		if (stopped.get() || !adapter.hasPendingPublications() || !publicationRetryQueued.compareAndSet(false, true)) return;
 		try {
 			boolean queued = submitControl(BrowserRequestTiming.TaskKind.CONTROL, () -> {
 				try { if (!stopped.get()) adapter.retryPublications(); }

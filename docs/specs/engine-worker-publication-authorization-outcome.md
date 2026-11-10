@@ -47,15 +47,19 @@ action. Public history/mandatory acknowledgement ordering and recovery paths are
 unchanged.
 
 PR review corrected budget-only exhaustion and the resulting lost handoff/chat:
-exhausted attempts retain undelivered recipients in a bounded FIFO. The existing
-watchdog schedules one coalesced control task per second on the same worker;
+exhausted attempts retain undelivered recipients in bounded per-match queues.
+Only the latest pending full state is retained for each match; chat stays ordered.
+Healthy matches deliver immediately independently of another match's backlog.
+Deferred matches rotate behind peers. The watchdog checks a volatile pending
+hint once per second and schedules work only for a nonempty backlog;
 each retry requires a fresh local batch and final expiry/budget guards. Already
-delivered recipients are not resent, subsequent publications cannot overtake
-pending ones, and full-time spectators retire after receiving the final frame.
+delivered chat recipients are not resent, retained publications cannot overtake
+earlier retained publications of the same match, and full-time spectators retire after receiving the final frame.
 Same-session enrollment refreshes preserve chat continuity; newer direct state
 loads supersede pending state snapshots. Disconnects, removal and switches
 invalidate the old enrollment. The queue caps 64 publications and 4 Mi retained
-UTF-16 code units including reserved transcript space; overflow fails explicitly
+UTF-16 code units, reserving transcript capacity only for enabled recipients or
+an already loaded frame; overflow fails explicitly
 unavailable. Task timing records both the original overrun and separate retry
 work. Actual local denials/database failures and original token expiry still
 remove subscriptions. No provider work or mutation is replayed.

@@ -236,6 +236,7 @@ public class BrowserMatchTransportTest {
 
 	@Test
 	public void publicationRetriesQueueAtMostOnceAndRetryAfterEnqueueFailures() {
+		java.util.concurrent.atomic.AtomicBoolean pending = new java.util.concurrent.atomic.AtomicBoolean();
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
 		ServerCommunication communication = mock(ServerCommunication.class);
 		List<Runnable> queued = new ArrayList<>();
@@ -250,9 +251,12 @@ public class BrowserMatchTransportTest {
 		BrowserProtocol adapter = new BrowserProtocol() {
 			public void receive(BrowserConnection connection, String text) { }
 			public void disconnect(BrowserConnection connection) { }
+			public boolean hasPendingPublications() { return pending.get(); }
 			public void retryPublications() { expired.incrementAndGet(); }
 		};
 		BrowserMatchTransport transport = new BrowserMatchTransport(server);
+		transport.queuePublicationRetry(adapter); assertEquals(0, attempts.get());
+		pending.set(true);
 		transport.queuePublicationRetry(adapter); transport.queuePublicationRetry(adapter);
 		transport.queuePublicationRetry(adapter); transport.queuePublicationRetry(adapter);
 		assertEquals(3, attempts.get()); assertEquals(1, queued.size()); assertEquals(0, expired.get());

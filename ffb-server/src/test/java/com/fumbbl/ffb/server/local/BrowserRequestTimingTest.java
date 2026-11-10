@@ -287,6 +287,7 @@ class BrowserRequestTimingTest {
 		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
 		try {
 			BrowserProtocol protocol = mock(BrowserProtocol.class);
+			when(protocol.hasPendingPublications()).thenReturn(true);
 			org.mockito.Mockito.doAnswer(call -> {
 				assertEquals(BrowserRequestTiming.REQUEST_BUDGET_NANOS, timing.budget().remainingNanos());
 				nanos.addAndGet(5_000_000); return null;

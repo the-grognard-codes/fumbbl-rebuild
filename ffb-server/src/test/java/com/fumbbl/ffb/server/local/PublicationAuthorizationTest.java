@@ -186,6 +186,66 @@ class PublicationAuthorizationTest {
 		}
 		assertEquals(3, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
 	}
+	@Test void manyPendingStatesCoalesceToLatestWithoutRetiringViewersOrReprojectingHistory() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 2); fixture.reset();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			for (int revision = 1; revision <= 100; revision++)
+				fixture.publisher.publish(MATCH, null, new JsonObject().add("revision", revision).add("phase", "PLAY"));
+		});
+		for (Connection connection : fixture.connections) assertTrue(connection.messages.isEmpty());
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+		assertEquals(100, fixture.connections.get(1).last().get("state").asObject().getInt("revision", -1));
+		for (Connection connection : fixture.connections) assertEquals(1, connection.messages.size());
+		org.mockito.Mockito.verify(fixture.setup, org.mockito.Mockito.times(1)).publishedState(MATCH, "home", false);
+	}
+
+	@Test void sixteenMatchesWithoutLiveTranscriptDoNotReserveSixteenMaximumFrames() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 1); fixture.reset();
+		fixture.publisher.remove(fixture.connections.getFirst());
+		List<Connection> viewers = new ArrayList<>();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			for (int index = 0; index < 16; index++) {
+				String matchId = "00000000-0000-0000-0000-%012d".formatted(index);
+				Connection viewer = new Connection(); viewers.add(viewer);
+				fixture.publisher.enrollPlayer(viewer, fixture.principals.getFirst(), matchId);
+				fixture.publisher.publish(matchId, null, new JsonObject().add("revision", 1).add("phase", "PLAY"));
+			}
+		});
+		for (Connection viewer : viewers) assertTrue(viewer.messages.isEmpty());
+		fixture.withBudget(fixture.publisher::retryPublications);
+		assertEquals(16, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+		for (Connection viewer : viewers) assertEquals("ACCEPTED", viewer.last().getString("code", ""));
+	}
+
+	@Test void adapterRewatchRetainsQueuedChatWithFreshPerRequestPrincipalAndRejectsReauthentication() throws Exception {
+		Fixture fixture = new Fixture(); fixture.enrollAdapterPlayers(); fixture.directory.freshPrincipal = true;
+		Connection spectator = fixture.connections.get(1);
+		String watch = new JsonObject().add("version", 2).add("type", "watch").add("requestId", "watch")
+			.add("matchId", MATCH).toString();
+		fixture.adapter.receive(spectator, watch);
+		assertEquals("ACCEPTED", spectator.last().getString("code", ""));
+		com.fumbbl.ffb.server.match.MatchChat chat = new com.fumbbl.ffb.server.match.MatchChat();
+		when(fixture.setup.sendChat(anyString(), anyString(), anyString(), anyString(), anyString()))
+			.thenReturn(chat.append(fixture.principals.getFirst().accountId(), "home", "chat", "hello", 1, 1000));
+		when(fixture.setup.chatPage(MATCH, 0, 1)).thenReturn(new JsonObject().add("message", "retained"));
+		fixture.reset();
+		fixture.connections.getFirst().afterSend = () -> fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+		fixture.withBudget(() -> fixture.adapter.receive(fixture.connections.getFirst(), new JsonObject().add("version", 2)
+			.add("type", "matchChat").add("operation", "send").add("requestId", "chat").add("matchId", MATCH).add("text", "hello").toString()));
+		assertTrue(fixture.adapter.hasPendingPublications()); assertTrue(spectator.messages.isEmpty());
+		fixture.withBudget(() -> fixture.adapter.receive(spectator, watch));
+		assertEquals("ACCEPTED", spectator.last().getString("code", ""));
+		fixture.adapter.receive(spectator, new JsonObject().add("version", 2).add("type", "authenticate")
+			.add("requestId", "refresh").add("bearer", "1").toString());
+		assertEquals("IDENTITY_REBINDING_FORBIDDEN", spectator.last().getString("code", ""));
+		fixture.reset(); fixture.withBudget(fixture.adapter::retryPublications);
+		assertEquals(1, spectator.messages.size()); assertEquals("retained", spectator.last().get("page").asObject().getString("message", ""));
+		assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+	}
+
 	@Test void ordinaryGameplayEnrollmentRefreshDoesNotDiscardDeferredChat() throws Exception {
 		Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.CHAT, 1); fixture.reset();
 		fixture.withBudget(() -> { fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS); fixture.publisher.publishChat(MATCH, null, new JsonObject().add("message", "retained")); });
@@ -255,12 +315,14 @@ class PublicationAuthorizationTest {
 		JsonObject last() { return messages.getLast(); }
 	}
 	private static final class Directory implements V2PrincipalDirectory {
+		boolean freshPrincipal;
 		int providerCalls, batches; boolean outage, sqlFailure;
 		Runnable afterBatch = () -> { }; SQLException requestRefusal;
 		final Set<String> denied = new HashSet<>();
 		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) { throw new UnsupportedOperationException(); }
 		@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws V2PrincipalAuthenticator.Rejected {
-			providerCalls++; if (outage) throw new V2PrincipalAuthenticator.Rejected(); return principal;
+			providerCalls++; if (outage) throw new V2PrincipalAuthenticator.Rejected();
+			return freshPrincipal ? new AuthenticatedPrincipal(principal.accountId(), java.util.EnumSet.allOf(com.fumbbl.ffb.server.match.ApplicationScope.class), principal.expiresAtMillis()) : principal;
 		}
 		@Override public Snapshot authorizePublication(String matchId, Family family, List<Target> targets) throws SQLException {
 			batches++; if (sqlFailure) throw new SQLException("synthetic local failure");

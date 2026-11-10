@@ -125,12 +125,15 @@ final class ActiveMatchPublisher {
 
 	void publish(String matchId, BrowserConnection source, JsonObject publicState, LiveMatchTranscript transcript) {
 		String retainedState = publicState.toString();
+		List<Recipient> recipients = recipients(matchId, source, false);
+		boolean liveTranscript = recipients.stream()
+			.anyMatch(recipient -> liveTranscriptConnections.contains(recipient.connection));
 		List<PublicationDelivery.Recipient> targets = new ArrayList<>();
-		for (Recipient recipient : recipients(matchId, source, false)) targets.add(new DeliveryRecipient(recipient) {
+		for (Recipient recipient : recipients) targets.add(new DeliveryRecipient(recipient) {
 			@Override public void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException {
 				String role = access.publicationRole(authorization, target(), slot);
-				JsonObject state = JsonObject.readFrom(retainedState);
 				if (recipient.viewer.spectator) {
+					JsonObject state = JsonObject.readFrom(retainedState);
 					state.set("callerRole", "spectator");
 					state.remove("computer"); state.remove("threats");
 					state.remove("savedFormations"); state.remove("blockPreview");
@@ -147,7 +150,8 @@ final class ActiveMatchPublisher {
 				}
 			}
 		});
-		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedState.length() + BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES);
+		delivery.publish(matchId, V2PublicationAuthorization.Family.STATE, targets, retainedState.length() + Math.max(transcript.retainedCharacters(),
+			liveTranscript ? BrowserMatchTransport.MAX_LIVE_TRANSCRIPT_BYTES : 0));
 	}
 
 	private abstract class DeliveryRecipient implements PublicationDelivery.Recipient {
