@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- Added reproducible Firebase deadline/credential feasibility experiments. The
-  provider-bounds gate remains unresolved because a timed-out DNS lookup can
-  keep running; authentication and publication behavior have not changed.
+- Added reproducible Firebase deadline/credential feasibility experiments. An
+  owned DNS/TCP follow-up passed the mechanism gate after the initial resolver
+  candidate failed; production authentication/publication changes remain pending.
 
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and

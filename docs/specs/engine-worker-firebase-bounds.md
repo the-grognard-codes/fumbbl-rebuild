@@ -1,8 +1,9 @@
 # Feature: Bound engine-worker Firebase calls and fail fast during outages
 
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504).
-Status: feasibility spike completed; gate not passed; implementation pending.
-Evidence and maintainer options: [spike outcome](engine-worker-firebase-bounds-spike.md).
+Status: [continued feasibility gate passed](engine-worker-firebase-bounds-spike-2.md);
+production implementation pending.
+Historical evidence: [initial candidate outcome](engine-worker-firebase-bounds-spike.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C1-C5 and F1-F3](engine-worker-requests-review.md).
 Budget correction: [RB1 replaces the static-sum requirement](engine-worker-requests-review.md#rb1-high-blocks-505-b-and-the-integrated-budget-claims-of-504-the-static-sum-rule-cannot-be-satisfied).
@@ -196,7 +197,8 @@ with `tools/target-build.ps1 verify` (clean build), plus relevant V2 smoke check
 ## Completion Notes
 
 The revised scope was linked from [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504#issuecomment-6758906276)
-before the spike. The [spike outcome](engine-worker-firebase-bounds-spike.md)
-records the failed feasibility gate; no runtime fix or whole-operation bound is claimed.
+before the spike. The [initial spike](engine-worker-firebase-bounds-spike.md)
+records the first candidate's failed gate; the [owned DNS/TCP continuation](engine-worker-firebase-bounds-spike-2.md)
+passed the mechanism and validation gate. No production runtime fix is claimed yet.
 Record implementation, settings, timing evidence and validation in a local outcome
 report. Investigate failures until resolved or a concrete blocker is recorded.

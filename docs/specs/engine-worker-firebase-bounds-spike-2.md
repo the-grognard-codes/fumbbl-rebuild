@@ -3,8 +3,8 @@
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504).
 Branch: `fix/firebase-bounds-publication-authorization`.
 Prior evidence: [initial failed candidate](engine-worker-firebase-bounds-spike.md).
-Status: mechanism proved in focused experiments; independent review and clean
-boundary validation pending before production implementation.
+Status: **feasibility gate passed** on `cf140f5dc`; production implementation may
+proceed using this mechanism and the unchanged merged request-budget contract.
 
 ## Decision and mechanism
 
@@ -122,9 +122,22 @@ the loopback TLS fixture trusts it. Production trust stores are untouched.
 ## Acceptance boundary
 
 Focused experiments prove a supported whole-operation transport mechanism,
-including the previous DNS gap and real cold credential routing. Clean server
-verification, browser checks and independent review are pending. Only after
-that boundary passes will #504 production transport/credential wiring, breaker
+including the previous DNS gap and real cold credential routing. Independent
+standards/security and spec reviews both approved `51e7b6332...cf140f5dc` with
+zero actionable findings. The spec review explicitly accepts proceeding to the
+production fix once boundary checks pass.
+
+`tools/target-build.ps1 verify` passed clean on `cf140f5dc` in **13:46**:
+1,058 tests, zero failures/errors, 18 opt-in fixture skips (common 19/0 skips,
+server 747/11, native 292/7). Every new spike test ran. The skipped cases need
+the existing opt-in MariaDB/schema, history or retained-runtime fixtures; no
+real-provider/JDBC or whole-runtime compliance claim is inferred from them.
+Browser unit checks passed **530/530** without skips and the TypeScript/Vite
+production build passed. Logs: `.tools/slice3-spike-r2-verify.log`,
+`.tools/slice3-spike-r2-browser-unit.log`, `.tools/slice3-spike-r2-browser-build.log`.
+
+The boundary is satisfied. #504 production transport/credential wiring, breaker
 classification, cache/fail-closed regressions and real provider/JDBC validation
-begin. #507 remains behind those production controls, with approved option A
-and the 0/1/16-target one-query contract unchanged.
+come next. #507 remains behind those production controls, with approved option A
+and the 0/1/16-target one-query contract unchanged. Startup and end-to-end smoke
+checks will validate the implemented runtime, not this test-scoped candidate.

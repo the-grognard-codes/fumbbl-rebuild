@@ -1,8 +1,8 @@
 # Feature: Remove provider calls from engine-worker publication fan-out
 
 Tracking: [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507).
-Status: option A approved on 2026-11-09; implementation awaits the
-[#504 feasibility decision](engine-worker-firebase-bounds-spike.md).
+Status: option A approved on 2026-11-09; implementation awaits #504 production
+controls after its [successful feasibility continuation](engine-worker-firebase-bounds-spike-2.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Security policy: [accepted ADR 0005 amendment](../adr/0005-bounded-provider-revalidation.md#accepted-amendment-local-authorization-for-passive-pushes).
 Review: [combined findings C3/C5 and P1/P2](engine-worker-requests-review.md).
@@ -160,8 +160,9 @@ unit tests/build, relevant multiplayer/chat/reconnect smoke checks and
 Request only; security selection and the ADR amendment are approved, while
 implementation remains pending.
 The revised scope was linked from [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507#issuecomment-6758906523)
-before the slice 3 spike. The [#504 outcome](engine-worker-firebase-bounds-spike.md)
-records the failed gate and the option to split #507 with a maintainer dependency decision.
+before the slice 3 spike. The [initial #504 outcome](engine-worker-firebase-bounds-spike.md)
+records the first failed candidate. Its [successful continuation](engine-worker-firebase-bounds-spike-2.md)
+preserves the original #504 → #507 order; no dependency exception was applied.
 Record
 approval, changed freshness guarantee and matched evidence in an outcome report;
 diagnose failures until resolved or a concrete blocker is recorded.
