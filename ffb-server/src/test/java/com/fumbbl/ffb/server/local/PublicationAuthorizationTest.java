@@ -125,6 +125,25 @@ class PublicationAuthorizationTest {
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}
 	}
+	@Test void retryLimitReleasesPayloadButPreservesEveryFamilysEnrollment() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
+			fixture.directory.requestRefusal = new JdbcConnections.NotStarted();
+			fixture.withBudget(() -> fixture.publish(family));
+			fixture.withBudget(() -> fixture.retry(family)); fixture.withBudget(() -> fixture.retry(family));
+			for (Connection connection : fixture.connections) {
+				JsonObject notice = connection.last();
+				assertEquals("publicationDelayed", notice.getString("type", ""));
+				assertEquals("PUBLICATION_DELAYED", notice.getString("code", ""));
+				assertEquals(MATCH, notice.getString("matchId", "")); assertEquals(family.name(), notice.getString("family", ""));
+				assertEquals(6, notice.size()); assertTrue(notice.get("requestId").isNull());
+			}
+			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", ""));
+		}
+	}
+
 	@Test void expiryAtTheOriginalTokenDeadlineStopsEveryFamilyAndNeverRefreshesProviderState() throws Exception {
 		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 1); fixture.reset(); fixture.millis.set(10_000); fixture.publish(family);

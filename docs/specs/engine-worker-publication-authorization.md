@@ -105,11 +105,19 @@ request-path cost; that request's authorization semantics stay unchanged.
   Full-time spectators retire after final delivery. Queue overflow explicitly
   fails unavailable and retires affected subscriptions rather than silently
   dropping content. Scheduling is best effort behind other worker tasks, not
-  a one-second delivery guarantee. An entry retires explicitly unavailable after
-  three deferrals from attempts that began with remaining budget (including its
-  initial attempt when applicable). Calls starting with no budget do not consume
-  that allowance; coalesced replacement states inherit it. This bounds repeated
-  unsuccessful work without treating delivery exhaustion as proof of revocation.
+  a one-second delivery guarantee. After three deferrals from attempts that began
+  with at least 500 ms remaining (including its initial attempt when applicable),
+  release the retained payload and send a `publicationDelayed` notice with code
+  `PUBLICATION_DELAYED`, match ID and family. Preserve enrollment. Shorter attempts
+  may deliver but do not consume the allowance; coalesced replacement states
+  inherit only counted deferrals. This prevents another match or the actor's work
+  from spending the retry allowance with a nearly exhausted budget.
+  The browser keeps its current board and coalesces fresh setup-load/watch or
+  preparation reads; delayed chat loads the next missing page. The computer
+  client likewise requests a fresh setup read. These are ordinary incoming
+  requests with existing provider/local checks, never mutation replay. The notice
+  contains no state or authorization grant. Delivery exhaustion alone cannot
+  assert lost access; actual denial, expiry and database failures still can.
   Browser gap recovery pages missing public history after coalescing or omitted
   optional frames. This catch-up corrects the stall/lost-chat
   findings in PR #518; it performs no provider work or token refresh.

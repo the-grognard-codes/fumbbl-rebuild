@@ -163,6 +163,10 @@ final class ActiveMatchPublisher {
 		@Override public boolean enrolled() { return viewers.get(recipient.connection) == recipient.viewer; }
 		@Override public V2PublicationAuthorization.Target target() { return recipient.target; }
 		@Override public void unavailable() { ActiveMatchPublisher.this.unavailable(recipient); }
+		@Override public void delayed(V2PublicationAuthorization.Family family) {
+			ActiveMatchPublisher.this.send(recipient.connection, new JsonObject().add("type", "publicationDelayed").add("requestId", JsonValue.NULL)
+				.add("code", "PUBLICATION_DELAYED").add("matchId", recipient.viewer.matchId).add("family", family.name()));
+		}
 	}
 
 	private record Recipient(BrowserConnection connection, Viewer viewer, V2PublicationAuthorization.Target target) { }

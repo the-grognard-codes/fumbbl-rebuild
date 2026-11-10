@@ -16,12 +16,14 @@ import java.util.Map;
 final class PublicationDelivery {
 	static final int MAX_PENDING = 64;
 	static final int MAX_DEFERRALS = 3;
+	static final long MIN_COUNTED_ALLOWANCE_NANOS = 500_000_000L;
 	static final int MAX_RETAINED_CHARACTERS = 4 * 1024 * 1024;
 	interface Recipient {
 		boolean enrolled();
 		V2PublicationAuthorization.Target target();
 		void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException;
 		void unavailable();
+		void delayed(V2PublicationAuthorization.Family family);
 	}
 	private static final class Pending {
 		final String matchId;
@@ -105,11 +107,17 @@ final class PublicationDelivery {
 	private boolean attempt(Pending publication) {
 		publication.recipients.removeIf(recipient -> !recipient.enrolled());
 		if (publication.recipients.isEmpty()) return true;
-		if (!hasBudget()) return false; // An already exhausted caller does not spend a retry.
+		if (!hasBudget()) return false;
+		BrowserRequestTiming.Budget budget = new BrowserRequestTiming().budget();
+		boolean counted = budget == null || budget.remainingNanos() >= MIN_COUNTED_ALLOWANCE_NANOS;
 		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
 			if (deliver(publication)) return true;
-			if (++publication.deferrals < MAX_DEFERRALS) return false;
-			retire(publication); return true;
+			if (!counted || ++publication.deferrals < MAX_DEFERRALS) return false;
+			for (Recipient recipient : publication.recipients) {
+				try { if (recipient.enrolled()) recipient.delayed(publication.family); }
+				catch (RuntimeException disconnected) { /* Continue notifying the remaining recipients. */ }
+			}
+			publication.recipients.clear(); return true;
 		}
 	}
 

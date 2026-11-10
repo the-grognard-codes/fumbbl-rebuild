@@ -65,8 +65,8 @@ function readFrames(socket, onMessage) {
   });
 }
 
-test('computer worker loads a large Solid Defence state while waiting for its opponent', { timeout: 10000 }, async () => {
-  const sockets = new Set();
+test('computer worker reloads a delayed large Solid Defence state while waiting for its opponent', { timeout: 10000 }, async () => {
+  const sockets = new Set(); let loads = 0;
   const server = createServer();
   const next = { ...solidDefenceState(matchId), callerRole: 'away' };
   assert.ok(Buffer.byteLength(JSON.stringify(response('load', next))) > 256 * 1024);
@@ -76,7 +76,10 @@ test('computer worker loads a large Solid Defence state while waiting for its op
     socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
     readFrames(socket, body => {
       if (body.type === 'authenticateComputer') send(socket, { version: 2, type: 'computerAuthentication', requestId: body.requestId, code: 'ACCEPTED' });
-      else if (body.operation === 'load') send(socket, response(body.requestId, next));
+      else if (body.operation === 'load') {
+        send(socket, response(body.requestId, next));
+        if (++loads === 1) send(socket, { version:2,type:'publicationDelayed',requestId:null,code:'PUBLICATION_DELAYED',matchId,family:'STATE' });
+      }
       else assert.fail('A waiting worker must not submit a gameplay decision');
     });
   });
@@ -93,6 +96,7 @@ test('computer worker loads a large Solid Defence state while waiting for its op
       timer = setTimeout(() => reject(Error(`Timed out: ${output}`)), 7000);
     })]);
     assert.equal(code, idleWorkerExitCode, output);
+    assert.equal(loads, 2, "The delayed publication triggers a fresh read");
     assert.match(output, /waiting for the human coach; yielding worker capacity/);
     assert.doesNotMatch(output, /Oversized response|aaaaaaaaaa/);
   } finally {

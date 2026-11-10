@@ -40,7 +40,7 @@ class PublicationDeliveryTest {
 		fixture.deferred.remove("b"); fixture.consumeBudget = true;
 		fixture.retryWithBudget(); assertTrue(fixture.sent.isEmpty());
 		fixture.retryWithBudget(); assertEquals(List.of("b1"), fixture.sent);
-		assertFalse(fixture.delivery.hasPending()); assertEquals(1, fixture.retired);
+		assertFalse(fixture.delivery.hasPending()); assertEquals(List.of("a1"), fixture.delayed);
 	}
 
 	@Test void latestStateReplacesOlderStatesBehindOrderedChatWithoutExhaustingRetention() throws Exception {
@@ -56,18 +56,18 @@ class PublicationDeliveryTest {
 		assertEquals(0, fixture.retired); assertFalse(fixture.delivery.hasPending());
 	}
 
-	@Test void persistentDeferralRetiresAfterThreeAttemptsAndReleasesAllCapacity() throws Exception {
+	@Test void persistentDeferralNotifiesAfterThreeFairAttemptsAndReleasesAllCapacity() throws Exception {
 		Fixture fixture = new Fixture(); fixture.deferred.add("a"); fixture.publish("a", "blocked", false);
 		fixture.delivery.retry(); assertEquals(0, fixture.retired);
-		fixture.delivery.retry(); assertEquals(1, fixture.retired); assertFalse(fixture.delivery.hasPending());
-		fixture.delivery.retry(); assertEquals(1, fixture.retired);
+		fixture.delivery.retry(); assertEquals(List.of("blocked"), fixture.delayed); assertFalse(fixture.delivery.hasPending());
+		fixture.delivery.retry(); assertEquals(List.of("blocked"), fixture.delayed);
 		fixture.deferred.clear(); fixture.publish("b", "healthy", false);
 		assertEquals(List.of("healthy"), fixture.sent);
 		fixture.withBudget(() -> {
 			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
 			for (int index = 0; index < PublicationDelivery.MAX_PENDING; index++) fixture.publish("queued-" + index, "payload", false);
 		});
-		assertEquals(1, fixture.retired, "Retirement releases its entry capacity");
+		assertEquals(0, fixture.retired, "Recovery preserves enrollment and releases its entry capacity");
 		fixture.retryWithBudget(); assertFalse(fixture.delivery.hasPending());
 		assertEquals(PublicationDelivery.MAX_PENDING + 1, fixture.sent.size());
 	}
@@ -87,7 +87,7 @@ class PublicationDeliveryTest {
 		assertEquals(0, fixture.retired);
 		fixture.delivery.retry(); assertEquals(0, fixture.retired);
 		fixture.publish("a", "latest", true);
-		assertEquals(1, fixture.retired); assertFalse(fixture.delivery.hasPending());
+		assertEquals(List.of("latest"), fixture.delayed); assertEquals(0, fixture.retired); assertFalse(fixture.delivery.hasPending());
 	}
 
 	@Test void inlineCatchUpNeverRefillsCallersDeadline() throws Exception {
@@ -100,16 +100,48 @@ class PublicationDeliveryTest {
 		assertEquals(List.of("chat", "state"), fixture.sent);
 	}
 
+	@Test void competingLaneCannotSpendTheLaterMatchsRetryAllowance() throws Exception {
+		Fixture fixture = new Fixture();
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+			fixture.publish("a", "slow", false); fixture.publish("b", "fast", false);
+		});
+		fixture.deferred.add("a"); fixture.competing = true;
+		for (int tick = 0; tick < 3; tick++) fixture.retryWithBudget();
+		assertEquals(List.of("slow"), fixture.delayed, "Only A received three fair attempts");
+		assertTrue(fixture.delivery.hasPending()); assertEquals(0, fixture.retired);
+		fixture.retryWithBudget(); assertEquals(List.of("fast"), fixture.sent);
+		assertFalse(fixture.delivery.hasPending());
+	}
+
+	@Test void shortInlineAllowancesAndStateReplacementDoNotSpendInheritedRetries() throws Exception {
+		Fixture fixture = new Fixture(); fixture.deferred.add("a"); fixture.publish("a", "first", true);
+		fixture.retryWithBudget();
+		for (int index = 0; index < 5; index++) fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS - PublicationDelivery.MIN_COUNTED_ALLOWANCE_NANOS + 1);
+			fixture.publish("a", "newer", true);
+		});
+		assertTrue(fixture.delayed.isEmpty());
+		fixture.withBudget(() -> {
+			fixture.nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS - PublicationDelivery.MIN_COUNTED_ALLOWANCE_NANOS);
+			fixture.publish("a", "latest", true);
+		});
+		assertEquals(List.of("latest"), fixture.delayed, "Exactly 500 ms counts as a fair attempt");
+		assertEquals(0, fixture.retired); assertFalse(fixture.delivery.hasPending());
+	}
+
 	private static final class Fixture {
 		final V2MatchAccess access = mock(V2MatchAccess.class);
 		final PublicationDelivery delivery = new PublicationDelivery(access);
-		final List<String> deferred = new ArrayList<>(), sent = new ArrayList<>();
+		final List<String> deferred = new ArrayList<>(), sent = new ArrayList<>(), delayed = new ArrayList<>();
 		final AtomicLong nanos = new AtomicLong();
-		boolean consumeBudget;
+		boolean consumeBudget, competing;
 		int retired;
 		Fixture() throws Exception {
 			when(access.publication(anyString(), any(), any())).thenAnswer(call -> {
-				if (deferred.contains(call.<String>getArgument(0))) {
+				String match = call.getArgument(0);
+				if (competing && "a".equals(match)) nanos.addAndGet(1_900_000_000L);
+				if (deferred.contains(match) || competing && "b".equals(match) && new BrowserRequestTiming().budget().remainingNanos() < PublicationDelivery.MIN_COUNTED_ALLOWANCE_NANOS) {
 					if (consumeBudget) nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
 					throw new JdbcConnections.NotStarted();
 				}
@@ -123,6 +155,7 @@ class PublicationDeliveryTest {
 					public V2PublicationAuthorization.Target target() { return new V2PublicationAuthorization.Target(null, V2PublicationAuthorization.Audience.COMPUTER); }
 					public void send(V2PublicationAuthorization.Snapshot authorization, int slot) { sent.add(message); }
 					public void unavailable() { retired++; }
+					public void delayed(V2PublicationAuthorization.Family family) { delayed.add(message); }
 				}), state ? 300_000 : message.length());
 		}
 		void retryWithBudget() { withBudget(delivery::retry); }

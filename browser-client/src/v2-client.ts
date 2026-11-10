@@ -317,6 +317,22 @@ export class V2Client {
       this.disconnect(); this.options.onChange(message); return;
     }
     const request = message.requestId === null ? null : this.requests.get(message.requestId);
+    if (message.type === 'publicationDelayed') {
+      if (!this.accountId || message.requestId !== null || message.code !== 'PUBLICATION_DELAYED'
+        || !uuid.test(message.matchId) || !['STATE', 'CHAT', 'PREPARATION'].includes(message.family)) throw Error('Invalid publication notification');
+      if (message.family === 'PREPARATION' && message.matchId === this.preparationMatchId) {
+        if (![...this.requests.values()].some(pending => pending.type === 'preparedMatch' && pending.operation === 'load' && pending.matchId === message.matchId))
+          this.request('preparedMatch', { operation: 'load', matchId: message.matchId });
+      } else if (this.selection && message.matchId === this.selection.matchId) {
+        if (message.family === 'STATE') {
+          const type = this.selection.watch ? 'watch' : 'setup';
+          if (![...this.requests.values()].some(pending => pending.matchId === message.matchId
+            && (pending.type === 'watch' || pending.type === 'setup' && pending.operation === 'load')))
+            this.request(type, { matchId: message.matchId, ...(this.selection.watch ? {} : { operation: 'load' }) });
+        } else if (message.family === 'CHAT') this.options.onChange(message);
+      }
+      return;
+    }
     if (message.type === 'preparationChanged') {
       if (!this.accountId || message.requestId !== null || message.code !== 'ACCEPTED'
         || !uuid.test(message.matchId) || Object.keys(message).length !== 5) throw Error('Invalid preparation notification');

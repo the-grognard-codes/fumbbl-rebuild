@@ -190,6 +190,7 @@ function Play({ options }: { options: { url: string; getToken: () => Promise<str
       if (message.type === 'setupState' && message.state?.matchId === matchId && !logRequestRef.current
         && logHistory.current.records.length <= message.state.revision) requestLog(logHistory.current.records.length);
       if (message.type === 'setupState' && message.state?.matchId === matchId && !chatInitializedRef.current) requestChat();
+      if (message.type === 'publicationDelayed' && message.family === 'CHAT' && message.matchId === matchId) requestChat();
       if (message.type === 'setupState') setSetupErrors(message.code === 'ILLEGAL_SETUP'
         ? message.setupErrors?.length ? message.setupErrors : ['This setup is not legal. Adjust the formation and confirm again.'] : []);
       const chatFailure = message.type === 'error' && (chatRequestRef.current !== null && message.requestId === chatRequestRef.current

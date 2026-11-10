@@ -19,7 +19,7 @@ try {
     await page.route('**/play/match?**', route => route.fulfill({ contentType: 'text/html', body:
       '<div id="app"></div><script type="module">import {mountPlay} from "/src/play-entry.tsx"; mountPlay(document.getElementById("app"), {environment:"dev",url:"ws://unused",getToken:async()=>"token"});</script>' }));
     await page.addInitScript(journey => {
-      const transport = { frame: journey.frames[0], reads: [], deliveredStates: [], pending: null };
+      const transport = { frame: journey.frames[0], reads: [], deliveredStates: [], pending: null, loads: 0, holdLoad: false, releaseLoad: null, chat: [] };
       window.testTransport = transport;
       window.WebSocket = class {
         static OPEN = 1;
@@ -31,8 +31,16 @@ try {
           const reply = value => this.emit({ version: 2, requestId: request.requestId, ...value });
           if (request.type === 'authenticate') queueMicrotask(() => reply({ type:'authentication',code:'ACCEPTED',
             accountId:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',liveTranscript:true }));
-          if (request.type === 'matchChat') queueMicrotask(() => reply({ type:'error',code:'TRANSCRIPT_UNAVAILABLE' }));
-          if (request.type === 'setup') queueMicrotask(() => reply({ type:'setupState',code:'ACCEPTED',duplicate:false,state:transport.frame.state }));
+          if (request.type === 'matchChat') queueMicrotask(() => {
+            const from = request.from, next = Math.min(transport.chat.length, from + request.limit);
+            reply({type:'matchChat',code:'ACCEPTED',duplicate:false,matchId:transport.frame.state.matchId,
+              page:{formatVersion:1,from,next,total:transport.chat.length,messages:transport.chat.slice(from,next)}});
+          });
+          if (request.type === 'setup') {
+            transport.loads++;
+            const loaded = () => reply({ type:'setupState',code:'ACCEPTED',duplicate:false,state:transport.frame.state });
+            if (transport.holdLoad) transport.releaseLoad = loaded; else queueMicrotask(loaded);
+          }
           if (request.type === 'matchTranscript') {
             const records = transport.frame.records, from = request.from, next = Math.min(records.length, from + request.limit);
             transport.reads.push({ from, next });
@@ -66,6 +74,20 @@ try {
     await page.evaluate(liveFrame => window.flushCoalesced(liveFrame), liveFrame);
     assert.equal(await log.locator('p').count(), before, 'Duplicate latest delivery does not duplicate history');
     assert.deepEqual(await page.evaluate(() => window.testTransport.reads), reads, 'Complete history needs no duplicate read');
+    await page.evaluate(() => {
+      window.testTransport.holdLoad = true;
+      window.testSocket.emit({version:2,type:'publicationDelayed',requestId:null,code:'PUBLICATION_DELAYED',matchId:window.testTransport.frame.state.matchId,family:'STATE'});
+    });
+    await page.waitForFunction(() => !!window.testTransport.releaseLoad);
+    assert.equal(await page.getByLabel('Live match pitch').count(), 1, 'The board remains visible while the authorized read is pending');
+    assert.equal(await page.evaluate(() => window.testTransport.loads), 2, 'Recovery requests a fresh state');
+    await page.evaluate(() => window.testTransport.releaseLoad());
+    await page.getByLabel('Live match pitch').waitFor();
+    await page.evaluate(() => {
+      window.testTransport.chat.push({index:0,at:100,revision:5,authorId:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',role:'home',text:'Recovered delayed chat'});
+      window.testSocket.emit({version:2,type:'publicationDelayed',requestId:null,code:'PUBLICATION_DELAYED',matchId:window.testTransport.frame.state.matchId,family:'CHAT'});
+    });
+    await page.getByText('Recovered delayed chat', {exact:true}).waitFor();
     assert.deepEqual(errors, []); await page.close();
   }
   console.log('PASS: coalesced live states recover every missing transcript revision through the production browser page, with or without the optional latest frame.');

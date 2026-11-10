@@ -624,3 +624,47 @@ test('page reload recovers the pending player selection before an explicit exact
   socket.reply({ type: 'setupState', requestId: original.requestId, code: 'ACCEPTED', duplicate: true, state: { ...state, callerRole: 'home' } });
   assert.equal(reloaded.client.pending, null); assert.equal(reloaded.client.state?.matchId, match);
 });
+
+
+for (const watch of [false, true]) test(`delayed publication keeps the ${watch ? 'spectator' : 'coach'} board and reloads without replaying intent`, async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const requestId = client.open(match, watch);
+  const view = { ...state, callerRole: watch ? 'spectator' : 'home' };
+  socket.reply({ type: 'setupState', requestId, code: 'ACCEPTED', duplicate: false, state: view });
+  const intent = watch ? null : client.request('setup', { operation: 'confirm', matchId: match, expectedRevision: 2 }, true);
+  const board = client.state, count = socket.sent.length;
+  const notice = { type: 'publicationDelayed', requestId: null, code: 'PUBLICATION_DELAYED', matchId: match, family: 'STATE' };
+  socket.reply({ ...notice, matchId: account }); assert.equal(socket.sent.length, count);
+  socket.reply(notice); socket.reply(notice);
+  assert.equal(socket.closed, false); assert.equal(client.state, board);
+  assert.equal(socket.sent.length, count + 1, 'Duplicate notices coalesce while the fresh read is pending');
+  const load = socket.sent.at(-1);
+  assert.equal(load.type, watch ? 'watch' : 'setup'); assert.equal(load.operation, watch ? undefined : 'load');
+  socket.reply({ type: 'setupState', requestId: load.requestId, code: 'ACCEPTED', duplicate: false, state: { ...view, revision: 3 } });
+  assert.equal(client.state?.revision, 3); assert.equal(client.pending?.request.requestId ?? null, intent);
+  socket.reply(notice);
+  socket.reply({ type: 'error', requestId: socket.sent.at(-1).requestId, code: 'VIEW_UNAVAILABLE' });
+  assert.equal(client.state, null, 'Actual access denial still clears the board');
+  assert.equal(client.pending?.request.requestId ?? null, intent);
+});
+
+test('delayed preparation reloads once and delayed chat notifies only its selected view', async () => {
+  const { client, connect, events } = fixture(); const socket = await connect();
+  socket.reply({ ...prepared, requestId: client.request('preparedMatch', { operation: 'create' }, true) });
+  const notice = { type: 'publicationDelayed', requestId: null, code: 'PUBLICATION_DELAYED', matchId: match, family: 'PREPARATION' };
+  const count = socket.sent.length; socket.reply(notice); socket.reply(notice);
+  assert.equal(socket.sent.length, count + 1); assert.equal(socket.sent.at(-1).type, 'preparedMatch');
+  client.open(match, true);
+  const before = events.length;
+  socket.reply({ ...notice, family: 'CHAT', matchId: account }); assert.equal(events.length, before);
+  socket.reply({ ...notice, family: 'CHAT' }); assert.equal(events.at(-1).family, 'CHAT');
+});
+
+test('publication recovery rejects malformed or private notification fields', async () => {
+  for (const corrupt of [{ family: 'UNKNOWN' }, { requestId: 'forged' }, { code: 'ACCEPTED' }, { matchId: 'invalid' }, { privateGrant: 'sentinel' }]) {
+    const { client, connect, events } = fixture(); const socket = await connect(); client.open(match, true);
+    socket.reply({ type: 'publicationDelayed', requestId: null, code: 'PUBLICATION_DELAYED', matchId: match, family: 'STATE', ...corrupt });
+    assert.equal(socket.closed, true); assert.equal(events.at(-1).code, 'INVALID_RESPONSE');
+    assert.equal(JSON.stringify(events).includes('sentinel'), false);
+  }
+});
