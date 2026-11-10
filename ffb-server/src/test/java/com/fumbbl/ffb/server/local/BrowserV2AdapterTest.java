@@ -655,6 +655,7 @@ class BrowserV2AdapterTest {
 
 	@Test void broadcastRechecksRecipientAccessAndWithholdsStateWhenItIsNoLongerAuthorized() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		new PublicationTestGrants().allow(access, target -> null);
 		AuthenticatedPrincipal source = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal recipient = principal(SECOND, ApplicationScope.PLAYER);
 		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
@@ -673,7 +674,7 @@ class BrowserV2AdapterTest {
 		adapter.receive(second, setup("recipient-load").toString());
 		adapter.receive(first, setup("source-update").set("operation", "submit").toString());
 
-		verify(access, times(2)).playerRole(eq(recipient), eq(MATCH));
+		verify(access, times(1)).playerRole(eq(recipient), eq(MATCH));
 		assertEquals("VIEW_UNAVAILABLE", code(second, 2));
 		assertEquals(3, second.messages.size());
 	}
@@ -684,6 +685,7 @@ class BrowserV2AdapterTest {
 
 	@Test void reconciledCompletionNotifiesAuthorizedOpponentOnceEvenOnDuplicateLoad() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		new PublicationTestGrants().allow(access, target -> "away");
 		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
 		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
 		when(access.playerRole(home, MATCH)).thenReturn("home"); when(access.playerRole(away, MATCH)).thenReturn("away");
@@ -705,11 +707,12 @@ class BrowserV2AdapterTest {
 		assertEquals("FULL_TIME", JsonObject.readFrom(second.messages.get(2)).get("state").asObject().getString("phase", null));
 		adapter.receive(first, setup("again").toString());
 		assertEquals(3, second.messages.size());
-		verify(access, times(2)).playerRole(away, MATCH);
+		verify(access, times(1)).playerRole(away, MATCH);
 	}
 
 	@Test void creatorIsNotifiedOfOpponentJoinAndActivationIncludingExactRetry() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		new PublicationTestGrants().allow(access, target -> "home");
 		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
 		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
 		when(access.playerRole(home, MATCH)).thenReturn("home"); when(access.playerRole(away, MATCH)).thenReturn("away");
@@ -730,7 +733,7 @@ class BrowserV2AdapterTest {
 			assertEquals(MATCH, notice.getString("matchId", null));
 			assertTrue(notice.get("requestId").isNull()); assertEquals(5, notice.size());
 		}
-		verify(access, times(2)).playerRole(home, MATCH);
+		verify(access, never()).playerRole(home, MATCH);
 		adapter.disconnect(creator);
 		adapter.receive(opponent, request("preparedMatch", "again").add("operation", "activate").add("matchId", MATCH).toString());
 		assertEquals(4, creator.messages.size());
@@ -738,6 +741,7 @@ class BrowserV2AdapterTest {
 
 	@Test void revokedPreparationRecipientGetsNoMatchNotificationOrState() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		new PublicationTestGrants().allow(access, target -> null);
 		AuthenticatedPrincipal home = principal(FIRST, ApplicationScope.PLAYER), away = principal(SECOND, ApplicationScope.PLAYER);
 		when(access.require(any(AuthenticatedPrincipal.class), eq(ApplicationScope.PLAYER))).thenAnswer(call -> call.getArgument(0));
 		when(access.playerRole(home, MATCH)).thenThrow(new MatchService.Failure("AUTHENTICATION_REQUIRED"));
@@ -763,6 +767,7 @@ class BrowserV2AdapterTest {
 
 	@Test void authorizedSpectatorReceivesFinalPublicFrameThenLeavesLiveViewerSet() throws Exception {
 		V2MatchAccess access = mock(V2MatchAccess.class);
+		new PublicationTestGrants().allow(access, target -> "spectator");
 		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal(SECOND, ApplicationScope.SPECTATOR);
 		when(access.require(eq(actor), eq(ApplicationScope.PLAYER))).thenReturn(actor);
@@ -787,7 +792,7 @@ class BrowserV2AdapterTest {
 		adapter.receive(player, setup("retry").set("operation", "confirm").toString());
 		assertEquals(3, viewer.messages.size());
 		verify(access, times(1)).spectatorSnapshot(spectator, MATCH);
-		verify(access, times(1)).require(spectator, ApplicationScope.SPECTATOR);
+		verify(access, never()).require(spectator, ApplicationScope.SPECTATOR);
 	}
 
 	@Test void revokedSpectatorIsRemovedWithoutPreventingAuthorizedPeerUpdate() throws Exception {
@@ -795,6 +800,7 @@ class BrowserV2AdapterTest {
 		AuthenticatedPrincipal actor = principal(FIRST, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal peer = principal(SECOND, ApplicationScope.PLAYER);
 		AuthenticatedPrincipal spectator = principal("cccccccc-cccc-cccc-cccc-cccccccccccc", ApplicationScope.SPECTATOR);
+		new PublicationTestGrants().allow(access, target -> target.principal() == spectator ? null : "away");
 		when(access.require(eq(actor), eq(ApplicationScope.PLAYER))).thenReturn(actor);
 		when(access.require(eq(peer), eq(ApplicationScope.PLAYER))).thenReturn(peer);
 		when(access.require(eq(spectator), eq(ApplicationScope.SPECTATOR))).thenThrow(new MatchService.Failure("AUTHORIZATION"));

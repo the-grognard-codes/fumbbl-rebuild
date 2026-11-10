@@ -25,6 +25,7 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	private final String projectId;
 	private final V2PrincipalDirectory principals;
 	private final FirebaseProviderRuntime provider;
+	private java.util.function.Consumer<ProviderSessionRejection> rejectionObserver = ignored -> { };
 
 	public FirebaseV2PrincipalAuthenticator(String projectId, V2PrincipalDirectory principals) {
 		if (projectId == null || projectId.isEmpty() || principals == null) throw new IllegalArgumentException("project and principal directory are required");
@@ -51,12 +52,16 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 		long started = verification.begin();
 		FirebaseProviderCircuitBreaker.Lease lease = null;
 		FirebaseProviderTransport.Operation operation = null;
+		VerifiedIdentity verified = null;
 		try {
 			lease = provider.breaker.acquire();
 			operation = provider.transport.begin();
 			FirebaseToken token;
 			try (FirebaseProviderTransport.Operation scope = operation;
 				BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.FIREBASE_LOOKUP)) {
+				// Retain only trusted metadata before revocation can reject. A later key-cache
+				// refresh must not prevent retirement of an explicitly rejected session.
+				verified = identity(auth.verifyIdToken(bearer, false));
 				token = auth.verifyIdToken(bearer, true);
 			} catch (Exception failure) {
 				provider.failedCredential(failure);
@@ -76,7 +81,11 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 			diagnostic("provider_cause", root.getClass().getSimpleName());
 			// A failed initial verification must also invalidate an already-known session. This
 			// verification is local-only: without an active transport scope no key I/O can start.
-			try { verification.forget(identity(auth.verifyIdToken(bearer, false))); } catch (Exception ignored) { /* Untrusted input supplies no cache key. */ }
+			try {
+				VerifiedIdentity known = verified == null ? identity(auth.verifyIdToken(bearer, false)) : verified;
+				verification.forget(known);
+				observe(known, provider.errors.identityRejection(failure));
+			} catch (Exception ignored) { /* Untrusted input supplies no cache key or rejection observation. */ }
 			diagnostic("provider", failure instanceof FirebaseAuthException firebase && firebase.getErrorCode() != null
 				? firebase.getErrorCode().name() : failure.getClass().getSimpleName());
 			throw new Rejected();
@@ -155,10 +164,15 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 				} catch (Exception failure) {
 					provider.failedCredential(failure);
 					if (provider.errors.availability(failure)) lease.unavailable();
+					observe(new VerifiedIdentity(principal.issuer(), principal.subject(), principal.expiresAtMillis(), principal.authenticationTimeMillis()), provider.errors.identityRejection(failure));
 					throw failure;
 				}
 				try { operation.requireCompleted(); } catch (FirebaseProviderFailure failure) { lease.unavailable(); throw failure; }
-				if (user == null || user.isDisabled() || user.getTokensValidAfterTimestamp() > principal.authenticationTimeMillis()) throw new Rejected();
+				if (user == null || user.isDisabled() || user.getTokensValidAfterTimestamp() > principal.authenticationTimeMillis()) {
+					if (user != null) rejectionObserver.accept(new ProviderSessionRejection(principal.issuer(), principal.subject(),
+						user.isDisabled() ? Long.MAX_VALUE : user.getTokensValidAfterTimestamp()));
+					throw new Rejected();
+				}
 				lease.success();
 			}
 			// Local account/identity lifecycle and scopes are still refreshed on every authorization call.
@@ -178,10 +192,23 @@ public final class FirebaseV2PrincipalAuthenticator implements V2PrincipalAuthen
 	}
 
 	@Override public void close() throws Exception { provider.close(); }
+	@Override public void observeProviderRejection(java.util.function.Consumer<ProviderSessionRejection> observer) {
+		if (observer == null) throw new IllegalArgumentException("Provider rejection observer required");
+		rejectionObserver = observer;
+	}
+	private void observe(VerifiedIdentity identity, FirebaseProviderFailure.IdentityRejection reason) {
+		if (reason == FirebaseProviderFailure.IdentityRejection.NONE) return;
+		long before = reason == FirebaseProviderFailure.IdentityRejection.TOKEN_REVOKED
+			? identity.authenticationTimeMillis + 1 : Long.MAX_VALUE;
+		rejectionObserver.accept(new ProviderSessionRejection(identity.issuer, identity.subject, before));
+	}
 
 	/** Supplies a directory whose refresh checks Firebase lifecycle before local lifecycle and scope state. */
 	public V2PrincipalDirectory liveDirectory() {
 		return new V2PrincipalDirectory() {
+			@Override public Snapshot authorizePublication(String matchId, Family family, java.util.List<Target> targets) throws SQLException {
+				return principals.authorizePublication(matchId, family, targets);
+			}
 			@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws java.sql.SQLException, Rejected { return principals.authenticate(identity); }
 			@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws java.sql.SQLException, Rejected {
 				return FirebaseV2PrincipalAuthenticator.this.reauthorize(principal);

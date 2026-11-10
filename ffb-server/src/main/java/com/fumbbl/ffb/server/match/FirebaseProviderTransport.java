@@ -119,7 +119,8 @@ public class FirebaseProviderTransport extends HttpTransport implements AutoClos
 					ContentResponse response = new CompletableResponseListener(request, MAX_BODY).send().get(operation.remainingIo(), TimeUnit.NANOSECONDS);
 					operation.statuses.add(response.getStatus());
 					operation.check();
-					if (response.getStatus() >= 300) throw FirebaseProviderFailure.response(response.getStatus(), response.getContent());
+					if (response.getStatus() >= 300) throw FirebaseProviderFailure.response(response.getStatus(), response.getContent(),
+						"identitytoolkit.googleapis.com".equals(original.getHost()) && original.getPath().endsWith("/accounts:lookup"));
 					if (response.getHeaders().get("Content-Encoding") != null && !"identity".equalsIgnoreCase(response.getHeaders().get("Content-Encoding")))
 						throw new FirebaseProviderFailure(FirebaseProviderFailure.Kind.POLICY);
 					return new BufferedResponse(response);

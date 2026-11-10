@@ -57,6 +57,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseAuth auth = mock(FirebaseAuth.class);
 		FirebaseToken token = token("firebase-subject", 1900000000L);
 		when(auth.verifyIdToken("bearer", true)).thenReturn(token);
+		when(auth.verifyIdToken("bearer", false)).thenReturn(token);
 		Directory directory = new Directory();
 		FirebaseV2PrincipalAuthenticator verifier = new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory);
 		AuthenticatedPrincipal principal = verifier.authenticate("bearer");
@@ -77,6 +78,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 				claims.put("aud", foreignIssuer ? expected : foreign);
 				claims.put("iss", "https://securetoken.google.com/" + (foreignIssuer ? foreign : expected));
 				when(token.getClaims()).thenReturn(claims); when(auth.verifyIdToken("synthetic", true)).thenReturn(token);
+		when(auth.verifyIdToken("synthetic", false)).thenReturn(token);
 				Directory directory = new Directory();
 				assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, expected, directory).authenticate("synthetic"));
 				assertEquals(0, directory.authenticateCalls);
@@ -88,6 +90,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseAuth auth = mock(FirebaseAuth.class);
 		FirebaseToken token = token("firebase-subject", 1900000000L);
 		when(auth.verifyIdToken("bearer", true)).thenReturn(token);
+		when(auth.verifyIdToken("bearer", false)).thenReturn(token);
 		Directory directory = new Directory();
 
 		new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("bearer");
@@ -104,6 +107,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseToken token = token("firebase-subject", 1900000000L);
 		when(token.getClaims()).thenReturn(new HashMap<String, Object>());
 		when(auth.verifyIdToken(anyString(), eq(true))).thenReturn(token);
+		when(auth.verifyIdToken(anyString(), eq(false))).thenReturn(token);
 		Directory directory = new Directory();
 
 		assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("bad"));
@@ -116,6 +120,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseAuth auth = mock(FirebaseAuth.class);
 		FirebaseToken token = token("firebase-subject", 1900000000L);
 		when(auth.verifyIdToken("bearer", true)).thenReturn(token);
+		when(auth.verifyIdToken("bearer", false)).thenReturn(token);
 		Directory directory = new Directory(); directory.rejectAuthentication = true;
 
 		assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> new FirebaseV2PrincipalAuthenticator(auth, PROJECT, directory).authenticate("bearer"));
@@ -169,6 +174,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseAuthException failure = mock(FirebaseAuthException.class);
 		when(failure.getErrorCode()).thenReturn(com.google.firebase.ErrorCode.INVALID_ARGUMENT);
 		when(auth.verifyIdToken("synthetic-secret-bearer", true)).thenThrow(failure);
+		when(auth.verifyIdToken("synthetic-secret-bearer", false)).thenThrow(failure);
 		Directory directory = new Directory();
 		String previous = System.getProperty("ffb.v2.auth.diagnostics");
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -193,6 +199,7 @@ class FirebaseV2PrincipalAuthenticatorTest {
 		FirebaseAuth auth = mock(FirebaseAuth.class);
 		FirebaseToken validToken = token("synthetic-subject", 1900000000L);
 		when(auth.verifyIdToken("synthetic-bearer", true)).thenReturn(validToken);
+		when(auth.verifyIdToken("synthetic-bearer", false)).thenReturn(validToken);
 		Directory directory = new Directory();
 		directory.authenticationFailure = new SQLException("private database detail", "08000");
 		String previous = System.getProperty("ffb.v2.auth.diagnostics");

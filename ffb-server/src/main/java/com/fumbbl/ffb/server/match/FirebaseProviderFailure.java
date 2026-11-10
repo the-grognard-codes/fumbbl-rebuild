@@ -22,8 +22,11 @@ public final class FirebaseProviderFailure extends IOException {
 	public int status() { return status; }
 	public IdentityRejection rejection() { return rejection; }
 	static FirebaseProviderFailure response(int status, byte[] body) {
+		return response(status, body, false);
+	}
+	static FirebaseProviderFailure response(int status, byte[] body, boolean identityLookup) {
 		IdentityRejection rejection = IdentityRejection.NONE;
-		if (status >= 400 && status < 500) try {
+		if (identityLookup && (status == 400 || status == 404)) try {
 			JsonValue value = JsonObject.readFrom(new String(body, StandardCharsets.UTF_8)).get("error");
 			if (value != null && value.isObject()) {
 				String message = value.asObject().getString("message", "");

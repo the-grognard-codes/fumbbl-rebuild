@@ -61,6 +61,22 @@ import static org.mockito.Mockito.when;
 class FirebaseOwnedTransportCandidateTest {
 	private static final String PROJECT = "owned-transport-spike";
 
+	@Test void explicitRejectionRetiresTrustedSessionEvenWhenSigningKeysCannotBeReusedAfterTheOperation() throws Exception {
+		try (TlsProvider provider = new TlsProvider(new Behavior("", 200, false, 0, 0, true)); FirebaseDnsCandidateTest.DnsServer server = dns();
+			FirebaseOwnedTransportCandidate transport = new FirebaseOwnedTransportCandidate(new FirebaseDnsCandidate(server.address()), provider.clientTrust(), provider.port())) {
+			FirebaseProviderProbe probe = new FirebaseProviderProbe(transport);
+			GoogleCredentials credentials = probe.bind(UserCredentials.newBuilder().setClientId("synthetic").setClientSecret("synthetic").setRefreshToken("synthetic").build());
+			FirebaseApp app = app(transport, credentials);
+			try {
+				FirebaseV2PrincipalAuthenticator verifier = probe.verifier(FirebaseAuth.getInstance(app), PROJECT);
+				List<com.fumbbl.ffb.server.match.ProviderSessionRejection> observed = new ArrayList<>(); verifier.observeProviderRejection(observed::add);
+				String token = provider.token(); assertThrows(V2PrincipalAuthenticator.Rejected.class, () -> verifier.authenticate(token));
+				assertEquals(1, observed.size()); assertTrue(observed.getFirst().rejects(probe.knownPrincipal(PROJECT)));
+				assertEquals(4, provider.paths.size()); assertEquals(0, transport.destinations());
+			} finally { app.delete(); }
+		}
+	}
+
 	@Test void measuredProductionDefaultAlsoBoundsStalledIoIncludingCleanup() throws Exception {
 		FirebaseProviderBounds bounds = new FirebaseProviderBounds();
 		try (TlsProvider provider = new TlsProvider(new Behavior("*", 200, true, 0)); FirebaseDnsCandidateTest.DnsServer server = dns();
@@ -380,7 +396,9 @@ class FirebaseOwnedTransportCandidateTest {
 			.setConnectTimeout(250).setReadTimeout(900).setWriteTimeout(900).build(), "owned-spike-" + UUID.randomUUID());
 	}
 
-	private record Behavior(String path, int status, boolean stall, int delayMillis) { }
+	private record Behavior(String path, int status, boolean stall, int delayMillis, int maxAge, boolean disabled) {
+		Behavior(String path, int status, boolean stall, int delayMillis) { this(path, status, stall, delayMillis, 3600, false); }
+	}
 	private static final class TlsProvider implements AutoCloseable {
 		final List<String> paths = new CopyOnWriteArrayList<>();
 		private final KeyStore store;
@@ -409,10 +427,10 @@ class FirebaseOwnedTransportCandidateTest {
 						String body;
 						if (path.contains("/robot/")) body = new JsonObject().add("synthetic", "-----BEGIN CERTIFICATE-----\n" + Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(store.getCertificate("synthetic").getEncoded()) + "\n-----END CERTIFICATE-----\n").toString();
 						else if (path.equals("/token")) body = "{\"access_token\":\"synthetic\",\"expires_in\":3600,\"token_type\":\"Bearer\"}";
-						else body = "{\"users\":[{\"localId\":\"synthetic\",\"disabled\":false,\"validSince\":\"1\"}]}";
+						else body = "{\"users\":[{\"localId\":\"synthetic\",\"disabled\":" + behavior.disabled + ",\"validSince\":\"1\"}]}";
 						byte[] content = body.getBytes(StandardCharsets.UTF_8);
 						int status = special ? behavior.status : 200;
-						peer.getOutputStream().write(("HTTP/1.1 " + status + " Synthetic\r\nContent-Type: application/json\r\nCache-Control: max-age=3600\r\nContent-Length: " + content.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+						peer.getOutputStream().write(("HTTP/1.1 " + status + " Synthetic\r\nContent-Type: application/json\r\nCache-Control: max-age=" + behavior.maxAge + "\r\nContent-Length: " + content.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
 						peer.getOutputStream().write(content); peer.getOutputStream().flush(); active = null;
 					}
 				} catch (Throwable stopped) { if (!server.isClosed() && behavior.delayMillis == 0 && !behavior.stall) failure = stopped; }

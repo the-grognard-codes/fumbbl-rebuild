@@ -16,6 +16,9 @@ public final class JdbcV2PrincipalDirectory implements V2PrincipalDirectory {
 	private final java.time.Clock clock;
 
 	public JdbcV2PrincipalDirectory(Connections connections, java.time.Clock clock) { this.connections = connections; this.clock = clock; }
+	@Override public Snapshot authorizePublication(String matchId, Family family, java.util.List<Target> targets) throws SQLException {
+		return new JdbcV2PublicationAuthorization(connections, clock).authorizePublication(matchId, family, targets);
+	}
 
 	@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws SQLException, V2PrincipalAuthenticator.Rejected {
 		requireUnexpired(identity.expiresAtMillis);

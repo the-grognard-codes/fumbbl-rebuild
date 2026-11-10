@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-10",
+  "requestDeadlineMs": 2000,
+  "providerAllocationMs": 1200,
+  "providerIoMs": 1100,
+  "providerCleanupReserveMs": 100,
+  "requiredRequestReserveMs": 150,
+  "nativeMeasurement": {
+    "actualFirebase": true,
+    "actualMariaDb": true,
+    "actualNativeEngine": true,
+    "note": "Single-owner in-process workload in actual request-budget context; provider freshness clock advanced explicitly for misses; warmup separate; phase diagnostics enabled. Actual queue/network covered separately.",
+    "matchedFixtureDigests": [
+      "4987eb1f4e15fa77de26ffc8747fd5dc862bb8fd001472f04eed6a44192582f2",
+      "cb06a5c4c598d7626313ec9596e6b3f85d4ce078d63e19f5d1506ec749eccd1b",
+      "611572f6ee71de6b8b2180ebc28231c879d6a0d6c84beb7631f1cbd83471892f"
+    ],
+    "profiles": [
+      {
+        "publicationTargets": 0,
+        "totalAdmittedSockets": 1,
+        "providerMode": "actual DEV Firebase Admin through production bounded transport; explicit cache misses",
+        "sourceSha256": "f488f2616e09ab9edfd3ce7e12987ba847bfb15ca167ef66498f38b57d601f29",
+        "healthyLoadsMs": {
+          "count": 800,
+          "min": 5.7319,
+          "p50": 18.8733,
+          "p95": 27.7824,
+          "p99": 31.9671,
+          "max": 38.3698
+        },
+        "healthyActionsMs": {
+          "count": 200,
+          "min": 36.417,
+          "p50": 52.107,
+          "p95": 69.9404,
+          "p99": 77.626,
+          "max": 107.7302
+        },
+        "coldProviderAndNativeMs": {
+          "count": 21,
+          "min": 223.1872,
+          "p50": 283.7317,
+          "p95": 335.9143,
+          "p99": 345.3619,
+          "max": 345.3619
+        },
+        "publicationMs": {
+          "count": 200,
+          "min": 0.0123,
+          "p50": 0.0175,
+          "p95": 0.029,
+          "p99": 0.0309,
+          "max": 0.0786
+        },
+        "actionAccessMs": {
+          "count": 200,
+          "min": 1.5759,
+          "p50": 6.3596,
+          "p95": 8.144,
+          "p99": 11.8824,
+          "max": 13.9854
+        },
+        "healthyProviderLookups": 0,
+        "lookupsPerForcedMiss": 1,
+        "localAuthorizationGroupsPerAction": [
+          1
+        ],
+        "warmupActions": 10,
+        "warmupLoads": 103,
+        "allMeasuredRequestsBelow2000ms": true
+      },
+      {
+        "publicationTargets": 15,
+        "totalAdmittedSockets": 16,
+        "providerMode": "actual DEV Firebase Admin through production bounded transport; explicit cache misses",
+        "sourceSha256": "0c6ed5756f7b4b9149e1d3b4dcea12abe6374510d8d6e37701d5019148cf7ef6",
+        "healthyLoadsMs": {
+          "count": 800,
+          "min": 5.9448,
+          "p50": 17.0253,
+          "p95": 26.6616,
+          "p99": 31.6162,
+          "max": 35.5242
+        },
+        "healthyActionsMs": {
+          "count": 200,
+          "min": 44.4954,
+          "p50": 60.8427,
+          "p95": 78.6235,
+          "p99": 88.5405,
+          "max": 100.4319
+        },
+        "coldProviderAndNativeMs": {
+          "count": 21,
+          "min": 259.1406,
+          "p50": 309.717,
+          "p95": 347.4208,
+          "p99": 366.9554,
+          "max": 366.9554
+        },
+        "publicationMs": {
+          "count": 200,
+          "min": 9.1723,
+          "p50": 11.8678,
+          "p95": 14.5092,
+          "p99": 15.9223,
+          "max": 17.002
+        },
+        "actionAccessMs": {
+          "count": 200,
+          "min": 1.5741,
+          "p50": 5.9796,
+          "p95": 7.4749,
+          "p99": 8.628,
+          "max": 9.9314
+        },
+        "healthyProviderLookups": 0,
+        "lookupsPerForcedMiss": 1,
+        "localAuthorizationGroupsPerAction": [
+          2
+        ],
+        "warmupActions": 10,
+        "warmupLoads": 103,
+        "allMeasuredRequestsBelow2000ms": true
+      }
+    ]
+  },
+  "queryEvidence": {
+    "actualMariaDb": true,
+    "families": [
+      {
+        "family": "STATE",
+        "cases": [
+          {
+            "targets": 0,
+            "queries": 0
+          },
+          {
+            "targets": 1,
+            "queries": 1
+          },
+          {
+            "targets": 16,
+            "queries": 1
+          }
+        ]
+      },
+      {
+        "family": "CHAT",
+        "cases": [
+          {
+            "targets": 0,
+            "queries": 0
+          },
+          {
+            "targets": 1,
+            "queries": 1
+          },
+          {
+            "targets": 16,
+            "queries": 1
+          }
+        ]
+      },
+      {
+        "family": "PREPARATION",
+        "cases": [
+          {
+            "targets": 0,
+            "queries": 0
+          },
+          {
+            "targets": 1,
+            "queries": 1
+          },
+          {
+            "targets": 16,
+            "queries": 1
+          }
+        ]
+      }
+    ],
+    "actualSocketIntegration": {
+      "total": 16,
+      "stateTargets": 13,
+      "chatTargets": 13,
+      "preparationTargets": 1,
+      "authorizationQueriesPerNonemptyFamily": 1,
+      "addedIncomingProviderChecksInFanout": 0,
+      "seventeenthCloseCode": 1013,
+      "activeConnectionsAfterCleanup": 0,
+      "note": "Real loopback WebSockets, engine queue, transport, protocol and JDBC; incoming provider-check double, with actual provider coverage in native profiles."
+    }
+  },
+  "realProviderJdbc": {
+    "coldAuthenticationAndLocalCreationMs": 1027,
+    "freshLifecycleAndLocalMs": 155,
+    "lateLockTaskMs": 1869,
+    "lateJdbcAllowanceMs": 699
+  },
+  "retainedLiveDeadlineFailure": {
+    "bootstrapOnly": true,
+    "attempts": 3,
+    "completedResponses": 2,
+    "returnedMs": 1113,
+    "classification": "AVAILABILITY",
+    "workerRetry": false,
+    "note": "First fifteen-recipient bootstrap hit its real provider deadline and failed closed. A new standalone validation run completed; no retry was added to worker code."
+  }
+}

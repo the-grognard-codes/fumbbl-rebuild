@@ -101,7 +101,7 @@ async function state(page) {
 }
 function canonical(view) {
   // Actor-only read-only forecasts differ by recipient, just like threats.
-  const { callerRole, clock, threats, blockPreview, ...fields } = view;
+  const { callerRole, clock, threats, blockPreview, savedFormations, ...fields } = view;
   if (fields.reaction) {
     // Each recipient gets its own clock sample; the shared deadline and choice
     // remain authoritative and must still converge.
@@ -216,7 +216,7 @@ async function buildTeam(page, roster) {
   for (const [id, count] of [['rerolls', 3], ['apothecary', 1]]) for (let index = 0; index < count; index++)
     await page.getByRole('button', { name: `Add ${catalog.resources.find(resource => resource.id === id).name}`, exact: true }).click();
   await page.getByRole('button', { name: 'Validate Roster', exact: true }).click();
-  await page.getByRole('status').filter({ hasText: 'Server validation passed.' }).waitFor();
+  await page.getByRole('status').filter({ hasText: 'Roster validated. Save to keep these changes.' }).waitFor();
   await page.getByRole('button', { name: 'Save team', exact: true }).click();
   await page.getByRole('button', { name: 'Save changes', exact: true }).waitFor();
   const document = await page.evaluate(() => window.__acceptance.incoming.filter(message => message.type === 'savedTeam' && message.document).at(-1).document);

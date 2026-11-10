@@ -10,10 +10,12 @@ import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
+import com.fumbbl.ffb.server.match.ProviderSessionRejection;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
+import com.fumbbl.ffb.server.match.V2PublicationAuthorization;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferences;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
@@ -74,7 +76,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		this.matches = matches; this.preparation = preparation; this.teams = teams;
 		this.computers = computers;
 		this.clock = clock;
-		this.publisher = new ActiveMatchPublisher(access, setup, preparation);
+		this.publisher = new ActiveMatchPublisher(access, setup);
+		authenticator.observeProviderRejection(this::providerRejected);
 	}
 
 	public void configureSkillUsePreferences(SkillUsePreferenceService service) { skillUsePreferences = service; }
@@ -501,15 +504,31 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			? ComputerOpponentService.LEGACY_BUGMAN_NAME : computers.coachName(coach.opponentId);
 	}
 
-	private void preparationChanged(String matchId, BrowserConnection source) {
-		for (BrowserConnection connection : new java.util.ArrayList<>(preparationSubscriptions.keySet())) {
+	void preparationChanged(String matchId, BrowserConnection source) {
+		java.util.List<BrowserConnection> recipients = new java.util.ArrayList<>();
+		java.util.List<V2PublicationAuthorization.Target> targets = new java.util.ArrayList<>();
+		for (BrowserConnection connection : preparationSubscriptions.keySet()) {
 			if (connection == source || !matchId.equals(preparationSubscriptions.get(connection))) continue;
+			AuthenticatedPrincipal principal = principals.get(connection);
+			if (principal == null) continue;
+			recipients.add(connection); targets.add(new V2PublicationAuthorization.Target(principal, V2PublicationAuthorization.Audience.PLAYER));
+		}
+		if (recipients.isEmpty()) return;
+		V2PublicationAuthorization.Snapshot authorization;
+		try { authorization = access.publication(matchId, V2PublicationAuthorization.Family.PREPARATION, targets); }
+		catch (SQLException | RuntimeException denied) {
+			for (BrowserConnection connection : recipients) { preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE"); }
+			return;
+		}
+		for (int slot = 0; slot < recipients.size(); slot++) {
+			int targetSlot = slot;
+			BrowserConnection connection = recipients.get(slot);
 			try {
 				// Even invalidations disclose membership: reauthorize before sending, including on exact retry.
-				access.playerRole(principals.get(connection), matchId);
+				access.publicationRole(authorization, targets.get(slot), slot);
 				send(connection, new JsonObject().add("type", "preparationChanged").add("requestId", JsonValue.NULL)
-					.add("code", "ACCEPTED").add("matchId", matchId));
-			} catch (SQLException | MatchService.Failure denied) {
+					.add("code", "ACCEPTED").add("matchId", matchId), () -> access.publicationRole(authorization, targets.get(targetSlot), targetSlot));
+			} catch (RuntimeException denied) {
 				preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE");
 			}
 		}
@@ -522,6 +541,14 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		if (connection == computerDispatcher) computerDispatcher = null;
 		computerConnections.remove(connection);
 		principals.remove(connection); connectionPurposes.remove(connection); preparationCompletedAt.remove(connection); publisher.disconnect(connection); preparationSubscriptions.remove(connection);
+	}
+	private synchronized void providerRejected(ProviderSessionRejection observation) {
+		for (Map.Entry<BrowserConnection, AuthenticatedPrincipal> entry : principals.entrySet()) {
+			if (!observation.rejects(entry.getValue())) continue;
+			BrowserConnection connection = entry.getKey();
+			publisher.remove(connection); preparationSubscriptions.remove(connection);
+			try { fail(connection, null, "VIEW_UNAVAILABLE"); } catch (RuntimeException disconnected) { /* Continue retiring matching subscriptions. */ }
+		}
 	}
 	private void retire(BrowserConnection connection) {
 		diagnostics.remove(connection);
@@ -564,9 +591,12 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		return true;
 	}
 	private void send(BrowserConnection connection, JsonObject response) {
+		send(connection, response, () -> { });
+	}
+	private void send(BrowserConnection connection, JsonObject response, Runnable admission) {
 		String message;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RESPONSE_SERIALIZE)) { message = response.set("version", 2).toString(); }
-		timing.reply(connection, response, () -> connection.send(message));
+		timing.reply(connection, response, () -> { admission.run(); connection.send(message); });
 	}
 	private void enableDiagnosticsReplies(BrowserConnection connection) {
 		try {

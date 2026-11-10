@@ -30,4 +30,17 @@ final class FirebaseProviderErrors {
 	boolean credentialRejected(Throwable failure) {
 		FirebaseProviderFailure transport = transportFailure(failure); return transport != null && transport.status() == 401;
 	}
+	FirebaseProviderFailure.IdentityRejection identityRejection(Throwable failure) {
+		FirebaseProviderFailure transport = transportFailure(failure);
+		if (transport != null) return transport.rejection();
+		for (int depth = 0; failure != null && depth < 32; depth++, failure = failure.getCause()) {
+			if (failure instanceof FirebaseAuthException auth && auth.getAuthErrorCode() != null) return switch (auth.getAuthErrorCode()) {
+				case USER_DISABLED -> FirebaseProviderFailure.IdentityRejection.USER_DISABLED;
+				case USER_NOT_FOUND -> FirebaseProviderFailure.IdentityRejection.USER_NOT_FOUND;
+				case REVOKED_ID_TOKEN -> FirebaseProviderFailure.IdentityRejection.TOKEN_REVOKED;
+				default -> FirebaseProviderFailure.IdentityRejection.NONE;
+			};
+		}
+		return FirebaseProviderFailure.IdentityRejection.NONE;
+	}
 }

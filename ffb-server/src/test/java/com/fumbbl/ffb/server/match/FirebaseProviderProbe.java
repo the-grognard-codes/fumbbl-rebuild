@@ -18,6 +18,17 @@ public final class FirebaseProviderProbe {
 		this.transport = transport; this.bounds = bounds; this.credentials = new FirebaseProviderCredentials(bounds, transport);
 	}
 	public GoogleCredentials bind(GoogleCredentials source) { return credentials.bind(source); }
+	public AuthenticatedPrincipal knownPrincipal(String project) {
+		return new AuthenticatedPrincipal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", EnumSet.of(ApplicationScope.PLAYER), System.currentTimeMillis() + 3_600_000,
+			"https://securetoken.google.com/" + project, "synthetic", 100);
+	}
+	public AuthenticatedPrincipal principal(String project, String account, String subject, long authenticatedAt, long expires) {
+		return new AuthenticatedPrincipal(account, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), expires,
+			"https://securetoken.google.com/" + project, subject, authenticatedAt);
+	}
+	public ProviderSessionRejection rejection(String project, String subject, long before) {
+		return new ProviderSessionRejection("https://securetoken.google.com/" + project, subject, before);
+	}
 	public FirebaseV2PrincipalAuthenticator verifier(FirebaseAuth auth, String project) {
 		V2PrincipalDirectory directory = new V2PrincipalDirectory() {
 			@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) {

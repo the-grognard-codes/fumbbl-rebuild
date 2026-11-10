@@ -11,6 +11,12 @@
   and trip a shared circuit breaker so queued requests can continue; existing
   incoming-request freshness and immediate local permission checks are preserved.
 
+- Passive state, chat and preparation updates refresh local authorization in one
+  batch and stop at the original token expiry. Provider-only revocation can leave
+  passive viewing available until that expiry; incoming provider checks remain
+  unchanged, and observed rejection removes subscriptions. Spectator broadcasts
+  exclude actor-only formation controls and block previews.
+
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and
   disconnect cleanup execution, queue wait and budget overruns.

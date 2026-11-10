@@ -16,6 +16,31 @@ public final class V2MatchAccess {
 		this.memberships = memberships; this.directory = directory; this.clock = clock;
 	}
 
+	public V2PublicationAuthorization.Snapshot publication(String matchId, V2PublicationAuthorization.Family family,
+		List<V2PublicationAuthorization.Target> targets) throws SQLException {
+		if (targets.size() > V2PublicationAuthorization.MAX_TARGETS) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		if (targets.isEmpty()) return new V2PublicationAuthorization.Snapshot(java.util.Map.of());
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.LOCAL_AUTHORIZATION)) {
+			V2PublicationAuthorization.Snapshot snapshot = directory.authorizePublication(matchId, family, List.copyOf(targets));
+			if (snapshot == null) throw new SQLException("Local publication authorization is unavailable");
+			return snapshot;
+		}
+	}
+
+	/** Recheck expiry immediately before enqueueing; a batch read never extends the original token. */
+	public String publicationRole(V2PublicationAuthorization.Snapshot snapshot, V2PublicationAuthorization.Target target, int slot) {
+		if (timing.budget() != null && timing.budget().remainingNanos() == 0) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		if (snapshot == null || target.principal() != null && target.principal().expiresAtMillis() <= clock.millis()) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		String role = snapshot.role(slot);
+		boolean allowed = switch (target.audience()) {
+			case SPECTATOR -> "spectator".equals(role);
+			case PLAYER -> "home".equals(role) || "away".equals(role);
+			case COMPUTER -> "away".equals(role);
+		};
+		if (!allowed) throw new MatchService.Failure("VIEW_UNAVAILABLE");
+		return role;
+	}
+
 	/** Resolves the only engine role a player path may use after scope and membership checks. */
 	public String playerRole(AuthenticatedPrincipal principal, String matchId) throws SQLException {
 		principal = require(principal, ApplicationScope.PLAYER);
