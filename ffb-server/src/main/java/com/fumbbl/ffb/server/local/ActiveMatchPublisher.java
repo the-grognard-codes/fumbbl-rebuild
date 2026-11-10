@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
@@ -139,7 +140,7 @@ final class ActiveMatchPublisher {
 						response.set("requestId", JsonValue.NULL);
 						sendState(connection, response, transcript, () -> access.publicationRole(authorization, recipient.target, targetSlot));
 					}
-				} catch (V2MatchAccess.PublicationDeferred exhausted) { return;
+				} catch (V2MatchAccess.PublicationDeferred | JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired exhausted) { return;
 				} catch (SQLException | RuntimeException denied) { unavailable(recipient); }
 			}
 		}

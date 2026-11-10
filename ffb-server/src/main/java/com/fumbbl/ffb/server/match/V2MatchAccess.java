@@ -1,7 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 import com.fumbbl.ffb.server.db.JdbcConnections;
+import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
 import java.sql.SQLException;
 import java.time.Clock;

@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.MatchMembershipRepository;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -13,7 +14,6 @@ import com.fumbbl.ffb.server.match.VerifiedIdentity;
 import com.fumbbl.ffb.server.match.FirebaseProviderProbe;
 import com.fumbbl.ffb.server.match.ProviderSessionRejection;
 import com.fumbbl.ffb.server.match.MatchMembership;
-import com.fumbbl.ffb.server.db.JdbcConnections;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 class PublicationAuthorizationTest {
@@ -108,6 +109,18 @@ class PublicationAuthorizationTest {
 			fixture.withBudget(() -> fixture.publish(family));
 			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
 			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(1, fixture.directory.batches);
+			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
+		}
+	}
+	@Test void projectionJdbcDeadlineRefusalPreservesPlayersAndSpectatorsForTheNextFreshBatch() throws Exception {
+		for (SQLException refusal : new SQLException[] {new JdbcConnections.NotStarted(), new JdbcConnections.DeadlineExpired(new SQLException("synthetic projection deadline"))}) {
+			Fixture fixture = new Fixture(); fixture.enroll(V2PublicationAuthorization.Family.STATE, 2); fixture.reset();
+			when(fixture.setup.publishedState(anyString(), anyString(), anyBoolean())).thenThrow(refusal);
+			fixture.withBudget(() -> fixture.publish(V2PublicationAuthorization.Family.STATE));
+			assertTrue(fixture.connections.stream().allMatch(connection -> connection.messages.isEmpty()));
+			doAnswer(call -> state(call.getArgument(1))).when(fixture.setup).publishedState(anyString(), anyString(), anyBoolean());
+			fixture.reset(); fixture.withBudget(() -> fixture.publish(V2PublicationAuthorization.Family.STATE));
 			assertEquals(1, fixture.directory.batches);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", null));
 		}

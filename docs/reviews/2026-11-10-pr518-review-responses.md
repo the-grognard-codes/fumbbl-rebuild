@@ -17,6 +17,10 @@ are distinguished from incorrect recommendations and confirmed defects.
    subscriptions. Deterministic tests cover every family before admission, after
    batch completion, at final enqueue and after typed JDBC deadline refusal,
    followed by a successful fresh-budget publication to the same recipients.
+   Revision review found the same typed deadline path in the subsequent player/
+   computer projection read; its state-dispatch catch now defers too. A separate
+   regression injects both typed refusals into `publishedState`, then proves the
+   same player and spectator receive a later fresh-batch publication.
 
 2. **Denied probes extend cooldown — symptom accepted; proposed healing rejected.**
    The request explicitly says ordinary denied identities must not masquerade as
@@ -73,8 +77,8 @@ are distinguished from incorrect recommendations and confirmed defects.
 ## Revision validation
 
 The new regressions failed before the fix (three budget failures and one denied-
-probe error). Focused corrected validation passed 103 tests, zero failures/errors
+probe error). Focused corrected validation passed 104 tests, zero failures/errors
 and no skips, including real loopback TLS/credential/cancellation tests, unchanged
 incoming freshness, rejection retirement and transcript behavior.
-Evidence: `.tools/pr518-revisions-{red,focused-final}.log`.
+Evidence: `.tools/pr518-revisions-{red,focused-r2}.log`.
 Final clean, real provider/JDBC and rebuilt runtime validation is pending.
