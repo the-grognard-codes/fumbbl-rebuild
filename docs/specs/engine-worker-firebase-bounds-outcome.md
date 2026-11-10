@@ -2,7 +2,7 @@
 
 Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504).
 Branch: `fix/firebase-bounds-publication-authorization`, from main `031495c72`.
-Status: implementation, focused integration and clean verification passed; dev-local startup validation in progress.
+Status: provider implementation, integration, clean verification and dev-local startup passed.
 The following #507 deliverable remains separate and is not claimed here.
 
 ## Feasibility and implementation
@@ -116,6 +116,24 @@ and the TypeScript/Vite production build passed in
 The first dev-local browser run exposed a parallel-load layout assertion
 in unchanged `idle-panning-ui.mjs` (15 reads instead of zero). Its isolated rerun
 passed with zero irrelevant layout reads. All interaction groups passed in the
-complete serial rerun; hosted-site checks are still running before startup.
-No frontend behavior was changed for this result. Real authentication/gameplay/
-spectator/chat smoke remains required before the startup handoff is complete.
+complete serial rerun. All 82 interaction/hosted suites passed in 1,138.7 seconds;
+reports are in `.tools/validation/local-browser-Kdz8FH`. The manifest records the
+starting spike commit `294d56257`; the unchanged browser code was tested while
+the production Java changes were in the working tree. No frontend behavior was
+changed for this result.
+
+`node tools/dev-local.mjs --start` then completed its full container build/tests,
+schema/ADC health checks, Hosting/proxy startup, real authentication-gate checks
+on initial connection and reconnect, and computer-service startup. The c72a1b5f4
+provider image was healthy at `http://localhost:5000/play` with no unexplained
+startup errors. Evidence: `.tools/slice3-provider-dev-local-r2.log`.
+
+The real three-party UI smoke authenticated synthetic DEV identities, created
+server-validated Human/Orc teams, played native decisions, delivered durable
+escaped chat to both coaches/spectator, and exercised reconnect/save/resume.
+It exposed stale harness expectations for roster-validation text and actor-only
+formation controls, then a genuine inherited spectator-broadcast projection bug:
+actor-only saved formation controls reached a spectator. Strict projection
+validation correctly failed. That correction belongs to #507's recipient-privacy
+requirement; the final rebuilt three-party smoke is recorded in the #507 outcome.
+The failed intermediate evidence remains in `.tools/slice3-provider-ui-smoke-r3`.
