@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-<<<<<<< Updated upstream
+- Added reproducible Firebase deadline/credential feasibility experiments. The
+  provider-bounds gate remains unresolved because a timed-out DNS lookup can
+  keep running; authentication and publication behavior have not changed.
+
 - Browser worker tasks share a monotonic two-second request budget independently
   of diagnostics. Operational counters include full ingress, decision expiry and
   disconnect cleanup execution, queue wait and budget overruns.
@@ -18,11 +21,10 @@
 
 - Dev-local Hosting uses the stack's verified credentials in an isolated CLI
   configuration, avoiding startup authentication errors from an expired CLI login.
-=======
+
 - Added `dev-local --start|--restart --quick` for manual testing with browser
   validation and server test execution skipped. Default starts and deployments
   keep full validation; quick starts do not count as handoff evidence.
->>>>>>> Stashed changes
 
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
