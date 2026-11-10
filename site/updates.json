@@ -1,5 +1,13 @@
 [
   {
+    "number": 517,
+    "title": "Bound database waits and preserve safe retries",
+    "summary": "Database waits now follow each browser task's remaining time budget, with bounded connection reuse and outage protection. Lost write acknowledgements preserve reconciliation and safe retries. Provider integration and consistent healthy latency remain follow-up work.",
+    "category": "Platform",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/517",
+    "mergedAt": "2026-11-10T04:10:59Z"
+  },
+  {
     "number": 515,
     "title": "Generate Riotous Rookies names locally",
     "summary": "Riotous Rookies now receive local RiotousRookie #n names without remote name lookups. Removed obsolete FUMBBL service configuration and roster-download tooling. Native rolls, player identities, reports, replay and recovery are preserved.",
