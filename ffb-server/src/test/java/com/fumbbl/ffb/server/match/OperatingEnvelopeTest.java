@@ -181,6 +181,13 @@ class OperatingEnvelopeTest {
 				report.add("durableRecoveryCode", recovered.getString("code", "missing")).add("durableRecoveryRevision",
 					recovered.get("state").asObject().getInt("revision", -1));
 				report.add("committedRevision", committed.get("state").asObject().getInt("revision", -2));
+                JsonObject restoredState = recovered.get("state").asObject(), committedState = committed.get("state").asObject();
+                boolean sameState = true;
+                for (String field : List.of("revision", "phase", "actor", "players", "ball", "homeScore", "awayScore", "turnMode"))
+                    sameState &= java.util.Objects.equals(committedState.get(field), restoredState.get(field));
+                report.add("durablePublicStateMatches", sameState);
+                report.add("recoveryFixture", "one additional application instance rehydrates the durable state on the same owner thread; discarded at harness process exit, not a process-kill test");
+                assertTrue(sameState, "Durable public state must survive rehydration");
 				beginPhase(probe, "slow-recipient");
 				clients.get(3).close(); Thread.sleep(100); probe.control(() -> null);
 				CompletableFuture<JsonObject> slow = CompletableFuture.supplyAsync(() -> {
