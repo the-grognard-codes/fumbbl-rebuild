@@ -93,6 +93,7 @@ try {
   assert.equal(await chat.inputValue(), 'Draft <script> stays literal');
   await chat.press('Enter');
   assert.deepEqual(await page.evaluate(() => window.hudMessages), ['Draft <script> stays literal']);
+  await chat.waitFor({ state: 'detached' });
   assert.equal(await chat.count(), 0, 'Acknowledged sends close the composer');
   await page.keyboard.press('Enter');
   assert.equal(await chat.inputValue(), '', 'Enter reopens a cleared composer');
