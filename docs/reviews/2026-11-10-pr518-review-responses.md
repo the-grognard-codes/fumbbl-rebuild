@@ -108,17 +108,47 @@ Reports: `.tools/validation/local-browser-JWwxyO`; logs:
 `.tools/pr518-revisions-dev-local-r2.log`. The Linux image build also ran all
 775 server tests successfully (thirteen expected opt-in skips).
 
-**External validation blocker:** both standard and mounted JVM Google ADC profiles
-return `SESSION_EXPIRED` (`invalid_grant` / `invalid_rapt`). New DEV token minting
-failed preflight before producing tokens. The normal startup reached the existing
-interactive Google ADC-renewal flow after its successful image build. Renewed
-human sign-in is required before rerunning actual Google Firebase + JDBC and the
-credentialed three-party authentication/gameplay/chat smoke. Previous delivery
-results remain historical; they are not relabeled as tests of these revisions.
-The user has been asked to run `gcloud auth application-default login` in their
-normal terminal. Authentication requirements and credential transport policy were
-not weakened to bypass the expired session. The owned startup process waiting for
-interactive sign-in was stopped before handoff; the built image and review data
-are retained. Only the owned synthetic JDBC validation container was stopped
-after its tests passed. Known generated screenshots/development-page changes were
-restored. No unrelated work was changed.
+**Credential blocker resolved:** the initial standard/mounted JVM ADC profiles
+returned `SESSION_EXPIRED` (`invalid_rapt`). After the user renewed sign-in, both
+profiles verified, the existing mounted profile was renewed with quota metadata,
+and fresh synthetic DEV tokens were minted without printing or committing them.
+No authentication policy, transport limit or credential type was relaxed.
+
+The fresh combined boundary then passed **75 tests, zero skips/failures/errors**,
+including actual Google Firebase + MariaDB, real loopback TLS/credentials,
+all publication families, request timing, breaker policy and transcripts.
+Actual provider/JDBC measurements: **742 ms cold authentication, 258 ms refresh,
+1,861 ms late-lock rejection, 696 ms remaining JDBC allowance**. Evidence:
+`.tools/pr518-renewed-real-provider-jdbc-r2.log`. The first combined run had one
+strict one-second loopback cold-key TLS timeout while startup was running; its
+actual Google/JDBC case passed. That failed run is retained in
+`.tools/pr518-renewed-real-provider-jdbc.log`. The complete standalone rerun passed
+without changing timeout values or adding worker retries.
+
+Full non-quick startup resumed using the unchanged 82-suite reports at `0717c4d70`.
+Before reuse, the standard coverage validator checked all reports/manifest entries,
+and Git comparison confirmed the current tracked source differed only in reporting
+documents, with no untracked source files. Report commit IDs were not rewritten.
+The validated image, schema/ADC checks, Hosting/proxy initial/reconnect gates and
+computer service all started successfully at `http://localhost:5000/play`.
+Evidence: `.tools/pr518-renewed-dev-local.log`.
+
+The first UI attempt timed out awaiting team-builder `Connected` after initial
+sign-in had succeeded. A temporary redacted status/auth-code probe did not
+reproduce it and completed the full smoke (eleven play decisions). The unchanged
+driver then passed authentication, native movement/block, spectator/chat delivery,
+reconnect, save/resume and wrong-coach/spectator/stale/fabricated-request rejection,
+with **five play decisions and zero invalid live projections**. These are bounded
+gameplay smokes, not full-match UI acceptance. Evidence:
+`.tools/pr518-renewed-ui-{smoke,diagnostic,smoke-r2}.log` and corresponding private
+artifact directories. The temporary source probe was deleted; no product or
+driver code changed during this follow-up.
+
+The retained-computer cold-load generic `PERSISTENCE_FAILED` warning appeared once
+and its existing daemon retry recovered. Its underlying exception was not logged;
+no new root-cause claim is made for this previously documented limitation. Final
+service health is `healthy`, both retained computer matches load and wait for their
+human coaches, and the rejection count stayed at one during the smokes.
+The owned synthetic JDBC database was stopped after validation; the ready
+dev-local stack/data remain. Known generated files were restored. No unrelated
+work was changed. No credential-dependent validation remains blocked.

@@ -5,8 +5,8 @@ Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504
 Independent security-review PR: [#518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518).
 Branch: `fix/firebase-bounds-publication-authorization`, from current main
 `031495c72` after RB2 and slice 2 merged.
-Status: review revisions implemented and independently approved. Fresh local
-validation passed; Google-backed reruns await renewed ADC sign-in. See the
+Status: review revisions implemented, independently approved and validated,
+including renewed live Firebase/JDBC and credentialed UI smoke. See the
 [complete review dispositions and current validation](../reviews/2026-11-10-pr518-review-responses.md).
 The original delivery evidence below predates these review revisions.
 No merge or deployment performed.
@@ -84,6 +84,12 @@ the #504 contract. All optional refactors and scope notes have individual
 dispositions in the linked response. Current code passed 104 focused tests,
 1,086 clean-verification tests (twenty expected opt-in skips), six actual
 MariaDB/socket tests, 530 browser unit tests and the complete 82-suite gate.
-Fresh real Google-provider/JDBC and credentialed UI smoke remain blocked by
-expired ADC, despite a successful full image build. No merge or deployment is
-authorized by these revisions.
+After ADC renewal, the fresh combined provider/JDBC boundary passed 75 tests
+without skips. Actual measurements were 742 ms cold authentication, 258 ms refresh
+and 1,861 ms late-lock rejection within the shared deadline. Full non-quick
+startup completed and the unchanged three-party driver passed native movement/
+block, spectator/chat, reconnect/save/resume and negative checks with five play
+decisions and zero invalid projections. The detailed response retains the initial
+loopback timeout and UI connection wait, their successful reruns, and the known
+recovered cold-computer-load diagnostic limitation. No credential validation
+remains blocked. No merge or deployment is authorized by these revisions.
