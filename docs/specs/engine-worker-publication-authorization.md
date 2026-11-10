@@ -116,8 +116,16 @@ request-path cost; that request's authorization semantics stay unchanged.
   preparation reads; delayed chat loads the next missing page. The computer
   client likewise requests a fresh setup read. These are ordinary incoming
   requests with existing provider/local checks, never mutation replay. The notice
-  contains no state or authorization grant. Delivery exhaustion alone cannot
-  assert lost access; actual denial, expiry and database failures still can.
+  contains no state or authorization grant, but still reveals match activity.
+  Before emitting it, obtain a separate fresh local batch for the remaining
+  recipients and enforce its roles plus original-token expiry again immediately
+  before enqueue. This is one batch per nonempty notification publication, never
+  per recipient, and performs no provider work. If its grant is denied, expired
+  or unavailable within the remaining deadline, send no activity metadata and
+  retire the recipient with the generic unavailable response. No budget is reset.
+  Delivery exhaustion alone is not proof of lost access; a recovery notice still
+  cannot bypass required authorization. Follow-up client recovery work and the
+  two deferred cleanup items are tracked in [#519](engine-worker-publication-recovery-follow-ups.md).
   Browser gap recovery pages missing public history after coalescing or omitted
   optional frames. This catch-up corrects the stall/lost-chat
   findings in PR #518; it performs no provider work or token refresh.

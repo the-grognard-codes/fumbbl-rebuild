@@ -23,7 +23,7 @@ final class PublicationDelivery {
 		V2PublicationAuthorization.Target target();
 		void send(V2PublicationAuthorization.Snapshot authorization, int slot) throws SQLException;
 		void unavailable();
-		void delayed(V2PublicationAuthorization.Family family);
+		void delayed(V2PublicationAuthorization.Snapshot authorization, int slot, V2PublicationAuthorization.Family family);
 	}
 	private static final class Pending {
 		final String matchId;
@@ -113,12 +113,26 @@ final class PublicationDelivery {
 		try (BrowserRequestTiming.Scope ignored = new BrowserRequestTiming().span(BrowserRequestTiming.Phase.PUBLICATION)) {
 			if (deliver(publication)) return true;
 			if (!counted || ++publication.deferrals < MAX_DEFERRALS) return false;
-			for (Recipient recipient : publication.recipients) {
-				try { if (recipient.enrolled()) recipient.delayed(publication.family); }
-				catch (RuntimeException disconnected) { /* Continue notifying the remaining recipients. */ }
-			}
-			publication.recipients.clear(); return true;
+			notifyDelayed(publication); return true;
 		}
+	}
+
+	private void notifyDelayed(Pending publication) {
+		// Invalidation reveals match activity, so it needs its own current local grant.
+		V2PublicationAuthorization.Snapshot authorization;
+		try {
+			authorization = access.publication(publication.matchId, publication.family,
+				publication.recipients.stream().map(Recipient::target).toList());
+		} catch (SQLException | RuntimeException unavailable) {
+			retire(publication); return;
+		}
+		int slot = 0;
+		for (Recipient recipient : publication.recipients) {
+			try { if (recipient.enrolled()) recipient.delayed(authorization, slot, publication.family); }
+			catch (RuntimeException denied) { unavailable(recipient); }
+			slot++;
+		}
+		publication.recipients.clear();
 	}
 
 	private boolean deliver(Pending publication) {

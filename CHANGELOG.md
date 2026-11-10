@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Authorize delayed-publication notices against current local permissions and the original token expiry before revealing match activity.
+
 - Deliver queued updates when the next publication has budget. After three attempts with at least 500 ms available, release delayed payloads and automatically refresh the authorized view while preserving the board. Coalesced live history recovers through paged transcript reads.
 
 - Keep delayed publication recovery independent per match and send only the latest queued state, preserving chat order without disconnecting viewers for obsolete snapshots.

@@ -128,7 +128,7 @@ class PublicationAuthorizationTest {
 	@Test void retryLimitReleasesPayloadButPreservesEveryFamilysEnrollment() throws Exception {
 		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) {
 			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
-			fixture.directory.requestRefusal = new JdbcConnections.NotStarted();
+			fixture.directory.requestRefusal = new JdbcConnections.NotStarted(); fixture.directory.refusalsRemaining = 3;
 			fixture.withBudget(() -> fixture.publish(family));
 			fixture.withBudget(() -> fixture.retry(family)); fixture.withBudget(() -> fixture.retry(family));
 			for (Connection connection : fixture.connections) {
@@ -141,6 +141,31 @@ class PublicationAuthorizationTest {
 			fixture.directory.requestRefusal = null; fixture.reset(); fixture.withBudget(() -> fixture.publish(family));
 			assertEquals(1, fixture.directory.batches); assertEquals(0, fixture.directory.providerCalls);
 			for (Connection connection : fixture.connections) assertEquals("ACCEPTED", connection.last().getString("code", ""));
+		}
+	}
+
+	@Test void delayedNoticesRequireCurrentLocalAuthorityAndOriginalTokenExpiryForEveryFamily() throws Exception {
+		for (V2PublicationAuthorization.Family family : V2PublicationAuthorization.Family.values()) for (String denial : List.of("expiry", "local", "enqueue", "unavailable")) {
+			Fixture fixture = new Fixture(); fixture.enroll(family, 2); fixture.reset();
+			fixture.directory.requestRefusal = new JdbcConnections.NotStarted();
+			fixture.directory.refusalsRemaining = "unavailable".equals(denial) ? Integer.MAX_VALUE : 3;
+			fixture.withBudget(() -> fixture.publish(family)); fixture.withBudget(() -> fixture.retry(family));
+			fixture.reset();
+			switch (denial) {
+				case "expiry" -> fixture.millis.set(10_000);
+				case "local" -> fixture.principals.forEach(principal -> fixture.directory.denied.add(principal.accountId()));
+				case "enqueue" -> when(fixture.clock.millis()).thenReturn(1_000L, 10_000L);
+			}
+			fixture.withBudget(() -> fixture.retry(family));
+			assertEquals(2, fixture.directory.batches, "Failed payload authorization and a distinct notification batch");
+			assertEquals(0, fixture.directory.providerCalls);
+			for (Connection connection : fixture.connections) {
+				assertEquals(1, connection.messages.size());
+				assertEquals("VIEW_UNAVAILABLE", connection.last().getString("code", ""));
+				assertEquals(4, connection.last().size(), "No match or activity metadata after access ends");
+			}
+			fixture.reset(); fixture.directory.requestRefusal = null; fixture.withBudget(() -> fixture.publish(family));
+			assertEquals(0, fixture.directory.batches, "The rejected recipients were retired");
 		}
 	}
 
@@ -367,7 +392,7 @@ class PublicationAuthorizationTest {
 	private static final class Directory implements V2PrincipalDirectory {
 		boolean freshPrincipal;
 		int providerCalls, batches; boolean outage, sqlFailure;
-		Runnable afterBatch = () -> { }; SQLException requestRefusal;
+		Runnable afterBatch = () -> { }; SQLException requestRefusal; int refusalsRemaining = Integer.MAX_VALUE;
 		final Set<String> denied = new HashSet<>();
 		@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) { throw new UnsupportedOperationException(); }
 		@Override public AuthenticatedPrincipal reauthorize(AuthenticatedPrincipal principal) throws V2PrincipalAuthenticator.Rejected {
@@ -376,7 +401,7 @@ class PublicationAuthorizationTest {
 		}
 		@Override public Snapshot authorizePublication(String matchId, Family family, List<Target> targets) throws SQLException {
 			batches++; if (sqlFailure) throw new SQLException("synthetic local failure");
-			if (requestRefusal != null) throw requestRefusal;
+			if (requestRefusal != null && refusalsRemaining-- > 0) throw requestRefusal;
 			Map<Integer, String> roles = new HashMap<>();
 			for (int slot = 0; slot < targets.size(); slot++) if (!denied.contains(targets.get(slot).principal().accountId()))
 				roles.put(slot, targets.get(slot).audience() == Audience.SPECTATOR ? "spectator" : "home");

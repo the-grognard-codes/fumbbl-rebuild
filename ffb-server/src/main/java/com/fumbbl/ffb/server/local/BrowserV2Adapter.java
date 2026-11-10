@@ -526,9 +526,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 						.add("code", "ACCEPTED").add("matchId", matchId), () -> access.publicationRole(authorization, target(), slot));
 				}
 				@Override public void unavailable() { preparationSubscriptions.remove(connection); fail(connection, null, "VIEW_UNAVAILABLE"); }
-				@Override public void delayed(V2PublicationAuthorization.Family family) {
+				@Override public void delayed(V2PublicationAuthorization.Snapshot authorization, int slot, V2PublicationAuthorization.Family family) {
+					access.publicationRole(authorization, target(), slot);
 					BrowserV2Adapter.this.send(connection, new JsonObject().add("type", "publicationDelayed").add("requestId", JsonValue.NULL)
-						.add("code", "PUBLICATION_DELAYED").add("matchId", matchId).add("family", family.name()));
+						.add("code", "PUBLICATION_DELAYED").add("matchId", matchId).add("family", family.name()),
+						() -> access.publicationRole(authorization, target(), slot));
 				}
 			});
 		}

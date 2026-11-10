@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.match.V2PublicationAuthorization;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -136,13 +137,18 @@ class PublicationDeliveryTest {
 		final List<String> deferred = new ArrayList<>(), sent = new ArrayList<>(), delayed = new ArrayList<>();
 		final AtomicLong nanos = new AtomicLong();
 		boolean consumeBudget, competing;
+		final Map<String, Integer> refusals = new HashMap<>();
 		int retired;
 		Fixture() throws Exception {
 			when(access.publication(anyString(), any(), any())).thenAnswer(call -> {
 				String match = call.getArgument(0);
-				if (competing && "a".equals(match)) nanos.addAndGet(1_900_000_000L);
+				BrowserRequestTiming.Budget budget = new BrowserRequestTiming().budget();
+				boolean fair = budget == null || budget.remainingNanos() >= PublicationDelivery.MIN_COUNTED_ALLOWANCE_NANOS;
+				if (competing && "a".equals(match) && deferred.contains(match)) nanos.addAndGet(1_900_000_000L);
 				if (deferred.contains(match) || competing && "b".equals(match) && new BrowserRequestTiming().budget().remainingNanos() < PublicationDelivery.MIN_COUNTED_ALLOWANCE_NANOS) {
 					if (consumeBudget) nanos.addAndGet(BrowserRequestTiming.REQUEST_BUDGET_NANOS);
+					// Permit the separate notification authorization after the payload exhausted its fair attempts.
+					if (fair && refusals.merge(match, 1, Integer::sum) == PublicationDelivery.MAX_DEFERRALS) deferred.remove(match);
 					throw new JdbcConnections.NotStarted();
 				}
 				return new V2PublicationAuthorization.Snapshot(Map.of(0, "home"));
@@ -155,7 +161,7 @@ class PublicationDeliveryTest {
 					public V2PublicationAuthorization.Target target() { return new V2PublicationAuthorization.Target(null, V2PublicationAuthorization.Audience.COMPUTER); }
 					public void send(V2PublicationAuthorization.Snapshot authorization, int slot) { sent.add(message); }
 					public void unavailable() { retired++; }
-					public void delayed(V2PublicationAuthorization.Family family) { delayed.add(message); }
+					public void delayed(V2PublicationAuthorization.Snapshot authorization, int slot, V2PublicationAuthorization.Family family) { delayed.add(message); }
 				}), state ? 300_000 : message.length());
 		}
 		void retryWithBudget() { withBudget(delivery::retry); }
