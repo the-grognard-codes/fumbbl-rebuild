@@ -15,6 +15,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [DEV and PROD environments](#dev-and-prod-environments)
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
+  - [Bounded authentication and passive publication recovery](#bounded-authentication-and-passive-publication-recovery)
   - [Team Builder MVP](#team-builder-mvp)
   - [Compact team-builder workbench](#compact-team-builder-workbench)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
@@ -149,6 +150,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Validated message types, sizes, rates, and membership; bounded session history and treated chat as plain text. Kept tokens, raw UIDs, and email addresses out of opponent-visible data, logs, and URLs.
 - Covered refreshed-token reconnects, rejection and expiry states, and cross-device email completion. Kept local diagnostic credentials in explicit local development only.
 - Provisioned separate DEV/PROD Java service hosting; Firebase Hosting remained static hosting. This proof excluded game rules, teams, matchmaking, spectators, account linking/migration, and existing FUMBBL accounts.
+
+### Bounded authentication and passive publication recovery
+
+- Admitted Firebase key retrieval, credential refresh and revocation lookup as one operation within the worker's remaining absolute request budget. Added deadline-aware transport/credential factories, controlled retries and fail-closed circuit-breaker classification while preserving incoming-request freshness and cache behavior.
+- Authorized nonempty state, chat and preparation fan-out with one local batch for at most sixteen recipients and zero provider calls. Original token expiry, local revocation and observed provider rejection stop passive delivery. Firebase-only revocation can leave passive viewing available until that original expiry; no background token refresher was introduced.
+- Added bounded per-match catch-up, ordered chat, coalesced full states and paged transcript-gap recovery. After three payload deferrals that began with at least 500 ms available, later control tasks send freshly authorized recovery notices. Typed budget/JDBC refusals retain only undelivered notices; actual denial, expiry and generic SQL failures retire safely. Mutations are never replayed, and retained work stays within the existing 64-entry / 4-Mi-character cap.
+- Final validation passed 1,116 pinned-verification tests (twenty expected opt-in skips), 116 actual Firebase/JDBC/socket tests without skips and 101 focused regressions. Prior browser/startup evidence and incomplete matched native timings retain their original revisions and limits in the linked reports; this is not a new claim of universal latency bounds.
+- Delivered in [PR #518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518), merged on November 10, 2026. Closed [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504) and [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507). [#519](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/519) separately tracks retrying failed client recovery reads, irrelevant computer notices and the budget-read cleanup.
+- Scope and evidence: [Firebase bounds](../docs/specs/engine-worker-firebase-bounds.md), [accepted transport spike](../docs/specs/engine-worker-firebase-bounds-spike-2.md), [publication authorization](../docs/specs/engine-worker-publication-authorization.md), [combined outcome](../docs/specs/engine-worker-slice3-outcome.md) and [final scoped correction/validation](../docs/reviews/2026-11-10-pr518-pending-notice-review.md).
 
 ### Team Builder MVP
 

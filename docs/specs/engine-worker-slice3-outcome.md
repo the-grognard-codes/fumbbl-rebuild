@@ -175,4 +175,15 @@ Both scoped independent review axes approved. Validation passed 101 focused
 tests, 116 actual Firebase/JDBC/socket tests without skips, and clean pinned
 verification with 1,116 tests, zero failures/errors and twenty expected opt-in
 skips. The linked report retains the original failing regression and its passing
-result after this correction. No merge is performed.
+result after this correction; main delivery is recorded below.
+
+
+## Main delivery
+
+[PR #518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518) merged into
+`main` on November 10, 2026 at `53655f62fbddafdb0f633357d35cc2b887c48faf`, preserving
+the spike, provider fix, publication authorization and scoped review commit series.
+Required PR checks passed before merge; #504 and #507 closed automatically.
+#519 remains open for the three maintainer-approved follow-ups. The completed
+features tracker and public merged-PR archive record this delivery separately;
+no remote deployment is implied by the merge.
