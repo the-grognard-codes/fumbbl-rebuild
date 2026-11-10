@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.team;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -62,7 +64,7 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 				commitAttempted = true;
 				connection.commit();
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
-		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
+		} catch (SQLException failure) { if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure); throw failure; }
 	}
 
 	@Override
@@ -82,7 +84,7 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 					return changed;
 				}
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
-		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
+		} catch (SQLException failure) { if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure); throw failure; }
 	}
 
 	@Override
@@ -98,7 +100,7 @@ public final class JdbcSavedTeamRepository implements SavedTeamRepository {
 				if (changed) { commitAttempted = true; connection.commit(); } else connection.rollback();
 				return changed;
 			} catch (SQLException exception) { rollback(connection, exception); throw exception; }
-		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(prior, failure); throw failure; }
+		} catch (SQLException failure) { if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(prior, failure); throw failure; }
 	}
 
 	private void lockWrites(Connection connection) throws SQLException {

@@ -69,5 +69,11 @@ class V2PreparationJdbcTest {
 	private void assertMembers(V2PreparationService.Connections connections, String id, int expected) throws Exception { try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement("SELECT COUNT(*) FROM ffb_v2_match_members WHERE matchid=?")) { query.setString(1, id); try (java.sql.ResultSet rows = query.executeQuery()) { rows.next(); assertEquals(expected, rows.getInt(1)); } } }
 	private void assertNoAccountIds(JsonObject response, String... ids) { for (String id : ids) assertFalse(response.toString().contains(id)); }
 	private String shortId() { return UUID.randomUUID().toString().replace("-", "").substring(0, 12); }
-	private TeamDraft draft(RosterCatalog catalog) { List<TeamDraft.Player> players = new ArrayList<>(); for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, "lineman", Collections.emptyList())); Map<String, Integer> resources = new LinkedHashMap<>(); for (String resource : catalog.getResources().keySet()) resources.put(resource, 0); return new TeamDraft(RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "p1", players, resources); }
+	private TeamDraft draft(RosterCatalog catalog) {
+		List<TeamDraft.Player> players = new ArrayList<>();
+		for (int slot = 1; slot <= 11; slot++) players.add(new TeamDraft.Player("p" + slot, slot, slot, "Player " + slot, "lineman", Collections.emptyList()));
+		Map<String, Integer> resources = new LinkedHashMap<>();
+		for (String resource : catalog.getResources().keySet()) resources.put(resource, 0);
+		return new TeamDraft(TeamDraft.FORMAT_VERSION, "JDBC Acceptance Team", RosterCatalog.VERSION, "BB2025", "human", RosterCatalog.PRESET, "p1", players, resources);
+	}
 }

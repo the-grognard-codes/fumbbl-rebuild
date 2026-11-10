@@ -74,7 +74,7 @@ public class BrowserMatchTransport {
 	void queueDecisionCheck(BrowserProtocol adapter) {
 		if (stopped.get() || !deadlineCheckQueued.compareAndSet(false, true)) return;
 		try {
-			boolean queued = submitControl(() -> {
+			boolean queued = submitControl(BrowserRequestTiming.TaskKind.DECISION_EXPIRY, () -> {
 				try { if (!stopped.get()) adapter.expireDecisions(); }
 				finally { deadlineCheckQueued.set(false); }
 			}, () -> deadlineCheckQueued.set(false));
@@ -102,7 +102,7 @@ public class BrowserMatchTransport {
 				releaseConnection();
 			}
 		};
-		submitControl(release, release);
+		submitControl(BrowserRequestTiming.TaskKind.DISCONNECT, release, release);
 	}
 
 	void disconnectFromEngineWorker(BrowserMatchSocket socket, Runnable cleanup) {
@@ -124,23 +124,23 @@ public class BrowserMatchTransport {
 	}
 
 	boolean submit(String message, Runnable work, Runnable rejected) {
-		return submit(message, work, rejected, false);
-	}
-
-	boolean submit(String message, Runnable work, Runnable rejected, boolean diagnostics) {
-		return submit(work, rejected, advisory(message), true, diagnostics);
+		return submit(work, rejected, advisory(message), true);
 	}
 
 	/** Trusted, coalesced operator/deadline/disconnect work shares ordering, not browser admission. */
 	boolean submitControl(Runnable work, Runnable rejected) {
-		return submit(work, rejected, false, false);
+		return submitControl(BrowserRequestTiming.TaskKind.CONTROL, work, rejected);
+	}
+
+	private boolean submitControl(BrowserRequestTiming.TaskKind kind, Runnable work, Runnable rejected) {
+		return submit(work, rejected, false, false, kind);
 	}
 
 	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress) {
-		return submit(work, rejected, advisory, trackedIngress, false);
+		return submit(work, rejected, advisory, trackedIngress, BrowserRequestTiming.TaskKind.INGRESS);
 	}
 
-	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, boolean diagnostics) {
+	private boolean submit(Runnable work, Runnable rejected, boolean advisory, boolean trackedIngress, BrowserRequestTiming.TaskKind kind) {
 		if (stopped.get() || trackedIngress && !ingress.tryAcquire()) {
 			if (trackedIngress) metrics.ingressOverload();
 			rejected.run();
@@ -152,7 +152,7 @@ public class BrowserMatchTransport {
 			rejected.run();
 			return false;
 		}
-		QueuedWork pending = new QueuedWork(work, advisory, trackedIngress, trackedIngress ? timing.queued(diagnostics) : null);
+		QueuedWork pending = new QueuedWork(work, advisory, trackedIngress, timing.queued(kind));
 		boolean queued;
 		synchronized (queueLock) {
 			Deque<QueuedWork> lane = advisory ? advisoryWork : foregroundWork;
@@ -188,10 +188,9 @@ public class BrowserMatchTransport {
 		}
 		if (pending == null) return;
 		if (pending.trackedIngress) metrics.ingressDelay(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) - pending.submittedAt);
-		try (BrowserRequestTiming.Scope ignored = timing.handling(pending.timing)) {
-			pending.work.run();
-		} finally {
-			release(pending);
+		try (BrowserRequestTiming.Scope ignored = timing.handling(pending.timing, metrics::taskFinished)) {
+			try { pending.work.run(); }
+			finally { release(pending); }
 		}
 	}
 

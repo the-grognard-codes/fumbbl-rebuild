@@ -3,6 +3,7 @@ package com.fumbbl.ffb.test;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.fumbbl.ffb.server.GameState;
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.local.BrowserConnection;
 import com.fumbbl.ffb.server.local.BrowserSavedTeamJson;
 import com.fumbbl.ffb.server.local.BrowserV2Adapter;
@@ -50,7 +51,7 @@ class V2RuntimeIntegrationTest {
 		assumeTrue(url != null, "Opt-in isolated current-schema database required");
 		assertTrue(url.startsWith("jdbc:mariadb://127.0.0.1:"));
 		String password = new String(Files.readAllBytes(Paths.get(System.getenv("M6_TEST_PASSWORD_FILE"))), StandardCharsets.UTF_8).trim();
-		JdbcMatchMembershipRepository.Connections connections = () -> DriverManager.getConnection(url, "root", password);
+		JdbcConnections connections = () -> DriverManager.getConnection(url, "root", password);
 		try (Connection connection = connections.open(); java.sql.Statement statement = connection.createStatement(); java.sql.ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
 			assertTrue(rows.next()); assertEquals(9, rows.getInt(1));
 		}
@@ -128,7 +129,7 @@ class V2RuntimeIntegrationTest {
 		assumeTrue(url != null, "Opt-in isolated current-schema database required");
 		assertTrue(url.startsWith("jdbc:mariadb://127.0.0.1:"));
 		String password = new String(Files.readAllBytes(Paths.get(System.getenv("M6_TEST_PASSWORD_FILE"))), StandardCharsets.UTF_8).trim();
-		JdbcMatchMembershipRepository.Connections connections = () -> DriverManager.getConnection(url, "root", password);
+		JdbcConnections connections = () -> DriverManager.getConnection(url, "root", password);
 		try (Connection connection = connections.open(); java.sql.Statement statement = connection.createStatement();
 			java.sql.ResultSet rows = statement.executeQuery("SELECT version FROM ffb_local_schema")) {
 			assertTrue(rows.next()); assertEquals(9, rows.getInt(1));
@@ -251,7 +252,7 @@ class V2RuntimeIntegrationTest {
 		return field.get(target);
 	}
 
-	private BrowserV2Adapter runtime(JdbcMatchMembershipRepository.Connections connections, String run) throws Exception {
+	private BrowserV2Adapter runtime(JdbcConnections connections, String run) throws Exception {
 		RosterCatalog catalog = new RosterCatalog(); Clock clock = Clock.systemUTC();
 		SavedTeamService teams = new SavedTeamService(new JdbcSavedTeamRepository(connections::open, true), catalog);
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);

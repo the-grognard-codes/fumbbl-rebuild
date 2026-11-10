@@ -36,6 +36,16 @@ import static org.mockito.Mockito.when;
 
 /** Application-level durability contracts; native checkpoint encoding/round trips have their own integration tests. */
 class SetupApplicationCheckpointTest {
+	@Test void openStorageAdmissionRejectsBeforeNativeMutationAndAllowsLaterRetry() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.application.configureStorageAdmission(() -> { throw new SQLException("database breaker open"); });
+			assertEquals("PERSISTENCE_FAILED", fixture.application.handle("home", request("action")).getString("code", null));
+			assertEquals(0, fixture.executed.get());
+			fixture.application.configureStorageAdmission(() -> { });
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("action")).getString("code", null));
+			assertEquals(1, fixture.executed.get());
+		}
+	}
 	private static final String MATCH = "12345678-1234-1234-1234-123456789abc";
 	private static final long NOW = 2000000000000L;
 
@@ -133,6 +143,21 @@ class SetupApplicationCheckpointTest {
 			assertTrue(retried.getBoolean("duplicate", false));
 			verify(fixture.recovery).save(any(RecoveryRepository.Record.class), eq(4L));
 			assertEquals(1, fixture.executed.get()); assertEquals(2, fixture.construction.constructed().size());
+		}
+	}
+	@Test void uncommittedUnknownActionRestoresBeforeOneEventualAcceptanceAndLaterMutation() throws Exception {
+		try (Fixture fixture = new Fixture()) {
+			fixture.failure = "MATCH_OUTCOME_UNKNOWN"; fixture.unknownCommitted = false;
+			SetupApplication.HandleOutcome uncertain = fixture.application.handleWithOutcome("home", request("action"));
+			assertEquals("MATCH_OUTCOME_UNKNOWN", uncertain.response().getString("code", null)); assertFalse(uncertain.publish());
+			assertEquals("before", fixture.durable.get().json); assertEquals(4, fixture.durable.get().generation);
+			fixture.failure = null;
+			JsonObject accepted = fixture.application.handle("home", request("action"));
+			assertEquals("ACCEPTED", accepted.getString("code", null)); assertFalse(accepted.getBoolean("duplicate", true));
+			assertTrue(fixture.application.handle("home", request("action")).getBoolean("duplicate", false));
+			assertEquals(2, fixture.executed.get()); assertEquals(5, fixture.durable.get().generation);
+			assertEquals("ACCEPTED", fixture.application.handle("home", request("later")).getString("code", null));
+			assertEquals(3, fixture.executed.get()); assertEquals(6, fixture.durable.get().generation);
 		}
 	}
 
@@ -246,6 +271,7 @@ class SetupApplicationCheckpointTest {
 		final MockedConstruction<SetupSession> construction;
 		final SetupApplication application;
 		String failure;
+		boolean unknownCommitted = true;
 		Fixture() throws Exception {
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null));
@@ -256,6 +282,7 @@ class SetupApplicationCheckpointTest {
 				assertEquals(durable.get().generation, ((Long) call.getArgument(1)).longValue());
 				if ("RECOVERY_CONFLICT".equals(failure)) return false;
 				if ("PERSISTENCE_FAILED".equals(failure)) throw new SQLException("unavailable");
+				if ("MATCH_OUTCOME_UNKNOWN".equals(failure) && !unknownCommitted) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				durable.set(record);
 				if ("MATCH_OUTCOME_UNKNOWN".equals(failure)) throw new RecoveryRepository.OutcomeUnknown(record, new SQLException("unknown"));
 				return true;

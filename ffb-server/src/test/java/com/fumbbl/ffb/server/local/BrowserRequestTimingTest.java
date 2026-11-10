@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,9 +62,9 @@ class BrowserRequestTimingTest {
 		if (previous == null) System.clearProperty("ffb.browser.timing"); else System.setProperty("ffb.browser.timing", previous);
 	}
 
-	@Test void disabledRequestsAllocateNoTimingAndInvalidOperationsEmitNothing() {
+	@Test void disabledRequestsStillHaveBudgetAndInvalidOperationsEmitNothing() {
 		System.clearProperty("ffb.browser.timing");
-		assertNull(timing.queued());
+		assertNotNull(timing.queued());
 		System.setProperty("ffb.browser.timing", "true");
 		for (JsonObject request : new JsonObject[] { action().set("operation", "unbounded-secret"),
 			action().set("requestId", "unsafe\nidentifier"), action().set("operation", 1), action().set("type", "authenticate") }) {
@@ -95,7 +97,7 @@ class BrowserRequestTimingTest {
 			@Override public void send(String message) { }
 			@Override public void sendDiagnostics(String message) { telemetry.add(message); }
 		};
-		BrowserRequestTiming.Request queued = timing.queued(true);
+		BrowserRequestTiming.Request queued = timing.queued();
 		nanos.addAndGet(2000000);
 		try (BrowserRequestTiming.Scope work = timing.handling(queued)) {
 			timing.selectRequest(action());
@@ -119,7 +121,7 @@ class BrowserRequestTimingTest {
 		assertEquals(java.util.Set.of("queueWaitMs", "handlingMs", "authorizationMs", "sessionApplyMs", "checkpointMs", "recoverySerializeMs", "checkpointSqlMs"),
 			new java.util.HashSet<>(durations.names()));
 		telemetry.clear();
-		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 			timing.selectRequest(action()); timing.enableReplies(connection);
 			nanos.addAndGet(4000000000000L);
 			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), () -> { });
@@ -138,7 +140,7 @@ class BrowserRequestTimingTest {
 			@Override public void send(String message) { }
 			@Override public void sendDiagnostics(String message) { throw new IllegalStateException("diagnostics unavailable"); }
 		};
-		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued(true))) {
+		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) {
 			timing.selectRequest(action()); timing.enableReplies(connection);
 			timing.reply(connection, new JsonObject().add("requestId", "timed-action"), replies::incrementAndGet);
 		}
@@ -221,7 +223,8 @@ class BrowserRequestTimingTest {
 
 	@Test void clockFailuresNeverEscapeAndAlwaysClearWorkerContext() {
 		BrowserRequestTiming unavailable = new BrowserRequestTiming(() -> { throw new IllegalStateException("clock unavailable"); }, clock, lines::add);
-		assertNull(unavailable.queued());
+		// A failed monotonic clock cannot silently disable enforcement. Wall-clock diagnostics remain optional.
+		assertThrows(IllegalStateException.class, unavailable::queued);
 		doThrow(new IllegalStateException("wall clock unavailable")).when(clock).millis();
 		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) { timing.selectRequest(action()); }
 		assertTrue(lines.isEmpty());
@@ -233,6 +236,73 @@ class BrowserRequestTimingTest {
 		doReturn(2000000000000L).when(clock).millis();
 		try (BrowserRequestTiming.Scope work = timing.handling(timing.queued())) { }
 		assertTrue(lines.isEmpty());
+	}
+
+	@Test void budgetStartsAtExecutionAndNestedHelpersCannotExtendIt() {
+		System.clearProperty("ffb.browser.timing");
+		BrowserRequestTiming.Request queued = timing.queued();
+		nanos.set(5_000_000_000L); // Queue wait consumes no worker allowance.
+		assertNull(timing.budget());
+		assertThrows(IllegalStateException.class, () -> {
+			try (BrowserRequestTiming.Scope outer = timing.handling(queued)) {
+				BrowserRequestTiming.Budget budget = timing.budget();
+				assertEquals(2000, budget.allowanceMillis(3000, 0));
+				nanos.addAndGet(1_500_000_000L);
+				try (BrowserRequestTiming.Scope nested = timing.handling(timing.queued())) {
+					assertSame(budget, timing.budget());
+					assertEquals(450, budget.allowanceMillis(1500, 50));
+					nanos.addAndGet(449_500_001L);
+					assertEquals(0, budget.allowanceMillis(500, 50));
+				}
+				assertSame(budget, timing.budget());
+				throw new IllegalStateException("unwind");
+			}
+		});
+		assertNull(timing.budget());
+		assertTrue(lines.isEmpty());
+	}
+
+	@Test void fullTaskMeasurementIncludesLoggingAndObservesOverrunEvenWhenOutputFails() {
+		List<BrowserRequestTiming.TaskMeasurement> measurements = new ArrayList<>();
+		BrowserRequestTiming slowOutput = new BrowserRequestTiming(nanos::get, clock, line -> {
+			assertNotNull(timing.budget());
+			nanos.addAndGet(100_000_000);
+			throw new IllegalStateException("optional log sink failure");
+		});
+		try (BrowserRequestTiming.Scope scope = slowOutput.handling(slowOutput.queued(), measurements::add)) {
+			slowOutput.selectRequest(action());
+			nanos.addAndGet(1_950_000_000L);
+		}
+		assertEquals(2_050_000_000L, measurements.getFirst().executionNanos());
+		assertTrue(measurements.getFirst().overrun());
+		assertNull(timing.budget());
+	}
+
+	@Test void controlAndIngressMetricsIncludeFullTaskAndCleanupWithoutCorrelation() {
+		System.clearProperty("ffb.browser.timing");
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		List<Runnable> queue = new ArrayList<>();
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { queue.add(call.getArgument(0)); return true; });
+		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
+		try {
+			BrowserProtocol protocol = mock(BrowserProtocol.class);
+			org.mockito.Mockito.doAnswer(call -> { assertNotNull(timing.budget()); nanos.addAndGet(3_000_000); return null; }).when(protocol).expireDecisions();
+			transport.queueDecisionCheck(protocol);
+			transport.submitControl(() -> { assertNotNull(timing.budget()); nanos.addAndGet(2_100_000_000L); }, () -> { });
+			transport.submit(() -> { nanos.addAndGet(4_000_000); }, () -> { });
+			nanos.addAndGet(7_000_000);
+			queue.forEach(Runnable::run);
+			JsonArray tasks = transport.getMetrics().toJson().get("workerTasks").asArray();
+			assertEquals(1, tasks.get(0).asObject().getLong("count", -1));
+			assertEquals(4_000_000, tasks.get(0).asObject().getLong("executionNanos", -1));
+			assertEquals(1, tasks.get(1).asObject().getLong("overruns", -1));
+			assertEquals(7_000_000, tasks.get(2).asObject().getLong("queueNanos", -1));
+			assertEquals(3_000_000, tasks.get(2).asObject().getLong("executionNanos", -1));
+			assertNull(timing.budget());
+			assertTrue(lines.isEmpty());
+		} finally { transport.destroy(); }
 	}
 
 	@Test void diagnosticOutputFailureDoesNotEscapeOrContaminateTheNextRequest() {

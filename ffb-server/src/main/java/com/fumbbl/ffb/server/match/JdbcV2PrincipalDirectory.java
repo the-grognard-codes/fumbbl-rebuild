@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,14 +19,44 @@ public final class JdbcV2PrincipalDirectory implements V2PrincipalDirectory {
 
 	@Override public AuthenticatedPrincipal authenticate(VerifiedIdentity identity) throws SQLException, V2PrincipalAuthenticator.Rejected {
 		requireUnexpired(identity.expiresAtMillis);
+		try { return authenticateOnce(identity); }
+		catch (CreationOutcomeUnknown failure) {
+			try {
+				AuthenticatedPrincipal durable = existing(identity);
+				if (durable != null) return durable;
+			} catch (SQLException readback) { failure.addSuppressed(readback); }
+			throw failure;
+		}
+	}
+	private AuthenticatedPrincipal existing(VerifiedIdentity identity) throws SQLException, V2PrincipalAuthenticator.Rejected {
+		requireUnexpired(identity.expiresAtMillis);
+		try (Connection connection = connections.open()) {
+			String account = account(connection, identity);
+			return account == null ? null : authorize(connection, identity, account);
+		}
+	}
+	private AuthenticatedPrincipal authenticateOnce(VerifiedIdentity identity) throws SQLException, V2PrincipalAuthenticator.Rejected {
+		boolean commitAttempted = false;
 		try (Connection connection = connections.open()) {
 			String account = account(connection, identity);
 			if (account == null) {
 				connection.setAutoCommit(false);
-				try { account = UUID.randomUUID().toString(); create(connection, identity, account); connection.commit(); }
-				catch (SQLException failure) { connection.rollback(); throw failure; }
+				try {
+					account = UUID.randomUUID().toString(); create(connection, identity, account);
+					commitAttempted = true; connection.commit();
+				} catch (SQLException failure) {
+					try { connection.rollback(); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
+					throw failure;
+				}
 			}
 			return authorize(connection, identity, account);
+		} catch (SQLException failure) {
+			if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new CreationOutcomeUnknown(failure);
+			if ("23000".equals(failure.getSQLState()) && failure.getErrorCode() == 1062) {
+				try { AuthenticatedPrincipal durable = existing(identity); if (durable != null) return durable; }
+				catch (SQLException readback) { failure.addSuppressed(readback); }
+			}
+			throw failure;
 		}
 	}
 

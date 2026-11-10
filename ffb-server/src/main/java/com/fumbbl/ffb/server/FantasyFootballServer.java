@@ -8,6 +8,7 @@ import com.fumbbl.ffb.factory.IFactorySource;
 import com.fumbbl.ffb.factory.INamedObjectFactory;
 import com.fumbbl.ffb.server.commandline.InifileParamFilter;
 import com.fumbbl.ffb.server.commandline.InifileParamFilterResult;
+import com.fumbbl.ffb.server.db.JdbcRequestConnections;
 import com.fumbbl.ffb.server.local.BrowserV2Runtime;
 import com.fumbbl.ffb.server.local.BrowserV2TransportPolicy;
 import com.fumbbl.ffb.server.net.ServerCommunication;
@@ -20,7 +21,6 @@ import org.eclipse.jetty.server.ServerConnector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.sql.DriverManager;
 import java.util.Map;
 import java.util.Properties;
 /** Hosts V2 browser matches on a single engine worker. */
@@ -32,6 +32,7 @@ public class FantasyFootballServer implements IFactorySource {
 	private Fortuna fortuna;
 	private ServerCommunication communication;
 	private Server httpServer;
+	private JdbcRequestConnections jdbcConnections;
 	private boolean resourcesStopped;
 	private boolean blockingNewGames;
 
@@ -59,6 +60,8 @@ public class FantasyFootballServer implements IFactorySource {
 	public void setBlockingNewGames(boolean blocking) { blockingNewGames = blocking; }
 
 	public void run() throws Exception {
+		jdbcConnections = new JdbcRequestConnections(getProperty(IServerProperty.DB_URL),
+			getProperty(IServerProperty.DB_USER), getProperty(IServerProperty.DB_PASSWORD), true);
 		File logFolder = new File(properties.getProperty(IServerProperty.SERVER_LOG_FOLDER, "logs"));
 		if ((!logFolder.isDirectory() && !logFolder.mkdirs()) || !logFolder.canWrite())
 			throw new IllegalArgumentException("Cannot write server log folder");
@@ -78,15 +81,10 @@ public class FantasyFootballServer implements IFactorySource {
 		ServletContextHandler context = new ServletContextHandler();
 		context.setContextPath("/");
 		JettyWebSocketServletContainerInitializer.configure(context, null);
-		BrowserV2Runtime.mount(this, context, this::openConnection);
+		BrowserV2Runtime.mount(this, context, jdbcConnections);
 		httpServer.setHandler(context);
 		httpServer.start();
 		System.err.println("Browser V2 running on port " + connector.getLocalPort());
-	}
-
-	private java.sql.Connection openConnection() throws java.sql.SQLException {
-		return DriverManager.getConnection(getProperty(IServerProperty.DB_URL), getProperty(IServerProperty.DB_USER),
-			getProperty(IServerProperty.DB_PASSWORD));
 	}
 
 	public static void main(String[] arguments) throws Exception {
@@ -114,8 +112,11 @@ public class FantasyFootballServer implements IFactorySource {
 		RuntimeException failure = null;
 		try { if (httpServer != null) httpServer.stop(); }
 		catch (Exception exception) { failure = new IllegalStateException("Cannot stop browser transport", exception); }
-		try { if (communication != null) communication.shutdown(); }
+		boolean engineStopped = communication == null;
+		try { if (communication != null) { communication.shutdown(); engineStopped = true; } }
 		catch (RuntimeException exception) { if (failure == null) failure = exception; else failure.addSuppressed(exception); }
+		// An undrained worker still needs socket deadlines. A later successful stop closes them.
+		if (engineStopped && jdbcConnections != null) jdbcConnections.close();
 		if (failure != null) throw failure;
 		resourcesStopped = true;
 		System.err.println("Browser server shut down; engine queue drained.");

@@ -24,6 +24,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JdbcRecoveryRepositoryTest {
+	@Test void refusedCommitRemainsDefiniteBeforeAnyCommitIo() throws Exception {
+		when(statement.executeUpdate()).thenReturn(1);
+		doThrow(new com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted()).when(connection).commit();
+		assertThrows(com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted.class, () -> repository.save(record(8), 7));
+	}
 	@Test void detailedWritesExposeConnectionCompressionStatementCommitAndByteCounts() throws Exception {
 		when(statement.executeUpdate()).thenReturn(1);
 		String payload = "{\"padding\":\"" + "a".repeat(8000) + "\"}";

@@ -1,6 +1,7 @@
 package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.FirebaseV2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.JdbcMatchMembershipRepository;
@@ -30,7 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 /** The v2 host serves only one authenticated game endpoint. */
 public final class BrowserV2Runtime {
 	public static void mount(FantasyFootballServer server, ServletContextHandler context,
-		JdbcMatchMembershipRepository.Connections connections) throws SQLException {
+		JdbcConnections connections) throws SQLException {
 		try (Connection connection = connections.open()) { new Marker6Schema().verify(connection); }
 		String project = server.getProperty("local.browser.v2.firebase.project");
 		BrowserV2TransportPolicy policy = new BrowserV2TransportPolicy(server.getProperty("server.base"), server.getProperty("local.browser.v2.proxy.profile"));
@@ -42,6 +43,7 @@ public final class BrowserV2Runtime {
 		MatchService matches = new MatchService(new JdbcMatchRepository(connections::open), teams, catalog);
 		// New activations use r4.1 checkpoints. Existing r2.2/r2.3 checkpoints restore under their recorded runtime.
 		SetupApplication setup = new SetupApplication(server, matches, new JdbcRecoveryRepository(connections::open, true), true, true);
+		setup.configureStorageAdmission(connections::requireAvailable);
 		SkillUsePreferenceService skillUsePreferences = new SkillUsePreferenceService(
 			new JdbcSkillUsePreferenceRepository(connections::open), new JdbcMatchMembershipRepository(connections::open));
 		setup.configureSkillUsePreferences(skillUsePreferences);

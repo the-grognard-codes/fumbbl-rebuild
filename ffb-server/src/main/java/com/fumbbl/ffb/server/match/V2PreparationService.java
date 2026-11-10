@@ -1,5 +1,10 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.CleanupNotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.NotStarted;
+import com.fumbbl.ffb.server.db.JdbcConnections.Unavailable;
+
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.team.SavedTeamService;
@@ -56,7 +61,9 @@ public final class V2PreparationService {
 			if ("reissue".equals(operation)) return reissue(accountId, request);
 			if ("revoke".equals(operation)) return revoke(accountId, request);
 			throw new Failure("INVALID_REQUEST");
-		} catch (CommitUnknown failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
+		} catch (NotStarted failure) { return refused(requestId, failure); }
+		catch (Unavailable failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
+		catch (CommitUnknown failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
 		catch (Failure failure) { return response(requestId, failure.code, false, null, null, null); }
 		catch (SavedTeamService.Failure failure) { return response(requestId, failure.code, false, null, null, null); }
 		// A JDBC close may fail after COMMIT; preparation callers must reconcile rather than assume rollback.
@@ -98,9 +105,14 @@ public final class V2PreparationService {
 	/** A disconnect tracker must grant this permission; clients cannot express it through {@link #handle}. */
 	public JsonObject releaseAbandoned(String creatorAccountId, String matchId, String requestId, boolean disconnectConfirmed) {
 		try { return release(creatorAccountId, matchId, requestId, disconnectConfirmed); }
+		catch (NotStarted failure) { return refused(requestId, failure); }
+		catch (Unavailable failure) { return response(requestId, "PERSISTENCE_FAILED", false, null, null, null); }
 		catch (CommitUnknown failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
 		catch (Failure failure) { return response(requestId, failure.code, false, null, null, null); }
 		catch (SQLException failure) { return response(requestId, "MATCH_OUTCOME_UNKNOWN", false, null, null, null); }
+	}
+	private JsonObject refused(String requestId, NotStarted failure) {
+		return response(requestId, failure instanceof CleanupNotStarted ? "MATCH_OUTCOME_UNKNOWN" : "PERSISTENCE_FAILED", false, null, null, null);
 	}
 	private JsonObject release(String creatorAccountId, String matchId, String requestId, boolean disconnectConfirmed) throws SQLException {
 		account(creatorAccountId); uuid(matchId); requestId(requestId);
@@ -326,7 +338,11 @@ public final class V2PreparationService {
 	private String token(String value) { if (value == null || !value.matches("[A-Za-z0-9_-]{22}")) throw new Failure("INVITATION_INVALID"); return value; }
 	private String hash(String value) { try { byte[] bytes = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.US_ASCII)); StringBuilder out = new StringBuilder(64); for (byte b : bytes) out.append(String.format("%02x", b & 255)); return out.toString(); } catch (java.security.NoSuchAlgorithmException failure) { throw new IllegalStateException(failure); } }
 	private void rollback(Connection connection, Exception failure) { try { connection.rollback(); } catch (SQLException rollback) { failure.addSuppressed(rollback); } }
-	private void commit(Connection connection) throws SQLException { try { connection.commit(); } catch (SQLException failure) { throw new CommitUnknown(failure); } }
+	private void commit(Connection connection) throws SQLException {
+		try { connection.commit(); }
+		catch (CommitNotStarted failure) { throw failure; }
+		catch (SQLException failure) { throw new CommitUnknown(failure); }
+	}
 	private static final class Invite { final String matchId, state, acceptedAccountId; final long expires; Invite(String matchId, long expires, String state, String acceptedAccountId) { this.matchId=matchId; this.expires=expires; this.state=state; this.acceptedAccountId=acceptedAccountId; } }
 	private static final class Retry { final String fingerprint, code; Retry(String code) { this(null, code); } Retry(String fingerprint, String code) { this.fingerprint=fingerprint; this.code=code; } }
 	private static final class CommitUnknown extends SQLException { CommitUnknown(SQLException cause) { super("Commit outcome unknown", cause); } }

@@ -9,6 +9,30 @@ import java.util.function.Supplier;
 
 /** Test-only bridge to the actual worker timing context, without enabling global production logs. */
 public final class CaptureRequestProbe {
+	public record Publication(java.util.function.Consumer<JsonObject> publish, java.util.function.IntSupplier accepted) { }
+	/** Fifteen passive peers plus the requesting player exercise the admitted connection limit. */
+	public Publication publication(com.fumbbl.ffb.server.match.V2MatchAccess access,
+		com.fumbbl.ffb.server.match.SetupApplication setup, com.fumbbl.ffb.server.match.AuthenticatedPrincipal principal,
+		String matchId, int peers) throws java.sql.SQLException {
+		ActiveMatchPublisher publisher = new ActiveMatchPublisher(access, setup, null);
+		java.util.concurrent.atomic.AtomicInteger accepted = new java.util.concurrent.atomic.AtomicInteger();
+		for (int index = 0; index < peers; index++) publisher.watch(new BrowserConnection() {
+			@Override public void send(String message) {
+				// Production queues the serialized string; JSON decoding belongs to the browser.
+				int code = message.indexOf("\"code\":\"ACCEPTED\""), state = message.indexOf("\"state\":");
+				if (code < 0 || state < code) throw new AssertionError("Healthy publication was rejected");
+				accepted.incrementAndGet();
+			}
+		}, principal, matchId, "synthetic-watch");
+		return new Publication(state -> publisher.publish(matchId, null, state), accepted::get);
+	}
+	/** Diagnostics-off bridge for real worker-budget acceptance, including checked JDBC failures. */
+	public <T> T within(java.util.concurrent.Callable<T> action) throws Exception {
+		BrowserRequestTiming timing = new BrowserRequestTiming();
+		try (BrowserRequestTiming.Scope scope = timing.handling(new BrowserRequestTiming.Request(System.nanoTime(), System::nanoTime, false))) {
+			return action.call();
+		}
+	}
 	public record Measurement(JsonObject response, JsonObject timing) { }
 	public JsonObject details(JsonObject request, Supplier<JsonObject> action) {
 		List<String> lines = new ArrayList<>();

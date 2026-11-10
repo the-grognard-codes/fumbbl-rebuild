@@ -1,7 +1,12 @@
 # Feature: Bound engine-worker JDBC work and preserve durable retries
 
 Tracking: [#505](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/505).
-Status: formal fix request; implementation pending.
+Status: deliverables A and B independently accepted; the RB1 #506 pooling fallback is complete.
+Independent PR review corrections preserve this JDBC boundary; repeated local
+whole-worker healthy p99 remains variable (including misses above 100 ms), as
+recorded in the outcome report's review performance evidence.
+Real-provider integrated validation remains owned by #504 and the final #39 run.
+Evidence: [slice 2 outcome report](engine-worker-jdbc-bounds-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C1-C5 and J1-J3](engine-worker-requests-review.md).
 Budget correction: [RB1 supersedes the round-one static-sum model](engine-worker-requests-review.md#rb1-high-blocks-505-b-and-the-integrated-budget-claims-of-504-the-static-sum-rule-cannot-be-satisfied).
@@ -257,8 +262,8 @@ clean server build/tests, with relevant V2 recovery/reconnect smoke coverage.
 
 ## Completion Notes
 
-Request only; no runtime validation has run for this request. Before implementation,
-link this revised scope from #505 or update its body when tracker writes are
-authorized. Record effective
-settings, failure classification, timing and exact-retry evidence in an outcome
-report; diagnose failing checks until resolved or a concrete blocker is recorded.
+The revised scope was linked from #505 before implementation. A was independently
+validated and committed before B began. The [outcome report](engine-worker-jdbc-bounds-outcome.md)
+records settings, failure classification, matched connection/p99 evidence, the
+#506 sequencing decision, real MariaDB fault outcomes, review fixes and validation.
+Independent slice acceptance does not claim production-provider integration.

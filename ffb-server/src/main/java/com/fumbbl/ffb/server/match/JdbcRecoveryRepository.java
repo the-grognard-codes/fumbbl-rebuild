@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
 import java.sql.Connection;
@@ -149,7 +151,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				throw failure;
 			}
 		} catch (SQLException failure) {
-			if (commitAttempted) throw new OutcomeUnknown(record, failure);
+			if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure);
 			throw failure;
 		}
 	}
@@ -191,7 +193,7 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				try { rollback(connection); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
 				throw failure;
 			}
-		} catch (SQLException failure) { if (commitAttempted) throw new OutcomeUnknown(record, failure); throw failure; }
+		} catch (SQLException failure) { if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure); throw failure; }
 	}
 
 	private void reserveRetention(String matchId, Connection connection) throws SQLException {

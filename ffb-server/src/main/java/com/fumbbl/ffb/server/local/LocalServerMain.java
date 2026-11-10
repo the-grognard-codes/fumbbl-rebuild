@@ -11,9 +11,9 @@ import java.nio.file.Paths;
 import java.util.Properties;
 /** Container-only entry point. No live credentials or destructive initDb argument. */
 public class LocalServerMain {
-	static final String MARKER6_DB_URL = "jdbc:mariadb://host.docker.internal:23316/ffb_local";
-	static final String REVIEW_DB_URL = "jdbc:mariadb://host.docker.internal:23317/ffb_local";
-	static final String ACCEPTANCE_DB_URL = "jdbc:mariadb://host.docker.internal:23318/ffb_local";
+	static final String MARKER6_DB_URL = "jdbc:mariadb://host.docker.internal:23316/ffb_local?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1";
+	static final String REVIEW_DB_URL = "jdbc:mariadb://host.docker.internal:23317/ffb_local?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1";
+	static final String ACCEPTANCE_DB_URL = "jdbc:mariadb://host.docker.internal:23318/ffb_local?connectTimeout=500&socketTimeout=1500&sessionVariables=innodb_lock_wait_timeout=1";
 	static final String MARKER6_DB_USER = "ffb_m6_runtime";
 
 	public static void main(String[] args) throws Exception {

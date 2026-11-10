@@ -1,5 +1,7 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -70,7 +72,7 @@ public final class JdbcMatchRepository implements MatchRepository {
 		} catch (SQLException failure) {
 			// Even a connection-close failure after COMMIT is conservatively unknown.
 			// Before COMMIT no transaction can commit: failed rollback is completed on connection termination.
-			if (commitAttempted) throw new OutcomeUnknown(record, failure);
+			if (commitAttempted && !(failure instanceof CommitNotStarted)) throw new OutcomeUnknown(record, failure);
 			throw failure;
 		}
 	}

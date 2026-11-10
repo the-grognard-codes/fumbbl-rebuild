@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Browser worker tasks share a monotonic two-second request budget independently
+  of diagnostics. Operational counters include full ingress, decision expiry and
+  disconnect cleanup execution, queue wait and budget overruns.
+
+- JDBC work uses deadline-capped connection and network limits, one-second
+  session lock waits and a shared outage breaker. Durable retries reconcile lost
+  membership, account-creation and skill-preference acknowledgements; refused
+  commits remain distinct from unknown commit outcomes. A small bounded pool
+  reuses clean read sessions and discards changed sessions before another request.
+  Stale idle sessions reconnect before application work; nested recovery loans
+  share one probe, and request-deadline expiry preserves write uncertainty without
+  opening the database outage breaker.
+
+- Dev-local Hosting uses the stack's verified credentials in an isolated CLI
+  configuration, avoiding startup authentication errors from an expired CLI login.
+
 - Riotous Rookies receive local `RiotousRookie #n` names without contacting a
   name service. Removed the unused FUMBBL service URL properties and HTTP helpers,
   along with the legacy remote roster-download tool and unused signing keystore;

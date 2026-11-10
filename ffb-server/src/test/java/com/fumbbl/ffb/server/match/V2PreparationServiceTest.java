@@ -1,5 +1,6 @@
 package com.fumbbl.ffb.server.match;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.eclipsesource.json.JsonArray;
@@ -40,6 +41,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class V2PreparationServiceTest {
+	@Test void definiteAdmissionRefusalsStayDistinctFromCleanupUncertaintyForEveryPreparationEntry() {
+		String account = "00000000-0000-0000-0000-000000000001", match = "00000000-0000-0000-0000-000000000002";
+		for (SQLException failure : new SQLException[] {new JdbcConnections.NotStarted(), new JdbcConnections.CommitNotStarted(),
+			new JdbcConnections.Unavailable(), new JdbcConnections.CleanupNotStarted()}) {
+			V2PreparationService service = new V2PreparationService(() -> { throw failure; }, null, null, Clock.systemUTC());
+			String expected = failure instanceof JdbcConnections.CleanupNotStarted ? "MATCH_OUTCOME_UNKNOWN" : "PERSISTENCE_FAILED";
+			assertEquals(expected, service.handle(account, create("refused", match)).getString("code", null));
+			JsonObject join = new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "join")
+				.add("requestId", "refused_join").add("invitationCode", "abcdefghijklmnopqrstuv").add("teamId", match).add("expectedDocumentVersion", 1);
+			assertEquals(expected, service.handle(account, join).getString("code", null));
+			for (String operation : new String[] {"reissue", "revoke"}) {
+				JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", operation)
+					.add("requestId", "refused_" + operation).add("matchId", match);
+				assertEquals(expected, service.handle(account, request).getString("code", null));
+			}
+			assertEquals(expected, service.releaseAbandoned(account, match, "refused_release", true).getString("code", null));
+		}
+	}
 	@Test void createsBogrukWithASeparateFrozenCloneAndPreservesHisRosterChoice() throws Exception {
 		Connection connection = connection(false);
 		PreparedStatement stored = mock(PreparedStatement.class);

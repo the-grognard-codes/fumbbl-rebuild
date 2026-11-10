@@ -247,8 +247,12 @@ async function start(tokenFile, restart = false) {
   console.log('Starting local Firebase Hosting...');
   const out = openSync(join(toolsDirectory, 'dev-local-hosting.log'), 'a');
   const err = openSync(join(toolsDirectory, 'dev-local-hosting.err.log'), 'a');
+  // Use the ADC already verified for this stack instead of an unrelated cached CLI login.
+  const hostingEnvironment = { ...process.env, GOOGLE_APPLICATION_CREDENTIALS: secrets.M6_ADC_FILE,
+    XDG_CONFIG_HOME: join(toolsDirectory, 'dev-local-firebase-auth') };
+  delete hostingEnvironment.FIREBASE_TOKEN;
   const child = spawn(process.execPath, [firebase, 'emulators:start', '--config', 'firebase.generated.json', '--only', 'hosting', '--project', project],
-    { cwd: root, detached: true, windowsHide: true, stdio: ['ignore', out, err] });
+    { cwd: root, env: hostingEnvironment, detached: true, windowsHide: true, stdio: ['ignore', out, err] });
   closeSync(out); closeSync(err);
   if (!child.pid) throw Error('HOSTING_START_FAILED');
   child.unref();
