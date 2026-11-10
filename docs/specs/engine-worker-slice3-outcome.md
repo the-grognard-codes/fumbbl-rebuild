@@ -5,7 +5,10 @@ Tracking: [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504
 Independent security-review PR: [#518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518).
 Branch: `fix/firebase-bounds-publication-authorization`, from current main
 `031495c72` after RB2 and slice 2 merged.
-Status: implemented, independently reviewed and validated; ready for PR review.
+Status: review revisions implemented and independently approved. Fresh local
+validation passed; Google-backed reruns await renewed ADC sign-in. See the
+[complete review dispositions and current validation](../reviews/2026-11-10-pr518-review-responses.md).
+The original delivery evidence below predates these review revisions.
 No merge or deployment performed.
 
 The [continued feasibility spike](engine-worker-firebase-bounds-spike-2.md)
@@ -67,8 +70,20 @@ The final 170-request instrumented snapshot had maximum execution 1,527.19 ms an
 zero executions over two seconds. The detailed outcome distinguishes this from
 the earlier uninstrumented failure and ADR 0006's native/CPU residual risk.
 
-No required implementation or validation remains pending. The historical
+At the original delivery, no required implementation or validation remained pending. The historical
 non-reproducing startup rejection remains an explicitly recorded diagnostic
 limitation for review. [PR #518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518)
 will close both issues on merge;
 neither issue is closed independently while review remains outstanding.
+
+PR #518 review corrections preserve valid subscriptions when only the originating
+request/JDBC deadline expires, including during state projection. Denied provider
+probes now release their slot without renewing cooldown or falsely healing the
+breaker. The proposed denial-as-success policy is specifically rejected against
+the #504 contract. All optional refactors and scope notes have individual
+dispositions in the linked response. Current code passed 104 focused tests,
+1,086 clean-verification tests (twenty expected opt-in skips), six actual
+MariaDB/socket tests, 530 browser unit tests and the complete 82-suite gate.
+Fresh real Google-provider/JDBC and credentialed UI smoke remain blocked by
+expired ADC, despite a successful full image build. No merge or deployment is
+authorized by these revisions.

@@ -4,7 +4,12 @@ Review: [complete independent notes](https://github.com/the-grognard-codes/fumbb
 against `c2e3a4f8b`. This response covers every recommendation; optional refactors
 are distinguished from incorrect recommendations and confirmed defects.
 
-## Behavior findings
+## Spec
+
+Independent follow-up at `0717c4d70`: **APPROVE**, no actionable findings remain.
+Projection-read deferral and fresh-batch recovery are covered; final enqueue
+checks expiry/budget, actual denials still retire, and denied probes neither heal
+nor renew cooldown. The reviewer ran no builds; root validation is recorded below.
 
 1. **Budget exhaustion retires valid passive viewers — accepted and fixed.**
    `V2MatchAccess.PublicationDeferred` distinguishes scheduling exhaustion from
@@ -34,7 +39,12 @@ are distinguished from incorrect recommendations and confirmed defects.
    one probe at a time, no healing by denials, no delay to the next valid identity,
    unavailable-probe reopening and no positive caching of the denied identity.
 
-## Standards and heuristic recommendations
+## Standards
+
+Independent follow-up at `0717c4d70`: **APPROVE**, no actionable documented-standard
+violations or heuristic findings remain. The projection fix and import hierarchy
+corrections were checked. Previously dispositioned optional refactors remain
+explicitly distinguished below. The reviewer ran no builds.
 
 | Recommendation | Disposition and specific reason |
 | --- | --- |
@@ -44,7 +54,7 @@ are distinguished from incorrect recommendations and confirmed defects.
 | One `FirebaseProviderRuntime.call(...)` lifecycle | Optional refactor not adopted. Initial authentication verifies signed metadata before revocation and observes rejection on failure; refresh may skip all provider work on a fixed positive-cache hit, then validates `getUser` before healing. Both close the operation before local SQL. A generic callback must preserve these distinct trust/cache/error orderings. No ownership/cleanup defect was demonstrated; the narrow lease-release correction avoids redesigning those proven boundaries. |
 | One shared publication dispatcher / `send` helper | Optional refactor not adopted. State creates role-specific projections and optional transcript predecessors, chat distributes an existing page and excludes computers, and preparation sends membership-sensitive invalidations from another subscription map. All retain the final guard after serialization. A generic dispatcher would need to expose these different sources, projections and retirement hooks. The shared authority/budget classification is centralized in `V2MatchAccess`; dispatch remains explicit and regression-tested for all three families. |
 | Collapse bounded cause-chain walks | Not adopted. The walkers return different evidence: transport-failure precedence, credential rejection and trusted lifecycle rejection/observer input. Keeping their small bounded walks local preserves classification precedence and avoids a generic traversal API solely for four loops. |
-| Collapse duplicate worker startup guards | Rejected as removal of redundant protection. DNS discovery and ADC discovery are independently reachable startup operations; each must refuse request-worker execution. A guard in one entry point cannot protect direct use of the other. |
+| Collapse duplicate worker startup guards | Optional helper extraction not adopted. DNS and ADC discovery are independently reachable, so both call sites must retain a guard even with a shared helper. The current two-line predicates make that requirement visible at each entry point; extracting only the predicate adds indirection without reducing the two required checks. This is a tradeoff, not a claim that the reviewer proposed removing protection. |
 | Role enum in publication snapshots | Optional model change not adopted. Existing membership/storage/protocol roles are strings throughout this boundary. `publicationRole` already admits only audience-compatible `home`/`away`/`spectator`, denying null/unrecognized values. A local enum adds conversions without changing the authority check; a broader domain migration exceeds this correction. |
 | Issuer/subject identity value type | Optional model change not adopted. `VerifiedIdentity` already carries trusted identity plus temporal claims. `ProviderSessionRejection` deliberately exposes only `rejects(principal)`, not identifier getters. Introducing another transferable identity object is unnecessary to preserve that opaque observation contract. |
 | Remove two-argument `response(...)` | Accepted cleanup, with correction: it had test callers, though no production caller. Tests now explicitly pass endpoint provenance; production still recognizes lifecycle codes only from the expected identity lookup endpoint. |
@@ -76,9 +86,39 @@ are distinguished from incorrect recommendations and confirmed defects.
 
 ## Revision validation
 
+Revision review summary: **Standards 0 remaining findings; Spec 0 remaining
+findings**. Both original actionable issues and the follow-up projection case
+are fixed; proposed identity-denial healing is rejected for the stated contract
+reason, rather than silently changing the accepted security policy.
+
 The new regressions failed before the fix (three budget failures and one denied-
 probe error). Focused corrected validation passed 104 tests, zero failures/errors
 and no skips, including real loopback TLS/credential/cancellation tests, unchanged
 incoming freshness, rejection retirement and transcript behavior.
 Evidence: `.tools/pr518-revisions-{red,focused-r2}.log`.
-Final clean, real provider/JDBC and rebuilt runtime validation is pending.
+At frozen code commit `0717c4d70`, clean `tools/target-build.ps1 verify` passed in
+16:52: **19 common + 775 server + 292 native = 1,086 tests**, zero failures/errors,
+twenty expected opt-in skips. Evidence: `.tools/pr518-revisions-verify-r2.log`.
+The actual MariaDB publication/role/computer/16-socket integration class separately
+passed **6 tests without skips** in `.tools/pr518-revisions-real-jdbc.log`.
+Browser unit tests passed **530/530**; TypeScript/Vite assembly and all **82 browser
+suites** passed the unchanged coverage gate in **734.5 seconds with two workers**.
+Reports: `.tools/validation/local-browser-JWwxyO`; logs:
+`.tools/pr518-revisions-browser-unit.log` and
+`.tools/pr518-revisions-dev-local-r2.log`. The Linux image build also ran all
+775 server tests successfully (thirteen expected opt-in skips).
+
+**External validation blocker:** both standard and mounted JVM Google ADC profiles
+return `SESSION_EXPIRED` (`invalid_grant` / `invalid_rapt`). New DEV token minting
+failed preflight before producing tokens. The normal startup reached the existing
+interactive Google ADC-renewal flow after its successful image build. Renewed
+human sign-in is required before rerunning actual Google Firebase + JDBC and the
+credentialed three-party authentication/gameplay/chat smoke. Previous delivery
+results remain historical; they are not relabeled as tests of these revisions.
+The user has been asked to run `gcloud auth application-default login` in their
+normal terminal. Authentication requirements and credential transport policy were
+not weakened to bypass the expired session. The owned startup process waiting for
+interactive sign-in was stopped before handoff; the built image and review data
+are retained. Only the owned synthetic JDBC validation container was stopped
+after its tests passed. Known generated screenshots/development-page changes were
+restored. No unrelated work was changed.
