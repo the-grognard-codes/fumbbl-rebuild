@@ -1,11 +1,12 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.FantasyFootballServer;
+import com.fumbbl.ffb.server.ServerCommunication;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.FrozenTeam;
-import com.fumbbl.ffb.server.match.LobbyReadBudget;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchMembershipRepository;
@@ -32,6 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
+import org.eclipse.jetty.ee8.websocket.api.Session;
+import org.eclipse.jetty.ee8.websocket.api.WriteCallback;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +45,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -630,7 +635,7 @@ class BrowserV2AdapterTest {
 		verify(access, times(4)).browse(player);
 	}
 
-	@Test void expiredWorkerDeadlineRejectsBeforeRepositoryReadsWithCorrelation() throws Exception {
+	@Test void socketWorkerReceiveRejectsExpiredDeadlineBeforeRepositoryReadsWithCorrelation() throws Exception {
 		AtomicLong nanos = new AtomicLong();
 		BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, line -> { });
 		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.SPECTATOR);
@@ -640,15 +645,27 @@ class BrowserV2AdapterTest {
 		MatchService matches = new MatchService(repository, null, null);
 		SetupApplication setup = new SetupApplication(null, matches);
 		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
-		Connection connection = new Connection();
-		adapter.receive(connection, authenticate("auth", "player").toString());
-		try (BrowserRequestTiming.Scope task = timing.handling(timing.queued())) {
-			adapter.receive(connection, request("browse", "deadline").add("includeDetails", true).toString());
-			assertEquals(0, timing.budget().allowanceMillis(2000, 50));
-		}
-		assertEquals("RATE_LIMITED", code(connection, 1));
-		assertEquals("deadline", JsonObject.readFrom(connection.messages.get(1)).getString("requestId", null));
-		verify(repository, never()).find(any());
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { ((Runnable) call.getArgument(0)).run(); return true; });
+		Session session = mock(Session.class); RemoteEndpoint remote = mock(RemoteEndpoint.class);
+		when(session.isOpen()).thenReturn(true); when(session.getRemote()).thenReturn(remote);
+		List<String> replies = new ArrayList<>();
+		doAnswer(call -> { replies.add(call.getArgument(0)); ((WriteCallback) call.getArgument(1)).writeSuccess(); return null; })
+			.when(remote).sendString(any(String.class), any(WriteCallback.class));
+		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
+		try {
+			BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport); socket.onConnect(session);
+			socket.onText(authenticate("auth", "player").toString());
+			socket.onText(request("browse", "deadline").add("includeDetails", true).toString());
+			JsonObject response = JsonObject.readFrom(replies.get(1));
+			assertEquals("RATE_LIMITED", response.getString("code", null));
+			assertEquals("deadline", response.getString("requestId", null));
+			verify(repository, never()).find(any());
+			assertEquals(2, transport.getMetrics().toJson().get("workerTasks").asArray().get(0).asObject().getInt("count", -1));
+			socket.onClose(1000, "done");
+		} finally { transport.destroy(); }
 	}
 
 	@Test void alternatingReadTypesAndDisconnectUseOneDeterministicConnectionBucket() throws Exception {

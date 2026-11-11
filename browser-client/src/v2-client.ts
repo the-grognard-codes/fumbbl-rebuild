@@ -49,7 +49,7 @@ export class V2Client {
   private lobbyReadDelay = lobbyReadInterval;
   private lobbyReadInFlight = new Set<string>();
   private queuedLobbyReads = new Map<string, () => void>();
-  private lobbyReadTimers = new Set<ReturnType<typeof setTimeout>>();
+  private lobbyReadTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private diagnosticRequests = new Map<string, { operation: string; at: number; details?: boolean }>();
   accountId = '';
   state: SetupState | null = null;
@@ -140,7 +140,7 @@ export class V2Client {
   }
 
   disconnect() {
-    for (const timer of this.lobbyReadTimers) clearTimeout(timer);
+    for (const timer of this.lobbyReadTimers.values()) clearTimeout(timer);
     this.lobbyReadTimers.clear(); this.lobbyReadInFlight.clear(); this.queuedLobbyReads.clear(); this.lobbyReadUntil = 0; this.lobbyReadDelay = lobbyReadInterval;
     this.diagnosticRequests.clear(); this.options.diagnostics?.connection(false);
     if (this.skillUsePending) this.skillUseError = 'Preference outcome was not confirmed. Reconnect and reload your settings.';
@@ -174,15 +174,18 @@ export class V2Client {
     const socket = this.socket;
     const send = () => {
       if (this.socket !== socket || !this.requests.has(request.requestId)) return;
+      const timer = this.lobbyReadTimers.get(request.requestId);
+      if (timer !== undefined) { clearTimeout(timer); this.lobbyReadTimers.delete(request.requestId); }
+      if (isLobbyRead(type)) this.queuedLobbyReads.set(request.requestId, send);
       if (isLobbyRead(type) && [...this.lobbyReadInFlight].some(id => this.requests.get(id)?.type === type)) {
-        this.queuedLobbyReads.set(request.requestId, send); return;
+        return;
       }
-      this.queuedLobbyReads.delete(request.requestId);
       const remaining = this.lobbyReadUntil - performance.now();
       if (isLobbyRead(type) && remaining > 0) {
-        const timer = setTimeout(() => { this.lobbyReadTimers.delete(timer); send(); }, remaining);
-        this.lobbyReadTimers.add(timer);
+        const timer = setTimeout(() => { this.lobbyReadTimers.delete(request.requestId); send(); }, remaining);
+        this.lobbyReadTimers.set(request.requestId, timer);
       } else {
+        this.queuedLobbyReads.delete(request.requestId);
         if (isLobbyRead(type)) this.lobbyReadInFlight.add(request.requestId);
         this.sendMessage(socket, request, mutation);
         // After a throttle, spread queued reads across refill intervals.
@@ -397,7 +400,12 @@ export class V2Client {
       if (message.type === 'error' && message.code === 'RATE_LIMITED') {
         this.lobbyReadUntil = Math.max(this.lobbyReadUntil, performance.now() + this.lobbyReadDelay);
         this.lobbyReadDelay = Math.min(30_000, this.lobbyReadDelay * 2);
-      } else if (message.code === 'ACCEPTED') { this.lobbyReadDelay = lobbyReadInterval; this.lobbyReadUntil = 0; }
+      } else if (message.code === 'ACCEPTED') {
+        this.lobbyReadDelay = lobbyReadInterval; this.lobbyReadUntil = 0;
+        for (const timer of this.lobbyReadTimers.values()) clearTimeout(timer);
+        this.lobbyReadTimers.clear();
+        for (const send of [...this.queuedLobbyReads.values()]) send();
+      }
     }
     if (message.type === 'error' && message.code === 'AUTHENTICATION_REQUIRED' && this.accountId
       && Date.now() - this.lastAutomaticRefresh > 30_000) {

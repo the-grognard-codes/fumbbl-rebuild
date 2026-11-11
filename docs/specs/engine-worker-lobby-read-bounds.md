@@ -66,7 +66,7 @@ currently use the advisory lane. Lane scheduling cannot preempt a running read.
   cannot fit its budget, return the correlated `RATE_LIMITED` response with the
   same client backoff semantics as bucket exhaustion; do not
   silently return a truncated or differently authorized successful result.
-  Actual storage failures retain existing `PERSISTENCE_FAILED`/unavailable
+  An invalid or oversized stored record keeps its membership and degrades only that entry to unavailable, preserving existing lifecycle semantics. Page-level aggregate exhaustion is distinct. Actual storage failures retain existing `PERSISTENCE_FAILED`/unavailable
   semantics and malformed input retains validation errors; do not label those
   as ordinary throttling. Budget checks apply before each admitted read allocation.
 - Every read request consumes the same remaining ≤ 2,000 ms budget as its
@@ -77,8 +77,8 @@ currently use the advisory lane. Lane scheduling cannot preempt a running read.
   Preserve existing advisory fairness/control ordering. Do not describe moving
   a read into the advisory lane as bounding or preempting its execution.
 - In the lobby, treat `RATE_LIMITED` as a retryable read outcome: preserve the last
-  successful list/selection, avoid an error/reconnect loop, and coalesce or back
-  off subsequent refreshes. Surface an accessible status when useful without
+  successful list/selection, avoid an error/reconnect loop, and coalesce requests only when type and fields match, queue distinct cursors/detail modes, or back
+  off subsequent refreshes. An accepted read clears the cooldown, including existing delayed sends. Surface an accessible status when useful without
   clearing valid match data or automatically issuing rapid retries.
 - Dispose limiter state on connection cleanup; reconnect cannot gain unlimited
   work through leaked state. Existing global connection/ingress admission still

@@ -9,15 +9,15 @@ The adapter validates supported request shapes before charging a shared per-conn
 
 An authorized page uses one prepared-document query and at most two recovery data queries (checkpoint plus journal), independent of its entry count. Recovery uses one repeatable-read transaction, with fixed transaction-control overhead; no lock-per-match or generation-per-match query is added. This is two repository connections plus the pre-existing bounded authentication/membership work. A preparation liveness check can add one fixed membership/document read; it does not grow with page size.
 
-Each page retains the existing maximum 100 entries, order, membership filtering, completion filtering, fields and cursor semantics. A vanished row remains unavailable; storage and validation failures fail the page with their genuine codes. No partial success is returned for an exhausted budget. Pre-call JDBC `NotStarted` and explicit page/bucket exhaustion return `RATE_LIMITED`; actual JDBC failures retain `PERSISTENCE_FAILED`. Native sessions are neither restored nor mutated for a lobby summary.
+Each page retains the existing maximum 100 entries, order, membership filtering, completion filtering, fields and cursor semantics. A vanished, corrupt or oversized stored entry retains its membership and becomes unavailable. Actual storage failures and request/authentication validation failures retain their genuine page-level codes. No partial success is returned for an exhausted budget. Pre-call JDBC `NotStarted` and explicit page/bucket exhaustion return `RATE_LIMITED`; actual JDBC failures retain `PERSISTENCE_FAILED`. Native sessions are neither restored nor mutated for a lobby summary.
 
 ## Bounds
 
 - The existing absolute 2,000 ms worker deadline includes authorization. Read admission/checks retain 50 ms for response/cleanup; JDBC retains its existing 150 ms work/cleanup reserve and dynamically clamps connection/statement/transaction timeouts.
-- At most 2 MiB encoded and decoded per record, 16 MiB aggregate encoded and decoded per page. SQL window sums suppress oversized non-null columns before the driver materializes result strings. Bounded character reads and declared decompressed lengths reject before decoding/allocation. Limits fail the entire request.
+- At most 2 MiB encoded and decoded per record, 16 MiB aggregate encoded and decoded per page. SQL window sums suppress oversized non-null columns before the driver materializes result strings. Bounded character reads and declared decompressed lengths reject before decoding/allocation. Record-size/nesting failures mark only that entry unavailable. Aggregate page/deadline/response exhaustion fails the entire request with RATE_LIMITED.
 - At most depth 128 and 500,000 structural parse tokens per page, with deadline checks every 4,096 characters and between entries. Journal reconstruction has a separate aggregate 16 MiB copy-work allocation accounting for every accumulated entry, with the existing 32-entry journal limit.
 - Response preflight uses a bounded writer (85,000 UTF-16 units, conservatively at most 255,000 UTF-8 bytes) before normal serialization. CPU/native work remains non-preemptible; these allocations supplement measurement rather than promise timer preemption.
-- Browser reads coalesce by request type. After throttling the shared cooldown starts at 2 seconds and doubles to 30 seconds on repeated throttles. Queued read types are spaced by at least 2 seconds. No failed read automatically starts a retry. Disconnect cancels deferred sends. Poll/manual refresh remains available, and throttling preserves successful lists, filters, selected board and uncertain intent.
+- Browser reads coalesce only when request type and fields match; different cursors/detail modes retain separate request IDs and queue behind the same read type. After throttling the shared cooldown starts at 2 seconds and doubles to 30 seconds on repeated throttles. Queued read types are spaced by at least 2 seconds. Acceptance resets the cooldown and releases existing delayed reads; no failed read automatically starts a retry. Disconnect cancels deferred sends. Poll/manual refresh remains available, and throttling preserves successful lists, filters, selected board and uncertain intent.
 
 ## Lane decision and preliminary capture
 
@@ -46,9 +46,9 @@ The first real-driver fixture run rejected schema version 7 for journal mode; th
 
 Final pinned clean verify passed on 2026-11-10 at 17:27:18 -05:00 (14m47s), using Temurin 21.0.11+10-LTS and Maven 3.9.9. The early capture was taken from a working tree based on the revision above and is retained as preliminary evidence. Final acceptance uses the exact-revision recapture below. Subsequent #39 harness and report changes are separately committed. No integrated-envelope claim is made by this validation boundary.
 
-Follow-up self-review bounds the journal SQL result to `page entries * 32 + 1` rows before driver materialization. The sentinel row retains explicit `RECOVERY_CORRUPT` failure for excess history; it never produces a truncated success. Focused regression covers both one- and 100-entry SQL bounds and excess-row rollback. This correction precedes the exact integrated capture and supersedes the earlier #508 source boundary for final validation.
+The initial follow-up bounded journal SQL to `page entries * 32 + 1` rows. PR #521 review corrected this to at most 33 rows **per match** (`page entries * 33` overall), including one per-match overflow sentinel. Excess/corrupt history marks that entry unavailable while preserving healthy neighbors and membership; ordinary recovery still reports RECOVERY_CORRUPT. Read-only batch transactions commit after isolating invalid entries. The fixed two-query recovery bound remains unchanged.
 
-## Final exact-revision recapture
+## Earlier exact-revision recapture (superseded by PR review corrections)
 
 Runtime/harness revision: `df59449552756399e5c4ed766ba81557a118e987`. The journal driver row-limit correction is included. [Final numeric capture](../reviews/2026-11-10-lobby-read-final-measurements.json). Twenty measured repetitions follow a separately recorded warmup at each size.
 
@@ -64,3 +64,11 @@ The 100-entry page p99 **fails** 100 ms; 1 of 20 samples exceed 250 ms, and 0 ex
 Final validation: pinned clean verify passed at 2026-11-10 19:00:45 -05:00 (16m48s): 1,126 tests, zero failures/errors, 22 explicitly gated/skipped cases. Browser: 535 tests, build, desktop/mobile lobby, preparation lifecycle and reconnect checks passed. Opt-in real MariaDB and integrated captures were run separately.
 
 [Performance follow-up #520](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/520) records the missed healthy latency target without relaxing ADR 0006.
+
+## PR #521 review corrections
+
+The review identified a lifecycle regression and client request/cooldown issues. The corrected path distinguishes invalid records from aggregate resource exhaustion. JDBC length metadata suppresses oversized records before driver allocation without charging them against the eligible-page window sum. Corrupt journal chains are isolated per match. Missing or malformed public views produce no scalar facts for that entry. A real MariaDB mixed-page regression retains 100 ordered memberships, marks the three affected entries UNAVAILABLE, preserves 97 healthy states, and accepts both currentMatches and detailed browse.
+
+The client queues distinct cursor/detail requests, coalesces exact requests, and releases existing timers when an accepted read resets cooldown. Non-throttle errors retain alert semantics and the prior reconnect copy. Deterministic tests cover alternating read types, exact refill and disconnect cleanup. The deadline regression enters through BrowserMatchSocket.onText and BrowserMatchTransport rather than creating a timing scope manually.
+
+The review also corrected import organization/inline qualified names, extracted shared default-batch and SQL projection/binding logic, restored codec-envelope ownership, named bounds and clarified admission/copy-work names. The single-entry browseState path had only test callers and was removed; those regressions now exercise browseStates. browseDocument remains necessary for preparation expiry; browseDocuments remains the application boundary for lobby document facts. LobbyReadBudget intentionally owns related counters for one page, with one lifetime and fail-closed budget classification.

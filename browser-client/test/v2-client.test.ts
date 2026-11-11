@@ -730,3 +730,19 @@ test('an accepted lobby read ends the shared throttle cooldown', async t => {
   assert.equal(socket.sent.at(-1).requestId, next, 'Successful read restores immediate admission');
   client.disconnect();
 });
+
+
+test('acceptance releases another read already waiting on a cooldown timer', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  const inventory = client.request('currentMatches', { after: null });
+  socket.reply({ type: 'error', requestId: inventory, code: 'RATE_LIMITED' });
+  const retry = client.request('currentMatches', { after: null }); const count = socket.sent.length;
+  socket.reply({ type: 'browse', requestId: browse.requestId, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.sent.length, count + 1); assert.equal(socket.sent.at(-1).requestId, retry);
+  now = 30000; t.mock.timers.tick(30000);
+  assert.equal(socket.sent.length, count + 1, 'Cancelled timer must not send the request twice');
+  client.disconnect();
+});
