@@ -13,9 +13,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
-import java.util.zip.GZIPOutputStream;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.Inflater;
 
 /** Bounded, versioned at-rest compression for logical JSON records. */
@@ -63,6 +63,15 @@ final class BoundedJsonStorageCodec {
 	String decode(String stored) {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.STORAGE_DECODE)) { return decodeMeasured(stored); }
 	}
+	/** Lobby callers preflight decoded allocation before base64 or gzip allocation. */
+	String decode(String stored, LobbyReadBudget budget) {
+		int expected = hasCodecHeader(stored) ? JsonObject.readFrom(stored).getInt("decodedBytes", -1)
+			: stored.getBytes(StandardCharsets.UTF_8).length;
+		if (expected < 0) throw new IllegalArgumentException("Invalid storage length");
+		budget.checkDecodedBytes(expected);
+		return decode(stored);
+	}
+
 	private String decodeMeasured(String stored) {
 		if (stored != null && stored.length() > encodedLimit) throw new IllegalArgumentException("Stored JSON encoded limit");
 		byte[] input = utf8(stored);
@@ -95,7 +104,7 @@ final class BoundedJsonStorageCodec {
 		} catch (RuntimeException failure) { throw new IllegalArgumentException("Invalid stored JSON envelope"); }
 	}
 
-	boolean hasCodecHeader(String value) {
+	private boolean hasCodecHeader(String value) {
 		int index = 0;
 		while (index < value.length() && value.charAt(index) <= 0x20) index++;
 		if (index >= value.length() || value.charAt(index++) != '{') return false;

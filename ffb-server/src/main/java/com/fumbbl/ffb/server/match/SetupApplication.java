@@ -4,15 +4,17 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 import com.fumbbl.ffb.server.skilluse.SkillUsePreferenceService;
 
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
 /** Invoked on the existing communication worker; optional private checkpoints preserve activated engines. */
 public final class SetupApplication {
@@ -92,7 +94,7 @@ public final class SetupApplication {
 	private void releaseIdle() {
 		if (recovery == null) return;
 		long now = clock.millis();
-		for (String id : new java.util.ArrayList<>(lastAccess.keySet())) {
+		for (String id : new ArrayList<>(lastAccess.keySet())) {
 			if (now - lastAccess.get(id) >= IDLE_MILLIS && !sessions.get(id).isComplete()) { release(id); idleReleases++; }
 		}
 	}
@@ -348,7 +350,7 @@ public final class SetupApplication {
 	/** Timer callbacks enqueue this on the same communication worker as coach commands. */
 	public Map<String, JsonObject> expireReactiveDecisions() {
 		Map<String, JsonObject> changed = new LinkedHashMap<>();
-		for (String id : new java.util.ArrayList<>(sessions.keySet())) {
+		for (String id : new ArrayList<>(sessions.keySet())) {
 			SetupSession session = sessions.get(id);
 			if (!session.reactiveDecisionDue(clock.millis())) continue;
 			try {
@@ -597,7 +599,7 @@ public final class SetupApplication {
 		return session.decorateSaveResumeState(session.spectatorView());
 	}
 
-	public Map<String, MatchDocument> browseDocuments(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+	public Map<String, MatchDocument> browseDocuments(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		return matches.browseDocuments(ids, budget);
 	}
 
@@ -607,10 +609,10 @@ public final class SetupApplication {
 	}
 
 	/** Scalar public states for an authorized page; never restores or touches a native engine. */
-	public Map<String, JsonObject> browseStates(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+	public Map<String, JsonObject> browseStates(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		budget.entries(ids.size());
 		Map<String, JsonObject> result = new LinkedHashMap<>();
-		java.util.List<String> missing = new java.util.ArrayList<>();
+		List<String> missing = new ArrayList<>();
 		for (String id : ids) {
 			budget.check();
 			SetupSession resident = sessions.get(id);
@@ -619,29 +621,19 @@ public final class SetupApplication {
 		}
 		if (recovery != null) for (RecoveryRepository.Record record : recovery.findAll(missing, budget).values()) {
 			budget.check();
-			JsonObject payload = JsonObject.readFrom(record.json).get("payload").asObject();
-			if (!record.matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", false)) continue;
-			JsonObject view = payload.get("homeView").asObject();
-			if (!record.matchId.equals(view.getString("matchId", null)) || !"home".equals(view.getString("callerRole", null))) continue;
-			result.put(record.matchId, browseScalars(view));
+			try {
+				JsonValue payloadValue = JsonObject.readFrom(record.json).get("payload");
+				if (payloadValue == null || !payloadValue.isObject()) continue;
+				JsonObject payload = payloadValue.asObject();
+				if (!record.matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", false)) continue;
+				JsonValue viewValue = payload.get("homeView");
+				if (viewValue == null || !viewValue.isObject()) continue;
+				JsonObject view = viewValue.asObject();
+				if (!record.matchId.equals(view.getString("matchId", null)) || !"home".equals(view.getString("callerRole", null))) continue;
+				result.put(record.matchId, browseScalars(view));
+			} catch (RuntimeException invalid) { /* Stored scalar facts are unavailable for this entry. */ }
 		}
 		return result;
-	}
-
-	/** Retained for individual internal readers. Lobby pages use browseStates. */
-	public JsonObject browseState(String matchId) throws SQLException {
-		SetupSession resident = sessions.get(matchId);
-		if (resident != null && !resident.isFailed()) return resident.browseSummary();
-		if (recovery == null) return null;
-		try {
-			RecoveryRepository.Record record = recoveryRecord(matchId, false);
-			if (record == null) return null;
-			JsonObject payload = JsonObject.readFrom(record.json).get("payload").asObject();
-			if (!matchId.equals(payload.getString("matchId", null)) || payload.getBoolean("failed", false)) return null;
-			JsonObject view = payload.get("homeView").asObject();
-			if (!matchId.equals(view.getString("matchId", null)) || !"home".equals(view.getString("callerRole", null))) return null;
-			return browseScalars(view);
-		} catch (RuntimeException invalid) { return null; }
 	}
 
 	private JsonObject browseScalars(JsonObject view) {
@@ -764,7 +756,7 @@ public final class SetupApplication {
 	private void validate(JsonObject request, boolean computerChannel) {
 		String operation = request.get("operation").asString();
 		String[] base = { "version", "type", "operation", "requestId", "matchId" };
-		java.util.List<String> fields = new java.util.ArrayList<>(Arrays.asList(base));
+		List<String> fields = new ArrayList<>(Arrays.asList(base));
 		if (computerChannel && request.get("computerDecision") != null) {
 			if (!isComputerGameOperation(operation)) throw new IllegalArgumentException();
 			fields.add("computerDecision");

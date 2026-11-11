@@ -6,6 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Dedicated short transactions. Membership, frozen rosters and retry metadata share one row. */
 public final class JdbcMatchRepository implements MatchRepository {
@@ -34,21 +37,21 @@ public final class JdbcMatchRepository implements MatchRepository {
 	}
 
 	@Override
-	public java.util.Map<String, Record> findAll(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+	public Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		budget.entries(ids.size());
-		java.util.Map<String, Record> result = new java.util.LinkedHashMap<>();
+		Map<String, Record> result = new LinkedHashMap<>();
 		if (ids.isEmpty()) return result;
-		String slots = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
+		LobbyReadQuery batch = new LobbyReadQuery();
 		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
-			"SELECT match_id,document_version,CASE WHEN OCTET_LENGTH(document_json)<=" + LobbyReadBudget.RECORD_BYTES
-			+ " AND SUM(OCTET_LENGTH(document_json)) OVER ()<=" + budget.remainingEncodedBytes()
-			+ " THEN document_json ELSE NULL END FROM ffb_prepared_matches WHERE match_id IN (" + slots + ")")) {
-			for (int index = 0; index < ids.size(); index++) query.setString(index + 1, ids.get(index));
+			"SELECT match_id,document_version," + batch.columns("document_json", budget)
+			+ " FROM ffb_prepared_matches WHERE match_id IN (" + batch.slots(ids) + ")")) {
+			batch.bind(query, ids);
 			try (ResultSet rows = query.executeQuery()) {
 				while (rows.next()) {
 					if (result.size() >= ids.size()) throw new SQLException("Unexpected lobby row count");
 					String id = rows.getString(1);
-					result.put(id, new Record(id, rows.getInt(2), budget.read(rows, 3, codec)));
+					try { result.put(id, new Record(id, rows.getInt(2), budget.read(rows, 3, codec))); }
+					catch (LobbyReadBudget.InvalidRecord unavailable) { /* Preserve membership with unavailable facts. */ }
 				}
 			}
 		}

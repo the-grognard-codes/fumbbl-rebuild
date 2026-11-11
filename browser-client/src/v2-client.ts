@@ -29,6 +29,11 @@ export const v2PendingKey = 'ffb.intent.v2';
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const uncertain = new Set(['PERSISTENCE_FAILED', 'MATCH_OUTCOME_UNKNOWN', 'COMPLETION_PENDING', 'SAVE_OUTCOME_UNKNOWN', 'DELETE_OUTCOME_UNKNOWN']);
 
+const lobbyReadInterval = 2000;
+const isLobbyRead = (type: string) => type === 'browse' || type === 'currentMatches';
+const lobbyRequestKey = (request: V2Message) => JSON.stringify(Object.keys(request)
+  .filter(key => key !== 'requestId').sort().map(key => [key, request[key]]));
+
 /** Single connection and exact-intent recovery for both playing and watching. */
 export class V2Client {
   private socket: WebSocket | null = null;
@@ -41,7 +46,9 @@ export class V2Client {
   private lastAutomaticRefresh = 0;
   private includeBrowseDetails = true;
   private lobbyReadUntil = 0;
-  private lobbyReadDelay = 2000;
+  private lobbyReadDelay = lobbyReadInterval;
+  private lobbyReadInFlight = new Set<string>();
+  private queuedLobbyReads = new Map<string, () => void>();
   private lobbyReadTimers = new Set<ReturnType<typeof setTimeout>>();
   private diagnosticRequests = new Map<string, { operation: string; at: number; details?: boolean }>();
   accountId = '';
@@ -134,7 +141,7 @@ export class V2Client {
 
   disconnect() {
     for (const timer of this.lobbyReadTimers) clearTimeout(timer);
-    this.lobbyReadTimers.clear(); this.lobbyReadUntil = 0; this.lobbyReadDelay = 2000;
+    this.lobbyReadTimers.clear(); this.lobbyReadInFlight.clear(); this.queuedLobbyReads.clear(); this.lobbyReadUntil = 0; this.lobbyReadDelay = lobbyReadInterval;
     this.diagnosticRequests.clear(); this.options.diagnostics?.connection(false);
     if (this.skillUsePending) this.skillUseError = 'Preference outcome was not confirmed. Reconnect and reload your settings.';
     this.skillUsePending = null; this.skillUsePreferences = null; this.skillUseSaved = false;
@@ -145,15 +152,16 @@ export class V2Client {
 
   request(type: string, fields: V2Message = {}, mutation = false) {
     if (!this.accountId || this.socket?.readyState !== 1) throw Error('Reconnect before continuing.');
-    if (['browse', 'currentMatches'].includes(type)) {
-      const pending = [...this.requests.values()].find(request => request.type === type);
+    const browseFields = type === 'browse' && this.options.browseOnly && this.includeBrowseDetails ? { includeDetails: true } : {};
+    const request = { ...fields, ...browseFields, version: 2, type, requestId: crypto.randomUUID() };
+    if (isLobbyRead(type)) {
+      const key = lobbyRequestKey(request);
+      const pending = [...this.requests.values()].find(pending => isLobbyRead(pending.type) && lobbyRequestKey(pending) === key);
       if (pending) return pending.requestId as string;
     }
     if (this.requests.size >= 128) throw Error('Too many unanswered requests. Reconnect before continuing.');
     if (['routePreview', 'movementRange', 'movementPreview', 'skillUsePreferences'].includes(type)
       && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
-    const browseFields = type === 'browse' && this.options.browseOnly && this.includeBrowseDetails ? { includeDetails: true } : {};
-    const request = { ...fields, ...browseFields, version: 2, type, requestId: crypto.randomUUID() };
     if (mutation) {
       if (this.pending) throw Error('Resolve the retained request before submitting another change.');
       if (type === 'setup' && (this.selection?.watch || this.state?.callerRole === 'spectator')) throw Error('This game is read-only.');
@@ -166,19 +174,31 @@ export class V2Client {
     const socket = this.socket;
     const send = () => {
       if (this.socket !== socket || !this.requests.has(request.requestId)) return;
+      if (isLobbyRead(type) && [...this.lobbyReadInFlight].some(id => this.requests.get(id)?.type === type)) {
+        this.queuedLobbyReads.set(request.requestId, send); return;
+      }
+      this.queuedLobbyReads.delete(request.requestId);
       const remaining = this.lobbyReadUntil - performance.now();
-      if (['browse', 'currentMatches'].includes(type) && remaining > 0) {
+      if (isLobbyRead(type) && remaining > 0) {
         const timer = setTimeout(() => { this.lobbyReadTimers.delete(timer); send(); }, remaining);
         this.lobbyReadTimers.add(timer);
       } else {
+        if (isLobbyRead(type)) this.lobbyReadInFlight.add(request.requestId);
         this.sendMessage(socket, request, mutation);
         // After a throttle, spread queued reads across refill intervals.
-        if (['browse', 'currentMatches'].includes(type) && this.lobbyReadUntil > 0) this.lobbyReadUntil = performance.now() + 2000;
+        if (isLobbyRead(type) && this.lobbyReadUntil > 0) this.lobbyReadUntil = performance.now() + lobbyReadInterval;
       }
     };
     send();
     this.options.onChange({ type: 'pending', requestType: type, operation: fields.operation, mutation });
     return request.requestId;
+  }
+
+  private finishRequest(requestId: string) {
+    this.requests.delete(requestId);
+    this.lobbyReadInFlight.delete(requestId);
+    // Different cursors/detail modes keep their own correlation and run after the prior response.
+    for (const send of [...this.queuedLobbyReads.values()]) send();
   }
 
   loadSkillUsePreferences() { this.requestSkillUsePreferences({ operation: 'load' }); }
@@ -368,16 +388,16 @@ export class V2Client {
     if (message.requestId !== null && !request) return;
     if (message.type === 'error' && request?.type === 'browse' && request.includeDetails === true
       && ['MALFORMED_MESSAGE', 'UNSUPPORTED_MESSAGE'].includes(message.code)) {
-      this.requests.delete(message.requestId);
+      this.finishRequest(message.requestId);
       this.includeBrowseDetails = false;
       this.request('browse');
       return;
     }
-    if (request && ['browse', 'currentMatches'].includes(request.type)) {
+    if (request && isLobbyRead(request.type)) {
       if (message.type === 'error' && message.code === 'RATE_LIMITED') {
         this.lobbyReadUntil = Math.max(this.lobbyReadUntil, performance.now() + this.lobbyReadDelay);
         this.lobbyReadDelay = Math.min(30_000, this.lobbyReadDelay * 2);
-      } else if (message.code === 'ACCEPTED') this.lobbyReadDelay = 2000;
+      } else if (message.code === 'ACCEPTED') { this.lobbyReadDelay = lobbyReadInterval; this.lobbyReadUntil = 0; }
     }
     if (message.type === 'error' && message.code === 'AUTHENTICATION_REQUIRED' && this.accountId
       && Date.now() - this.lastAutomaticRefresh > 30_000) {
@@ -510,7 +530,7 @@ export class V2Client {
     if (request && this.pending?.request.requestId === message.requestId && !uncertain.has(message.code)) {
       this.pending = null; this.options.storage?.removeItem(v2PendingKey);
     }
-    if (request) this.requests.delete(message.requestId);
+    if (request) this.finishRequest(message.requestId);
     this.options.onChange(message);
     if (request?.type === 'setup' && ['action', 'route', 'movement'].includes(request.operation)
       && ['STALE_REVISION', 'WRONG_PHASE', 'WRONG_ACTOR', 'PROMPT_MISMATCH'].includes(message.code)

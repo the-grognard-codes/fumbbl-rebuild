@@ -7,6 +7,7 @@ import com.fumbbl.ffb.server.team.bb2025.TeamValidation;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,13 +24,16 @@ public final class MatchService {
 	}
 
 	/** Visibility/membership was checked by the adapter before this batch. */
-	public Map<String, MatchDocument> browseDocuments(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
+	public Map<String, MatchDocument> browseDocuments(List<String> ids, LobbyReadBudget budget) throws SQLException {
 		Map<String, MatchDocument> result = new LinkedHashMap<>();
 		for (MatchRepository.Record record : matches.findAll(ids, budget).values()) {
 			budget.check();
-			MatchDocument document = json.decodeAuthorized("home", record.json, record.documentVersion);
-			if (!ids.contains(record.matchId) || !record.matchId.equals(document.matchId)) throw new Failure("SNAPSHOT_UNSUPPORTED");
-			result.put(record.matchId, document);
+			try {
+				MatchDocument document = json.decodeAuthorized("home", record.json, record.documentVersion);
+				if (ids.contains(record.matchId) && record.matchId.equals(document.matchId)) result.put(record.matchId, document);
+			} catch (Failure invalid) {
+				if (!"SNAPSHOT_UNSUPPORTED".equals(invalid.code) && !"NOT_FOUND".equals(invalid.code)) throw invalid;
+			}
 		}
 		return result;
 	}

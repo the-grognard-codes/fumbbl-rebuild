@@ -1,11 +1,16 @@
 package com.fumbbl.ffb.server.match;
 
-import com.fumbbl.ffb.server.local.CaptureRequestProbe;
 import com.fumbbl.ffb.server.db.JdbcRequestConnections;
+import com.fumbbl.ffb.server.local.BrowserConnection;
+import com.fumbbl.ffb.server.local.BrowserSavedTeamJson;
+import com.fumbbl.ffb.server.local.BrowserV2Adapter;
+import com.fumbbl.ffb.server.local.CaptureLobbyLaneProbe;
+import com.fumbbl.ffb.server.local.CaptureRequestProbe;
 import com.fumbbl.ffb.server.team.bb2025.RosterCatalog;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,6 +18,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +29,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Opt-in real-driver page capture. The runner owns an empty synthetic schema. */
 class JdbcLobbyReadMariaDbTest {
@@ -90,11 +98,51 @@ class JdbcLobbyReadMariaDbTest {
 				samples.get(samples.size() - 1).asObject().add("executionMs", (System.nanoTime() - started) / 1e6).add("queries", 3);
 			}
 			for (boolean foreground : List.of(true, false)) {
-				lanes.add(new com.fumbbl.ffb.server.local.CaptureLobbyLaneProbe().measure(foreground, () -> {
+				lanes.add(new CaptureLobbyLaneProbe().measure(foreground, () -> {
 					try { LobbyReadBudget budget = new LobbyReadBudget(); setup.browseDocuments(ids, budget); setup.browseStates(ids, budget); }
 					catch (Exception failure) { throw new IllegalStateException(failure); }
 				}, () -> fixture.session.reply("lane-gameplay", "ACCEPTED", false, "home")));
 			}
+
+			// Real SQL/driver regressions: all three invalid records preserve healthy neighboring entries.
+			try (Connection connection = connections.open(); var update = connection.prepareStatement(
+				"UPDATE ffb_match_recovery SET artifact_json=? WHERE matchid=?")) {
+				update.setString(1, new RecoveryArtifactJson().encode(new JsonObject().add("matchId", ids.get(0)), 10000));
+				update.setString(2, ids.get(0)); update.executeUpdate();
+				update.setString(1, " ".repeat(LobbyReadBudget.RECORD_BYTES + 1));
+				update.setString(2, ids.get(2)); update.executeUpdate();
+				try (var tail = connection.prepareStatement("INSERT INTO ffb_match_recovery_journal(matchid,generation,record_json,decoded_bytes) VALUES (?,2,'{}',2)")) {
+					tail.setString(1, ids.get(1)); tail.executeUpdate();
+				}
+				try (var generation = connection.prepareStatement("UPDATE ffb_match_recovery SET generation=2 WHERE matchid=?")) {
+					generation.setString(1, ids.get(1)); generation.executeUpdate();
+				}
+			}
+			Map<String, JsonObject> available = setup.browseStates(ids, new LobbyReadBudget());
+			assertEquals(97, available.size());
+			for (int index = 0; index < 3; index++) assertFalse(available.containsKey(ids.get(index)));
+			assertEquals("PLAY", available.get(ids.get(3)).getString("phase", null));
+
+			AuthenticatedPrincipal player = new AuthenticatedPrincipal("00000000-0000-0000-0000-000000000001",
+				EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), Long.MAX_VALUE);
+			V2MatchAccess access = mock(V2MatchAccess.class);
+			when(access.currentMatches(player, null)).thenReturn(ids.stream().map(id -> new MatchMembership(id, player.accountId(), "home")).toList());
+			when(access.browse(player)).thenReturn(ids);
+			BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> player, access, setup, mock(MatchService.class),
+				mock(V2PreparationService.class), mock(BrowserSavedTeamJson.class));
+			List<String> replies = new ArrayList<>(); BrowserConnection browser = replies::add;
+			adapter.receive(browser, new JsonObject().add("version", 2).add("type", "authenticate").add("requestId", "auth").add("bearer", "test").toString());
+			adapter.receive(browser, new JsonObject().add("version", 2).add("type", "currentMatches").add("requestId", "mixed").add("after", JsonValue.NULL).toString());
+			JsonObject page = JsonObject.readFrom(replies.get(1)); assertEquals("ACCEPTED", page.getString("code", null));
+			JsonArray entries = page.get("matches").asArray(); assertEquals(100, entries.size());
+			for (int index = 0; index < 3; index++) {
+				assertEquals(ids.get(index), entries.get(index).asObject().getString("matchId", null));
+				assertEquals("UNAVAILABLE", entries.get(index).asObject().getString("lifecycle", null));
+			}
+			assertEquals("PLAY", entries.get(3).asObject().getString("phase", null));
+			adapter.receive(browser, new JsonObject().add("version", 2).add("type", "browse").add("requestId", "mixed-browse").add("includeDetails", true).toString());
+			JsonObject browse = JsonObject.readFrom(replies.get(2)); assertEquals("ACCEPTED", browse.getString("code", null));
+			assertEquals(100, browse.get("matches").asArray().size()); adapter.disconnect(browser);
 
 			assertEquals(0, setup.lifecycleMetrics().getInt("residentSessions", -1));
 		}

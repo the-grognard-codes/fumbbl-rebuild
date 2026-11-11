@@ -1,13 +1,13 @@
 package com.fumbbl.ffb.server.local;
 
+import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
 import com.fumbbl.ffb.server.match.FrozenTeam;
+import com.fumbbl.ffb.server.match.LobbyReadBudget;
 import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.MatchDocument;
-import com.fumbbl.ffb.server.match.LobbyReadBudget;
-import com.fumbbl.ffb.server.db.JdbcConnections;
 import com.fumbbl.ffb.server.match.MatchJson;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchResultJson;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.LongSupplier;
 
 /** One authenticated protocol for preparation, play and read-only observation. */
 public final class BrowserV2Adapter implements BrowserProtocol {
@@ -61,8 +62,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	private final Map<BrowserConnection, Long> diagnosticProbeAt = new LinkedHashMap<>();
 	private boolean diagnosticsAllowed;
 	private final Map<BrowserConnection, LobbyReadLimiter> lobbyReads = new LinkedHashMap<>();
-	private java.util.function.LongSupplier readNanos = System::nanoTime;
-	void readClock(java.util.function.LongSupplier nanos) { readNanos = nanos; }
+	private LongSupplier readNanos = System::nanoTime;
+	void readClock(LongSupplier nanos) { readNanos = nanos; }
 	private final Map<BrowserConnection, Long> preparationCompletedAt = new LinkedHashMap<>();
 	private final Map<BrowserConnection, String> preparationSubscriptions = new LinkedHashMap<>();
 	private final Set<BrowserConnection> retired = Collections.newSetFromMap(new WeakHashMap<BrowserConnection, Boolean>());
@@ -128,7 +129,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 			if ("authenticate".equals(type)) {
 				publisher.liveTranscript(connection, false);
-				List<String> authenticationFields = new java.util.ArrayList<>(Arrays.asList("version", "type", "requestId", "bearer"));
+				List<String> authenticationFields = new ArrayList<>(Arrays.asList("version", "type", "requestId", "bearer"));
 				if (request.get("purpose") != null) authenticationFields.add("purpose");
 				JsonValue requestedTranscript = request.get("liveTranscript");
 				if (requestedTranscript != null) authenticationFields.add("liveTranscript");
@@ -142,7 +143,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				}
 				AuthenticatedPrincipal principal = authenticator.authenticate(request.get("bearer").asString());
 				// Keep one preparation and one play connection per account. Reconnects replace only their own purpose.
-				for (BrowserConnection prior : new java.util.ArrayList<>(principals.keySet())) {
+				for (BrowserConnection prior : new ArrayList<>(principals.keySet())) {
 					if (principals.get(prior).accountId().equals(principal.accountId())
 						&& purpose.equals(connectionPurposes.get(prior))) {
 						retire(prior);
@@ -217,13 +218,13 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (!after.isNull() && (!after.isString()
 					|| !after.asString().matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"))) throw new IllegalArgumentException();
 				lobbyRead = true;
-				readToken(connection, principal, ApplicationScope.PLAYER);
+				admitLobbyRead(connection, principal, ApplicationScope.PLAYER);
 				LobbyReadBudget budget = new LobbyReadBudget();
 				budget.check();
 				List<MatchMembership> memberships = access.currentMatches(principal, after.isNull() ? null : after.asString());
 				if (expirePreparation(connection)) return;
 				JsonArray entries = new JsonArray();
-				int count = Math.min(100, memberships.size());
+				int count = Math.min(LobbyReadBudget.MAX_ENTRIES, memberships.size());
 				List<String> ids = new ArrayList<>();
 				for (int index = 0; index < count; index++) ids.add(memberships.get(index).matchId);
 				Map<String, MatchDocument> documents = setup.browseDocuments(ids, budget);
@@ -263,11 +264,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				if (requestedDetails != null && !requestedDetails.isBoolean()) throw new IllegalArgumentException();
 				boolean includeDetails = requestedDetails != null && requestedDetails.asBoolean();
 				lobbyRead = true;
-				readToken(connection, principal, ApplicationScope.SPECTATOR);
+				admitLobbyRead(connection, principal, ApplicationScope.SPECTATOR);
 				LobbyReadBudget budget = new LobbyReadBudget();
 				budget.check();
 				List<String> visible = access.browse(principal);
-				List<String> ids = visible.subList(0, Math.min(100, visible.size()));
+				List<String> ids = visible.subList(0, Math.min(LobbyReadBudget.MAX_ENTRIES, visible.size()));
 				Map<String, MatchDocument> documents = includeDetails ? setup.browseDocuments(ids, budget) : Map.of();
 				List<String> active = new ArrayList<>();
 				for (MatchDocument document : documents.values()) if (document.lifecycle == MatchDocument.Lifecycle.ACTIVATED && document.away != null) active.add(document.matchId);
@@ -453,7 +454,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
 		catch (MatchService.Failure rejected) { fail(connection, requestId, rejected.code); }
-		catch (SQLException unavailable) { fail(connection, requestId, lobbyRead && unavailable instanceof JdbcConnections.NotStarted ? "RATE_LIMITED" : "PERSISTENCE_FAILED"); }
+		catch (JdbcConnections.NotStarted unavailable) { fail(connection, requestId, lobbyRead ? "RATE_LIMITED" : "PERSISTENCE_FAILED"); }
+		catch (SQLException unavailable) { fail(connection, requestId, "PERSISTENCE_FAILED"); }
 		catch (RuntimeException malformed) { fail(connection, requestId, "MALFORMED_MESSAGE"); }
 	}
 
@@ -552,7 +554,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 		delivery.publish(matchId, V2PublicationAuthorization.Family.PREPARATION, recipients, matchId.length());
 	}
 
-	private void readToken(BrowserConnection connection, AuthenticatedPrincipal principal, ApplicationScope scope) throws SQLException {
+	private void admitLobbyRead(BrowserConnection connection, AuthenticatedPrincipal principal, ApplicationScope scope) throws SQLException {
 		if (principal == null) throw new MatchService.Failure("AUTHENTICATION_REQUIRED");
 		if (!lobbyReads.computeIfAbsent(connection, ignored -> new LobbyReadLimiter(readNanos)).acquire()) {
 			// Even overload responses refresh authorization; do not leak a viewer's former authority.

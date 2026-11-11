@@ -695,3 +695,38 @@ test('lobby throttling keeps selection and intent, coalesces refreshes and space
   const reconnect = await connect();
   assert.equal(reconnect.sent.some(request => request.type === 'browse'), true, 'Reconnect starts with a fresh burst');
 });
+
+
+test('lobby coalescing preserves cursors, detail modes and queued response correlation', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const initial = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'browse', requestId: initial.requestId, code: 'ACCEPTED', matches: [] });
+  const page = client.request('currentMatches', { after: match });
+  const refresh = client.request('currentMatches', { after: null });
+  assert.notEqual(page, refresh);
+  assert.equal(client.request('currentMatches', { after: null }), refresh);
+  assert.equal(socket.sent.at(-1).requestId, page, 'Different cursor waits for the prior page');
+  socket.reply({ type: 'currentMatches', requestId: page, code: 'ACCEPTED', matches: [], next: null });
+  assert.equal(socket.sent.at(-1).requestId, refresh); assert.equal(socket.sent.at(-1).after, null);
+  socket.reply({ type: 'currentMatches', requestId: refresh, code: 'ACCEPTED', matches: [], next: null });
+  const detailed = client.request('browse', { includeDetails: true });
+  const plain = client.request('browse'); assert.notEqual(detailed, plain);
+  assert.equal(socket.sent.at(-1).requestId, detailed);
+  socket.reply({ type: 'browse', requestId: detailed, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.sent.at(-1).requestId, plain); assert.equal(socket.sent.at(-1).includeDetails, undefined);
+  client.disconnect();
+});
+
+test('an accepted lobby read ends the shared throttle cooldown', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const initial = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'error', requestId: initial.requestId, code: 'RATE_LIMITED' });
+  const refresh = client.request('browse'); const count = socket.sent.length;
+  now = 2000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, count + 1);
+  socket.reply({ type: 'browse', requestId: refresh, code: 'ACCEPTED', matches: [] });
+  const next = client.request('currentMatches', { after: null });
+  assert.equal(socket.sent.at(-1).requestId, next, 'Successful read restores immediate admission');
+  client.disconnect();
+});

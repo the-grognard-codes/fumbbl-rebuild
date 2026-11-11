@@ -1,23 +1,25 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
-import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
+import com.fumbbl.ffb.server.match.FrozenTeam;
+import com.fumbbl.ffb.server.match.LobbyReadBudget;
 import com.fumbbl.ffb.server.match.MatchDocument;
-import java.util.Map;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchMembershipRepository;
+import com.fumbbl.ffb.server.match.MatchRepository;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.V2PrincipalDirectory;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -27,6 +29,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,8 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -197,7 +202,6 @@ class BrowserV2AdapterTest {
 		assertTrue(entries.get(0).asObject().get("awayTeamName").isNull());
 		assertEquals("UNAVAILABLE", entries.get(1).asObject().getString("lifecycle", null));
 		assertTrue(response.get("next").isNull());
-		verify(setup, never()).browseState(any(String.class));
 		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
 		adapter.receive(connection, request("currentMatches", "foreign").add("after", JsonValue.NULL).add("accountId", SECOND).toString());
 		assertEquals("MALFORMED_MESSAGE", code(connection, 2));
@@ -624,6 +628,48 @@ class BrowserV2AdapterTest {
 		verify(setup, never()).browseStates(eq(List.of(MATCH)), any());
 		verify(setup, never()).browseDocuments(eq(List.of(MATCH)), any());
 		verify(access, times(4)).browse(player);
+	}
+
+	@Test void expiredWorkerDeadlineRejectsBeforeRepositoryReadsWithCorrelation() throws Exception {
+		AtomicLong nanos = new AtomicLong();
+		BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, line -> { });
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenAnswer(call -> { nanos.set(1_950_000_000L); return List.of(MATCH); });
+		MatchRepository repository = mock(MatchRepository.class, CALLS_REAL_METHODS);
+		MatchService matches = new MatchService(repository, null, null);
+		SetupApplication setup = new SetupApplication(null, matches);
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		try (BrowserRequestTiming.Scope task = timing.handling(timing.queued())) {
+			adapter.receive(connection, request("browse", "deadline").add("includeDetails", true).toString());
+			assertEquals(0, timing.budget().allowanceMillis(2000, 50));
+		}
+		assertEquals("RATE_LIMITED", code(connection, 1));
+		assertEquals("deadline", JsonObject.readFrom(connection.messages.get(1)).getString("requestId", null));
+		verify(repository, never()).find(any());
+	}
+
+	@Test void alternatingReadTypesAndDisconnectUseOneDeterministicConnectionBucket() throws Exception {
+		AtomicLong nanos = new AtomicLong();
+		AuthenticatedPrincipal player = new AuthenticatedPrincipal(FIRST, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), Long.MAX_VALUE);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenReturn(List.of()); when(access.currentMatches(player, null)).thenReturn(List.of());
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, mock(SetupApplication.class)); adapter.readClock(nanos::get);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("browse", "first").toString());
+		adapter.receive(connection, request("currentMatches", "second").add("after", JsonValue.NULL).toString());
+		nanos.set(1_999_999_999L);
+		adapter.receive(connection, request("browse", "early").toString()); assertEquals("RATE_LIMITED", code(connection, 3));
+		nanos.incrementAndGet();
+		adapter.receive(connection, request("currentMatches", "refill").add("after", JsonValue.NULL).toString()); assertEquals("ACCEPTED", code(connection, 4));
+		adapter.disconnect(connection); // Same clock: reconnect must discard exhausted bucket.
+		adapter.receive(connection, authenticate("reauth", "player").toString());
+		adapter.receive(connection, request("currentMatches", "fresh1").add("after", JsonValue.NULL).toString());
+		adapter.receive(connection, request("browse", "fresh2").toString());
+		assertEquals("ACCEPTED", code(connection, 6)); assertEquals("ACCEPTED", code(connection, 7));
 	}
 
 	@Test void aggregateReadAdmissionAndPersistenceFailuresRemainDistinct() throws Exception {

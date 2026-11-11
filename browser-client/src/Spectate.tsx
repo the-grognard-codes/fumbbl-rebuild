@@ -45,6 +45,7 @@ export function Spectate({ options }: { options: Options }) {
   const loading = useRef(false);
   const [status, setStatus] = useState('Connecting');
   const [error, setError] = useState('');
+  const [throttled, setThrottled] = useState(false);
   const [games, setGames] = useState<BrowseGame[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
@@ -57,7 +58,7 @@ export function Spectate({ options }: { options: Options }) {
     const connection = client.current;
     if (!connection?.accountId || loading.current) return;
     try {
-      loading.current = true; setRefreshing(true); setError(''); connection.request('browse');
+      loading.current = true; setRefreshing(true); setError(''); setThrottled(false); connection.request('browse');
     } catch { loading.current = false; setRefreshing(false); setError('Live games could not be loaded. Try refreshing.'); }
   }
 
@@ -72,7 +73,7 @@ export function Spectate({ options }: { options: Options }) {
       } else if (message.type === 'browse') {
         loading.current = false; setRefreshing(false); setGames(message.matches); setError('');
       } else if (message.type === 'error') {
-        loading.current = false; setRefreshing(false);
+        loading.current = false; setRefreshing(false); setThrottled(message.code === 'RATE_LIMITED');
         setError(message.code === 'RATE_LIMITED' ? 'Game refresh is busy. Your games and filters are kept; the next refresh will wait briefly.' : message.code === 'AUTHORIZATION' ? 'Live games are unavailable for this account.' : 'Live games could not be loaded. Reconnect or try refreshing.');
       }
     } });
@@ -98,7 +99,7 @@ export function Spectate({ options }: { options: Options }) {
           {connected ? <button disabled={refreshing} onClick={refresh}>{refreshing ? 'Refreshing…' : 'Refresh games'}</button>
             : <button disabled={status === 'Connecting'} onClick={() => client.current?.connect()}>Reconnect</button>}</div></div>
       <label className="spectate-live-search">Find a live game<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Team, coach, team type or game ID" /></label>
-      {error && <p className="spectate-error" role="status">{error}</p>}
+      {error && <p className="spectate-error" role={throttled ? 'status' : 'alert'}>{error}</p>}
       {games === null && !error && <div className="spectate-empty" role="status"><strong>{connected ? 'Loading live games…' : status === 'Connecting' ? 'Connecting to the stands…' : 'Connection interrupted'}</strong><p>{connected || status === 'Connecting' ? 'Getting the latest games from the pitch.' : 'Reconnect to see the latest games.'}</p></div>}
       {games !== null && <><p className="spectate-list-status" role="status">{query.trim() ? `${visible.length} of ${games.length} live games match your search.` : 'Updates every 30 seconds.'}</p>
         <ul className="spectate-games" aria-label="Games currently in progress">{visible.map(game => <LiveGame key={game.matchId} game={game} />)}</ul>

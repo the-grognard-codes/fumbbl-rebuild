@@ -6,6 +6,7 @@ import com.eclipsesource.json.JsonObject;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,9 +18,18 @@ public final class LobbyReadBudget {
 	public static final int PAGE_BYTES = 16 * 1024 * 1024;
 	private final BrowserRequestTiming timing = new BrowserRequestTiming();
 	private int encodedBytes, decodedBytes, tokens;
-	private long workBytes;
+	private static final int MAX_NESTING = 128;
+	private static final int MAX_STRUCTURAL_TOKENS = 500_000;
+	private static final int MAX_RESPONSE_CHARS = 85_000;
+	private long copyBytes;
+	/** Invalid stored entry: omit its facts while preserving the page's membership. */
+	static final class InvalidRecord extends IllegalArgumentException { }
+	void checkDecodedBytes(int bytes) {
+		if (bytes > RECORD_BYTES) throw new InvalidRecord();
+		if (bytes > PAGE_BYTES - decodedBytes) exhausted();
+	}
 	int remainingEncodedBytes() { check(); return PAGE_BYTES - encodedBytes; }
-	void work(long bytes) { check(); if (bytes > PAGE_BYTES - workBytes) exhausted(); workBytes += bytes; }
+	void consumeCopyBytes(long bytes) { check(); if (bytes > PAGE_BYTES - copyBytes) exhausted(); copyBytes += bytes; }
 
 	public void check() {
 		if (timing.budget() != null && timing.budget().allowanceMillis(2000, 50) == 0) exhausted();
@@ -30,6 +40,7 @@ public final class LobbyReadBudget {
 	/** Reject before materializing an unbounded JDBC string, decoding or allocating a JSON tree. */
 	String read(ResultSet rows, int column, BoundedJsonStorageCodec codec) throws SQLException {
 		check();
+		if (rows.getLong(column + 1) > RECORD_BYTES) throw new InvalidRecord();
 		try (Reader reader = rows.getCharacterStream(column)) {
 			if (reader == null) exhausted(); // SQL CASE rejects oversized non-null storage columns before driver allocation.
 			StringBuilder text = new StringBuilder();
@@ -37,21 +48,20 @@ public final class LobbyReadBudget {
 			int count;
 			while ((count = reader.read(buffer)) != -1) {
 				check();
-				if (text.length() + count > Math.min(RECORD_BYTES, PAGE_BYTES - encodedBytes)) exhausted();
+				if (text.length() + count > RECORD_BYTES) throw new InvalidRecord();
+				if (text.length() + count > PAGE_BYTES - encodedBytes) exhausted();
 				text.append(buffer, 0, count);
 			}
 			String stored = text.toString();
 			int bytes = stored.getBytes(StandardCharsets.UTF_8).length;
-			if (bytes > RECORD_BYTES || bytes > PAGE_BYTES - encodedBytes) exhausted();
+			if (bytes > RECORD_BYTES) throw new InvalidRecord();
+			if (bytes > PAGE_BYTES - encodedBytes) exhausted();
 			encodedBytes += bytes;
-			guard(stored);
-			if (codec.hasCodecHeader(stored)) {
-				JsonObject envelope = JsonObject.readFrom(stored);
-				int expected = envelope.getInt("decodedBytes", -1);
-				if (expected > RECORD_BYTES || expected > PAGE_BYTES - decodedBytes) exhausted();
-			}
-			if (!codec.hasCodecHeader(stored) && bytes > PAGE_BYTES - decodedBytes) exhausted();
-			String decoded = codec.decode(stored);
+			checkStructure(stored);
+			String decoded;
+			try { decoded = codec.decode(stored, this); }
+			catch (MatchService.Failure exhausted) { throw exhausted; }
+			catch (RuntimeException invalid) { throw new InvalidRecord(); }
 			admit(decoded);
 			return decoded;
 		} catch (IOException failure) { throw new SQLException("Lobby stored JSON read failed", failure); }
@@ -59,15 +69,16 @@ public final class LobbyReadBudget {
 
 	public void admit(String json) {
 		check();
-		if (json.length() > RECORD_BYTES || json.length() > PAGE_BYTES - decodedBytes) exhausted();
+		if (json.length() > RECORD_BYTES) throw new InvalidRecord();
+		if (json.length() > PAGE_BYTES - decodedBytes) exhausted();
 		int bytes = json.getBytes(StandardCharsets.UTF_8).length;
-		if (bytes > RECORD_BYTES || bytes > PAGE_BYTES - decodedBytes) exhausted();
+		checkDecodedBytes(bytes);
 		decodedBytes += bytes;
-		guard(json);
+		checkStructure(json);
 	}
 
 	/** Bound nesting and structural parse work across the page, checking time every 4 KiB. */
-	private void guard(String json) {
+	private void checkStructure(String json) {
 		boolean quoted = false, escaped = false;
 		int depth = 0;
 		for (int index = 0; index < json.length(); index++) {
@@ -78,20 +89,20 @@ public final class LobbyReadBudget {
 				else if (value == '\\') escaped = true;
 				else if (value == '"') quoted = false;
 			} else if (value == '"') quoted = true;
-			else if (value == '{' || value == '[') { if (++depth > 128) throw new IllegalArgumentException("Stored JSON nesting limit"); }
+			else if (value == '{' || value == '[') { if (++depth > MAX_NESTING) throw new InvalidRecord(); }
 			else if (value == '}' || value == ']') depth--;
-			if (!quoted && (value == ',' || value == ':' || value == '{' || value == '[') && ++tokens > 500_000) exhausted();
+			if (!quoted && (value == ',' || value == ':' || value == '{' || value == '[') && ++tokens > MAX_STRUCTURAL_TOKENS) exhausted();
 		}
 	}
 
 	public void response(JsonObject json) {
 		check();
 		try {
-			json.writeTo(new java.io.Writer() {
+			json.writeTo(new Writer() {
 				private int chars;
 				@Override public void write(char[] buffer, int offset, int length) {
 					check();
-					if (length > 85_000 - chars) exhausted(); // <=255 KiB UTF-8, including surrogate pairs.
+					if (length > MAX_RESPONSE_CHARS - chars) exhausted(); // <=255 KiB UTF-8, including surrogate pairs.
 					chars += length;
 				}
 				@Override public void flush() { }

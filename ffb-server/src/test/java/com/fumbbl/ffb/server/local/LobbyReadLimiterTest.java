@@ -19,4 +19,13 @@ class LobbyReadLimiterTest {
 		nanos.set(11_999_999_999L); assertFalse(limiter.acquire());
 		nanos.incrementAndGet(); assertTrue(limiter.acquire()); assertFalse(limiter.acquire());
 	}
+	@Test void aNewConnectionStartsFullAtTheSameClockAfterPriorExhaustion() {
+		AtomicLong nanos = new AtomicLong(17);
+		LobbyReadLimiter previous = new LobbyReadLimiter(nanos::get);
+		assertTrue(previous.acquire()); assertTrue(previous.acquire()); assertFalse(previous.acquire());
+		LobbyReadLimiter reconnected = new LobbyReadLimiter(nanos::get);
+		assertTrue(reconnected.acquire()); assertTrue(reconnected.acquire()); assertFalse(reconnected.acquire());
+		assertFalse(previous.acquire(), "Connection buckets never share tokens");
+	}
+
 }

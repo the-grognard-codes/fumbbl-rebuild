@@ -1,15 +1,14 @@
 package com.fumbbl.ffb.server.match;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public interface MatchRepository {
 	Record find(String matchId) throws SQLException;
 	/** In-memory implementations may use find; JDBC must override with one batch. */
-	default java.util.Map<String, Record> findAll(java.util.List<String> ids, LobbyReadBudget budget) throws SQLException {
-		budget.entries(ids.size());
-		java.util.Map<String, Record> result = new java.util.LinkedHashMap<>();
-		for (String id : ids) { budget.check(); Record record = find(id); if (record != null) { budget.admit(record.json); result.put(id, record); } }
-		return result;
+	default Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
+		return new LobbyReadBatch().read(ids, budget, this::find, record -> record.json);
 	}
 	void insert(Record record) throws SQLException;
 	boolean replace(Record record, int expectedVersion) throws SQLException;
