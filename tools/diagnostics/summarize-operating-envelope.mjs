@@ -19,7 +19,9 @@ export function summarize(data) {
     const rows = data.requests.filter(r => r.phase === phase);
     const outcomes = {}; for (const row of rows) outcomes[row.code] = (outcomes[row.code] ?? 0) + 1;
     byPhase[phase] = { allOutcomesEndToEndMs: distribution(rows.map(r => r.endToEndMs)), outcomes,
-      acceptedActionsMs: distribution(rows.filter(r => r.operation === 'action' && r.code === 'ACCEPTED').map(r => r.endToEndMs)) };
+      acceptedActionsMs: distribution(rows.filter(r => r.operation === 'action' && r.code === 'ACCEPTED').map(r => r.endToEndMs)),
+      admittedLobbyReadsMs: distribution(rows.filter(r => ['browse', 'currentMatches'].includes(r.type) && r.code === 'ACCEPTED').map(r => r.endToEndMs)),
+      rejectedLobbyReadsMs: distribution(rows.filter(r => ['browse', 'currentMatches'].includes(r.type) && r.code !== 'ACCEPTED').map(r => r.endToEndMs)) };
   }
   const expected = data.finalTransport.metrics.workerTasks.reduce((sum, row) => sum + row.count, 0);
   const taskPhases = {};

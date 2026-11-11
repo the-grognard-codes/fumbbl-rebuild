@@ -19,3 +19,14 @@ test('control work, failures and missing ring samples remain visible', () => {
   assert.equal(result.byPhase.outage.outcomes.TIMEOUT_OR_CLOSED, 1);
   assert.deepEqual(result.reconnectMs, { count: 1, p50: 125, p95: 125, p99: 125, max: 125 });
 });
+
+
+test('admitted lobby latency excludes throttled work without hiding its outcomes', () => {
+  const result = summarize({ finalTransport: { samples: [], missingSamples: 0, metrics: { workerTasks: [] } }, resources: [],
+    requests: [{ phase: 'healthy', type: 'browse', code: 'ACCEPTED', endToEndMs: 200 },
+      { phase: 'healthy', type: 'currentMatches', code: 'RATE_LIMITED', endToEndMs: 1 }] });
+  assert.equal(result.byPhase.healthy.admittedLobbyReadsMs.p99, 200);
+  assert.equal(result.byPhase.healthy.rejectedLobbyReadsMs.count, 1);
+  assert.equal(result.byPhase.healthy.allOutcomesEndToEndMs.count, 2);
+  assert.equal(result.byPhase.healthy.outcomes.RATE_LIMITED, 1);
+});

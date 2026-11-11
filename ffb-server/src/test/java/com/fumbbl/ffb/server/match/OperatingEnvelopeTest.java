@@ -78,8 +78,8 @@ class OperatingEnvelopeTest {
 		JsonObject report = new JsonObject().add("requests", requests).add("resources", resources)
 			.add("provider", "production Firebase verification/cache/breaker with bounded SDK double; no external Firebase latency")
 			.add("socketMix", "2 authenticated coaches, 1 authenticated spectator, 13 idle real TCP sockets; one active match at a time, 32 resident")
-			.add("loggingLevel", 1).add("actionSchedule", "3 repetitions, 8 durable endTurn actions each; 500ms minimum interval plus completion time; lobby pair each iteration")
-			.add("controlTimingAvailable", true).add("phaseBoundaries", boundaries);
+			.add("loggingLevel", 1).add("actionSchedule", "3 repetitions, 8 durable endTurn actions each; 2000ms minimum interval plus completion time; admitted lobby pair each iteration")
+			.add("healthyReadIntervalMillis", 2000).add("controlTimingAvailable", true).add("phaseBoundaries", boundaries);
 		int databasePort = Integer.parseInt(base.split(":")[3].split("/")[0]);
 		Properties properties = new Properties();
 		FantasyFootballServer nativeServer = new FantasyFootballServer(ServerMode.STANDALONE, properties);
@@ -164,9 +164,9 @@ class OperatingEnvelopeTest {
 						JsonObject command = action(id, state);
 						Client actor = "home".equals(state.getString("actor", "")) ? home : away;
 						state = accepted(actor, command).get("state").asObject();
-						call(home, request("currentMatches").add("after", JsonValue.NULL));
-						call(spectator, request("browse").add("includeDetails", true));
-						Thread.sleep(500);
+						accepted(home, request("currentMatches").add("after", JsonValue.NULL));
+						accepted(spectator, request("browse").add("includeDetails", true));
+						Thread.sleep(2000);
 					}
 				}
 				beginPhase(probe, "reconnect"); String id = ids.get(3); JsonObject state = accepted(home, setup(id, "load")).get("state").asObject();
