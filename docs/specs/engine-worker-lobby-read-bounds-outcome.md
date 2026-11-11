@@ -17,7 +17,7 @@ Each page retains the existing maximum 100 entries, order, membership filtering,
 - At most 2 MiB encoded and decoded per record, 16 MiB aggregate encoded and decoded per page. SQL window sums suppress oversized non-null columns before the driver materializes result strings. Bounded character reads and declared decompressed lengths reject before decoding/allocation. Record-size/nesting failures mark only that entry unavailable. Aggregate page/deadline/response exhaustion fails the entire request with RATE_LIMITED.
 - At most depth 128 and 500,000 structural parse tokens per page, with deadline checks every 4,096 characters and between entries. Journal reconstruction has a separate aggregate 16 MiB copy-work allocation accounting for every accumulated entry, with the existing 32-entry journal limit.
 - Response preflight uses a bounded writer (85,000 UTF-16 units, conservatively at most 255,000 UTF-8 bytes) before normal serialization. CPU/native work remains non-preemptible; these allocations supplement measurement rather than promise timer preemption.
-- Browser reads coalesce only when request type and fields match; different cursors/detail modes retain separate request IDs and queue behind the same read type. After throttling the shared cooldown starts at 2 seconds and doubles to 30 seconds on repeated throttles. Queued read types are spaced by at least 2 seconds. Acceptance resets the cooldown and releases existing delayed reads; no failed read automatically starts a retry. Disconnect cancels deferred sends. Poll/manual refresh remains available, and throttling preserves successful lists, filters, selected board and uncertain intent.
+- Browser reads coalesce only when request type and fields match; different cursors/detail modes retain separate request IDs and queue behind the same read type. After throttling the shared cooldown starts at 2 seconds and doubles to 30 seconds on repeated throttles. Queued read types are spaced by at least 2 seconds. Acceptance resets the backoff delay. Queued reads retain their shared refill deadline, and the cooldown clears after the queue completes; no failed read automatically starts a retry. Disconnect cancels deferred sends. Poll/manual refresh remains available, and throttling preserves successful lists, filters, selected board and uncertain intent.
 
 ## Lane decision and preliminary capture
 
@@ -69,7 +69,7 @@ Final validation: pinned clean verify passed at 2026-11-10 19:00:45 -05:00 (16m4
 
 The review identified a lifecycle regression and client request/cooldown issues. The corrected path distinguishes invalid records from aggregate resource exhaustion. JDBC length metadata suppresses oversized records before driver allocation without charging them against the eligible-page window sum. Corrupt journal chains are isolated per match. Missing or malformed public views produce no scalar facts for that entry. A real MariaDB mixed-page regression retains 100 ordered memberships, marks the three affected entries UNAVAILABLE, preserves 97 healthy states, and accepts both currentMatches and detailed browse.
 
-The client queues distinct cursor/detail requests, coalesces exact requests, and releases existing timers when an accepted read resets cooldown. Non-throttle errors retain alert semantics and the prior reconnect copy. Deterministic tests cover alternating read types, exact refill and disconnect cleanup. The deadline regression enters through BrowserMatchSocket.onText and BrowserMatchTransport rather than creating a timing scope manually.
+The client queues distinct cursor/detail requests, coalesces exact requests, and retains queued refill timers when an earlier read is accepted. The cooldown clears once the queued reads complete. Non-throttle errors retain alert semantics and the prior reconnect copy. Deterministic tests cover alternating read types, exact refill and disconnect cleanup. The deadline regression enters through BrowserMatchSocket.onText and BrowserMatchTransport rather than creating a timing scope manually.
 
 The review also corrected import organization/inline qualified names, extracted shared default-batch and SQL projection/binding logic, restored codec-envelope ownership, named bounds and clarified admission/copy-work names. The single-entry browseState path had only test callers and was removed; those regressions now exercise browseStates. browseDocument remains necessary for preparation expiry; browseDocuments remains the application boundary for lobby document facts. LobbyReadBudget intentionally owns related counters for one page, with one lifetime and fail-closed budget classification.
 
@@ -77,9 +77,11 @@ The review also corrected import organization/inline qualified names, extracted 
 
 Revision `8eddbff3f37b0b13d1abdd4f552075fa8cc732af`. [Numeric page capture](../reviews/2026-11-11-lobby-read-review-measurements.json).
 
-| Entries | N | Execution p50 / p95 / p99 / max (ms) | >250 ms / >2,000 ms |
-|---|---:|---|---:|
-| 1 | 20 | 68.156 / 163.004 / 164.975 / 164.975 | 0 / 0 |
-| 100 | 20 | 373.481 / 521.325 / 695.617 / 695.617 | 18 / 0 |
+| Entries | N | Execution p50 / p95 / p99 / max (ms) | Document p99 | Recovery/parse p99 | Serialization p99 | >250 ms / >2,000 ms |
+|---|---:|---|---:|---:|---:|---:|
+| 1 | 20 | 68.156 / 163.004 / 164.975 / 164.975 | 101.466 | 101.063 | 0.251 | 0 / 0 |
+| 100 | 20 | 373.481 / 521.325 / 695.617 / 695.617 | 487.775 | 233.202 | 1.204 | 18 / 0 |
 
 The real-driver scenario also validated the mixed invalid-entry page. Query counts remain two repository connections and three data queries, plus fixed transaction controls. [Current review/validation](../reviews/2026-11-11-pr521-review-corrections.md) records passing lobby/browser/native-state checks and the failing full verify Firebase case, reproduced on baseline; earlier successful verifies are historical. The [corrected #39 comparison](engine-worker-concurrent-match-envelope-outcome.md) uses equal admitted read work.
+
+The historical page tables were captured in different sessions and describe their respective runs. The reviewer repeated the narrow test four times per revision within one session, in old/new/new/old/old/new/new/old order. Median per-run 100-entry p50/p99 were 340.1/519.2 ms on df5944955 and 352.4/526.6 ms on 8eddbff3f, with overlapping p99 ranges of 450-662 and 407-593 ms. Recovery/parse p50 medians were 45.1 and 49.8 ms. The reviewer withdrew the code-regression finding. These figures are attributed to the reviewer's rerun, whose summary is recorded in the [PR correction](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521#issuecomment-6787389313).

@@ -732,7 +732,7 @@ test('an accepted lobby read ends the shared throttle cooldown', async t => {
 });
 
 
-test('acceptance releases another read already waiting on a cooldown timer', async t => {
+test('acceptance preserves another read waiting for the shared bucket refill', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   let now = 0; t.mock.method(performance, 'now', () => now);
   const { client, connect } = fixture(); const socket = await connect();
@@ -741,8 +741,30 @@ test('acceptance releases another read already waiting on a cooldown timer', asy
   socket.reply({ type: 'error', requestId: inventory, code: 'RATE_LIMITED' });
   const retry = client.request('currentMatches', { after: null }); const count = socket.sent.length;
   socket.reply({ type: 'browse', requestId: browse.requestId, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.sent.length, count, 'An older accepted read cannot release a queued refill');
+  now = 1999; t.mock.timers.tick(1999); assert.equal(socket.sent.length, count);
+  now = 2000; t.mock.timers.tick(1);
   assert.equal(socket.sent.length, count + 1); assert.equal(socket.sent.at(-1).requestId, retry);
-  now = 30000; t.mock.timers.tick(30000);
-  assert.equal(socket.sent.length, count + 1, 'Cancelled timer must not send the request twice');
+  socket.reply({ type: 'currentMatches', requestId: retry, code: 'ACCEPTED', matches: [], next: null });
+  const next = client.request('browse');
+  assert.equal(socket.sent.at(-1).requestId, next, 'Spacing ends when the queued reads complete');
+  now = 30000; t.mock.timers.tick(28000);
+  assert.equal(socket.sent.filter(request => request.requestId === retry).length, 1);
+  client.disconnect();
+});
+
+test('gameplay responses leave queued lobby timers alone', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'error', requestId: browse.requestId, code: 'RATE_LIMITED' });
+  const queued = client.request('browse');
+  const timer = t.mock.method(globalThis, 'setTimeout');
+  const load = client.open(match, true);
+  socket.reply({ type: 'setupState', requestId: load, code: 'ACCEPTED', duplicate: false, state });
+  assert.equal(timer.mock.callCount(), 0, 'Gameplay must not re-arm lobby timers');
+  now = 2000; t.mock.timers.tick(2000);
+  assert.equal(socket.sent.at(-1).requestId, queued);
   client.disconnect();
 });

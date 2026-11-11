@@ -198,9 +198,11 @@ export class V2Client {
   }
 
   private finishRequest(requestId: string) {
+    const request = this.requests.get(requestId);
     this.requests.delete(requestId);
+    if (!request || !isLobbyRead(request.type)) return;
     this.lobbyReadInFlight.delete(requestId);
-    // Different cursors/detail modes keep their own correlation and run after the prior response.
+    // Different cursors/detail modes keep their own correlation and run after the prior lobby response.
     for (const send of [...this.queuedLobbyReads.values()]) send();
   }
 
@@ -401,10 +403,9 @@ export class V2Client {
         this.lobbyReadUntil = Math.max(this.lobbyReadUntil, performance.now() + this.lobbyReadDelay);
         this.lobbyReadDelay = Math.min(30_000, this.lobbyReadDelay * 2);
       } else if (message.code === 'ACCEPTED') {
-        this.lobbyReadDelay = lobbyReadInterval; this.lobbyReadUntil = 0;
-        for (const timer of this.lobbyReadTimers.values()) clearTimeout(timer);
-        this.lobbyReadTimers.clear();
-        for (const send of [...this.queuedLobbyReads.values()]) send();
+        this.lobbyReadDelay = lobbyReadInterval;
+        // An earlier accepted read does not replenish the shared server bucket.
+        if (this.queuedLobbyReads.size === 0) this.lobbyReadUntil = 0;
       }
     }
     if (message.type === 'error' && message.code === 'AUTHENTICATION_REQUIRED' && this.accountId

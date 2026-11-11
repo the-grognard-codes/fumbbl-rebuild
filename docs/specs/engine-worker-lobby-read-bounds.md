@@ -78,7 +78,7 @@ currently use the advisory lane. Lane scheduling cannot preempt a running read.
   a read into the advisory lane as bounding or preempting its execution.
 - In the lobby, treat `RATE_LIMITED` as a retryable read outcome: preserve the last
   successful list/selection, avoid an error/reconnect loop, and coalesce requests only when type and fields match, queue distinct cursors/detail modes, or back
-  off subsequent refreshes. An accepted read clears the cooldown, including existing delayed sends. Surface an accessible status when useful without
+  off subsequent refreshes. An accepted read resets the backoff delay. Queued reads keep their refill spacing, and the cooldown clears when the queue completes. Surface an accessible status when useful without
   clearing valid match data or automatically issuing rapid retries.
 - Dispose limiter state on connection cleanup; reconnect cannot gain unlimited
   work through leaked state. Existing global connection/ingress admission still
