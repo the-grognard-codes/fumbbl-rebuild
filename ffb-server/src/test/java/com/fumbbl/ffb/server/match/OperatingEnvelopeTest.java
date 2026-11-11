@@ -78,8 +78,8 @@ class OperatingEnvelopeTest {
 		JsonObject report = new JsonObject().add("requests", requests).add("resources", resources)
 			.add("provider", "production Firebase verification/cache/breaker with bounded SDK double; no external Firebase latency")
 			.add("socketMix", "2 authenticated coaches, 1 authenticated spectator, 13 idle real TCP sockets; one active match at a time, 32 resident")
-			.add("loggingLevel", 1).add("actionSchedule", "3 repetitions, 8 durable endTurn actions each; 2000ms minimum interval plus completion time; admitted lobby pair each iteration")
-			.add("healthyReadIntervalMillis", 2000).add("controlTimingAvailable", true).add("phaseBoundaries", boundaries);
+			.add("loggingLevel", 1).add("actionSchedule", "1 workload warmup and 3 measured repetitions, 8 durable endTurn actions each; 2000ms minimum interval plus completion time; admitted lobby pair each iteration")
+			.add("workloadWarmupRepetitions", 1).add("measuredRepetitions", 3).add("healthyReadIntervalMillis", 2000).add("controlTimingAvailable", true).add("phaseBoundaries", boundaries);
 		int databasePort = Integer.parseInt(base.split(":")[3].split("/")[0]);
 		Properties properties = new Properties();
 		FantasyFootballServer nativeServer = new FantasyFootballServer(ServerMode.STANDALONE, properties);
@@ -156,8 +156,9 @@ class OperatingEnvelopeTest {
 				for (int index = 0; index < 13; index++) connect(null);
 				report.add("admittedSockets", servlet.getTransportMetrics().getLong("activeConnections", -1));
 				try (Client excess = new Client()) { report.add("seventeenthCloseCode", excess.closed.get(5, TimeUnit.SECONDS)); }
-				for (int repeat = 0; repeat < 3; repeat++) {
-					beginPhase(probe, "healthy-" + repeat); String id = ids.get(repeat);
+				for (int repeat = -1; repeat < 3; repeat++) {
+					beginPhase(probe, repeat < 0 ? "workload-warmup" : "healthy-" + repeat);
+					String id = ids.get(repeat < 0 ? ids.size() - 1 : repeat);
 					JsonObject state = accepted(home, setup(id, "load")).get("state").asObject(); accepted(away, setup(id, "load"));
 					accepted(spectator, request("watch").add("matchId", id));
 					for (int action = 0; action < 8; action++) {

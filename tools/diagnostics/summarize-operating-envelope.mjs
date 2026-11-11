@@ -14,14 +14,20 @@ export function summarize(data) {
   const tasks = selection => ({ executionMs: distribution(selection.map(s => s.executionNanos / 1e6)),
     queueMs: distribution(selection.map(s => s.queueNanos / 1e6)), above250ms: selection.filter(s => s.executionNanos > 250e6).length,
     above2000ms: selection.filter(s => s.executionNanos > 2000e6).length });
+  const summarizeRequests = rows => {
+    const outcomes = {};
+    for (const row of rows) outcomes[row.code] = (outcomes[row.code] ?? 0) + 1;
+    const lobbyReads = rows.filter(row => ['browse', 'currentMatches'].includes(row.type));
+    return {
+      allOutcomesEndToEndMs: distribution(rows.map(row => row.endToEndMs)), outcomes,
+      acceptedActionsMs: distribution(rows.filter(row => row.operation === 'action' && row.code === 'ACCEPTED').map(row => row.endToEndMs)),
+      admittedLobbyReadsMs: distribution(lobbyReads.filter(row => row.code === 'ACCEPTED').map(row => row.endToEndMs)),
+      rejectedLobbyReadsMs: distribution(lobbyReads.filter(row => row.code !== 'ACCEPTED').map(row => row.endToEndMs))
+    };
+  };
   const byPhase = {};
-  for (const phase of new Set(data.requests.map(r => r.phase))) {
-    const rows = data.requests.filter(r => r.phase === phase);
-    const outcomes = {}; for (const row of rows) outcomes[row.code] = (outcomes[row.code] ?? 0) + 1;
-    byPhase[phase] = { allOutcomesEndToEndMs: distribution(rows.map(r => r.endToEndMs)), outcomes,
-      acceptedActionsMs: distribution(rows.filter(r => r.operation === 'action' && r.code === 'ACCEPTED').map(r => r.endToEndMs)),
-      admittedLobbyReadsMs: distribution(rows.filter(r => ['browse', 'currentMatches'].includes(r.type) && r.code === 'ACCEPTED').map(r => r.endToEndMs)),
-      rejectedLobbyReadsMs: distribution(rows.filter(r => ['browse', 'currentMatches'].includes(r.type) && r.code !== 'ACCEPTED').map(r => r.endToEndMs)) };
+  for (const phase of new Set(data.requests.map(row => row.phase))) {
+    byPhase[phase] = summarizeRequests(data.requests.filter(row => row.phase === phase));
   }
   const expected = data.finalTransport.metrics.workerTasks.reduce((sum, row) => sum + row.count, 0);
   const taskPhases = {};
@@ -30,10 +36,14 @@ export function summarize(data) {
     const start = boundaries[index].sequence, end = boundaries[index + 1]?.sequence ?? Infinity;
     taskPhases[boundaries[index].phase] = tasks(samples.filter(s => s.sequence >= start && s.sequence < end));
   }
+  const healthyRanges = boundaries.flatMap((boundary, index) => /^healthy-[0-9]+$/.test(boundary.phase)
+    ? [{ start: boundary.sequence, end: boundaries[index + 1]?.sequence ?? Infinity }] : []);
+  const healthySamples = samples.filter(sample => healthyRanges.some(range => sample.sequence >= range.start && sample.sequence < range.end));
+  const healthyRequests = data.requests.filter(row => /^healthy-[0-9]+$/.test(row.phase));
   return { allTasks: tasks(samples), kinds: Object.fromEntries([0, 1, 2, 3].map(kind => [kind, tasks(samples.filter(s => s.kind === kind))])),
     missingSamples: data.finalTransport.missingSamples, expectedTasks: expected, capturedTasks: samples.length,
     completeTaskCoverage: expected === samples.length && data.finalTransport.missingSamples === 0,
-    byPhase, taskPhases, reconnectMs: distribution(data.reconnectEndToEndMs === undefined ? [] : [data.reconnectEndToEndMs]),
+    byPhase, taskPhases, healthy: { tasks: tasks(healthySamples), requests: summarizeRequests(healthyRequests) }, reconnectMs: distribution(data.reconnectEndToEndMs === undefined ? [] : [data.reconnectEndToEndMs]),
     heapBytes: distribution(data.resources.map(s => s.heapBytes)),
     processCpuSeconds: data.resources.length > 1 ? (data.resources.at(-1).processCpuNanos - data.resources[0].processCpuNanos) / 1e9 : null };
 }

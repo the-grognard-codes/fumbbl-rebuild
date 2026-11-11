@@ -30,3 +30,18 @@ test('admitted lobby latency excludes throttled work without hiding its outcomes
   assert.equal(result.byPhase.healthy.allOutcomesEndToEndMs.count, 2);
   assert.equal(result.byPhase.healthy.outcomes.RATE_LIMITED, 1);
 });
+
+
+test('workload warmup remains in full accounting and is excluded from measured healthy distributions', () => {
+  const samples = [{ sequence: 1, kind: 0, executionNanos: 1500e6, queueNanos: 0 },
+    { sequence: 2, kind: 0, executionNanos: 10e6, queueNanos: 0 }];
+  const result = summarize({ finalTransport: { samples, missingSamples: 0, metrics: { workerTasks: [{ count: 2 }] } }, resources: [],
+    phaseBoundaries: [{ phase: 'workload-warmup', sequence: 1 }, { phase: 'healthy-0', sequence: 2 }],
+    requests: [{ phase: 'workload-warmup', type: 'setup', operation: 'action', code: 'ACCEPTED', endToEndMs: 1600 },
+      { phase: 'healthy-0', type: 'setup', operation: 'action', code: 'ACCEPTED', endToEndMs: 20 }] });
+  assert.equal(result.allTasks.executionMs.p99, 1500);
+  assert.equal(result.healthy.tasks.executionMs.p99, 10);
+  assert.equal(result.healthy.requests.acceptedActionsMs.p99, 20);
+  assert.equal(result.byPhase['workload-warmup'].acceptedActionsMs.p99, 1600);
+  assert.equal(result.completeTaskCoverage, true);
+});
