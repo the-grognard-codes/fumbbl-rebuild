@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { summarize } from './summarize-operating-envelope.mjs';
+import { envelopeLocalStack } from './envelope-local-stack.mjs';
 
 const [baseline, integrated, output] = process.argv.slice(2);
 if (!baseline || !integrated || !output || process.argv.length !== 5) {
@@ -17,13 +18,15 @@ const run = (program, args, options = {}) => execFileSync(program, args,
 const revisions = Object.fromEntries(Object.entries(checkouts).map(([role, checkout]) =>
   [role, run('git', ['rev-parse', 'HEAD'], { cwd: checkout })]));
 const order = ['baseline', 'integrated', 'integrated', 'baseline', 'baseline', 'integrated', 'integrated', 'baseline'];
-const containers = run('docker', ['ps', '--filter', 'label=com.docker.compose.project=ffb-match-review', '--format', '{{.ID}}'])
+const { project, database, port: databasePort } = envelopeLocalStack();
+const containers = run('docker', ['ps', '--filter', `label=com.docker.compose.project=${project}`, '--format', '{{.ID}}'])
   .split(/\r?\n/).filter(Boolean);
 if (containers.length === 0) throw Error('The dev-local stack must be running');
 const dockerStats = () => run('docker', ['stats', '--no-stream', '--format', '{{json .}}', ...containers])
   .split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
 const series = {
   started: new Date().toISOString(), revisions, order,
+  dockerProject: project, databaseContainer: database.Name.slice(1), databaseHostPort: databasePort,
   runnerSha256: createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex'),
   workloadWarmupRepetitions: 1, measuredRepetitions: 3, captures: [], completed: false
 };
