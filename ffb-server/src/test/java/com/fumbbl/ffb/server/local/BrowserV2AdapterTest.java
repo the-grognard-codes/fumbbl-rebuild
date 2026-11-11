@@ -1,7 +1,6 @@
 package com.fumbbl.ffb.server.local;
 
 import com.fumbbl.ffb.server.FantasyFootballServer;
-import com.fumbbl.ffb.server.ServerCommunication;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
@@ -17,6 +16,7 @@ import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.V2PrincipalDirectory;
+import com.fumbbl.ffb.server.net.ServerCommunication;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
