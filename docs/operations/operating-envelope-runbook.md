@@ -25,3 +25,26 @@ Slow delivery uses one controlled Jetty write callback with 15 real TCP sockets 
 Numeric task kinds are 0 ingress, 1 other control, 2 decision expiry, 3 disconnect. Queue and full execution distributions are separate. The collector deduplicates the bounded sample ring by sequence and reports gaps against cumulative counts. Never replace missing control samples with ingress p99. Percentiles use nearest rank; all request outcomes remain in end-to-end distributions. A small sample p99 is often its maximum. Tasks over 100 ms / approximately 250 ms / 2,000 ms remain target evidence, not permission to relax ADR 0006.
 
 The ingress saturation phase deliberately holds one test control task for 250 ms before submitting 160 serialized WebSocket writes. This is a declared queue-pressure fixture, not healthy gameplay. Its control execution remains in all-task measurements and is separated by phase. Socket closure may discard admitted but not yet executed messages; every submitted request remains counted.
+
+## Refresh the synthetic retention timestamp
+
+The archived seed has a real activity timestamp and will be abandoned by the unchanged 24-hour policy on a later day. Before a new comparison, create one fresh ignored copy, then use that same file for both runs. Only `saveResume.lastPlayerActivityAt` changes; the checksum is recomputed. Keep Python's arbitrary-precision integers for the native payload.
+
+Run this Python recipe once from the checkout (choose a new output filename if it exists):
+
+```python
+import gzip, hashlib, json, time
+from pathlib import Path
+seed = json.loads(gzip.decompress(Path(
+    "ffb-server/src/test/resources/operating-envelope/synthetic-turn.json.gz"
+).read_bytes()))
+seed["payload"]["saveResume"]["lastPlayerActivityAt"] = time.time_ns() // 1_000_000
+body = json.dumps(seed["payload"], ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+text = '{"payload":' + body + ',"sha256":"' + hashlib.sha256(body.encode()).hexdigest() + '"}'
+with Path(".tools/envelope-seed-fresh.json").open("x", encoding="utf-8") as output:
+    output.write(text)
+```
+
+In PowerShell set `$env:ENVELOPE_SEED_FILE = (Resolve-Path .tools/envelope-seed-fresh.json).Path` before invoking either runner. Preserve that input with the results. The 2026-11-10 report archives the exact refreshed seed, both hashes and the timestamp change. This is fixture preparation, not a runtime retention-policy change.
+
+The final capture records one whole reconnect from immediately before abrupt disconnect through new socket/authentication and duplicate confirmation. Its single-sample percentiles are explicitly not a stable tail estimate. The measured engine runs in a host test JVM; dev-local startup is a separate check and MariaDB is the actual local container. Do not use the result as container sizing.

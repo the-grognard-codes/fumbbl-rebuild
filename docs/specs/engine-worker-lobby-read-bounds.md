@@ -1,7 +1,7 @@
 # Feature: Throttle and batch browse and current-match reads
 
 Tracking: [#508](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508).
-Status: formal fix request; implementation pending.
+Status: implemented and locally validated; independent review pending. See [outcome](engine-worker-lobby-read-bounds-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C3/C5 and L1/L2](engine-worker-requests-review.md).
 
@@ -136,8 +136,4 @@ the clean game-server build/tests.
 
 ## Completion Notes
 
-Request only; no new rate limit, batching or runtime measurement is implemented.
-Before implementation, link this revised scope from #508 or update its body when
-tracker writes are authorized.
-Record interval, query/byte bounds, lane rationale and validation in an outcome
-report; investigate failures until resolved or a concrete blocker is documented.
+Implemented on the slice-4 branch with separate #508 commits and validation boundaries. The revised request is linked from #508. The [outcome report](engine-worker-lobby-read-bounds-outcome.md) records bounds, scheduling evidence, exact revisions, validation and the missed healthy latency target. Issue closure awaits independent review.

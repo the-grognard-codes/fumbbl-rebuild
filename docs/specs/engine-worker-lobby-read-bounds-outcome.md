@@ -2,7 +2,7 @@
 
 Tracking: https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508
 
-Base: `d3dabde26026654930768bf18799777d84b5d589` (merged RB2 and slices 1?3).
+Base: `d3dabde26026654930768bf18799777d84b5d589` (merged RB2 and slices 1-3).
 Implementation branch: `fix/lobby-read-bounds-envelope-508-39`.
 
 The adapter validates supported request shapes before charging a shared per-connection two-token bucket. Its monotonic refill adds one token per 2,000 ms, capped at two. Disconnect and replacement dispose the bucket. There is no fallback exemption: rejected shapes perform no expensive read and do not charge a token. Accepted initial browse/currentMatches consume the two-token burst. Exhaustion still refreshes authorization and returns a correlated `RATE_LIMITED` without document/checkpoint access.
@@ -19,7 +19,7 @@ Each page retains the existing maximum 100 entries, order, membership filtering,
 - Response preflight uses a bounded writer (85,000 UTF-16 units, conservatively at most 255,000 UTF-8 bytes) before normal serialization. CPU/native work remains non-preemptible; these allocations supplement measurement rather than promise timer preemption.
 - Browser reads coalesce by request type. After throttling the shared cooldown starts at 2 seconds and doubles to 30 seconds on repeated throttles. Queued read types are spaced by at least 2 seconds. No failed read automatically starts a retry. Disconnect cancels deferred sends. Poll/manual refresh remains available, and throttling preserves successful lists, filters, selected board and uncertain intent.
 
-## Lane decision and narrow capture
+## Lane decision and preliminary capture
 
 Use the existing advisory lane for both lobby read types. Gameplay receives foreground priority while advisory admission, FIFO order and the existing fairness burst remain unchanged. This changes scheduling only: it cannot interrupt a running read.
 
@@ -44,6 +44,23 @@ Dev-local startup: successful using `node tools/dev-local.mjs --restart --quick`
 
 The first real-driver fixture run rejected schema version 7 for journal mode; the fixture now starts at version 8 and applies migration 009 to reach 9. The capture passes and its owned `ffb_lobby_read_test` schema is removed in `finally`.
 
-Final pinned clean verify passed on 2026-11-10 at 17:27:18 -05:00 (14m47s), using Temurin 21.0.11+10-LTS and Maven 3.9.9. The capture was taken from this slice working tree based on the revision above; the implementation commit preserves that source. Subsequent #39 harness and report changes are separately committed. No integrated-envelope claim is made by this validation boundary.
+Final pinned clean verify passed on 2026-11-10 at 17:27:18 -05:00 (14m47s), using Temurin 21.0.11+10-LTS and Maven 3.9.9. The early capture was taken from a working tree based on the revision above and is retained as preliminary evidence. Final acceptance uses the exact-revision recapture below. Subsequent #39 harness and report changes are separately committed. No integrated-envelope claim is made by this validation boundary.
 
 Follow-up self-review bounds the journal SQL result to `page entries * 32 + 1` rows before driver materialization. The sentinel row retains explicit `RECOVERY_CORRUPT` failure for excess history; it never produces a truncated success. Focused regression covers both one- and 100-entry SQL bounds and excess-row rollback. This correction precedes the exact integrated capture and supersedes the earlier #508 source boundary for final validation.
+
+## Final exact-revision recapture
+
+Runtime/harness revision: `df59449552756399e5c4ed766ba81557a118e987`. The journal driver row-limit correction is included. [Final numeric capture](../reviews/2026-11-10-lobby-read-final-measurements.json). Twenty measured repetitions follow a separately recorded warmup at each size.
+
+| Entries | Execution p50 / p95 / p99 / max (ms) | Document phase p99 | Recovery/parse p99 | Serialization p99 |
+|---|---|---:|---:|---:|
+| 1 | 25.625 / 29.756 / 47.387 / 47.387 | 14.790 | 33.166 | 0.208 |
+| 100 | 204.906 / 232.861 / 294.050 / 294.050 | 266.442 | 28.327 | 0.360 |
+
+The native projection completed after 1542.915 ms with eight forced-foreground reads and 3.383 ms with advisory reads. The advisory decision remains supported; it cannot preempt a running read.
+
+The 100-entry page p99 **fails** 100 ms; 1 of 20 samples exceed 250 ms, and 0 exceed 2,000 ms. Document loading/validation dominates the largest sample, while query counts remain fixed. This is a performance follow-up, not a passing target claim. The integrated full-authorization/native workload is reported separately in the [#39 outcome](engine-worker-concurrent-match-envelope-outcome.md).
+
+Final validation: pinned clean verify passed at 2026-11-10 19:00:45 -05:00 (16m48s): 1,126 tests, zero failures/errors, 22 explicitly gated/skipped cases. Browser: 535 tests, build, desktop/mobile lobby, preparation lifecycle and reconnect checks passed. Opt-in real MariaDB and integrated captures were run separately.
+
+[Performance follow-up #520](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/520) records the missed healthy latency target without relaxing ADR 0006.

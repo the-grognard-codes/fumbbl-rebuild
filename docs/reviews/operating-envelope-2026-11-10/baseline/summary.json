@@ -1,0 +1,489 @@
+{
+  "allTasks": {
+    "executionMs": {
+      "count": 463,
+      "p50": 0.1059,
+      "p95": 378.3921,
+      "p99": 399.6048,
+      "max": 420.5286
+    },
+    "queueMs": {
+      "count": 463,
+      "p50": 0.101,
+      "p95": 252.8536,
+      "p99": 360.7509,
+      "max": 441.1277
+    },
+    "above250ms": 58,
+    "above2000ms": 0
+  },
+  "kinds": {
+    "0": {
+      "executionMs": {
+        "count": 355,
+        "p50": 39.8373,
+        "p95": 382.0364,
+        "p99": 405.1219,
+        "max": 420.5286
+      },
+      "queueMs": {
+        "count": 355,
+        "p50": 0.0939,
+        "p95": 252.6696,
+        "p99": 253.3716,
+        "max": 254.2811
+      },
+      "above250ms": 57,
+      "above2000ms": 0
+    },
+    "1": {
+      "executionMs": {
+        "count": 19,
+        "p50": 0.0311,
+        "p95": 254.5823,
+        "p99": 254.5823,
+        "max": 254.5823
+      },
+      "queueMs": {
+        "count": 19,
+        "p50": 0.0635,
+        "p95": 243.0333,
+        "p99": 243.0333,
+        "max": 243.0333
+      },
+      "above250ms": 1,
+      "above2000ms": 0
+    },
+    "2": {
+      "executionMs": {
+        "count": 71,
+        "p50": 0.0519,
+        "p95": 0.0994,
+        "p99": 0.3843,
+        "max": 0.3843
+      },
+      "queueMs": {
+        "count": 71,
+        "p50": 5.0692,
+        "p95": 374.8143,
+        "p99": 441.1277,
+        "max": 441.1277
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "3": {
+      "executionMs": {
+        "count": 18,
+        "p50": 0.0073,
+        "p95": 0.0529,
+        "p99": 0.0529,
+        "max": 0.0529
+      },
+      "queueMs": {
+        "count": 18,
+        "p50": 0.0247,
+        "p95": 246.7856,
+        "p99": 246.7856,
+        "max": 246.7856
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    }
+  },
+  "missingSamples": 0,
+  "expectedTasks": 463,
+  "capturedTasks": 463,
+  "completeTaskCoverage": true,
+  "byPhase": {
+    "warmup": {
+      "allOutcomesEndToEndMs": {
+        "count": 35,
+        "p50": 166.0904,
+        "p95": 268.1406,
+        "p99": 283.2025,
+        "max": 283.2025
+      },
+      "outcomes": {
+        "ACCEPTED": 35
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "healthy-0": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 366.2191,
+        "p95": 449.2972,
+        "p99": 453.0017,
+        "max": 453.0017
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 115.774,
+        "p95": 184.9148,
+        "p99": 184.9148,
+        "max": 184.9148
+      }
+    },
+    "healthy-1": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 370.3928,
+        "p95": 442.5467,
+        "p99": 449.0458,
+        "max": 449.0458
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 133.8196,
+        "p95": 152.2883,
+        "p99": 152.2883,
+        "max": 152.2883
+      }
+    },
+    "healthy-2": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 372.3141,
+        "p95": 429.6558,
+        "p99": 461.656,
+        "max": 461.656
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 124.2149,
+        "p95": 130.5137,
+        "p99": 130.5137,
+        "max": 130.5137
+      }
+    },
+    "reconnect": {
+      "allOutcomesEndToEndMs": {
+        "count": 4,
+        "p50": 42.7061,
+        "p95": 121.5761,
+        "p99": 121.5761,
+        "max": 121.5761
+      },
+      "outcomes": {
+        "ACCEPTED": 4
+      },
+      "acceptedActionsMs": {
+        "count": 2,
+        "p50": 75.1703,
+        "p95": 121.5761,
+        "p99": 121.5761,
+        "max": 121.5761
+      }
+    },
+    "slow-recipient": {
+      "allOutcomesEndToEndMs": {
+        "count": 1,
+        "p50": 47.6485,
+        "p95": 47.6485,
+        "p99": 47.6485,
+        "max": 47.6485
+      },
+      "outcomes": {
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "provider-outage": {
+      "allOutcomesEndToEndMs": {
+        "count": 21,
+        "p50": 1.1399,
+        "p95": 265.031,
+        "p99": 265.1686,
+        "max": 265.1686
+      },
+      "outcomes": {
+        "AUTHENTICATION_REQUIRED": 20,
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "database-outage": {
+      "allOutcomesEndToEndMs": {
+        "count": 21,
+        "p50": 1.9272,
+        "p95": 6.4092,
+        "p99": 46.9334,
+        "max": 46.9334
+      },
+      "outcomes": {
+        "AUTHENTICATION_REQUIRED": 20,
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "completed-release": {
+      "allOutcomesEndToEndMs": {
+        "count": 64,
+        "p50": 146.3014,
+        "p95": 175.4404,
+        "p99": 323.6882,
+        "max": 323.6882
+      },
+      "outcomes": {
+        "ACCEPTED": 64
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "ingress-saturation": {
+      "allOutcomesEndToEndMs": {
+        "count": 160,
+        "p50": 4.7001,
+        "p95": 8.3899,
+        "p99": 9.4584,
+        "max": 10.3567
+      },
+      "outcomes": {
+        "CLOSED_OR_SEND_FAILED": 160
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    }
+  },
+  "taskPhases": {
+    "healthy-0": {
+      "executionMs": {
+        "count": 39,
+        "p50": 187.5528,
+        "p95": 405.1219,
+        "p99": 420.5286,
+        "max": 420.5286
+      },
+      "queueMs": {
+        "count": 39,
+        "p50": 0.1164,
+        "p95": 360.7509,
+        "p99": 392.7057,
+        "max": 392.7057
+      },
+      "above250ms": 16,
+      "above2000ms": 0
+    },
+    "healthy-1": {
+      "executionMs": {
+        "count": 40,
+        "p50": 175.7337,
+        "p95": 391.637,
+        "p99": 396.9113,
+        "max": 396.9113
+      },
+      "queueMs": {
+        "count": 40,
+        "p50": 0.0973,
+        "p95": 301.448,
+        "p99": 441.1277,
+        "max": 441.1277
+      },
+      "above250ms": 16,
+      "above2000ms": 0
+    },
+    "healthy-2": {
+      "executionMs": {
+        "count": 39,
+        "p50": 166.8957,
+        "p95": 406.8706,
+        "p99": 407.4404,
+        "max": 407.4404
+      },
+      "queueMs": {
+        "count": 39,
+        "p50": 0.0866,
+        "p95": 374.8143,
+        "p99": 406.7304,
+        "max": 406.7304
+      },
+      "above250ms": 16,
+      "above2000ms": 0
+    },
+    "reconnect": {
+      "executionMs": {
+        "count": 9,
+        "p50": 14.1933,
+        "p95": 184.8121,
+        "p99": 184.8121,
+        "max": 184.8121
+      },
+      "queueMs": {
+        "count": 9,
+        "p50": 0.0594,
+        "p95": 39.427,
+        "p99": 39.427,
+        "max": 39.427
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "slow-recipient": {
+      "executionMs": {
+        "count": 8,
+        "p50": 0.0243,
+        "p95": 45.9471,
+        "p99": 45.9471,
+        "max": 45.9471
+      },
+      "queueMs": {
+        "count": 8,
+        "p50": 0.0602,
+        "p95": 0.1123,
+        "p99": 0.1123,
+        "max": 0.1123
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "provider-outage": {
+      "executionMs": {
+        "count": 36,
+        "p50": 0.2534,
+        "p95": 264.2751,
+        "p99": 264.3823,
+        "max": 264.3823
+      },
+      "queueMs": {
+        "count": 36,
+        "p50": 0.0733,
+        "p95": 0.3612,
+        "p99": 157.4446,
+        "max": 157.4446
+      },
+      "above250ms": 3,
+      "above2000ms": 0
+    },
+    "database-outage": {
+      "executionMs": {
+        "count": 31,
+        "p50": 0.9277,
+        "p95": 5.9606,
+        "p99": 45.633,
+        "max": 45.633
+      },
+      "queueMs": {
+        "count": 31,
+        "p50": 0.0726,
+        "p95": 0.1972,
+        "p99": 5.9957,
+        "max": 5.9957
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "completed-release": {
+      "executionMs": {
+        "count": 73,
+        "p50": 44.7824,
+        "p95": 254.912,
+        "p99": 322.7307,
+        "max": 322.7307
+      },
+      "queueMs": {
+        "count": 73,
+        "p50": 0.0498,
+        "p95": 30.5274,
+        "p99": 209.7432,
+        "max": 209.7432
+      },
+      "above250ms": 4,
+      "above2000ms": 0
+    },
+    "ingress-saturation": {
+      "executionMs": {
+        "count": 131,
+        "p50": 0.0026,
+        "p95": 0.0156,
+        "p99": 0.039,
+        "max": 254.5823
+      },
+      "queueMs": {
+        "count": 131,
+        "p50": 250.9441,
+        "p95": 253.0382,
+        "p99": 253.4756,
+        "max": 254.2811
+      },
+      "above250ms": 1,
+      "above2000ms": 0
+    },
+    "cleanup": {
+      "executionMs": {
+        "count": 14,
+        "p50": 0.0064,
+        "p95": 0.1059,
+        "p99": 0.1059,
+        "max": 0.1059
+      },
+      "queueMs": {
+        "count": 14,
+        "p50": 0.0215,
+        "p95": 0.1009,
+        "p99": 0.1009,
+        "max": 0.1009
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    }
+  },
+  "reconnectMs": {
+    "count": 1,
+    "p50": 135.8764,
+    "p95": 135.8764,
+    "p99": 135.8764,
+    "max": 135.8764
+  },
+  "heapBytes": {
+    "count": 720,
+    "p50": 187717056,
+    "p95": 227688784,
+    "p99": 253288168,
+    "max": 281912088
+  },
+  "processCpuSeconds": 103.984375
+}

@@ -1,0 +1,44 @@
+{
+  "revision": "e8c3cda1f2e2423204d322f1d18fdf200fa28fbf",
+  "status": "",
+  "started": "2026-11-10T23:39:27.720Z",
+  "os": "10.0.26300",
+  "cpu": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+  "logicalProcessors": 16,
+  "hostMemoryBytes": 16438054912,
+  "node": "v26.8.1",
+  "databaseImage": "mariadb:11.8.9@sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3",
+  "databaseImageId": "sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3",
+  "containerMemoryLimit": 0,
+  "containerNanoCpus": 0,
+  "database": "isolated schema on shared idle dev-local MariaDB, TCP proxy loopback; unpooled Connector/J; connect500/socket1500/lock1000ms",
+  "command": "tools/target-build.ps1 test -Module ffb-server -Test OperatingEnvelopeTest",
+  "cleanup": true,
+  "toolchain": {
+    "maven": {
+      "version": "3.9.9",
+      "directory": "apache-maven-3.9.9",
+      "archive": "apache-maven-3.9.9-bin.zip",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.9/apache-maven-3.9.9-bin.zip",
+      "sha512": "8beac8d11ef208f1e2a8df0682b9448a9a363d2ad13ca74af43705549e72e74c9378823bf689287801cbbfc2f6ea9596201d19ccacfdfb682ee8a2ff4c4418ba"
+    },
+    "java": {
+      "minimumVersion": 21,
+      "runtimeVersion": "21.0.11+10-LTS",
+      "ciVersion": "21.0.11+10.0.LTS",
+      "vendor": "Eclipse Adoptium",
+      "defaultWindowsHome": "C:/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot"
+    },
+    "repositoryDirectory": "repository"
+  },
+  "sourceHashes": {
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/OperatingEnvelopeTest.java": "5fa8905e22f7fd9f8156173c64d85dab9f4d5f9a5884a2b7e28dd3b571a88876",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/EnvelopeDatabaseProxy.java": "de1347ee7348e9b0b45dff30ef598562258393e4161726e6133d424b9edd7821",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/local/EnvelopeTransportProbe.java": "bf44fd252b8087cd24eca64dacf051933244c5dbacf2b7a9846a0a6f6440e779",
+    "ffb-server/src/test/resources/operating-envelope/synthetic-turn.json.gz": "f0e8d1f60ebeb91a051b4e0f67e3aea926637b94472430dbdf6cfa6d2abd219f",
+    "tools/diagnostics/run-operating-envelope.mjs": "58788ac9973044c469e904b6407ac861051fdc645df706c2c55bbe77963eb151",
+    "tools/diagnostics/summarize-operating-envelope.mjs": "26c7186eb5f46de83eb07d17acf28e5f4f27adde9fd7e4ba39f25b1c48dd7301"
+  },
+  "exitCode": 0,
+  "finished": "2026-11-10T23:40:44.106Z"
+}

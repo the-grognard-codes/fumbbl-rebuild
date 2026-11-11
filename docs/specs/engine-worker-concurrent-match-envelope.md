@@ -1,7 +1,7 @@
 # Feature: Measure the single-worker concurrent-match operating envelope
 
 Tracking: [#39](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/39).
-Status: formal measurement request; execution and results pending.
+Status: declared local baseline/integrated measurement completed; independent review pending. Targets are evaluated in the [outcome](engine-worker-concurrent-match-envelope-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C3/C4/C5 and E1/E2](engine-worker-requests-review.md).
 
@@ -149,8 +149,4 @@ checks rather than an unrelated rebuild. Preserve the exact measured revision.
 
 ## Completion Notes
 
-Request only: no load or capacity measurement has been run. Before implementation,
-link this revised request from #39 or update its body when tracker writes are
-authorized, preserving its TODO.md mirror. Put the outcome report beside this request, with machine-readable
-evidence referenced by path. Investigate failures or record concrete unresolved
-findings; do not mark the envelope validated when required runs are missing.
+The [runbook](../operations/operating-envelope-runbook.md) and [results](engine-worker-concurrent-match-envelope-outcome.md) record the declared workload, exact revisions, full-task timing, resources, outcomes, cleanup and limitations. Baseline and integrated captures are complete; target failures remain explicit and require follow-up. The revised request is linked from #39, and the TODO mirror is retained. Issue closure awaits independent review.

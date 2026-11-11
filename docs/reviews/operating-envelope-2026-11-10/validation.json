@@ -1,0 +1,27 @@
+{
+  "revision": "df59449552756399e5c4ed766ba81557a118e987",
+  "java": {
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/target-build.ps1 verify",
+    "finished": "2026-11-10T19:00:45-05:00",
+    "durationSeconds": 1008,
+    "tests": 1126,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 22
+  },
+  "browser": {
+    "unitTests": 535,
+    "failures": 0,
+    "productionBuild": "passed",
+    "lobby1440And390": "passed",
+    "preparationLifecycle": "passed",
+    "reconnect": "passed"
+  },
+  "accountingTests": 2,
+  "startup": {
+    "url": "http://localhost:5000/play",
+    "server": "Browser V2 running on port 22227",
+    "proxyInitialAndReconnect": "passed",
+    "wrapperRetry": "informational Docker stderr was incorrectly promoted to a PowerShell error; native exit-code checking fixed the orchestration wrapper"
+  }
+}
