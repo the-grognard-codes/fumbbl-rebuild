@@ -12,6 +12,7 @@ import org.xbill.DNS.Section;
 import org.xbill.DNS.Type;
 
 import java.io.IOException;
+import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -91,8 +92,9 @@ class FirebaseDnsCandidateTest {
 		}
 	}
 	@Test void truncatedUdpFallsBackToTcpWithinSameDeadlineAndClosesStalledTcpPeer() throws Exception {
-		try (DnsServer server = new DnsServer(query -> { Message answer = answer(query); answer.getHeader().setFlag(Flags.TC); return answer; });
-			ServerSocket listener = new ServerSocket(server.address().getPort(), 1, InetAddress.getLoopbackAddress())) {
+		try (DnsTcpServer fixture = new DnsTcpServer(0)) {
+			DnsServer server = fixture.dns;
+			ServerSocket listener = fixture.listener;
 			CompletableFuture<Boolean> closed = CompletableFuture.supplyAsync(() -> {
 				try (Socket peer = listener.accept()) {
 					peer.setSoTimeout(1_000);
@@ -113,6 +115,15 @@ class FirebaseDnsCandidateTest {
 			System.out.println("FIREBASE_DNS_SPIKE tcpStall elapsedMs=" + elapsed + " activeChannels=0 peerClosed=true");
 		}
 	}
+	@Test void tcpFixtureReservesBothProtocolsAndRetriesAnOccupiedUdpPort() throws Exception {
+		try (DatagramSocket occupied = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+			DnsTcpServer fixture = new DnsTcpServer(occupied.getLocalPort())) {
+			assertFalse(occupied.isClosed());
+			assertTrue(fixture.listener.getLocalPort() != occupied.getLocalPort());
+			assertEquals(fixture.listener.getLocalPort(), fixture.dns.address().getPort());
+		}
+	}
+
 	@Test void expiredDeadlineNeverOpensAChannel() throws Exception {
 		FirebaseDnsCandidate dns = new FirebaseDnsCandidate(new InetSocketAddress(InetAddress.getLoopbackAddress(), 53));
 		assertThrows(java.net.SocketTimeoutException.class, () -> dns.resolve("provider.invalid", 443, System.nanoTime() - 1));
@@ -123,13 +134,53 @@ class FirebaseDnsCandidateTest {
 		Message answer = new Message(query.getHeader().getID()); answer.getHeader().setFlag(Flags.QR);
 		answer.addRecord(query.getQuestion(), Section.QUESTION); return answer;
 	}
+	/** Reserve a shared DNS endpoint before starting either protocol's test traffic. */
+	private static final class DnsTcpServer implements AutoCloseable {
+		private final ServerSocket listener;
+		private final DnsServer dns;
+
+		private DnsTcpServer(int preferredPort) throws IOException {
+			BindException collision = null;
+			ServerSocket reservedListener = null;
+			DnsServer reservedDns = null;
+			for (int attempt = 0; attempt < 32; attempt++) {
+				ServerSocket candidate = new ServerSocket();
+				try {
+					candidate.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), attempt == 0 ? preferredPort : 0), 1);
+					DnsServer selected = new DnsServer(candidate.getLocalPort(), query -> {
+						Message answer = answer(query);
+						answer.getHeader().setFlag(Flags.TC);
+						return answer;
+					});
+					reservedListener = candidate;
+					reservedDns = selected;
+					break;
+				} catch (BindException unavailable) {
+					candidate.close();
+					collision = unavailable;
+				} catch (IOException failure) {
+					candidate.close();
+					throw failure;
+				}
+			}
+			if (reservedListener == null) throw new IOException("Unable to reserve a shared DNS UDP/TCP endpoint", collision);
+			listener = reservedListener;
+			dns = reservedDns;
+		}
+
+		@Override public void close() throws Exception {
+			try (listener; dns) { }
+		}
+	}
+
 	static final class DnsServer implements AutoCloseable {
 		private final DatagramSocket socket;
 		private final Thread thread;
 		final AtomicInteger queries = new AtomicInteger();
 		volatile Throwable failure;
-		DnsServer(Function<Message, Message> responder) throws IOException {
-			socket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		DnsServer(Function<Message, Message> responder) throws IOException { this(0, responder); }
+		DnsServer(int port, Function<Message, Message> responder) throws IOException {
+			socket = new DatagramSocket(port, InetAddress.getLoopbackAddress());
 			thread = Thread.ofPlatform().daemon(true).name("synthetic-provider-dns").start(() -> {
 				try {
 					while (!socket.isClosed()) {
