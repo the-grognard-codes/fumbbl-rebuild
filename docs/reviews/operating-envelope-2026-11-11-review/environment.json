@@ -1,0 +1,27 @@
+{
+  "docker": {
+    "cpus": 16,
+    "memoryBytes": 7958331392,
+    "version": "29.7.2",
+    "os": "Docker Desktop"
+  },
+  "mariaDbVariables": {
+    "innodb_buffer_pool_size": "134217728",
+    "innodb_flush_log_at_trx_commit": "1",
+    "log_output": "FILE",
+    "max_connections": "151",
+    "slow_query_log": "OFF",
+    "sync_binlog": "0",
+    "version": "11.8.9-MariaDB-ubu2404"
+  },
+  "background": "VS Code Java language server and idle dev-local stack retained; no task builds/browser suites during final captures",
+  "seedRefresh": {
+    "field": "payload.saveResume.lastPlayerActivityAt",
+    "from": 1794351653430,
+    "to": 1794355044337,
+    "originalSha256": "f8899906ca813d68ff8cb21282e297101a38814d19104de4bf65fa9ee3efcfda",
+    "refreshedSha256": "41b7c6e3d6c594b74cd70d3f4247ddd489b0fa16307f4d3ae38e50111f3fbd7a"
+  },
+  "recordedAt": "2026-11-11T03:54:00.979Z",
+  "comparison": "PR521 correction: exact 8eddbff3f harness on baseline d3dabde260 and integrated8eddbff3f; all healthy reads accepted at2000ms cadence; same previously refreshed synthetic seed still within unchanged24h retention"
+}

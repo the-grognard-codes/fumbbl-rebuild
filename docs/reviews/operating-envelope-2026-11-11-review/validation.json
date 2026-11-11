@@ -1,0 +1,70 @@
+{
+  "runtimeAndHarnessRevision": "8eddbff3f37b0b13d1abdd4f552075fa8cc732af",
+  "recordedAt": "2026-11-11T04:06:50.790395+00:00",
+  "fullVerifyStatus": "FAILED: existing Firebase cold verification allocation test; reproduced on unchanged baseline",
+  "first508Verify": [
+    {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "tests": 820,
+      "failures": 0,
+      "errors": 2,
+      "skipped": 15
+    }
+  ],
+  "combinedVerifyModules": [
+    {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "tests": 820,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 15
+    }
+  ],
+  "remainingStateModule": {
+    "tests": 292,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 7
+  },
+  "browserUnitTests": 538,
+  "browserBuild": "passed",
+  "browserUi": [
+    "lobby1440/390",
+    "preparation lifecycle",
+    "reconnect"
+  ],
+  "accountingTests": 3,
+  "startup": "successful before corrected captures, quick startup after separate validation; full verify remains failed",
+  "logHashes": {
+    "pr521-focused-final.log": "a20b0fe4754a17e68df06954ef6a964da57600300880aa8a01b0a9011652c9bb",
+    "pr521-deadline-recheck-final.log": "768d1e60fc262077934fa3ada8c2a8600ab90e0a7420926141bb4fd14cabe942",
+    "pr521-508-verify.log": "46f0a2bbbc33410aa94f0e2f2425f118fdbdc88de5206056ea3c761faaf21f08",
+    "pr521-combined-verify.log": "4673df517d68c52581675fca9db64ee07324babef4084292ecff2be4edec3858",
+    "pr521-baseline-cold-test.log": "fe4efa4a7497384db844a39e2fe4c89e671da18e117e7f55eece8fa9a98808aa",
+    "pr521-state-validation.log": "b985fdc8d4657171c3e8968b35fe4f45c38a4219473e17605ba2a29afe5cc0ca",
+    "pr521-capture-browser-unit.log": "ffdd5cfddd49769d3d43303f386672e5c6470f7bbbaf367558a7503bf90b5456",
+    "pr521-capture-browser-build.log": "1c47de7538c93ab05d13e6c1e7b8e68323ce9cee2c537aa662e4d6e2d6a302c3",
+    "pr521-capture-lobby-ui.log": "628f82650919ba031034deef236a945561e7fee51072b0c4eb9fa66bfb9d7469",
+    "pr521-capture-lifecycle-ui.log": "fed725ccd03b72f375b193f5c311eb265a933e198636c7bf7c3f6e0656a4e31b",
+    "pr521-capture-reconnect-ui.log": "97268b261fca4bd2fbc16887c44da3f9b23b110643117f1749cdc68859c41ff1",
+    "pr521-startup.log": "48900686805f7314a80481d4d7d137bc652a4b48a8a96a60f4c8018c44eb9edc",
+    "pr521-server.log": "7ceaf2e6743500599da5fb123ebad074184308cf36c594c0ffcd294ae14f1f50",
+    "pr521-lobby-exact.log": "058ddeee589ade62275d900a1a8e451d70cad92b4f3d3cb65723839289d6d08f",
+    "pr521-baseline-capture.log": "f25acafdfc90abe5907f910a3d541f46a27a7d88eb92152ffc9211530a118906",
+    "pr521-integrated-capture.log": "c6b7a84e8ede993d8c5532766b3c8a0efc90f93ae9f91af96593f98c97f4c2b2"
+  },
+  "failedCase": "FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation",
+  "baselineRevision": "d3dabde26026654930768bf18799777d84b5d589",
+  "deadlineAndAssertionRelaxations": false,
+  "excerpts": "Selected lines in validation-evidence.txt have trailing whitespace normalized; logHashes refer to the original ignored logs."
+}

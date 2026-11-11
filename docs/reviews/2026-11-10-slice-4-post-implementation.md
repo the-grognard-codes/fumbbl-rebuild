@@ -1,5 +1,7 @@
 # Slice 4 post-implementation report
 
+Historical initial delivery. [PR #521 corrections and current validation](2026-11-11-pr521-review-corrections.md) supersede the direct-review assessment and measured revision below; current full local verification has an explicitly recorded baseline-reproducing Firebase error.
+
 Scope: #508 lobby read bounds, followed by #39 integrated operating-envelope measurement. Branch: `fix/lobby-read-bounds-envelope-508-39`, created from current main `d3dabde26026654930768bf18799777d84b5d589`. No unrelated worktree/stash content was changed. No merge or deployment was performed.
 
 ## Delivery and revision boundaries

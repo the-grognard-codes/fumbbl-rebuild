@@ -72,3 +72,14 @@ The review identified a lifecycle regression and client request/cooldown issues.
 The client queues distinct cursor/detail requests, coalesces exact requests, and releases existing timers when an accepted read resets cooldown. Non-throttle errors retain alert semantics and the prior reconnect copy. Deterministic tests cover alternating read types, exact refill and disconnect cleanup. The deadline regression enters through BrowserMatchSocket.onText and BrowserMatchTransport rather than creating a timing scope manually.
 
 The review also corrected import organization/inline qualified names, extracted shared default-batch and SQL projection/binding logic, restored codec-envelope ownership, named bounds and clarified admission/copy-work names. The single-entry browseState path had only test callers and was removed; those regressions now exercise browseStates. browseDocument remains necessary for preparation expiry; browseDocuments remains the application boundary for lobby document facts. LobbyReadBudget intentionally owns related counters for one page, with one lifetime and fail-closed budget classification.
+
+## Corrected-source capture and validation
+
+Revision `8eddbff3f37b0b13d1abdd4f552075fa8cc732af`. [Numeric page capture](../reviews/2026-11-11-lobby-read-review-measurements.json).
+
+| Entries | N | Execution p50 / p95 / p99 / max (ms) | >250 ms / >2,000 ms |
+|---|---:|---|---:|
+| 1 | 20 | 68.156 / 163.004 / 164.975 / 164.975 | 0 / 0 |
+| 100 | 20 | 373.481 / 521.325 / 695.617 / 695.617 | 18 / 0 |
+
+The real-driver scenario also validated the mixed invalid-entry page. Query counts remain two repository connections and three data queries, plus fixed transaction controls. [Current review/validation](../reviews/2026-11-11-pr521-review-corrections.md) records passing lobby/browser/native-state checks and the failing full verify Firebase case, reproduced on baseline; earlier successful verifies are historical. The [corrected #39 comparison](engine-worker-concurrent-match-envelope-outcome.md) uses equal admitted read work.
