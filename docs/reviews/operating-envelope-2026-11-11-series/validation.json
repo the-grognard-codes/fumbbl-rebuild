@@ -1,0 +1,370 @@
+{
+  "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+  "fullVerifyExitCode": 1,
+  "fullVerifyModuleTotals": [
+    [
+      19,
+      0,
+      0,
+      0
+    ],
+    [
+      821,
+      0,
+      1,
+      15
+    ]
+  ],
+  "separateStateModuleTotals": [
+    [
+      292,
+      0,
+      0,
+      7
+    ]
+  ],
+  "browserSourceUnchangedSince": "f25270b80",
+  "logs": [
+    {
+      "log": ".tools/pr521-last-client-red.log",
+      "command": "node --experimental-strip-types --test browser-client/test/v2-client.test.ts",
+      "outcome": "EXPECTED RED",
+      "sourceBoundary": "before f25270b80",
+      "sha256": "ab4dfd64a1b06606eb83ebc95486fd0f6c9a9ee7c0c07caa78df74f43c9101eb",
+      "excerpts": [
+        "\u2139 tests 49",
+        "\u2139 pass 47",
+        "\u2139 fail 2"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-client-green.log",
+      "command": "node --experimental-strip-types --test browser-client/test/v2-client.test.ts",
+      "outcome": "PASS 49",
+      "sourceBoundary": "f25270b80",
+      "sha256": "5a84b75b00dfa3b60ce2035e90e7c95857fc44fe0962b5c639e77c75274530ab",
+      "excerpts": [
+        "\u2139 tests 49",
+        "\u2139 pass 49",
+        "\u2139 fail 0"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-browser-unit.log",
+      "command": "npm.cmd test (browser-client)",
+      "outcome": "PASS 539",
+      "sourceBoundary": "f25270b80",
+      "sha256": "c9f430f925359b4d647772cad1d6a1c3a254da2506a8d214f40614b3898eacc7",
+      "excerpts": [
+        "\u2139 tests 539",
+        "\u2139 pass 539",
+        "\u2139 fail 0"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-browser-build.log",
+      "command": "npm.cmd run build (browser-client)",
+      "outcome": "PASS",
+      "sourceBoundary": "f25270b80",
+      "sha256": "c27c70d35235729d043d99fdb06652c6ef5855579baa90e4a3b014ee6463ff9c",
+      "excerpts": []
+    },
+    {
+      "log": ".tools/pr521-last-lobby-ui.log",
+      "command": "node test/lobby-read-bounds-ui.mjs (browser-client)",
+      "outcome": "PASS 1440px/390px",
+      "sourceBoundary": "f25270b80",
+      "sha256": "d5461a0e54c3d2c178f68f08d24cacb41e7abe745cfe4a2b0a961ec0b14b7c40",
+      "excerpts": [
+        "Lobby read bounds: retained data/filter, usable refresh, bounded sends, no reconnect loop at 1440/390px."
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-lifecycle-ui.log",
+      "command": "node test/preparation-lifecycle-ui.mjs (browser-client)",
+      "outcome": "PASS",
+      "sourceBoundary": "f25270b80",
+      "sha256": "4af49a4cd852a365db937fbe0333b9d6226fc1bf84476d0db2df9c168a4e6cd9",
+      "excerpts": [
+        "PASS activation, opening active match, and reload preserve usable preparation and distinct authentication purposes"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-reconnect-ui.log",
+      "command": "node test/reconnect-ui.mjs (browser-client)",
+      "outcome": "PASS",
+      "sourceBoundary": "f25270b80",
+      "sha256": "153d9f229763b42cca3f5d92e7a2dd0fa155721e261adb3f97d12aee72093b2c",
+      "excerpts": [
+        "PASS play and builder clear stale authentication errors after reconnect",
+        "PASS unavailable connected match views reconnect, authenticate and reload without replaying retained gameplay"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-dependencies-fixed.log",
+      "command": "tools/target-build.ps1 test -Module ffb-server -Test FirebaseOwnedTransportCandidateTest,FirebaseDnsCandidateTest,JdbcRequestDeadlineTest",
+      "outcome": "PASS 24",
+      "sourceBoundary": "63cff1591",
+      "sha256": "133e3fbd8048b8564fa63e1984b28059e9447dcad346b5b2b9aac3b5b3271352",
+      "excerpts": [
+        "[INFO] Tests run: 24, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS"
+      ]
+    },
+    {
+      "log": ".tools/pr521-isolated-accounting.log",
+      "command": "node --test tools/diagnostics/envelope-local-stack.test.mjs tools/diagnostics/summarize-operating-envelope.test.mjs",
+      "outcome": "PASS 9",
+      "sourceBoundary": "f501e2fa6",
+      "sha256": "5c92ae7854fa4b9a6f0155dab798b81495ed1a01e252bf8454b4d7cf52120c2c",
+      "excerpts": [
+        "\u2139 tests 9",
+        "\u2139 pass 9",
+        "\u2139 fail 0"
+      ]
+    },
+    {
+      "log": ".tools/pr521-resumed-verify.log",
+      "command": "tools/target-build.ps1 verify",
+      "outcome": "FAILED and incomplete JVM exit during memory pressure",
+      "sourceBoundary": "63cff1591",
+      "sha256": "e42efe48f89121864f5ff814f6624372c04eb503042aac8bc390add4cd6b4290",
+      "excerpts": [
+        "[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldSequentialDelaysCannotReceiveThreeIndependentAllocations:270 expected: <true> but was: <false>",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR]   JdbcRequestDeadlineTest.partialHandshakeTrickleCannotRenewTheAbsoluteAcquisitionAllowance:87 \ufffd Timeout",
+        "[ERROR] Tests run: 548, Failures: 1, Errors: 2, Skipped: 13",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-reboot-dependencies.log",
+      "command": "tools/target-build.ps1 test -Module ffb-server -Test FirebaseOwnedTransportCandidateTest,FirebaseDnsCandidateTest,JdbcRequestDeadlineTest",
+      "outcome": "FAILED 2 cold DNS/Firebase cases",
+      "sourceBoundary": "63cff1591",
+      "sha256": "95fda549c7b47e386810f1f3e1747f8c24fed990467c7128ddc371a15fd6821c",
+      "excerpts": [
+        "[ERROR]   FirebaseDnsCandidateTest.onlyQueryRelevantAnswersAreUsedAndCnameIsFollowedWithoutJvmResolution:60 \ufffd SocketTimeout Provider DNS deadline expired",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR] Tests run: 24, Failures: 0, Errors: 2, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-reboot-verify.log",
+      "command": "tools/target-build.ps1 verify",
+      "outcome": "FAILED cold Firebase case",
+      "sourceBoundary": "63cff1591 Java sources",
+      "sha256": "48f0440031ea9c7d559c5df85f73dbdd0faa6beb8b3638736730127ec555bad8",
+      "excerpts": [
+        "[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR] Tests run: 821, Failures: 0, Errors: 1, Skipped: 15",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-final-verify.log",
+      "command": "tools/target-build.ps1 verify",
+      "outcome": "FAILED cold Firebase case",
+      "sourceBoundary": "f501e2fa6",
+      "sha256": "d399cbaa96fd8516ec82b7f738db8736f4f9b702579e266cd31584804dec2007",
+      "excerpts": [
+        "[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR] Tests run: 821, Failures: 0, Errors: 1, Skipped: 15",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-sdk-cold-1.log",
+      "command": "tools/target-build.ps1 test -Module ffb-server -Test FirebaseOwnedTransportCandidateTest#coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation",
+      "outcome": "FAILED first repeat, later repeats not run",
+      "sourceBoundary": "10645965c candidate",
+      "sha256": "846f53a71b751f0fa15372a59db0c85877a65159f86b9a3776341a7b632b85c6",
+      "excerpts": [
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 2.884 s <<< FAILURE! -- in com.fumbbl.ffb.server.local.FirebaseOwnedTransportCandidateTest",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:179 \ufffd FirebaseAuth Error while fetching public key certificates: Provider DNS deadline expired",
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-sdk-profile.log",
+      "command": "ignored pinned-script copy with JFR profile, same cold method",
+      "outcome": "FAILED under profiling, excluded from envelope evidence",
+      "sourceBoundary": "10645965c candidate",
+      "sha256": "e72136fb7b9b3b137b594ec709518a9445bfe47cbc777e6e828e66e49a6978fa",
+      "excerpts": [
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 3.489 s <<< FAILURE! -- in com.fumbbl.ffb.server.local.FirebaseOwnedTransportCandidateTest",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:179 \ufffd FirebaseAuth Error while fetching public key certificates: Provider DNS deadline expired",
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-sdk-dependencies.log",
+      "command": "tools/target-build.ps1 test -Module ffb-server -Test FirebaseOwnedTransportCandidateTest,FirebaseDnsCandidateTest,JdbcRequestDeadlineTest",
+      "outcome": "FAILED 1 cold Firebase case, 23 passed",
+      "sourceBoundary": "10645965c",
+      "sha256": "edfb139cd5108b6434a570bbe3e15be08f14ff8ef0d69f863e0be8eb64ea5947",
+      "excerpts": [
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:179 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR] Tests run: 24, Failures: 0, Errors: 1, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-series.log",
+      "command": "first clean series attempt",
+      "outcome": "FAILED baseline slow-recipient AUTHENTICATION_REQUIRED before fault injection; incomplete",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "b6f2ffe61dfe71d05f32c823ff999f00d40ff9979f692f9542dfd743ea82293f",
+      "excerpts": [
+        "ENVELOPE_SERIES 01-baseline starting",
+        "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 119.1 s <<< FAILURE! -- in com.fumbbl.ffb.server.match.OperatingEnvelopeTest",
+        "[ERROR]   OperatingEnvelopeTest.captureIntegratedEnvelope:199->accepted:284 {\"type\":\"error\",\"requestId\":\"envelope-148\",\"code\":\"AUTHENTICATION_REQUIRED\",\"version\":2} ==> expected: <ACCEPTED> but was: <AUTHENTICATION_REQUIRED>",
+        "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-auth-diagnostic.log",
+      "command": "diagnostic baseline with temporary failure-only authorization tracing",
+      "outcome": "PASS diagnostic only, excluded from comparison; source restored",
+      "sourceBoundary": "d3dabde260 with diagnostic logging overlay",
+      "sha256": "2214336d54b397ca59b05b68d8a8e0e6109ecfa3588915a568191611cf698d40",
+      "excerpts": [
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 152.3 s -- in com.fumbbl.ffb.server.match.OperatingEnvelopeTest",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS"
+      ]
+    },
+    {
+      "log": ".tools/pr521-sdk-full-verify.log",
+      "command": "tools/target-build.ps1 verify",
+      "outcome": "FAILED",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "cd4594363f182864ac2b1610b2daf39feaa7e97e20ff7623518f8def79717d45",
+      "excerpts": [
+        "[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0",
+        "[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:179 \ufffd FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY",
+        "[ERROR] Tests run: 821, Failures: 0, Errors: 1, Skipped: 15",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server"
+      ]
+    },
+    {
+      "log": ".tools/pr521-isolated-startup-initial.log",
+      "command": "node .tools/pr521-isolated-start.mjs",
+      "outcome": "FAILED owned Hosting public path404",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "37e153d03f3258f344fa382fb9ee4d75be1bca2126458d02f3deea47b091ca00",
+      "excerpts": [
+        "#19 19.50 [INFO] BUILD SUCCESS"
+      ]
+    },
+    {
+      "log": ".tools/pr521-isolated-startup.log",
+      "command": "node .tools/pr521-resume-isolated.mjs",
+      "outcome": "PASS after owned Hosting path correction",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "e8da531d2e6866462a2cf2e7a58f54f91e9c341963022b77bb7297c9fa32f9c5",
+      "excerpts": [
+        "Isolated dev-local services ready on Hosting5173/proxy22236/server22235/database23318; computer service ready."
+      ]
+    },
+    {
+      "log": ".tools/pr521-series-lobby-interrupted.log",
+      "command": "node .tools/pr521-run-isolated-lobby.mjs",
+      "outcome": "FAILED setup during confirmed host sleep/resume, no measurement emitted",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "89eaa8ebdceb60fad8b100c4fa1bad9976d2b26fdf41ff1d533362adb394a3e1",
+      "excerpts": [
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 4422 s <<< FAILURE! -- in com.fumbbl.ffb.server.match.JdbcLobbyReadMariaDbTest",
+        "[ERROR]   JdbcLobbyReadMariaDbTest.maximumNonresidentPageHasFixedQueriesAndPreservesPublicContent:68 \ufffd SQLNonTransientConnection (conn=295) Socket timout error",
+        "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0",
+        "[INFO] BUILD FAILURE",
+        "[ERROR]   mvn <args> -rf :ffb-server",
+        "Synthetic lobby schema removed"
+      ]
+    },
+    {
+      "log": ".tools/pr521-isolated-proxy.log",
+      "command": "node --test .tools/pr521-isolated-proxy-test.mjs",
+      "outcome": "PASS initial/reconnect authentication gate",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "832e16f0d15b1f6ebd99b386895e4bf3c14415a8532d66f98df7227636656262",
+      "excerpts": [
+        "Proxy port 22236: real Java AUTHENTICATION_REQUIRED received on initial connection and reconnect; no credentials submitted.",
+        "\u2139 tests 1",
+        "\u2139 pass 1",
+        "\u2139 fail 0"
+      ]
+    },
+    {
+      "log": ".tools/pr521-series-lobby.log",
+      "command": "node .tools/pr521-run-isolated-lobby.mjs",
+      "outcome": "PASS",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "d7af71eadaaa1a8612e3c07a5596a33229097f7a675efe800df01f6c6bcc911d",
+      "excerpts": [
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.81 s -- in com.fumbbl.ffb.server.match.JdbcLobbyReadMariaDbTest",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS",
+        "Synthetic lobby schema removed"
+      ]
+    },
+    {
+      "log": ".tools/pr521-last-series-r2.log",
+      "command": "node tools/diagnostics/run-operating-envelope-series.mjs .tools/envelope-baseline . .tools/pr521-repeat-final20261111-r2",
+      "outcome": "PASS 8 captures",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "b6260aca606eba6a6c506b564c69dff1d76aae289bcca0c99133c66639cfe243",
+      "excerpts": [
+        "[INFO] BUILD SUCCESS",
+        "ENVELOPE_SERIES 06-integrated complete",
+        "ENVELOPE_SERIES 07-integrated starting",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 169.2 s -- in com.fumbbl.ffb.server.match.OperatingEnvelopeTest",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS",
+        "ENVELOPE_SERIES 07-integrated complete",
+        "ENVELOPE_SERIES 08-baseline starting",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 222.4 s -- in com.fumbbl.ffb.server.match.OperatingEnvelopeTest",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS",
+        "ENVELOPE_SERIES 08-baseline complete"
+      ]
+    },
+    {
+      "log": ".tools/pr521-sdk-state.log",
+      "command": "tools/target-build.ps1 test -Module ffb-statetest -Test <all 53 fully qualified test classes>",
+      "outcome": "PASS",
+      "sourceBoundary": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "sha256": "830c489c6e5a81b8cbfc6cf2823da51a99d8a9e00e0259206d06d7dfe5cc4f91",
+      "excerpts": [
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.513 s -- in com.fumbbl.ffb.test.ServerCommunicationWorkTest",
+        "[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.58 s -- in com.fumbbl.ffb.test.SetupSessionTest",
+        "[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.033 s -- in com.fumbbl.ffb.test.skill.move.ShadowingTest",
+        "[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.169 s -- in com.fumbbl.ffb.test.skill.pass.HailMaryPassRangeTest",
+        "[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.438 s -- in com.fumbbl.ffb.test.skill.pass.HailMaryPassTest",
+        "[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.548 s -- in com.fumbbl.ffb.test.skill.pass.SafePassTest",
+        "[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.129 s -- in com.fumbbl.ffb.test.SolidDefenceRedeploymentTest",
+        "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.041 s -- in com.fumbbl.ffb.test.SpectatorProjectionTest",
+        "[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 66.88 s -- in com.fumbbl.ffb.test.TeammateActivationTest",
+        "[WARNING] Tests run: 2, Failures: 0, Errors: 0, Skipped: 2, Time elapsed: 0.002 s -- in com.fumbbl.ffb.test.V2RuntimeIntegrationTest",
+        "[WARNING] Tests run: 292, Failures: 0, Errors: 0, Skipped: 7",
+        "[INFO] BUILD SUCCESS"
+      ]
+    }
+  ]
+}

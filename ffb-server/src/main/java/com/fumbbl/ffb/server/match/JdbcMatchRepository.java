@@ -6,6 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Dedicated short transactions. Membership, frozen rosters and retry metadata share one row. */
 public final class JdbcMatchRepository implements MatchRepository {
@@ -31,6 +34,28 @@ public final class JdbcMatchRepository implements MatchRepository {
 				return rows.next() ? new Record(rows.getString(1), rows.getInt(2), codec.decode(rows.getString(3))) : null;
 			}
 		}
+	}
+
+	@Override
+	public Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
+		budget.entries(ids.size());
+		Map<String, Record> result = new LinkedHashMap<>();
+		if (ids.isEmpty()) return result;
+		LobbyReadQuery batch = new LobbyReadQuery();
+		try (Connection connection = connections.open(); PreparedStatement query = connection.prepareStatement(
+			"SELECT match_id,document_version," + batch.columns("document_json", budget)
+			+ " FROM ffb_prepared_matches WHERE match_id IN (" + batch.slots(ids) + ")")) {
+			batch.bind(query, ids);
+			try (ResultSet rows = query.executeQuery()) {
+				while (rows.next()) {
+					if (result.size() >= ids.size()) throw new SQLException("Unexpected lobby row count");
+					String id = rows.getString(1);
+					try { result.put(id, new Record(id, rows.getInt(2), budget.read(rows, 3, codec))); }
+					catch (LobbyReadBudget.InvalidRecord unavailable) { /* Preserve membership with unavailable facts. */ }
+				}
+			}
+		}
+		return result;
 	}
 
 	@Override

@@ -1,0 +1,37 @@
+[
+  {
+    "TimeCreated": "2026-11-11T23:07:19.32396-05:00",
+    "Id": 507,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T22:53:59.7888172-05:00",
+    "Id": 506,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T22:45:05.3751812-05:00",
+    "Id": 507,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T22:45:05.0052864-05:00",
+    "Id": 506,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T20:27:55.48047-05:00",
+    "Id": 107,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T20:27:48.1083184-05:00",
+    "Id": 42,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  },
+  {
+    "TimeCreated": "2026-11-11T20:27:42.4321157-05:00",
+    "Id": 507,
+    "ProviderName": "Microsoft-Windows-Kernel-Power"
+  }
+]

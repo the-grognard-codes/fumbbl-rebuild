@@ -1,16 +1,19 @@
 package com.fumbbl.ffb.server.match;
 
 import com.fumbbl.ffb.server.db.JdbcConnections.CommitNotStarted;
-
 import com.fumbbl.ffb.server.local.BrowserRequestTiming;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** Dedicated short transactions for recovery artifacts. */
 public final class JdbcRecoveryRepository implements RecoveryRepository {
@@ -54,6 +57,86 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 				return rows.next() ? new Record(rows.getString(1), rows.getLong(2), codec.decode(rows.getString(3))) : null;
 			}
 		}
+	}
+
+	@Override
+	public Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
+		budget.entries(ids.size());
+		Map<String, Record> result = new LinkedHashMap<>();
+		if (ids.isEmpty()) return result;
+		LobbyReadQuery batch = new LobbyReadQuery();
+		Set<String> unavailable = new HashSet<>();
+		try (Connection connection = openConnection()) {
+			// A repeatable-read snapshot for checkpoints plus journals, without locks or engine activation.
+			connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+			connection.setAutoCommit(false);
+			try {
+				Map<String, Long> checkpointGenerations = new LinkedHashMap<>();
+				try (PreparedStatement query = connection.prepareStatement(
+					"SELECT matchid,generation," + batch.columns("artifact_json", budget)
+					+ (journalEnabled ? ",checkpoint_generation" : "")
+					+ " FROM ffb_match_recovery WHERE matchid IN (" + batch.slots(ids) + ")")) {
+					batch.bind(query, ids);
+					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+						int count = 0;
+						while (rows.next()) {
+							if (++count > ids.size()) throw new SQLException("Unexpected lobby recovery row count");
+							String id = rows.getString(1);
+							try { result.put(id, new Record(id, rows.getLong(2), budget.read(rows, 3, codec))); }
+							catch (LobbyReadBudget.InvalidRecord invalid) { unavailable.add(id); }
+							if (journalEnabled) checkpointGenerations.put(id, rows.getLong(5));
+						}
+					}
+				}
+				if (journalEnabled) {
+					Map<String, List<Record>> journals = new LinkedHashMap<>();
+					// One overflow row per match identifies corruption without starving other entries.
+					int perMatchRows = RecoveryJournal.MAX_ENTRIES + 1;
+					try (PreparedStatement query = connection.prepareStatement(
+						"SELECT matchid,generation," + batch.columns("record_json", budget)
+						+ " FROM (SELECT matchid,generation,record_json,ROW_NUMBER() OVER (PARTITION BY matchid ORDER BY generation) AS lobby_row"
+						+ " FROM ffb_match_recovery_journal WHERE matchid IN (" + batch.slots(ids) + ")) AS journal"
+						+ " WHERE lobby_row<=" + perMatchRows + " ORDER BY matchid,generation LIMIT " + ids.size() * perMatchRows)) {
+						batch.bind(query, ids);
+						try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+							int count = 0;
+							while (rows.next()) {
+								if (++count > ids.size() * perMatchRows) throw new SQLException("Unexpected lobby journal row count");
+								String id = rows.getString(1);
+								if (unavailable.contains(id) || !result.containsKey(id)) continue;
+								List<Record> entries = journals.computeIfAbsent(id, ignored -> new ArrayList<>());
+								try {
+									if (entries.size() >= RecoveryJournal.MAX_ENTRIES) throw new LobbyReadBudget.InvalidRecord();
+									entries.add(new Record(id, rows.getLong(2), budget.read(rows, 3, codec)));
+								} catch (LobbyReadBudget.InvalidRecord invalid) { unavailable.add(id); }
+							}
+						}
+					}
+					for (String id : new ArrayList<>(result.keySet())) {
+						budget.check();
+						if (unavailable.contains(id)) { result.remove(id); continue; }
+						Record base = result.get(id);
+						List<Record> entries = journals.getOrDefault(id, List.of());
+						long reassemblyBytes = base.json.length();
+						for (Record entry : entries) reassemblyBytes += entry.json.length();
+						budget.consumeCopyBytes(reassemblyBytes * (entries.size() + 1));
+						try {
+							Record restored = new RecoveryJournal().restore(id, base.generation, checkpointGenerations.get(id), base.json, entries);
+							budget.admit(restored.json);
+							result.put(id, restored);
+						} catch (MatchService.Failure failure) {
+							if (!"RECOVERY_CORRUPT".equals(failure.code)) throw failure;
+							result.remove(id);
+						} catch (LobbyReadBudget.InvalidRecord invalid) { result.remove(id); }
+					}
+				}
+				commit(connection);
+			} catch (SQLException | RuntimeException failure) {
+				try { rollback(connection); } catch (SQLException cleanup) { failure.addSuppressed(cleanup); }
+				throw failure;
+			}
+		}
+		return result;
 	}
 
 	private Record findJournal(String id) throws SQLException {

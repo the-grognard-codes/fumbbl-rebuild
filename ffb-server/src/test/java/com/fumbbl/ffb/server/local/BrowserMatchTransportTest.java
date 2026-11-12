@@ -18,6 +18,18 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class BrowserMatchTransportTest {
+	@Test public void lobbyReadsYieldToGameplayAndShareTheExistingAdvisoryAllowance() {
+		QueueFixture fixture = new QueueFixture();
+		List<String> handled = new ArrayList<>();
+		try {
+			fixture.transport.submit(advisory("browse"), () -> handled.add("browse"), () -> { });
+			fixture.transport.submit(advisory("currentMatches"), () -> handled.add("currentMatches"), () -> { });
+			fixture.transport.submit(() -> handled.add("gameplay"), () -> { });
+			fixture.drain();
+			assertEquals(List.of("gameplay", "browse", "currentMatches"), handled);
+		} finally { fixture.transport.destroy(); }
+	}
+
 	@Test public void diagnosticProbesUseAdvisoryCapacityAndYieldToGameplay() {
 		QueueFixture fixture = new QueueFixture();
 		List<String> handled = new ArrayList<>();

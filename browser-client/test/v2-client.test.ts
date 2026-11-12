@@ -668,3 +668,103 @@ test('publication recovery rejects malformed or private notification fields', as
     assert.equal(JSON.stringify(events).includes('sentinel'), false);
   }
 });
+
+
+test('lobby throttling keeps selection and intent, coalesces refreshes and spaces both read types', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect, events } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'browse', requestId: browse.requestId, code: 'ACCEPTED', matches: [] });
+  const watch = client.open(match, true);
+  socket.reply({ type: 'setupState', requestId: watch, code: 'ACCEPTED', duplicate: false, state });
+  const retained = client.state;
+  const mutation = client.request('preparedMatch', { operation: 'create' }, true);
+  const read = client.request('currentMatches', { after: null });
+  socket.reply({ type: 'error', requestId: read, code: 'RATE_LIMITED' });
+  assert.equal(socket.closed, false); assert.equal(client.pending?.request.requestId, mutation);
+  assert.equal(events.at(-1).code, 'RATE_LIMITED'); assert.equal(client.state, retained, 'Throttling preserves the selected board');
+  const sent = socket.sent.length;
+  const queued = client.request('currentMatches', { after: null });
+  for (let repeat = 0; repeat < 50; repeat++) assert.equal(client.request('currentMatches', { after: null }), queued);
+  client.request('browse'); assert.equal(socket.sent.length, sent);
+  now = 1999; t.mock.timers.tick(1999); assert.equal(socket.sent.length, sent);
+  now = 2000; t.mock.timers.tick(1); assert.equal(socket.sent.length, sent + 1);
+  now = 4000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, sent + 2);
+  client.disconnect(); now = 6000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, sent + 2);
+  const reconnect = await connect();
+  assert.equal(reconnect.sent.some(request => request.type === 'browse'), true, 'Reconnect starts with a fresh burst');
+});
+
+
+test('lobby coalescing preserves cursors, detail modes and queued response correlation', async () => {
+  const { client, connect } = fixture(); const socket = await connect();
+  const initial = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'browse', requestId: initial.requestId, code: 'ACCEPTED', matches: [] });
+  const page = client.request('currentMatches', { after: match });
+  const refresh = client.request('currentMatches', { after: null });
+  assert.notEqual(page, refresh);
+  assert.equal(client.request('currentMatches', { after: null }), refresh);
+  assert.equal(socket.sent.at(-1).requestId, page, 'Different cursor waits for the prior page');
+  socket.reply({ type: 'currentMatches', requestId: page, code: 'ACCEPTED', matches: [], next: null });
+  assert.equal(socket.sent.at(-1).requestId, refresh); assert.equal(socket.sent.at(-1).after, null);
+  socket.reply({ type: 'currentMatches', requestId: refresh, code: 'ACCEPTED', matches: [], next: null });
+  const detailed = client.request('browse', { includeDetails: true });
+  const plain = client.request('browse'); assert.notEqual(detailed, plain);
+  assert.equal(socket.sent.at(-1).requestId, detailed);
+  socket.reply({ type: 'browse', requestId: detailed, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.sent.at(-1).requestId, plain); assert.equal(socket.sent.at(-1).includeDetails, undefined);
+  client.disconnect();
+});
+
+test('an accepted lobby read ends the shared throttle cooldown', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const initial = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'error', requestId: initial.requestId, code: 'RATE_LIMITED' });
+  const refresh = client.request('browse'); const count = socket.sent.length;
+  now = 2000; t.mock.timers.tick(2000); assert.equal(socket.sent.length, count + 1);
+  socket.reply({ type: 'browse', requestId: refresh, code: 'ACCEPTED', matches: [] });
+  const next = client.request('currentMatches', { after: null });
+  assert.equal(socket.sent.at(-1).requestId, next, 'Successful read restores immediate admission');
+  client.disconnect();
+});
+
+
+test('acceptance preserves another read waiting for the shared bucket refill', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  const inventory = client.request('currentMatches', { after: null });
+  socket.reply({ type: 'error', requestId: inventory, code: 'RATE_LIMITED' });
+  const retry = client.request('currentMatches', { after: null }); const count = socket.sent.length;
+  socket.reply({ type: 'browse', requestId: browse.requestId, code: 'ACCEPTED', matches: [] });
+  assert.equal(socket.sent.length, count, 'An older accepted read cannot release a queued refill');
+  now = 1999; t.mock.timers.tick(1999); assert.equal(socket.sent.length, count);
+  now = 2000; t.mock.timers.tick(1);
+  assert.equal(socket.sent.length, count + 1); assert.equal(socket.sent.at(-1).requestId, retry);
+  socket.reply({ type: 'currentMatches', requestId: retry, code: 'ACCEPTED', matches: [], next: null });
+  const next = client.request('browse');
+  assert.equal(socket.sent.at(-1).requestId, next, 'Spacing ends when the queued reads complete');
+  now = 30000; t.mock.timers.tick(28000);
+  assert.equal(socket.sent.filter(request => request.requestId === retry).length, 1);
+  client.disconnect();
+});
+
+test('gameplay responses leave queued lobby timers alone', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let now = 0; t.mock.method(performance, 'now', () => now);
+  const { client, connect } = fixture(); const socket = await connect();
+  const browse = socket.sent.find(request => request.type === 'browse');
+  socket.reply({ type: 'error', requestId: browse.requestId, code: 'RATE_LIMITED' });
+  const queued = client.request('browse');
+  const timer = t.mock.method(globalThis, 'setTimeout');
+  const load = client.open(match, true);
+  socket.reply({ type: 'setupState', requestId: load, code: 'ACCEPTED', duplicate: false, state });
+  assert.equal(timer.mock.callCount(), 0, 'Gameplay must not re-arm lobby timers');
+  now = 2000; t.mock.timers.tick(2000);
+  assert.equal(socket.sent.at(-1).requestId, queued);
+  client.disconnect();
+});

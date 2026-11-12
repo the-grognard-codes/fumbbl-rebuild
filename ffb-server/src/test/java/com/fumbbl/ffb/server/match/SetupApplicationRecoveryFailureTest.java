@@ -4,13 +4,14 @@ import com.fumbbl.ffb.server.FantasyFootballServer;
 
 import com.eclipsesource.json.JsonObject;
 
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,8 +19,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -111,19 +112,19 @@ class SetupApplicationRecoveryFailureTest {
 		assertEquals(1, fixture.recovery.finds, "The administrative failure also remembers the exact rejected generation");
 	}
 
-	@Test void oneRejectedJournalDoesNotAbortBrowseSummariesAndRepeatedReadsUseTheGenerationCache() throws Exception {
+	@Test void rejectedJournalDoesNotAbortBatchSummariesOrActivateTheGenerationCache() throws Exception {
 		Fixture fixture = new Fixture(); fixture.recovery.corruptJournal = true;
-		assertEquals(null, fixture.application.browseState(ID));
-		assertEquals(null, fixture.application.browseState(ID));
-		assertEquals(1, fixture.recovery.finds);
+		assertEquals(null, fixture.application.browseStates(List.of(ID), new LobbyReadBudget()).get(ID));
+		assertEquals(null, fixture.application.browseStates(List.of(ID), new LobbyReadBudget()).get(ID));
+		assertEquals(2, fixture.recovery.finds);
 		fixture.recovery.corruptJournal = false;
 		String healthy = "00000000-0000-0000-0000-000000000222";
 		JsonObject view = new JsonObject().add("matchId", healthy).add("callerRole", "home").add("phase", "PLAY")
 			.add("half", 1).add("turn", 2).add("homeScore", 0).add("awayScore", 0);
 		fixture.recovery.records.put(healthy, new RecoveryRepository.Record(healthy, 1,
 			new JsonObject().add("payload", new JsonObject().add("matchId", healthy).add("homeView", view)).toString()));
-		assertEquals("PLAY", fixture.application.browseState(healthy).getString("phase", null));
-		assertEquals(2, fixture.recovery.finds);
+		assertEquals("PLAY", fixture.application.browseStates(List.of(healthy), new LobbyReadBudget()).get(healthy).getString("phase", null));
+		assertEquals(3, fixture.recovery.finds);
 	}
 
 	@Test void cachedFailuresStillReauthorizeEveryCaller() throws Exception {

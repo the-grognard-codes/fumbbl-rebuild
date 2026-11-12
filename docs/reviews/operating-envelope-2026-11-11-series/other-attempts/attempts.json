@@ -1,0 +1,144 @@
+{
+  "attempts": [
+    {
+      "directory": "failed-baseline",
+      "classification": "Failed clean baseline. Healthy traffic completed, slow-recipient request unexpectedly rejected before fault injection. Fault/completion coverage incomplete.",
+      "exitCode": 1,
+      "schemaRemoved": true,
+      "healthyWorker": {
+        "executionMs": {
+          "count": 159,
+          "p50": 37.639001,
+          "p95": 459.9729,
+          "p99": 551.9143,
+          "max": 621.8117
+        },
+        "queueMs": {
+          "count": 159,
+          "p50": 0.1179,
+          "p95": 371.932,
+          "p99": 518.9321,
+          "max": 575.7112
+        },
+        "above250ms": 50,
+        "above2000ms": 0
+      },
+      "healthyRequests": {
+        "allOutcomesEndToEndMs": {
+          "count": 81,
+          "p50": 422.8753,
+          "p95": 504.234599,
+          "p99": 623.2858,
+          "max": 623.2858
+        },
+        "outcomes": {
+          "ACCEPTED": 81
+        },
+        "acceptedActionsMs": {
+          "count": 24,
+          "p50": 154.612,
+          "p95": 394.0483,
+          "p99": 498.995,
+          "max": 498.995
+        },
+        "admittedLobbyReadsMs": {
+          "count": 48,
+          "p50": 465.1588,
+          "p95": 533.2187,
+          "p99": 623.2858,
+          "max": 623.2858
+        },
+        "rejectedLobbyReadsMs": {
+          "count": 0,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "unexpectedRejections": [
+        {
+          "phase": "slow-recipient",
+          "type": "setup",
+          "operation": "load",
+          "code": "AUTHENTICATION_REQUIRED",
+          "endToEndMs": 82.4496
+        }
+      ],
+      "finalTransportSnapshot": {
+        "activeConnections": 1,
+        "ingressQueueDepth": 0,
+        "deliveryQueueDepth": 1,
+        "deliveryQueueBytes": 26
+      }
+    },
+    {
+      "directory": "diagnostic-baseline",
+      "classification": "Diagnostic only. Temporary failure-only authorization logging in baseline production source. Completed, but excluded from comparison. Original source restored byte-for-byte and recompiled before final series.",
+      "exitCode": 0,
+      "schemaRemoved": true,
+      "healthyWorker": {
+        "executionMs": {
+          "count": 158,
+          "p50": 36.0052,
+          "p95": 455.9237,
+          "p99": 741.9784,
+          "max": 786.097
+        },
+        "queueMs": {
+          "count": 158,
+          "p50": 0.1291,
+          "p95": 242.2689,
+          "p99": 414.8189,
+          "max": 433.1813
+        },
+        "above250ms": 50,
+        "above2000ms": 0
+      },
+      "healthyRequests": {
+        "allOutcomesEndToEndMs": {
+          "count": 81,
+          "p50": 415.5943,
+          "p95": 584.3548,
+          "p99": 804.5053,
+          "max": 804.5053
+        },
+        "outcomes": {
+          "ACCEPTED": 81
+        },
+        "acceptedActionsMs": {
+          "count": 24,
+          "p50": 151.3647,
+          "p95": 186.334,
+          "p99": 228.9202,
+          "max": 228.9202
+        },
+        "admittedLobbyReadsMs": {
+          "count": 48,
+          "p50": 447.9571,
+          "p95": 680.4029,
+          "p99": 804.5053,
+          "max": 804.5053
+        },
+        "rejectedLobbyReadsMs": {
+          "count": 0,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "unexpectedRejections": [],
+      "finalTransportSnapshot": {
+        "activeConnections": 0,
+        "ingressQueueDepth": 0,
+        "deliveryQueueDepth": 0,
+        "deliveryQueueBytes": 0
+      }
+    }
+  ],
+  "originalAndRestoredBaselineAuthWorkingTreeSha256": "8ea3cc2f870157bf07c7f20250e069570cb52dae28b3900b2dcb2660d20b7b71",
+  "diagnosticLoggingAbsentFromFinalBytecode": true,
+  "diagnosticChange": "Only exception-class and stack-frame logging in FirebaseV2PrincipalAuthenticator.reauthorize catch blocks; never used for primary comparison.",
+  "failedSetup": "Before these attempts, a page-fixture insert timed out across host sleep/resume. No narrow-page result was emitted. Windows events and log hashes are retained separately."
+}

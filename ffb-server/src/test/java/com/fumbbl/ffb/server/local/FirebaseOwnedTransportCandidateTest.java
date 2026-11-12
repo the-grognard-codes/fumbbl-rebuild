@@ -170,15 +170,20 @@ class FirebaseOwnedTransportCandidateTest {
 					.setHttpTransportFactory(() -> transport).build();
 				String token = provider.token();
 				FirebaseApp app = app(transport, credentials);
-				FirebaseOwnedTransportCandidate.Operation operation = transport.begin();
-				try (operation) {
-					assertEquals("synthetic", FirebaseAuth.getInstance(app).verifyIdToken(token, true).getUid());
-					assertTrue(operation.elapsedMillis() < 1_000, "Cold operation returned in " + operation.elapsedMillis() + " ms");
-					assertEquals(3, provider.paths.size());
-					assertTrue(provider.paths.get(0).contains("/robot/")); assertEquals("/token", provider.paths.get(1));
-					assertTrue(provider.paths.get(2).contains("accounts:lookup"));
-					assertReleased(operation, transport);
-					System.out.println("FIREBASE_OWNED_SPIKE cold service=" + service + " elapsedMs=" + operation.elapsedMillis() + " dnsQueries=" + server.queries.get());
+				FirebaseOwnedTransportCandidate.Operation operation;
+				try {
+					assertEquals(0, server.queries.get(), "SDK startup must not warm DNS");
+					assertTrue(provider.paths.isEmpty(), "SDK startup must not fetch keys, credentials or users");
+					operation = transport.begin();
+					try (operation) {
+						assertEquals("synthetic", FirebaseAuth.getInstance(app).verifyIdToken(token, true).getUid());
+						assertTrue(operation.elapsedMillis() < 1_000, "Cold operation returned in " + operation.elapsedMillis() + " ms");
+						assertEquals(3, provider.paths.size());
+						assertTrue(provider.paths.get(0).contains("/robot/")); assertEquals("/token", provider.paths.get(1));
+						assertTrue(provider.paths.get(2).contains("accounts:lookup"));
+						assertReleased(operation, transport);
+						System.out.println("FIREBASE_OWNED_SPIKE cold service=" + service + " elapsedMs=" + operation.elapsedMillis() + " dnsQueries=" + server.queries.get());
+					}
 				} finally { app.delete(); }
 				assertEquals(0, operation.openChannels()); assertEquals(0, transport.destinations());
 			}
@@ -392,8 +397,16 @@ class FirebaseOwnedTransportCandidateTest {
 		});
 	}
 	private FirebaseApp app(FirebaseOwnedTransportCandidate transport, GoogleCredentials credentials) {
-		return FirebaseApp.initializeApp(FirebaseOptions.builder().setProjectId(PROJECT).setCredentials(credentials).setHttpTransport(transport)
+		FirebaseApp app = FirebaseApp.initializeApp(FirebaseOptions.builder().setProjectId(PROJECT).setCredentials(credentials).setHttpTransport(transport)
 			.setConnectTimeout(250).setReadTimeout(900).setWriteTimeout(900).build(), "owned-spike-" + UUID.randomUUID());
+		try {
+			// FirebaseProviderRuntime constructs this SDK service at startup, before admitting operations.
+			FirebaseAuth.getInstance(app);
+			return app;
+		} catch (RuntimeException | Error failure) {
+			app.delete();
+			throw failure;
+		}
 	}
 
 	private record Behavior(String path, int status, boolean stall, int delayMillis, int maxAge, boolean disabled) {

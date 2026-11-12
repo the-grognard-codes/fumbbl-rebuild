@@ -1,22 +1,26 @@
 package com.fumbbl.ffb.server.local;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.fumbbl.ffb.server.FantasyFootballServer;
 import com.fumbbl.ffb.server.match.ApplicationScope;
 import com.fumbbl.ffb.server.match.AuthenticatedPrincipal;
 import com.fumbbl.ffb.server.match.CompletedMatch;
-import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.ComputerOpponentService;
+import com.fumbbl.ffb.server.match.FrozenTeam;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchMembershipRepository;
+import com.fumbbl.ffb.server.match.MatchRepository;
 import com.fumbbl.ffb.server.match.MatchService;
 import com.fumbbl.ffb.server.match.SetupApplication;
 import com.fumbbl.ffb.server.match.V2MatchAccess;
 import com.fumbbl.ffb.server.match.V2PreparationService;
 import com.fumbbl.ffb.server.match.V2PrincipalAuthenticator;
 import com.fumbbl.ffb.server.match.V2PrincipalDirectory;
+import com.fumbbl.ffb.server.net.ServerCommunication;
+
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -26,7 +30,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.eclipse.jetty.ee8.websocket.api.RemoteEndpoint;
+import org.eclipse.jetty.ee8.websocket.api.Session;
+import org.eclipse.jetty.ee8.websocket.api.WriteCallback;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,8 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -101,6 +112,7 @@ class BrowserV2AdapterTest {
 		when(setup.browseDocument(MATCH)).thenReturn(active);
 		BrowserV2Adapter adapter = new BrowserV2Adapter(bearer -> player, access, setup, matches, preparation,
 			mock(BrowserSavedTeamJson.class), new com.fumbbl.ffb.server.match.ComputerOpponentService(null), clock);
+		adapter.readClock(() -> clock.millis() * 1_000_000L);
 		Connection connection = new Connection();
 		adapter.receive(connection, authenticate("auth", "player").add("purpose", "preparation").toString());
 		adapter.receive(connection, request("preparedMatch", "prepare-load").add("operation", "load").add("matchId", MATCH).toString());
@@ -180,8 +192,8 @@ class BrowserV2AdapterTest {
 		SetupApplication setup = mock(SetupApplication.class);
 		MatchDocument waiting = new MatchDocument(MATCH, 1, "away", MatchDocument.Lifecycle.WAITING_FOR_OPPONENT,
 			new MatchDocument.Member("home", "home", frozenTeam("The Reavers", "human", 1000000)), null);
-		when(setup.browseDocument(MATCH)).thenReturn(waiting);
-		when(setup.browseDocument(SECOND)).thenThrow(new SQLException("storage unavailable"));
+		when(setup.browseDocuments(any(), any())).thenReturn(Map.of(MATCH, waiting));
+		// A vanished row remains an unavailable owned entry.
 		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
 		Connection connection = new Connection();
 		adapter.receive(connection, authenticate("auth", "player").toString());
@@ -195,7 +207,6 @@ class BrowserV2AdapterTest {
 		assertTrue(entries.get(0).asObject().get("awayTeamName").isNull());
 		assertEquals("UNAVAILABLE", entries.get(1).asObject().getString("lifecycle", null));
 		assertTrue(response.get("next").isNull());
-		verify(setup, never()).browseState(any(String.class));
 		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
 		adapter.receive(connection, request("currentMatches", "foreign").add("after", JsonValue.NULL).add("accountId", SECOND).toString());
 		assertEquals("MALFORMED_MESSAGE", code(connection, 2));
@@ -207,14 +218,17 @@ class BrowserV2AdapterTest {
 		when(access.currentMatches(player, null)).thenReturn(Collections.singletonList(new MatchMembership(MATCH, FIRST, "home")));
 		SetupApplication setup = mock(SetupApplication.class);
 		FrozenTeam team = frozenTeam("The Reavers", "human", 1000000);
-		when(setup.browseDocument(MATCH)).thenReturn(new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
-			new MatchDocument.Member("home", "home", team), new MatchDocument.Member("away", "away", team)));
+		when(setup.browseDocuments(any(), any())).thenReturn(Map.of(MATCH, new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
+			new MatchDocument.Member("home", "home", team), new MatchDocument.Member("away", "away", team))));
 		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
 		Connection connection = new Connection();
 		adapter.receive(connection, authenticate("auth", "player").toString());
+		java.util.concurrent.atomic.AtomicLong nanos = new java.util.concurrent.atomic.AtomicLong();
+		adapter.readClock(nanos::get);
 		for (int attempt = 0; attempt < 3; attempt++) {
-			if (attempt == 1) when(setup.browseState(MATCH)).thenThrow(new SQLException("unavailable"));
-			if (attempt == 2) doReturn(new JsonObject().add("phase", "PRE_MATCH")).when(setup).browseState(MATCH);
+			nanos.set(attempt * 2_000_000_000L);
+			if (attempt == 1) when(setup.browseStates(any(), any())).thenReturn(Map.of());
+			if (attempt == 2) doReturn(Map.of(MATCH, new JsonObject().add("phase", "PRE_MATCH"))).when(setup).browseStates(any(), any());
 			adapter.receive(connection, request("currentMatches", "list" + attempt).add("after", JsonValue.NULL).toString());
 			JsonObject entry = JsonObject.readFrom(connection.messages.get(attempt + 1)).get("matches").asArray().get(0).asObject();
 			assertEquals(attempt == 2 ? "ACTIVATED" : "UNAVAILABLE", entry.getString("lifecycle", null));
@@ -230,7 +244,7 @@ class BrowserV2AdapterTest {
 			String.format("%08x-1234-1234-1234-123456789abc", index), FIRST, "home"));
 		when(access.currentMatches(player, null)).thenReturn(memberships);
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.browseDocument(any(String.class))).thenThrow(new MatchService.Failure("NOT_FOUND"));
+		when(setup.browseDocuments(any(), any())).thenReturn(Map.of());
 		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
 		Connection connection = new Connection();
 		adapter.receive(connection, authenticate("auth", "player").toString());
@@ -241,7 +255,7 @@ class BrowserV2AdapterTest {
 		when(access.currentMatches(player, MATCH)).thenThrow(new MatchService.Failure("AUTHORIZATION"));
 		adapter.receive(connection, request("currentMatches", "denied").add("after", MATCH).toString());
 		assertEquals("AUTHORIZATION", code(connection, 2));
-		verify(setup, times(100)).browseDocument(any(String.class));
+		verify(setup).browseDocuments(any(), any());
 		verify(setup, never()).handleWithOutcome(any(String.class), any(JsonObject.class));
 	}
 
@@ -512,9 +526,9 @@ class BrowserV2AdapterTest {
 		FrozenTeam away = frozenTeam("The Raiders", "orc", 1050000);
 		MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 			new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away));
-		when(setup.browseDocument(MATCH)).thenReturn(document);
-		when(setup.browseState(MATCH)).thenReturn(new JsonObject().add("phase", "PLAY").add("half", 2)
-			.add("turn", 5).add("homeScore", 1).add("awayScore", 2).add("private-token", "never-send"));
+		when(setup.browseDocuments(any(), any())).thenReturn(Map.of(MATCH, document));
+		when(setup.browseStates(any(), any())).thenReturn(Map.of(MATCH, new JsonObject().add("phase", "PLAY").add("half", 2)
+			.add("turn", 5).add("homeScore", 1).add("awayScore", 2).add("private-token", "never-send")));
 		when(setup.spectatorView(MATCH)).thenReturn(new JsonObject().add("matchId", MATCH));
 		AuthenticatedPrincipal watcherPrincipal = principal(FIRST, ApplicationScope.SPECTATOR);
 		BrowserV2Adapter adapter = adapter(bearer -> "watcher".equals(bearer) ? watcherPrincipal : spectator, access, setup);
@@ -537,7 +551,7 @@ class BrowserV2AdapterTest {
 		assertFalse(entry.toString().contains("private-token"));
 		assertFalse(entry.toString().contains("never-send"));
 		assertFalse(entry.toString().contains(FIRST));
-		when(setup.browseState(MATCH)).thenThrow(new SQLException("checkpoint unavailable"));
+		when(setup.browseStates(any(), any())).thenReturn(Map.of());
 		adapter.receive(browser, request("browse", "retry").add("includeDetails", true).toString());
 		JsonObject fallback = JsonObject.readFrom(browser.messages.get(2)).get("matches").asArray().get(0).asObject().get("details").asObject();
 		assertEquals("The Reavers", fallback.get("home").asObject().getString("name", null));
@@ -549,7 +563,7 @@ class BrowserV2AdapterTest {
 		V2MatchAccess access = mock(V2MatchAccess.class);
 		when(access.browse(spectator)).thenReturn(Collections.nCopies(101, MATCH));
 		SetupApplication setup = mock(SetupApplication.class);
-		when(setup.browseDocument(MATCH)).thenThrow(new MatchService.Failure("NOT_FOUND"));
+		when(setup.browseDocuments(any(), any())).thenReturn(Map.of());
 		BrowserV2Adapter adapter = adapter(bearer -> spectator, access, setup);
 		Connection browser = new Connection();
 		adapter.receive(browser, authenticate("auth", "viewer").toString());
@@ -557,7 +571,7 @@ class BrowserV2AdapterTest {
 		JsonArray entries = JsonObject.readFrom(browser.messages.get(1)).get("matches").asArray();
 		assertEquals(100, entries.size());
 		assertEquals(2, entries.get(0).asObject().size());
-		verify(setup, times(100)).browseDocument(MATCH);
+		verify(setup).browseDocuments(any(), any());
 	}
 
 	@Test void computerBrowseUsesFrozenCoachNameAndPreservesLegacyIdentity() throws Exception {
@@ -572,19 +586,121 @@ class BrowserV2AdapterTest {
 		Connection browser = new Connection();
 		adapter.receive(browser, authenticate("auth", "viewer").toString());
 		String[] names = {null, "Gobbo “Wot Now?” Snotpick", "Coach Bugman - Random", null, "Bogruk the Almost Clever"};
+		java.util.concurrent.atomic.AtomicLong nanos = new java.util.concurrent.atomic.AtomicLong();
+		adapter.readClock(nanos::get);
 		for (int index = 0; index < names.length; index++) {
+			nanos.set(index * 2_000_000_000L);
 			String opponentId = index < 3 ? ComputerOpponentService.BUGMAN_ID : ComputerOpponentService.BOGRUK_ID;
 			FrozenTeam away = home.copyForMatch(computers.cloneTeamId(MATCH, opponentId), "away", computers.teamName(opponentId), names[index]);
 			MatchDocument document = new MatchDocument(MATCH, 3, "away", MatchDocument.Lifecycle.ACTIVATED,
 				new MatchDocument.Member("home", "home", home), new MatchDocument.Member("away", "away", away), Collections.emptyMap());
 			if (index > 1) document = document.withComputer(computers.identity(MATCH, opponentId));
-			when(setup.browseDocument(MATCH)).thenReturn(document);
+			when(setup.browseDocuments(any(), any())).thenReturn(Map.of(MATCH, document));
 			adapter.receive(browser, request("browse", "coach-" + index).add("includeDetails", true).toString());
 			JsonObject awayDetails = JsonObject.readFrom(browser.messages.get(index + 1)).get("matches").asArray()
 				.get(0).asObject().get("details").asObject().get("away").asObject();
 			assertEquals(index < 3 ? names[index] == null ? "Coach Bugman - Random" : names[index] : "Bogruk the Almost Clever", awayDetails.getString("coach", null));
 			assertEquals(index < 3 ? "Bugman's Best" : "Bogruk's Almost Best", awayDetails.getString("name", null));
 		}
+	}
+
+	@Test void initialFallbackAndReconnectShareTwoTokensAndPreserveFailureCodes() throws Exception {
+		AuthenticatedPrincipal player = new AuthenticatedPrincipal(FIRST, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), Long.MAX_VALUE);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenReturn(List.of(MATCH));
+		when(access.currentMatches(player, null)).thenReturn(List.of());
+		SetupApplication setup = mock(SetupApplication.class);
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		java.util.concurrent.atomic.AtomicLong nanos = new java.util.concurrent.atomic.AtomicLong();
+		adapter.readClock(nanos::get);
+		Connection connection = new Connection();
+		for (int cycle = 0; cycle < 2; cycle++) {
+			connection.messages.clear();
+			adapter.receive(connection, authenticate("auth", "player").toString());
+			adapter.receive(connection, request("browse", "bad").add("includeDetails", "unsupported-shape").toString());
+			assertEquals("MALFORMED_MESSAGE", code(connection, 1));
+			adapter.receive(connection, request("browse", "fallback").toString());
+			adapter.receive(connection, request("currentMatches", "initial").add("after", JsonValue.NULL).toString());
+			assertEquals("ACCEPTED", code(connection, 2)); assertEquals("ACCEPTED", code(connection, 3));
+			adapter.receive(connection, request("browse", "exhausted").add("includeDetails", true).toString());
+			assertEquals("RATE_LIMITED", code(connection, 4));
+			assertEquals("exhausted", JsonObject.readFrom(connection.messages.get(4)).getString("requestId", null));
+			nanos.addAndGet(2_000_000_000L);
+			adapter.receive(connection, request("browse", "refilled").toString());
+			assertEquals("ACCEPTED", code(connection, 5));
+			adapter.disconnect(connection);
+		}
+		verify(setup, never()).browseStates(eq(List.of(MATCH)), any());
+		verify(setup, never()).browseDocuments(eq(List.of(MATCH)), any());
+		verify(access, times(4)).browse(player);
+	}
+
+	@Test void socketWorkerReceiveRejectsExpiredDeadlineBeforeRepositoryReadsWithCorrelation() throws Exception {
+		AtomicLong nanos = new AtomicLong();
+		BrowserRequestTiming timing = new BrowserRequestTiming(nanos::get, line -> { });
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenAnswer(call -> { nanos.set(1_950_000_000L); return List.of(MATCH); });
+		MatchRepository repository = mock(MatchRepository.class, CALLS_REAL_METHODS);
+		MatchService matches = new MatchService(repository, null, null);
+		SetupApplication setup = new SetupApplication(null, matches);
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		ServerCommunication communication = mock(ServerCommunication.class);
+		when(server.getCommunication()).thenReturn(communication);
+		when(communication.execute(any(Runnable.class))).thenAnswer(call -> { ((Runnable) call.getArgument(0)).run(); return true; });
+		Session session = mock(Session.class); RemoteEndpoint remote = mock(RemoteEndpoint.class);
+		when(session.isOpen()).thenReturn(true); when(session.getRemote()).thenReturn(remote);
+		List<String> replies = new ArrayList<>();
+		doAnswer(call -> { replies.add(call.getArgument(0)); ((WriteCallback) call.getArgument(1)).writeSuccess(); return null; })
+			.when(remote).sendString(any(String.class), any(WriteCallback.class));
+		BrowserMatchTransport transport = new BrowserMatchTransport(server, timing);
+		try {
+			BrowserMatchSocket socket = new BrowserMatchSocket(server, adapter, transport); socket.onConnect(session);
+			socket.onText(authenticate("auth", "player").toString());
+			socket.onText(request("browse", "deadline").add("includeDetails", true).toString());
+			JsonObject response = JsonObject.readFrom(replies.get(1));
+			assertEquals("RATE_LIMITED", response.getString("code", null));
+			assertEquals("deadline", response.getString("requestId", null));
+			verify(repository, never()).find(any());
+			assertEquals(2, transport.getMetrics().toJson().get("workerTasks").asArray().get(0).asObject().getInt("count", -1));
+			socket.onClose(1000, "done");
+		} finally { transport.destroy(); }
+	}
+
+	@Test void alternatingReadTypesAndDisconnectUseOneDeterministicConnectionBucket() throws Exception {
+		AtomicLong nanos = new AtomicLong();
+		AuthenticatedPrincipal player = new AuthenticatedPrincipal(FIRST, EnumSet.of(ApplicationScope.PLAYER, ApplicationScope.SPECTATOR), Long.MAX_VALUE);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenReturn(List.of()); when(access.currentMatches(player, null)).thenReturn(List.of());
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, mock(SetupApplication.class)); adapter.readClock(nanos::get);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("browse", "first").toString());
+		adapter.receive(connection, request("currentMatches", "second").add("after", JsonValue.NULL).toString());
+		nanos.set(1_999_999_999L);
+		adapter.receive(connection, request("browse", "early").toString()); assertEquals("RATE_LIMITED", code(connection, 3));
+		nanos.incrementAndGet();
+		adapter.receive(connection, request("currentMatches", "refill").add("after", JsonValue.NULL).toString()); assertEquals("ACCEPTED", code(connection, 4));
+		adapter.disconnect(connection); // Same clock: reconnect must discard exhausted bucket.
+		adapter.receive(connection, authenticate("reauth", "player").toString());
+		adapter.receive(connection, request("currentMatches", "fresh1").add("after", JsonValue.NULL).toString());
+		adapter.receive(connection, request("browse", "fresh2").toString());
+		assertEquals("ACCEPTED", code(connection, 6)); assertEquals("ACCEPTED", code(connection, 7));
+	}
+
+	@Test void aggregateReadAdmissionAndPersistenceFailuresRemainDistinct() throws Exception {
+		AuthenticatedPrincipal player = principal(FIRST, ApplicationScope.SPECTATOR);
+		V2MatchAccess access = mock(V2MatchAccess.class);
+		when(access.browse(player)).thenReturn(List.of(MATCH));
+		SetupApplication setup = mock(SetupApplication.class);
+		when(setup.browseDocuments(any(), any())).thenThrow(new com.fumbbl.ffb.server.db.JdbcConnections.NotStarted(), new SQLException("storage"));
+		BrowserV2Adapter adapter = adapter(bearer -> player, access, setup);
+		Connection connection = new Connection();
+		adapter.receive(connection, authenticate("auth", "player").toString());
+		adapter.receive(connection, request("browse", "budget").add("includeDetails", true).toString());
+		adapter.receive(connection, request("browse", "storage").add("includeDetails", true).toString());
+		assertEquals("RATE_LIMITED", code(connection, 1)); assertEquals("PERSISTENCE_FAILED", code(connection, 2));
 	}
 
 	private FrozenTeam frozenTeam(String name, String roster, int value) {

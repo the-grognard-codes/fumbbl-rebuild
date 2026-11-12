@@ -1,0 +1,50 @@
+{
+  "docker": {
+    "cpus": 16,
+    "memoryBytes": 7958343680,
+    "version": "29.7.2",
+    "os": "Docker Desktop"
+  },
+  "mariaDbVariables": {
+    "innodb_buffer_pool_size": "134217728",
+    "innodb_flush_log_at_trx_commit": "1",
+    "log_output": "FILE",
+    "max_connections": "151",
+    "slow_query_log": "OFF",
+    "sync_binlog": "0",
+    "version": "11.8.9-MariaDB-ubu2404"
+  },
+  "background": "Independent user performance test on localhost:5000 retained. Separate envelope project/ports/volumes. Captures are contended. No task builds or browser checks during generated traffic. VS Code Java processes retained after user memory-pressure mitigation.",
+  "seedRefresh": {
+    "field": "payload.saveResume.lastPlayerActivityAt",
+    "from": 1794351653430,
+    "to": 1794439432590,
+    "originalSha256": "f8899906ca813d68ff8cb21282e297101a38814d19104de4bf65fa9ee3efcfda",
+    "refreshedSha256": "96737d4504ed0981bd83126cc8b6faa3eddbdbbf66892b2fe96a6633add15cce"
+  },
+  "recordedAt": "2026-11-12T04:10:44.115Z",
+  "comparison": "Same-session ABBAABBA series. One workload warmup repetition discarded from healthy statistics. Each capture has 24 healthy actions and 48 admitted healthy reads.",
+  "previousSeedRefresh": {
+    "field": "payload.saveResume.lastPlayerActivityAt",
+    "from": 1794351653430,
+    "to": 1794355044337,
+    "originalSha256": "f8899906ca813d68ff8cb21282e297101a38814d19104de4bf65fa9ee3efcfda",
+    "refreshedSha256": "41b7c6e3d6c594b74cd70d3f4247ddd489b0fa16307f4d3ae38e50111f3fbd7a"
+  },
+  "jvmEnvironmentOverridesPresent": {
+    "JAVA_TOOL_OPTIONS": false,
+    "JDK_JAVA_OPTIONS": false,
+    "_JAVA_OPTIONS": false,
+    "MAVEN_ARGS": false,
+    "MAVEN_OPTS": false
+  },
+  "localStack": {
+    "project": "ffb-pr521-review",
+    "ports": {
+      "hosting": 5173,
+      "proxy": 22236,
+      "server": 22235,
+      "database": 23318
+    }
+  }
+}

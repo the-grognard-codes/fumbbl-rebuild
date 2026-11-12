@@ -1,0 +1,782 @@
+[
+  {
+    "at": "2026-11-12T04:38:59.936Z",
+    "javaRssBytes": 259121152,
+    "database": {
+      "BlockIO": "40.5MB / 73.8MB",
+      "CPUPerc": "0.07%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.25%",
+      "MemUsage": "170.5MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "59.1MB / 156MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:06.685Z",
+    "javaRssBytes": 210685952,
+    "database": {
+      "BlockIO": "40.5MB / 73.8MB",
+      "CPUPerc": "0.04%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.25%",
+      "MemUsage": "171MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "59.1MB / 156MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:11.689Z",
+    "javaRssBytes": 278548480,
+    "database": {
+      "BlockIO": "40.5MB / 74.2MB",
+      "CPUPerc": "9.28%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.26%",
+      "MemUsage": "171.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "59.4MB / 157MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:15.799Z",
+    "javaRssBytes": 265306112,
+    "database": {
+      "BlockIO": "40.5MB / 75.2MB",
+      "CPUPerc": "18.69%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.1MB / 157MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:19.517Z",
+    "javaRssBytes": 270176256,
+    "database": {
+      "BlockIO": "40.5MB / 75.5MB",
+      "CPUPerc": "8.74%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.4MB / 157MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:23.158Z",
+    "javaRssBytes": 326459392,
+    "database": {
+      "BlockIO": "40.5MB / 75.5MB",
+      "CPUPerc": "4.01%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.4MB / 157MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:27.053Z",
+    "javaRssBytes": 320491520,
+    "database": {
+      "BlockIO": "40.5MB / 75.5MB",
+      "CPUPerc": "3.06%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.5MB / 157MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:30.871Z",
+    "javaRssBytes": 363843584,
+    "database": {
+      "BlockIO": "40.5MB / 75.5MB",
+      "CPUPerc": "11.60%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172.6MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.6MB / 158MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:35.232Z",
+    "javaRssBytes": 371486720,
+    "database": {
+      "BlockIO": "40.5MB / 75.6MB",
+      "CPUPerc": "17.06%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.7MB / 158MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:39.183Z",
+    "javaRssBytes": 388169728,
+    "database": {
+      "BlockIO": "40.5MB / 75.6MB",
+      "CPUPerc": "8.32%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.8MB / 159MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:42.830Z",
+    "javaRssBytes": 413020160,
+    "database": {
+      "BlockIO": "40.5MB / 75.6MB",
+      "CPUPerc": "3.15%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "60.9MB / 159MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:46.414Z",
+    "javaRssBytes": 422957056,
+    "database": {
+      "BlockIO": "40.5MB / 75.6MB",
+      "CPUPerc": "1.16%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61MB / 159MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:50.174Z",
+    "javaRssBytes": 425623552,
+    "database": {
+      "BlockIO": "40.5MB / 75.7MB",
+      "CPUPerc": "6.65%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.1MB / 160MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:54.114Z",
+    "javaRssBytes": 413716480,
+    "database": {
+      "BlockIO": "40.5MB / 75.7MB",
+      "CPUPerc": "0.03%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.2MB / 160MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:39:58.036Z",
+    "javaRssBytes": 421060608,
+    "database": {
+      "BlockIO": "40.5MB / 75.7MB",
+      "CPUPerc": "0.02%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.4MB / 160MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:01.883Z",
+    "javaRssBytes": 398712832,
+    "database": {
+      "BlockIO": "40.5MB / 75.8MB",
+      "CPUPerc": "1.68%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.5MB / 161MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:05.797Z",
+    "javaRssBytes": 413265920,
+    "database": {
+      "BlockIO": "40.5MB / 75.8MB",
+      "CPUPerc": "5.32%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.6MB / 161MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:09.426Z",
+    "javaRssBytes": 417382400,
+    "database": {
+      "BlockIO": "40.5MB / 75.8MB",
+      "CPUPerc": "18.59%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.3MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.7MB / 161MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:13.066Z",
+    "javaRssBytes": 417927168,
+    "database": {
+      "BlockIO": "40.5MB / 75.8MB",
+      "CPUPerc": "19.99%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.8MB / 162MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:16.738Z",
+    "javaRssBytes": 418197504,
+    "database": {
+      "BlockIO": "40.5MB / 75.9MB",
+      "CPUPerc": "7.90%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "61.9MB / 162MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:20.383Z",
+    "javaRssBytes": 418754560,
+    "database": {
+      "BlockIO": "40.5MB / 75.9MB",
+      "CPUPerc": "5.64%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62MB / 162MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:24.086Z",
+    "javaRssBytes": 418799616,
+    "database": {
+      "BlockIO": "40.5MB / 75.9MB",
+      "CPUPerc": "3.50%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.1MB / 163MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:27.852Z",
+    "javaRssBytes": 441278464,
+    "database": {
+      "BlockIO": "40.5MB / 75.9MB",
+      "CPUPerc": "9.74%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.3MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.2MB / 163MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:31.565Z",
+    "javaRssBytes": 422793216,
+    "database": {
+      "BlockIO": "40.5MB / 76MB",
+      "CPUPerc": "8.25%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.27%",
+      "MemUsage": "172.6MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.3MB / 163MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:35.381Z",
+    "javaRssBytes": 422711296,
+    "database": {
+      "BlockIO": "40.5MB / 76MB",
+      "CPUPerc": "0.05%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.4MB / 164MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:39.328Z",
+    "javaRssBytes": 422895616,
+    "database": {
+      "BlockIO": "40.5MB / 76MB",
+      "CPUPerc": "0.03%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.6MB / 164MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:43.169Z",
+    "javaRssBytes": 423227392,
+    "database": {
+      "BlockIO": "40.5MB / 76.1MB",
+      "CPUPerc": "5.00%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.7MB / 165MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:46.810Z",
+    "javaRssBytes": 396832768,
+    "database": {
+      "BlockIO": "40.5MB / 76.1MB",
+      "CPUPerc": "17.15%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.6MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.8MB / 165MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:50.438Z",
+    "javaRssBytes": 407384064,
+    "database": {
+      "BlockIO": "40.5MB / 76.1MB",
+      "CPUPerc": "8.03%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "172.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "62.9MB / 165MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:54.932Z",
+    "javaRssBytes": 409038848,
+    "database": {
+      "BlockIO": "40.5MB / 76.2MB",
+      "CPUPerc": "8.37%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.5MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63MB / 166MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:40:59.503Z",
+    "javaRssBytes": 412676096,
+    "database": {
+      "BlockIO": "40.5MB / 76.2MB",
+      "CPUPerc": "5.49%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.6MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.2MB / 166MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:05.488Z",
+    "javaRssBytes": 413298688,
+    "database": {
+      "BlockIO": "40.5MB / 76.2MB",
+      "CPUPerc": "0.08%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.3MB / 166MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:10.815Z",
+    "javaRssBytes": 413208576,
+    "database": {
+      "BlockIO": "40.5MB / 76.3MB",
+      "CPUPerc": "0.07%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.3MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.4MB / 167MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:15.355Z",
+    "javaRssBytes": 413253632,
+    "database": {
+      "BlockIO": "40.5MB / 76.3MB",
+      "CPUPerc": "0.22%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.5MB / 167MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:20.064Z",
+    "javaRssBytes": 413343744,
+    "database": {
+      "BlockIO": "40.5MB / 76.3MB",
+      "CPUPerc": "0.26%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.3MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.6MB / 168MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:24.638Z",
+    "javaRssBytes": 425353216,
+    "database": {
+      "BlockIO": "40.5MB / 76.3MB",
+      "CPUPerc": "7.83%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.8MB / 168MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:29.019Z",
+    "javaRssBytes": 381079552,
+    "database": {
+      "BlockIO": "40.5MB / 76.4MB",
+      "CPUPerc": "16.60%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "63.9MB / 168MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:35.687Z",
+    "javaRssBytes": 381059072,
+    "database": {
+      "BlockIO": "40.5MB / 76.4MB",
+      "CPUPerc": "3.62%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64MB / 169MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:40.089Z",
+    "javaRssBytes": 349188096,
+    "database": {
+      "BlockIO": "40.5MB / 76.5MB",
+      "CPUPerc": "11.74%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.2MB / 169MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:44.534Z",
+    "javaRssBytes": 367693824,
+    "database": {
+      "BlockIO": "40.5MB / 76.5MB",
+      "CPUPerc": "5.98%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.2MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.3MB / 170MB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:49.219Z",
+    "javaRssBytes": 335433728,
+    "database": {
+      "BlockIO": "40.5MB / 76.5MB",
+      "CPUPerc": "23.47%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "174.1MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.4MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:54.481Z",
+    "javaRssBytes": 340287488,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "2.72%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:41:59.197Z",
+    "javaRssBytes": 389455872,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "9.49%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.28%",
+      "MemUsage": "173MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:03.650Z",
+    "javaRssBytes": 375713792,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "0.01%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.5MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:07.978Z",
+    "javaRssBytes": 375812096,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "15.48%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.9MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:13.333Z",
+    "javaRssBytes": 376725504,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "0.02%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:17.722Z",
+    "javaRssBytes": 376946688,
+    "database": {
+      "BlockIO": "40.5MB / 76.6MB",
+      "CPUPerc": "0.03%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "173.7MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "64.5MB / 170MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:21.782Z",
+    "javaRssBytes": 397611008,
+    "database": {
+      "BlockIO": "40.5MB / 76.9MB",
+      "CPUPerc": "9.36%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.30%",
+      "MemUsage": "174.2MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "65MB / 171MB",
+      "PIDs": "17"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:27.198Z",
+    "javaRssBytes": 443506688,
+    "database": {
+      "BlockIO": "40.5MB / 77.5MB",
+      "CPUPerc": "21.14%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.29%",
+      "MemUsage": "174MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "65.6MB / 172MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:32.405Z",
+    "javaRssBytes": 411516928,
+    "database": {
+      "BlockIO": "40.5MB / 78MB",
+      "CPUPerc": "9.74%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.30%",
+      "MemUsage": "174.6MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "66.1MB / 172MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:36.411Z",
+    "javaRssBytes": 443396096,
+    "database": {
+      "BlockIO": "40.5MB / 78.4MB",
+      "CPUPerc": "4.51%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.30%",
+      "MemUsage": "174.8MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "66.5MB / 173MB",
+      "PIDs": "16"
+    }
+  },
+  {
+    "at": "2026-11-12T04:42:40.423Z",
+    "javaRssBytes": 0,
+    "database": {
+      "BlockIO": "40.5MB / 78.4MB",
+      "CPUPerc": "9.39%",
+      "Container": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "ID": "bc465eae49a5",
+      "MemPerc": "2.31%",
+      "MemUsage": "175.4MiB / 7.412GiB",
+      "Name": "ffb-pr521-review-database-1",
+      "NetIO": "66.5MB / 173MB",
+      "PIDs": "16"
+    }
+  }
+]

@@ -1,0 +1,629 @@
+{
+  "allTasks": {
+    "executionMs": {
+      "count": 480,
+      "p50": 0.1164,
+      "p95": 321.0537,
+      "p99": 904.3021,
+      "max": 1321.4628
+    },
+    "queueMs": {
+      "count": 480,
+      "p50": 0.1108,
+      "p95": 255.8408,
+      "p99": 576.0626,
+      "max": 879.6456
+    },
+    "above250ms": 32,
+    "above2000ms": 0
+  },
+  "kinds": {
+    "0": {
+      "executionMs": {
+        "count": 339,
+        "p50": 31.5385,
+        "p95": 455.0073,
+        "p99": 968.8846,
+        "max": 1321.4628
+      },
+      "queueMs": {
+        "count": 339,
+        "p50": 0.1139,
+        "p95": 255.6726,
+        "p99": 256.3049,
+        "max": 389.3792
+      },
+      "above250ms": 31,
+      "above2000ms": 0
+    },
+    "1": {
+      "executionMs": {
+        "count": 19,
+        "p50": 0.03,
+        "p95": 256.7832,
+        "p99": 256.7832,
+        "max": 256.7832
+      },
+      "queueMs": {
+        "count": 19,
+        "p50": 0.0567,
+        "p95": 248.2123,
+        "p99": 248.2123,
+        "max": 248.2123
+      },
+      "above250ms": 1,
+      "above2000ms": 0
+    },
+    "2": {
+      "executionMs": {
+        "count": 104,
+        "p50": 0.0605,
+        "p95": 0.2074,
+        "p99": 0.43,
+        "max": 0.494
+      },
+      "queueMs": {
+        "count": 104,
+        "p50": 0.1648,
+        "p95": 565.15,
+        "p99": 783.4787,
+        "max": 879.6456
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "3": {
+      "executionMs": {
+        "count": 18,
+        "p50": 0.0092,
+        "p95": 0.0542,
+        "p99": 0.0542,
+        "max": 0.0542
+      },
+      "queueMs": {
+        "count": 18,
+        "p50": 0.0344,
+        "p95": 250.5833,
+        "p99": 250.5833,
+        "max": 250.5833
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    }
+  },
+  "missingSamples": 0,
+  "expectedTasks": 480,
+  "capturedTasks": 480,
+  "completeTaskCoverage": true,
+  "byPhase": {
+    "warmup": {
+      "allOutcomesEndToEndMs": {
+        "count": 35,
+        "p50": 340.9974,
+        "p95": 1288.4874,
+        "p99": 1401.3858,
+        "max": 1401.3858
+      },
+      "outcomes": {
+        "ACCEPTED": 35
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "healthy-0": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 136.5515,
+        "p95": 869.6761,
+        "p99": 922.4859,
+        "max": 922.4859
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 171.3616,
+        "p95": 922.4859,
+        "p99": 922.4859,
+        "max": 922.4859
+      },
+      "admittedLobbyReadsMs": {
+        "count": 16,
+        "p50": 136.5515,
+        "p95": 869.6761,
+        "p99": 869.6761,
+        "max": 869.6761
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "healthy-1": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 121.4795,
+        "p95": 177.475,
+        "p99": 180.0916,
+        "max": 180.0916
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 121.5924,
+        "p95": 177.475,
+        "p99": 177.475,
+        "max": 177.475
+      },
+      "admittedLobbyReadsMs": {
+        "count": 16,
+        "p50": 107.1598,
+        "p95": 180.0916,
+        "p99": 180.0916,
+        "max": 180.0916
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "healthy-2": {
+      "allOutcomesEndToEndMs": {
+        "count": 27,
+        "p50": 97.2635,
+        "p95": 131.98,
+        "p99": 133.3064,
+        "max": 133.3064
+      },
+      "outcomes": {
+        "ACCEPTED": 27
+      },
+      "acceptedActionsMs": {
+        "count": 8,
+        "p50": 102.8208,
+        "p95": 133.3064,
+        "p99": 133.3064,
+        "max": 133.3064
+      },
+      "admittedLobbyReadsMs": {
+        "count": 16,
+        "p50": 87.4237,
+        "p95": 128.8253,
+        "p99": 128.8253,
+        "max": 128.8253
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "reconnect": {
+      "allOutcomesEndToEndMs": {
+        "count": 4,
+        "p50": 32.1387,
+        "p95": 128.3352,
+        "p99": 128.3352,
+        "max": 128.3352
+      },
+      "outcomes": {
+        "ACCEPTED": 4
+      },
+      "acceptedActionsMs": {
+        "count": 2,
+        "p50": 60.7672,
+        "p95": 128.3352,
+        "p99": 128.3352,
+        "max": 128.3352
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "slow-recipient": {
+      "allOutcomesEndToEndMs": {
+        "count": 1,
+        "p50": 40.564,
+        "p95": 40.564,
+        "p99": 40.564,
+        "max": 40.564
+      },
+      "outcomes": {
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "provider-outage": {
+      "allOutcomesEndToEndMs": {
+        "count": 21,
+        "p50": 1.0148,
+        "p95": 265.9021,
+        "p99": 266.3693,
+        "max": 266.3693
+      },
+      "outcomes": {
+        "AUTHENTICATION_REQUIRED": 20,
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "database-outage": {
+      "allOutcomesEndToEndMs": {
+        "count": 21,
+        "p50": 1.5684,
+        "p95": 5.4331,
+        "p99": 35.5598,
+        "max": 35.5598
+      },
+      "outcomes": {
+        "AUTHENTICATION_REQUIRED": 20,
+        "ACCEPTED": 1
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "completed-release": {
+      "allOutcomesEndToEndMs": {
+        "count": 64,
+        "p50": 101.134,
+        "p95": 173.5983,
+        "p99": 245.7404,
+        "max": 245.7404
+      },
+      "outcomes": {
+        "ACCEPTED": 64
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      }
+    },
+    "ingress-saturation": {
+      "allOutcomesEndToEndMs": {
+        "count": 160,
+        "p50": 2.5442,
+        "p95": 6.1422,
+        "p99": 6.7982,
+        "max": 7.3968
+      },
+      "outcomes": {
+        "CLOSED_OR_SEND_FAILED": 160
+      },
+      "acceptedActionsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "admittedLobbyReadsMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "rejectedLobbyReadsMs": {
+        "count": 160,
+        "p50": 2.5442,
+        "p95": 6.1422,
+        "p99": 6.7982,
+        "max": 7.3968
+      }
+    }
+  },
+  "taskPhases": {
+    "healthy-0": {
+      "executionMs": {
+        "count": 51,
+        "p50": 59.8869,
+        "p95": 773.6925,
+        "p99": 1106.3783,
+        "max": 1106.3783
+      },
+      "queueMs": {
+        "count": 51,
+        "p50": 0.1849,
+        "p95": 565.15,
+        "p99": 879.6456,
+        "max": 879.6456
+      },
+      "above250ms": 8,
+      "above2000ms": 0
+    },
+    "healthy-1": {
+      "executionMs": {
+        "count": 47,
+        "p50": 76.1837,
+        "p95": 224.4479,
+        "p99": 236.0718,
+        "max": 236.0718
+      },
+      "queueMs": {
+        "count": 47,
+        "p50": 0.1099,
+        "p95": 79.5223,
+        "p99": 128.91,
+        "max": 128.91
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "healthy-2": {
+      "executionMs": {
+        "count": 46,
+        "p50": 60.7178,
+        "p95": 155.4625,
+        "p99": 183.9622,
+        "max": 183.9622
+      },
+      "queueMs": {
+        "count": 46,
+        "p50": 0.0883,
+        "p95": 42.4086,
+        "p99": 71.5699,
+        "max": 71.5699
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "reconnect": {
+      "executionMs": {
+        "count": 9,
+        "p50": 11.092,
+        "p95": 164.31,
+        "p99": 164.31,
+        "max": 164.31
+      },
+      "queueMs": {
+        "count": 9,
+        "p50": 0.0499,
+        "p95": 44.1812,
+        "p99": 44.1812,
+        "max": 44.1812
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "slow-recipient": {
+      "executionMs": {
+        "count": 8,
+        "p50": 0.024,
+        "p95": 39.5745,
+        "p99": 39.5745,
+        "max": 39.5745
+      },
+      "queueMs": {
+        "count": 8,
+        "p50": 0.056,
+        "p95": 0.0985,
+        "p99": 0.0985,
+        "max": 0.0985
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "provider-outage": {
+      "executionMs": {
+        "count": 36,
+        "p50": 0.2605,
+        "p95": 264.9902,
+        "p99": 265.5077,
+        "max": 265.5077
+      },
+      "queueMs": {
+        "count": 36,
+        "p50": 0.0656,
+        "p95": 0.6906,
+        "p99": 94.3729,
+        "max": 94.3729
+      },
+      "above250ms": 3,
+      "above2000ms": 0
+    },
+    "database-outage": {
+      "executionMs": {
+        "count": 30,
+        "p50": 0.7235,
+        "p95": 5.0468,
+        "p99": 34.7166,
+        "max": 34.7166
+      },
+      "queueMs": {
+        "count": 30,
+        "p50": 0.0519,
+        "p95": 0.1459,
+        "p99": 0.1636,
+        "max": 0.1636
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "completed-release": {
+      "executionMs": {
+        "count": 72,
+        "p50": 39.2294,
+        "p95": 180.7314,
+        "p99": 244.7924,
+        "max": 244.7924
+      },
+      "queueMs": {
+        "count": 72,
+        "p50": 0.0437,
+        "p95": 39.1423,
+        "p99": 87.734,
+        "max": 87.734
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    },
+    "ingress-saturation": {
+      "executionMs": {
+        "count": 29,
+        "p50": 0.0014,
+        "p95": 0.0337,
+        "p99": 256.7832,
+        "max": 256.7832
+      },
+      "queueMs": {
+        "count": 29,
+        "p50": 255.6909,
+        "p95": 256.3052,
+        "p99": 256.5565,
+        "max": 256.5565
+      },
+      "above250ms": 1,
+      "above2000ms": 0
+    },
+    "cleanup": {
+      "executionMs": {
+        "count": 100,
+        "p50": 0.0013,
+        "p95": 0.0238,
+        "p99": 0.0528,
+        "max": 0.0542
+      },
+      "queueMs": {
+        "count": 100,
+        "p50": 253.0549,
+        "p95": 254.9343,
+        "p99": 254.9566,
+        "max": 254.9653
+      },
+      "above250ms": 0,
+      "above2000ms": 0
+    }
+  },
+  "reconnectMs": {
+    "count": 1,
+    "p50": 113.1469,
+    "p95": 113.1469,
+    "p99": 113.1469,
+    "max": 113.1469
+  },
+  "heapBytes": {
+    "count": 1056,
+    "p50": 156539200,
+    "p95": 208073096,
+    "p99": 218903160,
+    "max": 218903160
+  },
+  "processCpuSeconds": 132.109375
+}

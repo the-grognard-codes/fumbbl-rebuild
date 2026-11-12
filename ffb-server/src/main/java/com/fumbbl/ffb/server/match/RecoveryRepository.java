@@ -1,9 +1,15 @@
 package com.fumbbl.ffb.server.match;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public interface RecoveryRepository {
 	Record find(String matchId) throws SQLException;
+	/** In-memory implementations may use find; JDBC overrides with a fixed query bound. */
+	default Map<String, Record> findAll(List<String> ids, LobbyReadBudget budget) throws SQLException {
+		return new LobbyReadBatch().read(ids, budget, this::find, record -> record.json);
+	}
 	/** Current durable generation, or null when absent. Every legitimate replacement advances generation via CAS. */
 	default Long generation(String matchId) throws SQLException {
 		Record record = find(matchId);

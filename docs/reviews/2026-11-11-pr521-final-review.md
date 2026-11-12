@@ -1,0 +1,70 @@
+# PR #521 final review follow-up
+
+This report addresses the [latest client review](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521#issuecomment-6787860371) and the [measurement correction](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521#issuecomment-6787389313). It supersedes the current-status conclusions of the earlier review-corrections report. Historical captures and failed attempts remain preserved.
+
+## Review dispositions
+
+| Finding | Change and evidence |
+|---|---|
+| Earlier ACCEPTED browse releases a queued refresh before refill | Acceptance resets the exponential delay but preserves a queued refill deadline and timers. The regression checks no send at 1,999 ms, one send at 2,000 ms, and normal scheduling after the queue completes. It failed before the correction and passes afterward. |
+| Gameplay replies drain lobby queue | finishRequest drains only after a lobby request finishes. The regression confirms a gameplay reply does not rearm lobby timers. It failed before the correction and passes afterward. |
+| Single-pair comparison is sensitive to warmup and run order | A complete eight-action workload warmup is retained in all-task accounting and excluded from healthy results. The series performs four captures per runtime in ABBAABBA order. It records pre/post-run container stats and publishes both full-worker and accepted-action distributions and per-run spread. |
+| Narrow-page table loses diagnostic phases | Document, recovery/parse and serialization columns are restored. Different-session captures remain historical. The reviewer's same-session rerun is attributed and its withdrawn code-regression claim is recorded. |
+| Full verify claim differs from evidence | The remote PR body already stated FAILED when re-read. Current results below and in the updated PR body use the actual final command result. No deadline, policy or assertion is relaxed. |
+| Literal question mark in the old comparison | The malformed separator is corrected. The old result is retained as a superseded observation rather than a passing performance claim. |
+| DNS fixture occasionally cannot bind TCP on its UDP-selected port | The fixture reserves TCP and UDP on the same port and retries bounded collisions. A deterministic occupied-UDP-port test verifies fallback and preservation of the unrelated listener. This is a separate test-only correction. |
+| User performance test owns localhost:5000 | A reviewed harness helper verifies a separately selected local Compose project and discovers its unique loopback DB binding. The startup uses separate ports, project, image and volumes, with no shared launcher/state mutation. Captures are labeled contended. |
+
+## Revision and validation boundaries
+
+- f25270b80 contains the #508 queued-read and gameplay-response fixes, regressions, spec correction and Unreleased changelog entry.
+- 2dc38c38d contains the separate #39 warmup, accounting and repeated-series runner changes.
+- 63cff1591 contains only the shared TCP/UDP DNS test-fixture correction.
+- f501e2fa668b6a9c0f5bbebeb4e064102255c808 contains the isolated-stack routing, its tests and runbook. The separate 10645965c test-only commit aligns SDK fixture startup with production and proves no DNS/HTTP work occurs before the cold operation. It does not resolve the strict cold deadline failure. Frozen integrated runtime/harness revision for the series is `10645965c33f9b8726c3de2c00148741b59257f9`. Production Java sources are unchanged by these startup-fixture and isolated-routing changes.
+- Later commits contain reports, evidence and narrowly scoped secret-scanner exceptions for two evidence digests. No measured source or runtime configuration is replaced.
+
+## Standards
+
+Independent standards review approved the client, warmup/accounting/series and DNS-fixture changes. A later review found that the new isolation instructions conflicted with the primary shared-stack restart step. The opening and primary reproduction steps were corrected and the reviewer approved the follow-up. The standards reviewer also found that new SDK-startup assertions initially sat outside Firebase app cleanup. An outer finally now covers assertions and operation admission, and the reviewer approved the correction. Final evidence review corrected an overlay-count label to distinguish nine copied files from seven per-run hashed inputs. No remaining actionable standards findings were reported. These reviews were static and do not substitute for execution.
+
+## Spec
+
+Independent spec review approved the client timer/queue semantics, warmup exclusion, complete task accounting and DNS fixture ownership. The isolated-stack review also found the conflicting primary startup instruction. The corrected procedure selects the stack before startup and preserves other owners' services. The reviewer approved that follow-up. The SDK fixture startup boundary was also approved after checking that production constructs FirebaseAuth before admitting operations and that the test still starts with zero DNS and HTTP calls. No remaining actionable code or harness spec findings were reported. Target failures and verification limitations below remain explicit acceptance gaps.
+
+Final focused source review found zero remaining Standards findings and zero remaining Spec findings. Verification and measurement acceptance gaps remain explicit below.
+
+## Verification
+
+Final full pinned `tools/target-build.ps1 verify` on `10645965c33f9b8726c3de2c00148741b59257f9` **FAILED**. It completed 19 common and 821 server cases, with 0 failures, 1 error and 15 skipped cases. The separate complete state module passed 292 cases with zero failures/errors and 7 skipped. The full reactor remains failed. The retained 1,000 ms cold Firebase spike exceeds its allocation. The documented production default is 1,200 ms, and no deadline or assertion was relaxed. This remaining merge blocker requires a further fix or explicit maintainer acceptance.
+
+Passing browser checks on the unchanged client source are 539 units, production build, desktop/mobile lobby, preparation lifecycle and reconnect. The two client regressions passed among 49 focused cases. Nine routing/accounting tests passed. The final dependency subset has 24 cases, 23 passing and the cold Firebase case failing. The latest real MariaDB page/mixed-entry scenario, isolated startup, real browser initial/reconnect authentication-gate probe and all eight envelope captures passed separately. Passing scenario execution does not convert a failed full verify or latency target into a pass.
+
+Complete local logs remain under .tools/pr521-*. The checked-in validation artifact records exact commands, source boundary, outcome excerpts and hashes. Two newly added client regressions were red before the source correction. Nine accounting/routing tests include warmup exclusion, complete task accounting, isolated project/port discovery and rejection of wrong/public/ambiguous database bindings.
+
+The earlier Firebase cold-path failure also reproduced on unchanged baseline d3dabde260. One fresh focused repeat passed before the DNS fixture correction, and later runs failed again. This history does not establish a Firebase runtime fix or excuse a failing full check. The DNS BindException was a distinct fixture defect, corrected without changing its 250 ms deadline or 450 ms assertion.
+
+The first published evidence commit triggered two generic-api-key findings in CI. The startup configuration contains the same one-way computer-token verifier already present in the fixed match-review profile. The other value is the SHA-256 digest of the original/restored baseline Java source; it was compared with the original file. Neither finding contains a credential. The scanner configuration now permits only the existing verifier field at the exact archived configuration path and the exact source-digest field at the exact provenance path. Gitleaks 8.24.3, matching CI, passes the full PR history with `--log-opts='--no-merges --first-parent c71c8e1c9b332ff822e40239f02eb62fa4c46fc4^..HEAD'`. A separate fixture check accepts both archived files and still detects two synthetic credential-shaped sentinel assignments added to those same paths. No file or directory is excluded from scanning. This publication-only change does not affect the measured revision. Independent standards review approved the scoped exceptions and report wording.
+
+The memory-pressure attempts before the user's reboot are retained as incomplete/failed attempts. The old resumed full run ended with a JVM exit and multiple dependency/fixture failures while the host had very little free memory. The user identified the Java language server as the pressure source, rebooted, and addressed it. Fresh results are reported separately. No unrelated process was stopped by this task. The untracked browser-client/test/overnight-soak.mjs was preserved.
+
+## Startup and measurement
+
+The first isolated page-fixture setup was interrupted by confirmed Windows sleep/resume and failed before emitting measurements. Its failure and Kernel-Power timestamps are retained. Subsequent captures used a temporary system keep-awake request, with display and permanent power settings unchanged.
+
+The shared dev-local launcher has fixed ports and managed state, so it was not invoked after the user reserved localhost:5000 for another performance test. The current Compose profile was started as project ffb-pr521-review with independent image/database/backup volumes. Hosting 5173, proxy 22236, server 22235 and DB 23318 use loopback bindings. ADC checks, schema marker 9 bootstrap, server health, computer-service readiness and the browser authentication gate on initial/reconnect passed. The server reports Browser V2 running on port 22227 internally. The informational JAVA_TOOL_OPTIONS line and documented SLF4J no-provider warning are explained. An initial absolute Hosting public path returned 404. Changing the owned config to relative hosting and restarting only its verified Hosting PID resolved it. Browser initial/reconnect checks passed again after the later host pause. No unexplained startup error remained. No other owner listener, shared managed-state file or existing stack was stopped.
+
+The series measured baseline `d3dabde26026654930768bf18799777d84b5d589` and integrated `10645965c33f9b8726c3de2c00148741b59257f9` with the same reviewed harness/seed hashes. Four captures per runtime completed in ABBAABBA order. One eight-action workload warmup is excluded from healthy statistics, while all warmup tasks remain in full accounting. Every run accepts 24 healthy actions and 48 lobby reads. Pre/post-run owned-container stats and ongoing JVM/DB resources are retained. These captures are labeled contended because the user reported an independent performance test on localhost:5000 and background activity was not controlled. Its exact overlap and load are not measured. Per-run worker/action/read distributions and spread are published without causal speedup or stable-tail claims. Every capture in that final series confirms complete timing coverage, durable retry/recovery, 32 completed releases, zero final primary residents/sockets/queue depths/bytes and owned-schema removal.
+
+The detailed [operating-envelope report](../specs/engine-worker-concurrent-match-envelope-outcome.md) records configuration, revisions, workload, all-task and request distributions, ingress/control timing, connection counts, resources, faults and cleanup. The [series artifacts](operating-envelope-2026-11-11-series/) include all eight raw captures, manifests, per-run summaries, seed, configuration and overlay provenance. The [lobby outcome](../specs/engine-worker-lobby-read-bounds-outcome.md) retains the narrow page phases and advisory-lane decision.
+
+## Cleanup
+
+The final eight runs removed their synthetic schemas and released the measured transport resources. After the final browser connection/reconnect check, only the recorded owned computer, Hosting and proxy processes and the ffb-pr521-review server/database containers were stopped. Project volumes were retained. The temporary keep-awake request was released. [Cleanup evidence](operating-envelope-2026-11-11-series/owned-cleanup.json) records the ownership checks and confirms no synthetic schema remained.
+
+## Remaining limitations and acceptance
+
+An initial clean baseline attempt failed with AUTHENTICATION_REQUIRED during the slow-recipient phase, after all healthy traffic was accepted. A diagnostic rerun with temporary failure-only authorization logging completed and did not reproduce it. The cause remains unresolved. The original baseline source was restored byte-for-byte and recompiled before the final series. Both attempts are retained separately and the diagnostic run is excluded from the comparison. The healthy 100 ms worker-p99 target is evaluated per run in the operating-envelope report and remains unmet. Counts over 250 ms and over 2,000 ms are preserved. Performance investigation remains tracked in #520. No target is relaxed. Full pinned verification remains a separate unresolved merge blocker. No maintainer acceptance was assumed.
+
+Thirty-two resident matches coexist with sixteen admitted real sockets and one actively played match at a time. No result claims 32 connected matches, eight actively played two-coach matches, maximum throughput or production capacity. The native engine is a host test JVM. The SDK outage double, controlled slow callback and same-thread application rehydration do not model real-provider cold latency, operating-system slow receivers or process death. A pending reactive decision is not arranged during the outage, although actual expiry sweeps and disconnect tasks are measured. The shared desktop and the independent performance test add contention.
+
+PR #521 and #508/#39 remain open for independent review. No issue is closed with an unsatisfied requirement. No merge, deployment, admission-limit change or target relaxation was performed.

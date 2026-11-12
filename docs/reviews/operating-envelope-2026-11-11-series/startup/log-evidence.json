@@ -1,0 +1,22 @@
+{
+  "server-startup.log": {
+    "sha256": "bbe18a256119a227fc0daabb6084d1f0b2d4d73ad6a41662f1ffb0a89ffa40a4",
+    "excerpt": [
+      "Picked up JAVA_TOOL_OPTIONS: -Dffb.browser.timing=false",
+      "SLF4J(W): No SLF4J providers were found.",
+      "SLF4J(W): Defaulting to no-operation (NOP) logger implementation",
+      "SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.",
+      "Browser V2 running on port 22227"
+    ]
+  },
+  "computer.log": {
+    "sha256": "43ed20423e25089163bb6b770e95272b9096d986976a2bb15e4568f5a18a1822",
+    "excerpt": [
+      "[computer-daemon] Ready for computer matches; capacity 4.",
+      "[computer-daemon] Ready for computer matches; capacity 4.",
+      "[computer-daemon] Ready for computer matches; capacity 4."
+    ]
+  },
+  "recoveryLauncherSha256": "c2619aadad41043e616f3df00bcd17f8850c01217b57e5ce442915a7c68c12eb",
+  "launcherSha256": "06277801b9257bda9069258d8b48fb427a00de9484e10e2407f4fcf3e3a40727"
+}

@@ -1,7 +1,7 @@
 # Feature: Throttle and batch browse and current-match reads
 
 Tracking: [#508](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508).
-Status: formal fix request; implementation pending.
+Status: implemented and locally validated; independent review pending. See [outcome](engine-worker-lobby-read-bounds-outcome.md).
 Decision: [accepted ADR 0006](../adr/0006-single-engine-worker.md).
 Review: [combined findings C3/C5 and L1/L2](engine-worker-requests-review.md).
 
@@ -66,7 +66,7 @@ currently use the advisory lane. Lane scheduling cannot preempt a running read.
   cannot fit its budget, return the correlated `RATE_LIMITED` response with the
   same client backoff semantics as bucket exhaustion; do not
   silently return a truncated or differently authorized successful result.
-  Actual storage failures retain existing `PERSISTENCE_FAILED`/unavailable
+  An invalid or oversized stored record keeps its membership and degrades only that entry to unavailable, preserving existing lifecycle semantics. Page-level aggregate exhaustion is distinct. Actual storage failures retain existing `PERSISTENCE_FAILED`/unavailable
   semantics and malformed input retains validation errors; do not label those
   as ordinary throttling. Budget checks apply before each admitted read allocation.
 - Every read request consumes the same remaining ≤ 2,000 ms budget as its
@@ -77,8 +77,8 @@ currently use the advisory lane. Lane scheduling cannot preempt a running read.
   Preserve existing advisory fairness/control ordering. Do not describe moving
   a read into the advisory lane as bounding or preempting its execution.
 - In the lobby, treat `RATE_LIMITED` as a retryable read outcome: preserve the last
-  successful list/selection, avoid an error/reconnect loop, and coalesce or back
-  off subsequent refreshes. Surface an accessible status when useful without
+  successful list/selection, avoid an error/reconnect loop, and coalesce requests only when type and fields match, queue distinct cursors/detail modes, or back
+  off subsequent refreshes. An accepted read resets the backoff delay. Queued reads keep their refill spacing, and the cooldown clears when the queue completes. Surface an accessible status when useful without
   clearing valid match data or automatically issuing rapid retries.
 - Dispose limiter state on connection cleanup; reconnect cannot gain unlimited
   work through leaked state. Existing global connection/ingress admission still
@@ -136,8 +136,6 @@ the clean game-server build/tests.
 
 ## Completion Notes
 
-Request only; no new rate limit, batching or runtime measurement is implemented.
-Before implementation, link this revised scope from #508 or update its body when
-tracker writes are authorized.
-Record interval, query/byte bounds, lane rationale and validation in an outcome
-report; investigate failures until resolved or a concrete blocker is documented.
+Implemented on the slice-4 branch with separate #508 commits and validation boundaries. The revised request is linked from #508. The [outcome report](engine-worker-lobby-read-bounds-outcome.md) records bounds, scheduling evidence, exact revisions, validation and the missed healthy latency target. Issue closure awaits independent review.
+
+PR #521 review corrections and current validation are recorded in the [final review outcome](../reviews/2026-11-11-pr521-final-review.md). Historical captures remain separate. The current repeated series retains all healthy reads as admitted work, includes a discarded workload warmup and records contention. Full-verification and latency target failures remain explicit.

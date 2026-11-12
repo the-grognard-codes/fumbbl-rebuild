@@ -1,0 +1,713 @@
+{
+  "revision": "8eddbff3f37b0b13d1abdd4f552075fa8cc732af",
+  "capture": {
+    "samples": [
+      {
+        "entries": 1,
+        "warmup": true,
+        "documentMs": 154.1738,
+        "recoveryParseMs": 28.8447,
+        "serializationMs": 2.3363,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 210.6365,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 13.509,
+        "recoveryParseMs": 16.6826,
+        "serializationMs": 0.244,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 30.654,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 15.2582,
+        "recoveryParseMs": 21.7645,
+        "serializationMs": 0.1006,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 37.3166,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 15.7332,
+        "recoveryParseMs": 41.8923,
+        "serializationMs": 0.1283,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 57.906,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 46.8781,
+        "recoveryParseMs": 29.0999,
+        "serializationMs": 0.0964,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 76.2295,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 20.506,
+        "recoveryParseMs": 28.4906,
+        "serializationMs": 0.0706,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 49.2204,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 12.5125,
+        "recoveryParseMs": 38.7956,
+        "serializationMs": 0.1322,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 51.6133,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 22.6493,
+        "recoveryParseMs": 54.4485,
+        "serializationMs": 0.0874,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 77.4133,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 101.4663,
+        "recoveryParseMs": 22.9654,
+        "serializationMs": 0.2514,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 125.1053,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 16.9328,
+        "recoveryParseMs": 24.4576,
+        "serializationMs": 0.0913,
+        "responseBytes": 136,
+        "connections": 2,
+        "executionMs": 41.7296,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 13.6604,
+        "recoveryParseMs": 23.3792,
+        "serializationMs": 0.1683,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 37.3602,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 14.9771,
+        "recoveryParseMs": 60.6565,
+        "serializationMs": 0.1149,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 75.8797,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 20.0649,
+        "recoveryParseMs": 34.1357,
+        "serializationMs": 0.1594,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 54.5634,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 17.5352,
+        "recoveryParseMs": 28.4046,
+        "serializationMs": 0.1466,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 46.2578,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 97.9046,
+        "recoveryParseMs": 25.4207,
+        "serializationMs": 0.0466,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 123.5127,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 21.2848,
+        "recoveryParseMs": 46.6258,
+        "serializationMs": 0.0821,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 68.1562,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 21.2081,
+        "recoveryParseMs": 48.185,
+        "serializationMs": 0.0669,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 69.6262,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 42.7283,
+        "recoveryParseMs": 55.7581,
+        "serializationMs": 0.0615,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 98.7526,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 61.602,
+        "recoveryParseMs": 101.0628,
+        "serializationMs": 0.1249,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 163.0041,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 63.8719,
+        "recoveryParseMs": 100.8156,
+        "serializationMs": 0.0927,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 164.9752,
+        "queries": 3
+      },
+      {
+        "entries": 1,
+        "warmup": false,
+        "documentMs": 46.9557,
+        "recoveryParseMs": 53.8507,
+        "serializationMs": 0.1137,
+        "responseBytes": 137,
+        "connections": 2,
+        "executionMs": 101.0685,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": true,
+        "documentMs": 302.3264,
+        "recoveryParseMs": 22.0006,
+        "serializationMs": 0.5756,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 325.0362,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 338.0742,
+        "recoveryParseMs": 163.2087,
+        "serializationMs": 0.4673,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 501.9108,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 220.2459,
+        "recoveryParseMs": 64.8651,
+        "serializationMs": 0.267,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 285.5295,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 462.0006,
+        "recoveryParseMs": 233.2017,
+        "serializationMs": 0.2463,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 695.6173,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 487.7751,
+        "recoveryParseMs": 33.0014,
+        "serializationMs": 0.3415,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 521.3252,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 270.0167,
+        "recoveryParseMs": 221.1492,
+        "serializationMs": 0.1554,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 491.4683,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 395.9861,
+        "recoveryParseMs": 100.859,
+        "serializationMs": 0.2189,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 497.1942,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 237.0884,
+        "recoveryParseMs": 224.5609,
+        "serializationMs": 0.6868,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 462.5111,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 197.5103,
+        "recoveryParseMs": 81.0748,
+        "serializationMs": 0.157,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 278.8995,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 323.5996,
+        "recoveryParseMs": 34.3217,
+        "serializationMs": 0.2004,
+        "responseBytes": 6672,
+        "connections": 2,
+        "executionMs": 358.261,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 250.6157,
+        "recoveryParseMs": 113.0277,
+        "serializationMs": 0.3662,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 364.255,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 222.3708,
+        "recoveryParseMs": 34.4259,
+        "serializationMs": 0.5078,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 257.4903,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 296.2648,
+        "recoveryParseMs": 42.7403,
+        "serializationMs": 0.5265,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 339.751,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 265.6541,
+        "recoveryParseMs": 137.7297,
+        "serializationMs": 0.1958,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 403.7403,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 215.8076,
+        "recoveryParseMs": 28.4192,
+        "serializationMs": 0.2065,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 244.6357,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 323.2652,
+        "recoveryParseMs": 31.6509,
+        "serializationMs": 0.1821,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 355.268,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 233.2882,
+        "recoveryParseMs": 138.5505,
+        "serializationMs": 1.2042,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 373.481,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 172.6365,
+        "recoveryParseMs": 40.6869,
+        "serializationMs": 0.2542,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 213.7437,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 364.6044,
+        "recoveryParseMs": 47.7538,
+        "serializationMs": 0.2814,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 412.9252,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 357.799,
+        "recoveryParseMs": 21.181,
+        "serializationMs": 0.1336,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 379.2448,
+        "queries": 3
+      },
+      {
+        "entries": 100,
+        "warmup": false,
+        "documentMs": 380.1515,
+        "recoveryParseMs": 32.5906,
+        "serializationMs": 0.1525,
+        "responseBytes": 6673,
+        "connections": 2,
+        "executionMs": 413.0264,
+        "queries": 3
+      }
+    ],
+    "laneComparison": [
+      {
+        "forcedForeground": true,
+        "queuedReads": 8,
+        "gameplayEndToEndMs": 2716.1092,
+        "metrics": {
+          "activeConnections": 0,
+          "activeConnectionsHighWater": 0,
+          "workerTasks": [
+            {
+              "kind": 0,
+              "count": 9,
+              "queueNanos": 11762698200,
+              "executionNanos": 2709915600,
+              "maxExecutionNanos": 467820700,
+              "overruns": 0
+            },
+            {
+              "kind": 1,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            },
+            {
+              "kind": 2,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            },
+            {
+              "kind": 3,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            }
+          ],
+          "workerTaskSamples": [
+            {
+              "sequence": 0,
+              "kind": 0,
+              "queueNanos": 4392600,
+              "executionNanos": 323949000,
+              "overrun": 0
+            },
+            {
+              "sequence": 1,
+              "kind": 0,
+              "queueNanos": 326961400,
+              "executionNanos": 288383500,
+              "overrun": 0
+            },
+            {
+              "sequence": 2,
+              "kind": 0,
+              "queueNanos": 615177400,
+              "executionNanos": 351067200,
+              "overrun": 0
+            },
+            {
+              "sequence": 3,
+              "kind": 0,
+              "queueNanos": 966211200,
+              "executionNanos": 256144500,
+              "overrun": 0
+            },
+            {
+              "sequence": 4,
+              "kind": 0,
+              "queueNanos": 1222346400,
+              "executionNanos": 305070800,
+              "overrun": 0
+            },
+            {
+              "sequence": 5,
+              "kind": 0,
+              "queueNanos": 1527449300,
+              "executionNanos": 434954300,
+              "overrun": 0
+            },
+            {
+              "sequence": 6,
+              "kind": 0,
+              "queueNanos": 1962386500,
+              "executionNanos": 467820700,
+              "overrun": 0
+            },
+            {
+              "sequence": 7,
+              "kind": 0,
+              "queueNanos": 2430208800,
+              "executionNanos": 278682800,
+              "overrun": 0
+            },
+            {
+              "sequence": 8,
+              "kind": 0,
+              "queueNanos": 2707564600,
+              "executionNanos": 3842800,
+              "overrun": 0
+            }
+          ],
+          "admissionRejected": 0,
+          "ingressQueueDepth": 0,
+          "ingressQueueHighWater": 9,
+          "ingressDelayMillis": 11762,
+          "ingressOverload": 0,
+          "deliveryQueueDepth": 0,
+          "deliveryQueueHighWater": 0,
+          "deliveryQueueBytes": 0,
+          "deliveryQueueBytesHighWater": 0,
+          "deliveryQueueDelayMillis": 0,
+          "deliveryQueueDelayHighWaterMillis": 0,
+          "outboundOverload": 0,
+          "slowDisconnects": 0
+        }
+      },
+      {
+        "forcedForeground": false,
+        "queuedReads": 8,
+        "gameplayEndToEndMs": 14.4672,
+        "metrics": {
+          "activeConnections": 0,
+          "activeConnectionsHighWater": 0,
+          "workerTasks": [
+            {
+              "kind": 0,
+              "count": 9,
+              "queueNanos": 7371068500,
+              "executionNanos": 1942154400,
+              "maxExecutionNanos": 341546500,
+              "overruns": 0
+            },
+            {
+              "kind": 1,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            },
+            {
+              "kind": 2,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            },
+            {
+              "kind": 3,
+              "count": 0,
+              "queueNanos": 0,
+              "executionNanos": 0,
+              "maxExecutionNanos": 0,
+              "overruns": 0
+            }
+          ],
+          "workerTaskSamples": [
+            {
+              "sequence": 0,
+              "kind": 0,
+              "queueNanos": 71500,
+              "executionNanos": 13451000,
+              "overrun": 0
+            },
+            {
+              "sequence": 1,
+              "kind": 0,
+              "queueNanos": 14507200,
+              "executionNanos": 341546500,
+              "overrun": 0
+            },
+            {
+              "sequence": 2,
+              "kind": 0,
+              "queueNanos": 355910900,
+              "executionNanos": 255844900,
+              "overrun": 0
+            },
+            {
+              "sequence": 3,
+              "kind": 0,
+              "queueNanos": 611708600,
+              "executionNanos": 268437500,
+              "overrun": 0
+            },
+            {
+              "sequence": 4,
+              "kind": 0,
+              "queueNanos": 880070500,
+              "executionNanos": 169980800,
+              "overrun": 0
+            },
+            {
+              "sequence": 5,
+              "kind": 0,
+              "queueNanos": 1049989600,
+              "executionNanos": 191445600,
+              "overrun": 0
+            },
+            {
+              "sequence": 6,
+              "kind": 0,
+              "queueNanos": 1241327300,
+              "executionNanos": 206507300,
+              "overrun": 0
+            },
+            {
+              "sequence": 7,
+              "kind": 0,
+              "queueNanos": 1447741800,
+              "executionNanos": 322083700,
+              "overrun": 0
+            },
+            {
+              "sequence": 8,
+              "kind": 0,
+              "queueNanos": 1769741100,
+              "executionNanos": 172857100,
+              "overrun": 0
+            }
+          ],
+          "admissionRejected": 0,
+          "ingressQueueDepth": 0,
+          "ingressQueueHighWater": 9,
+          "ingressDelayMillis": 7370,
+          "ingressOverload": 0,
+          "deliveryQueueDepth": 0,
+          "deliveryQueueHighWater": 0,
+          "deliveryQueueBytes": 0,
+          "deliveryQueueBytesHighWater": 0,
+          "deliveryQueueDelayMillis": 0,
+          "deliveryQueueDelayHighWaterMillis": 0,
+          "outboundOverload": 0,
+          "slowDisconnects": 0
+        }
+      }
+    ]
+  }
+}

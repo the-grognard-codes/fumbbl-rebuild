@@ -1,0 +1,207 @@
+Selected excerpts; trailing whitespace normalized. Raw log hashes are in validation.json.
+
+pr521-focused-final.log
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s -- in com.fumbbl.ffb.server.match.SetupBrowseSummaryTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO]
+[INFO] ffb ................................................ SUCCESS [  1.450 s]
+[INFO] ffb-common ......................................... SUCCESS [  2.580 s]
+[INFO] ffb-server ......................................... SUCCESS [ 42.350 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  46.537 s
+[INFO] Finished at: 2026-11-10T22:04:23-05:00
+[INFO] ------------------------------------------------------------------------
+
+pr521-deadline-recheck-final.log
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  44.861 s
+[INFO] Finished at: 2026-11-10T22:22:30-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project ffb-server:
+[ERROR]
+[ERROR] Please refer to C:\Users\jaken\Git-Hub\fumbbl-rebuild\ffb-server\target\surefire-reports for the individual test results.
+[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :ffb-server
+
+pr521-508-verify.log
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 � FirebaseAuth Timed out while making an API call: java.net.SocketTimeoutException: Provider I/O allocation expired
+[ERROR]   JdbcRequestDeadlineTest.partialHandshakeTrickleCannotRenewTheAbsoluteAcquisitionAllowance:87 � Timeout
+[ERROR] Tests run: 820, Failures: 0, Errors: 2, Skipped: 15
+[INFO] BUILD FAILURE
+[INFO] Total time:  08:54 min
+[INFO] Finished at: 2026-11-10T22:19:09-05:00
+[ERROR]   mvn <args> -rf :ffb-server
+
+pr521-combined-verify.log
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 � FirebaseAuth Error while fetching public key certificates: Firebase dependency rejected: AVAILABILITY
+[ERROR] Tests run: 820, Failures: 0, Errors: 1, Skipped: 15
+[INFO] BUILD FAILURE
+[INFO] Total time:  09:10 min
+[INFO] Finished at: 2026-11-10T22:34:29-05:00
+[ERROR]   mvn <args> -rf :ffb-server
+
+pr521-baseline-cold-test.log
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.536 s <<< FAILURE! -- in com.fumbbl.ffb.server.local.FirebaseOwnedTransportCandidateTest
+[ERROR]   FirebaseOwnedTransportCandidateTest.coldUserAndServiceCredentialsVerifyThroughRealDnsTlsOAuthAndRevocationWithinOneAllocation:175 � FirebaseAuth Error while fetching public key certificates: Provider DNS deadline expired
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0
+[INFO] BUILD FAILURE
+[ERROR]   mvn <args> -rf :ffb-server
+
+pr521-state-validation.log
+[INFO]
+[INFO] Results:
+[INFO]
+[WARNING] Tests run: 292, Failures: 0, Errors: 0, Skipped: 7
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO]
+[INFO] ffb ................................................ SUCCESS [  1.167 s]
+[INFO] ffb-common ......................................... SUCCESS [  4.309 s]
+[INFO] ffb-server ......................................... SUCCESS [  7.842 s]
+[INFO] ffb-statetest ...................................... SUCCESS [17:42 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17:56 min
+[INFO] Finished at: 2026-11-10T22:52:37-05:00
+[INFO] ------------------------------------------------------------------------
+
+pr521-capture-browser-unit.log
+✔ savedTeam: explicit envelope accepts its fields and rejects private additions (0.26ms)
+✔ catalog: explicit envelope accepts its fields and rejects private additions (0.317ms)
+✔ teamValidation: explicit envelope accepts its fields and rejects private additions (0.4234ms)
+✔ browse rejects nested identities; unknown future response families require a contract (0.4953ms)
+✔ setupState accepts its UTF-8 byte budget and rejects one byte more (263.6697ms)
+✔ matchTranscript accepts its UTF-8 byte budget and rejects one byte more (62.412ms)
+✔ browse accepts its UTF-8 byte budget and rejects one byte more (23.2689ms)
+✔ large family budgets do not permit duplicate envelope keys or non-object messages (3.2177ms)
+✔ native weather conditions select distinct sprites and readable names (2.3262ms)
+✔ unknown weather is shown without inventing a supported condition (0.3194ms)
+ℹ tests 538
+ℹ suites 0
+ℹ pass 538
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42497.6826
+
+pr521-capture-browser-build.log
+computing gzip size...
+dist-play/game.css    165.96 kB │ gzip:  29.64 kB
+dist-play/game.js   1,046.59 kB │ gzip: 263.69 kB
+
+✓ built in 5.62s
+npm.cmd : [33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 4.8s of this 5.6s build (85%).
+At C:\Users\jaken\Git-Hub\fumbbl-rebuild\.tools\pr521-finish-validation.ps1:11 char:1
++ npm.cmd run build *> ../.tools/pr521-capture-browser-build.log
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m[PLUGIN_TI...6s build (85%).:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+The slowest hooks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is
+included):
+  - vite:prepare-out-dir renderStart (72%, 4.1s, 1 call)
+Additional hook time came from hooks under 1s.
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+
+
+pr521-capture-lobby-ui.log
+Lobby read bounds: retained data/filter, usable refresh, bounded sends, no reconnect loop at 1440/390px.
+
+pr521-capture-lifecycle-ui.log
+PASS activation, opening active match, and reload preserve usable preparation and distinct authentication purposes
+
+pr521-capture-reconnect-ui.log
+PASS play and builder clear stale authentication errors after reconnect
+PASS unavailable connected match views reconnect, authenticate and reload without replaying retained gameplay
+
+pr521-startup.log
+Dev-local ready (quick mode: browser validation and server tests skipped): http://localhost:5000/play
+
+pr521-server.log
+docker : Picked up JAVA_TOOL_OPTIONS: -Dffb.browser.timing=false
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+Browser V2 running on port 22227
+
+pr521-lobby-exact.log
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO]
+[INFO] ffb ................................................ SUCCESS [  0.765 s]
+[INFO] ffb-common ......................................... SUCCESS [  3.700 s]
+[INFO] ffb-server ......................................... SUCCESS [ 42.341 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  47.179 s
+[INFO] Finished at: 2026-11-10T23:00:30-05:00
+[INFO] ------------------------------------------------------------------------
+Synthetic lobby schema removed
+
+pr521-baseline-capture.log
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO]
+[INFO] ffb ................................................ SUCCESS [  1.023 s]
+[INFO] ffb-common ......................................... SUCCESS [  2.410 s]
+[INFO] ffb-server ......................................... SUCCESS [03:15 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:19 min
+[INFO] Finished at: 2026-11-10T23:03:59-05:00
+[INFO] ------------------------------------------------------------------------
+Owned synthetic envelope schema removed
+
+pr521-integrated-capture.log
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for ffb 3.4.0:
+[INFO]
+[INFO] ffb ................................................ SUCCESS [  0.815 s]
+[INFO] ffb-common ......................................... SUCCESS [  3.107 s]
+[INFO] ffb-server ......................................... SUCCESS [02:12 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:16 min
+[INFO] Finished at: 2026-11-10T23:06:26-05:00
+[INFO] ------------------------------------------------------------------------
+Owned synthetic envelope schema removed

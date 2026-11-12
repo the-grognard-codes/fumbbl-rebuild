@@ -1,0 +1,9 @@
+{
+  "started": "2026-11-12T03:48:16.3679525Z",
+  "displayRequired": false,
+  "pid": 38208,
+  "permanentSettingsChanged": false,
+  "request": "ES_SYSTEM_REQUIRED | ES_CONTINUOUS",
+  "finished": "2026-11-12T04:44:28.7636663Z",
+  "released": true
+}

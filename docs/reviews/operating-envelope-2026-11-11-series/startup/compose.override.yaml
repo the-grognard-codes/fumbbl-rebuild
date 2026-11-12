@@ -1,0 +1,14 @@
+services:
+  database:
+    ports: !override ["127.0.0.1:23318:3306"]
+  server:
+    image: ffb-server:pr521-review
+    ports: !override ["127.0.0.1:22235:22227"]
+    volumes:
+      - ${PR521_SERVER_CONFIG}:/config/server.ini:ro
+    healthcheck:
+      test: [CMD-SHELL, "curl -sS -o /dev/null -w '%{http_code}' -H 'Host: 127.0.0.1:22235' -H 'Origin: http://localhost:5173' http://127.0.0.1:22227/browser/v2 | grep -qx 405"]
+  schema-bootstrap:
+    image: ffb-server:pr521-review
+    volumes:
+      - ${PR521_SERVER_CONFIG}:/config/server.ini:ro

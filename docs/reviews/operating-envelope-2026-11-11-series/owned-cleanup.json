@@ -1,0 +1,43 @@
+{
+  "started": "2026-11-12T04:44:02.397Z",
+  "project": "ffb-pr521-review",
+  "processes": [
+    {
+      "name": "computer",
+      "pid": 32136,
+      "identityVerified": true,
+      "stopped": true,
+      "alreadyExited": false
+    },
+    {
+      "name": "hosting",
+      "pid": 2568,
+      "identityVerified": true,
+      "stopped": true,
+      "alreadyExited": false
+    },
+    {
+      "name": "proxy",
+      "pid": 32988,
+      "identityVerified": true,
+      "stopped": true,
+      "alreadyExited": false
+    }
+  ],
+  "containers": [
+    {
+      "service": "server",
+      "id": "5076453db16edba6e04f1a7325b9fa8c3dd593a042865f24c82f9ede318d8b1b",
+      "stopped": true
+    },
+    {
+      "service": "database",
+      "id": "bc465eae49a59a7e18b5fd6cf2df8586574d32a02c6e6fa2fbebb9db83302264",
+      "stopped": true
+    }
+  ],
+  "volumesRemoved": false,
+  "remainingSyntheticSchemas": [],
+  "keepAwakeReleased": true,
+  "finished": "2026-11-12T04:44:28.982Z"
+}
