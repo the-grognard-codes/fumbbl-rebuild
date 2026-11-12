@@ -27,16 +27,20 @@
     <section class="development-history" id="history" aria-labelledby="history-title">
     <h2 id="history-title">Merged changes</h2>
     <p>One entry per merged pull request. Follow its GitHub link for the implementation and review details.</p>
-    <p class="updates-coverage">196 merged pull requests · Latest merge November 10, 2026 · Newest first</p>
+    <p class="updates-coverage">197 merged pull requests · Latest merge November 12, 2026 · Newest first</p>
     <form id="updates-search" class="updates-tools" action="/development" method="get" hidden>
       <label>Search updates<input type="search" name="q" maxlength="200" placeholder="Topic, feature or PR number" autocomplete="off"></label>
       <label>Category<select name="category"><option value="">All updates</option><option>Gameplay</option><option>Design</option><option>Platform</option><option>Developer tools</option><option>Project notes</option></select></label>
       <div class="updates-tool-actions"><button type="submit">Find updates</button><button type="button" class="updates-clear" data-clear-updates>Clear filters</button></div>
     </form>
-    <p class="updates-status" id="updates-status" role="status">196 merged pull request updates, newest first.</p>
+    <p class="updates-status" id="updates-status" role="status">197 merged pull request updates, newest first.</p>
     <nav class="updates-pagination" aria-label="Updates pages, top" hidden></nav>
     <noscript><p>All updates are shown below. Use your browser's Find command to search the history.</p></noscript>
     <section class="updates-list" id="updates-list" aria-label="Merged pull request updates" tabindex="-1">
+    <article class="panel update-entry" id="pr-521" data-pr="521" data-category="Platform">
+      <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-12T05:24:51Z">November 12, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521" target="_blank" rel="noreferrer">PR #521<span class="update-external" aria-hidden="true"> ↗</span></a></div>
+      <h3>Bound lobby reads and measure worker performance</h3><p>Lobby refreshes now share a read limit, batch stored-match reads and preserve the current data and selection while busy. Added repeatable performance and recovery measurements, distinguishing 32 resident matches from the 16-connection limit. Healthy latency targets remain follow-up work.</p>
+    </article>
     <article class="panel update-entry" id="pr-518" data-pr="518" data-category="Platform">
       <div class="update-meta"><span class="update-category">Platform</span><time datetime="2026-11-10T21:32:29Z">November 10, 2026</time><a href="https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518" target="_blank" rel="noreferrer">PR #518<span class="update-external" aria-hidden="true"> ↗</span></a></div>
       <h3>Bound authentication and recover passive updates</h3><p>Firebase authentication now follows the worker&#39;s remaining time budget. Match, chat and preparation pushes authorize locally without provider fan-out, with original token expiry and fresh authorization for recovery notices. Delayed updates use per-match catch-up; retrying failed client recovery reads remains follow-up work.</p>

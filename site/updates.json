@@ -1,5 +1,13 @@
 [
   {
+    "number": 521,
+    "title": "Bound lobby reads and measure worker performance",
+    "summary": "Lobby refreshes now share a read limit, batch stored-match reads and preserve the current data and selection while busy. Added repeatable performance and recovery measurements, distinguishing 32 resident matches from the 16-connection limit. Healthy latency targets remain follow-up work.",
+    "category": "Platform",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521",
+    "mergedAt": "2026-11-12T05:24:51Z"
+  },
+  {
     "number": 518,
     "title": "Bound authentication and recover passive updates",
     "summary": "Firebase authentication now follows the worker's remaining time budget. Match, chat and preparation pushes authorize locally without provider fan-out, with original token expiry and fresh authorization for recovery notices. Delayed updates use per-match catch-up; retrying failed client recovery reads remains follow-up work.",

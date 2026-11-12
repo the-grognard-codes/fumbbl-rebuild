@@ -16,6 +16,7 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [CI/CD and release controls](#cicd-and-release-controls)
   - [Firebase-authenticated two-player session proof](#firebase-authenticated-two-player-session-proof)
   - [Bounded authentication and passive publication recovery](#bounded-authentication-and-passive-publication-recovery)
+  - [Bounded lobby reads and operating-envelope measurement](#bounded-lobby-reads-and-operating-envelope-measurement)
   - [Team Builder MVP](#team-builder-mvp)
   - [Compact team-builder workbench](#compact-team-builder-workbench)
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
@@ -159,6 +160,15 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Final validation passed 1,116 pinned-verification tests (twenty expected opt-in skips), 116 actual Firebase/JDBC/socket tests without skips and 101 focused regressions. Prior browser/startup evidence and incomplete matched native timings retain their original revisions and limits in the linked reports; this is not a new claim of universal latency bounds.
 - Delivered in [PR #518](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/518), merged on November 10, 2026. Closed [#504](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/504) and [#507](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/507). [#519](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/519) separately tracks retrying failed client recovery reads, irrelevant computer notices and the budget-read cleanup.
 - Scope and evidence: [Firebase bounds](../docs/specs/engine-worker-firebase-bounds.md), [accepted transport spike](../docs/specs/engine-worker-firebase-bounds-spike-2.md), [publication authorization](../docs/specs/engine-worker-publication-authorization.md), [combined outcome](../docs/specs/engine-worker-slice3-outcome.md) and [final scoped correction/validation](../docs/reviews/2026-11-10-pr518-pending-notice-review.md).
+
+### Bounded lobby reads and operating-envelope measurement
+
+- Browse and current-match reads share a two-token bucket, refilling one token every 2,000 ms. Compatibility fallbacks share admission, document/recovery reads use bounded batches and parsing, and bucket/page exhaustion returns RATE_LIMITED while genuine persistence and validation errors retain their codes. Invalid stored entries remain visible as unavailable.
+- Lobby refreshes coalesce and use bounded backoff while retaining data and selection. An accepted read preserves queued refill deadlines, and gameplay replies leave lobby timers alone. Initial connection and reconnect checks cover the behavior.
+- Retained the advisory lane based on measured foreground blocking. Delivered a repeatable harness/runbook and eight baseline/integrated comparison captures, with workload warmup, alternating runtimes, complete ingress/control timing, resource samples, slow recipients, reconnect, durable recovery, completed-session release, dependency breakers and cleanup evidence.
+- The measured workload has 32 primary resident matches, sixteen admitted real sockets and one actively played match at a time. All 24 actions and 48 reads per run were accepted. Contended measurements miss the 100 ms worker-p99 target in all eight runs; they do not establish production capacity or a causal speedup. [#520](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/520) tracks the performance follow-up.
+- Focused lobby/browser checks passed. Full pinned local verification retains the strict cold Firebase error also reproduced on baseline; passing scenario results do not replace that failed check. [#508](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508) and [#39](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/39) remain open with their acceptance gaps recorded.
+- Delivered in [PR #521](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521), merged on November 12, 2026. Scope and evidence: [lobby outcome](../docs/specs/engine-worker-lobby-read-bounds-outcome.md), [operating-envelope results](../docs/specs/engine-worker-concurrent-match-envelope-outcome.md), [runbook](../docs/operations/operating-envelope-runbook.md) and [final review/validation](../docs/reviews/2026-11-11-pr521-final-review.md).
 
 ### Team Builder MVP
 
