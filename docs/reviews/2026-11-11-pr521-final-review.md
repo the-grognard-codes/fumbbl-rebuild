@@ -21,7 +21,7 @@ This report addresses the [latest client review](https://github.com/the-grognard
 - 2dc38c38d contains the separate #39 warmup, accounting and repeated-series runner changes.
 - 63cff1591 contains only the shared TCP/UDP DNS test-fixture correction.
 - f501e2fa668b6a9c0f5bbebeb4e064102255c808 contains the isolated-stack routing, its tests and runbook. The separate 10645965c test-only commit aligns SDK fixture startup with production and proves no DNS/HTTP work occurs before the cold operation. It does not resolve the strict cold deadline failure. Frozen integrated runtime/harness revision for the series is `10645965c33f9b8726c3de2c00148741b59257f9`. Production Java sources are unchanged by these startup-fixture and isolated-routing changes.
-- Later commits contain reports and evidence only. No measured source or configuration is silently replaced.
+- Later commits contain reports, evidence and narrowly scoped secret-scanner exceptions for two evidence digests. No measured source or runtime configuration is replaced.
 
 ## Standards
 
@@ -42,6 +42,8 @@ Passing browser checks on the unchanged client source are 539 units, production 
 Complete local logs remain under .tools/pr521-*. The checked-in validation artifact records exact commands, source boundary, outcome excerpts and hashes. Two newly added client regressions were red before the source correction. Nine accounting/routing tests include warmup exclusion, complete task accounting, isolated project/port discovery and rejection of wrong/public/ambiguous database bindings.
 
 The earlier Firebase cold-path failure also reproduced on unchanged baseline d3dabde260. One fresh focused repeat passed before the DNS fixture correction, and later runs failed again. This history does not establish a Firebase runtime fix or excuse a failing full check. The DNS BindException was a distinct fixture defect, corrected without changing its 250 ms deadline or 450 ms assertion.
+
+The first published evidence commit triggered two generic-api-key findings in CI. The startup configuration contains the same one-way computer-token verifier already present in the fixed match-review profile. The other value is the SHA-256 digest of the original/restored baseline Java source; it was compared with the original file. Neither finding contains a credential. The scanner configuration now permits only the existing verifier field at the exact archived configuration path and the exact source-digest field at the exact provenance path. Gitleaks 8.24.3, matching CI, passes the full PR history with `--log-opts='--no-merges --first-parent c71c8e1c9b332ff822e40239f02eb62fa4c46fc4^..HEAD'`. A separate fixture check accepts both archived files and still detects two synthetic credential-shaped sentinel assignments added to those same paths. No file or directory is excluded from scanning. This publication-only change does not affect the measured revision. Independent standards review approved the scoped exceptions and report wording.
 
 The memory-pressure attempts before the user's reboot are retained as incomplete/failed attempts. The old resumed full run ended with a JVM exit and multiple dependency/fixture failures while the host had very little free memory. The user identified the Java language server as the pressure source, rebooted, and addressed it. Fresh results are reported separately. No unrelated process was stopped by this task. The untracked browser-client/test/overnight-soak.mjs was preserved.
 

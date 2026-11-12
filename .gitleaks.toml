@@ -53,10 +53,24 @@ condition = "AND"
 regexTarget = "line"
 paths = [
   '''^ffb-server/src/main/resources/local-schema/native-(dev|prod)\.properties$''',
-  '''^containers/local/server\.(marker6|match-review|v2-acceptance)\.ini$'''
+  '''^containers/local/server\.(marker6|match-review|v2-acceptance)\.ini$''',
+  '''^docs/reviews/operating-envelope-2026-11-11-series/startup/server\.ini$'''
 ]
 regexes = [
   '''^\+?\s*local\.browser\.v2\.computer\.token\.sha256=[0-9a-f]{64}\s*$'''
+]
+
+# This digest proves restoration of a Java source file after diagnostic logging;
+# it is not an authentication credential. Keep the exception to its exact field.
+[[rules.allowlists]]
+description = "Restored baseline Java source digest in envelope provenance"
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^docs/reviews/operating-envelope-2026-11-11-series/other-attempts/attempts\.json$'''
+]
+regexes = [
+  '''^\+?\s*"originalAndRestoredBaselineAuthWorkingTreeSha256": "[0-9a-f]{64}",\s*$'''
 ]
 
 # Public protocol nonce: base64("0123456789abcdef"), not a bearer or service secret.
