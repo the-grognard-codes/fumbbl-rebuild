@@ -138,4 +138,4 @@ the clean game-server build/tests.
 
 Implemented on the slice-4 branch with separate #508 commits and validation boundaries. The revised request is linked from #508. The [outcome report](engine-worker-lobby-read-bounds-outcome.md) records bounds, scheduling evidence, exact revisions, validation and the missed healthy latency target. Issue closure awaits independent review.
 
-PR #521 review corrections and current validation are recorded in the [review outcome](../reviews/2026-11-11-pr521-review-corrections.md). The corrected measurement requires all healthy lobby reads to be admitted; the baseline-reproducing full-verification failure and unmet latency target remain explicit.
+PR #521 review corrections and current validation are recorded in the [final review outcome](../reviews/2026-11-11-pr521-final-review.md). Historical captures remain separate. The current repeated series retains all healthy reads as admitted work, includes a discarded workload warmup and records contention. Full-verification and latency target failures remain explicit.

@@ -1,0 +1,57 @@
+{
+  "started": "2026-11-12T03:48:48.741Z",
+  "revisions": {
+    "baseline": "d3dabde26026654930768bf18799777d84b5d589",
+    "integrated": "10645965c33f9b8726c3de2c00148741b59257f9"
+  },
+  "order": [
+    "baseline",
+    "integrated",
+    "integrated",
+    "baseline",
+    "baseline",
+    "integrated",
+    "integrated",
+    "baseline"
+  ],
+  "dockerProject": "ffb-pr521-review",
+  "databaseContainer": "ffb-pr521-review-database-1",
+  "databaseHostPort": 23318,
+  "runnerSha256": "d409cf02829f09406a44d93421022b6e867dbb722407949113528d2988e31be4",
+  "workloadWarmupRepetitions": 1,
+  "measuredRepetitions": 3,
+  "captures": [
+    {
+      "role": "baseline",
+      "directory": "01-baseline",
+      "started": "2026-11-12T03:48:48.745Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "13.8MB / 0B",
+          "CPUPerc": "0.35%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.30%",
+          "MemUsage": "250.2MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "72.3kB / 47.6kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "27.2MB / 26.5MB",
+          "CPUPerc": "0.05%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.72%",
+          "MemUsage": "130.8MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "3.87MB / 19MB",
+          "PIDs": "16"
+        }
+      ],
+      "exitCode": 1
+    }
+  ],
+  "completed": false,
+  "finished": "2026-11-12T03:51:15.242Z"
+}

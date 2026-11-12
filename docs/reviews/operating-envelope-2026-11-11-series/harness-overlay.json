@@ -1,0 +1,36 @@
+{
+  "baseline": "d3dabde26026654930768bf18799777d84b5d589",
+  "harness": "10645965c33f9b8726c3de2c00148741b59257f9",
+  "files": [
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/OperatingEnvelopeTest.java",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/EnvelopeDatabaseProxy.java",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/local/EnvelopeTransportProbe.java",
+    "ffb-server/src/test/resources/operating-envelope/synthetic-turn.json.gz",
+    "tools/diagnostics/run-operating-envelope.mjs",
+    "tools/diagnostics/summarize-operating-envelope.mjs",
+    "tools/diagnostics/summarize-operating-envelope.test.mjs",
+    "tools/diagnostics/envelope-local-stack.mjs",
+    "tools/diagnostics/envelope-local-stack.test.mjs"
+  ],
+  "review": "Independent standards and spec reviews approved the queued-read correction, workload-warmup accounting and ABBAABBA series runner at 2dc38c38d. Both also approved the separate DNS test fixture correction at 63cff1591. The nine-file baseline overlay contains only the reviewed current harness and synthetic fixture, with no production changes and no imported earlier isolated harness. Both reviewers approved the isolated project routing and startup runbook at f501e2fa6. No production code is copied to baseline. Separate Firebase SDK test-fixture startup alignment at 10645965c was approved by both reviewers. It is not part of the baseline overlay and changes no measured production or harness source.",
+  "seedSha256": "96737d4504ed0981bd83126cc8b6faa3eddbdbbf66892b2fe96a6633add15cce",
+  "seedAgeHoursAtPreparation": 0.5211117876519097,
+  "sourceHashes": {
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/OperatingEnvelopeTest.java": "838f825158ab3e98f153d7af8d2dd5335807806ea419c6370e9f841c1f6373fd",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/EnvelopeDatabaseProxy.java": "de1347ee7348e9b0b45dff30ef598562258393e4161726e6133d424b9edd7821",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/local/EnvelopeTransportProbe.java": "bf44fd252b8087cd24eca64dacf051933244c5dbacf2b7a9846a0a6f6440e779",
+    "ffb-server/src/test/resources/operating-envelope/synthetic-turn.json.gz": "f0e8d1f60ebeb91a051b4e0f67e3aea926637b94472430dbdf6cfa6d2abd219f",
+    "tools/diagnostics/run-operating-envelope.mjs": "95095381f313d9e179ac79a9d039381284cc6f561579eb9a07cbdbba4080f4b6",
+    "tools/diagnostics/summarize-operating-envelope.mjs": "a502aab58e5e6d4b63c3eaf960081692e5f52503b07bc4207b8d4bc87ffe0d91",
+    "tools/diagnostics/summarize-operating-envelope.test.mjs": "ead24a91ffb399305583b423581ea41b23f935fd2f492b05cfc1c762909d3865",
+    "tools/diagnostics/envelope-local-stack.mjs": "3c074f83c6a725112d8f76c8932493661a468c829e85b1179fafdadb32499b24",
+    "tools/diagnostics/envelope-local-stack.test.mjs": "85b748d2e0eec8355b2dc9f4ffc2080c4e06e6a1926b2fc48f620f0b59605139"
+  },
+  "preparedAt": "2026-11-11T23:55:08.592443+00:00",
+  "overlayFileCount": 9,
+  "measuredInputHashCount": 7,
+  "accountingTestFiles": [
+    "tools/diagnostics/summarize-operating-envelope.test.mjs",
+    "tools/diagnostics/envelope-local-stack.test.mjs"
+  ]
+}

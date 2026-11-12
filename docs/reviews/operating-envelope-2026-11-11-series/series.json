@@ -1,0 +1,500 @@
+{
+  "started": "2026-11-12T04:10:45.009Z",
+  "revisions": {
+    "baseline": "d3dabde26026654930768bf18799777d84b5d589",
+    "integrated": "10645965c33f9b8726c3de2c00148741b59257f9"
+  },
+  "order": [
+    "baseline",
+    "integrated",
+    "integrated",
+    "baseline",
+    "baseline",
+    "integrated",
+    "integrated",
+    "baseline"
+  ],
+  "dockerProject": "ffb-pr521-review",
+  "databaseContainer": "ffb-pr521-review-database-1",
+  "databaseHostPort": 23318,
+  "runnerSha256": "d409cf02829f09406a44d93421022b6e867dbb722407949113528d2988e31be4",
+  "workloadWarmupRepetitions": 1,
+  "measuredRepetitions": 3,
+  "captures": [
+    {
+      "role": "baseline",
+      "directory": "01-baseline",
+      "started": "2026-11-12T04:10:45.014Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.57%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.30%",
+          "MemUsage": "250.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "97.2kB / 76.2kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.4MB / 35.4MB",
+          "CPUPerc": "0.03%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.78%",
+          "MemUsage": "134.9MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "16.7MB / 49.5MB",
+          "PIDs": "12"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "d3dabde26026654930768bf18799777d84b5d589",
+      "healthyAllTaskP99Ms": 1072.7816,
+      "healthyActionP99Ms": 377.1045,
+      "healthyReadP99Ms": 1211.2538,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.56%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.31%",
+          "MemUsage": "251.1MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "104kB / 84.7kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.4MB / 40.8MB",
+          "CPUPerc": "0.07%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.84%",
+          "MemUsage": "139.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "24.1MB / 66MB",
+          "PIDs": "16"
+        }
+      ],
+      "finished": "2026-11-12T04:15:26.962Z"
+    },
+    {
+      "role": "integrated",
+      "directory": "02-integrated",
+      "started": "2026-11-12T04:15:26.966Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.54%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.30%",
+          "MemUsage": "250.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "104kB / 84.7kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.4MB / 40.8MB",
+          "CPUPerc": "7.90%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.84%",
+          "MemUsage": "139.5MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "24.1MB / 66MB",
+          "PIDs": "16"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "healthyAllTaskP99Ms": 538.3993,
+      "healthyActionP99Ms": 427.3503,
+      "healthyReadP99Ms": 330.8977,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "1.03%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.31%",
+          "MemUsage": "251.3MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "110kB / 90.9kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.4MB / 46.2MB",
+          "CPUPerc": "11.41%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.92%",
+          "MemUsage": "145.8MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "29.1MB / 80.3MB",
+          "PIDs": "15"
+        }
+      ],
+      "finished": "2026-11-12T04:18:46.491Z"
+    },
+    {
+      "role": "integrated",
+      "directory": "03-integrated",
+      "started": "2026-11-12T04:18:46.493Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "7.06%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.32%",
+          "MemUsage": "251.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "110kB / 90.9kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.4MB / 46.2MB",
+          "CPUPerc": "0.03%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.91%",
+          "MemUsage": "144.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "29.1MB / 80.3MB",
+          "PIDs": "15"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "healthyAllTaskP99Ms": 536.6982,
+      "healthyActionP99Ms": 479.4219,
+      "healthyReadP99Ms": 317.5954,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.75%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.32%",
+          "MemUsage": "252MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "115kB / 96.7kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 51.6MB",
+          "CPUPerc": "0.05%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.97%",
+          "MemUsage": "149.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "34.2MB / 94.6MB",
+          "PIDs": "16"
+        }
+      ],
+      "finished": "2026-11-12T04:22:13.367Z"
+    },
+    {
+      "role": "baseline",
+      "directory": "04-baseline",
+      "started": "2026-11-12T04:22:13.370Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.70%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.32%",
+          "MemUsage": "252.1MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "115kB / 96.7kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 51.6MB",
+          "CPUPerc": "0.02%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "1.98%",
+          "MemUsage": "150MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "34.2MB / 94.6MB",
+          "PIDs": "16"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "d3dabde26026654930768bf18799777d84b5d589",
+      "healthyAllTaskP99Ms": 1424.6309,
+      "healthyActionP99Ms": 787.06,
+      "healthyReadP99Ms": 1734.0751,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.82%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.32%",
+          "MemUsage": "251.8MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "121kB / 104kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 57MB",
+          "CPUPerc": "9.04%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.04%",
+          "MemUsage": "155MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "41.6MB / 111MB",
+          "PIDs": "17"
+        }
+      ],
+      "finished": "2026-11-12T04:26:35.278Z"
+    },
+    {
+      "role": "baseline",
+      "directory": "05-baseline",
+      "started": "2026-11-12T04:26:35.282Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "1.02%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.32%",
+          "MemUsage": "251.8MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "121kB / 104kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 57MB",
+          "CPUPerc": "0.04%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.04%",
+          "MemUsage": "154.8MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "41.6MB / 111MB",
+          "PIDs": "17"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "d3dabde26026654930768bf18799777d84b5d589",
+      "healthyAllTaskP99Ms": 1210.9253,
+      "healthyActionP99Ms": 479.1648,
+      "healthyReadP99Ms": 1511.0711,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "8.57%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "128kB / 112kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 62.5MB",
+          "CPUPerc": "0.20%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.11%",
+          "MemUsage": "160.2MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "49MB / 128MB",
+          "PIDs": "17"
+        }
+      ],
+      "finished": "2026-11-12T04:31:11.781Z"
+    },
+    {
+      "role": "integrated",
+      "directory": "06-integrated",
+      "started": "2026-11-12T04:31:11.786Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.74%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "128kB / 112kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 62.5MB",
+          "CPUPerc": "7.22%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.12%",
+          "MemUsage": "161.1MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "49MB / 128MB",
+          "PIDs": "17"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "healthyAllTaskP99Ms": 554.2293,
+      "healthyActionP99Ms": 565.2689,
+      "healthyReadP99Ms": 383.7291,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "9.60%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.4MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "133kB / 119kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 67.9MB",
+          "CPUPerc": "5.74%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.18%",
+          "MemUsage": "165.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "54.1MB / 142MB",
+          "PIDs": "17"
+        }
+      ],
+      "finished": "2026-11-12T04:34:53.346Z"
+    },
+    {
+      "role": "integrated",
+      "directory": "07-integrated",
+      "started": "2026-11-12T04:34:53.348Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "1.07%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.4MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "133kB / 119kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 67.9MB",
+          "CPUPerc": "0.31%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.18%",
+          "MemUsage": "165.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "54.1MB / 142MB",
+          "PIDs": "16"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+      "healthyAllTaskP99Ms": 529.9357,
+      "healthyActionP99Ms": 533.3279,
+      "healthyReadP99Ms": 424.0332,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "1.81%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "139kB / 125kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 73.2MB",
+          "CPUPerc": "8.86%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.25%",
+          "MemUsage": "170.6MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "59.1MB / 156MB",
+          "PIDs": "17"
+        }
+      ],
+      "finished": "2026-11-12T04:38:19.915Z"
+    },
+    {
+      "role": "baseline",
+      "directory": "08-baseline",
+      "started": "2026-11-12T04:38:19.918Z",
+      "beforeDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.93%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.7MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "139kB / 125kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 73.2MB",
+          "CPUPerc": "0.02%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.24%",
+          "MemUsage": "170.3MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "59.1MB / 156MB",
+          "PIDs": "17"
+        }
+      ],
+      "exitCode": 0,
+      "revision": "d3dabde26026654930768bf18799777d84b5d589",
+      "healthyAllTaskP99Ms": 1612.1211,
+      "healthyActionP99Ms": 552.0948,
+      "healthyReadP99Ms": 2009.9557,
+      "afterDockerStats": [
+        {
+          "BlockIO": "24.1MB / 0B",
+          "CPUPerc": "0.72%",
+          "Container": "5076453db16e",
+          "ID": "5076453db16e",
+          "MemPerc": "3.33%",
+          "MemUsage": "252.9MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-server-1",
+          "NetIO": "145kB / 132kB",
+          "PIDs": "50"
+        },
+        {
+          "BlockIO": "40.5MB / 78.7MB",
+          "CPUPerc": "0.06%",
+          "Container": "bc465eae49a5",
+          "ID": "bc465eae49a5",
+          "MemPerc": "2.30%",
+          "MemUsage": "174.9MiB / 7.412GiB",
+          "Name": "ffb-pr521-review-database-1",
+          "NetIO": "66.5MB / 173MB",
+          "PIDs": "16"
+        }
+      ],
+      "finished": "2026-11-12T04:42:47.071Z"
+    }
+  ],
+  "completed": true,
+  "seedSha256": "96737d4504ed0981bd83126cc8b6faa3eddbdbbf66892b2fe96a6633add15cce",
+  "finished": "2026-11-12T04:42:47.074Z"
+}

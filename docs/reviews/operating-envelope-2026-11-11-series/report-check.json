@@ -1,0 +1,58 @@
+{
+  "captures": [
+    {
+      "capture": "01-baseline",
+      "workerSamples": 603,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "02-integrated",
+      "workerSamples": 549,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "03-integrated",
+      "workerSamples": 551,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "04-baseline",
+      "workerSamples": 616,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "05-baseline",
+      "workerSamples": 620,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "06-integrated",
+      "workerSamples": 562,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "07-integrated",
+      "workerSamples": 553,
+      "healthyActions": 24,
+      "healthyReads": 48
+    },
+    {
+      "capture": "08-baseline",
+      "workerSamples": 611,
+      "healthyActions": 24,
+      "healthyReads": 48
+    }
+  ],
+  "seedDigestVerified": true,
+  "sourceRevisionVerified": true,
+  "noInheritedJvmOverrides": true,
+  "localReportLinksVerified": true,
+  "credentialFieldScanPassed": true,
+  "cleanupVerified": true
+}

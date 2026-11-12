@@ -1,0 +1,48 @@
+{
+  "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+  "status": "?? browser-client/test/overnight-soak.mjs",
+  "started": "2026-11-12T04:15:29.864Z",
+  "os": "10.0.26300",
+  "cpu": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+  "logicalProcessors": 16,
+  "hostMemoryBytes": 16438054912,
+  "node": "v26.8.1",
+  "databaseImage": "mariadb:11.8.9@sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3",
+  "databaseImageId": "sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3",
+  "containerMemoryLimit": 0,
+  "containerNanoCpus": 0,
+  "dockerProject": "ffb-pr521-review",
+  "databaseContainer": "ffb-pr521-review-database-1",
+  "databaseHostPort": 23318,
+  "database": "isolated schema on shared idle dev-local MariaDB, TCP proxy loopback; unpooled Connector/J; connect500/socket1500/lock1000ms",
+  "command": "tools/target-build.ps1 test -Module ffb-server -Test OperatingEnvelopeTest",
+  "cleanup": true,
+  "toolchain": {
+    "maven": {
+      "version": "3.9.9",
+      "directory": "apache-maven-3.9.9",
+      "archive": "apache-maven-3.9.9-bin.zip",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.9/apache-maven-3.9.9-bin.zip",
+      "sha512": "8beac8d11ef208f1e2a8df0682b9448a9a363d2ad13ca74af43705549e72e74c9378823bf689287801cbbfc2f6ea9596201d19ccacfdfb682ee8a2ff4c4418ba"
+    },
+    "java": {
+      "minimumVersion": 21,
+      "runtimeVersion": "21.0.11+10-LTS",
+      "ciVersion": "21.0.11+10.0.LTS",
+      "vendor": "Eclipse Adoptium",
+      "defaultWindowsHome": "C:/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot"
+    },
+    "repositoryDirectory": "repository"
+  },
+  "sourceHashes": {
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/OperatingEnvelopeTest.java": "838f825158ab3e98f153d7af8d2dd5335807806ea419c6370e9f841c1f6373fd",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/match/EnvelopeDatabaseProxy.java": "de1347ee7348e9b0b45dff30ef598562258393e4161726e6133d424b9edd7821",
+    "ffb-server/src/test/java/com/fumbbl/ffb/server/local/EnvelopeTransportProbe.java": "bf44fd252b8087cd24eca64dacf051933244c5dbacf2b7a9846a0a6f6440e779",
+    "ffb-server/src/test/resources/operating-envelope/synthetic-turn.json.gz": "f0e8d1f60ebeb91a051b4e0f67e3aea926637b94472430dbdf6cfa6d2abd219f",
+    "tools/diagnostics/run-operating-envelope.mjs": "95095381f313d9e179ac79a9d039381284cc6f561579eb9a07cbdbba4080f4b6",
+    "tools/diagnostics/summarize-operating-envelope.mjs": "a502aab58e5e6d4b63c3eaf960081692e5f52503b07bc4207b8d4bc87ffe0d91",
+    "tools/diagnostics/envelope-local-stack.mjs": "3c074f83c6a725112d8f76c8932493661a468c829e85b1179fafdadb32499b24"
+  },
+  "exitCode": 0,
+  "finished": "2026-11-12T04:18:44.942Z"
+}

@@ -114,7 +114,8 @@ Issues on 2026-09-26 after review.
   queue delay, p95/p99 accepted-action/reconnect latency, heap/RSS, CPU,
   MariaDB/container resource use, failures and cleanup. This measurement does
   not authorize parallel per-match mutation or multi-instance ownership.
-  Local baseline/integrated measurement is delivered; see [results](docs/specs/engine-worker-concurrent-match-envelope-outcome.md).
+  Eight interleaved baseline/integrated captures are delivered; see [results](docs/specs/engine-worker-concurrent-match-envelope-outcome.md).
+  Full pinned verification remains failed in the cold Firebase spike; see [final review](docs/reviews/2026-11-11-pr521-final-review.md).
   Healthy latency targets failed; independent review and [performance follow-up #520](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/520) remain open.
 
 - [ ] **R4 operational telemetry and procedures.** ([GitHub issue](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/40)) Export the existing

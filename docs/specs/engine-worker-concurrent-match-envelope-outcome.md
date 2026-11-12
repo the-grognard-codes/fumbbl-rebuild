@@ -1,174 +1,186 @@
 # Single-worker operating-envelope results
 
-Tracking: [#39](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/39), integrated with [#508](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508).
+Tracking [#39](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/39) and [#508](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/508).
 
-This local workload completed its declared scenarios. Performance targets are evaluated below; successful harness execution is not a capacity or latency certification. Production admission remains unchanged.
+This report replaces the single-pair comparison with a final balanced series of eight completed interleaved captures in one session. An earlier clean baseline attempt failed and remains a separate unresolved finding below. Each capture completes one discarded workload warmup repetition and three measured healthy repetitions. Warmup remains in raw and all-task accounting. Target failures below remain failures. Admission policy is unchanged.
 
-## Revisions and configuration
+## Revisions and method
 
-| Run | Runtime revision | Harness | Start / finish UTC |
-|---|---|---|---|
-| baseline | `d3dabde26026654930768bf18799777d84b5d589` | `8eddbff3f37b0b13d1abdd4f552075fa8cc732af` | 2026-11-11T04:00:31.979Z / 2026-11-11T04:04:00.938Z |
-| integrated | `8eddbff3f37b0b13d1abdd4f552075fa8cc732af` | `8eddbff3f37b0b13d1abdd4f552075fa8cc732af` | 2026-11-11T04:04:01.910Z / 2026-11-11T04:06:27.561Z |
+Baseline runtime `d3dabde26026654930768bf18799777d84b5d589` includes merged RB2 and slices 1-3. Integrated runtime and reviewed harness are `10645965c33f9b8726c3de2c00148741b59257f9`. Both runtimes include actual #507 option A through PR #518 merge 53655f62f and notice-budget correction eb1d1dbe3. Both postdate slice 2 deliverable A, so control timing is available. A baseline predating that deliverable must report control timing unavailable.
 
-Machine: AMD Ryzen 7 260 w/ Radeon 780M Graphics, 16 logical processors, 15.31 GiB RAM, Windows kernel 10.0.26300. Node v26.8.1; Temurin 21.0.11+10-LTS; Maven 3.9.9; Connector/J 3.5.8. Docker Desktop 29.7.2 exposes 16 CPUs and 7.41 GiB to its VM. MariaDB 11.8.9-MariaDB-ubu2404; 128 MiB buffer pool, max_connections 151, innodb_flush_log_at_trx_commit=1, sync_binlog=0, slow-query log off. Container memory/CPU caps are zero (Docker VM limits still apply).
+The series ran from 2026-11-12T04:10:45.009Z to 2026-11-12T04:42:47.074Z UTC in ABBAABBA order. Each run uses a fresh owned synthetic schema, matching harness hashes and the same seed SHA-256 `96737d4504ed0981bd83126cc8b6faa3eddbdbbf66892b2fe96a6633add15cce`. Only the reviewed harness overlay is applied to baseline. No earlier isolated harness was imported. The overlay manifest records nine copied files and their provenance. Seven measured inputs are hashed in each capture manifest. The other two files are the summarizer and stack-routing JavaScript tests. Later commits contain documentation and evidence only.
 
-The measured native engine and Jetty transport run in an isolated host JUnit JVM using production classes, not in the dev-local server container. Dev-local startup is checked separately; its MariaDB container supplies the isolated synthetic schema. The harness supplies no heap/GC overrides (pinned JVM default ergonomics). These resource results are not a server-container sizing claim.
+A single earlier pair had baseline/integrated healthy worker p99 1421.743/830.027 ms and accepted-action p99 729.087/922.486 ms. First-repetition outliers and host variability make those values descriptive observations. They establish no code speedup or regression. The reviewer withdrew the narrow-page code-regression claim after same-session alternating reruns. Historical raw captures remain [archived](../reviews/operating-envelope-2026-11-11-review/), and the prior report is preserved at commit 0d5938eea. The still earlier mixed-admission comparison is superseded.
 
-Unpooled bounded JDBC uses connectTimeout=500 ms, socketTimeout=1500 ms and innodb_lock_wait_timeout=1 second through a loopback fault proxy. Local native debug logging level is 1. Diagnostics replies are disabled; full-task timing remains available. The shared dev-local MariaDB and VS Code language server remain present. No other task builds or browser suites ran while the scenario generated traffic; runner compilation/setup is included in manifest wall time.
+The engine and real Jetty sockets run in a host JUnit JVM using production classes. Dev-local startup is validated separately and its separate MariaDB supplies the isolated schema. The harness sets no heap or GC overrides. These results do not size the server container.
 
-Baseline is merged RB2 and slices 1-3 before #508, including actual **#507 option A** implementation. PR #518 merge `53655f62f` and final notice-budget correction `eb1d1dbe3` are ancestors of baseline `d3dabde260` and the integrated revision. See the [#507 outcome](engine-worker-publication-authorization-outcome.md) for the passive-viewing policy. Baseline imports only the reviewed test harness and synthetic fixture; source hashes match the integrated capture. No earlier isolated harness was imported. Both revisions postdate slice 2 deliverable A, so control timing is available; any pre-A baseline must mark it unavailable.
+Machine and configuration are recorded in the manifests and environment.json. Windows 10.0.26300, AMD Ryzen 7 260 w/ Radeon 780M Graphics, 16 logical processors, 15.31 GiB host memory, Node v26.8.1, Temurin 21.0.11+10-LTS, Maven 3.9.9 and Connector/J 3.5.8. Docker Desktop exposes 16 CPUs and 7.41 GiB to its VM. MariaDB 11.8.9-MariaDB-ubu2404 uses a 128 MiB buffer pool, max_connections=151, innodb_flush_log_at_trx_commit=1 and sync_binlog=0. Container CPU and memory caps are unset. Unpooled JDBC uses connectTimeout=500 ms, socketTimeout=1500 ms and lock wait=1 second through a loopback fault proxy. Debug logging level is 1. No task builds or browser suites run during generated traffic. The user reported an independent performance test on localhost:5000. Background activity was not controlled, so these captures are labeled contended. Its exact overlap and load are not measured. The separate envelope stack and VS Code Java processes remain present.
 
-The measured integrated revision is preserved. Earlier 500 ms captures at df5944955 mixed admitted reads with RATE_LIMITED outcomes and are superseded for equal-work comparisons. Their [original raw evidence](../reviews/operating-envelope-2026-11-10/) is retained. This corrected harness uses a 2,000 ms pause and asserts ACCEPTED for every healthy lobby read in both runs. Later commits add reports/evidence/tracking only. The #508 runtime fixes and #39 cadence correction remain separate commits.
+## Workload and admission
 
-## Workload
+Thirty-two synthetic active matches are restored through actual WebSocket loads. One additional eight-action workload repetition on resident match 31 warms native action/checkpoint/read work and is excluded from healthy statistics. Three measured repetitions each use a different resident match and perform eight durable end-turn actions. Every iteration also accepts currentMatches and detailed browse, followed by at least a 2,000 ms pause. Each capture therefore measures 24 accepted actions and 48 admitted lobby reads. The generator is closed-loop and response time reduces the achieved rate. The input activity timestamp is refreshed once before the whole series to stay within the unchanged 24-hour retention policy. environment.json records the sole field change and before/after hashes. The compressed exact seed is archived.
 
-One native fixture is advanced to a regular turn before measurement. Thirty-two synthetic active matches are restored through actual WebSocket loads using two coaches; these restoration/warmup tasks remain in the raw samples. The healthy phase has three repetitions of eight durable end-turn actions, at least 2,000 ms between iterations plus response time, with a current-match read and detailed browse each iteration. Each repetition uses a different resident match. Both runs use the same synthetic seed. Its last-player-activity timestamp is refreshed once before both runs to avoid the production 24-hour abandonment policy; all other payload state is preserved. The original/refreshed hashes and timestamp change are recorded in environment.json, and the exact refreshed input is archived as synthetic-seed.json.gz. Both capture digests match that input.
+The healthy mix is **2 coaches + 1 spectator + 13 idle real TCP sockets = 16**. One match is actively played at a time. Thirty-two resident sessions do not imply 32 connected matches. Sixteen sockets allow at most eight two-coach or sixteen one-coach matches before spectator/preparation/service sockets consume slots. Every run rejects the seventeenth socket with 1013.
 
-Healthy socket mix is **2 coaches + 1 spectator + 13 idle real TCP sockets = 16**. Only one match is actively played at a time. This validates 32 resident sessions with that admitted subset, not 32 connected matches or maximum throughput. Sixteen sockets permit at most eight two-coach or sixteen one-coach matches before spectators/preparation/service sockets consume slots. A seventeenth actual socket is rejected with 1013.
+Each capture also covers reconnect and durable-action deduplication, JDBC rehydration in another application instance, one controlled stalled Jetty callback alongside 15 real sockets, 20-request provider and database outage bursts at 100 ms spacing, recovery after cooldown, completion of all 32 primary sessions, and 160 writes after an explicit 250 ms worker pause. The artificial pause and all rejected/closed work remain in all-task accounting.
 
-Additional phases cover confirmed durable-action retry after reconnect, independent application rehydration from JDBC, a controlled stalled asynchronous write alongside 15 real sockets, 20-request provider and database outage bursts spaced by 100 ms, cooldown/recovery, concession of all 32 sessions, and 160 serialized writes after a declared 250 ms test control pause. The saturation pause is included in all-task timing and separated from healthy results.
+## Per-run healthy distributions
 
-## Full worker timing
+Milliseconds use nearest-rank p50 / p95 / p99 / maximum. Worker execution includes scope exit. Queue wait is separate. Healthy results exclude restoration and the entire workload-warmup repetition. Every row has 24 accepted actions, 48 admitted reads and zero rejected healthy reads. With 24 action samples and 48 read samples per run, nearest-rank p99 equals the maximum. These sample sizes do not establish stable tails.
 
-All values below are milliseconds, nearest-rank p50 / p95 / p99 / maximum. Counts include tiny, rejected and untracked tasks. Queue wait is separate from full execution through scope exit. Kind 0 is ingress, 1 other control, 2 decision expiry, 3 disconnect.
+| Run | Healthy worker N | Worker execution | Queue wait | Accepted actions | Admitted reads | >250 / >2,000 ms worker |
+|---|---:|---|---|---|---|---:|
+| 01-baseline | 178 | 0.195 / 816.348 / 1072.782 / 1075.720 | 0.213 / 633.071 / 820.210 / 1104.553 | 283.243 / 352.562 / 377.104 / 377.104 | 819.151 / 1078.873 / 1211.254 / 1211.254 | 72 / 0 |
+| 02-integrated | 151 | 87.783 / 421.809 / 538.399 / 564.203 | 0.215 / 189.356 / 350.346 / 502.730 | 286.052 / 422.239 / 427.350 / 427.350 | 211.284 / 321.555 / 330.898 / 330.898 | 24 / 0 |
+| 03-integrated | 152 | 103.448 / 492.673 / 536.698 / 601.288 | 0.206 / 134.417 / 390.348 / 417.606 | 320.250 / 416.876 / 479.422 / 479.422 | 212.523 / 310.413 / 317.595 / 317.595 | 24 / 0 |
+| 04-baseline | 187 | 0.213 / 1138.065 / 1424.631 / 1620.974 | 0.301 / 983.250 / 1207.261 / 1599.017 | 362.448 / 631.741 / 787.060 / 787.060 | 1070.283 / 1533.179 / 1734.075 / 1734.075 | 72 / 0 |
+| 05-baseline | 187 | 0.175 / 1060.772 / 1210.925 / 1332.149 | 0.277 / 793.588 / 1187.995 / 1355.963 | 365.214 / 472.114 / 479.165 / 479.165 | 1059.216 / 1214.631 / 1511.071 / 1511.071 | 72 / 0 |
+| 06-integrated | 152 | 105.198 / 500.537 / 554.229 / 695.607 | 0.229 / 162.550 / 327.256 / 363.850 | 342.688 / 420.943 / 565.269 / 565.269 | 221.113 / 336.135 / 383.729 / 383.729 | 24 / 0 |
+| 07-integrated | 152 | 96.334 / 444.227 / 529.936 / 680.237 | 0.204 / 146.039 / 401.642 / 495.419 | 306.537 / 395.039 / 533.328 / 533.328 | 238.291 / 337.213 / 424.033 / 424.033 | 26 / 0 |
+| 08-baseline | 185 | 0.173 / 1008.428 / 1612.121 / 1881.136 | 0.309 / 769.020 / 1343.820 / 2000.655 | 317.736 / 472.067 / 552.095 / 552.095 | 967.155 / 1356.613 / 2009.956 / 2009.956 | 72 / 0 |
 
-| Run / task group | N | Execution p50 / p95 / p99 / max | Queue p50 / p95 / p99 / max | >250 ms / >2,000 ms execution |
+The following medians summarize four per-run p99 values, with their full range in parentheses. They are not pooled percentiles or confidence intervals. Absolute target checks and individual runs remain visible.
+
+| Runtime | Worker p99 median (range), ms | Action p99 median (range), ms | Admitted-read p99 median (range), ms |
+|---|---:|---:|---:|
+| baseline | 1317.778 (1072.782-1612.121) | 515.630 (377.104-787.060) | 1622.573 (1211.254-2009.956) |
+| integrated | 537.549 (529.936-554.229) | 506.375 (427.350-565.269) | 357.313 (317.595-424.033) |
+
+Four short captures per revision reduce the run-order confound while retaining substantial host and workload variability. These data do not establish stable production tails or a causal performance improvement.
+
+## Full worker and control timing
+
+This table pools actual samples across four captures per runtime. Kind 0 is ingress, 1 other control, 2 decision expiry, and 3 disconnect. All phases include warmup, faults, saturation and cleanup. Counts include tiny, rejected and untracked tasks. No sample is excluded for lacking a request ID.
+
+| Runtime / task group | N | Execution p50 / p95 / p99 / max (ms) | Queue p50 / p95 / p99 / max (ms) | >250 / >2,000 ms execution |
 |---|---:|---|---|---:|
-| baseline: all phases / all tasks | 524 | 0.075 / 599.575 / 1231.424 / 1743.114 | 0.411 / 270.340 / 672.164 / 1491.675 | 108 / 0 |
-| baseline: kind 0 | 355 | 35.700 / 665.534 / 1329.418 / 1743.114 | 0.598 / 264.419 / 265.028 / 265.038 | 107 / 0 |
-| baseline: kind 1 | 19 | 0.026 / 262.587 / 262.587 / 262.587 | 0.069 / 258.474 / 258.474 / 258.474 | 1 / 0 |
-| baseline: kind 2 | 132 | 0.054 / 0.504 / 2.845 / 4.101 | 2.565 / 650.635 / 1357.861 / 1491.675 | 0 / 0 |
-| baseline: kind 3 | 18 | 0.028 / 0.506 / 0.506 / 0.506 | 0.064 / 260.903 / 260.903 / 260.903 | 0 / 0 |
-| baseline: healthy all tasks | 165 | 0.651 / 951.109 / 1421.743 / 1743.114 | 0.189 / 574.403 / 1357.861 / 1491.675 | 61 / 0 |
-| integrated: all phases / all tasks | 480 | 0.116 / 321.054 / 904.302 / 1321.463 | 0.111 / 255.841 / 576.063 / 879.646 | 32 / 0 |
-| integrated: kind 0 | 339 | 31.538 / 455.007 / 968.885 / 1321.463 | 0.114 / 255.673 / 256.305 / 389.379 | 31 / 0 |
-| integrated: kind 1 | 19 | 0.030 / 256.783 / 256.783 / 256.783 | 0.057 / 248.212 / 248.212 / 248.212 | 1 / 0 |
-| integrated: kind 2 | 104 | 0.060 / 0.207 / 0.430 / 0.494 | 0.165 / 565.150 / 783.479 / 879.646 | 0 / 0 |
-| integrated: kind 3 | 18 | 0.009 / 0.054 / 0.054 / 0.054 | 0.034 / 250.583 / 250.583 / 250.583 | 0 / 0 |
-| integrated: healthy all tasks | 144 | 61.304 / 279.824 / 830.027 / 1106.378 | 0.116 / 128.910 / 782.278 / 879.646 | 8 / 0 |
+| baseline / all phases / all tasks | 2450 | 0.143 / 940.316 / 1148.776 / 1881.136 | 0.286 / 515.027 / 973.134 / 2000.655 | 667 / 0 |
+| baseline / kind 0 | 1528 | 96.295 / 997.535 / 1243.524 / 1881.136 | 0.221 / 258.463 / 264.009 / 377.715 | 659 / 0 |
+| baseline / kind 1 | 80 | 0.057 / 270.801 / 475.919 / 475.919 | 0.176 / 141.102 / 238.022 / 238.022 | 8 / 0 |
+| baseline / kind 2 | 770 | 0.107 / 0.224 / 0.612 / 3.345 | 44.659 / 849.165 / 1187.995 / 2000.655 | 0 / 0 |
+| baseline / kind 3 | 72 | 0.026 / 0.126 / 0.211 / 0.211 | 0.093 / 229.713 / 265.929 / 265.929 | 0 / 0 |
+| integrated / all phases / all tasks | 2215 | 0.202 / 485.209 / 665.795 / 1015.640 | 0.224 / 250.107 / 392.106 / 995.391 | 421 / 0 |
+| integrated / kind 0 | 1464 | 105.234 / 518.252 / 692.666 / 1015.640 | 0.208 / 247.966 / 253.469 / 484.361 | 413 / 0 |
+| integrated / kind 1 | 80 | 0.062 / 256.394 / 485.209 / 485.209 | 0.144 / 99.570 / 228.141 / 228.141 | 8 / 0 |
+| integrated / kind 2 | 599 | 0.117 / 0.289 / 0.587 / 10.848 | 0.356 / 374.416 / 497.978 / 995.391 | 0 / 0 |
+| integrated / kind 3 | 72 | 0.025 / 0.112 / 0.278 / 0.278 | 0.085 / 224.314 / 235.355 / 235.355 | 0 / 0 |
 
-Both captures have complete numeric ring coverage: captured sample count equals cumulative task count and no sequence gaps were found. Raw artifacts preserve warmup, per-repetition and fault-phase timings; ingress p99 is never substituted for all-task p99.
+All eight captures have complete numeric ring coverage. Captured samples equal cumulative worker-task counts and there are zero missing sequence samples. Each summary retains per-phase execution, queue wait, request outcomes and accepted action/read distributions.
 
-## End-to-end outcomes
+## Request outcomes
 
-Each phase includes all correlated request outcomes. Rejected and closed requests remain in distributions. The saturation burst can close its submitting socket before queued requests receive replies; those submissions are counted, not dropped from latency accounting.
+The table pools four captures per runtime, including failures. Saturation submissions closed before replies are retained. Request latency is measured at the generating client and is distinct from full-worker occupancy.
 
-| Run / phase | N | p50 / p95 / p99 / max (ms) | Outcomes |
+| Runtime / phase | N | End-to-end p50 / p95 / p99 / max (ms) | Outcomes |
 |---|---:|---|---|
-| baseline: warmup | 35 | 427.168 / 761.447 / 890.073 / 890.073 | ACCEPTED: 35 |
-| baseline: healthy-0 | 27 | 598.967 / 1459.280 / 1836.159 / 1836.159 | ACCEPTED: 27 |
-| baseline: healthy-1 | 27 | 350.846 / 981.124 / 1493.598 / 1493.598 | ACCEPTED: 27 |
-| baseline: healthy-2 | 27 | 323.348 / 617.877 / 818.259 / 818.259 | ACCEPTED: 27 |
-| baseline: reconnect | 4 | 45.783 / 448.298 / 448.298 / 448.298 | ACCEPTED: 4 |
-| baseline: slow-recipient | 1 | 179.751 / 179.751 / 179.751 / 179.751 | ACCEPTED: 1 |
-| baseline: provider-outage | 21 | 1.548 / 266.872 / 268.627 / 268.627 | AUTHENTICATION_REQUIRED: 20, ACCEPTED: 1 |
-| baseline: database-outage | 21 | 3.311 / 25.270 / 113.552 / 113.552 | AUTHENTICATION_REQUIRED: 20, ACCEPTED: 1 |
-| baseline: completed-release | 64 | 126.379 / 439.821 / 600.700 / 600.700 | ACCEPTED: 64 |
-| baseline: ingress-saturation | 160 | 3.207 / 6.279 / 7.251 / 8.129 | CLOSED_OR_SEND_FAILED: 160 |
-| integrated: warmup | 35 | 340.997 / 1288.487 / 1401.386 / 1401.386 | ACCEPTED: 35 |
-| integrated: healthy-0 | 27 | 136.552 / 869.676 / 922.486 / 922.486 | ACCEPTED: 27 |
-| integrated: healthy-1 | 27 | 121.480 / 177.475 / 180.092 / 180.092 | ACCEPTED: 27 |
-| integrated: healthy-2 | 27 | 97.263 / 131.980 / 133.306 / 133.306 | ACCEPTED: 27 |
-| integrated: reconnect | 4 | 32.139 / 128.335 / 128.335 / 128.335 | ACCEPTED: 4 |
-| integrated: slow-recipient | 1 | 40.564 / 40.564 / 40.564 / 40.564 | ACCEPTED: 1 |
-| integrated: provider-outage | 21 | 1.015 / 265.902 / 266.369 / 266.369 | AUTHENTICATION_REQUIRED: 20, ACCEPTED: 1 |
-| integrated: database-outage | 21 | 1.568 / 5.433 / 35.560 / 35.560 | AUTHENTICATION_REQUIRED: 20, ACCEPTED: 1 |
-| integrated: completed-release | 64 | 101.134 / 173.598 / 245.740 / 245.740 | ACCEPTED: 64 |
-| integrated: ingress-saturation | 160 | 2.544 / 6.142 / 6.798 / 7.397 | CLOSED_OR_SEND_FAILED: 160 |
+| baseline / warmup | 140 | 418.511 / 659.045 / 774.453 / 900.051 | ACCEPTED=140 |
+| baseline / workload-warmup | 108 | 848.363 / 1371.219 / 1860.216 / 1988.885 | ACCEPTED=108 |
+| baseline / healthy-0 | 108 | 787.060 / 1280.289 / 1533.179 / 1622.676 | ACCEPTED=108 |
+| baseline / healthy-1 | 108 | 853.427 / 1213.680 / 1734.075 / 1762.382 | ACCEPTED=108 |
+| baseline / healthy-2 | 108 | 854.612 / 1183.911 / 1356.613 / 2009.956 | ACCEPTED=108 |
+| baseline / reconnect | 16 | 164.795 / 547.826 / 547.826 / 547.826 | ACCEPTED=16 |
+| baseline / slow-recipient | 4 | 120.609 / 128.737 / 128.737 / 128.737 | ACCEPTED=4 |
+| baseline / provider-outage | 84 | 2.790 / 269.712 / 283.797 / 283.797 | AUTHENTICATION_REQUIRED=80, ACCEPTED=4 |
+| baseline / database-outage | 84 | 4.563 / 27.520 / 112.714 / 112.714 | AUTHENTICATION_REQUIRED=80, ACCEPTED=4 |
+| baseline / completed-release | 256 | 302.836 / 546.123 / 770.596 / 859.317 | ACCEPTED=256 |
+| baseline / ingress-saturation | 640 | 13.130 / 33.488 / 37.405 / 43.105 | CLOSED_OR_SEND_FAILED=640 |
+| integrated / warmup | 140 | 443.106 / 681.671 / 883.907 / 894.629 | ACCEPTED=140 |
+| integrated / workload-warmup | 108 | 288.652 / 473.482 / 512.095 / 596.281 | ACCEPTED=108 |
+| integrated / healthy-0 | 108 | 273.340 / 393.043 / 479.422 / 565.269 | ACCEPTED=108 |
+| integrated / healthy-1 | 108 | 253.623 / 374.490 / 410.727 / 420.943 | ACCEPTED=108 |
+| integrated / healthy-2 | 108 | 253.459 / 383.729 / 427.350 / 533.328 | ACCEPTED=108 |
+| integrated / reconnect | 16 | 104.186 / 462.883 / 462.883 / 462.883 | ACCEPTED=16 |
+| integrated / slow-recipient | 4 | 88.644 / 139.702 / 139.702 / 139.702 | ACCEPTED=4 |
+| integrated / provider-outage | 84 | 2.562 / 265.577 / 272.958 / 272.958 | AUTHENTICATION_REQUIRED=80, ACCEPTED=4 |
+| integrated / database-outage | 84 | 4.609 / 42.486 / 118.328 / 118.328 | AUTHENTICATION_REQUIRED=80, ACCEPTED=4 |
+| integrated / completed-release | 256 | 294.552 / 554.787 / 849.321 / 999.021 | ACCEPTED=256 |
+| integrated / ingress-saturation | 640 | 7.070 / 20.988 / 25.288 / 3015.734 | CLOSED_OR_SEND_FAILED=640 |
 
-Healthy accepted action distributions are retained separately. Every healthy read was accepted in both corrected runs; the admitted-read comparison below separates their latency from actions and fault/saturation outcomes.
+## Lifecycle, dependency faults and cleanup
 
-## Lifecycle, faults and cleanup
+| Run | Whole reconnect ms | Slow watchdog / cleanup ms | Residents loaded / final | Completed releases | Provider attempts outage / recovery | Database attempts outage / recovery connections |
+|---|---:|---|---|---:|---|---|
+| 01-baseline | 329.404 | 2075.805 / 2091.408 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 02-integrated | 356.416 | 2109.978 / 2129.110 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 03-integrated | 293.460 | 2063.702 / 2074.016 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 04-baseline | 393.192 | 2010.936 / 2025.023 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 05-baseline | 596.339 | 2049.042 / 2064.053 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 06-integrated | 356.310 | 2025.052 / 2039.010 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 07-integrated | 322.996 | 2059.581 / 2082.131 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
+| 08-baseline | 341.089 | 2081.938 / 2094.395 | 32 / 0 | 32 | 3 / 1 | 3 / 4 |
 
-| Evidence | Baseline | Integrated |
-|---|---|---|
-| admittedSockets | 16 | 16 |
-| seventeenthCloseCode | 1013 | 1013 |
-| reconnectDuplicate | True | True |
-| reconnectRevisionUnchanged | True | True |
-| durablePublicStateMatches | True | True |
-| committedRevision | 6 | 6 |
-| durableRecoveryRevision | 6 | 6 |
-| providerOutageAttempts | 3 | 3 |
-| providerRecoveryAttempts | 1 | 1 |
-| databaseOutageAttempts | 3 | 3 |
-| databaseRecoveryConnections | 4 | 4 |
-| burstSubmitted | 160 | 160 |
-| burstReplies | 0 | 0 |
-| burstUnansweredOrClosed | 160 | 160 |
+All runs confirm duplicate-action recognition after reconnect, an unchanged committed revision and identical durable public state after rehydration. Whole reconnect includes abrupt disconnect, worker cleanup, fresh TCP/WebSocket connection, authentication and duplicate-action confirmation. There is only one reconnect per capture. Rehydration compares revision, phase, actor, players, ball, score and turn mode on the same worker thread. The extra application instance is discarded at process exit. This is not a process-kill test.
 
-baseline: resident sessions 32 → 0; completed releases 32. Slow write watchdog close 2075.800 ms; cleanup barrier 2090.815 ms; remaining sockets 15. Final active sockets 0, ingress depth 0, delivery depth/bytes 0/0; ingress overloads 1. Owned synthetic schema cleanup succeeded.
+The slow recipient is a controlled Jetty write callback. The watchdog expires at two seconds plus scheduler cadence and cleanup/permit release is measured separately. An ordinary real client request completes during the stall. This does not model operating-system TCP buffering.
 
-integrated: resident sessions 32 → 0; completed releases 32. Slow write watchdog close 2068.110 ms; cleanup barrier 2083.324 ms; remaining sockets 15. Final active sockets 0, ingress depth 0, delivery depth/bytes 0/0; ingress overloads 1. Owned synthetic schema cleanup succeeded.
+Provider faults exercise the production verifier/cache/breaker around a 250 ms unavailable SDK double. Three dependency attempts open the breaker and later requests fail fast. One lookup succeeds after cooldown. Database faults reset new loopback proxy connections. Three attempts open that breaker. Recovery uses one successful probe followed by three normal fresh connections, totaling four connections. Availability failures surface as AUTHENTICATION_REQUIRED at authorization. Gameplay availability during a database outage is not claimed.
 
-Provider faults use the production verifier/cache/breaker with a 250 ms unavailable SDK double. Three actual dependency attempts open the breaker; remaining burst requests fail fast. One provider lookup succeeds after cooldown. Database faults reset only new proxy connections: three connection attempts open the database breaker. The recovery request uses one first successful probe followed by its normal fresh connections; total recovery connections are reported above and are not mislabeled as four recovery probes. Availability failures surface as AUTHENTICATION_REQUIRED at the incoming authorization boundary; gameplay is not claimed available while storage is down. Expiry and disconnect execution remains visible in the outage phase sample ranges.
-
-Slow delivery uses one controlled Jetty callback, not a throttled operating-system TCP receiver. The asynchronous watchdog closes after its two-second threshold plus scheduler cadence; worker cleanup/permit release is measured separately. A real client load completes during the stall. Rehydration compares revision, phase, actor, players, ball, score and turn mode, but is a new application instance on the same owner thread, not a process-kill test. That additional fixture instance is discarded at harness process exit; the primary production application reports zero residents after completion.
-
-## Resource use
-
-| Run | Peak heap MiB | Peak JVM RSS MiB | JVM CPU seconds over sampled interval | External samples |
+| Runtime / outage | Ingress | Other control | Decision expiry | Disconnect |
 |---|---:|---:|---:|---:|
-| baseline | 238.8 | 466.5 | 174.078 | 73 |
-| integrated | 208.8 | 445.9 | 132.109 | 55 |
+| baseline / provider-outage | 84 | 4 | 53 | 4 |
+| baseline / database-outage | 84 | 4 | 30 | 4 |
+| integrated / provider-outage | 84 | 4 | 52 | 4 |
+| integrated / database-outage | 84 | 4 | 28 | 4 |
 
-MariaDB CPU, memory, block/network I/O and process counts are recorded in every external sample. Heap/JVM CPU are sampled at 100 ms; RSS/container stats nominally every 2 seconds, with Docker command latency. The fixture generator and temporary rehydration instance add test-process overhead; these are not per-match production memory estimates.
+Scheduled expiry sweeps over resident sessions and real disconnect cleanup continue during both outage windows. The fixture does not arrange a pending native reactive decision to expire. The 128 tracked-ingress limit and 112 advisory allowance do not bound the trusted control queue. Other control producers can still create backlog. Saturation reaches the different foreground/advisory allowances, while all discarded tasks remain accounted.
 
-## Targets and remaining limits
+Every run ends with zero active sockets, ingress depth, delivery depth and delivery bytes, zero primary resident sessions, 32 completed releases and successful owned-schema removal. Admission and overload metrics remain in the raw transport records.
 
-- baseline: healthy all-task p99 1421.743 ms **fails** the 100 ms target; 61 healthy task(s) exceed 250 ms. Across all phases, 0 task(s) exceed the 2,000 ms occupancy ceiling.
-- integrated: healthy all-task p99 830.027 ms **fails** the 100 ms target; 8 healthy task(s) exceed 250 ms. Across all phases, 0 task(s) exceed the 2,000 ms occupancy ceiling.
+## Resources and competing activity
 
-The 128 tracked-ingress limit and 112 advisory allowance do not bound the trusted control queue. Expiry/publication checks coalesce and disconnect demand is limited by admitted sockets, but other trusted control producers can still add worker backlog. This capture does not establish a global control-queue hard bound.
+| Run | Peak heap MiB | Peak JVM RSS MiB | JVM CPU seconds | External samples | Pre-run server CPU % | Pre-run DB CPU % | Sampled window s | Healthy actions / s |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 01-baseline | 222.9 | 419.4 | 321.078 | 53 | 0.57% | 0.03% | 187.598 | 0.250 |
+| 02-integrated | 278.4 | 497.9 | 247.922 | 42 | 0.54% | 7.90% | 145.939 | 0.358 |
+| 03-integrated | 239.6 | 464.0 | 260.016 | 44 | 7.06% | 0.03% | 148.634 | 0.353 |
+| 04-baseline | 232.3 | 441.3 | 342.469 | 47 | 0.70% | 0.02% | 206.818 | 0.212 |
+| 05-baseline | 243.1 | 440.2 | 358.641 | 49 | 1.02% | 0.04% | 206.732 | 0.219 |
+| 06-integrated | 262.0 | 489.0 | 266.734 | 37 | 0.74% | 7.22% | 159.879 | 0.348 |
+| 07-integrated | 261.5 | 481.8 | 256.156 | 42 | 1.07% | 0.31% | 149.738 | 0.351 |
+| 08-baseline | 236.1 | 423.0 | 326.734 | 52 | 0.93% | 0.02% | 198.044 | 0.225 |
 
-No target is relaxed. Repeated healthy overruns require follow-up investigation of full native application/checkpoint/publication work. The numeric full-task trace and request phase distributions locate the affected workload; this capture is not an allocation/CPU profiler and does not establish a single causal bottleneck. The separate #508 page/lane capture supplies SQL/query/parse/serialization evidence for lobby work.
-
-Limitations: short three-repetition local scenario; one actively played match at a time; regular end-turn actions and administrative concession rather than long varied games; bounded Firebase SDK double; database reset faults rather than an exhaustive blackhole/lock matrix; controlled delivery callback; no process crash/restart; shared desktop/VM and local logging risk. No production capacity, maximum admitted gameplay throughput, long-session history or hardware-general claim follows from these results.
-
-Reproduce using [the runbook](../operations/operating-envelope-runbook.md). Raw numeric evidence, configuration, fixture/source hashes and summaries are under [the capture directory](../reviews/operating-envelope-2026-11-11-review/). The requests remain available for independent review; unmet performance targets are tracked separately rather than marked as passing.
-
-## Additional accounting detail
-
-| Run | Sampled runtime seconds | Healthy window seconds | Achieved healthy action rate / second |
+| Run | Peak sampled DB CPU % | Peak sampled DB memory MiB | Ingress high water |
 |---|---:|---:|---:|
-| baseline | 137.410 | 86.644 | 0.277 |
-| integrated | 105.496 | 60.564 | 0.396 |
+| 01-baseline | 23.87 | 139.70 | 128 |
+| 02-integrated | 21.40 | 144.90 | 112 |
+| 03-integrated | 26.60 | 150.10 | 112 |
+| 04-baseline | 40.34 | 155.20 | 128 |
+| 05-baseline | 22.05 | 162.60 | 128 |
+| 06-integrated | 17.95 | 165.60 | 112 |
+| 07-integrated | 22.91 | 170.60 | 112 |
+| 08-baseline | 23.47 | 175.40 | 128 |
 
-Runner manifest timestamps include compilation/setup. These measured windows isolate load generation. The generator is closed-loop, capped by its 2,000 ms pause plus completion time; it does not impose an open-loop half-action-per-second arrival rate.
-
-| Run / accepted operation | N | End-to-end p50 / p95 / p99 / max (ms) |
+| Runtime | Reconnect N | Whole reconnect p50 / p95 / p99 / max (ms) |
 |---|---:|---|
-| baseline: healthy actions | 24 | 132.541 / 548.294 / 729.087 / 729.087 |
-| baseline: whole reconnect | 1 | 197.128 / 197.128 / 197.128 / 197.128 |
-| integrated: healthy actions | 24 | 121.592 / 384.066 / 922.486 / 922.486 |
-| integrated: whole reconnect | 1 | 113.147 / 113.147 / 113.147 / 113.147 |
+| baseline | 4 | 341.089 / 596.339 / 596.339 / 596.339 |
+| integrated | 4 | 322.996 / 356.416 / 356.416 / 356.416 |
 
-Whole reconnect starts immediately before abrupt disconnect and includes worker cleanup, new TCP/WebSocket connection, authentication and duplicate-action confirmation. There is one scheduled reconnect per run: its p50/p95/p99/max are the same single observation, not a statistically stable tail estimate.
+Four reconnect observations per runtime are short-run observations. Their p95 and p99 equal the maximum and do not establish stable tails.
 
-| Run / outage | Ingress tasks | Other control | Decision-expiry sweeps | Disconnect tasks |
-|---|---:|---:|---:|---:|
-| baseline: provider-outage | 21 | 1 | 14 | 1 |
-| baseline: database-outage | 21 | 1 | 7 | 1 |
-| integrated: provider-outage | 21 | 1 | 13 | 1 |
-| integrated: database-outage | 21 | 1 | 7 | 1 |
+The series records docker stats for every container in the isolated envelope project immediately before and after every run. These samples show activity in that project. Other host processes and the user's separate stack were not sampled by this runner. They are context observations, not a guarantee of host idleness. MariaDB CPU/memory/block I/O/network/process counts and JVM RSS are sampled throughout each capture. Heap/JVM CPU are sampled nominally every 100 ms, and external samples every two seconds plus command latency. Runner wall time includes compilation/setup, while sampled windows isolate the running test. Fixture generation and the temporary recovery instance add test-process cost. These are not per-match production estimates.
 
-These are real scheduled expiry sweeps over resident sessions and actual disconnect cleanup during the outage windows. The fixture does not arrange a pending native reactive decision to expire during the fault. Saturation reaches the baseline foreground/global allowance of 128 versus the integrated advisory allowance of 112 (16 slots remain reserved for foreground admission); all discarded queued work and subsequent cleanup remain in full-task samples.
+## Targets and remaining limitations
 
-| Run | Peak sampled MariaDB CPU % | Peak sampled MariaDB memory MiB | Ingress high water |
-|---|---:|---:|---:|
-| baseline | 63.65 | 163.00 | 128 |
-| integrated | 20.91 | 164.20 | 112 |
+The ceiling comparison below applies to sampled worker execution. In 08-baseline, the largest client-observed read was 2,009.956 ms and one expiry task waited 2,000.655 ms in the queue. Those separate clocks remain visible and are not counted as worker-execution overruns.
 
-Container CPU follows Docker stats semantics (100% is one core), and sampled peaks can miss short spikes. The environment/configuration artifact records VM and database limits.
+- baseline fails the healthy 100 ms worker-p99 target in 4/4 runs. 288 measured healthy tasks exceed 250 ms. All-phase maximum is 1881.136 ms, with 0 tasks above the 2,000 ms occupancy ceiling.
+- integrated fails the healthy 100 ms worker-p99 target in 4/4 runs. 98 measured healthy tasks exceed 250 ms. All-phase maximum is 1015.640 ms, with 0 tasks above the 2,000 ms occupancy ceiling.
 
-## Admitted healthy read comparison
+No target is relaxed. [Performance follow-up #520](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/520) retains investigation of native application/checkpoint/publication work. This numeric trace is not an allocation/CPU profiler and establishes no single causal bottleneck. The separate #508 real-page capture retains SQL/document/recovery/serialization costs and the advisory-lane probe.
 
-| Run / read type | N | End-to-end p50 / p95 / p99 / max (ms) | Non-accepted healthy reads |
-|---|---:|---|---:|
-| baseline: currentMatches | 24 | 561.447 / 1493.598 / 1836.159 / 1836.159 | 0 |
-| baseline: browse | 24 | 569.506 / 1330.940 / 1422.991 / 1422.991 | 0 |
-| integrated: currentMatches | 24 | 128.825 / 535.130 / 774.787 / 774.787 | 0 |
-| integrated: browse | 24 | 85.878 / 291.445 / 869.676 / 869.676 | 0 |
+The declared scenarios and cleanup passed. The healthy target remains unmet, so these results do not certify the operating envelope. Limitations include four short runs per revision, one actively played match at a time, end-turn and administrative concession actions, a bounded SDK outage double, connection-reset database faults, controlled delivery callback, application rehydration without process death, shared desktop/VM activity and local logging risk. There is no production-capacity, maximum-throughput, long-session-history or hardware-general claim.
 
-Every healthy read is admitted in both runs: 24 currentMatches and 24 detailed browse requests. Read p99 is shown independently of rejected/closed work; all-task figures still include every task and control sweep. The historical 407.440 -> 207.406 ms result used a faster read cadence and cannot establish an equal-admitted-work improvement. The corrected figures above replace that comparison. The known dependency validation failure and final validation results are recorded in the PR review correction report.
+Reproduce using [the runbook](../operations/operating-envelope-runbook.md). Exact manifests, raw samples, per-run summaries, container context, seed and overlay provenance are in [the series artifact directory](../reviews/operating-envelope-2026-11-11-series/). Current verification and startup evidence are in [the final review report](../reviews/2026-11-11-pr521-final-review.md). PR #521 and issues #508/#39 remain open for independent review.
+
+## Failed and diagnostic attempts
+
+The primary tables describe the final predeclared ABBAABBA series. They are conditional on completed runs. The earlier failed baseline and diagnostic rerun are retained alongside the final series so errors and selection are visible. They are not pooled into the balanced four-per-runtime tables.
+
+| Attempt | Exit | Healthy actions / admitted reads | Healthy worker p99 / action p99 / read p99 (ms) | Result |
+|---|---:|---|---|---|
+| failed-baseline | 1 | 24 / 48 | 551.914 / 498.995 / 623.286 | Failed clean baseline. Healthy traffic completed, slow-recipient request unexpectedly rejected before fault injection. Fault/completion coverage incomplete. |
+| diagnostic-baseline | 0 | 24 / 48 | 741.978 / 228.920 / 804.505 | Diagnostic only. Temporary failure-only authorization logging in baseline production source. Completed, but excluded from comparison. Original source restored byte-for-byte and recompiled before final series. |
+
+The initial baseline returned AUTHENTICATION_REQUIRED during the slow-recipient phase before intentional faults. Its cause remains unresolved. The diagnostic rerun reproduced only the intended provider/database outage rejections. A successful rerun does not erase the earlier rejection. The failed run removed its owned schema, but its pre-teardown transport snapshot still had one active connection, zero ingress depth, one delivery item and 26 queued delivery bytes. Jetty/worker teardown and JVM exit followed. Completed-session release was not reached in that attempt.
+
+The diagnostic baseline had a temporary logging overlay and is excluded from comparison. Source restoration and absence of diagnostic bytecode were verified before the final series. [Raw attempts and provenance](../reviews/operating-envelope-2026-11-11-series/other-attempts/) retain both runs. A separate page-setup attempt was interrupted by confirmed Windows sleep/resume before measurement. A temporary system keep-awake request was used for subsequent captures and released during cleanup. It changed no display or permanent power settings.

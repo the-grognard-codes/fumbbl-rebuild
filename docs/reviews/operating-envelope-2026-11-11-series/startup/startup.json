@@ -1,0 +1,19 @@
+{
+  "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+  "project": "ffb-pr521-review",
+  "started": "2026-11-12T00:11:36.965Z",
+  "adc": "OK",
+  "computerReady": true,
+  "initialHostingConfigSha256": "05de104b414cc36a164463526f40e79f88debd78e6fe1146246da0b0bd78839b",
+  "recovery": "Absolute public path returned404. Changed only owned Hosting config to relative hosting and restarted only its verified PID.",
+  "browserGameSha256": "750fb3daf28d2764a0132b2373bddc8839044f7fa28b1b1d21a451530c356c0c",
+  "builtBrowserGameSha256": "750fb3daf28d2764a0132b2373bddc8839044f7fa28b1b1d21a451530c356c0c",
+  "serverImageId": "sha256:60d79d14be0b645fb825390a4a585d7af282e45cc5a8ff59913337fa625f7148",
+  "serverContainerId": "5076453db16edba6e04f1a7325b9fa8c3dd593a042865f24c82f9ede318d8b1b",
+  "files": {
+    "server.ini": "312d690d5ffa4512c0ce37ed9264c55ace8019b26ac6a5df7af72899bf2c2243",
+    "compose.override.yaml": "853fbd8d71fc207658aa09aeb6b87b76e3eb4b49d23eec0e6be7ae5586bb9a02",
+    "firebase.json": "f11baaa664c3ac273c1a8d3549de9352b63cee07a5b1a15cc5f7e7d992881fed",
+    "proxy/nginx.conf": "c6f82aa1f9cc931e1cdbfd7c8f8852025e6db2766b1485ed1453f5a3766a32f7"
+  }
+}

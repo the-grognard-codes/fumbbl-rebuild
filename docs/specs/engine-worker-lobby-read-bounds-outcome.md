@@ -73,7 +73,7 @@ The client queues distinct cursor/detail requests, coalesces exact requests, and
 
 The review also corrected import organization/inline qualified names, extracted shared default-batch and SQL projection/binding logic, restored codec-envelope ownership, named bounds and clarified admission/copy-work names. The single-entry browseState path had only test callers and was removed; those regressions now exercise browseStates. browseDocument remains necessary for preparation expiry; browseDocuments remains the application boundary for lobby document facts. LobbyReadBudget intentionally owns related counters for one page, with one lifetime and fail-closed budget classification.
 
-## Corrected-source capture and validation
+## Historical corrected-source capture and validation
 
 Revision `8eddbff3f37b0b13d1abdd4f552075fa8cc732af`. [Numeric page capture](../reviews/2026-11-11-lobby-read-review-measurements.json).
 
@@ -82,6 +82,19 @@ Revision `8eddbff3f37b0b13d1abdd4f552075fa8cc732af`. [Numeric page capture](../r
 | 1 | 20 | 68.156 / 163.004 / 164.975 / 164.975 | 101.466 | 101.063 | 0.251 | 0 / 0 |
 | 100 | 20 | 373.481 / 521.325 / 695.617 / 695.617 | 487.775 | 233.202 | 1.204 | 18 / 0 |
 
-The real-driver scenario also validated the mixed invalid-entry page. Query counts remain two repository connections and three data queries, plus fixed transaction controls. [Current review/validation](../reviews/2026-11-11-pr521-review-corrections.md) records passing lobby/browser/native-state checks and the failing full verify Firebase case, reproduced on baseline; earlier successful verifies are historical. The [corrected #39 comparison](engine-worker-concurrent-match-envelope-outcome.md) uses equal admitted read work.
+The real-driver scenario also validated the mixed invalid-entry page. Query counts remain two repository connections and three data queries, plus fixed transaction controls. [Historical review/validation](../reviews/2026-11-11-pr521-review-corrections.md) records passing lobby/browser/native-state checks and the failing full verify Firebase case, reproduced on baseline; earlier successful verifies are historical. The [corrected #39 comparison](engine-worker-concurrent-match-envelope-outcome.md) uses equal admitted read work.
 
 The historical page tables were captured in different sessions and describe their respective runs. The reviewer repeated the narrow test four times per revision within one session, in old/new/new/old/old/new/new/old order. Median per-run 100-entry p50/p99 were 340.1/519.2 ms on df5944955 and 352.4/526.6 ms on 8eddbff3f, with overlapping p99 ranges of 450-662 and 407-593 ms. Recovery/parse p50 medians were 45.1 and 49.8 ms. The reviewer withdrew the code-regression finding. These figures are attributed to the reviewer's rerun, whose summary is recorded in the [PR correction](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/521#issuecomment-6787389313).
+
+## Final review follow-up capture
+
+Frozen source `10645965c33f9b8726c3de2c00148741b59257f9`. [Numeric page evidence](../reviews/2026-11-11-lobby-read-final-review-measurements.json). The 1/100-entry fixture uses twenty measured samples after one separately retained warmup at each size. This capture is contended and is not compared causally with different-session historical tables.
+
+| Entries | N | Execution p50 / p95 / p99 / max (ms) | Document p99 | Recovery/parse p99 | Serialization p99 | >250 / >2,000 ms |
+|---|---:|---|---:|---:|---:|---:|
+| 1 | 20 | 31.580 / 37.679 / 65.814 / 65.814 | 49.188 | 24.507 | 0.225 | 0 / 0 |
+| 100 | 20 | 275.275 / 321.132 / 403.668 / 403.668 | 376.421 | 41.057 | 0.314 | 17 / 0 |
+
+The lane probe completes the native projection after 2072.279 ms with eight forced-foreground reads and 5.199 ms with advisory reads. The probe uses real SQL/JSON and a controlled owner-thread queue. The advisory decision remains supported for this fixture. It cannot preempt an executing read or certify network gameplay latency.
+
+Initial connection/reconnect and queued refill behavior are covered by the 49 focused client cases, 539 browser units and lobby/lifecycle/reconnect browser checks. Current full-verification, startup and unresolved limits are recorded in the [final review report](../reviews/2026-11-11-pr521-final-review.md). The earlier Firebase verification failure remains historical evidence and is never relabeled as a pass.

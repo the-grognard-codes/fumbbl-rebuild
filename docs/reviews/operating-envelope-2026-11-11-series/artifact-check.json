@@ -1,0 +1,12 @@
+{
+  "revision": "10645965c33f9b8726c3de2c00148741b59257f9",
+  "captures": 8,
+  "seedSha256": "96737d4504ed0981bd83126cc8b6faa3eddbdbbf66892b2fe96a6633add15cce",
+  "sourceHashesMatch": true,
+  "completeTaskCoverage": true,
+  "healthyActionsPerRun": 24,
+  "healthyReadsPerRun": 48,
+  "healthyRejectedReads": 0,
+  "lifecycleAndCleanupVerified": true,
+  "allPhaseTasksAbove2000ms": 0
+}
