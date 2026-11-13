@@ -42,8 +42,8 @@ class RecoveryArtifactJsonTest {
 		String expected = legacy(payload);
 		int bytes = expected.getBytes(StandardCharsets.UTF_8).length;
 		RecoveryArtifactJson.Encoded encoded = new RecoveryArtifactJson().encodeWithMetadata(payload, bytes);
-		assertEquals(expected, encoded.json());
-		assertEquals(bytes, encoded.bytes());
+		assertEquals(expected, encoded.envelope());
+		assertEquals(bytes, encoded.envelopeBytes());
 		assertEquals(new JsonDigest().sha256(payload), encoded.checksum());
 		MatchService.Failure failure = assertThrows(MatchService.Failure.class,
 			() -> new RecoveryArtifactJson().encode(payload, bytes - 1));

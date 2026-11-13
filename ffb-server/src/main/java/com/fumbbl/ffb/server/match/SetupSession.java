@@ -67,7 +67,6 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 /** One authoritative engine lifetime, initialized once or restored from a versioned private checkpoint. */
 public final class SetupSession {
-	private static final int MAX_RECOVERY_ARTIFACT_BYTES = 128 * 1024 * 1024;
 	private static final int MAX_MATCH_ARTIFACT_BYTES = CompletedMatch.MAX_BYTES;
 	private static final int MATCH_ARTIFACT_RESERVE_BYTES = 1024 * 1024;
 	public static final String LEGACY_RUNTIME = "ffb-3.4.0-bb2025-r2.2";
@@ -216,7 +215,7 @@ public final class SetupSession {
 			@Override public void observePlayableTurn() { announcements.playable(getGame()); announcements.flush(this); }
 		};
 		try {
-			JsonObject envelope = new MatchJson().parse(artifact, MAX_RECOVERY_ARTIFACT_BYTES, 128);
+			JsonObject envelope = new MatchJson().parse(artifact, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES, 128);
 			JsonObject payload = envelope.get("payload").asObject();
 			if (envelope.size() != 2 || !new JsonDigest().sha256(payload).equals(envelope.getString("sha256", null)))
 				throw new IllegalArgumentException("Recovery checksum mismatch");
@@ -397,7 +396,7 @@ public final class SetupSession {
 	}
 
 	public String recoveryArtifact() {
-		return new RecoveryArtifactJson().encode(orderedRecoveryPayload(), MAX_RECOVERY_ARTIFACT_BYTES);
+		return new RecoveryArtifactJson().encodeCheckpoint(orderedRecoveryPayload()).envelope();
 	}
 
 	JsonObject orderedRecoveryPayload() { return ordered(recoveryPayload(null)).asObject(); }

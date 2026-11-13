@@ -141,9 +141,9 @@ class RecoveryJournalTest {
 			RecoveryRepository.Record restored;
 			if (change.compact) {
 				JsonObject payload = session.orderedRecoveryPayload();
-				RecoveryArtifactJson.Encoded encoded = new RecoveryArtifactJson().encodeWithMetadata(payload, RecoveryJournal.MAX_ARTIFACT_BYTES);
-				assertEquals(after, encoded.json());
-				base = new RecoveryRepository.Record(fixture.document.matchId, generation, encoded.json());
+				RecoveryArtifactJson.Encoded encoded = new RecoveryArtifactJson().encodeCheckpoint(payload);
+				assertEquals(after, encoded.envelope());
+				base = new RecoveryRepository.Record(fixture.document.matchId, generation, encoded.envelope());
 				RecoveryJournal.Cursor decoded = journal.cursor(base, session);
 				cursor = journal.checkpointCursor(payload, encoded, session.recoveryJournalCounts(), session.recoveryNativeEpoch());
 				assertArrayEquals(decoded.counts, cursor.counts);

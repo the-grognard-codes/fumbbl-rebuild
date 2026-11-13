@@ -336,10 +336,10 @@ public final class SetupApplication {
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_SERIALIZE)) {
 			if (!withCursor) return new FullCheckpoint(session.recoveryArtifact(), null);
 			payload = session.orderedRecoveryPayload();
-			artifact = new RecoveryArtifactJson().encodeWithMetadata(payload, RecoveryJournal.MAX_ARTIFACT_BYTES);
+			artifact = new RecoveryArtifactJson().encodeCheckpoint(payload);
 		}
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_CURSOR)) {
-			return new FullCheckpoint(artifact.json(), journal.checkpointCursor(payload, artifact,
+			return new FullCheckpoint(artifact.envelope(), journal.checkpointCursor(payload, artifact,
 				session.recoveryJournalCounts(), session.recoveryNativeEpoch()));
 		}
 	}

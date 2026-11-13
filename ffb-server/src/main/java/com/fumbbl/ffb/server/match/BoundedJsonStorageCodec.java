@@ -24,7 +24,7 @@ final class BoundedJsonStorageCodec {
 	static final int PREPARED_ENCODED_LIMIT = 16 * 1024 * 1024 + 64 * 1024;
 	static final int PREPARED_DECODED_LIMIT = 64 * 1024 * 1024 + 64 * 1024;
 	static final int RECOVERY_ENCODED_LIMIT = 32 * 1024 * 1024;
-	static final int RECOVERY_DECODED_LIMIT = 128 * 1024 * 1024;
+	static final int RECOVERY_DECODED_LIMIT = RecoveryArtifactJson.MAX_CHECKPOINT_BYTES;
 	private static final String MARKER = "ffb-match-gzip-json";
 	private static final int VERSION = 1;
 	private final int encodedLimit;

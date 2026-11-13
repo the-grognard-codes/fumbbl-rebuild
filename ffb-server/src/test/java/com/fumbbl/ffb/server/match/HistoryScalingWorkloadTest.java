@@ -127,15 +127,17 @@ class HistoryScalingWorkloadTest {
 			assertEquals(fixture.getString("sha256", null), new JsonDigest().sha256(artifact.getBytes(StandardCharsets.UTF_8)), "Retained fixture must match its manifest");
 			for (String action : new String[] { "move", "pass" }) for (boolean journal : new boolean[] { true, false }) {
 				JsonArray measurements = new JsonArray();
+				JsonObject firstSample = null;
 				for (int sample = -1; sample < samples; sample++) {
 					JsonObject measured = measure(fixture, artifact, action, journal, false);
 					// Dispose inline Mockito bookkeeping from this completed synthetic lifetime.
 					// Otherwise the harness retains command arguments from earlier samples.
 					org.mockito.Mockito.framework().clearInlineMocks();
-					if (sample >= 0) measurements.add(measured);
+					if (sample < 0) firstSample = measured;
+					else measurements.add(measured);
 				}
 				results.add(new JsonObject().add("addedDecisions", fixture.getInt("addedDecisions", -1)).add("action", action)
-					.add("storagePath", journal ? "journal" : "compaction").add("samples", measurements));
+					.add("storagePath", journal ? "journal" : "compaction").add("firstSample", firstSample).add("samples", measurements));
 				System.out.println("HISTORY_MEASURE repeat=" + repeat + " added=" + fixture.getInt("addedDecisions", -1) + " action=" + action + " journal=" + journal);
 				Files.writeString(directory().resolve("run-" + repeat + ".json"), new JsonObject().add("version", 1).add("repeat", repeat)
 					.add("javaVersion", System.getProperty("java.version")).add("maxHeapBytes", Runtime.getRuntime().maxMemory()).add("results", results).toString());

@@ -6,13 +6,18 @@ import java.nio.charset.StandardCharsets;
 
 /** Encodes an already ordered recovery payload using the existing envelope contract. */
 final class RecoveryArtifactJson {
+	static final int MAX_CHECKPOINT_BYTES = 128 * 1024 * 1024;
 	private static final String PREFIX = "{\"payload\":";
 	private static final String CHECKSUM = ",\"sha256\":\"";
 	private static final String SUFFIX = "\"}";
 	private static final int ENVELOPE_BYTES = PREFIX.length() + CHECKSUM.length() + 64 + SUFFIX.length();
 
 	String encode(JsonObject payload, int maxBytes) {
-		return encodeWithMetadata(payload, maxBytes).json();
+		return encodeWithMetadata(payload, maxBytes).envelope();
+	}
+
+	Encoded encodeCheckpoint(JsonObject payload) {
+		return encodeWithMetadata(payload, MAX_CHECKPOINT_BYTES);
 	}
 
 	Encoded encodeWithMetadata(JsonObject payload, int maxBytes) {
@@ -26,5 +31,5 @@ final class RecoveryArtifactJson {
 		return new Encoded(PREFIX + json + CHECKSUM + checksum + SUFFIX, checksum, encoded.length + ENVELOPE_BYTES);
 	}
 
-	record Encoded(String json, String checksum, int bytes) { }
+	record Encoded(String envelope, String checksum, int envelopeBytes) { }
 }

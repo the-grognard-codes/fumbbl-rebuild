@@ -13,14 +13,13 @@ final class RecoveryJournal {
 	static final int MAX_ENTRIES = 32;
 	static final int MAX_ENTRY_BYTES = 4 * 1024 * 1024;
 	static final int COMPACT_BYTES = 2 * 1024 * 1024;
-	static final int MAX_ARTIFACT_BYTES = 128 * 1024 * 1024;
 
 	Cursor cursor(RecoveryRepository.Record record) {
 		return cursor(record, null);
 	}
 
 	Cursor cursor(RecoveryRepository.Record record, SetupSession session) {
-		JsonObject envelope = envelope(record.json, MAX_ARTIFACT_BYTES);
+		JsonObject envelope = envelope(record.json, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES);
 		JsonObject payload = envelope.get("payload").asObject();
 		return new Cursor(counts(payload), signature(payload), record.journalHash == null
 			? envelope.getString("sha256", null) : record.journalHash, record.journalEntries, record.journalBytes, bytes(record.json),
@@ -29,7 +28,7 @@ final class RecoveryJournal {
 
 	/** A freshly encoded full checkpoint starts a new chain with no journal entries. */
 	Cursor checkpointCursor(JsonObject payload, RecoveryArtifactJson.Encoded artifact, int[] counts, long nativeEpoch) {
-		return new Cursor(counts, signature(payload), artifact.checksum(), 0, 0, artifact.bytes(), nativeEpoch);
+		return new Cursor(counts, signature(payload), artifact.checksum(), 0, 0, artifact.envelopeBytes(), nativeEpoch);
 	}
 
 	Change change(SetupSession session, Cursor before, long generation) {
@@ -50,7 +49,8 @@ final class RecoveryJournal {
 			return Change.compact();
 		}
 		int length = bytes(json);
-		if (before.budget + length > MAX_ARTIFACT_BYTES || before.journalBytes + length > COMPACT_BYTES) return Change.compact();
+		if (before.budget + length > RecoveryArtifactJson.MAX_CHECKPOINT_BYTES
+			|| before.journalBytes + length > COMPACT_BYTES) return Change.compact();
 		String hash = JsonObject.readFrom(json).getString("sha256", null);
 		return new Change(false, json, new Cursor(after, signature, hash, before.entries + 1,
 			before.journalBytes + length, before.budget + length, session.recoveryNativeEpoch()));
@@ -61,7 +61,7 @@ final class RecoveryJournal {
 		try {
 			if (checkpointGeneration < 1 || generation < checkpointGeneration || entries.size() > MAX_ENTRIES
 				|| generation - checkpointGeneration != entries.size()) throw new IllegalArgumentException("Journal boundary");
-			JsonObject base = envelope(checkpoint, MAX_ARTIFACT_BYTES), payload = base.get("payload").asObject();
+			JsonObject base = envelope(checkpoint, RecoveryArtifactJson.MAX_CHECKPOINT_BYTES), payload = base.get("payload").asObject();
 			String hash = base.getString("sha256", null);
 			long expected = checkpointGeneration, journalBytes = 0;
 			for (RecoveryRepository.Record record : entries) {
@@ -80,7 +80,7 @@ final class RecoveryJournal {
 				if (!Arrays.equals(counts(payload), counts(entry.get("to").asArray()))) throw new IllegalArgumentException("Journal counts");
 				hash = saved.getString("sha256", null);
 			}
-			String json = entries.isEmpty() ? checkpoint : new RecoveryArtifactJson().encode(ordered(payload).asObject(), MAX_ARTIFACT_BYTES);
+			String json = entries.isEmpty() ? checkpoint : new RecoveryArtifactJson().encodeCheckpoint(ordered(payload).asObject()).envelope();
 			return new RecoveryRepository.Record(id, generation, json, hash, entries.size(), journalBytes);
 		} catch (RuntimeException corrupt) { throw new MatchService.Failure("RECOVERY_CORRUPT"); }
 	}
