@@ -1,0 +1,3 @@
+# Keep every preserved payload visible to Git.
+!*
+!*/

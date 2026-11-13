@@ -1,0 +1,12 @@
+{
+  "id": "dodge",
+  "fill": "#E9BF43",
+  "reference": "dodge.png",
+  "transparent": true,
+  "subject": "EDIT ONLY the incoming arrow: remove completely the arrow pointing at the shin/ankle on the right and reconstruct the matching yellow panel there. Keep the approved boot pose, broad curved evasion swoosh, exact portrait frame, simplified low-detail cream/navy style, deeper gold panel and transparent exterior. No replacement arrow anywhere.",
+  "prompt": "Use case: precise-object-edit. ONE original fantasy-football skill badge for a 20px minimum pitch UI. EDIT ONLY the incoming arrow: remove completely the arrow pointing at the shin/ankle on the right and reconstruct the matching yellow panel there. Keep the approved boot pose, broad curved evasion swoosh, exact portrait frame, simplified low-detail cream/navy style, deeper gold panel and transparent exterior. No replacement arrow anywhere. Category fill #E9BF43; creamy ivory art, very thick dark navy outlines, no more than one broad shadow plane per object. Bold flat cel shading, original fantasy-sports UI. NO typography, letters, numerals, watermark or scenery. Keep portrait 3:4 clipped corners and pale keyline.",
+  "mode": "built-in image_gen",
+  "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-0b5c0239-8498-4314-a419-91de55926cd4.png",
+  "source": "sources/dodge.png",
+  "opaqueMaster": false
+}

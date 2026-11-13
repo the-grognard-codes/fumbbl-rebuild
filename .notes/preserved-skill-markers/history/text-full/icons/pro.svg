@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Pro (P) - General</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#49DFFF"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M23.169 32.550000000000004H43.802L48.831 37.626000000000005V49.141000000000005L43.755 54.264H29.561V65.45H23.169ZM40.888000000000005 48.906000000000006 42.533 47.261V39.553000000000004L40.888000000000005 37.908H29.561V48.906000000000006Z"/></g>
+</svg>

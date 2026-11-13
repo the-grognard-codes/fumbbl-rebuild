@@ -1,0 +1,8 @@
+{
+  "id": "pass",
+  "mode": "approved round-2 reuse",
+  "source": "sources/pass.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\pass.png",
+  "sha256": "434a5bd9196ae5dd3ded0456b74bdcf9f1dab8ea63c1e8c9ff18c2fd4d6299f9",
+  "opaqueMaster": true
+}

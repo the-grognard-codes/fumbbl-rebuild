@@ -1,0 +1,88 @@
+{
+  "mode": "built-in image_gen",
+  "round": 2,
+  "purpose": "Owner-approved 20px illustrated floor, deeper category fills, fewer interior details.",
+  "candidates": [
+    {
+      "id": "block",
+      "fill": "#25B9DC",
+      "source": "block.png",
+      "opaque": false,
+      "subject": "Keep the crossed armored forearms, but reduce to two large clean interlocking gauntlet silhouettes. Remove ALL rivets, bolts, straps, tiny knuckles and floating specks. Just three broad finger divisions and one shadow plane per arm.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football BLOCK skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #25B9DC; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep the crossed armored forearms, but reduce to two large clean interlocking gauntlet silhouettes. Remove ALL rivets, bolts, straps, tiny knuckles and floating specks. Just three broad finger divisions and one shadow plane per arm. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-0cad8287-5708-43f5-917b-d0b4671d11ac.png"
+    },
+    {
+      "id": "dodge",
+      "fill": "#E9BF43",
+      "source": "dodge.png",
+      "opaque": false,
+      "subject": "Keep a single armored boot evading an incoming arrow. Simplify to ONE broad boot silhouette, ONE blunt incoming arrow, and ONE large curved motion stroke. Remove rivets, bands, secondary motion lines and tiny plates.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football DODGE skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #E9BF43; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep a single armored boot evading an incoming arrow. Simplify to ONE broad boot silhouette, ONE blunt incoming arrow, and ONE large curved motion stroke. Remove rivets, bands, secondary motion lines and tiny plates. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-c6fceb15-cf5c-4169-b2f9-02ba61cdfc6d.png"
+    },
+    {
+      "id": "mighty-blow",
+      "fill": "#C94F5C",
+      "source": "mighty-blow.png",
+      "opaque": false,
+      "subject": "Keep one large armored fist striking down, with exactly THREE broad impact rays. Remove every rivet, wrist bolt, detached speck and secondary ray. Two finger divisions and one large shadow plane only.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football MIGHTY-BLOW skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #C94F5C; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep one large armored fist striking down, with exactly THREE broad impact rays. Remove every rivet, wrist bolt, detached speck and secondary ray. Two finger divisions and one large shadow plane only. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-1b4f542e-73ed-458c-a2b9-88666c270441.png"
+    },
+    {
+      "id": "claws",
+      "fill": "#9268C3",
+      "source": "claws.png",
+      "opaque": false,
+      "subject": "Keep exactly three oversized curved ivory talons with broad dark gaps. Remove knuckle segments, rings, finger joints and little highlights. Three clean hooked silhouettes, each with only one large shadow plane.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football CLAWS skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #9268C3; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep exactly three oversized curved ivory talons with broad dark gaps. Remove knuckle segments, rings, finger joints and little highlights. Three clean hooked silhouettes, each with only one large shadow plane. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-20c7394a-08e2-4b2e-bb8d-4ff98c84a51b.png"
+    },
+    {
+      "id": "pass",
+      "fill": "#4D9F76",
+      "source": "pass-opaque.png",
+      "opaque": true,
+      "subject": "Keep one flying football and ONE sweeping throwing arc. Simplify ball laces to TWO very broad simple laces and remove little seams and all gradients. Ball outline, one shadow plane, one clean motion arc.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football PASS skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #4D9F76; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep one flying football and ONE sweeping throwing arc. Simplify ball laces to TWO very broad simple laces and remove little seams and all gradients. Ball outline, one shadow plane, one clean motion arc. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve the opaque navy exterior master and opaque panel; the existing export pipeline clips exterior corners. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-e7221e64-0140-4001-89bc-1957650527a8.png"
+    },
+    {
+      "id": "dirty-player",
+      "fill": "#CE853B",
+      "source": "dirty-player-opaque.png",
+      "opaque": true,
+      "subject": "Keep the studded boot stomping a prone helmet. Drastically simplify to TWO bold objects: one chunky boot with exactly three big sole studs, and one plain low helmet dome under it. Remove the prone player's body, facemask bars, rivets, buckles, overlapping plates and all little debris. One single broad impact wedge.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football DIRTY-PLAYER skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #CE853B; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep the studded boot stomping a prone helmet. Drastically simplify to TWO bold objects: one chunky boot with exactly three big sole studs, and one plain low helmet dome under it. Remove the prone player's body, facemask bars, rivets, buckles, overlapping plates and all little debris. One single broad impact wedge. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve the opaque navy exterior master and opaque panel; the existing export pipeline clips exterior corners. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-1670ffae-2b4e-4d3c-9c27-5c020e55a8a7.png"
+    },
+    {
+      "id": "bone-head",
+      "fill": "#10141A",
+      "source": "bone-head.png",
+      "opaque": false,
+      "subject": "Keep the vacant ogre face and large empty forehead oval. Simplify to two eyes, one nose shape, a slack mouth and TWO tusks. Remove brow wrinkles, cheek stripes, tiny teeth and most jaw shading. Broad friendly absent-minded expression, not a skull.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football BONE-HEAD skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #10141A; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep the vacant ogre face and large empty forehead oval. Simplify to two eyes, one nose shape, a slack mouth and TWO tusks. Remove brow wrinkles, cheek stripes, tiny teeth and most jaw shading. Broad friendly absent-minded expression, not a skull. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-14ef2caf-c724-4cf3-8ba9-995922ecc280.png"
+    },
+    {
+      "id": "loner",
+      "fill": "#10141A",
+      "source": "loner.png",
+      "opaque": false,
+      "subject": "Drastically simplify the isolation emblem: ONE large ivory helmet silhouette alone inside ONE broad broken circular ring, with clear black space separating helmet from ring. Remove both background teammates completely, shoulder pads, chest armor, stripes, rivets and tiny facemask bars. A single dark visor and one large shadow plane only. Isolation and the open ring must read at 20px.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football LONER skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #10141A; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Drastically simplify the isolation emblem: ONE large ivory helmet silhouette alone inside ONE broad broken circular ring, with clear black space separating helmet from ring. Remove both background teammates completely, shoulder pads, chest armor, stripes, rivets and tiny facemask bars. A single dark visor and one large shadow plane only. Isolation and the open ring must read at 20px. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve transparent exterior outside the card, with fully opaque panel and artwork inside. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-05a97d16-e40b-4b51-97f4-722d431201eb.png"
+    },
+    {
+      "id": "secret-weapon",
+      "fill": "#10141A",
+      "source": "secret-weapon-concealed.png",
+      "opaque": true,
+      "subject": "Keep the cloak hiding a weapon, but reduce to ONE broad triangular hooded cloak shape and ONE bold ivory weapon hilt peeking out. Remove all the little cloth creases, internal slashes and thin seams. At most TWO broad cloak folds. No face, no chainsaw, no teeth. Concealment is the main silhouette, distinct from an exposed stabbing dagger.",
+      "prompt": "Use case: precise-object-edit. This is the next art-review revision of the provided original fantasy-football SECRET-WEAPON skill marker, edited for recognition at 20 pixels tall. Preserve its upright clipped-corner portrait frame, pale high-contrast inset keyline, dark navy outer edge, cream cel-shaded sports illustration style, and semantic identity. Change the category panel to the slightly deeper, more saturated flat color #10141A; no gradients, no dark smudges, no accidental interior alpha holes. Pale ivory #FFF3D4 central symbol, thick #091726 navy contours, only ONE large shadow plane per object, broad negative-space gaps. Simplification requirement: Keep the cloak hiding a weapon, but reduce to ONE broad triangular hooded cloak shape and ONE bold ivory weapon hilt peeking out. Remove all the little cloth creases, internal slashes and thin seams. At most TWO broad cloak folds. No face, no chainsaw, no teeth. Concealment is the main silhouette, distinct from an exposed stabbing dagger. The result must have substantially fewer interior edges than the input and one bold instantly readable silhouette. No letters, numerals, words, symbols resembling text, watermark, scenery, gore, photoreal texture, tiny detail, glossy highlights or extra badges. Preserve the opaque navy exterior master and opaque panel; the existing export pipeline clips exterior corners. Original art only, do not copy a videogame icon.",
+      "generatedPath": "C:\\Users\\jaken\\.codex\\generated_images\\01a147d8-07c0-70f3-b9cf-9059b8f3c38a\\exec-df36ebfd-234a-4639-97db-426cf2a78332.png"
+    }
+  ]
+}

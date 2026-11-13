@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Wrestle (W) - General</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#49DFFF"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M16.5185 32.550000000000004H22.9575L26.9525 55.768H27.1405L33.6735 32.550000000000004H38.4675L44.8595 55.768H45.0475L49.0425 32.550000000000004H55.4815L48.6665 65.45H42.6975L36.164500000000004 42.32600000000001H35.9765L29.3025 65.45H23.3335Z"/></g>
+</svg>

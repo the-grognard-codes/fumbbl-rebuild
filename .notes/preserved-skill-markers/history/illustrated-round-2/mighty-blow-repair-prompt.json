@@ -1,0 +1,6 @@
+{
+  "mode": "built-in image_gen",
+  "prompt": "Create an opaque export master of this new simplified Mighty Blow skill badge. Preserve the exact big cream fist, THREE broad impact rays, stripped-down armor, dark navy outlines, pale inset frame, clipped portrait corners, and deeper red #C94F5C category hue. Keep the bold low-detail silhouette. Replace the shadowy patch in the red panel with solid opaque red; the entire panel must be fully opaque. Outside the frame use solid opaque navy #091726 as well. No alpha, smudges, texture, extra rays, rivets, words, letters, numbers or extra symbols. This opaque master will receive transparent clipped corners in the standard export pipeline.",
+  "selectedSource": "mighty-blow-opaque.png",
+  "reason": "Resolve interior alpha extraction artifact while preserving simplified silhouette and deeper red."
+}

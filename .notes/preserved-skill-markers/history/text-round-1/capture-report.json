@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "renderer": "Existing LivePitch and existing human/orc sprites; isolated art-review fixture",
+  "sampleCount": 14,
+  "svgCount": 14,
+  "pngCount": 56,
+  "captures": [
+    "text-markers-contact-sheet.png",
+    "pitch-small.png",
+    "pitch-medium.png",
+    "pitch-large.png",
+    "pitch-detail-medium.png",
+    "pitch-crowded-medium.png",
+    "pitch-hover-full-list.png",
+    "pitch-android-landscape.png",
+    "pitch-android-player-card.png"
+  ],
+  "measurements": [
+    {
+      "size": "small",
+      "players": 12,
+      "cards": 20,
+      "width": 1536,
+      "height": 730
+    },
+    {
+      "size": "medium",
+      "players": 12,
+      "cards": 20,
+      "width": 1536,
+      "height": 730
+    },
+    {
+      "size": "large",
+      "players": 12,
+      "cards": 20,
+      "width": 1536,
+      "height": 730
+    }
+  ],
+  "hoverFullList": true,
+  "touchLandscape": true,
+  "touchPlayerCard": true,
+  "errors": [],
+  "missing": [],
+  "limitations": [
+    "Windows Chrome and Android touch emulation; no native Android or Linux run.",
+    "Mutation and Animosity specimens use orc art as a visual stand-in, not a legal roster assertion.",
+    "No game-server, replay, or recovery behavior is changed or validated by this preview."
+  ]
+}

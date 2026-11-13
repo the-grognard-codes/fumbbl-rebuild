@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Animosity (ANI) — Trait</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#B4C7D5"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#10141A"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#D9E9F7"><path d="M20.252 39.199999999999996H23.723999999999997L30.892 58.8H27.028L25.432 54.459999999999994H18.544L16.948 58.8H13.084ZM24.592 51.324 21.988 43.876H21.932L19.412 51.324Z"/><path d="M34.152 39.199999999999996H37.568L46.304 52.5H46.36V39.199999999999996H50.028000000000006V58.8H46.612L37.876000000000005 45.528H37.82V58.8H34.152Z"/><path d="M55.108 39.199999999999996H58.916V58.8H55.108Z"/></g>
+</svg>

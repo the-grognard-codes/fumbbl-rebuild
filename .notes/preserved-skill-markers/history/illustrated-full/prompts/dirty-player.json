@@ -1,0 +1,8 @@
+{
+  "id": "dirty-player",
+  "mode": "approved round-2 reuse",
+  "source": "sources/dirty-player.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\dirty-player.png",
+  "sha256": "21ceae2150af9a20285a2e7f93fcbc2598efbf96b27ed329de2822d354cd87b3",
+  "opaqueMaster": true
+}

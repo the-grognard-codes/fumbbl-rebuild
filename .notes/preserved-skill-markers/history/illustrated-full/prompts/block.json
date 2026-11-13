@@ -1,0 +1,8 @@
+{
+  "id": "block",
+  "mode": "approved round-2 reuse",
+  "source": "sources/block.png",
+  "reference": ".notes\\player-skill-markers\\illustrated-round-2\\block.png",
+  "sha256": "e45688faec3a306714289c78daae1259e0c52e4fd9981370f6f83161156b4265",
+  "opaqueMaster": false
+}

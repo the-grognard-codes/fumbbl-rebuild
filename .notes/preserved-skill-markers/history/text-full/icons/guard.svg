@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Guard (G) - Strength</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#E4777F"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M22.464000000000002 60.045V37.955L27.869 32.550000000000004H44.225L49.536 37.861000000000004V42.89H43.144000000000005V40.211L40.935 38.002H31.253L28.856 40.399V57.601L31.253 59.998000000000005H41.028999999999996L43.332 57.695V52.572H36.282V47.120000000000005H49.536V60.045L44.131 65.45H27.869Z"/></g>
+</svg>

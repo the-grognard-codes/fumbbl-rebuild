@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96" role="img" aria-labelledby="title">
+<title id="title">Juggernaut (J) - Strength</title>
+<path d="M8 1H64L71 8V88L64 95H8L1 88V8Z" fill="#091726"/>
+<path d="M9 5H63L67 9V87L63 91H9L5 87V9Z" fill="#D9E9F7"/>
+<path d="M10 8H62L64 10V86L62 88H10L8 86V10Z" fill="#E4777F"/>
+<path d="M12 12H60M12 12V21" fill="none" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="2"/>
+<path d="M12 82H60" stroke="#091726" stroke-opacity=".35" stroke-width="3"/>
+<g fill="#091726"><path d="M24.250000000000004 59.763000000000005V53.653000000000006H30.454V57.601L32.851 59.998000000000005H39.102000000000004L41.358000000000004 57.789V32.550000000000004H47.75V59.951L42.251000000000005 65.45H29.89Z"/></g>
+</svg>
