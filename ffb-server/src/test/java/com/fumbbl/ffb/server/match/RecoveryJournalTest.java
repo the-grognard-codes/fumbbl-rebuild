@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -139,8 +140,20 @@ class RecoveryJournalTest {
 			generation++;
 			RecoveryRepository.Record restored;
 			if (change.compact) {
-				base = new RecoveryRepository.Record(fixture.document.matchId, generation, after);
-				entries.clear(); cursor = journal.cursor(base); restored = base; compactions++;
+				JsonObject payload = session.orderedRecoveryPayload();
+				RecoveryArtifactJson.Encoded encoded = new RecoveryArtifactJson().encodeCheckpoint(payload);
+				assertEquals(after, encoded.envelope());
+				base = new RecoveryRepository.Record(fixture.document.matchId, generation, encoded.envelope());
+				RecoveryJournal.Cursor decoded = journal.cursor(base, session);
+				cursor = journal.checkpointCursor(payload, encoded, session.recoveryJournalCounts(), session.recoveryNativeEpoch());
+				assertArrayEquals(decoded.counts, cursor.counts);
+				assertEquals(decoded.hash, cursor.hash);
+				assertEquals(decoded.signature, cursor.signature);
+				assertEquals(decoded.entries, cursor.entries);
+				assertEquals(decoded.journalBytes, cursor.journalBytes);
+				assertEquals(decoded.budget, cursor.budget);
+				assertEquals(decoded.nativeEpoch, cursor.nativeEpoch);
+				entries.clear(); restored = base; compactions++;
 			} else {
 				JsonObject delta = JsonObject.readFrom(change.json).get("payload").asObject().get("state").asObject();
 				assertEquals(1, delta.get("history").asArray().size());
