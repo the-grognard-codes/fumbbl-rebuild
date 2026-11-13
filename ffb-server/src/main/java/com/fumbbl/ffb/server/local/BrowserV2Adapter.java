@@ -9,6 +9,7 @@ import com.fumbbl.ffb.server.match.LobbyReadBudget;
 import com.fumbbl.ffb.server.match.MatchChat;
 import com.fumbbl.ffb.server.match.MatchDocument;
 import com.fumbbl.ffb.server.match.MatchJson;
+import com.fumbbl.ffb.server.match.MatchPersistenceLog;
 import com.fumbbl.ffb.server.match.MatchMembership;
 import com.fumbbl.ffb.server.match.MatchResultJson;
 import com.fumbbl.ffb.server.match.MatchService;
@@ -103,6 +104,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	@Override public synchronized void receive(BrowserConnection connection, String text) {
 		if (retired.contains(connection)) return;
 		String requestId = null;
+		String setupMatchId = null;
 		boolean lobbyRead = false;
 		try {
 			catalog.checkEnvelope(text);
@@ -111,6 +113,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
 			if (request.getInt("version", -1) != 2) { fail(connection, requestId, "UNSUPPORTED_VERSION"); return; }
 			BrowserV2RequestType type = BrowserV2RequestType.fromWireName(request.getString("type", ""));
+			if (type == BrowserV2RequestType.SETUP) setupMatchId = request.getString("matchId", null);
 			timing.selectRequest(request);
 			enableDiagnosticsReplies(connection);
 			if (type == BrowserV2RequestType.AUTHENTICATE_COMPUTER) {
@@ -454,8 +457,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			}
 		} catch (V2PrincipalAuthenticator.Rejected rejected) { fail(connection, requestId, "AUTHENTICATION_FAILED"); }
 		catch (MatchService.Failure rejected) { fail(connection, requestId, rejected.code); }
-		catch (JdbcConnections.NotStarted unavailable) { fail(connection, requestId, lobbyRead ? "RATE_LIMITED" : "PERSISTENCE_FAILED"); }
-		catch (SQLException unavailable) { fail(connection, requestId, "PERSISTENCE_FAILED"); }
+		catch (SQLException unavailable) {
+			if (setupMatchId != null) new MatchPersistenceLog().rejected("setup-access", setupMatchId, requestId, unavailable);
+			fail(connection, requestId, lobbyRead && unavailable instanceof JdbcConnections.NotStarted ? "RATE_LIMITED" : "PERSISTENCE_FAILED");
+		}
 		catch (RuntimeException malformed) { fail(connection, requestId, "MALFORMED_MESSAGE"); }
 	}
 

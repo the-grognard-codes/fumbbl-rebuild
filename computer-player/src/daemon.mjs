@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { assertV2Projection } from '../../browser-client/src/v2-projection.ts';
 import { parseUniqueJson } from '../../browser-client/src/saved-team-protocol.ts';
-import { idleWorkerExitCode } from './worker-lifecycle.mjs';
+import { idleWorkerExitCode, persistenceExhaustedExitCode } from './worker-lifecycle.mjs';
 
 const url = option('--url');
 const origin = option('--origin');
@@ -79,6 +79,10 @@ function startQueued() {
         failures.delete(matchId);
         queued.add(matchId);
         log(`Match ${matchId} yielded its idle worker; queued for a fresh state load.`);
+      } else if (code === persistenceExhaustedExitCode && !stopped) {
+        const reason = `Match ${matchId} exhausted persistence recovery`;
+        console.error(`[computer-daemon] ${reason}; worker stopped with status ${code}.`);
+        markFailure(matchId, reason);
       } else if (code !== 0 && !stopped) markFailure(matchId, `Match ${matchId} stopped with status ${code}`);
       else if (code === 0) { completed.add(matchId); failures.delete(matchId); log(`Match ${matchId} completed.`); }
       startQueued();

@@ -1,0 +1,33 @@
+package com.fumbbl.ffb.server.match;
+
+import java.sql.SQLException;
+import java.util.Set;
+import java.util.logging.Logger;
+
+/** Match diagnostics keep driver text, SQL, parameters and exception causes out of logs. */
+public final class MatchPersistenceLog {
+	private static final Logger LOG = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
+	private static final Set<String> SAFE_MESSAGES = Set.of(
+		"JDBC allowance exhausted before operation", "Request deadline expired during JDBC I/O",
+		"JDBC acquisition exceeded its deadline", "JDBC I/O exceeded its allowance",
+		"JDBC connection cleanup exceeded its deadline", "Database temporarily unavailable",
+		"JDBC connection pool exhausted", "JDBC connection lease is closed",
+		"JDBC connection boundary is closed", "Local publication authorization is unavailable",
+		"Invalid stored skill use preference", "Recovery journal byte limit", "Recovery schema unavailable",
+		"Unexpected recovery write count", "Unexpected recovery journal write count", "Unexpected lobby recovery row count");
+
+	public void rejected(String phase, String matchId, String requestId, SQLException failure) {
+		String message = failure.getMessage();
+		String sqlState = failure.getSQLState();
+		LOG.warning("PERSISTENCE_FAILED phase=" + phase
+			+ " matchId=" + correlation(matchId, "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
+			+ " requestId=" + correlation(requestId, "[A-Za-z0-9_-]{1,100}")
+			+ " exception=" + failure.getClass().getSimpleName()
+			+ " sqlState=" + correlation(sqlState, "[0-9A-Z]{5}") + " errorCode=" + failure.getErrorCode()
+			+ " message=" + (message != null && SAFE_MESSAGES.contains(message) ? message : "[redacted]"));
+	}
+
+	private String correlation(String value, String pattern) {
+		return value != null && value.matches(pattern) ? value : "unavailable";
+	}
+}

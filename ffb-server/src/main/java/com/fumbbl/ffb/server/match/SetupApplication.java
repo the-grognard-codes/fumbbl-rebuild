@@ -19,6 +19,7 @@ import java.util.Map;
 /** Invoked on the existing communication worker; optional private checkpoints preserve activated engines. */
 public final class SetupApplication {
 	private final BrowserRequestTiming timing = new BrowserRequestTiming();
+	private final MatchPersistenceLog persistenceLog = new MatchPersistenceLog();
 	private final RecoveryArtifactFingerprint fingerprints = new RecoveryArtifactFingerprint();
 	private final RecoveryJournal journal = new RecoveryJournal();
 	private final Map<String, RecoveryJournal.Cursor> journalCursors = new LinkedHashMap<>();
@@ -152,6 +153,7 @@ public final class SetupApplication {
 				pendingActivations.put(matchId, key);
 			}
 		} catch (SQLException failure) {
+			persistenceLog.rejected("legacy-activation", matchId, request.getString("requestId", null), failure);
 			return preparedFailure(request, "PERSISTENCE_FAILED");
 		} catch (MatchService.Failure failure) {
 			return preparedFailure(request, failure.code);
@@ -202,7 +204,10 @@ public final class SetupApplication {
 			return response;
 		} catch (RecoveryRepository.RetentionLimit full) { retentionRejections++; return preparedFailure(request, "RETENTION_LIMIT"); }
 		catch (RecoveryRepository.OutcomeUnknown unknown) { return preparedFailure(request, "MATCH_OUTCOME_UNKNOWN"); }
-		catch (SQLException unavailable) { return preparedFailure(request, "PERSISTENCE_FAILED"); }
+		catch (SQLException unavailable) {
+			persistenceLog.rejected("recoverable-activation", id, request.getString("requestId", null), unavailable);
+			return preparedFailure(request, "PERSISTENCE_FAILED");
+		}
 		catch (MatchService.Failure rejected) { return preparedFailure(request, rejected.code); }
 		catch (RuntimeException invalid) { return preparedFailure(request, "RECOVERY_CORRUPT"); }
 	}
@@ -397,6 +402,7 @@ public final class SetupApplication {
 
 	private HandleOutcome handleWithOutcome(String owner, JsonObject request, boolean computerChannel) {
 		String requestId = request.getString("requestId", null);
+		String phase = "match-load";
 		try {
 			validate(request, computerChannel);
 			String id = request.getString("matchId", null);
@@ -407,12 +413,15 @@ public final class SetupApplication {
 				: document.away != null && owner.equals(document.away.owner) ? "away" : null;
 			if (role == null) throw new MatchService.Failure("NOT_FOUND");
 			String operation = request.getString("operation", null);
+			phase = "retained-concession";
 			HandleOutcome retained = retainedConcessionOutcome(owner, document, role, request);
 			if (retained != null) return retained;
 			releaseIdle();
+			phase = "completion";
 			if (recovery != null && document.lifecycle == MatchDocument.Lifecycle.COMPLETED)
 				return completedReplyWithOutcome(document, role, request);
 			SetupSession recovered = null;
+			phase = "restore";
 			if (recovery != null && !sessions.containsKey(id)
 				&& document.lifecycle == MatchDocument.Lifecycle.ACTIVATED) recovered = restore(id, document);
 			if (document.lifecycle == MatchDocument.Lifecycle.COMPLETED && !sessions.containsKey(id)) {
@@ -427,7 +436,9 @@ public final class SetupApplication {
 			SetupSession session = recovered == null ? sessions.get(id) : recovered;
 			if (session == null) throw new MatchService.Failure("SESSION_UNAVAILABLE");
 			if (session.isFailed()) throw new MatchService.Failure("SESSION_UNAVAILABLE");
+			phase = "skill-use-preferences";
 			refreshSkillUsePreferences(id, session);
+			phase = "checkpoint";
 			if (recovery != null) lastAccess.put(id, clock.millis());
 			if (session.abandonIfInactive(clock.millis())) {
 				checkpoint(owner, id, session);
@@ -445,7 +456,10 @@ public final class SetupApplication {
 			catch (RuntimeException failure) { checkpoint(owner, id, session); throw failure; }
 			if (expiredDecision) {
 				checkpoint(owner, id, session);
-				if (session.isComplete()) matches.complete(owner, id, session.completedMatch());
+				if (session.isComplete()) {
+					phase = "completion";
+					matches.complete(owner, id, session.completedMatch());
+				}
 				JsonObject expired = session.reply(requestId, "load".equals(operation) ? "ACCEPTED" : "STALE_REVISION", false, role);
 				session.decorateSaveResume(expired);
 				if (session.isComplete() && recovery != null) { release(id); completedReleases++; }
@@ -480,6 +494,7 @@ public final class SetupApplication {
 			boolean publish = "ACCEPTED".equals(response.getString("code", null))
 				&& !response.getBoolean("duplicate", false) && !"load".equals(operation) && !"concessionStatus".equals(operation);
 			if (session.isComplete()) {
+				phase = "completion";
 				matches.complete(owner, id, session.completedMatch());
 				publish = recovery == null ? legacyCompletionBroadcasted.add(id)
 					: document.lifecycle != MatchDocument.Lifecycle.COMPLETED;
@@ -489,7 +504,10 @@ public final class SetupApplication {
 		} catch (RecoveryRepository.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
 		catch (MatchService.OutcomeUnknown failure) { return outcome(failure(requestId, "MATCH_OUTCOME_UNKNOWN"), false); }
         catch (MatchService.Failure failure) { return outcome(failure(requestId, failure.code), false); }
-		catch (SQLException failure) { return outcome(failure(requestId, "PERSISTENCE_FAILED"), false); }
+		catch (SQLException failure) {
+			persistenceLog.rejected(phase, request.getString("matchId", null), requestId, failure);
+			return outcome(failure(requestId, "PERSISTENCE_FAILED"), false);
+		}
 		catch (RuntimeException failure) { return outcome(failure(requestId, "INVALID_REQUEST"), false); }
 	}
 
