@@ -371,6 +371,9 @@ public final class SetupSession {
 			if ((r52 || r53) && !payload.get("pendingRoute").isNull())
 				pendingRoute = new PendingRoute(payload.get("pendingRoute").asObject());
 			if (savedActivation != null) pendingActivation = new PendingActivation(savedActivation.asObject(), state.getGame());
+			// Older checkpoints could retain a route when its last native command ended the match.
+			// A terminal engine has no continuation, even when that stored route is well-formed.
+			clearTerminalContinuations();
 			if (pendingRoute != null) {
 				Player<?> active = pendingActivation == null ? state.getGame().getActingPlayer().getPlayer()
 					: state.getGame().getPlayerById(pendingActivation.command.getPlayerId());
@@ -902,6 +905,7 @@ public final class SetupSession {
 			}
 			continueActivation();
 			if (pendingRoute != null && pendingActivation == null) continueRoute();
+			clearTerminalContinuations();
 			blockPresentation.finishCommand(state, pendingRoute != null);
 			if (oldTurnStarted > 0 && !game.isTurnTimeEnabled() && game.getFinished() == null)
 				game.setTurnTime(Math.max(0L, System.currentTimeMillis() - oldTurnStarted));
@@ -1750,6 +1754,13 @@ public final class SetupSession {
 				&& ((JumpUpBlockDeclaration) next.command).targetPlayerId.equals(((JumpUpBlockDeclaration) action.command).targetPlayerId)));
 		if (offered) new PlayerActivation(state).handle(next.command, next.role);
 		else pendingRoute = null;
+	}
+
+	private void clearTerminalContinuations() {
+		if (isComplete()) {
+			pendingRoute = null;
+			pendingActivation = null;
+		}
 	}
 
 	/** Native adjacent actions remain the authority at every square and after every resumed prompt. */

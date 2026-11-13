@@ -266,6 +266,17 @@ class RecoveryApplicationTest {
 
 		String completion = fixture.matches.result(role, fixture.id).json();
 		String checkpoint = fixture.recovery.rows.get(fixture.id).json;
+		JsonObject legacy = JsonObject.readFrom(checkpoint);
+		JsonObject payload = legacy.get("payload").asObject();
+		payload.set("pendingRoute", new JsonObject().add("actor", role).add("kind", "move")
+			.add("playerId", "finished-player").add("declaredRevision", liveState.getInt("revision", 0) - 1)
+			.add("targetPlayerId", com.eclipsesource.json.JsonValue.NULL).add("origin", new JsonObject().add("x", 1).add("y", 1))
+			.add("next", 0).add("targetSelected", false).add("steps", new com.eclipsesource.json.JsonArray().add(new JsonObject().add("x", 2).add("y", 1))));
+		String hash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+			.digest(payload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+		legacy.set("sha256", hash);
+		RecoveryRepository.Record previous = fixture.recovery.rows.get(fixture.id);
+		fixture.recovery.rows.put(fixture.id, new RecoveryRepository.Record(fixture.id, previous.generation, legacy.toString()));
 		JsonObject retried = accepted(application.handleWithOutcome(role, finished.request).response());
 		assertTrue(retried.getBoolean("duplicate", false));
 		JsonObject retryState = retried.get("state").asObject();
@@ -290,7 +301,7 @@ class RecoveryApplicationTest {
 				"Completed load must preserve authoritative " + field + " projection");
 		assertFalse(loaded.getBoolean("duplicate", true));
 		assertEquals(completion, fixture.matches.result(role, fixture.id).json(), "Completed-load decoration cannot rewrite the frozen result or transcript");
-		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id).json, "A terminal read cannot rewrite the recovery checkpoint");
+		assertEquals(legacy.toString(), fixture.recovery.rows.get(fixture.id).json, "A terminal read cannot rewrite the recovery checkpoint");
 	}
 
 	@Test void ambiguousCompletionCommitReconcilesRetryAndBroadcastWithoutAnotherWrite() throws Exception {
