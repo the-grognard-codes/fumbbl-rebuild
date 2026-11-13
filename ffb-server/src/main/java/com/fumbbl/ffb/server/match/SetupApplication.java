@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +60,14 @@ public final class SetupApplication {
 	private final Map<String, Long> generations = new LinkedHashMap<>();
 	private final Map<String, byte[]> committedFingerprints = new LinkedHashMap<>();
 	private final java.util.Set<String> pendingRestoreCheckpoints = new HashSet<>();
-	private final LinkedHashSet<String> pendingCompletions = new LinkedHashSet<>();
+	private static final long INITIAL_COMPLETION_BACKOFF_MILLIS = 1_000;
+	private static final long MAX_COMPLETION_BACKOFF_MILLIS = 60_000;
+	private record PendingCompletion(long retryAt, long nextDelayMillis) {
+		PendingCompletion afterFailure(long now) {
+			return new PendingCompletion(now + nextDelayMillis, Math.min(MAX_COMPLETION_BACKOFF_MILLIS, nextDelayMillis * 2));
+		}
+	}
+	private final LinkedHashMap<String, PendingCompletion> pendingCompletions = new LinkedHashMap<>();
 	private static final int MAX_REJECTED_RECOVERIES = 128;
 	private final Map<String, Long> rejectedRecoveryGenerations = new LinkedHashMap<>(16, 0.75f, true);
 	private final Map<String, SetupSession> sessions = new LinkedHashMap<>();
@@ -379,15 +385,18 @@ public final class SetupApplication {
 	public Map<String, JsonObject> expireReactiveDecisions() {
 		Map<String, JsonObject> changed = new LinkedHashMap<>();
 		for (String id : new ArrayList<>(sessions.keySet())) {
-			if (pendingCompletions.contains(id)) continue;
+			if (pendingCompletions.containsKey(id)) continue;
 			SetupSession session = sessions.get(id);
-			if (!session.reactiveDecisionDue(clock.millis())) continue;
+			long now = clock.millis();
+			// A resident request records abandonment before any pending decision can advance the match.
+			if (pendingRestoreCheckpoints.contains(id) && session.abandonmentDue(now)) continue;
+			if (!session.reactiveDecisionDue(now)) continue;
 			try {
 				refreshSkillUsePreferences(id, session);
 				if (!session.expireReactiveDecision(clock.millis())) continue;
 				checkpoint(session.checkpointOwner(), id, session);
 				if (session.isComplete() && recovery != null) {
-					pendingCompletions.add(id);
+					queueCompletion(id);
 					continue;
 				}
 				if (session.isComplete()) matches.complete(session.checkpointOwner(), id, session.completedMatch());
@@ -405,23 +414,34 @@ public final class SetupApplication {
 		return changed;
 	}
 
+	private void queueCompletion(String id) {
+		pendingCompletions.putIfAbsent(id, new PendingCompletion(clock.millis(), INITIAL_COMPLETION_BACKOFF_MILLIS));
+	}
+
 	/** At most one resident terminal result per tick, within the existing worker deadline. */
 	private void retryPendingCompletion(Map<String, JsonObject> changed) {
 		if (pendingCompletions.isEmpty() || timing.budget() != null
 			&& timing.budget().allowanceMillis(1, JdbcConnections.WORK_RESERVE_MILLIS) == 0) return;
-		String id = pendingCompletions.removeFirst();
-		SetupSession session = sessions.get(id);
+		long now = clock.millis();
+		Map.Entry<String, PendingCompletion> next = pendingCompletions.entrySet().stream()
+			.filter(entry -> entry.getValue().retryAt() <= now).findFirst().orElse(null);
+		if (next == null) return;
+		String id = next.getKey();
 		try {
+			SetupSession session = sessions.get(id);
 			String owner = session.checkpointOwner();
 			MatchDocument document = matches.loadForSetup(owner, id).document;
 			matches.completeLoaded(owner, document, session.completedMatch());
 			changed.put(id, session.decorateSaveResume(session.reply("completion", "ACCEPTED", false, "home")).get("state").asObject());
 			release(id);
 			completedReleases++;
-		} catch (SQLException | MatchService.OutcomeUnknown retryable) {
-			pendingCompletions.add(id); // Rotate so one unavailable result cannot block the others.
 		} catch (MatchService.Failure rejected) {
 			release(id);
+			persistenceLog.pendingCompletionFailed(id, rejected);
+		} catch (SQLException | RuntimeException failure) {
+			// Keep the match queued and let other eligible results run first.
+			pendingCompletions.putLast(id, next.getValue().afterFailure(clock.millis()));
+			persistenceLog.pendingCompletionFailed(id, failure);
 		}
 	}
 
@@ -500,15 +520,14 @@ public final class SetupApplication {
 				completedReleases++;
 				return outcome(response, true);
 			}
+			// The next resident request can checkpoint abandonment or restore maintenance with a fresh budget.
+			if (cold && "load".equals(operation))
+				return outcome(session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)), false);
 			if (session.abandonIfInactive(clock.millis())) {
 				checkpoint(owner, id, session);
 				release(id);
 				return outcome(failure(requestId, "MATCH_ABANDONED"), false);
 			}
-			// A cold read serves the durable revision. A later task can checkpoint restore maintenance
-			// with a fresh budget, even if this request had enough allowance to start a write.
-			if (cold && "load".equals(operation))
-				return outcome(session.decorateSaveResume(session.reply(requestId, "ACCEPTED", false, role)), false);
 			boolean readOnly = "load".equals(operation) || "concessionStatus".equals(operation);
 			boolean expiredProposal = session.expireSaveResumeProposal(clock.millis());
 			String maintenanceBefore = readOnly ? session.reactiveMaintenanceState() : null;
@@ -582,7 +601,7 @@ public final class SetupApplication {
 		try { matches.completeLoaded(owner, document, session.completedMatch()); }
 		catch (JdbcConnections.NotStarted | JdbcConnections.DeadlineExpired failure) {
 			if (recovery == null) throw failure;
-			pendingCompletions.add(document.matchId);
+			queueCompletion(document.matchId);
 			throw new CompletionPending(failure);
 		}
 	}

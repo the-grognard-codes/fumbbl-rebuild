@@ -4,7 +4,7 @@
 
 - Log match persistence failures with request and SQL diagnostics. Computer coaches reload and retry transient failures with bounded backoff.
 
-- Restore long matches from durable state after a refused checkpoint write, and retry saving final results without waiting for coaches to reconnect.
+- Restore long matches from durable state after a refused checkpoint write. Cold loads defer recording abandonment to the next request, and failed final result writes retry with increasing delays without waiting for coaches to reconnect.
 
 - Reduce long-match checkpoint pauses by building the recovery journal cursor without decoding the checkpoint just written.
 
