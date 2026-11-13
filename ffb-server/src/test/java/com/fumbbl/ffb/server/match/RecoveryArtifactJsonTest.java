@@ -41,7 +41,10 @@ class RecoveryArtifactJsonTest {
 		JsonObject payload = new JsonObject().add("name", "\ud83c\udfc8\u00e9\n\ud800");
 		String expected = legacy(payload);
 		int bytes = expected.getBytes(StandardCharsets.UTF_8).length;
-		assertEquals(expected, new RecoveryArtifactJson().encode(payload, bytes));
+		RecoveryArtifactJson.Encoded encoded = new RecoveryArtifactJson().encodeWithMetadata(payload, bytes);
+		assertEquals(expected, encoded.json());
+		assertEquals(bytes, encoded.bytes());
+		assertEquals(new JsonDigest().sha256(payload), encoded.checksum());
 		MatchService.Failure failure = assertThrows(MatchService.Failure.class,
 			() -> new RecoveryArtifactJson().encode(payload, bytes - 1));
 		assertEquals("RECOVERY_LIMIT", failure.code);

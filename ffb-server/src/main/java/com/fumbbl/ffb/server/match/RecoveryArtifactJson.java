@@ -12,6 +12,10 @@ final class RecoveryArtifactJson {
 	private static final int ENVELOPE_BYTES = PREFIX.length() + CHECKSUM.length() + 64 + SUFFIX.length();
 
 	String encode(JsonObject payload, int maxBytes) {
+		return encodeWithMetadata(payload, maxBytes).json();
+	}
+
+	Encoded encodeWithMetadata(JsonObject payload, int maxBytes) {
 		// Use exactly the same minimal-json text for the checksum and the envelope. Rewriting
 		// the tree for the envelope otherwise traverses all native and transcript history twice.
 		String json = payload.toString();
@@ -19,6 +23,8 @@ final class RecoveryArtifactJson {
 		if ((long) encoded.length + ENVELOPE_BYTES > maxBytes)
 			throw new MatchService.Failure("RECOVERY_LIMIT");
 		String checksum = new JsonDigest().sha256(encoded);
-		return PREFIX + json + CHECKSUM + checksum + SUFFIX;
+		return new Encoded(PREFIX + json + CHECKSUM + checksum + SUFFIX, checksum, encoded.length + ENVELOPE_BYTES);
 	}
+
+	record Encoded(String json, String checksum, int bytes) { }
 }

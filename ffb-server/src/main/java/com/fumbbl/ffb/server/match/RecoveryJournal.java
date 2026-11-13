@@ -27,6 +27,11 @@ final class RecoveryJournal {
 			session == null ? -1 : session.recoveryNativeEpoch());
 	}
 
+	/** A freshly encoded full checkpoint starts a new chain with no journal entries. */
+	Cursor checkpointCursor(JsonObject payload, RecoveryArtifactJson.Encoded artifact, int[] counts, long nativeEpoch) {
+		return new Cursor(counts, signature(payload), artifact.checksum(), 0, 0, artifact.bytes(), nativeEpoch);
+	}
+
 	Change change(SetupSession session, Cursor before, long generation) {
 		if (before.nativeEpoch >= 0 && before.nativeEpoch != session.recoveryNativeEpoch()) return Change.compact();
 		int[] after = session.recoveryJournalCounts();

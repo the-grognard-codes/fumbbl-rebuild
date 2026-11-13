@@ -397,8 +397,10 @@ public final class SetupSession {
 	}
 
 	public String recoveryArtifact() {
-		return new RecoveryArtifactJson().encode(ordered(recoveryPayload(null)).asObject(), MAX_RECOVERY_ARTIFACT_BYTES);
+		return new RecoveryArtifactJson().encode(orderedRecoveryPayload(), MAX_RECOVERY_ARTIFACT_BYTES);
 	}
+
+	JsonObject orderedRecoveryPayload() { return ordered(recoveryPayload(null)).asObject(); }
 
 	/** Bounded native continuation plus only the history appended after the committed cursor. */
 	JsonObject recoveryJournalPayload(int[] from) { return recoveryPayload(from); }

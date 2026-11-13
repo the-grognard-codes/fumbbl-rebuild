@@ -64,6 +64,11 @@ Start with a small native reproduction and one falsifiable hypothesis at a time.
 
 ## Completion Notes
 
+November 12 bounded correction: [the cursor outcome and matched phase timings](cursor-compaction-outcome.md)
+cover the [soak finding](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489#issuecomment-6838571952).
+Fresh compaction checkpoints now supply their cursor from serialization metadata;
+full-history serialization remains a measured cost.
+
 November 8 follow-up: the [retained-history scaling experiment](history-scaling-outcome.md) measured identical native movement/pass actions from fresh through 1,024 additional retained decisions. Actual journal compaction grew about 20–23×; the largest measured phase was cursor preparation from the full serialized checkpoint. Ordinary append costs grew much less. This is a controlled server-side reproduction, with SQL/browser/live-match limits stated in the report.
 
 Delivery: [PR #497](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/497) merged on November 8, 2026 after validation CI passed. The owner approved the implementation; this child investigation remains open for its documented follow-up/review. See the [delivery outcome](outcome.md#delivery).

@@ -302,7 +302,8 @@ public final class SetupApplication {
 				}
 				compacting = true;
 			}
-			String after = recoveryArtifact(session);
+			FullCheckpoint checkpoint = fullCheckpoint(session, recovery.supportsJournal());
+			String after = checkpoint.json();
 			timing.value(BrowserRequestTiming.Value.CHECKPOINT_PATH, compacting ? 2 : 3);
 			byte[] previous = committedFingerprints.get(id);
 			if (previous == null) throw new MatchService.Failure("RECOVERY_CORRUPT");
@@ -320,11 +321,7 @@ public final class SetupApplication {
 			}
 			generations.put(id, generation + 1);
 			committedFingerprints.put(id, fingerprint);
-			if (recovery.supportsJournal()) {
-				try (BrowserRequestTiming.Scope prepare = timing.span(BrowserRequestTiming.Phase.RECOVERY_CURSOR)) {
-					journalCursors.put(id, journal.cursor(new RecoveryRepository.Record(id, generation + 1, after), session));
-				}
-			}
+			if (checkpoint.cursor() != null) journalCursors.put(id, checkpoint.cursor());
 			pendingRestoreCheckpoints.remove(id);
 			if (session.isFailed()) { release(id); failedReleases++; }
 		} catch (SQLException | RuntimeException failure) {
@@ -333,11 +330,21 @@ public final class SetupApplication {
 		}
 	}
 
-	private String recoveryArtifact(SetupSession session) {
+	private FullCheckpoint fullCheckpoint(SetupSession session, boolean withCursor) {
+		JsonObject payload;
+		RecoveryArtifactJson.Encoded artifact;
 		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_SERIALIZE)) {
-			return session.recoveryArtifact();
+			if (!withCursor) return new FullCheckpoint(session.recoveryArtifact(), null);
+			payload = session.orderedRecoveryPayload();
+			artifact = new RecoveryArtifactJson().encodeWithMetadata(payload, RecoveryJournal.MAX_ARTIFACT_BYTES);
+		}
+		try (BrowserRequestTiming.Scope ignored = timing.span(BrowserRequestTiming.Phase.RECOVERY_CURSOR)) {
+			return new FullCheckpoint(artifact.json(), journal.checkpointCursor(payload, artifact,
+				session.recoveryJournalCounts(), session.recoveryNativeEpoch()));
 		}
 	}
+
+	private record FullCheckpoint(String json, RecoveryJournal.Cursor cursor) { }
 
 	private JsonObject preparedFailure(JsonObject request, String code) {
 		return new JsonObject().add("version", 1).add("type", "preparedMatch").add("requestId", request.get("requestId"))
