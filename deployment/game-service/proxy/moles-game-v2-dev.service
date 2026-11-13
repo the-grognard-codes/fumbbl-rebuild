@@ -1,4 +1,5 @@
-# Candidate only. No installer enables this unit; drain/acceptance gates still apply.
+# Candidate only. Enable at cutover after recovery acceptance. Loopback staging also uses Restart=on-failure.
+# Each systemd invocation gets its own dump filename, even if a PID is reused.
 [Unit]
 Description=DEV marker-6 authoritative game runtime (loopback)
 After=network-online.target mariadb.service

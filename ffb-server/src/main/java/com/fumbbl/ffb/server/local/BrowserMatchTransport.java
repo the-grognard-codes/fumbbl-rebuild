@@ -224,23 +224,16 @@ public class BrowserMatchTransport {
 		try {
 			JsonObject request = JsonObject.readFrom(message);
 			if (request.getInt("version", -1) != 2) return null;
-			String type = request.getString("type", "");
+			BrowserV2RequestType type = BrowserV2RequestType.fromWireName(request.getString("type", ""));
 			boolean advisory = switch (type) {
-				case "browse", "currentMatches", "movementRange", "movementPreview", "routePreview" -> true;
-				case "diagnostics" -> "probe".equals(request.getString("operation", ""));
+				case BROWSE, CURRENT_MATCHES, MOVEMENT_RANGE, MOVEMENT_PREVIEW, ROUTE_PREVIEW -> true;
+				case DIAGNOSTICS -> "probe".equals(request.getString("operation", ""));
 				default -> false;
-			};
-			// Never send arbitrary request fields or a full request body to the fatal log.
-			String logType = switch (type) {
-				case "authenticate", "authenticateComputer", "browse", "catalog", "computer", "currentMatches",
-					"diagnostics", "matchChat", "matchResult", "matchTranscript", "movementPreview", "movementRange",
-					"preparedMatch", "routePreview", "savedTeam", "setup", "skillUsePreferences", "validateTeam", "watch" -> type;
-				default -> "INGRESS";
 			};
 			JsonValue id = request.get("matchId");
 			String matchId = id != null && id.isString() ? id.asString() : null;
 			if (matchId != null && (matchId.length() != 36 || !MATCH_ID.matcher(matchId).matches())) matchId = null;
-			return new RequestWork(logType, matchId, advisory);
+			return new RequestWork(type.wireName(), matchId, advisory);
 		} catch (RuntimeException malformed) { return null; }
 	}
 

@@ -50,3 +50,19 @@ Validation:
 No live hosted rollout or full browser/DB crash-and-reconnect run was performed.
 The worker exit, Docker and systemd restart policies, and native checkpoint
 recovery were tested separately.
+
+The [review follow-up](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/528#issuecomment-6843454310)
+checked two more launch cases. An isolated Docker container with an unwritable
+dump destination logged a warning, wrote a synthetic OOM dump in `/tmp`, and
+exited with status 3. That temporary dump is discarded when the container stops.
+Local systemd passed the candidate's exact `-XX:HeapDumpPath` argument to a test
+process and expanded it to two distinct invocation IDs across an automatic
+restart. The invocation ID avoids a filename collision if the host reuses a PID.
+
+The unit and runbook now distinguish the restart policy while the service is
+running from the recovery and cutover approval required to enable it. A new
+health route test verifies that a non-loopback peer receives 404 even if it
+sends a loopback forwarding header. Protocol dispatch and fatal logging use
+the same request type names, so new types need only one wire name declaration.
+The review rerun of `tools/target-build.ps1 test -Module ffb-server` found 828
+server tests, with zero failures or errors and 15 opt-in skips.

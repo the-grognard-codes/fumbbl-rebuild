@@ -130,9 +130,11 @@ The new launcher is `com.fumbbl.ffb.server.local.NativeMarker6ServerMain`.
 Its properties file must match the packaged native DEV contract exactly: no
 missing/extra properties, JDBC parameters, alternate secrets, debug or legacy
 flags are accepted. The [systemd candidate](moles-game-v2-dev.service) uses a
-distinct OS account and no bind capabilities. When installed, it restarts after
-a failure with a five-second delay, subject to systemd's start rate limit. A JVM
-heap OOM writes a private dump under the state directory before exiting.
+distinct OS account and no bind capabilities. Enable it at cutover after
+recovery acceptance. Once started, including during loopback staging, it
+restarts after a failure with a five-second delay, subject to systemd's start
+rate limit.
+A JVM heap OOM writes a private dump under the state directory before exiting.
 The local-only `http://127.0.0.1:22231/health/engine` returns 204 when the worker
 is making progress and 503 if it has stalled for 10 seconds. The proxy does
 not forward this endpoint.
