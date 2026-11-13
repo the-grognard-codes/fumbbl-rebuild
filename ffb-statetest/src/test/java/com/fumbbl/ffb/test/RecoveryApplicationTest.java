@@ -569,6 +569,33 @@ class RecoveryApplicationTest {
 
 	private SetupApplication app(Fixture fixture) throws Exception { return new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery); }
 
+	@Test void rejectedCheckpointReloadsBeforeAFreshDecisionAndCommitsOnlyOnce() throws Exception {
+		Fixture fixture = fixture();
+		SetupApplication application = app(fixture);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		JsonObject before = accepted(application.handle("home", load(fixture.id, "before"))).get("state").asObject();
+		RecoveryRepository.Record durable = fixture.recovery.rows.get(fixture.id);
+		String role = actor(before);
+		fixture.recovery.failure = Failure.BEFORE_WRITE;
+		SetupApplication.HandleOutcome failure = application.handleWithOutcome(role, choice(fixture.id, "rejected", before, "heads"));
+		assertEquals("PERSISTENCE_FAILED", failure.response().getString("code", null));
+		assertFalse(failure.publish());
+		assertEquals(durable.generation + 1, fixture.recovery.lastAttempt.generation);
+		assertEquals(before.getInt("revision", -1) + 1, JsonObject.readFrom(fixture.recovery.lastAttempt.json)
+			.get("payload").asObject().getInt("revision", -1), "The native action ran before the checkpoint failed");
+		assertEquals(durable, fixture.recovery.rows.get(fixture.id));
+
+		JsonObject reloaded = accepted(application.handle("home", load(fixture.id, "after-failure"))).get("state").asObject();
+		assertEquals(before.get("revision"), reloaded.get("revision"));
+		assertEquals(before.get("prompt"), reloaded.get("prompt"));
+		JsonObject fresh = choice(fixture.id, "fresh-decision", reloaded, "heads");
+		JsonObject response = accepted(application.handle(actor(reloaded), fresh));
+		assertFalse(response.getBoolean("duplicate", true));
+		assertEquals(before.getInt("revision", -1) + 1, response.get("state").asObject().getInt("revision", -1));
+		assertTrue(accepted(application.handle(actor(reloaded), fresh)).getBoolean("duplicate", false));
+		assertEquals(durable.generation + 1, fixture.recovery.rows.get(fixture.id).generation);
+	}
+
 	@Test void defaultDeploymentCheckpointFailureAndLostAcknowledgementReconcileAtomically() throws Exception {
 		for (Failure failure : new Failure[] { Failure.COMMITTED_UNKNOWN, Failure.BEFORE_WRITE }) {
 			Fixture fixture = fixture();
@@ -721,8 +748,10 @@ class RecoveryApplicationTest {
 		private final Map<String, Record> rows = new LinkedHashMap<>();
 		private int reads, writes;
 		private Failure failure;
+		private Record lastAttempt;
 		public Record find(String matchId) { reads++; return rows.get(matchId); }
 		public boolean save(Record record, long expected) throws SQLException {
+			lastAttempt = record;
 			if (full && expected == 0 && !rows.containsKey(record.matchId)) throw new RecoveryRepository.RetentionLimit();
 			writes++;
 			Failure next = failure; failure = null;
