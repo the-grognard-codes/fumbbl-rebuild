@@ -22,6 +22,8 @@ A condensed archive of completed Moles Under the Pitch work, grouped by area. En
   - [Saved Human and Orc team colors](#saved-human-and-orc-team-colors)
   - [Saved deployment formations](#saved-deployment-formations)
 - [Native engine](#native-engine)
+  - [Engine worker recovery and heap dumps](#engine-worker-recovery-and-heap-dumps)
+  - [Faster recovery journal compaction](#faster-recovery-journal-compaction)
   - [Local Riotous Rookies names and standalone service cleanup](#local-riotous-rookies-names-and-standalone-service-cleanup)
 - [Movement and action planning](#movement-and-action-planning)
   - [Movement-range rollback](#movement-range-rollback)
@@ -208,6 +210,17 @@ Consolidated the original website DEV/PROD proposal and the subsequent monorepo 
 - Scope and evidence: issues [#465](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/465), [#466](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/466), and [#467](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/467), [approved design](deployment-formations.md), and [implementation outcome](deployment-formations-outcome.md).
 
 ## Native engine
+
+### Engine worker recovery and heap dumps
+
+- Fatal engine worker errors log the request type and match when available, then halt the JVM so the dev supervisor can restart it. The loopback health check detects a worker that stops making progress for ten seconds.
+- JVM heap exhaustion triggers a private dump and process exit. Dev-local retains dumps in a host bind mount, with a temporary fallback if the mount is unwritable. The hosted dev unit uses a private state directory and restarts on failure.
+- Local validation covered checkpoint recovery after an interrupted write, Docker restart and dump retention, and systemd restart with distinct dump paths. Hosted rollout and heap retention analysis are separate work. Merged November 12, 2026 as `bde24d170`. [Issue #523](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/523) · [PR #528](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/528) · [Validation outcome](../docs/specs/engine-worker-fail-fast/outcome.md)
+
+### Faster recovery journal compaction
+
+- Full checkpoints build the next journal cursor from serialization results and install it after the durable save. Native restore and exact retry tests cover the checkpoint boundary.
+- At 1,024 retained setup decisions, median cursor time fell from 338–398 ms to 1–3 ms in the matched review rerun. Full serialization still grows with history, and live soak acceptance remains open under #489. Merged November 12, 2026 as `53f2b0cb3`. [Issue #489](https://github.com/the-grognard-codes/fumbbl-rebuild/issues/489) · [PR #529](https://github.com/the-grognard-codes/fumbbl-rebuild/pull/529) · [Phase timings](../docs/specs/performance-capture-followup/cursor-compaction-outcome.md)
 
 ### Local Riotous Rookies names and standalone service cleanup
 

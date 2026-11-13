@@ -1,5 +1,21 @@
 [
   {
+    "number": 529,
+    "title": "Reduce long-match checkpoint pauses",
+    "summary": "Full checkpoints now reuse serialization results to prepare the recovery journal cursor. Matched long-history tests showed shorter compaction pauses and verified that matches still recover exactly.",
+    "category": "Platform",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/529",
+    "mergedAt": "2026-11-13T04:46:34Z"
+  },
+  {
+    "number": 528,
+    "title": "Restart dev game servers after fatal engine failures",
+    "summary": "Dev game servers can restart after a fatal engine worker error or JVM heap exhaustion. A loopback health check detects a stalled worker, and heap dumps help diagnose out-of-memory failures.",
+    "category": "Platform",
+    "url": "https://github.com/the-grognard-codes/fumbbl-rebuild/pull/528",
+    "mergedAt": "2026-11-13T04:34:47Z"
+  },
+  {
     "number": 521,
     "title": "Bound lobby reads and measure worker performance",
     "summary": "Lobby refreshes now share a read limit, batch stored-match reads and preserve the current data and selection while busy. Added repeatable performance and recovery measurements, distinguishing 32 resident matches from the 16-connection limit. Healthy latency targets remain follow-up work.",
