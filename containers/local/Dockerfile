@@ -22,4 +22,5 @@ WORKDIR /app
 COPY --from=build /out/ /app/
 RUN mkdir -p /data/backup /app/htdocs && chown -R 10001:10001 /data /app
 USER 10001:10001
-ENTRYPOINT ["java", "-Xms128m", "-Xmx768m", "-cp", "FantasyFootballServer.jar:lib/*", "com.fumbbl.ffb.server.local.LocalServerMain", "/config/server.ini"]
+# The JVM is PID 1 on every restart; give each run a fresh dump filename.
+ENTRYPOINT ["/bin/sh", "-ec", "umask 077; dump_root=${FFB_HEAP_DUMP_ROOT:-/tmp}; if ! [ -d \"$dump_root\" ] || ! [ -w \"$dump_root\" ] || ! [ -x \"$dump_root\" ]; then echo \"Heap dump directory $dump_root is unavailable; using /tmp (dumps will be lost on restart)\" >&2; dump_root=/tmp; fi; dump_id=$(cat /proc/sys/kernel/random/uuid); exec java -Xms128m -Xmx768m -XX:+HeapDumpOnOutOfMemoryError \"-XX:HeapDumpPath=$dump_root/java-$dump_id.hprof\" -XX:+ExitOnOutOfMemoryError -cp 'FantasyFootballServer.jar:lib/*' com.fumbbl.ffb.server.local.LocalServerMain /config/server.ini"]

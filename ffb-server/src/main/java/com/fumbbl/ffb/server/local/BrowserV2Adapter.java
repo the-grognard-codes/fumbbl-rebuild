@@ -110,10 +110,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			requestId = request.getString("requestId", null);
 			if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
 			if (request.getInt("version", -1) != 2) { fail(connection, requestId, "UNSUPPORTED_VERSION"); return; }
-			String type = request.getString("type", "");
+			BrowserV2RequestType type = BrowserV2RequestType.fromWireName(request.getString("type", ""));
 			timing.selectRequest(request);
 			enableDiagnosticsReplies(connection);
-			if ("authenticateComputer".equals(type)) {
+			if (type == BrowserV2RequestType.AUTHENTICATE_COMPUTER) {
 				publisher.liveTranscript(connection, false);
 				fields(request, "version", "type", "requestId", "serviceToken");
 				if (principals.containsKey(connection) || computerConnections.contains(connection)) {
@@ -127,7 +127,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("requestId", requestId).add("code", "ACCEPTED"));
 				return;
 			}
-			if ("authenticate".equals(type)) {
+			if (type == BrowserV2RequestType.AUTHENTICATE) {
 				publisher.liveTranscript(connection, false);
 				List<String> authenticationFields = new ArrayList<>(Arrays.asList("version", "type", "requestId", "bearer"));
 				if (request.get("purpose") != null) authenticationFields.add("purpose");
@@ -163,7 +163,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				return;
 			}
 			AuthenticatedPrincipal principal = principals.get(connection);
-			if ("diagnostics".equals(type)) {
+			if (type == BrowserV2RequestType.DIAGNOSTICS) {
 				String operation = request.getString("operation", "");
 				if ("configure".equals(operation)) {
 					if (request.get("detailVersion") != null) {
@@ -198,7 +198,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				}
 				return;
 			}
-			if ("skillUsePreferences".equals(type)) {
+			if (type == BrowserV2RequestType.SKILL_USE_PREFERENCES) {
 				principal = access.require(principal, ApplicationScope.PLAYER);
 				String operation = request.getString("operation", "");
 				if ("load".equals(operation)) fields(request, "version", "type", "requestId", "operation");
@@ -212,7 +212,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("code", "ACCEPTED").add("preferences", preferences.toJson()));
 				return;
 			}
-			if ("currentMatches".equals(type)) {
+			if (type == BrowserV2RequestType.CURRENT_MATCHES) {
 				fields(request, "version", "type", "requestId", "after");
 				JsonValue after = request.get("after");
 				if (!after.isNull() && (!after.isString()
@@ -257,7 +257,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 						? JsonValue.valueOf(memberships.get(count - 1).matchId) : JsonValue.NULL));
 				return;
 			}
-			if ("browse".equals(type)) {
+			if (type == BrowserV2RequestType.BROWSE) {
 				JsonValue requestedDetails = request.get("includeDetails");
 				if (requestedDetails == null) fields(request, "version", "type", "requestId");
 				else fields(request, "version", "type", "requestId", "includeDetails");
@@ -285,14 +285,14 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				sendLobby(connection, budget, new JsonObject().add("type", "browse").add("requestId", requestId).add("code", "ACCEPTED").add("matches", list));
 				return;
 			}
-			if ("watch".equals(type)) {
+			if (type == BrowserV2RequestType.WATCH) {
 				fields(request, "version", "type", "requestId", "matchId");
 				String id = request.get("matchId").asString();
 				JsonObject state = publisher.watch(connection, principal, id, requestId);
 				preparationSubscriptions.remove(connection);
 				publisher.sendState(connection, state, publisher.transcript(id, state.get("state").asObject())); return;
 			}
-			if ("matchTranscript".equals(type)) {
+			if (type == BrowserV2RequestType.MATCH_TRANSCRIPT) {
 				fields(request, "version", "type", "requestId", "matchId", "from", "limit");
 				String id = request.get("matchId").asString();
 				if (!id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) throw new IllegalArgumentException();
@@ -308,7 +308,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("code", "ACCEPTED").add("matchId", id).add("page", page));
 				return;
 			}
-			if ("routePreview".equals(type)) {
+			if (type == BrowserV2RequestType.ROUTE_PREVIEW) {
 				fields(request, "version", "type", "requestId", "matchId", "expectedRevision", "waypoints");
 				principal = access.require(principal, ApplicationScope.PLAYER);
 				String id = request.get("matchId").asString();
@@ -322,8 +322,8 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					.add("code", "ACCEPTED").add("matchId", id).add("route", route));
 				return;
 			}
-			if ("movementRange".equals(type) || "movementPreview".equals(type)) {
-				boolean preview = "movementPreview".equals(type);
+			if (type == BrowserV2RequestType.MOVEMENT_RANGE || type == BrowserV2RequestType.MOVEMENT_PREVIEW) {
+				boolean preview = type == BrowserV2RequestType.MOVEMENT_PREVIEW;
 				if (preview && request.get("targetSquare") != null) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
 					"playerId", "kind", "targetPlayerId", "targetSquare", "waypoints");
 				else if (preview) fields(request, "version", "type", "requestId", "matchId", "expectedRevision",
@@ -356,11 +356,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 						request.get("targetSquare") == null ? null : request.get("targetSquare").asObject(), waypoints);
 				} else result = setup.movementRange(role, id, request.get("expectedRevision").asInt(),
 					request.get("playerId").asString());
-				send(connection, new JsonObject().add("type", type).add("requestId", requestId)
+				send(connection, new JsonObject().add("type", type.wireName()).add("requestId", requestId)
 					.add("code", "ACCEPTED").add("matchId", id).add(preview ? "plan" : "range", result));
 				return;
 			}
-			if ("matchChat".equals(type)) {
+			if (type == BrowserV2RequestType.MATCH_CHAT) {
 				String operation = request.getString("operation", "");
 				if ("load".equals(operation)) fields(request, "version", "type", "requestId", "operation", "matchId", "from", "limit");
 				else if ("send".equals(operation)) fields(request, "version", "type", "requestId", "operation", "matchId", "text");
@@ -394,10 +394,10 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			principal = access.require(principal, ApplicationScope.PLAYER);
 			request.set("version", 1); // Internal R2 contract remains version 1.
 			JsonObject response;
-			if ("computer".equals(type)) {
+			if (type == BrowserV2RequestType.COMPUTER) {
 				handleComputer(connection, request);
 				return;
-			} else if ("setup".equals(type)) {
+			} else if (type == BrowserV2RequestType.SETUP) {
 				String id = request.get("matchId").asString();
 				String role = access.playerRole(principal, id);
 				SetupApplication.HandleOutcome outcome = setup.handleWithOutcome(role, request);
@@ -413,11 +413,11 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 				publisher.sendState(connection, response, transcript);
 				if (outcome.publish()) publisher.publish(id, connection, state.asObject(), transcript);
 				return;
-			} else if ("matchResult".equals(type)) {
+			} else if (type == BrowserV2RequestType.MATCH_RESULT) {
 				String role = access.playerRole(principal, request.get("matchId").asString());
 				response = new MatchResultJson().handle(matches, role, request);
 			}
-			else if ("preparedMatch".equals(type)) {
+			else if (type == BrowserV2RequestType.PREPARED_MATCH) {
 				String operation = request.getString("operation", "");
 				if ("release".equals(operation)) {
 					fields(request, "version", "type", "operation", "requestId", "matchId");
@@ -432,18 +432,18 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 					response = "activate".equals(operation) ? setup.activate(role, request.toString())
 						: new MatchJson().handle(matches, role, request.toString());
 				} else response = preparation.handle(principal.accountId(), request);
-			} else if ("savedTeam".equals(type)) response = teams.handle(principal.accountId(), request.toString());
-			else if ("catalog".equals(type)) {
+			} else if (type == BrowserV2RequestType.SAVED_TEAM) response = teams.handle(principal.accountId(), request.toString());
+			else if (type == BrowserV2RequestType.CATALOG) {
 				if (request.get("rosterId") == null) fields(request, "version", "type", "requestId");
 				else fields(request, "version", "type", "requestId", "rosterId");
 				response = catalog.catalog(requestId, request.get("rosterId") == null ? "human" : request.get("rosterId").asString());
 			}
-			else if ("validateTeam".equals(type)) { fields(request, "version", "type", "requestId", "draft");
+			else if (type == BrowserV2RequestType.VALIDATE_TEAM) { fields(request, "version", "type", "requestId", "draft");
 				if (request.get("draft").asObject().getInt("draftVersion", -1) != 2) throw new IllegalArgumentException("Unsupported draft version");
 				response = catalog.evaluate(requestId, request.get("draft").asObject()); }
 			else { fail(connection, requestId, "UNSUPPORTED_MESSAGE"); return; }
 			send(connection, response);
-			if ("preparedMatch".equals(type) && "ACCEPTED".equals(response.getString("code", ""))) {
+			if (type == BrowserV2RequestType.PREPARED_MATCH && "ACCEPTED".equals(response.getString("code", ""))) {
 				String id = response.get("document").asObject().getString("matchId", null);
 				preparationSubscriptions.put(connection, id);
 				preparationCompletedAt.remove(connection);
@@ -468,15 +468,15 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 	}
 
 	private void handleComputerConnection(BrowserConnection connection, JsonObject request) throws SQLException {
-		String type = request.getString("type", "");
+		BrowserV2RequestType type = BrowserV2RequestType.fromWireName(request.getString("type", ""));
 		String id = request.getString("requestId", null);
-		if ("computer".equals(type) && "register".equals(request.getString("operation", ""))) {
+		if (type == BrowserV2RequestType.COMPUTER && "register".equals(request.getString("operation", ""))) {
 			fields(request, "version", "type", "operation", "requestId");
 			List<String> activeMatches = preparation.activeComputerMatches();
 			computerDispatcher = connection;
 			computerResponse(connection, id, "READY");
 			sendComputerJobs(activeMatches);
-		} else if ("setup".equals(type)) {
+		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
 			if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
 			request.set("version", 1);

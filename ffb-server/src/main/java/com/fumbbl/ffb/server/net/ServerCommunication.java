@@ -22,36 +22,84 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntConsumer;
+import java.util.function.LongSupplier;
+
 /** Serializes browser work and records native engine events for projection/recovery. */
 public class ServerCommunication implements Runnable {
+	private static final long STALL_NANOS = TimeUnit.SECONDS.toNanos(10);
 	private final FantasyFootballServer server;
+	private final LongSupplier nanos;
+	private final IntConsumer halt;
 	private final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
 	private final Object enqueueLock = new Object();
 	private final Runnable shutdownMarker = () -> { };
 	private final CountDownLatch stopped = new CountDownLatch(1);
-	private boolean stopping;
+	private volatile boolean stopping;
+	private volatile boolean failed;
 	private volatile Thread workerThread;
+	private volatile long lastProgress;
+	private String workType;
+	private String matchId;
 
-	public ServerCommunication(FantasyFootballServer server) { this.server = server; }
+	public ServerCommunication(FantasyFootballServer server) {
+		this(server, System::nanoTime, Runtime.getRuntime()::halt);
+	}
+
+	ServerCommunication(FantasyFootballServer server, LongSupplier nanos, IntConsumer halt) {
+		this.server = server;
+		this.nanos = nanos;
+		this.halt = halt;
+	}
 
 	public boolean execute(Runnable work) {
 		if (work == null) return false;
 		synchronized (enqueueLock) {
-			if (stopping && Thread.currentThread() != workerThread) return false;
+			if (failed || stopping && Thread.currentThread() != workerThread) return false;
 			return queue.offer(work);
 		}
 	}
 
+	/** Called by the worker after selecting the actual task from the browser transport lanes. */
+	public void describeWork(String type, String matchId) {
+		if (Thread.currentThread() != workerThread) return;
+		this.workType = type;
+		this.matchId = matchId;
+	}
+
+	/** A healthy idle worker wakes once a second; a busy one must return to the queue. */
+	public boolean isHealthy() {
+		Thread worker = workerThread;
+		return worker != null && worker.isAlive() && !stopping && !failed
+			&& nanos.getAsLong() - lastProgress < STALL_NANOS;
+	}
+
 	@Override public void run() {
-		workerThread = Thread.currentThread();
 		try {
+			lastProgress = nanos.getAsLong();
+			workerThread = Thread.currentThread();
 			while (true) {
 				Runnable work;
-				try { work = queue.take(); }
+				try { work = queue.poll(1, TimeUnit.SECONDS); }
 				catch (InterruptedException interrupted) { continue; }
-				try { work.run(); }
-				catch (RuntimeException failure) { server.getDebugLog().logWithOutGameId(failure); }
+				lastProgress = nanos.getAsLong();
+				if (work != null) {
+					try { work.run(); }
+					catch (RuntimeException failure) { server.getDebugLog().logWithOutGameId(failure); }
+					describeWork(null, null);
+					lastProgress = nanos.getAsLong();
+				}
 				synchronized (enqueueLock) { if (stopping && queue.isEmpty()) break; }
+			}
+		} catch (Throwable failure) {
+			failed = true;
+			try {
+				System.err.println("Fatal browser-engine failure: type=" + (workType == null ? "unknown" : workType)
+					+ (matchId == null ? "" : " matchId=" + matchId));
+				failure.printStackTrace(System.err);
+			} finally {
+				// Do not drain work or invoke shutdown hooks after an engine invariant fails.
+				halt.accept(1);
 			}
 		} finally { stopped.countDown(); }
 	}

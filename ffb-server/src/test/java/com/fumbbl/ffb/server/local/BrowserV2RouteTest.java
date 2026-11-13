@@ -14,6 +14,9 @@ import java.util.Base64;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.server.Server;
@@ -28,11 +31,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** Loopback contract for the v2-only servlet surface and WebSocket upgrade boundary. */
 class BrowserV2RouteTest {
 	private BrowserV2Adapter adapter;
+	private ServerCommunication communication;
 	private Server jetty;
 	private int port;
 
@@ -42,7 +48,7 @@ class BrowserV2RouteTest {
 
 	private void startJetty(String proxyProfile) throws Exception {
 		FantasyFootballServer server = mock(FantasyFootballServer.class);
-		ServerCommunication communication = mock(ServerCommunication.class);
+		communication = mock(ServerCommunication.class);
 		adapter = mock(BrowserV2Adapter.class);
 		when(server.getCommunication()).thenReturn(communication);
 		when(server.getProperty(anyString())).thenReturn(null);
@@ -59,6 +65,23 @@ class BrowserV2RouteTest {
 	}
 
 	@AfterEach void stopJetty() throws Exception { if (jetty != null) jetty.stop(); }
+
+	@Test void localHealthReportsEngineStatus() throws Exception {
+		when(communication.isHealthy()).thenReturn(true, false);
+		assertTrue(http("/health/engine").startsWith("HTTP/1.1 204"));
+		assertTrue(http("/health/engine").startsWith("HTTP/1.1 503"));
+	}
+
+	@Test void healthHidesStatusFromNonLoopbackPeersEvenWithForwardedLoopbackAddress() {
+		FantasyFootballServer server = mock(FantasyFootballServer.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+		when(request.getRemoteAddr()).thenReturn("192.0.2.10");
+		when(request.getHeader("X-Forwarded-For")).thenReturn("127.0.0.1");
+		new BrowserV2Runtime.EngineHealthServlet(server).doGet(request, response);
+		verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+		verifyNoInteractions(server);
+	}
 
 	@Test void devProxyHandoffRequiresExactPublicHostAndOrigin() throws Exception {
 		stopJetty(); startJetty("dev");
