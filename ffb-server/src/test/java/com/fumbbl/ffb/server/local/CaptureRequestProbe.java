@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.function.LongSupplier;
 
 /** Test-only bridge to the actual worker timing context, without enabling global production logs. */
 public final class CaptureRequestProbe {
@@ -57,11 +58,14 @@ public final class CaptureRequestProbe {
 	}
 
 	public Measurement measure(JsonObject request, Supplier<JsonObject> action) {
+		return measure(request, System::nanoTime, action);
+	}
+	public Measurement measure(JsonObject request, LongSupplier nanos, Supplier<JsonObject> action) {
 		List<String> lines = new ArrayList<>();
-		BrowserRequestTiming timing = new BrowserRequestTiming(System::nanoTime, Clock.systemUTC(), lines::add);
+		BrowserRequestTiming timing = new BrowserRequestTiming(nanos, Clock.systemUTC(), lines::add);
 		JsonObject response;
 		try (BrowserRequestTiming.Scope handling = timing.handling(
-			new BrowserRequestTiming.Request(System.nanoTime(), System::nanoTime, true))) {
+			new BrowserRequestTiming.Request(nanos.getAsLong(), nanos, true))) {
 			timing.selectRequest(request); response = action.get();
 		}
 		List<String> summaries = lines.stream().filter(line -> line.startsWith("FFB_BROWSER_TIMING ")).toList();

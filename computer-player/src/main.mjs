@@ -109,7 +109,7 @@ function applyState(raw) {
   if (next.matchId !== matchId || next.callerRole === 'spectator') throw Error('Unexpected match or role');
   if (!state || next.revision >= state.revision) state = next;
 }
-function recoverPersistence(operation) {
+function recoverPersistence(operation, code) {
   // This is a definite rejection. Discard the decision and wait for a correlated load
   // before choosing again. Unanswered requests still use the exact reconnect retry.
   pending = null;
@@ -119,13 +119,13 @@ function recoverPersistence(operation) {
   sentAt = 0;
   clearIdleTimer();
   if (persistenceRetries === persistenceBackoffMs.length) {
-    console.error(`[computer-player] Match ${matchId}: Persistence recovery exhausted after ${persistenceRetries} retries (${operation}: PERSISTENCE_FAILED).`);
+    console.error(`[computer-player] Match ${matchId}: Persistence recovery exhausted after ${persistenceRetries} retries (${operation}: ${code}).`);
     process.exitCode = persistenceExhaustedExitCode;
     stop();
     return;
   }
   const delay = persistenceBackoffMs[persistenceRetries++];
-  log(`Match ${matchId}: ${operation} rejected with PERSISTENCE_FAILED; reloading in ${delay} ms.`);
+  log(`Match ${matchId}: ${operation} returned ${code}; reloading in ${delay} ms.`);
   persistenceTimer = setTimeout(() => {
     persistenceTimer = undefined;
     // Broadcasts during backoff cannot establish the revision for a retry.
@@ -148,9 +148,10 @@ function receive(raw) {
     if (message.requestId !== null || message.code !== 'PUBLICATION_DELAYED' || message.matchId !== matchId || message.family !== 'STATE') throw Error('Invalid publication notification');
     requestLoad(); return;
   }
-  if ((message.type === 'error' || message.type === 'setupState') && message.code === 'PERSISTENCE_FAILED') {
-    if (message.requestId === pending?.requestId) { recoverPersistence(pending.operation); return; }
-    if (loadId && message.requestId === loadId) { recoverPersistence('load'); return; }
+  if ((message.type === 'error' || message.type === 'setupState')
+      && (message.code === 'PERSISTENCE_FAILED' || message.code === 'COMPLETION_PENDING')) {
+    if (message.requestId === pending?.requestId) { recoverPersistence(pending.operation, message.code); return; }
+    if (loadId && message.requestId === loadId) { recoverPersistence('load', message.code); return; }
   }
   if (message.type === 'error') {
     if (message.requestId === authenticationId || ['AUTHENTICATION_REQUIRED', 'AUTHENTICATION_FAILED', 'CONNECTION_REPLACED', 'AUTHORIZATION'].includes(message.code)) {

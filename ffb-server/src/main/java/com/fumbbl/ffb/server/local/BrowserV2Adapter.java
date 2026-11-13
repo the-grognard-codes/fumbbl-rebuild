@@ -483,7 +483,7 @@ public final class BrowserV2Adapter implements BrowserProtocol {
 			sendComputerJobs(activeMatches);
 		} else if (type == BrowserV2RequestType.SETUP) {
 			String matchId = request.get("matchId").asString();
-			if (!preparation.isComputerMatch(matchId)) throw new MatchService.Failure("NOT_FOUND");
+			if (!preparation.hasComputerMembership(matchId)) throw new MatchService.Failure("NOT_FOUND");
 			request.set("version", 1);
 			SetupApplication.HandleOutcome outcome = setup.handleComputerWithOutcome(request);
 			JsonObject response = outcome.response();

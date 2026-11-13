@@ -247,6 +247,7 @@ class BrowserV2LiveTranscriptTest {
 		SetupApplication setup = mock(SetupApplication.class);
 		V2PreparationService preparation = mock(V2PreparationService.class);
 		when(preparation.isComputerMatch(MATCH)).thenReturn(true);
+		when(preparation.hasComputerMembership(MATCH)).thenReturn(true);
 		when(setup.spectatorView(MATCH)).thenReturn(state(9));
 		when(setup.liveTranscriptPage(MATCH, 9)).thenReturn(page(9));
 		when(setup.liveTranscriptPage(MATCH, 10)).thenReturn(page(10));

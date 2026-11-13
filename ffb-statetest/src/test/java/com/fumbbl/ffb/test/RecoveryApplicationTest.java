@@ -17,6 +17,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.Test;
 
@@ -229,6 +232,95 @@ class RecoveryApplicationTest {
 		assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
 	}
 
+	@Test void refusedResultWriteReportsPendingAndKeepsTheDurableFinalDecisionAcrossRestart() throws Exception {
+		Fixture fixture = fixture();
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		fixture.repository.completionBudgetRefused = true;
+		JsonObject terminal = finish(application, fixture.id);
+		String role = terminal.getString("testRole", null);
+		terminal.remove("testRole");
+		SetupApplication.HandleOutcome refused = application.handleWithOutcome(role, terminal);
+		assertEquals("COMPLETION_PENDING", refused.response().getString("code", null));
+		assertFalse(refused.publish());
+		long durable = fixture.recovery.rows.get(fixture.id).generation;
+		fixture.repository.completionBudgetRefused = false;
+		SetupApplication restarted = app(fixture);
+		JsonObject loaded = accepted(restarted.handle("home", load(fixture.id, "finish-recovery"))).get("state").asObject();
+		assertEquals("FULL_TIME", loaded.getString("phase", null));
+		assertEquals(durable, fixture.recovery.rows.get(fixture.id).generation);
+		int reads = fixture.recovery.reads;
+		assertTrue(accepted(restarted.handle(role, terminal)).getBoolean("duplicate", false));
+		assertEquals(reads + 1, fixture.recovery.reads, "Completed requests read the recovery record once");
+	}
+
+	@Test void pendingCompletionBacksOffAndLogsFailuresBeforePublishing() throws Exception {
+		Fixture fixture = fixture();
+		MutableClock clock = new MutableClock(1_700_000_000_000L);
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		fixture.repository.completionBudgetRefused = true;
+		FinishedMatch finished = finishWithResponse(application, fixture.id);
+		assertEquals("COMPLETION_PENDING", finished.response.getString("code", null));
+		RecoveryRepository.Record checkpoint = fixture.recovery.rows.get(fixture.id);
+		int attempts = fixture.repository.completionAttempts;
+		int reads = fixture.repository.reads;
+		try (PendingCompletionLogs logs = new PendingCompletionLogs(fixture.id)) {
+			for (long delay : new long[] {1_000, 2_000, 4_000, 8_000, 16_000, 32_000, 60_000, 60_000}) {
+				assertTrue(application.expireReactiveDecisions().isEmpty(), "A refused timer attempt cannot publish");
+				assertEquals(++attempts, fixture.repository.completionAttempts);
+				assertEquals(++reads, fixture.repository.reads);
+				clock.advance(delay - 1);
+				assertTrue(application.expireReactiveDecisions().isEmpty());
+				assertEquals(attempts, fixture.repository.completionAttempts);
+				assertEquals(reads, fixture.repository.reads, "A match in backoff must not read the preparation");
+				clock.advance(1);
+			}
+			assertEquals(8, logs.messages.size());
+			assertTrue(logs.messages.stream().allMatch(message -> message.contains("exception=NotStarted")
+				&& message.contains("sqlState=HYT00")));
+
+			fixture.repository.completionBudgetRefused = false;
+			JsonObject published = application.expireReactiveDecisions().get(fixture.id);
+			assertNotNull(published, "The timer publishes the durable final state without a client request");
+			assertEquals("FULL_TIME", published.getString("phase", null));
+			assertEquals(fixture.matches.result("home", fixture.id).json(), fixture.matches.result("away", fixture.id).json());
+			assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id));
+			assertEquals(0, application.lifecycleMetrics().getInt("residentSessions", -1));
+			reads = fixture.repository.reads;
+			clock.advance(60_000);
+			assertTrue(application.expireReactiveDecisions().isEmpty());
+			assertEquals(attempts + 1, fixture.repository.completionAttempts);
+			assertEquals(reads, fixture.repository.reads, "A successful completion clears the pending retry");
+			assertEquals(8, logs.messages.size());
+		}
+	}
+
+	@Test void unexpectedCompletionFailureStaysPendingAndSucceedsOnLaterTick() throws Exception {
+		Fixture fixture = fixture();
+		MutableClock clock = new MutableClock(1_700_000_000_000L);
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		fixture.repository.completionBudgetRefused = true;
+		assertEquals("COMPLETION_PENDING", finishWithResponse(application, fixture.id).response.getString("code", null));
+		fixture.repository.completionBudgetRefused = false;
+		fixture.repository.completionFailure = new IllegalStateException("private result detail");
+		try (PendingCompletionLogs logs = new PendingCompletionLogs(fixture.id)) {
+			assertTrue(application.expireReactiveDecisions().isEmpty());
+			assertEquals("ACTIVATED", fixture.matches.load("home", fixture.id).document.lifecycle.name());
+			assertEquals(1, logs.messages.size());
+			assertTrue(logs.messages.getFirst().contains("exception=IllegalStateException"));
+			assertFalse(logs.messages.getFirst().contains("private result detail"));
+			fixture.repository.completionFailure = null;
+			clock.advance(1_000);
+			JsonObject published = application.expireReactiveDecisions().get(fixture.id);
+			assertNotNull(published);
+			assertEquals("FULL_TIME", published.getString("phase", null));
+			assertEquals("COMPLETED", fixture.matches.load("home", fixture.id).document.lifecycle.name());
+			assertTrue(application.expireReactiveDecisions().isEmpty());
+		}
+	}
+
 	@Test void completedRecoveryLoadKeepsLiveSaveResumeAndClockDecorationWithoutChangingFrozenResult() throws Exception {
 		Fixture fixture = fixture();
 		MutableClock clock = new MutableClock(1_700_000_000_000L);
@@ -244,6 +336,17 @@ class RecoveryApplicationTest {
 
 		String completion = fixture.matches.result(role, fixture.id).json();
 		String checkpoint = fixture.recovery.rows.get(fixture.id).json;
+		JsonObject legacy = JsonObject.readFrom(checkpoint);
+		JsonObject payload = legacy.get("payload").asObject();
+		payload.set("pendingRoute", new JsonObject().add("actor", role).add("kind", "move")
+			.add("playerId", "finished-player").add("declaredRevision", liveState.getInt("revision", 0) - 1)
+			.add("targetPlayerId", com.eclipsesource.json.JsonValue.NULL).add("origin", new JsonObject().add("x", 1).add("y", 1))
+			.add("next", 0).add("targetSelected", false).add("steps", new com.eclipsesource.json.JsonArray().add(new JsonObject().add("x", 2).add("y", 1))));
+		String hash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+			.digest(payload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+		legacy.set("sha256", hash);
+		RecoveryRepository.Record previous = fixture.recovery.rows.get(fixture.id);
+		fixture.recovery.rows.put(fixture.id, new RecoveryRepository.Record(fixture.id, previous.generation, legacy.toString()));
 		JsonObject retried = accepted(application.handleWithOutcome(role, finished.request).response());
 		assertTrue(retried.getBoolean("duplicate", false));
 		JsonObject retryState = retried.get("state").asObject();
@@ -268,7 +371,7 @@ class RecoveryApplicationTest {
 				"Completed load must preserve authoritative " + field + " projection");
 		assertFalse(loaded.getBoolean("duplicate", true));
 		assertEquals(completion, fixture.matches.result(role, fixture.id).json(), "Completed-load decoration cannot rewrite the frozen result or transcript");
-		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id).json, "A terminal read cannot rewrite the recovery checkpoint");
+		assertEquals(legacy.toString(), fixture.recovery.rows.get(fixture.id).json, "A terminal read cannot rewrite the recovery checkpoint");
 	}
 
 	@Test void ambiguousCompletionCommitReconcilesRetryAndBroadcastWithoutAnotherWrite() throws Exception {
@@ -414,7 +517,7 @@ class RecoveryApplicationTest {
 			if (response.get("state") != null && !response.get("state").isNull())
 				maxSnapshotBytes = Math.max(maxSnapshotBytes, response.get("state").toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
 			sampledHeapPeak = Math.max(sampledHeapPeak, java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed());
-			if (!session.isComplete() || !("PERSISTENCE_FAILED".equals(response.getString("code", null))
+			if (!session.isComplete() || !("COMPLETION_PENDING".equals(response.getString("code", null)) || "PERSISTENCE_FAILED".equals(response.getString("code", null))
 				|| "MATCH_OUTCOME_UNKNOWN".equals(response.getString("code", null)))) accepted(response);
 		}
 		assertTrue(session.isComplete());
@@ -580,8 +683,36 @@ class RecoveryApplicationTest {
 		assertEquals("MATCH_SUSPENDED", restarted.handle(actor(view), choice(fixture.id, "blocked-action", view, "heads")).getString("code", null));
 		assertTrue(restarted.handle("away", save(fixture.id, "save-accept", view, "saveAccept", proposal)).getBoolean("duplicate", false));
 		clock.advance(30L * 24 * 60 * 60 * 1000L + 1L);
-		assertEquals("MATCH_ABANDONED", restarted.handle("home", load(fixture.id, "expired")).getString("code", null));
+		JsonObject restored = accepted(restarted.handle("home", load(fixture.id, "expired-cold"))).get("state").asObject();
+		assertEquals("SUSPENDED", restored.get("saveResume").asObject().getString("status", null));
+		assertEquals("MATCH_ABANDONED", restarted.handle("home", load(fixture.id, "expired-resident")).getString("code", null));
 		JsonObject payload = JsonObject.readFrom(fixture.recovery.rows.get(fixture.id).json).get("payload").asObject();
+		assertTrue(payload.get("saveResume").asObject().getBoolean("abandoned", false));
+	}
+
+	@Test void coldLoadReturnsDurableViewBeforeNextResidentRequestRecordsAbandonment() throws Exception {
+		Fixture fixture = fixture();
+		MutableClock clock = new MutableClock(1_700_000_000_000L);
+		SetupApplication application = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock, true);
+		accepted(application.activate("home", activate(fixture.id, "activate").toString()));
+		JsonObject durableView = accepted(application.handle("home", load(fixture.id, "before-expiry"))).get("state").asObject();
+		RecoveryRepository.Record checkpoint = fixture.recovery.rows.get(fixture.id);
+		int writes = fixture.recovery.writes;
+
+		clock.advance(30L * 24 * 60 * 60 * 1000L + 1L);
+		SetupApplication restarted = new SetupApplication(new TestServer().getServer(), fixture.matches, fixture.recovery, true, clock, true);
+		SetupApplication.HandleOutcome cold = restarted.handleWithOutcome("home", load(fixture.id, "expired-cold-load"));
+		JsonObject view = accepted(cold.response()).get("state").asObject();
+		assertEquals(durableView.get("revision"), view.get("revision"));
+		assertEquals(durableView.get("saveResume"), view.get("saveResume"));
+		assertFalse(cold.publish());
+		assertEquals(writes, fixture.recovery.writes);
+		assertEquals(checkpoint, fixture.recovery.rows.get(fixture.id));
+
+		assertEquals("MATCH_ABANDONED", restarted.handle("home", load(fixture.id, "expired-resident-load")).getString("code", null));
+		RecoveryRepository.Record abandoned = fixture.recovery.rows.get(fixture.id);
+		assertEquals(checkpoint.generation + 1, abandoned.generation);
+		JsonObject payload = JsonObject.readFrom(abandoned.json).get("payload").asObject();
 		assertTrue(payload.get("saveResume").asObject().getBoolean("abandoned", false));
 	}
 
@@ -715,13 +846,37 @@ class RecoveryApplicationTest {
 		public boolean replace(Record record, int expected) { rows.put(record.teamId, record); return true; }
 	}
 
+	private static final class PendingCompletionLogs extends Handler implements AutoCloseable {
+		private final Logger logger = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
+		private final String correlation;
+		private final List<String> messages = new ArrayList<>();
+
+		PendingCompletionLogs(String matchId) {
+			correlation = "phase=pending-completion matchId=" + matchId + " ";
+			logger.addHandler(this);
+		}
+
+		@Override public void publish(LogRecord record) {
+			if (record.getMessage().contains(correlation)) messages.add(record.getMessage());
+		}
+		@Override public void flush() { }
+		@Override public void close() { logger.removeHandler(this); }
+	}
+
 	private static final class Matches implements MatchRepository {
 		private boolean failCompletion;
+		private boolean completionBudgetRefused;
 		private boolean unknownCompletion;
+		private RuntimeException completionFailure;
+		private int reads;
+		private int completionAttempts;
 		private final Map<String, Record> rows = new LinkedHashMap<>();
-		public Record find(String id) { return rows.get(id); }
+		public Record find(String id) { reads++; return rows.get(id); }
 		public void insert(Record record) { rows.put(record.matchId, record); }
 		public boolean replace(Record record, int expected) throws SQLException {
+			if (expected == 3) completionAttempts++;
+			if (completionBudgetRefused && expected == 3) throw new com.fumbbl.ffb.server.db.JdbcConnections.NotStarted();
+			if (completionFailure != null && expected == 3) throw completionFailure;
 			if (failCompletion && expected == 3) throw new SQLException("injected completion write failure");
 			Record prior = rows.get(record.matchId); if (prior == null || prior.documentVersion != expected) return false;
 			rows.put(record.matchId, record);

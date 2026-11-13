@@ -140,39 +140,51 @@ public final class JdbcRecoveryRepository implements RecoveryRepository {
 	}
 
 	private Record findJournal(String id) throws SQLException {
-		try (Connection connection = openConnection()) {
-			connection.setAutoCommit(false);
-			long generation = 0, checkpointGeneration; String checkpoint;
-			try {
-				try (PreparedStatement query = connection.prepareStatement(
-					"SELECT generation,checkpoint_generation,artifact_json FROM ffb_match_recovery WHERE matchid=? FOR UPDATE")) {
-					query.setString(1, id);
-					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
-						if (!rows.next()) { commit(connection); return null; }
-						generation = rows.getLong(1); checkpointGeneration = rows.getLong(2); checkpoint = codec.decode(rows.getString(3));
-					}
-				}
-				List<Record> entries = new ArrayList<>();
-				BoundedJsonStorageCodec journalCodec = new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES);
-				try (PreparedStatement query = connection.prepareStatement(
-					"SELECT generation,record_json FROM ffb_match_recovery_journal WHERE matchid=? ORDER BY generation")) {
-					query.setString(1, id);
-					try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
-						while (rows.next()) {
-							if (entries.size() >= RecoveryJournal.MAX_ENTRIES) throw new MatchService.Failure("RECOVERY_CORRUPT");
-							entries.add(new Record(id, rows.getLong(1), journalCodec.decode(rows.getString(2))));
+		long generation = 0;
+		long checkpointGeneration;
+		String checkpoint;
+		List<Record> entries = new ArrayList<>();
+		try {
+			try (Connection connection = openConnection()) {
+				connection.setAutoCommit(false);
+				try {
+					try (PreparedStatement query = connection.prepareStatement(
+						"SELECT generation,checkpoint_generation,artifact_json FROM ffb_match_recovery WHERE matchid=? FOR UPDATE")) {
+						query.setString(1, id);
+						try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+							if (!rows.next()) { rollback(connection); return null; }
+							generation = rows.getLong(1);
+							checkpointGeneration = rows.getLong(2);
+							checkpoint = rows.getString(3);
 						}
 					}
+					try (PreparedStatement query = connection.prepareStatement(
+						"SELECT generation,record_json FROM ffb_match_recovery_journal WHERE matchid=? ORDER BY generation")) {
+						query.setString(1, id);
+						try (BrowserRequestTiming.Scope read = timing.span(BrowserRequestTiming.Phase.DB_READ); ResultSet rows = query.executeQuery()) {
+							while (rows.next()) {
+								if (entries.size() >= RecoveryJournal.MAX_ENTRIES) throw new MatchService.Failure("RECOVERY_CORRUPT");
+								entries.add(new Record(id, rows.getLong(1), rows.getString(2)));
+							}
+						}
+					}
+				} catch (SQLException | RuntimeException failure) {
+					try { rollback(connection); } catch (SQLException cleanup) { failure.addSuppressed(cleanup); }
+					throw failure;
 				}
-				commit(connection);
-				return new RecoveryJournal().restore(id, generation, checkpointGeneration, checkpoint, entries);
-			} catch (SQLException | RuntimeException failure) {
-				try { rollback(connection); } catch (SQLException rollback) { failure.addSuppressed(rollback); }
-				if (generation > 0 && failure instanceof IllegalArgumentException
-					&& (!(failure instanceof MatchService.Failure) || "RECOVERY_CORRUPT".equals(((MatchService.Failure) failure).code)))
-					throw new CorruptRecord(id, generation);
-				throw failure;
+				rollback(connection);
 			}
+			// Finish the consistent SQL snapshot before decoding or reassembling the bounded records.
+			BoundedJsonStorageCodec journalCodec = new BoundedJsonStorageCodec(RecoveryJournal.MAX_ENTRY_BYTES, RecoveryJournal.MAX_ENTRY_BYTES);
+			for (int index = 0; index < entries.size(); index++) {
+				Record entry = entries.get(index);
+				entries.set(index, new Record(id, entry.generation, journalCodec.decode(entry.json)));
+			}
+			return new RecoveryJournal().restore(id, generation, checkpointGeneration, codec.decode(checkpoint), entries);
+		} catch (IllegalArgumentException failure) {
+			if (generation > 0 && (!(failure instanceof MatchService.Failure rejected) || "RECOVERY_CORRUPT".equals(rejected.code)))
+				throw new CorruptRecord(id, generation);
+			throw failure;
 		}
 	}
 

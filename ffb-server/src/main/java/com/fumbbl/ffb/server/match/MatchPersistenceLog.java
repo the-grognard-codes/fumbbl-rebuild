@@ -17,13 +17,27 @@ public final class MatchPersistenceLog {
 		"Unexpected recovery write count", "Unexpected recovery journal write count", "Unexpected lobby recovery row count");
 
 	public void rejected(String phase, String matchId, String requestId, SQLException failure) {
+		write("PERSISTENCE_FAILED", phase, matchId, requestId, failure);
+	}
+
+	void completionPending(String matchId, String requestId, SQLException failure) {
+		write("COMPLETION_PENDING", "completion", matchId, requestId, failure);
+	}
+
+	void pendingCompletionFailed(String matchId, Exception failure) {
+		write("PERSISTENCE_FAILED", "pending-completion", matchId, null, failure);
+	}
+
+	private void write(String code, String phase, String matchId, String requestId, Exception failure) {
 		String message = failure.getMessage();
-		String sqlState = failure.getSQLState();
-		LOG.warning("PERSISTENCE_FAILED phase=" + phase
+		String sql = failure instanceof SQLException sqlFailure
+			? " sqlState=" + correlation(sqlFailure.getSQLState(), "[0-9A-Z]{5}") + " errorCode=" + sqlFailure.getErrorCode()
+			: "";
+		LOG.warning(code + " phase=" + phase
 			+ " matchId=" + correlation(matchId, "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 			+ " requestId=" + correlation(requestId, "[A-Za-z0-9_-]{1,100}")
 			+ " exception=" + failure.getClass().getSimpleName()
-			+ " sqlState=" + correlation(sqlState, "[0-9A-Z]{5}") + " errorCode=" + failure.getErrorCode()
+			+ sql
 			+ " message=" + (message != null && SAFE_MESSAGES.contains(message) ? message : "[redacted]"));
 	}
 

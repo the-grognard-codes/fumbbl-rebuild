@@ -144,11 +144,25 @@ public final class MatchJson {
 	}
 
 	MatchDocument decodeAuthorized(String owner, String text, int persistedVersion) {
+		return decodeAuthorized(owner, text, persistedVersion, false);
+	}
+
+	MatchDocument decodeAuthorized(String owner, String text, int persistedVersion, boolean deferCompletionValidation) {
 		JsonObject object;
-		try { object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16); }
+		try {
+			if (!deferCompletionValidation || persistedVersion != 4) {
+				object = parse(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
+			} else {
+				checkText(text, BoundedJsonStorageCodec.PREPARED_DECODED_LIMIT, 16);
+				object = JsonObject.readFrom(text);
+				if (new HashSet<>(object.names()).size() != object.size()) throw new IllegalArgumentException();
+				for (JsonObject.Member member : object)
+					if (!"completion".equals(member.getName())) unique(member.getValue());
+			}
+		}
 		catch (RuntimeException failure) { throw new MatchService.Failure("NOT_FOUND"); }
 		authorizePersisted(owner, object);
-		return decode(object, persistedVersion);
+		return decode(object, persistedVersion, deferCompletionValidation);
 	}
 
 	public MatchDocument decode(String text, int persistedVersion) {
@@ -158,12 +172,16 @@ public final class MatchJson {
 	}
 
 	private MatchDocument decode(JsonObject object, int persistedVersion) {
+		return decode(object, persistedVersion, false);
+	}
+
+	private MatchDocument decode(JsonObject object, int persistedVersion, boolean deferCompletionValidation) {
 		try {
 			// Independently versioned private extension; old preparation/public formats retain their shape.
 			ComputerCoach computer = object.get("computer") == null ? null : new ComputerCoach(object.get("computer").asObject());
 			object.remove("computer");
 			if (object.getInt("formatVersion", -1) == 2 || object.getInt("formatVersion", -1) == 4)
-				return decodeCompleted(object, persistedVersion, computer);
+				return decodeCompleted(object, persistedVersion, computer, deferCompletionValidation);
 			exact(object, "formatVersion", "matchId", "documentVersion", "lifecycle", "invitation", "home", "away", "homeOwner", "requests");
 			int format = object.get("formatVersion").asInt();
 			if ((format != 1 && format != 3) || positive(object.get("documentVersion")) != persistedVersion) throw new IllegalArgumentException();
@@ -210,9 +228,10 @@ public final class MatchJson {
 		return result;
 	}
 
-	private MatchDocument decodeCompleted(JsonObject object, int persistedVersion, ComputerCoach computer) {
+	private MatchDocument decodeCompleted(JsonObject object, int persistedVersion, ComputerCoach computer, boolean deferValidation) {
 		MatchDocument activated = completedPreparation(object, persistedVersion, computer);
-		CompletedMatch completed = new CompletedMatch(object.get("completion").asObject(), activated);
+		CompletedMatch completed = deferValidation ? new CompletedMatch(activated, object.get("completion").asObject())
+			: new CompletedMatch(object.get("completion").asObject(), activated);
 		return activated.completed(completed);
 	}
 

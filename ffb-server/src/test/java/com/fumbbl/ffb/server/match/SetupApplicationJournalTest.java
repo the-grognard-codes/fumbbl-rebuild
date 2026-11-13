@@ -92,7 +92,9 @@ class SetupApplicationJournalTest {
 			engine.session.startSaveResumeRetention(System.currentTimeMillis());
 			recovery = new Memory(new RecoveryRepository.Record(id, 1, engine.session.recoveryArtifact()), journal);
 			when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(matches.load("away", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.loadForSetup("away", id)).thenReturn(new MatchService.Result(engine.document, false));
 			application = new SetupApplication(engine.server, matches, recovery);
 		}
 

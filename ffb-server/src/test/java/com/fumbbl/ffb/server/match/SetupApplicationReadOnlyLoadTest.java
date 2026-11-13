@@ -43,12 +43,12 @@ class SetupApplicationReadOnlyLoadTest {
 			withSettings().defaultAnswer(CALLS_REAL_METHODS))) {
 			SetupApplication application = fixture.application();
 			assertEquals("ACCEPTED", application.handle("home", fixture.load()).getString("code", null));
-			assertEquals(1, codecs.constructed().size(), "The first restored load retains normalization/checkpoint validation");
+			assertEquals(0, codecs.constructed().size(), "The cold load defers normalization/checkpoint validation");
 			for (int index = 0; index < 5; index++) {
 				fixture.now.addAndGet(1000);
 				assertEquals("ACCEPTED", application.handle("home", fixture.load()).getString("code", null));
 			}
-			assertEquals(1, codecs.constructed().size(), "Unchanged resident loads must not encode the full history");
+			assertEquals(1, codecs.constructed().size(), "The resident loads encode only once for deferred normalization");
 			assertEquals(0, fixture.recovery.saves);
 			assertEquals(checkpoint, fixture.recovery.record.json);
 			SetupSession resident = resident(application, fixture.id);
@@ -72,16 +72,16 @@ class SetupApplicationReadOnlyLoadTest {
 			SetupApplication restarted = fixture.application();
 			JsonObject restored = restarted.handle("home", fixture.load()).get("state").asObject();
 			assertEquals(proposal.get("saveResume"), restored.get("saveResume"));
-			assertEquals(3, codecs.constructed().size());
+			assertEquals(1, codecs.constructed().size());
 			restarted.handle("home", fixture.load());
-			assertEquals(3, codecs.constructed().size());
+			assertEquals(2, codecs.constructed().size());
 			fixture.now.set(proposal.get("saveResume").asObject().getLong("expiresAt", -1));
 			JsonObject expired = restarted.handle("home", fixture.load()).get("state").asObject();
 			assertEquals("ACTIVE", expired.get("saveResume").asObject().getString("status", null));
-			assertEquals(4, codecs.constructed().size());
+			assertEquals(3, codecs.constructed().size());
 			assertEquals(2, fixture.recovery.saves, "Only proposal creation and expiry change the durable checkpoint");
 			restarted.handle("home", fixture.load());
-			assertEquals(4, codecs.constructed().size());
+			assertEquals(3, codecs.constructed().size());
 			JsonObject afterRestart = fixture.application().handle("home", fixture.load()).get("state").asObject();
 			assertEquals("ACTIVE", afterRestart.get("saveResume").asObject().getString("status", null));
 			assertTrue(JsonObject.readFrom(fixture.recovery.record.json).get("payload").asObject()
@@ -135,6 +135,7 @@ class SetupApplicationReadOnlyLoadTest {
 			engine.session.startSaveResumeRetention(now.get());
 			recovery = new MemoryRecovery(id, engine.session.recoveryArtifact());
 			when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+			when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 			when(preferences.loadForMatch(eq(id), anyString())).thenReturn(SkillUsePreferences.defaults());
 		}
 		SetupApplication application() {

@@ -8,6 +8,7 @@ import java.sql.SQLTransientConnectionException;
 /** Repository connection/admission contract, independent of pooling and driver enforcement. */
 @FunctionalInterface
 public interface JdbcConnections {
+	int WORK_RESERVE_MILLIS = 150; // 100 ms native/CPU plus 50 ms transaction/cleanup reserve.
 	Connection open() throws SQLException;
 	default void requireAvailable() throws SQLException { }
 

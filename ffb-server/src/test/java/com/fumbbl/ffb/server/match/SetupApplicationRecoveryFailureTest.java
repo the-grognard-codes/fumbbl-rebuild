@@ -51,6 +51,7 @@ class SetupApplicationRecoveryFailureTest {
 		recovery.records.put(id, new RecoveryRepository.Record(id, 1, INVALID));
 		MatchService matches = mock(MatchService.class);
 		when(matches.load("home", id)).thenReturn(new MatchService.Result(engine.document, false));
+		when(matches.loadForSetup("home", id)).thenReturn(new MatchService.Result(engine.document, false));
 		SetupApplication application = new SetupApplication(engine.server, matches, recovery);
 		assertEquals("RECOVERY_CORRUPT", application.handle("home", loadRequest(id)).getString("code", null));
 		recovery.records.put(id, new RecoveryRepository.Record(id, 2, engine.session.recoveryArtifact()));
@@ -131,9 +132,10 @@ class SetupApplicationRecoveryFailureTest {
 		Fixture fixture = new Fixture();
 		assertEquals("RECOVERY_CORRUPT", fixture.load(ID));
 		when(fixture.matches.load("home", ID)).thenThrow(new MatchService.Failure("NOT_FOUND"));
+		when(fixture.matches.loadForSetup("home", ID)).thenThrow(new MatchService.Failure("NOT_FOUND"));
 		assertEquals("NOT_FOUND", fixture.load(ID));
 		assertEquals(0, fixture.recovery.metadataReads);
-		verify(fixture.matches, times(2)).load("home", ID);
+		verify(fixture.matches, times(2)).loadForSetup("home", ID);
 	}
 
 	@Test void capacityRejectionsAreRetriedAfterCapacityReturnsAndKeepTheirPrecedence() throws Exception {
@@ -181,9 +183,11 @@ class SetupApplicationRecoveryFailureTest {
 		final MemoryRecovery recovery = new MemoryRecovery();
 		final SetupApplication application = new SetupApplication(server, matches, recovery);
 		Fixture() throws Exception {
-			when(matches.load(anyString(), anyString())).thenAnswer(call -> new MatchService.Result(
+			org.mockito.stubbing.Answer<MatchService.Result> load = call -> new MatchService.Result(
 				new MatchDocument(call.getArgument(1), 3, "away", MatchDocument.Lifecycle.ACTIVATED,
-					new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null)), false));
+					new MatchDocument.Member("home", "home", null), new MatchDocument.Member("away", "away", null)), false);
+			when(matches.load(anyString(), anyString())).thenAnswer(load);
+			when(matches.loadForSetup(anyString(), anyString())).thenAnswer(load);
 			recovery.records.put(ID, new RecoveryRepository.Record(ID, 1, INVALID));
 		}
 		String load(String id) {

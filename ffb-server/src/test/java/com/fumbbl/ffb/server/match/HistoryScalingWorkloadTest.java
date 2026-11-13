@@ -166,6 +166,7 @@ class HistoryScalingWorkloadTest {
 		Memory recovery = new Memory(new RecoveryRepository.Record(fixture.document.matchId, 1, artifact), true);
 		MatchService matches = mock(MatchService.class);
 		for (String role : new String[] { "home", "away" }) when(matches.load(role, fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
+		for (String role : new String[] { "home", "away" }) when(matches.loadForSetup(role, fixture.document.matchId)).thenReturn(new MatchService.Result(fixture.document, false));
 		SetupApplication application = new SetupApplication(fixture.server, matches, recovery);
 		long loadedAt = System.nanoTime();
 		JsonObject view = accepted(application.handle(metadata.getString("role", null), new JsonObject().add("version", 1).add("type", "setup")

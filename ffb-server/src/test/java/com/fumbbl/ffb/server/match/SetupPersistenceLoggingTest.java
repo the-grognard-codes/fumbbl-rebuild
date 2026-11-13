@@ -25,6 +25,7 @@ class SetupPersistenceLoggingTest {
 		SetupApplication legacy = new SetupApplication(null, matches);
 		SetupApplication recoverable = new SetupApplication(null, matches, mock(RecoveryRepository.class));
 		when(matches.load("home", matchId)).thenThrow(new SQLException("private player name", "42000", 123));
+		when(matches.loadForSetup("home", matchId)).thenThrow(new SQLException("private player name", "42000", 123));
 		JsonObject request = new JsonObject().add("version", 1).add("type", "preparedMatch").add("operation", "activate")
 			.add("requestId", "activate-test").add("matchId", matchId).add("expectedRevision", 1);
 		Logger logger = Logger.getLogger("com.fumbbl.ffb.server.match.persistence");
