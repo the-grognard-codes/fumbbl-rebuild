@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Restart the dev game server after a fatal engine worker failure. Local health checks now detect a stalled engine, and JVM heap exhaustion leaves a private dump for diagnosis.
+
 - Bound lobby reads with a shared two-request burst, batched storage reads and page budgets. Busy refreshes preserve existing games and selection and wait before sending further reads. Invalid stored matches retain unavailable lobby entries; queued refreshes preserve their cursor and detail options and honor the shared refill delay while earlier reads complete.
 
 - Retry authorized recovery notices on a later worker budget when delivery or notice admission times out, preserving the board and retrying only undelivered recipients.

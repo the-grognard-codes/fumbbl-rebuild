@@ -17,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -88,6 +89,28 @@ class SetupApplicationReadOnlyLoadTest {
 		}
 	}
 
+	@Test void fatalErrorBeforeCheckpointCommitRestoresLastAcceptedNativeRevision() throws Exception {
+		Fixture fixture = new Fixture();
+		SetupApplication initial = fixture.application();
+		JsonObject ready = initial.handle("home", fixture.load()).get("state").asObject();
+		JsonObject save = fixture.load().set("operation", "saveRequest").set("requestId", "save-before-crash")
+			.add("expectedRevision", ready.getInt("revision", -1));
+		JsonObject accepted = initial.handle("home", save);
+		assertEquals("ACCEPTED", accepted.getString("code", null));
+		JsonObject savedState = accepted.get("state").asObject();
+		RecoveryRepository.Record committed = fixture.recovery.record;
+		fixture.recovery.failBeforeCommit = true;
+		JsonObject cancel = fixture.load().set("operation", "saveCancel").set("requestId", "cancel-interrupted")
+			.add("expectedRevision", savedState.getInt("revision", -1))
+			.add("proposalId", savedState.get("saveResume").asObject().get("proposalId"));
+		assertThrows(AssertionError.class, () -> initial.handle("home", cancel));
+		assertEquals(committed, fixture.recovery.record);
+		fixture.recovery.failBeforeCommit = false;
+		JsonObject restored = fixture.application().handle("home", fixture.load()).get("state").asObject();
+		assertEquals(savedState.get("revision"), restored.get("revision"));
+		assertEquals(savedState.get("saveResume"), restored.get("saveResume"));
+	}
+
 	private static GameState state(SetupSession session) throws Exception {
 		Field field = SetupSession.class.getDeclaredField("state"); field.setAccessible(true); return (GameState) field.get(session);
 	}
@@ -123,9 +146,11 @@ class SetupApplicationReadOnlyLoadTest {
 	}
 	private static final class MemoryRecovery implements RecoveryRepository {
 		Record record; int saves;
+		boolean failBeforeCommit;
 		MemoryRecovery(String id, String artifact) { record = new Record(id, 1, artifact); }
 		@Override public Record find(String id) { return record; }
 		@Override public boolean save(Record next, long expected) {
+			if (failBeforeCommit) throw new AssertionError("injected fatal checkpoint failure");
 			assertEquals(record.generation, expected); record = next; saves++; return true;
 		}
 	}

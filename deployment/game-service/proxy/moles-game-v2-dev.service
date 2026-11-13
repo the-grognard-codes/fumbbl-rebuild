@@ -10,8 +10,11 @@ Type=simple
 User=moles-game-v2-dev
 Group=moles-game-v2-dev
 WorkingDirectory=/opt/moles-game-v2-dev
-ExecStart=/opt/moles-game-v2-dev/java/openjdk/bin/java -Xms128m -Xmx768m -cp /opt/moles-game-v2-dev/FantasyFootballServer.jar:/opt/moles-game-v2-dev/lib/* com.fumbbl.ffb.server.local.NativeMarker6ServerMain /etc/moles-game-v2-dev/server.properties
-Restart=no
+StateDirectory=moles-game-v2-dev/heap-dumps
+StateDirectoryMode=0700
+ExecStart=/opt/moles-game-v2-dev/java/openjdk/bin/java -Xms128m -Xmx768m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/var/lib/moles-game-v2-dev/heap-dumps/java-${INVOCATION_ID}.hprof -XX:+ExitOnOutOfMemoryError -cp /opt/moles-game-v2-dev/FantasyFootballServer.jar:/opt/moles-game-v2-dev/lib/* com.fumbbl.ffb.server.local.NativeMarker6ServerMain /etc/moles-game-v2-dev/server.properties
+Restart=on-failure
+RestartSec=5s
 TimeoutStopSec=60
 KillSignal=SIGTERM
 NoNewPrivileges=true

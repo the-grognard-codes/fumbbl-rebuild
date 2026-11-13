@@ -6,6 +6,20 @@ for the current V2 application at <http://localhost:5000/play>. See
 V2 uses existing Firebase authentication and the separately provisioned browser schema.
 No remote publication is performed.
 
+The dev-local server restarts on a nonzero exit, including a fatal engine
+worker failure. A JVM heap OOM writes a private `java-<unique-id>.hprof` before
+exiting. Find the files on the host at `.tools/dev-local/heap-dumps/`, or set
+`DEV_LOCAL_HEAP_DUMP_DIR` to an absolute host path. This bind mount survives a
+container restart or recreation. On Linux, create the directory with mode
+`0700` and owner UID/GID `10001:10001` before starting. Keep dumps private and
+archive or remove them after analysis; they can be large.
+
+Docker probes `/health/engine` from inside the server container. The endpoint
+returns 204 while the worker is alive and has progressed in the last 10 seconds
+and 503 otherwise. Once started, Docker checks every five seconds and reports
+unhealthy after three failures. The restart policy acts on process exit; a
+stall alone is reported as unhealthy.
+
 ## V2 validation
 
 The isolated acceptance profile uses `compose.v2-acceptance.yaml`, separate database

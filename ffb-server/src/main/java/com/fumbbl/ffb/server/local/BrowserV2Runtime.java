@@ -30,7 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-/** The v2 host serves only one authenticated game endpoint. */
+/** The v2 host serves the authenticated game endpoint and a local health probe. */
 public final class BrowserV2Runtime {
 	public static void mount(FantasyFootballServer server, ServletContextHandler context,
 		JdbcConnections connections) throws SQLException {
@@ -72,6 +72,17 @@ public final class BrowserV2Runtime {
 	/** The isolated v2 route surface intentionally exposes no legacy servlet paths. */
 	static void mountRoutes(ServletContextHandler context, FantasyFootballServer server, BrowserV2Adapter adapter) {
 		context.addServlet(new ServletHolder(new BrowserMatchServlet(server, adapter)), "/browser/v2");
+		context.addServlet(new ServletHolder(new HttpServlet() {
+			@Override protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+				if (!"127.0.0.1".equals(request.getRemoteAddr()) && !"::1".equals(request.getRemoteAddr())) {
+					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+					return;
+				}
+				response.setHeader("Cache-Control", "no-store");
+				response.setStatus(server.getCommunication().isHealthy()
+					? HttpServletResponse.SC_NO_CONTENT : HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+			}
+		}), "/health/engine");
 		context.addServlet(new ServletHolder(new HttpServlet() {
 			@Override protected void service(HttpServletRequest request, HttpServletResponse response) { response.setStatus(404); }
 		}), "/*");
