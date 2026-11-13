@@ -15,9 +15,26 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BrowserMatchTransportTest {
+	@Test void fatalLogContextFollowsTheSelectedLaneAndOmitsUnvalidatedFields() {
+		QueueFixture fixture = new QueueFixture();
+		String matchId = "12345678-1234-1234-1234-123456789abc";
+		try {
+			fixture.transport.submit(advisory("browse"), () -> { }, () -> { });
+			fixture.transport.submit("{\"version\":2,\"type\":\"setup\",\"matchId\":\"" + matchId + "\"}",
+				() -> { throw new AssertionError("injected"); }, () -> { });
+			assertThrows(AssertionError.class, fixture::drain);
+			verify(fixture.communication).describeWork("setup", matchId);
+			fixture.transport.submit("{\"version\":2,\"type\":\"unexpected-secret\",\"matchId\":\"bad-id\"}",
+				() -> { }, () -> { });
+			fixture.drain();
+			verify(fixture.communication).describeWork("INGRESS", null);
+		} finally { fixture.transport.destroy(); }
+	}
+
 	@Test public void lobbyReadsYieldToGameplayAndShareTheExistingAdvisoryAllowance() {
 		QueueFixture fixture = new QueueFixture();
 		List<String> handled = new ArrayList<>();

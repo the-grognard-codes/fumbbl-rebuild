@@ -50,6 +50,7 @@ gha-creds-*.json
 *.log
 hs_err_pid*
 replay_pid*
+*.hprof
 
 # Test and coverage output
 test-output/

@@ -129,10 +129,15 @@ temporary worker overlap when measuring memory.
 The new launcher is `com.fumbbl.ffb.server.local.NativeMarker6ServerMain`.
 Its properties file must match the packaged native DEV contract exactly: no
 missing/extra properties, JDBC parameters, alternate secrets, debug or legacy
-flags are accepted. The [systemd candidate](moles-game-v2-dev.service) is not
-enabled or installed by any script. It uses a distinct OS account and no bind
-capabilities. Automatic restart is deliberately off until recovery/cutover
-acceptance; an operator must investigate a startup failure.
+flags are accepted. The [systemd candidate](moles-game-v2-dev.service) uses a
+distinct OS account and no bind capabilities. Enable it at cutover after
+recovery acceptance. Once started, including during loopback staging, it
+restarts after a failure with a five-second delay, subject to systemd's start
+rate limit.
+A JVM heap OOM writes a private dump under the state directory before exiting.
+The local-only `http://127.0.0.1:22231/health/engine` returns 204 when the worker
+is making progress and 503 if it has stalled for 10 seconds. The proxy does
+not forward this endpoint.
 
 | Resource | Fixed native DEV destination |
 | --- | --- |
@@ -142,6 +147,7 @@ acceptance; an operator must investigate a startup failure.
 | Runtime/config | `/opt/moles-game-v2-dev`, `/etc/moles-game-v2-dev/server.properties` |
 | Password files | `/etc/moles-game-v2-dev/secrets/` |
 | Retained backup/state | `/var/lib/moles-game-v2-dev/backup` |
+| Private JVM heap dumps | `/var/lib/moles-game-v2-dev/heap-dumps/java-<invocation-id>.hprof` |
 | Logs | `/var/log/moles-game-v2-dev` |
 
 These are reviewed candidate namespace choices, not claims that those resources
